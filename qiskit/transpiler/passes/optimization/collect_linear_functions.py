@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,170 +13,55 @@
 
 """Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
-from collections import deque
+from functools import partial
+
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.utils import control_flow
-from qiskit.circuit import QuantumCircuit
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.passes.optimization.collect_and_collapse import (
+    CollectAndCollapse,
+    collect_using_filter_function,
+    collapse_to_operation,
+)
 
 
-def collect_linear_blocks(dag):
-    """Collect blocks of linear gates."""
-
-    blocks = []
-
-    in_degree = dict()
-    pending_linear_ops = deque()
-    pending_non_linear_ops = deque()
-
-    def is_linear(op):
-        return op.name in ("cx", "swap") and getattr(op, "condition", None) is None
-
-    def process_node(node):
-        for suc in dag.successors(node):
-            if not isinstance(suc, DAGOpNode):
-                continue
-            in_degree[suc] -= 1
-            if in_degree[suc] > 0:
-                continue
-
-            if is_linear(suc.op):
-                pending_linear_ops.append(suc)
-            else:
-                pending_non_linear_ops.append(suc)
-
-    for node in dag.op_nodes():
-        deg = sum(1 for op in dag.predecessors(node) if isinstance(op, DAGOpNode))
-        if deg > 0:
-            in_degree[node] = deg
-            continue
-
-        if is_linear(node.op):
-            pending_linear_ops.append(node)
-        else:
-            pending_non_linear_ops.append(node)
-
-    while pending_non_linear_ops or pending_linear_ops:
-
-        # first collect as many non linear gates as possible
-        while pending_non_linear_ops:
-            node = pending_non_linear_ops.popleft()
-            process_node(node)
-
-        # now collect as many linear gates as possible
-        cur_block = []
-        while pending_linear_ops:
-            node = pending_linear_ops.popleft()
-            process_node(node)
-            cur_block.append(node)
-
-        if cur_block:
-            blocks.append(cur_block)
-
-    return blocks
-
-
-def split_block_into_components(dag, block):
-    """Given a block of gates, splits it into connected components."""
-
-    if len(block) == 0:
-        return block
-
-    nodeset = set(block)
-    colors = dict()
-    color = -1
-
-    def process_node_rec(node):
-        """Given a node, recursively assigns the current color to all of its
-        successors and predecessors."""
-
-        if node not in colors.keys():
-            colors[node] = color
-
-            for pred in dag.predecessors(node):
-                if node not in nodeset or not isinstance(pred, DAGOpNode):
-                    continue
-                process_node_rec(pred)
-
-            for suc in dag.successors(node):
-                if node not in nodeset or not isinstance(suc, DAGOpNode):
-                    continue
-                process_node_rec(suc)
-
-    # Assign colors to nodes, so that nodes are in the same component iff they
-    # have the same color
-    for node in block:
-        if node not in colors.keys():
-            color = color + 1
-            process_node_rec(node)
-
-    # Split blocks based on color
-    split_blocks = [[] for _ in range(color + 1)]
-    for node in block:
-        split_blocks[colors[node]].append(node)
-
-    return split_blocks
-
-
-def split_blocks_into_components(dag, blocks):
-    """Given blocks of gates, splits each block into connected components,
-    and returns a list of all blocks."""
-    split_blocks = []
-    for block in blocks:
-        split_blocks.extend(split_block_into_components(dag, block))
-    return split_blocks
-
-
-class CollectLinearFunctions(TransformationPass):
+class CollectLinearFunctions(CollectAndCollapse):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
-    @control_flow.trivial_recurse
-    def run(self, dag):
-        """Run the CollectLinearFunctions pass on `dag`.
+    def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+        """CollectLinearFunctions initializer.
 
         Args:
-            dag (DAGCircuit): the DAG to be optimized.
-
-        Returns:
-            DAGCircuit: the optimized DAG.
+            do_commutative_analysis (bool): if True, exploits commutativity relations
+                between nodes.
+            split_blocks (bool): if True, splits collected blocks into sub-blocks
+                over disjoint qubit subsets.
+            min_block_size (int): specifies the minimum number of gates in the block
+                for the block to be collected.
         """
 
-        # collect blocks of linear gates
-        blocks = collect_linear_blocks(dag)
+        collect_function = partial(
+            collect_using_filter_function,
+            filter_function=_is_linear_gate,
+            split_blocks=split_blocks,
+            min_block_size=min_block_size,
+        )
+        collapse_function = partial(
+            collapse_to_operation, collapse_function=_collapse_to_linear_function
+        )
 
-        # refine blocks by splitting into disconnected components
-        blocks = split_blocks_into_components(dag, blocks)
+        super().__init__(
+            collect_function=collect_function,
+            collapse_function=collapse_function,
+            do_commutative_analysis=do_commutative_analysis,
+        )
 
-        # Replace every discovered block by a linear function
-        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-        for cur_nodes in blocks:
-            # Create linear functions only out of blocks with at least 2 gates
-            if len(cur_nodes) == 1:
-                continue
 
-            # Find the set of all qubits used in this block
-            cur_qubits = set()
-            for node in cur_nodes:
-                cur_qubits.update(node.qargs)
+def _is_linear_gate(node):
+    """Specifies whether a node holds a linear gate."""
+    return node.op.name in ("cx", "swap") and getattr(node.op, "condition", None) is None
 
-            # For reproducibility, order these qubits compatibly with the global order
-            sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
-            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(sorted_qubits))
 
-            # Construct a linear circuit
-            qc = QuantumCircuit(len(cur_qubits))
-            for node in cur_nodes:
-                if node.op.name == "cx":
-                    qc.cx(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
-                elif node.op.name == "swap":
-                    qc.swap(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
-
-            # Create a linear function from this quantum circuit
-            op = LinearFunction(qc)
-
-            # Replace the block by the constructed circuit
-            dag.replace_block_with_op(cur_nodes, op, wire_pos_map, cycle_check=False)
-
-        return dag
+def _collapse_to_linear_function(circuit):
+    """Specifies how to construct a ``LinearFunction`` from a quantum circuit (that must
+    consist of linear gates only)."""
+    return LinearFunction(circuit)

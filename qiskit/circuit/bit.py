@@ -19,7 +19,13 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
-    """Implement a generic bit."""
+    """Implement a generic bit.
+
+    .. note::
+        This class should not be instantiated directly. This is just a superclass
+        for :class:`~.Clbit` and :class:`~.Qubit`.
+
+    """
 
     __slots__ = {"_register", "_index", "_hash", "_repr"}
 
@@ -54,14 +60,23 @@ class Bit:
 
     @property
     def register(self):
-        """Get bit's register."""
+        """Get the register of an old-style bit.
+
+        .. deprecated:: 0.17
+            Use :meth:`.QuantumCircuit.find_bit` instead.
+
+        In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
+        aliases to collections of bits.  A bit can be in many registers depending on the circuit, so
+        a single containing register is no longer a property of a bit.  It is an error to access
+        this attribute on bits that were not constructed as "owned" by a register."""
         if (self._register, self._index) == (None, None):
             raise CircuitError("Attempt to query register of a new-style Bit.")
 
         warnings.warn(
-            "Back-references to from Bit instances to their containing "
-            "Registers have been deprecated. Instead, inspect Registers "
-            "to find their contained Bits.",
+            "'Bit.register' is deprecated since Qiskit Terra 0.17 and will be removed "
+            "in a future release. Bits may be in more than one register. "
+            "Use 'QuantumCircuit.find_bit' to find all the containing registers within a circuit, "
+            "and the index of the bit within the circuit.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -70,14 +85,23 @@ class Bit:
 
     @property
     def index(self):
-        """Get bit's index."""
+        """Get the index of an old-style bit in the register that owns it.
+
+        .. deprecated:: 0.17
+            Use :meth:`.QuantumCircuit.find_bit` instead.
+
+        In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
+        aliases to collections of bits.  A bit can be in many registers depending on the circuit, so
+        a single containing register is no longer a property of a bit.  It is an error to access
+        this attribute on bits that were not constructed as "owned" by a register."""
         if (self._register, self._index) == (None, None):
             raise CircuitError("Attempt to query index of a new-style Bit.")
 
         warnings.warn(
-            "Back-references to from Bit instances to their containing "
-            "Registers have been deprecated. Instead, inspect Registers "
-            "to find their contained Bits.",
+            "'Bit.index' is deprecated since Qiskit Terra 0.17 and will be removed "
+            "in a future release. Bits may be in more than one register. "
+            "Use 'QuantumCircuit.find_bit' to find all the containing registers within a circuit, "
+            "and the index of the bit within the circuit.",
             DeprecationWarning,
             stacklevel=2,
         )

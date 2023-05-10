@@ -26,15 +26,19 @@ class Unroller(TransformationPass):
     to a desired basis, using decomposition rules defined for each instruction.
     """
 
-    def __init__(self, basis):
+    def __init__(self, basis=None, target=None):
         """Unroller initializer.
 
         Args:
             basis (list[str] or None): Target basis names to unroll to, e.g. `['u3', 'cx']` . If
                 None, does not unroll any gate.
+            target (Target):  The :class:`~.Target` representing the target backend, if both
+                ``basis`` and this are specified then this argument will take
+                precedence and ``basis`` will be ignored.
         """
         super().__init__()
         self.basis = basis
+        self.target = target
 
     def run(self, dag):
         """Run the Unroller pass on `dag`.
@@ -49,25 +53,41 @@ class Unroller(TransformationPass):
         Returns:
             DAGCircuit: output unrolled dag
         """
-        if self.basis is None:
+        if self.basis is None and self.target is None:
             return dag
+        qubit_mapping = {}
+        if self.target is not None:
+            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():
             if getattr(node.op, "_directive", False):
                 continue
 
-            if node.name in basic_insts:
-                # TODO: this is legacy behavior.Basis_insts should be removed that these
-                #  instructions should be part of the device-reported basis. Currently, no
-                #  backend reports "measure", for example.
-                continue
-
-            if node.name in self.basis:  # If already a base, ignore.
-                if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
-                    pass
-                else:
+            run_qubits = None
+            if self.target is not None:
+                run_qubits = tuple(qubit_mapping[x] for x in node.qargs)
+                if (
+                    self.target.instruction_supported(node.op.name, qargs=run_qubits)
+                    or node.op.name == "barrier"
+                ):
+                    print("blue")
+                    if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
+                        pass
+                    else:
+                        continue
+            else:
+                if node.name in basic_insts:
+                    # TODO: this is legacy behavior.Basis_insts should be removed that these
+                    #  instructions should be part of the device-reported basis. Currently, no
+                    #  backend reports "measure", for example.
                     continue
+
+                if node.name in self.basis:  # If already a base, ignore.
+                    if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
+                        pass
+                    else:
+                        continue
 
             if isinstance(node.op, ControlFlowOp):
                 node.op = control_flow.map_blocks(self.run, node.op)
@@ -87,10 +107,16 @@ class Unroller(TransformationPass):
             # to substitute_node_with_dag if an the width of the definition is
             # different that the width of the node.
             while rule and len(rule) == 1 and len(node.qargs) == len(rule[0].qubits) == 1:
-                if rule[0].operation.name in self.basis:
-                    dag.global_phase += phase
-                    dag.substitute_node(node, rule[0].operation, inplace=True)
-                    break
+                if self.target is not None:
+                    if self.target.instruction_supported(rule[0].operation.name, run_qubits):
+                        dag.global_phase += phase
+                        dag.substitute_node(node, rule[0].operation, inplace=True)
+                        break
+                else:
+                    if rule[0].operation.name in self.basis:
+                        dag.global_phase += phase
+                        dag.substitute_node(node, rule[0].operation, inplace=True)
+                        break
                 try:
                     phase += rule[0].operation.definition.global_phase
                     rule = rule[0].operation.definition.data

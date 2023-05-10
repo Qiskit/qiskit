@@ -147,6 +147,16 @@ class TestCircuitOperations(QiskitTestCase):
         with self.subTest("c list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
             test.append(opaque, [[0]], [[specifier]])
 
+    @data([], [0], [0, 1, 2])
+    def test_append_rejects_bad_arguments_opaque(self, bad_arg):
+        """Test that a suitable exception is raised when there is an argument mismatch."""
+        inst = QuantumCircuit(2, 2).to_instruction()
+        qc = QuantumCircuit(3, 3)
+        with self.assertRaisesRegex(CircuitError, "The amount of qubit arguments"):
+            qc.append(inst, bad_arg, [0, 1])
+        with self.assertRaisesRegex(CircuitError, "The amount of clbit arguments"):
+            qc.append(inst, [0, 1], bad_arg)
+
     def test_anding_self(self):
         """Test that qc &= qc finishes, which can be prone to infinite while-loops.
 
@@ -1114,32 +1124,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.num_clbits, 10)
         self.assertEqual(qc.num_ancillas, 10)
 
-    def test_deprecated_measure_function(self):
-        """Test that the deprecated version of the loose 'measure' function works correctly."""
-        from qiskit.circuit.measure import measure
-
-        test = QuantumCircuit(1, 1)
-        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
-            measure(test, 0, 0)
-
-        expected = QuantumCircuit(1, 1)
-        expected.measure(0, 0)
-
-        self.assertEqual(test, expected)
-
-    def test_deprecated_reset_function(self):
-        """Test that the deprecated version of the loose 'reset' function works correctly."""
-        from qiskit.circuit.reset import reset
-
-        test = QuantumCircuit(1, 1)
-        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
-            reset(test, 0)
-
-        expected = QuantumCircuit(1, 1)
-        expected.reset(0)
-
-        self.assertEqual(test, expected)
-
     def test_from_instructions(self):
         """Test from_instructions method."""
 
@@ -1149,9 +1133,9 @@ class TestCircuitOperations(QiskitTestCase):
         a, b, c, d = qreg
         x, y, z = creg
 
-        circuit_1 = QuantumCircuit(2)
+        circuit_1 = QuantumCircuit(2, 1)
         circuit_1.x(0)
-        circuit_2 = QuantumCircuit(2)
+        circuit_2 = QuantumCircuit(2, 1)
         circuit_2.y(0)
 
         def instructions():

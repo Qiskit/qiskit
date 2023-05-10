@@ -13,14 +13,14 @@ features:
 
     Example
       
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import Statevector
 
       state = Statevector.from_label('+0')
       print(state.to_dict())
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import DensityMatrix
 
@@ -36,14 +36,14 @@ features:
 
     Example
       
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import Statevector
 
       state = Statevector.from_label('+0')
       print(state.probabilities())
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import DensityMatrix
 
@@ -58,14 +58,14 @@ features:
     count-style dictionary array of measurement outcome probabilities
     in the computational basis for the specified subsystems.
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import Statevector
 
       state = Statevector.from_label('+0')
       print(state.probabilities_dict())
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import DensityMatrix
 
@@ -81,7 +81,7 @@ features:
 
       Generate a counts dictionary by sampling from a statevector
 
-      .. jupyter-execute::
+      .. code-block::
 
         from qiskit.quantum_info import Statevector
 
@@ -102,7 +102,7 @@ features:
 
       Return the array of measurement outcomes for each sample
     
-      .. jupyter-execute::
+      .. code-block::
 
         from qiskit.quantum_info import Statevector
 
@@ -128,7 +128,7 @@ features:
     and collapsing the statevector to the post-measurement computational basis
     state. For example
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import Statevector
       
@@ -150,7 +150,7 @@ features:
     allows reseting some or all subsystems to the :math:`|0\rangle` state.
     For example
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import Statevector
       

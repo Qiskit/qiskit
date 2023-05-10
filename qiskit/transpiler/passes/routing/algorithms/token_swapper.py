@@ -31,7 +31,7 @@ import logging
 from typing import Iterator, Mapping, MutableMapping, MutableSet, List, Iterable, Union
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from .types import Swap, Permutation
 from .util import PermutationCircuit, permutation_circuit

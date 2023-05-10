@@ -79,22 +79,6 @@ class TestInvalidIds(QiskitTestCase):
         cr = ClassicalRegister(size=3)
         self.assertRaises(CircuitError, QuantumCircuit, qr, cr, name=1)
 
-    def test_invalid_type_qr_name(self):
-        """QuantumRegister() with an invalid type name."""
-        self.assertRaises(CircuitError, QuantumRegister, size=3, name=1)
-
-    def test_invalid_type_cr_name(self):
-        """ClassicalRegister() with an invalid type name."""
-        self.assertRaises(CircuitError, ClassicalRegister, size=3, name=1)
-
-    def test_invalid_qasmname_qr(self):
-        """QuantumRegister() with invalid name."""
-        self.assertRaises(CircuitError, QuantumRegister, size=3, name="Qr")
-
-    def test_invalid_qasmname_cr(self):
-        """ClassicalRegister() with invalid name."""
-        self.assertRaises(CircuitError, ClassicalRegister, size=3, name="Cr")
-
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -11,15 +11,17 @@
 # that they have been altered from the originals.
 
 """A standard gradient descent optimizer."""
+from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Dict, Any, Union, Callable, Optional, Tuple, List, Iterator
+from typing import Any, Callable, SupportsFloat
 import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
 from .optimizer_utils import LearningRate
 
-CALLBACK = Callable[[int, np.ndarray, float, float], None]
+CALLBACK = Callable[[int, np.ndarray, float, SupportsFloat], None]
 
 
 @dataclass
@@ -29,7 +31,7 @@ class GradientDescentState(OptimizerState):
     Dataclass with all the information of an optimizer plus the learning_rate and the stepsize.
     """
 
-    stepsize: Optional[float]
+    stepsize: float | None
     """Norm of the gradient on the last step."""
 
     learning_rate: LearningRate = field(compare=False)
@@ -175,10 +177,13 @@ class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
         maxiter: int = 100,
-        learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]] = 0.01,
+        learning_rate: float
+        | list[float]
+        | np.ndarray
+        | Callable[[], Generator[float, None, None]] = 0.01,
         tol: float = 1e-7,
-        callback: Optional[CALLBACK] = None,
-        perturbation: Optional[float] = None,
+        callback: CALLBACK | None = None,
+        perturbation: float | None = None,
     ) -> None:
         """
         Args:
@@ -196,7 +201,7 @@ class GradientDescent(SteppableOptimizer):
         """
         super().__init__(maxiter=maxiter)
         self.callback = callback
-        self._state: Optional[GradientDescentState] = None
+        self._state: GradientDescentState | None = None
         self._perturbation = perturbation
         self._tol = tol
         # if learning rate is an array, check it is sufficiently long.
@@ -231,7 +236,7 @@ class GradientDescent(SteppableOptimizer):
         self._tol = tol
 
     @property
-    def perturbation(self) -> Optional[float]:
+    def perturbation(self) -> float | None:
         """Returns the perturbation.
 
         This is the perturbation used in the finite difference gradient approximation.
@@ -239,7 +244,7 @@ class GradientDescent(SteppableOptimizer):
         return self._perturbation
 
     @perturbation.setter
-    def perturbation(self, perturbation: Optional[float]) -> None:
+    def perturbation(self, perturbation: float | None) -> None:
         """Set the perturbation."""
         self._perturbation = perturbation
 
@@ -260,11 +265,13 @@ class GradientDescent(SteppableOptimizer):
             )
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
-            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+            learning_rate: float | np.ndarray = np.array(
+                [next(iterator) for _ in range(self.maxiter)]
+            )
         else:
             learning_rate = self.learning_rate
 
@@ -355,8 +362,8 @@ class GradientDescent(SteppableOptimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> None:
 
         self.state = GradientDescentState(

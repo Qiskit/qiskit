@@ -12,6 +12,7 @@
 
 """Padding pass to fill empty timeslot."""
 
+import logging
 from typing import List, Optional, Union
 
 from qiskit.circuit import Qubit, Clbit, Instruction
@@ -19,6 +20,9 @@ from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
+
+logger = logging.getLogger(__name__)
 
 
 class BasePadding(TransformationPass):
@@ -48,6 +52,20 @@ class BasePadding(TransformationPass):
     tracking the start time of each instruction,
     which may result in violation of hardware alignment constraints.
     """
+
+    def __init__(
+        self,
+        target: Target = None,
+    ):
+        """BasePadding initializer.
+
+        Args:
+            target: The :class:`~.Target` representing the target backend.
+                If it supplied and it does not support delay instruction on a qubit,
+                padding passes do not pad any idle time of the qubit.
+        """
+        super().__init__()
+        self.target = target
 
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
@@ -83,6 +101,7 @@ class BasePadding(TransformationPass):
         new_dag.calibrations = dag.calibrations
         new_dag.global_phase = dag.global_phase
 
+        bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         idle_after = {bit: 0 for bit in dag.qubits}
 
         # Compute fresh circuit duration from the node start time dictionary and op duration.
@@ -104,9 +123,8 @@ class BasePadding(TransformationPass):
                     continue
 
                 for bit in node.qargs:
-
                     # Fill idle time with some sequence
-                    if t0 - idle_after[bit] > 0:
+                    if t0 - idle_after[bit] > 0 and self.__delay_supported(bit_indices[bit]):
                         # Find previous node on the wire, i.e. always the latest node on the wire
                         prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
                         self._pad(
@@ -129,7 +147,7 @@ class BasePadding(TransformationPass):
 
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
-            if circuit_duration - idle_after[bit] > 0:
+            if circuit_duration - idle_after[bit] > 0 and self.__delay_supported(bit_indices[bit]):
                 node = new_dag.output_map[bit]
                 prev_node = next(new_dag.predecessors(node))
                 self._pad(
@@ -145,6 +163,12 @@ class BasePadding(TransformationPass):
 
         return new_dag
 
+    def __delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
+
     def _pre_runhook(self, dag: DAGCircuit):
         """Extra routine inserted before running the padding pass.
 
@@ -159,6 +183,12 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        for qarg, _ in enumerate(dag.qubits):
+            if not self.__delay_supported(qarg):
+                logger.debug(
+                    "No padding on qubit %d as delay is not supported on it",
+                    qarg,
+                )
 
     def _apply_scheduled_op(
         self,

@@ -13,6 +13,7 @@
 """latex visualization backend."""
 
 import io
+import itertools
 import math
 import re
 from warnings import warn
@@ -57,7 +58,7 @@ class QCircuitImage:
         plot_barriers=True,
         layout=None,
         initial_state=False,
-        cregbundle=False,
+        cregbundle=None,
         global_phase=None,
         qregs=None,
         cregs=None,
@@ -78,7 +79,7 @@ class QCircuitImage:
             layout (Layout or None): If present, the layout information will be
                included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
-            cregbundle (bool): Optional. If set True bundle classical registers. Default: `False`.
+            cregbundle (bool): Optional. If set True bundle classical registers.
             global_phase (float): Optional, the global phase for the circuit.
             circuit (QuantumCircuit): the circuit that's being displayed
         Raises:
@@ -183,15 +184,23 @@ class QCircuitImage:
             self._layout = None
 
         self._initial_state = initial_state
-        self._cregbundle = cregbundle
         self._global_phase = circuit.global_phase
 
         # If there is any custom instruction that uses classical bits
         # then cregbundle is forced to be False.
-        for layer in self._nodes:
-            for node in layer:
-                if node.op.name not in {"measure"} and node.cargs:
-                    self._cregbundle = False
+        for node in itertools.chain.from_iterable(self._nodes):
+            if node.cargs and node.op.name != "measure":
+                if cregbundle:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
+                self._cregbundle = False
+                break
+        else:
+            self._cregbundle = True if cregbundle is None else cregbundle
 
         self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
         self._img_width = len(self._wire_map)

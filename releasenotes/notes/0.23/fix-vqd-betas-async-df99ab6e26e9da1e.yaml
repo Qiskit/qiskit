@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed existing betas autoevaluation code on class
+    :class:`~qiskit.algorithms.eigensolvers.VQD`, added support for
+    :class:`~qiskit.quantum_info.SparsePauliOp` inputs, and fixed
+    the energy evaluation function to leverage the async execution
+    of primitives, by only retrieving the job results after both
+    jobs have been submitted.
+

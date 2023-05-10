@@ -23,6 +23,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -480,6 +481,24 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(["u2"]))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_basis_u2_with_target(self):
+        """U3(pi/2, 0, pi/4) ->  U2(0, pi/4)"""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.append(U3Gate(np.pi / 2, 0, np.pi / 4), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(U2Gate(0, np.pi / 4), [qr[0]])
+
+        target = Target(num_qubits=1)
+        target.add_instruction(U2Gate(Parameter("theta"), Parameter("phi")))
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(target=target))
         result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)

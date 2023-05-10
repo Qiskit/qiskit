@@ -15,10 +15,12 @@
 import unittest
 
 import numpy as np
+from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import LinearFunction
 from qiskit.synthesis.linear import (
     synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
     random_invertible_binary_matrix,
     check_invertible_binary_matrix,
     calc_inverse_matrix,
@@ -27,6 +29,7 @@ from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, opt
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestLinearSynth(QiskitTestCase):
     """Test the linear reversible circuit synthesis functions."""
 
@@ -99,15 +102,39 @@ class TestLinearSynth(QiskitTestCase):
         self.assertEqual(optimized_qc.depth(), 15)
         self.assertEqual(optimized_qc.count_ops()["cx"], 23)
 
-    def test_invertible_matrix(self):
+    @data(5, 6)
+    def test_invertible_matrix(self, n):
         """Test the functions for generating a random invertible matrix and inverting it."""
-        n = 5
         mat = random_invertible_binary_matrix(n, seed=1234)
         out = check_invertible_binary_matrix(mat)
         mat_inv = calc_inverse_matrix(mat, verify=True)
         mat_out = np.dot(mat, mat_inv) % 2
         self.assertTrue(np.array_equal(mat_out, np.eye(n)))
         self.assertTrue(out)
+
+    @data(5, 6)
+    def test_synth_lnn_kms(self, num_qubits):
+        """Test that synth_cnot_depth_line_kms produces the correct synthesis."""
+        rng = np.random.default_rng(1234)
+        num_trials = 10
+        for _ in range(num_trials):
+            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+            mat = np.array(mat, dtype=bool)
+            qc = synth_cnot_depth_line_kms(mat)
+            mat1 = LinearFunction(qc).linear
+            self.assertTrue((mat == mat1).all())
+
+            # Check that the circuit depth is bounded by 5*num_qubits
+            depth = qc.depth()
+            self.assertTrue(depth <= 5 * num_qubits)
+
+            # Check that the synthesized circuit qc fits LNN connectivity
+            for inst in qc.data:
+                self.assertEqual(inst.operation.name, "cx")
+                q0 = qc.find_bit(inst.qubits[0]).index
+                q1 = qc.find_bit(inst.qubits[1]).index
+                dist = abs(q0 - q1)
+                self.assertEqual(dist, 1)
 
 
 if __name__ == "__main__":

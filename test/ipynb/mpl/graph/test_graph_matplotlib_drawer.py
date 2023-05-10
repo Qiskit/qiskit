@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Tests for graph MPL drawer"""
+"""Tests for graph MPL drawer"""
 
 import unittest
 
@@ -368,6 +368,31 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             qubit_coordinates=qubit_coordinates,
             coupling_map=coupling_map,
             filename="coupling_map.png",
+        )
+
+    def test_plot_bloch_multivector_figsize_improvements(self):
+        """test bloch sphere figsize, font_size, title_font_size and title_pad
+        See https://github.com/Qiskit/qiskit-terra/issues/7263
+        and https://github.com/Qiskit/qiskit-terra/pull/7264.
+        """
+        circuit = QuantumCircuit(3)
+        circuit.h(1)
+        circuit.sxdg(2)
+
+        # getting the state using backend
+        backend = BasicAer.get_backend("statevector_simulator")
+        result = execute(circuit, backend).result()
+        state = result.get_statevector(circuit)
+
+        self.graph_state_drawer(
+            state=state,
+            output="bloch",
+            figsize=(3, 2),
+            font_size=10,
+            title="|0+R> state",
+            title_font_size=14,
+            title_pad=8,
+            filename="bloch_multivector_figsize_improvements.png",
         )
 
 

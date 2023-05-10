@@ -26,7 +26,7 @@ class RealTimeEvolver(ABC):
         r"""Perform real time evolution :math:`\exp(-i t H)|\Psi\rangle`.
 
         Evolves an initial state :math:`|\Psi\rangle` for a time :math:`t`
-        under a Hamiltonian  :math:`H`, as provided in the ``evolution_problem``.
+        under a Hamiltonian :math:`H`, as provided in the ``evolution_problem``.
 
         Args:
             evolution_problem: The definition of the evolution problem.

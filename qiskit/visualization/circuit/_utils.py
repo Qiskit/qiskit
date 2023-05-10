@@ -25,10 +25,9 @@ from qiskit.circuit import (
     Gate,
     Instruction,
     Measure,
-    ControlFlowOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -119,10 +118,11 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
 
 def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
-    if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
-        return ""
-
-    if isinstance(op, ControlFlowOp):
+    if (
+        not hasattr(op, "params")
+        or any(isinstance(param, np.ndarray) for param in op.params)
+        or any(isinstance(param, QuantumCircuit) for param in op.params)
+    ):
         return ""
 
     if isinstance(op, Delay):
@@ -553,7 +553,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 if isinstance(node.op.condition[0], Clbit):
                     cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
                     index_stop = self.measure_map[cond_bit[0]]

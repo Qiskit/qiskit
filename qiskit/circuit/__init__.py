@@ -38,7 +38,8 @@ defined as:
    |\\psi\\rangle = \\left(|000\\rangle+|111\\rangle\\right)/\\sqrt{2}
 
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit import QuantumCircuit
    # Create a circuit with a register of three qubits
@@ -50,7 +51,7 @@ defined as:
    # CX (CNOT) gate on control qubit 0 and target qubit 2 resulting in a GHZ state.
    circ.cx(0, 2)
    # Draw the circuit
-   circ.draw()
+   circ.draw('mpl')
 
 
 Supplementary Information
@@ -67,9 +68,10 @@ Supplementary Information
    (:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
    with equal probability.
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
-      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister
+      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
 
       qr = QuantumRegister(1)
       cr = ClassicalRegister(1)
@@ -78,7 +80,7 @@ Supplementary Information
       qc.measure(0, 0)
       qc.draw('mpl')
 
-   .. jupyter-execute::
+   .. code-block::
 
       backend = BasicAer.get_backend('qasm_simulator')
       tqc = transpile(qc, backend)
@@ -86,25 +88,42 @@ Supplementary Information
 
       print(counts)
 
+   .. parsed-literal::
+
+      {'0': 524, '1': 500}
+
    Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
    That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
    if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
    always be :math:`|1\\rangle`.
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
+
+      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+
+      qr = QuantumRegister(1)
+      cr = ClassicalRegister(1)
+      qc = QuantumCircuit(qr, cr)
+      qc.h(0)
+      qc.measure(0, 0)
 
       qc.x(0).c_if(cr, 0)
       qc.measure(0, 0)
 
       qc.draw('mpl')
 
-   .. jupyter-execute::
+   .. code-block::
 
+      backend = BasicAer.get_backend('qasm_simulator')
       tqc = transpile(qc, backend)
       counts = backend.run(tqc).result().get_counts()
 
       print(counts)
 
+   .. parsed-literal::
+
+      {'1': 1024}
 
 .. dropdown:: Quantum Circuit Properties
    :animate: fade-in-slide-down
@@ -118,7 +137,8 @@ Supplementary Information
 
    Consider the following circuit:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       from qiskit import QuantumCircuit
       qc = QuantumCircuit(12)
@@ -135,24 +155,30 @@ Supplementary Information
       qc.swap(6, 9)
       qc.swap(6, 10)
       qc.x(6)
-      qc.draw()
+      qc.draw('mpl')
 
    From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
    Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
    can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
    circuit is equal to the **width** of the circuit:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.width()
 
+   .. parsed-literal::
+
+      12
 
    We can also just get the number of qubits directly:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.num_qubits
 
+   .. parsed-literal::
+
+      12
 
    .. important::
 
@@ -166,18 +192,24 @@ Supplementary Information
    It is also straightforward to get the number and type of the gates in a circuit using
    :meth:`QuantumCircuit.count_ops`:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.count_ops()
 
+   .. parsed-literal::
+
+      OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
 
    We can also get just the raw count of operations by computing the circuits
    :meth:`QuantumCircuit.size`:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.size()
 
+   .. parsed-literal::
+
+      19
 
    A particularly important circuit property is known as the circuit **depth**.  The depth
    of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
@@ -202,10 +234,13 @@ Supplementary Information
 
    We can verify our graphical result using :meth:`QuantumCircuit.depth`:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.depth()
 
+   .. parsed-literal::
+
+      9
 
    .. raw:: html
 
@@ -228,6 +263,8 @@ Quantum Circuit Construction
    AncillaRegister
    AncillaQubit
    CircuitInstruction
+   Register
+   Bit
 
 Gates and Instructions
 ----------------------
@@ -253,8 +290,15 @@ Control Flow Operations
    IfElseOp
    WhileLoopOp
    ForLoopOp
+   SwitchCaseOp
    BreakLoopOp
    ContinueLoopOp
+
+The :class:`.SwitchCaseOp` also understands a special value:
+
+.. py:data: CASE_DEFAULT
+    Used as a possible "label" in a :class:`.SwitchCaseOp` to represent the default case.  This will
+    always match, if it is tried.
 
 Parametric Quantum Circuits
 ---------------------------
@@ -293,6 +337,8 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
+from .bit import Bit
+from .register import Register
 from . import library
 from .commutation_checker import CommutationChecker
 
@@ -301,6 +347,8 @@ from .controlflow import (
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,
+    SwitchCaseOp,
+    CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
 )

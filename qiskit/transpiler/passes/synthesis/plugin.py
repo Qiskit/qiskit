@@ -85,6 +85,14 @@ something like::
             return False
 
         @property
+        def supports_gate_lengths_by_qubit(self):
+            return False
+
+        @property
+        def supports_gate_errors_by_qubit(self):
+            return False
+
+        @property
         def min_qubits(self):
             return None
 
@@ -183,20 +191,20 @@ documentation for all the required fields. An example plugin class would look
 something like::
 
     from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
-    from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford_bm
+    from qiskit.synthesis.clifford import synth_clifford_bm
 
 
     class SpecialSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         if higher_level_object.num_qubits <= 3:
-            return decompose_clifford_bm(high_level_object)
+            return synth_clifford_bm(high_level_object)
         else:
             return None
 
 The above example creates a plugin to synthesize objects of type
 :class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
-at most 3 qubits, using the method ``decompose_clifford_bm``.
+at most 3 qubits, using the method ``synth_clifford_bm``.
 
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
@@ -339,6 +347,58 @@ class UnitarySynthesisPlugin(abc.ABC):
         for the possible values and meaning of these values.
         """
         pass
+
+    @property
+    def supports_gate_lengths_by_qubit(self):
+        """Return whether the plugin supports taking ``gate_lengths_by_qubit``
+
+        This differs from ``supports_gate_lengths``/``gate_lengths`` by using a different
+        view of the same data. Instead of being keyed by gate name this is keyed by qubit
+        and uses :class:`~.Gate` instances to represent gates (instead of gate names)
+
+        ``gate_lengths_by_qubit`` will be a dictionary in the form of
+        ``{(qubits,): [Gate, length]}``. For example::
+
+            {
+            (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
+            (0, 1): [CXGate(): 0.012012477900732316]
+            }
+
+        where the ``length`` value is in units of seconds.
+
+        Do note that this dictionary might not be complete or could be empty
+        as it depends on the target backend reporting gate lengths on every
+        gate for each qubit.
+
+        This defaults to False
+        """
+        return False
+
+    @property
+    def supports_gate_errors_by_qubit(self):
+        """Return whether the plugin supports taking ``gate_errors_by_qubit``
+
+        This differs from ``supports_gate_errors``/``gate_errors`` by using a different
+        view of the same data. Instead of being keyed by gate name this is keyed by qubit
+        and uses :class:`~.Gate` instances to represent gates (instead of gate names).
+
+        ``gate_errors_by_qubit`` will be a dictionary in the form of
+        ``{(qubits,): [Gate, error]}``. For example::
+
+            {
+            (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
+            (0, 1): [CXGate(): 0.012012477900732316]
+            }
+
+        Do note that this dictionary might not be complete or could be empty
+        as it depends on the target backend reporting gate errors on every
+        gate for each qubit. The gate error rates reported in ``gate_errors``
+        are provided by the target device ``Backend`` object and the exact
+        meaning might be different depending on the backend.
+
+        This defaults to False
+        """
+        return False
 
     @property
     @abc.abstractmethod
@@ -510,7 +570,7 @@ class HighLevelSynthesisPluginManager:
         # The registered plugin names should be of the form <OperationName.SynthesisMethodName>.
 
         # Create a dict, mapping <OperationName> to the list of its <SynthesisMethodName>s.
-        self.plugins_by_op = dict()
+        self.plugins_by_op = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
             if op_name not in self.plugins_by_op.keys():

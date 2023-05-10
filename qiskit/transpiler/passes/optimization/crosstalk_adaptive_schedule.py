@@ -33,6 +33,7 @@ import operator
 from itertools import chain, combinations
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.target import target_to_backend_properties
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
@@ -49,7 +50,9 @@ ONEQ_XTALK_THRESH = 2
 class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
 
-    def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None):
+    def __init__(
+        self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None, target=None
+    ):
         """CrosstalkAdaptiveSchedule initializer.
 
         Args:
@@ -85,6 +88,9 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 The arg is useful when a subsequent module such as state_tomography_circuits
                 inserts the measure gates. If CrosstalkAdaptiveSchedule is made aware of those
                 measurements, it is included in the optimization.
+            target (Target): A target representing the target backend, if both
+                ``backend_prop`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         Raises:
             ImportError: if unable to import z3 solver
 
@@ -93,6 +99,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
         super().__init__()
         self.backend_prop = backend_prop
+        if target is not None:
+            self.backend_prop = target_to_backend_properties(target)
         self.crosstalk_prop = crosstalk_prop
         self.weight_factor = weight_factor
         if measured_qubits is None:

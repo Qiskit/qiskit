@@ -12,8 +12,11 @@
 """
 Utility functions for primitives
 """
-
 from __future__ import annotations
+
+from collections.abc import Iterable
+
+import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.circuit.bit import Bit
@@ -42,7 +45,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
-def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
+def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Args:
@@ -63,9 +66,7 @@ def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
                 f"Observable must have numerical coefficient, not {type(observable.coeff)}."
             )
         return observable.coeff * observable.primitive
-    elif isinstance(observable, BasePauli):
-        return SparsePauliOp(observable)
-    elif isinstance(observable, BaseOperator):
+    elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
         return SparsePauliOp.from_operator(observable)
     else:
         return SparsePauliOp(observable)
@@ -76,10 +77,6 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
 
     Dict keys label measured qubits, whereas the values indicate the
     classical bit onto which that qubits measurement result is stored.
-
-    Note: this function is a slightly simplified version of a utility function
-    ``_final_measurement_mapping`` of
-    `mthree <https://github.com/Qiskit-Partners/mthree>`_.
 
     Parameters:
         circuit: Input quantum circuit.
@@ -100,7 +97,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
                 mapping[qbit] = cbit
                 active_cbits.remove(cbit)
                 active_qubits.remove(qbit)
-        elif item.operation.name != "barrier":
+        elif item.operation.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:
@@ -122,6 +119,16 @@ def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
         )
         for bit in bits
     )
+
+
+def _format_params(param):
+    if isinstance(param, np.ndarray):
+        return param.data.tobytes()
+    elif isinstance(param, QuantumCircuit):
+        return _circuit_key(param)
+    elif isinstance(param, Iterable):
+        return tuple(param)
+    return param
 
 
 def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
@@ -146,7 +153,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
                 _bits_key(data.qubits, circuit),  # qubits
                 _bits_key(data.clbits, circuit),  # clbits
                 data.operation.name,  # operation.name
-                tuple(data.operation.params),  # operation.params
+                tuple(_format_params(param) for param in data.operation.params),  # operation.params
             )
             for data in circuit.data
         ),
@@ -168,7 +175,12 @@ def _observable_key(observable: SparsePauliOp) -> tuple:
     Returns:
         Key for observables.
     """
-    return tuple(observable.to_list())
+    return (
+        observable.paulis.z.tobytes(),
+        observable.paulis.x.tobytes(),
+        observable.paulis.phase.tobytes(),
+        observable.coeffs.tobytes(),
+    )
 
 
 def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:

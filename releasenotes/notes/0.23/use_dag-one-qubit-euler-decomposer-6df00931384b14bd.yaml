@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added a new keyword argument, ``use_dag`` to the constructor for the
+    :class:`~.OneQubitEulerDecomposer` class. When ``use_dag`` is set to
+    ``True`` the output from the decomposer will be a :class:`~.DAGCircuit`
+    object instead of :class:`~.QuantumCircuit` object. This is useful
+    for transpiler passes that use :class:`~.OneQubitEulerDecomposer` (such
+    as :class:`~.Optimize1qGatesDecomposition`) as working directly with
+    a :class:`~.DAGCircuit` avoids the overhead of converting between
+    :class:`~.QuantumCircuit` and :class:`~.DAGCircuit`.

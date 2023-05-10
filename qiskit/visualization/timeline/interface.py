@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Qiskit timeline drawer.
 
 This module provides a common user interface to the timeline drawer.
@@ -287,7 +285,8 @@ def draw(
 
         Drawing with the default stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw
@@ -302,7 +301,8 @@ def draw(
 
         Drawing with the simple stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXSimple
@@ -317,7 +317,8 @@ def draw(
 
         Drawing with the stylesheet suited for program debugging.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXDebugging

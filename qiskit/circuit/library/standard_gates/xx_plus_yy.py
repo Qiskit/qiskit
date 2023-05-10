@@ -13,8 +13,8 @@
 """Two-qubit XX+YY gate."""
 import math
 from cmath import exp
+from math import pi
 from typing import Optional
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -32,7 +32,7 @@ class XXPlusYYGate(Gate):
 
              ┌───────────────┐
         q_0: ┤0              ├
-             │  {XX+YY}(θ,β) │
+             │  (XX+YY)(θ,β) │
         q_1: ┤1              ├
              └───────────────┘
 
@@ -64,7 +64,7 @@ class XXPlusYYGate(Gate):
 
                  ┌───────────────┐
             q_0: ┤1              ├
-                 │  {XX+YY}(θ,β) │
+                 │  (XX+YY)(θ,β) │
             q_1: ┤0              ├
                  └───────────────┘
 
@@ -86,7 +86,7 @@ class XXPlusYYGate(Gate):
         self,
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
-        label: Optional[str] = "{XX+YY}",
+        label: Optional[str] = "(XX+YY)",
     ):
         """Create new XX+YY gate.
 
@@ -170,3 +170,8 @@ class XXPlusYYGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        theta, beta = self.params
+        return XXPlusYYGate(exponent * theta, beta)

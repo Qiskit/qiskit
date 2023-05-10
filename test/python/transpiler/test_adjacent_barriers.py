@@ -12,6 +12,7 @@
 
 """Test the MergeAdjacentBarriers pass"""
 
+import random
 import unittest
 from qiskit.transpiler.passes import MergeAdjacentBarriers
 from qiskit.converters import circuit_to_dag
@@ -270,6 +271,28 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         result = pass_.run(circuit_to_dag(circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_output_deterministic(self):
+        """Test that the output barriers have a deterministic ordering (independent of
+        PYTHONHASHSEED).  This is important to guarantee that any subsequent topological iterations
+        through the circuit are also deterministic; it's in general not possible for all transpiler
+        passes to produce identical outputs across all valid topological orderings, especially if
+        those passes have some stochastic element."""
+        order = list(range(20))
+        random.Random(2023_02_10).shuffle(order)
+        circuit = QuantumCircuit(20)
+        circuit.barrier([5, 2, 3])
+        circuit.barrier([7, 11, 14, 2, 4])
+        circuit.barrier(order)
+
+        # All the barriers should get merged together.
+        expected = QuantumCircuit(20)
+        expected.barrier(range(20))
+
+        output = MergeAdjacentBarriers()(circuit)
+        self.assertEqual(expected, output)
+        # This assertion is that the ordering of the arguments in the barrier is fixed.
+        self.assertEqual(list(output.data[0].qubits), list(output.qubits))
 
 
 if __name__ == "__main__":

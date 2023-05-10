@@ -12,7 +12,7 @@
 
 """Test GatesInBasis pass."""
 
-from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, Clbit
+from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, SwitchCaseOp, Clbit
 from qiskit.circuit.library import HGate, CXGate, UGate, XGate, ZGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
@@ -247,6 +247,7 @@ class TestGatesInBasisPass(QiskitTestCase):
             ForLoopOp((), None, QuantumCircuit(4)),
             CXGate(),
             IfElseOp((Clbit(), True), QuantumCircuit(2), QuantumCircuit(2)),
+            SwitchCaseOp(Clbit(), [(False, QuantumCircuit(2)), (True, QuantumCircuit(2))]),
             XGate(),
             ZGate(),
         ]

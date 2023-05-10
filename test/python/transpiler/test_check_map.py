@@ -15,8 +15,9 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
@@ -40,6 +41,25 @@ class TestCheckMapCX(QiskitTestCase):
         coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
+        pass_.run(dag)
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
+
+    def test_trivial_nop_map_target(self):
+        """Trivial map in a circuit without entanglement
+        qr0:---[H]---
+
+        qr1:---[H]---
+
+        qr2:---[H]---
+
+        CouplingMap map: None
+        """
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr)
+        target = Target()
+        dag = circuit_to_dag(circuit)
+        pass_ = CheckMap(target)
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
 
@@ -85,6 +105,26 @@ class TestCheckMapCX(QiskitTestCase):
 
         self.assertFalse(pass_.property_set["is_swap_mapped"])
 
+    def test_swap_mapped_false_target(self):
+        """Needs [0]-[1] in a [0]--[2]--[1]
+        qr0:--(+)--
+               |
+        qr1:---.---
+
+        CouplingMap map: [0]--[2]--[1]
+        """
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), {(0, 2): None, (2, 1): None})
+        dag = circuit_to_dag(circuit)
+
+        pass_ = CheckMap(target)
+        pass_.run(dag)
+
+        self.assertFalse(pass_.property_set["is_swap_mapped"])
+
     def test_swap_mapped_cf_true(self):
         """Check control flow blocks are mapped."""
         num_qubits = 3
@@ -92,7 +132,7 @@ class TestCheckMapCX(QiskitTestCase):
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
-        true_body = QuantumCircuit(qr)
+        true_body = QuantumCircuit(qr, cr)
         true_body.swap(0, 1)
         true_body.cx(2, 1)
         circuit.if_else((cr[0], 0), true_body, None, qr, cr)
@@ -110,7 +150,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         true_body = QuantumCircuit(qr)
         true_body.cx(0, 2)
-        circuit.if_else((cr[0], 0), true_body, None, qr, cr)
+        circuit.if_else((cr[0], 0), true_body, None, qr, [])
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -123,7 +163,7 @@ class TestCheckMapCX(QiskitTestCase):
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
-        true_body = QuantumCircuit(qr)
+        true_body = QuantumCircuit(qr, cr)
         true_body.cx(1, 2)
         circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], cr)
         dag = circuit_to_dag(circuit)
@@ -140,7 +180,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         true_body = QuantumCircuit(qr)
         true_body.cx(0, 2)
-        circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], cr)
+        circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], [])
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -153,9 +193,9 @@ class TestCheckMapCX(QiskitTestCase):
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr, cr)
-        true_body = QuantumCircuit(3)
+        true_body = QuantumCircuit(3, 1)
         true_body.cx(0, 2)
-        circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], cr)
+        circuit.if_else((cr[0], 0), true_body, None, qr[[1, 0, 2]], [cr[0]])
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -169,9 +209,9 @@ class TestCheckMapCX(QiskitTestCase):
         qr2 = QuantumRegister(3, "qrif")
         cr = ClassicalRegister(3)
         circuit = QuantumCircuit(qr1, cr)
-        true_body = QuantumCircuit(qr2)
+        true_body = QuantumCircuit(qr2, [cr[0]])
         true_body.cx(0, 2)
-        circuit.if_else((cr[0], 0), true_body, None, qr1[[1, 0, 2]], cr)
+        circuit.if_else((cr[0], 0), true_body, None, qr1[[1, 0, 2]], [cr[0]])
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
@@ -189,7 +229,7 @@ class TestCheckMapCX(QiskitTestCase):
         true_body = QuantumCircuit(qr2, cr2)
         for_body = QuantumCircuit(3)
         for_body.cx(0, 2)
-        true_body.for_loop(range(5), body=for_body, qubits=qr2, clbits=cr2)
+        true_body.for_loop(range(5), body=for_body, qubits=qr2, clbits=[])
         circuit.if_else((cr1[0], 0), true_body, None, qr1[[1, 0, 2]], cr1)
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
@@ -208,7 +248,7 @@ class TestCheckMapCX(QiskitTestCase):
         true_body = QuantumCircuit(qr2, cr2)
         for_body = QuantumCircuit(3)
         for_body.cx(0, 2)
-        true_body.for_loop(range(5), body=for_body, qubits=qr2, clbits=cr2)
+        true_body.for_loop(range(5), body=for_body, qubits=qr2, clbits=[])
         circuit.if_else((cr1[0], 0), true_body, None, qr1[[0, 1, 2]], cr1)
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
