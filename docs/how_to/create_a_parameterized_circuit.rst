@@ -1,6 +1,6 @@
-##############################
-Create a parameterized circuit
-##############################
+######################################
+Create a parameterized quantum circuit
+######################################
 
 This guide will show how to create a :class:`~.QuantumCircuit` that includes parameters.
 
