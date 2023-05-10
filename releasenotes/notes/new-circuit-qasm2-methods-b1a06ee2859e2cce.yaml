@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    The OpenQASM 2 constructor methods on :class:`.QuantumCircuit`
+    (:meth:`~.QuantumCircuit.from_qasm_str` and :meth:`~.QuantumCircuit.from_qasm_file`) have been
+    switched to use the Rust-based parser added in Qiskit Terra 0.24.  This should result in
+    significantly faster parsing times (10 times or more is not uncommon) and massively reduced
+    intermediate memory usage.
+
+    The :class:`.QuantumCircuit` methods are kept with the same interface for continuity; the
+    preferred way to access the OpenQASM 2 importer is to use :func:`.qasm2.load` and
+    :func:`.qasm2.loads`, which offer an expanded interface to control the parsing and construction.
+fixes:
+  - |
+    The OpenQASM 2 circuit-constructor methods (:meth:`.QuantumCircuit.from_qasm_str` and
+    :meth:`~.QuantumCircuit.from_qasm_file`) will no longer error when encountering a ``gate``
+    definition that contains ``U`` or ``CX`` instructions. See `#5536
+    <https://github.com/Qiskit/qiskit-terra/issues/5536>`__.
