@@ -14,66 +14,71 @@
 
 import copy
 import io
+import math
 import os
 import sys
-import math
 import unittest
-
 from logging import StreamHandler, getLogger
-from unittest.mock import patch
-
-from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
+from unittest.mock import patch
 
 import numpy as np
 import rustworkx as rx
+from ddt import data, ddt, unpack
 
-from qiskit.exceptions import QiskitError
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse, qpy, qasm3
-from qiskit.circuit import Parameter, Gate, Qubit, Clbit, Reset
-from qiskit.compiler import transpile
-from qiskit.dagcircuit import DAGOutNode, DAGOpNode
-from qiskit.converters import circuit_to_dag
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, pulse, qasm3, qpy
+from qiskit.circuit import (
+    Clbit,
+    ControlFlowOp,
+    ForLoopOp,
+    Gate,
+    IfElseOp,
+    Parameter,
+    Qubit,
+    Reset,
+    SwitchCaseOp,
+    WhileLoopOp,
+)
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import (
     CXGate,
-    U3Gate,
-    U2Gate,
-    U1Gate,
+    CZGate,
+    HGate,
     RXGate,
     RYGate,
     RZGate,
-    UGate,
-    CZGate,
-    XGate,
     SXGate,
-    HGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    UGate,
+    XGate,
 )
-from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, SwitchCaseOp, ControlFlowOp
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.delay import Delay
-from qiskit.test import QiskitTestCase
+from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGOpNode, DAGOutNode
+from qiskit.exceptions import QiskitError
+from qiskit.providers.backend import BackendV2
 from qiskit.providers.fake_provider import (
-    FakeMelbourne,
-    FakeRueschlikon,
     FakeBoeblingen,
+    FakeMelbourne,
     FakeMumbaiV2,
     FakeNairobiV2,
+    FakeRueschlikon,
     FakeSherbrooke,
 )
-from qiskit.transpiler import Layout, CouplingMap
-from qiskit.transpiler import PassManager, TransformationPass
-from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit.providers.options import Options
+from qiskit.pulse import InstructionScheduleMap
+from qiskit.quantum_info import Operator, random_unitary
+from qiskit.test import QiskitTestCase, slow_test
+from qiskit.tools import parallel
+from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
-from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
-from qiskit.tools import parallel
-from qiskit.pulse import InstructionScheduleMap
-from qiskit.providers.backend import BackendV2
-from qiskit.providers.options import Options
-from qiskit.test import slow_test
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
+from qiskit.transpiler.target import InstructionProperties, Target
 
 
 class CustomCX(Gate):
@@ -1889,6 +1894,19 @@ class TestTranspileParallel(QiskitTestCase):
 
         self.addCleanup(restore_default)
         parallel.PARALLEL_DEFAULT = True
+
+    @data(0, 1, 2, 3)
+    def test_parallel_multiprocessing(self, opt_level):
+        """Test parallel dispatch works with multiprocessing."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        backend = FakeMumbaiV2()
+        pm = generate_preset_pass_manager(opt_level, backend)
+        res = pm.run([qc, qc])
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
 
     @data(0, 1, 2, 3)
     def test_parallel_with_target(self, opt_level):
