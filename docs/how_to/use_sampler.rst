@@ -11,7 +11,7 @@ This guide shows how to get the probability distribution of a quantum circuit wi
     .. code-block::
 
         from qiskit.primitives import BackendSampler
-        from qiskit_provider import QiskitProvider
+        from <some_qiskit_provider> import QiskitProvider
 
         provider = QiskitProvider()
         backend = provider.get_backend('backend_name')
