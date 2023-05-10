@@ -20,10 +20,10 @@ This guide shows how to get the expected value of an observable for a given quan
     There are some providers that implement primitives natively (see `this page <http://qiskit.org/providers/#primitives>`_ for more details).
 
 
-Initialize observable
-=====================
+Initialize observables
+======================
 
-The first step is to define the observable whose expected value you want to compute. This observable can be any ``BaseOperator``, like the operators from :mod:`qiskit.quantum_info`.
+The first step is to define the observables whose expected value you want to compute. Each observable can be any ``BaseOperator``, like the operators from :mod:`qiskit.quantum_info`.
 Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 .. testcode::
@@ -35,7 +35,7 @@ Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 Initialize quantum circuits
 ===========================
 
-Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which you want to obtain the expected value.
+Then you need to create the :class:`~qiskit.circuit.QuantumCircuit`\ s for which you want to obtain the expected value.
 
 .. plot::
     :include-source:
@@ -90,6 +90,10 @@ with the :meth:`~qiskit.providers.JobV1.result` method.
 .. testoutput::
 
     EstimatorResult(values=array([4.]), metadata=[{}])
+
+While this example only uses one :class:`~qiskit.circuit.QuantumCircuit` and one observable, if you want to get expectation values for multiple circuits and observables you can
+pass a ``list`` of :class:`~qiskit.circuit.QuantumCircuit`\ s and a list of ``BaseOperator``\ s to the :meth:`~qiskit.primitives.Estimator.run` method. Both ``list``\ s must have
+the same length.
 
 Get the expected value
 ----------------------

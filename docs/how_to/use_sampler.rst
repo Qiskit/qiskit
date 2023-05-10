@@ -22,7 +22,7 @@ This guide shows how to get the probability distribution of a quantum circuit wi
 Initialize quantum circuits
 ===========================
 
-The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from which you want to obtain the probability distribution.
+The first step is to create the :class:`~qiskit.circuit.QuantumCircuit`\ s from which you want to obtain the probability distribution.
 
 .. plot::
     :include-source:
@@ -79,6 +79,9 @@ with the :meth:`~qiskit.providers.JobV1.result` method.
 .. testoutput::
 
     SamplerResult(quasi_dists=[{0: 0.4999999999999999, 3: 0.4999999999999999}], metadata=[{}])
+
+While this example only uses one :class:`~qiskit.circuit.QuantumCircuit`, if you want to sample multiple circuits you can
+pass a ``list`` of :class:`~qiskit.circuit.QuantumCircuit` instances to the :meth:`~qiskit.primitives.Sampler.run` method.
 
 Get the probability distribution
 --------------------------------
