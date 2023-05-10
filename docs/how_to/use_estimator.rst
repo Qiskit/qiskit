@@ -11,7 +11,7 @@ This guide shows how to get the expected value of an observable for a given quan
     .. code-block::
 
         from qiskit.primitives import BackendEstimator
-        from qiskit_provider import QiskitProvider
+        from <some_qiskit_provider> import QiskitProvider
 
         provider = QiskitProvider()
         backend = provider.get_backend('backend_name')
