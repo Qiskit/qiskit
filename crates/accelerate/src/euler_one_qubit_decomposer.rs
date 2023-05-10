@@ -34,7 +34,7 @@ enum SliceOrInt<'a> {
     Int(isize),
 }
 
-#[pyclass]
+#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
 pub struct OneQubitGateErrorMap {
     error_map: Vec<HashMap<String, f64>>,
 }
@@ -50,8 +50,17 @@ impl OneQubitGateErrorMap {
             },
         }
     }
+
     fn add_qubit(&mut self, error_map: HashMap<String, f64>) {
         self.error_map.push(error_map);
+    }
+
+    fn __getstate__(&self) -> Vec<HashMap<String, f64>> {
+        self.error_map.clone()
+    }
+
+    fn __setstate__(&mut self, state: Vec<HashMap<String, f64>>) {
+        self.error_map = state;
     }
 }
 
