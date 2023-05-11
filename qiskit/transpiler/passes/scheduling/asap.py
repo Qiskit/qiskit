@@ -12,11 +12,10 @@
 
 """ASAP Scheduling."""
 
-import warnings
-
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_func
 
 from .base_scheduler import BaseSchedulerTransform
 
@@ -34,15 +33,16 @@ class ASAPSchedule(BaseSchedulerTransform):
         removed in a future release.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.ASAPScheduleAnalysis`, which is an "
+            "analysis pass that requires a padding pass to later modify the circuit."
+        ),
+        since="0.21.0",
+        pending=True,
+    )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.warn(
-            "The ASAPSchedule class has been supersceded by the ASAPScheduleAnalysis class "
-            "which performs the as analysis pass that requires a padding pass to later modify "
-            "the circuit. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
 
     def run(self, dag):
         """Run the ASAPSchedule pass on `dag`.
