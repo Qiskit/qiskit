@@ -261,12 +261,16 @@ class TestDecompose(QiskitTestCase):
         decom_circ = self.complex_circuit.decompose(["circuit-*"])
         dag = circuit_to_dag(decom_circ)
 
-        self.assertEqual(len(dag.op_nodes()), 5)
-        self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
-        self.assertEqual(dag.op_nodes()[1].op.label, "gate2")
-        self.assertEqual(dag.op_nodes()[2].name, "mcx")
+        self.assertEqual(len(dag.op_nodes()), 9)
+        self.assertEqual(dag.op_nodes()[0].name, "h")
+        self.assertEqual(dag.op_nodes()[1].name, "t")
+        self.assertEqual(dag.op_nodes()[2].name, "x")
         self.assertEqual(dag.op_nodes()[3].name, "h")
-        self.assertRegex(dag.op_nodes()[4].name, "x")
+        self.assertRegex(dag.op_nodes()[4].name, "cx")
+        self.assertEqual(dag.op_nodes()[5].name, "x")
+        self.assertEqual(dag.op_nodes()[6].name, "mcx")
+        self.assertEqual(dag.op_nodes()[7].name, "h")
+        self.assertEqual(dag.op_nodes()[8].name, "x")
 
     def test_decompose_label_wildcards(self):
         """Test decomposition parameters so that label wildcards is decomposed"""

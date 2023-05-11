@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   coverage:
+    if: github.repository_owner == 'Qiskit'
     name: Coverage
     runs-on: ubuntu-latest
     env:

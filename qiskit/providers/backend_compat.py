@@ -64,8 +64,11 @@ def convert_to_target(
     target = None
     if custom_name_mapping is not None:
         name_mapping.update(custom_name_mapping)
+    faulty_qubits = set()
     # Parse from properties if it exsits
     if properties is not None:
+        if filter_faulty:
+            faulty_qubits = set(properties.faulty_qubits())
         qubit_properties = qubit_props_list_from_props(properties=properties)
         target = Target(num_qubits=configuration.n_qubits, qubit_properties=qubit_properties)
         # Parse instructions
@@ -104,9 +107,17 @@ def convert_to_target(
             if filter_faulty:
                 if not properties.is_qubit_operational(qubit):
                     continue
+            try:
+                duration = properties.readout_length(qubit)
+            except BackendPropertyError:
+                duration = None
+            try:
+                error = properties.readout_error(qubit)
+            except BackendPropertyError:
+                error = None
             measure_props[(qubit,)] = InstructionProperties(
-                duration=properties.readout_length(qubit),
-                error=properties.readout_error(qubit),
+                duration=duration,
+                error=error,
             )
         target.add_instruction(Measure(), measure_props)
     # Parse from configuration because properties doesn't exist
@@ -137,9 +148,6 @@ def convert_to_target(
         target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
     # If a pulse defaults exists use that as the source of truth
     if defaults is not None:
-        faulty_qubits = set()
-        if filter_faulty and properties is not None:
-            faulty_qubits = set(properties.faulty_qubits())
         inst_map = defaults.instruction_schedule_map
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
@@ -174,7 +182,8 @@ def convert_to_target(
                 )
     if add_delay and "delay" not in target:
         target.add_instruction(
-            name_mapping["delay"], {(bit,): None for bit in range(target.num_qubits)}
+            name_mapping["delay"],
+            {(bit,): None for bit in range(target.num_qubits) if bit not in faulty_qubits},
         )
     return target
 

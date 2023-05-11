@@ -385,9 +385,8 @@ __all__ = [
 ]
 
 import os
-import sys
 from pathlib import Path
-from typing import Iterable, Union, Optional
+from typing import Iterable, Union, Optional, Literal
 
 # Pylint can't handle the C-extension introspection of `_qasm2` because there's a re-import through
 # to `qiskit.qasm2.exceptions`, and pylint ends up trying to import `_qasm2` twice, which PyO3
@@ -404,11 +403,6 @@ from .parse import (
     LEGACY_CUSTOM_INSTRUCTIONS,
     LEGACY_CUSTOM_CLASSICAL,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 LEGACY_INCLUDE_PATH = (

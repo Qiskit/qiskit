@@ -392,13 +392,13 @@ class TestBackendSampler(QiskitTestCase):
             bound_pass = PassManager(dummy_pass)
             sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
             _ = sampler.run(self._circuit[0]).result()
-            self.assertTrue(mock_pass.call_count == 1)
+            self.assertEqual(mock_pass.call_count, 1)
 
         with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
             bound_pass = PassManager(dummy_pass)
             sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
             _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-            self.assertTrue(mock_pass.call_count == 2)
+            self.assertEqual(mock_pass.call_count, 2)
 
 
 if __name__ == "__main__":
