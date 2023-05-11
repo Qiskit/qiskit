@@ -106,6 +106,7 @@ class PauliFeatureMap(NLocal):
     References:
 
 
+
     [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
     `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
 
