@@ -12,8 +12,7 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-import warnings
-from typing import Optional, List, Tuple, Union, Iterable
+from typing import Optional, List, Tuple, Union, Iterable, Set
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
@@ -21,7 +20,14 @@ from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
+
+
+def _is_deprecated_qubits_argument(qubits: Union[int, List[int], Qubit, List[Qubit]]) -> bool:
+    if isinstance(qubits, (int, Qubit)):
+        qubits = [qubits]
+    return isinstance(qubits[0], Qubit)
 
 
 class InstructionDurations:
@@ -164,6 +170,15 @@ class InstructionDurations:
 
         return self
 
+    @deprecate_arg(
+        "qubits",
+        deprecation_description=(
+            "Using a Qubit or List[Qubit] for the ``qubits`` argument to InstructionDurations.get()"
+        ),
+        additional_msg="Instead, use an integer for the qubit index.",
+        since="0.19.0",
+        predicate=_is_deprecated_qubits_argument,
+    )
     def get(
         self,
         inst: str | qiskit.circuit.Instruction,
@@ -201,14 +216,6 @@ class InstructionDurations:
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
-            warnings.warn(
-                "Querying an InstructionDurations object with a Qubit "
-                "has been deprecated and will be removed in a future "
-                "release. Instead, query using the integer qubit "
-                "index.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
             qubits = [q.index for q in qubits]
 
         try:
