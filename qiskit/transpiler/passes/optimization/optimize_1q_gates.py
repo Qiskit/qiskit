@@ -66,9 +66,6 @@ class Optimize1qGates(TransformationPass):
         use_u = "u" in self.basis
         use_p = "p" in self.basis
         runs = dag.collect_runs(["u1", "u2", "u3", "u", "p"])
-        # qubit_mapping = {}
-        # if self.target is not None:
-        #     qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         runs = _split_runs_on_parameters(runs)
         for run in runs:
             run_qubits = None

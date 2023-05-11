@@ -475,7 +475,7 @@ class UnitarySynthesis(TransformationPass):
             if method.supports_coupling_map:
                 kwargs["coupling_map"] = (
                     self._coupling_map,
-                    [dag.find_bit(x) for x in node.qargs],
+                    [dag.find_bit(x).index for x in node.qargs],
                 )
             synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:

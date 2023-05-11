@@ -76,8 +76,8 @@ class CheckMap(AnalysisPass):
             if len(node.qargs) == 2 and not is_controlflow_op:
                 if dag.has_calibration_for(node):
                     continue
-                physical_q0 = dag.find_bit(node.qargs[0])
-                physical_q1 = dag.find_bit(node.qargs[1])
+                physical_q0 = dag.find_bit(node.qargs[0]).index
+                physical_q1 = dag.find_bit(node.qargs[1]).index
                 if (physical_q0, physical_q1) not in self.qargs:
                     self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
                         node.name,
@@ -87,7 +87,7 @@ class CheckMap(AnalysisPass):
                     self.property_set[self.property_set_field] = False
                     return
             elif is_controlflow_op:
-                order = [dag.find_bit(bit) for bit in node.qargs]
+                order = [dag.find_bit(bit).index for bit in node.qargs]
                 for block in node.op.blocks:
                     dag_block = circuit_to_dag(block)
                     mapped_dag = dag.copy_empty_like()

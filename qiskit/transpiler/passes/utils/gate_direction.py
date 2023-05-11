@@ -150,7 +150,7 @@ class GateDirection(TransformationPass):
         _rzz_dag.apply_operation_back(RZZGate(parameter), [qr[1], qr[0]], [])
         return _rzz_dag
 
-    def _run_coupling_map(self, dag, edges=None):
+    def _run_coupling_map(self, dag, wire_map=None, edges=None):
         if edges is None:
             edges = set(self.coupling_map.get_edges())
         if not edges:
@@ -163,7 +163,7 @@ class GateDirection(TransformationPass):
                         self._run_coupling_map(
                             circuit_to_dag(block),
                             {
-                                inner: dag.find_bit(outer)
+                                inner: dag.find_bit(outer).index
                                 for outer, inner in zip(node.qargs, block.qubits)
                             },
                             edges,
@@ -176,7 +176,8 @@ class GateDirection(TransformationPass):
                 continue
             if dag.has_calibration_for(node):
                 continue
-            qargs = (dag.find_bit(node.qargs[0]), dag.find_bit(node.qargs[1]))
+            qargs = (dag.find_bit(node.qargs[0]).index, dag.find_bit(node.qargs[1]).index)
+            #qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             if qargs not in edges and (qargs[1], qargs[0]) not in edges:
                 raise TranspilerError(
                     f"The circuit requires a connection between physical qubits {qargs}"
@@ -201,7 +202,7 @@ class GateDirection(TransformationPass):
                     )
         return dag
 
-    def _run_target(self, dag):
+    def _run_target(self, dag, wire_map=None):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
@@ -210,7 +211,7 @@ class GateDirection(TransformationPass):
                         self._run_target(
                             circuit_to_dag(block),
                             {
-                                inner: dag.find_bit(outer)
+                                inner: dag.find_bit(outer).index
                                 for outer, inner in zip(node.qargs, block.qubits)
                             },
                         )
@@ -222,7 +223,8 @@ class GateDirection(TransformationPass):
                 continue
             if dag.has_calibration_for(node):
                 continue
-            qargs = (dag.find_bit(node.qargs[0]), dag.find_bit(node.qargs[1]))
+            qargs = (dag.find_bit(node.qargs[0]).index, dag.find_bit(node.qargs[1]).index)
+            #qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             swapped = (qargs[1], qargs[0])
             if node.name in self._static_replacements:
                 if self.target.instruction_supported(node.name, qargs):
@@ -324,11 +326,12 @@ class GateDirection(TransformationPass):
             TranspilerError: If the circuit cannot be mapped just by flipping the
                 cx nodes.
         """
+        layout_map = {bit: i for i, bit in enumerate(dag.qubits)}
         if len(dag.qregs) > 1:
             raise TranspilerError(
                 "GateDirection expects a single qreg input DAG,"
                 "but input DAG had qregs: {}.".format(dag.qregs)
             )
         if self.target is None:
-            return self._run_coupling_map(dag)
-        return self._run_target(dag)
+            return self._run_coupling_map(dag, layout_map)
+        return self._run_target(dag, layout_map)

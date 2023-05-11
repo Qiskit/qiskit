@@ -66,8 +66,7 @@ class ApplyLayout(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         if post_layout is None:
-            #self.property_set["original_qubit_indices"] = {dag.find_bit(bit) for bit in dag.qubits}
-            self.property_set["original_qubit_indices"] = {tuple(tuple(x) for x in dag.find_bit(bit)) for bit in dag.qubits}
+            self.property_set["original_qubit_indices"] = {bit: dag.find_bit(bit).index for bit in dag.qubits}
             for qreg in dag.qregs.values():
                 self.property_set["layout"].add_register(qreg)
             virtual_phsyical_map = layout.get_virtual_bits()
@@ -83,7 +82,7 @@ class ApplyLayout(TransformationPass):
             old_phys_to_virtual = layout.get_physical_bits()
             new_virtual_to_physical = post_layout.get_virtual_bits()
             for new_virt, new_phys in new_virtual_to_physical.items():
-                old_phys = dag.find_bit(new_virt)
+                old_phys = dag.find_bit(new_virt).index
                 old_virt = old_phys_to_virtual[old_phys]
                 full_layout.add(old_virt, new_phys)
             for reg in layout.get_registers():

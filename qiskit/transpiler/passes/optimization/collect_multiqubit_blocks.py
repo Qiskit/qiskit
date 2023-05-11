@@ -139,7 +139,7 @@ class CollectMultiQBlocks(AnalysisPass):
             ):
                 can_process = False
 
-            cur_qubits = {dag.find_bit(bit) for bit in nd.qargs}
+            cur_qubits = {dag.find_bit(bit).index for bit in nd.qargs}
 
             if can_process:
                 # if the gate is valid, check if grouping up the bits

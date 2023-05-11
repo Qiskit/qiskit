@@ -190,7 +190,8 @@ class SabreLayout(TransformationPass):
             physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
             physical_qubits = rng.permutation(physical_qubits)
             initial_layout = Layout(
-                {q: dag.find_bit(dag.qubits[i]).index for i, q in enumerate(physical_qubits)}
+                #{q: dag.find_bit(dag.qubits[i]) for i, q in enumerate(physical_qubits)}
+                {q: dag.qubits[i] for i, q in enumerate(physical_qubits)}
             )
 
             self.routing_pass.fake_run = True
@@ -264,7 +265,8 @@ class SabreLayout(TransformationPass):
             {dag.qubits[k]: v for (k, v) in final_layout_dict.items()}
         )
         canonical_register = dag.qregs["q"]
-        qubit_indices = {bit: dag.find_bit(bit).index for bit in canonical_register}
+        #qubit_indices = {bit: dag.find_bit(bit) for bit in canonical_register}
+        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
         for (
             _layout_dict,
@@ -307,17 +309,22 @@ class SabreLayout(TransformationPass):
         neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
         dist_matrix = coupling_map.distance_matrix
 
+        original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         dag_list = []
         for node in dag.topological_op_nodes():
-            cargs = {dag.find_bit(x) for x in node.cargs}
+            cargs = {original_clbit_indices[x] for x in node.cargs}
+            #cargs = {dag.find_bit(x) for x in node.cargs}
             if node.op.condition is not None:
                 for clbit in dag._bits_in_condition(node.op.condition):
-                    cargs.add(dag.find_bit(clbit))
+                    #cargs.add(dag.find_bit(clbit))
+                    cargs.add(original_clbit_indices[clbit])
 
             dag_list.append(
                 (
                     node._node_id,
-                    [dag.find_bit(x) for x in node.qargs],
+                    [original_qubit_indices[x] for x in node.qargs],
+                    #[dag.find_bit(x) for x in node.qargs],
                     cargs,
                 )
             )

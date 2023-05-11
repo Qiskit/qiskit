@@ -118,7 +118,7 @@ def split_barriers(dag: DAGCircuit):
 
 def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     """Mutate input dag to combine barriers with UUID labels into a single barrier."""
-    qubit_indices = {bit: dag.find_bit(bit) for bit in dag.qubits}
+    qubit_indices = {bit: dag.find_bit(bit).index for bit in dag.qubits}
     uuid_map = {}
     for node in dag.op_nodes(Barrier):
         if isinstance(node.op.label, uuid.UUID):
@@ -127,7 +127,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 other_node = uuid_map[node.op.label]
                 num_qubits = len(other_node.qargs) + len(node.qargs)
                 new_op = Barrier(num_qubits, label=barrier_uuid)
-                new_node = dag.replace_block_with_op([node, other_node], new_op, qubit_indices)
+                new_node = dag.replace_block_with_op([node, other_node], new_op,  qubit_indices)
                 uuid_map[barrier_uuid] = new_node
             else:
                 uuid_map[barrier_uuid] = node
@@ -146,15 +146,15 @@ def require_layout_isolated_to_component(
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
         coupling_map = components_source
-    qubit_indices = {bit: dag.find_bit(bit) for bit in dag.qubits}
+    qubit_indices = {dag.find_bit(bit).index for bit in dag.qubits}
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():
         component_index = None
         for i, component_set in enumerate(component_sets):
-            if qubit_indices[inst.qargs[0]] in component_set:
+            if dag.find_bit(inst.qargs[0]).index in component_set:
                 component_index = i
                 break
-        if qubit_indices[inst.qargs[1]] not in component_sets[component_index]:
+        if dag.find_bit(inst.qargs[1]).index not in component_sets[component_index]:
             raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
 
 

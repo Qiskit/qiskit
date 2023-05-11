@@ -77,7 +77,7 @@ class UnrollCustomDefinitions(TransformationPass):
                 inst_supported = (
                     self._target.instruction_supported(
                         operation_name=node.op.name,
-                        qargs=tuple(dag.find_bit(x) for x in node.qargs),
+                        qargs=tuple(dag.find_bit(x).index for x in node.qargs),
                     )
                     if self._target is not None
                     else node.name in device_insts

@@ -98,7 +98,7 @@ class TimeUnitConversion(TransformationPass):
             try:
                 node.op = node.op.copy()
                 node.op.duration = self.inst_durations.get(
-                    node.op, [dag.find_bit(qarg) for qarg in node.qargs], unit=time_unit
+                    node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
                 )
                 node.op.unit = time_unit
             except TranspilerError:

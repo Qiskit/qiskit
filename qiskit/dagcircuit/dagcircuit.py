@@ -98,6 +98,8 @@ class DAGCircuit:
         # within that register.
         self._qubit_indices: dict[Qubit, BitPosition] = {}
         self._clbit_indices: dict[Clbit, BitPosition] = {}
+        # self._qubit_indices = {}
+        # self._clbit_indices = {}
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -230,12 +232,16 @@ class DAGCircuit:
         if duplicate_qubits:
             raise DAGCircuitError("duplicate qubits %s" % duplicate_qubits)
 
-        # self.qubits.extend(qubits)
+        #self.qubits.extend(qubits)
         for qubit in qubits:
             self.qubits.append(qubit)
-            index = len(self.qubits)
-            self._qubit_indices[qubit] = BitPosition(index=index, registers=[])
+            self._qubit_indices[qubit] = BitPosition(len(self.qubits) - 1, [])
             self._add_wire(qubit)
+        # for qubit in qubits:
+        #     self.qubits.append(qubit)
+        #     index = len(self.qubits) - 1
+        #     self._qubit_indices[qubit] = index
+        #     self._add_wire(qubit)
 
     def add_clbits(self, clbits):
         """Add individual clbit wires."""
@@ -248,10 +254,15 @@ class DAGCircuit:
 
         # self.clbits.extend(clbits)
         for clbit in clbits:
-            index = len(self.clbits)
             self.clbits.append(clbit)
-            self._clbit_indices[clbit] = BitPosition(index=index, registers=[])
+            self._clbit_indices[clbit] = BitPosition(len(self.clbits) - 1, [])
             self._add_wire(clbit)
+        # for clbit in clbits:
+        #     index = len(self.clbits) - 1
+        #     self.clbits.append(clbit)
+        #     self._clbit_indices[clbit] = index
+        #     self._add_wire(clbit)
+
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -260,13 +271,20 @@ class DAGCircuit:
         if qreg.name in self.qregs:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
-        # existing_qubits = set(self.qubits)
+        existing_qubits = set(self.qubits)
         for j in range(qreg.size):
-            if qreg[j] not in self._qubit_indices:
-                index = len(self.qubits)
+            if qreg[j] in self._qubit_indices:
+                self._qubit_indices[qreg[j]].registers.append((qreg, j))
+            if qreg[j] not in existing_qubits:
                 self.qubits.append(qreg[j])
-                self._qubit_indices[qreg[j]] = BitPosition(index=index, registers=[(qreg, j)])
+                self._qubit_indices[qreg[j]] = BitPosition(len(self.qubits) - 1, registers=[(qreg, j)])
                 self._add_wire(qreg[j])
+        # for j in range(qreg.size):
+        #     if qreg[j] not in self._qubit_indices:
+        #         index = len(self.qubits)
+        #         self.qubits.append(qreg[j])
+        #         self._qubit_indices[qreg[j]] = index
+        #         self._add_wire(qreg[j])
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -275,13 +293,21 @@ class DAGCircuit:
         if creg.name in self.cregs:
             raise DAGCircuitError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
-        # existing_clbits = set(self.clbits)
+        existing_clbits = set(self.clbits)
         for j in range(creg.size):
-            if creg[j] not in self._clbit_indices:
-                index = len(self.clbits)
+            if creg[j] in self._clbit_indices:
+                self._clbit_indices[creg[j]].registers.append((creg, j))
+            if creg[j] not in existing_clbits:
                 self.clbits.append(creg[j])
-                self._clbit_indices[creg[j]] = BitPosition(index=index, registers=[(creg, j)])
+                self._clbit_indices[creg[j]] = BitPosition(len(self.clbits) - 1, registers=[(creg, j)])
                 self._add_wire(creg[j])
+        # for j in range(creg.size):
+        #     if creg[j] not in self._clbit_indices:
+        #         index = len(self.clbits)
+        #         self.clbits.append(creg[j])
+        #         self._clbit_indices[creg[j]] = index
+        #         self._add_wire(creg[j])
+
 
     def _add_wire(self, wire):
         """Add a qubit or bit to the circuit.
@@ -309,6 +335,7 @@ class DAGCircuit:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
     def find_bit(self, bit: Bit) -> BitPosition:
+    #def find_bit(self, bit):
         """
         Finds locations in the circuit, by mapping the Qubit and Clbit to positional index
         BitPosition is defined as: BitPosition = namedtuple("BitPosition", ("index", "registers"))
@@ -376,6 +403,11 @@ class DAGCircuit:
             self.clbits.remove(clbit)
             del self._clbit_indices[clbit]
 
+        # Update the indices of remaining clbits
+        for i, clbit in enumerate(self.clbits):
+            self._clbit_indices[clbit] = self._clbit_indices[clbit]._replace(index=i)
+            #self._clbit_indices[clbit] = i
+
     def remove_cregs(self, *cregs):
         """
         Remove classical registers from the circuit, leaving underlying bits
@@ -433,6 +465,11 @@ class DAGCircuit:
             self._remove_idle_wire(qubit)
             self.qubits.remove(qubit)
             del self._qubit_indices[qubit]
+
+        # Update the indices of remaining qubits
+        for i, qubit in enumerate(self.qubits):
+            self._qubit_indices[qubit] = self._qubit_indices[qubit]._replace(index=i)
+            #self._qubit_indices[qubit] = i
 
     def remove_qregs(self, *qregs):
         """

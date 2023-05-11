@@ -44,13 +44,13 @@ class GatesInBasis(AnalysisPass):
         gates_out_of_basis = False
         if self._target is not None:
 
-            def _visit_target(dag):
+            def _visit_target(dag, wire_map= None):
                 for gate in dag.op_nodes():
                     # Barrier is universal and supported by all backends
                     if gate.name == "barrier":
                         continue
                     if not self._target.instruction_supported(
-                        gate.name, tuple(dag.find_bit(bit) for bit in gate.qargs)
+                        gate.name, tuple(dag.find_bit(bit).index for bit in gate.qargs)
                     ):
                         return True
                     # Control-flow ops still need to be supported, so don't skip them in the
@@ -58,7 +58,7 @@ class GatesInBasis(AnalysisPass):
                     if isinstance(gate.op, ControlFlowOp):
                         for block in gate.op.blocks:
                             inner_wire_map = {
-                                inner: dag.find_bit(outer)
+                                inner: dag.find_bit(outer).index
                                 for outer, inner in zip(gate.qargs, block.qubits)
                             }
                             if _visit_target(circuit_to_dag(block), inner_wire_map):

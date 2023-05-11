@@ -191,7 +191,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         runs = dag.collect_1q_runs()
         for run in runs:
-            qubit = dag.find_bit(run[0].qargs[0])
+            qubit = dag.find_bit(run[0].qargs[0]).index
             operator = run[0].op.to_matrix()
             for node in run[1:]:
                 operator = node.op.to_matrix().dot(operator)
