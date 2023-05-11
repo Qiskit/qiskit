@@ -561,12 +561,8 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
         circuit=circuit,
     )
