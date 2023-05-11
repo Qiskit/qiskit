@@ -25,7 +25,7 @@ class FakeQuitoV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_quito.json"
     props_filename = "props_quito.json"
     defs_filename = "defs_quito.json"
-    backend_name = "fake_quito_v2"
+    backend_name = "fake_quito"
 
 
 class FakeQuito(fake_pulse_backend.FakePulseBackend):

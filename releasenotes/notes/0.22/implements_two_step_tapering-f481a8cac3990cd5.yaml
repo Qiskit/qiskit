@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    The :class:`~.Z2Symmetries` class has two new methods,
-    :meth:`~.Z2Symmetries.convert_clifford` and
-    :meth:`~.Z2Symmetries.taper_clifford`. These two methods are the two
+    The :class:`~qiskit.opflow.primitive_ops.Z2Symmetries` class has two new methods,
+    :meth:`qiskit.opflow.primitive_ops.Z2Symmetries.convert_clifford` and
+    :meth:`qiskit.opflow.primitive_ops.Z2Symmetries.taper_clifford`. These two methods are the two
     operations necessary for taperng an operator based on the Z2 symmetries
     in the object and were previously performed internally via the
-    :meth:`~.Z2Symmetries.taper` method. However, these methods are now
+    :meth:`qiskit.opflow.primitive_ops.Z2Symmetries.taper` method. However, these methods are now
     public methods of the class which can be called individually if needed.

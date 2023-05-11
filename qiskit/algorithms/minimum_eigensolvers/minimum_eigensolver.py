@@ -72,8 +72,8 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalue = None
-        self._aux_operators_evaluated = None
+        self._eigenvalue: complex | None = None
+        self._aux_operators_evaluated: ListOrDict[tuple[complex, dict[str, Any]]] | None = None
 
     @property
     def eigenvalue(self) -> complex | None:

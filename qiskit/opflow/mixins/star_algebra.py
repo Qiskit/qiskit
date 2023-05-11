@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,10 +16,11 @@ from abc import ABC, abstractmethod
 from numbers import Integral
 
 from qiskit.quantum_info.operators.mixins import MultiplyMixin
+from qiskit.utils.deprecation import deprecate_func
 
 
 class StarAlgebraMixin(MultiplyMixin, ABC):
-    """The star algebra mixin class.
+    """Deprecated: The star algebra mixin class.
     Star algebra is an algebra with an adjoint.
 
     This class overrides:
@@ -38,6 +39,13 @@ class StarAlgebraMixin(MultiplyMixin, ABC):
         - :meth:`compose(self, other)`
         - :meth:`adjoint(self)`
     """
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        pass
 
     # Scalar multiplication
 

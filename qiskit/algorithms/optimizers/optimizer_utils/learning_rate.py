@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """A class to represent the Learning Rate."""
+from __future__ import annotations
 
-from typing import Union, Callable, Optional, List, Iterator, Generator
+from collections.abc import Generator, Callable
 from itertools import tee
 import numpy as np
 
@@ -27,7 +28,11 @@ class LearningRate(Generator):
     """
 
     def __init__(
-        self, learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]]
+        self,
+        learning_rate: float
+        | list[float]
+        | np.ndarray
+        | Callable[[], Generator[float, None, None]],
     ):
         """
         Args:
@@ -42,7 +47,7 @@ class LearningRate(Generator):
         else:
             self._gen = learning_rate()
 
-        self._current: Optional[float] = None
+        self._current: float | None = None
 
     def send(self, value):
         """Send a value into the generator.

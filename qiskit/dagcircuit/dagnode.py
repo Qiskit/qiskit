@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=redefined-builtin
 
 """Objects to represent the information at a node in the DAGCircuit."""
 
@@ -74,7 +73,6 @@ class DAGNode:
                 "release will require the mappings to be provided as arguments.",
                 DeprecationWarning,
             )
-
             bit_indices1 = {arg: arg for arg in node1.qargs + node1.cargs}
             bit_indices2 = {arg: arg for arg in node2.qargs + node2.cargs}
 

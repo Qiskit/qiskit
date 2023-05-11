@@ -103,6 +103,10 @@ class ECRGate(Gate):
 
         self.definition = qc
 
+    def inverse(self):
+        """Return inverse ECR gate (itself)."""
+        return ECRGate()  # self-inverse
+
     def to_matrix(self):
         """Return a numpy.array for the ECR gate."""
         return (
