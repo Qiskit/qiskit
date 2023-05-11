@@ -129,12 +129,11 @@ def generate_random_circuits():
 
 
 def generate_string_parameters():
-    """Generate a circuit from pauli tensor opflow."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        from qiskit.opflow import X, Y, Z
-    op_circuit = (X ^ Y ^ Z).to_circuit_op().to_circuit()
-    op_circuit.name = "X^Y^Z"
+    """Generate a circuit for the XYZ pauli string."""
+    op_circuit = QuantumCircuit(3, name="X^Y^Z")
+    op_circuit.z(0)
+    op_circuit.y(1)
+    op_circuit.x(2)
     return op_circuit
 
 
@@ -332,13 +331,11 @@ def generate_evolution_gate():
     # Runtime import since this only exists in terra 0.19.0
     from qiskit.circuit.library import PauliEvolutionGate
     from qiskit.synthesis import SuzukiTrotter
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        from qiskit.opflow import I, Z
+    from qiskit.quantum_info import SparsePauliOp
 
     synthesis = SuzukiTrotter()
-    evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=2.0, synthesis=synthesis)
+    op = SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)])
+    evo = PauliEvolutionGate([op] * 5, time=2.0, synthesis=synthesis)
     qc = QuantumCircuit(2, name="pauli_evolution_circuit")
     qc.append(evo, range(2))
     return qc
