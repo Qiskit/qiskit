@@ -18,7 +18,6 @@ import itertools
 import random
 import re
 import sys
-import warnings
 
 import numpy as np
 
