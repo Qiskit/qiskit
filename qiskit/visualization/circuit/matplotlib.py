@@ -362,12 +362,10 @@ class MatplotlibDrawer:
         layer_widths = {}
         for layer_num, layer in enumerate(self._nodes):
             widest_box = WID
-            first_node = True
-            for node in layer:
+            for i, node in enumerate(layer):
                 # Put the layer_num in the first node in the layer and put -1 in the rest
-                if first_node:
-                    first_node = False
-                else:
+                # so that layer widths are not counted more than once
+                if i != 0:
                     layer_num = -1
                 layer_widths[node] = [1, layer_num]
 
