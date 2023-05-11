@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """Dynamical Decoupling insertion pass."""
-import logging
 from __future__ import annotations
 
+import logging
 import numpy as np
+
 from qiskit.circuit import Qubit, Gate
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
