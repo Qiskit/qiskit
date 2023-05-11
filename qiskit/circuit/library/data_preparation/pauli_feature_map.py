@@ -46,7 +46,7 @@ class PauliFeatureMap(NLocal):
             \prod_{j \in S} (\pi - x_j) \text{ if } |S| > 1
             \end{cases}.
 
-    The possible connections can be set using the ``entanglement`` and ``paulis`` argument.
+    The possible connections can be set using the ``entanglement`` and ``paulis`` arguments.
     For example, for single-qubit :math:`Z` rotations and two-qubit :math:`YY` interactions
     between all qubit pairs, we can set::
 
@@ -104,6 +104,7 @@ class PauliFeatureMap(NLocal):
         OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
 
     References:
+
 
     [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
     `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
