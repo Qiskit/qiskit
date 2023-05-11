@@ -80,7 +80,7 @@ four different primitive implementations, depending on how you want to configure
 
     a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
     b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
-    c. Accessing backends using the **IBM's Qiskit Runtime service**: **Runtime primitives** in :mod:`qiskit_ibm_runtime`
+    c. Accessing backends using **IBM's Qiskit Runtime service**: **Runtime primitives** in :mod:`qiskit_ibm_runtime`
     d. Accessing backends using a **non-native primitves in other provider**: **Backend Primitives** in :mod:`qiskit.primitives`
 
 
