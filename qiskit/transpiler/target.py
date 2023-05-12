@@ -20,7 +20,6 @@ from a backend
 from __future__ import annotations
 
 import itertools
-import warnings
 
 from typing import Tuple, Union, Optional, Dict, List, Any
 from collections.abc import Mapping
@@ -45,7 +44,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
@@ -242,7 +241,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
+    @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
     def __init__(
         self,
         description=None,
@@ -1001,7 +1000,7 @@ class Target(Mapping):
 
         If there is a mix of two qubit operations that have a connectivity
         constraint and those that are globally defined this will also return
-        ``None`` because the globally connectivity means there is no contstraint
+        ``None`` because the globally connectivity means there is no constraint
         on the target. If you wish to see the constraints of the two qubit
         operations that have constraints you should use the ``two_q_gate``
         argument to limit the output to the gates which have a constraint.
@@ -1059,17 +1058,16 @@ class Target(Mapping):
             if filter_idle_qubits:
                 cmap.graph = self._filter_coupling_graph()
             else:
-                cmap.graph = self._coupling_graph
+                cmap.graph = self._coupling_graph.copy()
             return cmap
         else:
             return None
 
     def _filter_coupling_graph(self):
         has_operations = set(itertools.chain.from_iterable(self.qargs))
-        graph = self._coupling_graph
+        graph = self._coupling_graph.copy()
         to_remove = set(graph.node_indices()).difference(has_operations)
         if to_remove:
-            graph = graph.copy()
             graph.remove_nodes_from(list(to_remove))
         return graph
 
@@ -1132,19 +1130,23 @@ class Target(Mapping):
         return incomplete_basis_gates
 
     @property
+    @deprecate_func(
+        additional_msg="Use the property ``acquire_alignment`` instead.",
+        since="0.24.0",
+        is_property=True,
+    )
     def aquire_alignment(self):
         """Alias of deprecated name. This will be removed."""
-        warnings.warn(
-            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
-        )
         return self.acquire_alignment
 
     @aquire_alignment.setter
+    @deprecate_func(
+        additional_msg="Use the property ``acquire_alignment`` instead.",
+        since="0.24.0",
+        is_property=True,
+    )
     def aquire_alignment(self, new_value: int):
         """Alias of deprecated name. This will be removed."""
-        warnings.warn(
-            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
-        )
         self.acquire_alignment = new_value
 
     def __iter__(self):

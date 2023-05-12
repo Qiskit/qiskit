@@ -64,6 +64,16 @@ class TestWaveform(QiskitTestCase):
         self.assertEqual(sample_pulse.duration, n_samples)
         self.assertEqual(sample_pulse.name, name)
 
+    def test_waveform_hashing(self):
+        """Test waveform hashing."""
+        n_samples = 100
+        samples = np.linspace(0, 1.0, n_samples, dtype=np.complex128)
+        name = "test"
+        sample_pulse = Waveform(samples, name=name)
+        sample_pulse2 = Waveform(samples, name="test2")
+
+        self.assertEqual({sample_pulse, sample_pulse2}, {sample_pulse})
+
     def test_type_casting(self):
         """Test casting of input samples to numpy array."""
         n_samples = 100

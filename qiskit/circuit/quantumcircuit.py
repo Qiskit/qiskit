@@ -15,6 +15,7 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+import sys
 import collections.abc
 import copy
 import itertools
@@ -37,6 +38,7 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    overload,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -44,7 +46,6 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression, ParameterValueType
@@ -70,6 +71,11 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -1575,8 +1581,11 @@ class QuantumCircuit:
         to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
-                Defaults to all gates in circuit.
+            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
+                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
+                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
+                of these. If a gate name is entered, it will decompose all gates with that
+                name, whether the gates have labels or not. Defaults to all gates in circuit.
             reps (int): Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
                 can decompose specific gates specific time
@@ -2488,11 +2497,23 @@ class QuantumCircuit:
 
         Args:
           path (str): Path to the file for a QASM program
+
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
+
+        See also:
+            :func:`.qasm2.load`: the complete interface to the OpenQASM 2 importer.
         """
-        qasm = Qasm(filename=path)
-        return _circuit_from_qasm(qasm)
+        # pylint: disable=cyclic-import
+        from qiskit import qasm2
+
+        return qasm2.load(
+            path,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
@@ -2502,9 +2523,20 @@ class QuantumCircuit:
           qasm_str (str): A QASM program string
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
+
+        See also:
+            :func:`.qasm2.loads`: the complete interface to the OpenQASM 2 importer.
         """
-        qasm = Qasm(data=qasm_str)
-        return _circuit_from_qasm(qasm)
+        # pylint: disable=cyclic-import
+        from qiskit import qasm2
+
+        return qasm2.loads(
+            qasm_str,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     @property
     def global_phase(self) -> ParameterValueType:
@@ -2607,6 +2639,22 @@ class QuantumCircuit:
             parameters.update(self.global_phase.parameters)
 
         return parameters
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[False] = ...,
+    ) -> "QuantumCircuit":
+        ...
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[True] = ...,
+    ) -> None:
+        ...
 
     def assign_parameters(
         self,
@@ -4902,16 +4950,6 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
-
-
-def _circuit_from_qasm(qasm: Qasm) -> "QuantumCircuit":
-    # pylint: disable=cyclic-import
-    from qiskit.converters import ast_to_dag
-    from qiskit.converters import dag_to_circuit
-
-    ast = qasm.parse()
-    dag = ast_to_dag(ast)
-    return dag_to_circuit(dag, copy_operations=False)
 
 
 def _standard_compare(value1, value2):

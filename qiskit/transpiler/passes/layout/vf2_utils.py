@@ -111,9 +111,14 @@ def score_layout(
         size = 0
     nlayout = NLayout(layout_mapping, size + 1, size + 1)
     bit_list = np.zeros(len(im_graph), dtype=np.int32)
-    if strict_direction:
-        for node_index in bit_map.values():
+    for node_index in bit_map.values():
+        try:
             bit_list[node_index] = sum(im_graph[node_index].values())
+        # If node_index not in im_graph that means there was a standalone
+        # node we will score/sort separately outside the vf2 mapping, so we
+        # can skip the hole
+        except IndexError:
+            pass
     edge_list = {
         (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
     }

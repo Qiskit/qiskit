@@ -23,9 +23,9 @@ copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pyl
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.24"
+version = "0.25"
 # The full version, including alpha/beta/rc tags
-release = "0.24.0"
+release = "0.25.0"
 
 extensions = [
     "sphinx.ext.napoleon",
