@@ -20,7 +20,7 @@ import warnings
 from distutils import dir_util
 
 # Elements with api doc sources
-qiskit_elements = ["qiskit-terra", "qiskit-ibmq-provider"]
+qiskit_elements = ["qiskit-terra"]
 apidocs_exists = False
 apidocs_master = None
 
@@ -125,13 +125,3 @@ def clean_tutorials(app, exc):
     """Deletes the Git cloned tutorials repo used for doc generation."""
     tutorials_dir = os.path.join(app.srcdir, "tutorials")
     shutil.rmtree(tutorials_dir)
-
-
-def deprecate_ibmq_provider(app, docname, source):
-    """Adds a deprecation message to the top of every qiskit-ibmq-provider page."""
-    message = """.. warning::
-       The package ``qiskit-ibmq-provider`` is being deprecated and its repo is going to be
-       archived soon. Please transition to the new packages. More information in
-       https://ibm.biz/provider_migration_guide\n\n"""
-    if "apidoc/ibmq" in docname or "qiskit.providers.ibmq" in docname:
-        source[0] = message + source[0]

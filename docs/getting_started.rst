@@ -129,9 +129,6 @@ going to run and install the packages.  There are three main ways to do this:
 
        #. :ref:`qiskit-terra <install-qiskit-terra>`
        #. :ref:`qiskit-aer <install-qiskit-aer>`
-       #. :ref:`qiskit-ibmq-provider <install-qiskit-ibmq-provider>`
-          (if you want to connect to the IBM Quantum devices or online
-          simulator)
 
        To work with several components and elements simultaneously, use the following
        steps for each element.
@@ -230,23 +227,6 @@ going to run and install the packages.  There are three main ways to do this:
           python examples/python/using_qiskit_terra_level_0.py
 
 
-       .. note::
-
-          If you do not intend to install any other components, qiskit-terra will
-          emit a ``RuntimeWarning`` warning that both qiskit-aer and
-          qiskit-ibmq-provider are not installed. This is done because
-          users commonly intend to use the additional elements,
-          but do not realize they are not installed, or that the installation
-          of either Aer or the IBM Quantum Provider failed for some reason. If you wish
-          to suppress these warnings, add::
-
-             import warnings
-             warnings.filterwarnings('ignore', category=RuntimeWarning,
-                                     module='qiskit')
-
-          before any ``qiskit`` imports in your code. This will suppress the
-          warning about the missing qiskit-aer and qiskit-ibmq-provider, but
-          will continue to display any other warnings from qiskit or other packages.
 
        .. _install-qiskit-aer:
 
@@ -449,45 +429,6 @@ going to run and install the packages.  There are three main ways to do this:
           Some of these options are not platform-specific. These particular platforms are listed
           because they are commonly used in the environment. Refer to the
           tool documentation for more information.
-
-       .. _install-qiskit-ibmq-provider:
-
-       .. raw:: html
-
-          <h2>Installing IBM Quantum Provider from Source</h2>
-
-       1. Clone the qiskit-ibmq-provider repository.
-
-          .. code:: text
-
-             git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
-
-       2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
-
-          .. code:: text
-
-             cd qiskit-ibmq-provider
-
-       3. If you want to run tests or linting checks, install the developer requirements.
-          This is not required to install or use the qiskit-ibmq-provider package when
-          installing from source.
-
-          .. code:: text
-
-             pip install -r requirements-dev.txt
-
-       4. Install qiskit-ibmq-provider.
-
-          .. code:: text
-
-             pip install .
-
-       If you want to install it in editable mode, meaning that code changes to the
-       project don't require a reinstall to be applied:
-
-       .. code:: text
-
-          pip install -e .
 
 .. _platform_support:
 
