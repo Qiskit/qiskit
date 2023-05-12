@@ -3,17 +3,17 @@
 Create a quantum circuit
 ########################
 
-This guide shows how to initialize a quantum circuit.
+This guide shows you how to create a quantum circuit.
 
 There are two ways to create a :class:`~.QuantumCircuit` object:
 
-* Specifying the number of qubits and bits.
-* Creating :class:`~.QuantumRegister`\ s and :class:`~.ClassicalRegister`\ s.
+1. Specifying the number of qubits and classical bits.
+2. Creating :class:`~.QuantumRegister`\ s and :class:`~.ClassicalRegister`\ s and use the registers to initialize a :class:`~.QuantumCircuit`
 
-Create from number of qubits and bits
+Specifying the number of qubits and classical bits
 =====================================
 
-In order to create a :class:`~.QuantumCircuit` by only specifying the number of bits and qubits, you need to follow these steps.
+You can create a :class:`~.QuantumCircuit` by only specifying the number of qubits and classical bits. For example:
 
 .. testcode::
 
@@ -39,7 +39,7 @@ In order to create a :class:`~.QuantumCircuit` by only specifying the number of 
     c: 2/
      
 
-If you don't want to include any classical bits, you don't have to write `QuantumCircuit(n_qubits,0)` but you can omit the number of classical bits.
+You can also create a :class:`~.QuantumCircuit` with only qubits and no classical bits, by omitting the number of classical bits:
 
 .. testcode::
 
@@ -63,37 +63,37 @@ Create from quantum and classical registers
 Create quantum registers
 ------------------------
 
-In order to create a quantum register, you have to define a :class:`~.QuantumRegister` object, passing as argument the desired number of qubits.
+You can create a :class:`~.QuantumRegister` object by passing the desired number of qubits as an argument:
 
 .. testcode::
 
     from qiskit import QuantumRegister
 
-    # Create QuantumRegister formed by 2 qubits
+    # Create a quantum register with 2 qubits
     qr1 = QuantumRegister(2)
 
-    # Create QuantumRegister formed by 3 qubits
+    # Create a quantum register with 3 qubits
     qr2 = QuantumRegister(3)
 
 Create classical registers
 --------------------------
 
-Analogously to the quantum registers, a classical register can be created by defining a :class:`~.ClassicalRegister` object, passing the number of classical bits as an argument.
+Similar to the quantum registers, you can create a :class:`~.ClassicalRegister` object by passing the desired number of classical bits as an argument:
 
 .. testcode::
 
     from qiskit import ClassicalRegister
 
-    # Create classical register with 2 classical bits
+    # Create a classical register with 2 classical bits
     cr1 = ClassicalRegister(2)
 
-    # Create classical register with 1 classical bit
+    # Create a classical register with 1 classical bit
     cr2 = ClassicalRegister(1)
 
 Initialize the quantum circuit
 ------------------------------
 
-Now that you have defined the quantum and classical registers, you can define a :class:`~.QuantumCircuit` from them. Each register has to be introduced as a separate argument.
+Now that you have defined the quantum and classical registers, you can create a :class:`~.QuantumCircuit` with the registers: 
 
 .. testcode::
 
@@ -119,11 +119,11 @@ Now that you have defined the quantum and classical registers, you can define a 
     c1: 1/
       
 
-You can put the registers in any order, even mixing classical and quantum. However, the relative order of the :class:`~.QuantumRegister`\ s does affect the order of the qubits on the final circuit. In particular, the qubits from the first :class:`~.QuantumRegister` will be the first and so on. The same applies to the :class:`~.ClassicalRegister`\ s.
+You can put the registers in any order, even mixing classical and quantum. However, the relative order of the :class:`~.QuantumRegister`\ s affects the order of the qubits in the final circuit. The qubits from the first :class:`~.QuantumRegister` will be the first and so on. The same applies to the :class:`~.ClassicalRegister`\ s.
 
 .. testcode::
 
-    # Both the classical and quantum registers have the same relative order as in qc
+    # Resulting quantum circuits will be the same if the quantum and classical registers have the same relative order
     qc1 = QuantumCircuit(qr1, cr1, qr2, cr2)
 
     print(qc == qc1)
@@ -134,7 +134,7 @@ You can put the registers in any order, even mixing classical and quantum. Howev
 
 .. testcode::
 
-    # We change the order of the quantum registers
+    # Resulting quantum circuits are different if the quantum or classical registers have different relative order
     qc2 = QuantumCircuit(qr2, qr1, cr1, cr2)
 
     print(qc == qc2)
