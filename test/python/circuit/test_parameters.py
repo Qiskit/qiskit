@@ -1154,7 +1154,7 @@ class TestParameters(QiskitTestCase):
         transpiled = transpile(qc, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
 
         for x in theta:
-            self.assertIn(x, qc.parameters)
+            self.assertIn(x, transpiled.parameters)
 
         bound = transpiled.bind_parameters({theta: [-1, pi, pi, pi, 1, 1, 1]})
 
