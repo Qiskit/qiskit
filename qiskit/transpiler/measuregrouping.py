@@ -48,7 +48,7 @@ class MeasureGrouping:
     def meas_map(self):
         return self._meas_map
 
-    def get_qubit_groups(self, qubits: List) -> List:
+    def get_qubit_group(self, qubits: List) -> List:
         """
         Gets qubits list including at least one qubit of `qubits` from meas_map.
 

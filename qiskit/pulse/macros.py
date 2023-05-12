@@ -63,16 +63,10 @@ def measure(
 
     # backend is V2.
     if hasattr(backend, "target"):
-        try:
-            meas_map = backend.configuration().meas_map
-        except AttributeError:
-            # TODO add meas_map to Target in 0.25
-            meas_map = [list(range(backend.num_qubits))]
 
         return _measure_v2(
             qubits=qubits,
             target=backend.target,
-            meas_map=meas_map,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
@@ -156,7 +150,6 @@ def _measure_v1(
 def _measure_v2(
     qubits: List[int],
     target: Target,
-    meas_map: Union[List[List[int]], Dict[int, List[int]]],
     qubit_mem_slots: Dict[int, int],
     measure_name: str = "measure",
 ) -> Schedule:
@@ -175,21 +168,16 @@ def _measure_v2(
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
 
-    if isinstance(meas_map, list):
-        meas_map = utils.format_meas_map(meas_map)
-    meas_group = set()
-    for qubit in qubits:
-        meas_group |= set(meas_map[qubit])
-    meas_group = sorted(list(meas_group))
+    meas_qubit_group = target.meas_group.get_qubit_group(qubits)
 
-    meas_group_set = set(range(max(meas_group) + 1))
-    unassigned_qubit_indices = sorted(set(meas_group) - qubit_mem_slots.keys())
+    meas_group_set = set(range(max(meas_qubit_group) + 1))
+    unassigned_qubit_indices = sorted(set(meas_qubit_group) - qubit_mem_slots.keys())
     unassigned_reg_indices = sorted(meas_group_set - set(qubit_mem_slots.values()), reverse=True)
     if set(qubit_mem_slots.values()).issubset(meas_group_set):
         for qubit in unassigned_qubit_indices:
             qubit_mem_slots[qubit] = unassigned_reg_indices.pop()
 
-    for measure_qubit in meas_group:
+    for measure_qubit in meas_qubit_group:
         try:
             if measure_qubit in qubits:
                 default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(

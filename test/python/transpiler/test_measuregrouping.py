@@ -33,9 +33,9 @@ class MeasureGroupingTest(QiskitTestCase):
     def test_get_qubit_groups_with_empty_measuregrouping_class(self):
         meas_group = MeasureGrouping()
         qubits = [0, 1]
-        self.assertEqual([0, 1], meas_group.get_qubit_groups(qubits))
+        self.assertEqual([0, 1], meas_group.get_qubit_group(qubits))
 
     def test_get_qubit_groups_with_measuregrouping_class(self):
         meas_group = MeasureGrouping(meas_map=[[0, 1], [1, 2], [3]])
         qubits = [0, 1]
-        self.assertEqual([0, 1, 2], meas_group.get_qubit_groups(qubits))
+        self.assertEqual([0, 1, 2], meas_group.get_qubit_group(qubits))
