@@ -41,6 +41,7 @@ from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.measuregrouping import MeasureGrouping
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError
@@ -239,6 +240,7 @@ class Target(Mapping):
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
+        "_meas_group",
     )
 
     @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
@@ -252,6 +254,7 @@ class Target(Mapping):
         pulse_alignment=1,
         acquire_alignment=1,
         qubit_properties=None,
+        meas_map=None,
     ):
         """
         Create a new Target object
@@ -322,6 +325,7 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
+        self._meas_group = MeasureGrouping(meas_map)
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -1070,6 +1074,10 @@ class Target(Mapping):
         if to_remove:
             graph.remove_nodes_from(list(to_remove))
         return graph
+
+    @property
+    def meas_group(self):
+        return self._meas_group
 
     @property
     def physical_qubits(self):
