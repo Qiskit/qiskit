@@ -182,11 +182,11 @@ def schmidt_decomposition(state, qargs):
 
     # convert state tensor to matrix of prob amplitudes
     state_mat = state_tens.reshape([ndim_a, ndim_b])
-    u, s, vh = np.linalg.svd(state_mat, full_matrices=False)
+    u_mat, s_arr, vh_mat = np.linalg.svd(state_mat, full_matrices=False)
 
     return [
-        (lambd, Statevector(u, dims=dims_a), Statevector(v, dims=dims_b))
-        for lambd, u, v in zip(s, u.T, vh)
+        (s, Statevector(u, dims=dims_a), Statevector(v, dims=dims_b))
+        for s, u, v in zip(s_arr, u_mat.T, vh_mat)
     ]
 
 
