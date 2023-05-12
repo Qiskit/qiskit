@@ -30,12 +30,12 @@ class MeasureGroupingTest(QiskitTestCase):
         meas_group = MeasureGrouping(meas_map=meas_map_dict)
         self.assertEqual(meas_map_dict, meas_group.meas_map)
 
-    def test_get_qubit_groups_with_empty_measuregrouping_class(self):
+    def test_get_qubit_group_with_empty_measuregrouping_class(self):
         meas_group = MeasureGrouping()
         qubits = [0, 1]
         self.assertEqual([0, 1], meas_group.get_qubit_group(qubits))
 
-    def test_get_qubit_groups_with_measuregrouping_class(self):
+    def test_get_qubit_group_with_measuregrouping_class(self):
         meas_group = MeasureGrouping(meas_map=[[0, 1], [1, 2], [3]])
         qubits = [0, 1]
         self.assertEqual([0, 1, 2], meas_group.get_qubit_group(qubits))

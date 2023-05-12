@@ -1077,6 +1077,7 @@ class Target(Mapping):
 
     @property
     def meas_group(self):
+        """Return a MeasureGrouping class"""
         return self._meas_group
 
     @property

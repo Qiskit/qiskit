@@ -46,6 +46,9 @@ class MeasureGrouping:
 
     @property
     def meas_map(self):
+        """
+        Return a dict of meas_map.
+        """
         return self._meas_map
 
     def get_qubit_group(self, qubits: List) -> List:
