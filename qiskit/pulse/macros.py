@@ -19,9 +19,9 @@ from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 
-
 if TYPE_CHECKING:
     from qiskit.transpiler import Target
+    from qiskit.transpiler.target import MeasureGrouping
 
 
 def measure(
@@ -63,10 +63,12 @@ def measure(
 
     # backend is V2.
     if hasattr(backend, "target"):
+        from qiskit.transpiler.target import MeasureGrouping
 
         return _measure_v2(
             qubits=qubits,
             target=backend.target,
+            meas_group=MeasureGrouping(meas_map=meas_map or [list(range(backend.num_qubits))]),
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
@@ -150,6 +152,7 @@ def _measure_v1(
 def _measure_v2(
     qubits: List[int],
     target: Target,
+    meas_group: MeasureGrouping,
     qubit_mem_slots: Dict[int, int],
     measure_name: str = "measure",
 ) -> Schedule:
@@ -168,7 +171,7 @@ def _measure_v2(
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
 
-    meas_qubit_group = target.meas_group.get_qubit_group(qubits)
+    meas_qubit_group = meas_group.get_qubit_group(qubits)
 
     meas_group_set = set(range(max(meas_qubit_group) + 1))
     unassigned_qubit_indices = sorted(set(meas_qubit_group) - qubit_mem_slots.keys())

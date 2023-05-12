@@ -138,7 +138,7 @@ class TestMeasure(QiskitTestCase):
             ]
         )
         measure_duration = expected.filter(instruction_types=[Play]).duration
-        for qubit in range(self.backend_v2.num_qubits):
+        for qubit in [0, 1]:
             expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(qubit))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
