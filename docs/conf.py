@@ -26,13 +26,7 @@ sys.path.insert(0, os.path.abspath("."))
 
 import custom_extensions
 import url_redirects
-from custom_directives import (
-    CustomCalloutItemDirective,
-    CustomCardItemDirective,
-    CustomGalleryItemDirective,
-    GalleryItemDirective,
-    IncludeDirective,
-)
+from custom_directives import CustomCalloutItemDirective
 
 # -- General configuration ---------------------------------------------------
 
@@ -63,6 +57,7 @@ extensions = [
     "sphinx_design",
     "sphinx_reredirects",
     "matplotlib.sphinxext.plot_directive",
+    "qiskit_sphinx_theme",
 ]
 
 redirects = url_redirects.determine_redirects()
@@ -149,7 +144,6 @@ html_theme_options = {
     "titles_only": False,
 }
 html_static_path = ["_static"]
-html_css_files = ["custom.css", "gallery.css"]
 html_favicon = "images/favicon.ico"
 html_last_updated_fmt = "%Y/%m/%d"
 html_context = {
@@ -180,10 +174,6 @@ plot_html_show_formats = False
 
 
 def setup(app):
-    app.add_directive("includenodoc", IncludeDirective)
-    app.add_directive("galleryitem", GalleryItemDirective)
-    app.add_directive("customgalleryitem", CustomGalleryItemDirective)
-    app.add_directive("customcarditem", CustomCardItemDirective)
     app.add_directive("customcalloutitem", CustomCalloutItemDirective)
     custom_extensions.load_api_sources(app)
     custom_extensions.load_tutorials(app)
