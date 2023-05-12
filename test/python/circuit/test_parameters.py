@@ -1113,7 +1113,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name="theta")
 
         qc = QuantumCircuit(2)
-        qc.p(numpy.abs(phi), 0)
+        qc.p(numpy.abs(-phi), 0)
         qc.p(numpy.cos(phi), 0)
         qc.p(numpy.sin(phi), 0)
         qc.p(numpy.tan(phi), 0)
@@ -1135,17 +1135,40 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc, qc_ref)
 
     def test_compile_with_ufunc(self):
-        """Test compiling of circuit with unbounded parameters
+        """Test compiling of circuit with unbound parameters
         after we apply universal functions."""
-        phi1 = Parameter("phi1")
-        phi2 = Parameter("phi2")
-        qc = QuantumCircuit(1)
-        qc.rx(numpy.abs(phi1), 0)
-        qc.rx(numpy.cos(phi2), 0)
-        backend = BasicAer.get_backend("qasm_simulator")
-        qc_aer = transpile(qc, backend)
-        self.assertIn(phi1, qc_aer.parameters)
-        self.assertIn(phi2, qc_aer.parameters)
+        from math import pi
+
+        theta = ParameterVector("theta", length=7)
+
+        qc = QuantumCircuit(7)
+        qc.rx(numpy.abs(theta[0]), 1)
+        qc.rx(numpy.cos(theta[1]), 2)
+        qc.rx(numpy.sin(theta[2]), 3)
+        qc.rx(numpy.tan(theta[3]), 4)
+        qc.rx(numpy.arccos(theta[4]), 5)
+        qc.rx(numpy.arctan(theta[5]), 6)
+        qc.rx(numpy.arcsin(theta[6]), 7)
+
+        # transpile to different basis
+        transpiled = transpile(qc, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
+
+        for x in range(theta):
+            self.assertIn(x, qc_aer.parameters)
+
+        bound = transpiled.bind_parameters({theta: [-1, pi, pi, pi, 1, 1, 1]})
+
+        expected = QuantumCircuit(7)
+        expected.rx(1.0, 1)
+        expected.rx(-1.0, 2)
+        expected.rx(0.0, 3)
+        expected.rx(0.0, 4)
+        expected.rx(0.0, 5)
+        expected.rx(pi / 4, 6)
+        expected.rx(pi / 2, 7)
+        expected = transpile(expected, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
+
+        self.assertEqual(expected, bound)
 
     def test_parametervector_resize(self):
         """Test the resize method of the parameter vector."""
@@ -1210,7 +1233,6 @@ class TestParameterExpressions(QiskitTestCase):
 
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
-
         self.assertEqual(bound_expr, 2.3)
 
     def test_abs_function_when_bound(self):
@@ -1235,36 +1257,6 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(abs(x), abs(-x))
         self.assertEqual(abs(x) * abs(y), abs(x * y))
         self.assertEqual(abs(x) / abs(y), abs(x / y))
-
-    def test_circuit_bind_with_ufunc(self):
-        """Test construction of circuit and binding of parameters
-        after we apply universal functions."""
-        from math import pi
-
-        phi = Parameter(name="phi")
-        theta = Parameter(name="theta")
-
-        qc = QuantumCircuit(2)
-        qc.p(numpy.abs(phi), 0)
-        qc.p(numpy.cos(phi), 0)
-        qc.p(numpy.sin(phi), 0)
-        qc.p(numpy.tan(phi), 0)
-        qc.rz(numpy.arccos(theta), 1)
-        qc.rz(numpy.arctan(theta), 1)
-        qc.rz(numpy.arcsin(theta), 1)
-
-        qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
-
-        qc_ref = QuantumCircuit(2)
-        qc_ref.p(numpy.abs(pi), 0)
-        qc_ref.p(numpy.cos(pi), 0)
-        qc_ref.p(numpy.sin(pi), 0)
-        qc_ref.p(numpy.tan(pi), 0)
-        qc_ref.rz(numpy.arccos(1), 1)
-        qc_ref.rz(numpy.arctan(1), 1)
-        qc_ref.rz(numpy.arcsin(1), 1)
-
-        self.assertEqual(qc, qc_ref)
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
