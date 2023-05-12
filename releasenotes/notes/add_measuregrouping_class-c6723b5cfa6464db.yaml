@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the class :class:`.MeasureGrouping` which has a ``meas_map`` which
+    determines which qubits must be measured together. 
+    This class is used as a property of :class:`.Target`.
+
