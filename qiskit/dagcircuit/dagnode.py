@@ -73,7 +73,6 @@ class DAGNode:
                 "release will require the mappings to be provided as arguments.",
                 DeprecationWarning,
             )
-
             bit_indices1 = {arg: arg for arg in node1.qargs + node1.cargs}
             bit_indices2 = {arg: arg for arg in node2.qargs + node2.cargs}
 
