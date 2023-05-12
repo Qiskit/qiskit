@@ -118,6 +118,75 @@ def shannon_entropy(pvec, base=2):
     return h_val
 
 
+def schmidt_decomposition(state, qargs):
+    r"""Return the Schmidt Decomposition of a pure quantum state.
+    
+    The Schmidt Decomposition of an arbitrary bipartite state:
+    
+    .. math::
+        |\psi\rangle = \sum_{i=0}^{N-1}\sum_{j=0}^{M-1} c_{ij}
+                       |x_i\rangle_A \otimes |y_j\rangle_B
+
+    is given by the single sum:
+
+    .. math::
+        |\psi\rangle = \sum_{k} \lambda_{k} 
+                       |u_k\rangle_A \otimes |v_k\rangle_B
+
+    where :math:`|u_k\rangle_A` and :math:`|v_k\rangle_B` are an 
+    orthonormal set of vectors in their respective spaces A and B,
+    and the Schmidt coefficients :math:`\lambda_i` are positive real values.
+
+    Args:
+        state (Statevector or DensityMatrix): the input state.
+        qargs (list): The list of Input state positions corresponding to subsystem A.
+
+    Returns:
+        list: list of tuples ``(s, u, v)``, where ``s`` (``float``) are the  
+              Schmidt coefficients :math:`\lambda_k`, and ``u`` (``Statevector``), 
+              ``v`` (``Statevector``) are the Schmidt vectors 
+              :math:`|u_k\rangle_A`, :math:`|u_k\rangle_B`, respectively.
+
+    Raises:
+        QiskitError: if Input qargs is not a list of positions of the Input state.
+        QiskitError: if Input qargs is not a proper subset of Input state.
+    """
+    state = _format_state(state, validate=False)
+    if isinstance(state, DensityMatrix):
+        state = state.to_statevector()
+    
+    # reshape statevector into state tensor
+    dims = state.dims()
+    state_tens = state._data.reshape(dims[::-1])
+    ndim = state_tens.ndim
+    
+    # check if qargs are valid
+    if not isinstance(qargs,(list, np.ndarray)):
+        raise QiskitError("Input qargs is not a list of positions of the Input state")
+    qudits = list(range(ndim))
+    qargs = set(qargs)
+    if qargs == set(qudits) or not qargs.issubset(qudits):
+        raise QiskitError("Input qargs is not a proper subset of Input state")
+    
+    # define subsystem A and B qargs and dims
+    qargs_a = list(qargs)
+    qargs_b = [i for i in qudits if i not in qargs_a]
+    dims_a = state.dims(qargs_a)
+    dims_b = state.dims(qargs_b)
+    ndim_a = np.prod(dims_a)
+    ndim_b = np.prod(dims_b)
+    
+    # Permute state for desired qargs order
+    qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_a+qargs_b][::-1]
+    state_tens = state_tens.transpose(qargs_axes)
+
+    # convert state tensor to matrix of prob amplitudes
+    state_mat = state_tens.reshape([ndim_a,ndim_b])
+    u, s, vh = np.linalg.svd(state_mat, full_matrices=False)
+    
+    return np.array([(lambd, Statevector(u,dims=dims_a), Statevector(v,dims=dims_b)) for lambd, u, v in zip(s,u.T,vh)])
+
+
 def _format_state(state, validate=True):
     """Format input state into class object"""
     if isinstance(state, list):
@@ -155,41 +224,3 @@ def _funm_svd(matrix, func):
     unitary1, singular_values, unitary2 = la.svd(matrix)
     diag_func_singular = np.diag(func(singular_values))
     return unitary1.dot(diag_func_singular).dot(unitary2)
-
-
-def schmidt_decomposition(state, qargs):
-    
-    state = _format_state(state, validate=False)
-    if isinstance(state, DensityMatrix):
-        state = state.to_statevector()
-    
-    # reshape statevector into state tensor
-    dims = state.dims()
-    state_tens = state._data.reshape(dims[::-1])
-    ndim = state_tens.ndim
-    
-    # check if qargs are valid
-    if not isinstance(qargs,(list, np.ndarray)):
-        raise QiskitError("Input qargs must be a list of positions corresponding to subsystem A")
-    qudits = list(range(ndim))
-    qargs = set(qargs)
-    if qargs == set(qudits) or not qargs.issubset(qudits):
-        raise QiskitError("Input qargs are not a proper subset of Input state")
-    
-    # define subsystem A and B qargs and dims
-    qargs_a = list(qargs)
-    qargs_b = [i for i in qudits if i not in qargs_a]
-    dims_a = state.dims(qargs_a)
-    dims_b = state.dims(qargs_b)
-    ndim_a = np.prod(dims_a)
-    ndim_b = np.prod(dims_b)
-    
-    # Permute state for desired qargs order
-    qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_a+qargs_b][::-1]
-    state_tens = state_tens.transpose(qargs_axes)
-
-    # convert state tensor to matrix of prob amplitudes
-    state_mat = state_tens.reshape([ndim_a,ndim_b])
-    u, s, vh = np.linalg.svd(state_mat, full_matrices=False)
-    
-    return [(lambd, Statevector(u,dims=dims_a), Statevector(v,dims=dims_b)) for lambd, u, v in zip(s,u.T,vh)]
