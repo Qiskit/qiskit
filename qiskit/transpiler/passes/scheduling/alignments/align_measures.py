@@ -23,6 +23,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class AlignMeasures(TransformationPass):
@@ -86,6 +87,14 @@ class AlignMeasures(TransformationPass):
         However, it may return meaningless measurement data mainly due to the phase error.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.ConstrainedReschedule`, which performs the same function "
+            "but also supports aligning to additional timing constraints."
+        ),
+        since="0.21.0",
+        pending=True,
+    )
     def __init__(self, alignment: int = 1):
         """Create new pass.
 
@@ -95,13 +104,6 @@ class AlignMeasures(TransformationPass):
                 the control electronics of your quantum processor.
         """
         super().__init__()
-        warnings.warn(
-            "The AlignMeasures class has been supersceded by the ConstrainedReschedule class "
-            "which performs the same function but also supports aligning to additional timing "
-            "constraints. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
         self.alignment = alignment
 
     def run(self, dag: DAGCircuit):
