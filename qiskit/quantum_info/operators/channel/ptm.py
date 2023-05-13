@@ -66,8 +66,10 @@ class PTM(QuantumChannel):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize a PTM quantum channel operator.
 
@@ -132,7 +134,7 @@ class PTM(QuantumChannel):
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, num_qubits=num_qubits)
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             np.asarray(self.data, dtype=dtype)
         return self.data
@@ -142,7 +144,9 @@ class PTM(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._output_dim, self._output_dim, self._input_dim, self._input_dim)
 
-    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
+    def _evolve(
+        self, state: DensityMatrix | Statevector, qargs: list | None = None
+    ) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------

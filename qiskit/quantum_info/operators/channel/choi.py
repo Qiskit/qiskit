@@ -63,8 +63,10 @@ class Choi(QuantumChannel):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Choi matrix operator.
 
@@ -133,7 +135,7 @@ class Choi(QuantumChannel):
             choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
         super().__init__(choi_mat, op_shape=op_shape)
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -143,7 +145,9 @@ class Choi(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._input_dim, self._output_dim, self._input_dim, self._output_dim)
 
-    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
+    def _evolve(
+        self, state: DensityMatrix | Statevector, qargs: list | None = None
+    ) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------

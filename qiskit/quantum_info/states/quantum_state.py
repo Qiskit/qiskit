@@ -67,7 +67,7 @@ class QuantumState:
             return np.random.default_rng()
         return self._rng_generator
 
-    def dims(self, qargs = None):
+    def dims(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
         return self._op_shape.dims_l(qargs)
 
@@ -75,7 +75,7 @@ class QuantumState:
         """Make a copy of current operator."""
         return copy.deepcopy(self)
 
-    def seed(self, value = None):
+    def seed(self, value=None):
         """Set the seed for the quantum state RNG."""
         if value is None:
             self._rng_generator = None
@@ -85,7 +85,7 @@ class QuantumState:
             self._rng_generator = np.random.default_rng(value)
 
     @abstractmethod
-    def is_valid(self, atol = None, rtol = None):
+    def is_valid(self, atol=None, rtol=None):
         """Return True if a valid quantum state."""
         pass
 
@@ -341,7 +341,9 @@ class QuantumState:
         return outcome, ret
 
     @staticmethod
-    def _index_to_ket_array(inds: np.ndarray, dims: tuple, string_labels: bool = False) -> np.ndarray:
+    def _index_to_ket_array(
+        inds: np.ndarray, dims: tuple, string_labels: bool = False
+    ) -> np.ndarray:
         """Convert an index array into a ket array.
 
         Args:

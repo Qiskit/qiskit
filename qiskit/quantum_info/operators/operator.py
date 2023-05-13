@@ -57,8 +57,10 @@ class Operator(LinearOp):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Operation | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Operation | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize an operator object.
 
@@ -115,7 +117,7 @@ class Operator(LinearOp):
             shape=self._data.shape,
         )
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -289,8 +291,11 @@ class Operator(LinearOp):
 
     @classmethod
     def from_circuit(
-        cls, circuit: QuantumCircuit, ignore_set_layout: bool = False, layout: Layout | None = None,
-        final_layout: Layout | None = None
+        cls,
+        circuit: QuantumCircuit,
+        ignore_set_layout: bool = False,
+        layout: Layout | None = None,
+        final_layout: Layout | None = None,
     ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
@@ -357,7 +362,7 @@ class Operator(LinearOp):
             op = op.apply_permutation(perm_pattern, front=False)
         return op
 
-    def is_unitary(self, atol = None, rtol = None):
+    def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
             atol = self.atol
@@ -579,7 +584,12 @@ class Operator(LinearOp):
 
     @classmethod
     def _einsum_matmul(
-        cls, tensor: np.ndarray, mat: np.ndarray, indices: list, shift: int = 0, right_mul: bool = False
+        cls,
+        tensor: np.ndarray,
+        mat: np.ndarray,
+        indices: list,
+        shift: int = 0,
+        right_mul: bool = False,
     ) -> np.ndarray:
         """Perform a contraction using Numpy.einsum
 
@@ -652,7 +662,7 @@ class Operator(LinearOp):
                 pass
         return mat
 
-    def _append_instruction(self, obj, qargs = None):
+    def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
         from qiskit.circuit.barrier import Barrier
         from .scalar_op import ScalarOp

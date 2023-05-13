@@ -63,8 +63,10 @@ class Kraus(QuantumChannel):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Kraus operator.
 
@@ -178,7 +180,7 @@ class Kraus(QuantumChannel):
             # Otherwise return the tuple of both kraus sets
             return self._data
 
-    def is_cptp(self, atol = None, rtol = None):
+    def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
         if self._data[1] is not None:
             return False
@@ -191,7 +193,9 @@ class Kraus(QuantumChannel):
             accum += np.dot(np.transpose(np.conj(op)), op)
         return is_identity_matrix(accum, rtol=rtol, atol=atol)
 
-    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
+    def _evolve(
+        self, state: DensityMatrix | Statevector, qargs: list | None = None
+    ) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------

@@ -64,8 +64,10 @@ class Stinespring(QuantumChannel):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Stinespring operator.
 
@@ -152,7 +154,7 @@ class Stinespring(QuantumChannel):
         else:
             return self._data
 
-    def is_cptp(self, atol = None, rtol = None):
+    def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
         if atol is None:
             atol = self.atol
@@ -163,7 +165,9 @@ class Stinespring(QuantumChannel):
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
         return is_identity_matrix(check, rtol=self.rtol, atol=self.atol)
 
-    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
+    def _evolve(
+        self, state: DensityMatrix | Statevector, qargs: list | None = None
+    ) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -193,7 +197,9 @@ class Stinespring(QuantumChannel):
         ret._data = (stine[0], stine[1])
         return ret
 
-    def compose(self, other: Stinespring, qargs: list | None = None, front: bool = False) -> Stinespring:
+    def compose(
+        self, other: Stinespring, qargs: list | None = None, front: bool = False
+    ) -> Stinespring:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:

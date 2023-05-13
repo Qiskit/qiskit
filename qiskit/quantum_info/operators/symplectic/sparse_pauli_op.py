@@ -83,8 +83,12 @@ class SparsePauliOp(LinearOp):
     """
 
     def __init__(
-        self, data: PauliList | SparsePauliOp | Pauli | list | str, coeffs: np.ndarray | None = None,
-        *, ignore_pauli_phase: bool = False, copy: bool = True
+        self,
+        data: PauliList | SparsePauliOp | Pauli | list | str,
+        coeffs: np.ndarray | None = None,
+        *,
+        ignore_pauli_phase: bool = False,
+        copy: bool = True,
     ):
         """Initialize an operator object.
 
@@ -160,7 +164,7 @@ class SparsePauliOp(LinearOp):
         # Initialize LinearOp
         super().__init__(num_qubits=self._pauli_list.num_qubits)
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
@@ -805,8 +809,10 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_sparse_list(
-        obj: Iterable[Tuple[str, List[int], complex]], num_qubits: int, do_checks: bool = True,
-        dtype: type = complex
+        obj: Iterable[Tuple[str, List[int], complex]],
+        num_qubits: int,
+        do_checks: bool = True,
+        dtype: type = complex,
     ) -> SparsePauliOp:
         """Construct from a list of local Pauli strings and coefficients.
 

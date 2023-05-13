@@ -56,8 +56,10 @@ class Chi(QuantumChannel):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Chi-matrix operator.
 
@@ -128,7 +130,7 @@ class Chi(QuantumChannel):
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__(chi_mat, num_qubits=num_qubits)
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -138,7 +140,9 @@ class Chi(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._input_dim, self._output_dim, self._input_dim, self._output_dim)
 
-    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
+    def _evolve(
+        self, state: DensityMatrix | Statevector, qargs: list | None = None
+    ) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------

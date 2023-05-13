@@ -41,8 +41,9 @@ class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
     def __init__(
-        self, data: np.ndarray | list | Statevector | Operator | QuantumCircuit | Instruction,
-        dims: int | tuple | list | None = None
+        self,
+        data: np.ndarray | list | Statevector | Operator | QuantumCircuit | Instruction,
+        dims: int | tuple | list | None = None,
     ):
         """Initialize a statevector object.
 
@@ -103,7 +104,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -232,7 +233,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """Return data."""
         return self._data
 
-    def is_valid(self, atol = None, rtol = None):
+    def is_valid(self, atol=None, rtol=None):
         """Return True if a Statevector has norm 1."""
         if atol is None:
             atol = self.atol
@@ -403,7 +404,9 @@ class Statevector(QuantumState, TolerancesMixin):
             )
         return Statevector._evolve_operator(ret, other, qargs=qargs)
 
-    def equiv(self, other: Statevector, rtol: float | None = None, atol: float | None = None) -> bool:
+    def equiv(
+        self, other: Statevector, rtol: float | None = None, atol: float | None = None
+    ) -> bool:
         """Return True if other is equivalent as a statevector up to global phase.
 
         .. note::
@@ -835,7 +838,7 @@ class Statevector(QuantumState, TolerancesMixin):
         )
 
     @staticmethod
-    def _evolve_operator(statevec, oper, qargs = None):
+    def _evolve_operator(statevec, oper, qargs=None):
         """Evolve a qudit statevector"""
         new_shape = statevec._op_shape.compose(oper._op_shape, qargs=qargs)
         if qargs is None:
@@ -875,7 +878,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return statevec
 
     @staticmethod
-    def _evolve_instruction(statevec, obj, qargs = None):
+    def _evolve_instruction(statevec, obj, qargs=None):
         """Update the current Statevector by applying an instruction."""
         from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier

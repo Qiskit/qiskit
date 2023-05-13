@@ -63,8 +63,9 @@ class StabilizerState(QuantumState):
     """
 
     def __init__(
-        self, data: StabilizerState | Clifford | Pauli | QuantumCircuit | Instruction,
-        validate: bool = True
+        self,
+        data: StabilizerState | Clifford | Pauli | QuantumCircuit | Instruction,
+        validate: bool = True,
     ):
         """Initialize a StabilizerState object.
 
@@ -100,7 +101,7 @@ class StabilizerState(QuantumState):
         """Return StabilizerState Clifford data"""
         return self._data
 
-    def is_valid(self, atol = None, rtol = None):
+    def is_valid(self, atol=None, rtol=None):
         """Return True if a valid StabilizerState."""
         return self._data.is_unitary()
 

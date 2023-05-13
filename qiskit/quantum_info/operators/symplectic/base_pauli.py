@@ -93,7 +93,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    def compose(self, other, qargs: list | None = None, front: bool = False, inplace = False):
+    def compose(self, other, qargs: list | None = None, front: bool = False, inplace=False):
         """Return the composition of Paulis.
 
         Args:
@@ -285,7 +285,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return self.copy()._append_circuit(other, qargs=qargs)
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
-    def _evolve_clifford(self, other, qargs = None, frame = "h"):
+    def _evolve_clifford(self, other, qargs=None, frame="h"):
         """Heisenberg picture evolution of a Pauli by a Clifford."""
 
         if frame == "s":
@@ -343,12 +343,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._phase = np.mod(self._phase + 2, 4)
         return ret
 
-    def _count_y(self, dtype = None):
+    def _count_y(self, dtype=None):
         """Count the number of I Paulis"""
         return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
-    def _stack(array, size, vertical = True):
+    def _stack(array, size, vertical=True):
         """Stack array."""
         if size == 1:
             return array
@@ -370,7 +370,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         raise QiskitError("Pauli can only be multiplied by 1, -1j, -1, 1j.")
 
     @staticmethod
-    def _from_array(z, x, phase = 0):
+    def _from_array(z, x, phase=0):
         """Convert array data to BasePauli data."""
         if isinstance(z, np.ndarray) and z.dtype == bool:
             base_z = z
@@ -400,7 +400,11 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @staticmethod
     def _to_matrix(
-        z: np.ndarray, x: np.ndarray, phase: int = 0, group_phase: bool = False, sparse: bool = False
+        z: np.ndarray,
+        x: np.ndarray,
+        phase: int = 0,
+        group_phase: bool = False,
+        sparse: bool = False,
     ) -> np.ndarray:
         """Return the matrix from symplectic representation.
 
@@ -466,8 +470,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @staticmethod
     def _to_label(
-        z: np.ndarray, x: np.ndarray, phase: int, group_phase: bool = False, full_group: bool = True,
-        return_phase: bool = False
+        z: np.ndarray,
+        x: np.ndarray,
+        phase: int,
+        group_phase: bool = False,
+        full_group: bool = True,
+        return_phase: bool = False,
     ) -> str:
         """Return the label string for a Pauli.
 

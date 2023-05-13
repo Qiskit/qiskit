@@ -102,8 +102,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
     """
 
     def __init__(
-        self, data: CNOTDihedral | QuantumCircuit | Instruction | None = None,
-        num_qubits: int | None = None, validate: bool = True
+        self,
+        data: CNOTDihedral | QuantumCircuit | Instruction | None = None,
+        num_qubits: int | None = None,
+        validate: bool = True,
     ):
         """Initialize a CNOTDihedral operator object.
 
@@ -354,7 +356,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
@@ -381,7 +383,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         other.poly.weight_0 = 0  # set global phase
         return other
 
-    def _tensor(self, other, reverse = False):
+    def _tensor(self, other, reverse=False):
         """Returns the tensor product operator."""
 
         if not isinstance(other, CNOTDihedral):

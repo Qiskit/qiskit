@@ -180,7 +180,10 @@ class OneQubitEulerDecomposer:
             return circuit
 
     def __call__(
-        self, unitary: Operator | Gate | np.ndarray, simplify: bool = True, atol: float = DEFAULT_ATOL
+        self,
+        unitary: Operator | Gate | np.ndarray,
+        simplify: bool = True,
+        atol: float = DEFAULT_ATOL,
     ) -> QuantumCircuit:
         """Decompose single qubit gate into a circuit.
 
@@ -214,7 +217,7 @@ class OneQubitEulerDecomposer:
             raise QiskitError("OneQubitEulerDecomposer: input matrix is not unitary.")
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
-    def _decompose(self, unitary, simplify = True, atol = DEFAULT_ATOL):
+    def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
         circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             unitary, [self.basis], 0, None, simplify, atol
         )

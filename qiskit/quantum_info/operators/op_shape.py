@@ -27,7 +27,7 @@ from qiskit.exceptions import QiskitError
 class OpShape:
     """Multipartite matrix and vector shape class."""
 
-    def __init__(self, dims_l = None, dims_r = None, num_qargs_l = None, num_qargs_r = None):
+    def __init__(self, dims_l=None, dims_r=None, num_qargs_l=None, num_qargs_r=None):
         """Initialize an operator object."""
         # The number of left and right qargs
         self._num_qargs_l = 0  # the number of left (output) subsystems
@@ -143,7 +143,7 @@ class OpShape:
         """Return True if the left and right dimensions are equal."""
         return self._num_qargs_l == self._num_qargs_r and self._dims_l == self._dims_r
 
-    def dims_r(self, qargs = None):
+    def dims_r(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
         if self._dims_r:
             if qargs:
@@ -152,7 +152,7 @@ class OpShape:
         num = self._num_qargs_r if qargs is None else len(qargs)
         return num * (2,)
 
-    def dims_l(self, qargs = None):
+    def dims_l(self, qargs=None):
         """Return tuple of output dimension for specified subsystems."""
         if self._dims_l:
             if qargs:
@@ -179,7 +179,7 @@ class OpShape:
         """Raise an exception if shape is not valid for the OpShape"""
         return self._validate(shape, raise_exception=True)
 
-    def _validate(self, shape, raise_exception = False):
+    def _validate(self, shape, raise_exception=False):
         """Validate OpShape against a matrix or vector shape."""
         # pylint: disable=too-many-return-statements
         ndim = len(shape)
@@ -224,13 +224,13 @@ class OpShape:
     @classmethod
     def auto(
         cls,
-        shape = None,
-        dims_l = None,
-        dims_r = None,
-        dims = None,
-        num_qubits_l = None,
-        num_qubits_r = None,
-        num_qubits = None
+        shape=None,
+        dims_l=None,
+        dims_r=None,
+        dims=None,
+        num_qubits_l=None,
+        num_qubits_r=None,
+        num_qubits=None,
     ):
         """Construct TensorShape with automatic checking of qubit dimensions"""
         if dims and (dims_l or dims_r):
@@ -293,7 +293,7 @@ class OpShape:
             matrix_shape.validate_shape(shape)
         return matrix_shape
 
-    def subset(self, qargs = None, qargs_l = None, qargs_r = None):
+    def subset(self, qargs=None, qargs_l=None, qargs_r=None):
         """Return the reduced OpShape of the specified qargs"""
         if qargs:
             # Convert qargs to left and right qargs
@@ -335,7 +335,7 @@ class OpShape:
             dims_l=dims_l, dims_r=dims_r, num_qargs_l=num_qargs_l, num_qargs_r=num_qargs_r
         )
 
-    def remove(self, qargs = None, qargs_l = None, qargs_r = None):
+    def remove(self, qargs=None, qargs_l=None, qargs_r=None):
         """Return a new :class:`OpShape` with the specified qargs removed"""
         if qargs:
             # Convert qargs to left and right qargs
@@ -422,7 +422,7 @@ class OpShape:
             num_qargs_r = b._num_qargs_r + a._num_qargs_r
         return cls(dims_l=dims_l, dims_r=dims_r, num_qargs_l=num_qargs_l, num_qargs_r=num_qargs_r)
 
-    def compose(self, other, qargs = None, front = False):
+    def compose(self, other, qargs=None, front=False):
         """Return composed OpShape."""
         ret = OpShape()
         if qargs is None:
@@ -494,11 +494,11 @@ class OpShape:
                 ret._num_qargs_l = self._num_qargs_l
         return ret
 
-    def dot(self, other, qargs = None):
+    def dot(self, other, qargs=None):
         """Return the dot product operator OpShape"""
         return self.compose(other, qargs, front=True)
 
-    def _validate_add(self, other, qargs = None):
+    def _validate_add(self, other, qargs=None):
         # Validate shapes can be added
         if qargs:
             if self._num_qargs_l != self._num_qargs_r:

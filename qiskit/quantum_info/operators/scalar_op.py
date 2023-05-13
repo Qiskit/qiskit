@@ -52,7 +52,7 @@ class ScalarOp(LinearOp):
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
@@ -73,7 +73,7 @@ class ScalarOp(LinearOp):
     def transpose(self):
         return self.copy()
 
-    def is_unitary(self, atol = None, rtol = None):
+    def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
             atol = self.atol

@@ -156,7 +156,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """Return settings."""
         return {"data": self.to_labels()}
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
         shape = (len(self),) + 2 * (2**self.num_qubits,)
@@ -702,7 +702,11 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return PauliList(super().expand(other))
 
     def compose(
-        self, other: PauliList, qargs: None | list = None, front: bool = False, inplace: bool = False
+        self,
+        other: PauliList,
+        qargs: None | list = None,
+        front: bool = False,
+        inplace: bool = False,
     ) -> PauliList:
         """Return the composition self∘other for each Pauli in the list.
 
@@ -1097,7 +1101,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # ---------------------------------------------------------------------
 
     @classmethod
-    def from_symplectic(cls, z: np.ndarray, x: np.ndarray, phase: np.ndarray | None = 0) -> PauliList:
+    def from_symplectic(
+        cls, z: np.ndarray, x: np.ndarray, phase: np.ndarray | None = 0
+    ) -> PauliList:
         """Construct a PauliList from a symplectic data.
 
         Args:

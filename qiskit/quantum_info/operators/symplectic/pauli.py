@@ -157,7 +157,7 @@ class Pauli(BasePauli):
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
     def __init__(
-        self, data: str | tuple | Pauli | ScalarOp | None = None, x = None, *, z = None, label = None
+        self, data: str | tuple | Pauli | ScalarOp | None = None, x=None, *, z=None, label=None
     ):
         """Initialize the Pauli.
 
@@ -242,7 +242,7 @@ class Pauli(BasePauli):
             return front + "..."
         return self.to_label()
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()

@@ -601,7 +601,9 @@ class PauliTable(BaseOperator, AdjointMixin):
             other = PauliTable(other)
         return self._tensor(other, self)
 
-    def compose(self, other: PauliTable, qargs: None | list = None, front: bool = True) -> PauliTable:
+    def compose(
+        self, other: PauliTable, qargs: None | list = None, front: bool = True
+    ) -> PauliTable:
         """Return the compose output product of two tables.
 
         This returns the combination of the dot product of all Paulis
@@ -1030,7 +1032,9 @@ class PauliTable(BaseOperator, AdjointMixin):
         return "".join(paulis)
 
     @staticmethod
-    def _to_matrix(pauli: np.ndarray, sparse: bool = False, real_valued: bool = False) -> np.ndarray:
+    def _to_matrix(
+        pauli: np.ndarray, sparse: bool = False, real_valued: bool = False
+    ) -> np.ndarray:
         """Return the Pauli matrix from symplectic representation.
 
         Args:

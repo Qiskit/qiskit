@@ -122,12 +122,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     _COMPOSE_PHASE_LOOKUP = None
     _COMPOSE_1Q_LOOKUP = None
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
-    def __init__(self, data, validate = True, copy = True):
+    def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
 
         # Initialize from another Clifford
@@ -555,7 +555,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return cls._COMPOSE_1Q_LOOKUP[cls._hash(first), cls._hash(second)].copy()
 
     @classmethod
-    def _compose_lookup(cls, ):
+    def _compose_lookup(
+        cls,
+    ):
         if cls._COMPOSE_PHASE_LOOKUP is None:
             # A lookup table for calculating phases.  The indices are
             #     current_x, current_z, running_x_count, running_z_count

@@ -41,8 +41,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
     def __init__(
-        self, data: np.ndarray | list | QuantumCircuit | Instruction,
-        dims: int | tuple | list | None = None
+        self,
+        data: np.ndarray | list | QuantumCircuit | Instruction,
+        dims: int | tuple | list | None = None,
     ):
         """Initialize a density matrix object.
 
@@ -109,7 +110,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             raise QiskitError("Invalid DensityMatrix input: not a square matrix.")
         super().__init__(op_shape=OpShape.auto(shape=self._data.shape, dims_l=dims, dims_r=dims))
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -190,7 +191,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         """Return data."""
         return self._data
 
-    def is_valid(self, atol = None, rtol = None):
+    def is_valid(self, atol=None, rtol=None):
         """Return True if trace 1 and positive semidefinite."""
         if atol is None:
             atol = self.atol
@@ -303,8 +304,9 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         return ret
 
     def evolve(
-        self, other: Operator | QuantumChannel | Instruction | QuantumCircuit,
-        qargs: list | None = None
+        self,
+        other: Operator | QuantumChannel | Instruction | QuantumCircuit,
+        qargs: list | None = None,
     ) -> QuantumState:
         """Evolve a quantum state by an operator.
 
@@ -701,7 +703,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
         )
 
-    def _evolve_operator(self, other, qargs = None):
+    def _evolve_operator(self, other, qargs=None):
         """Evolve density matrix by an operator"""
         # Get shape of output density matrix
         new_shape = self._op_shape.compose(other._op_shape, qargs=qargs)
@@ -733,7 +735,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._op_shape = new_shape
         return ret
 
-    def _append_instruction(self, other, qargs = None):
+    def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
         from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier
@@ -781,7 +783,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 new_qargs = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
             self._append_instruction(instruction.operation, qargs=new_qargs)
 
-    def _evolve_instruction(self, obj, qargs = None):
+    def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""
         if isinstance(obj, QuantumCircuit):
             obj = obj.to_instruction()

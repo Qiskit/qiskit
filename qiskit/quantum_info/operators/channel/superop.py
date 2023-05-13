@@ -59,8 +59,10 @@ class SuperOp(QuantumChannel):
     """
 
     def __init__(
-        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None, output_dims: tuple | None = None
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Superoperator operator.
 
@@ -124,7 +126,7 @@ class SuperOp(QuantumChannel):
         # Initialize QuantumChannel
         super().__init__(super_mat, op_shape=op_shape)
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -235,7 +237,9 @@ class SuperOp(QuantumChannel):
     # Additional methods
     # ---------------------------------------------------------------------
 
-    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
+    def _evolve(
+        self, state: DensityMatrix | Statevector, qargs: list | None = None
+    ) -> DensityMatrix:
         """Evolve a quantum state by the quantum channel.
 
         Args:
@@ -332,7 +336,7 @@ class SuperOp(QuantumChannel):
                 pass
         return chan
 
-    def _append_instruction(self, obj, qargs = None):
+    def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
         from qiskit.circuit.barrier import Barrier
 
