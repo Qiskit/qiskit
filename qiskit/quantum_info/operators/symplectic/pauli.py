@@ -14,9 +14,10 @@ N-qubit Pauli Operator Class
 """
 
 from __future__ import annotations
+
 import re
 import warnings
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 
 import numpy as np
 
@@ -29,10 +30,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
-from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
-    from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
     from qiskit.quantum_info.operators.symplectic.clifford import Clifford
+    from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
 
 class Pauli(BasePauli):

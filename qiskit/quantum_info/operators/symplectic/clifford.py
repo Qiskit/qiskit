@@ -13,9 +13,11 @@
 Clifford operator class.
 """
 from __future__ import annotations
+
 import functools
 import itertools
 import re
+from typing import Literal
 
 import numpy as np
 
@@ -33,7 +35,6 @@ from qiskit.utils.deprecation import deprecate_func
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
 from .stabilizer_table import StabilizerTable
-from typing import Literal
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):

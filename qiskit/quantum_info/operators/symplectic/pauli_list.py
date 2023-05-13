@@ -14,21 +14,22 @@ Optimized list of Pauli operators
 """
 
 from __future__ import annotations
+
 from collections import defaultdict
+from typing import List, Tuple
 
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
-from typing import List, Tuple
-from qiskit.quantum_info.operators.symplectic.clifford import Clifford
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
