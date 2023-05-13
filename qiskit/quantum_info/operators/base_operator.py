@@ -28,7 +28,8 @@ class BaseOperator(GroupMixin, ABC):
     """Abstract operator base class."""
 
     def __init__(
-        self, input_dims: tuple | int | None = None, output_dims: tuple | int | None = None, num_qubits: int | None = None, shape: tuple | None = None, op_shape: OpShape | None = None
+        self, input_dims: tuple | int | None = None, output_dims: tuple | int | None = None,
+        num_qubits: int | None = None, shape: tuple | None = None, op_shape: OpShape | None = None
     ):
         """Initialize a BaseOperator shape
 
@@ -98,7 +99,10 @@ class BaseOperator(GroupMixin, ABC):
         """Return the total input dimension."""
         return self._op_shape._dim_l
 
-    def reshape(self, input_dims: None | tuple = None, output_dims: None | tuple = None, num_qubits: None | int = None) -> BaseOperator:
+    def reshape(
+        self, input_dims: None | tuple = None, output_dims: None | tuple = None,
+        num_qubits: None | int = None
+    ) -> BaseOperator:
         """Return a shallow copy with reshaped input and output subsystem dimensions.
 
         Args:

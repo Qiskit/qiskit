@@ -26,7 +26,7 @@ from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
-from typing import List
+from typing import List, Tuple
 from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
@@ -700,7 +700,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             )
         return PauliList(super().expand(other))
 
-    def compose(self, other: PauliList, qargs: None | list = None, front: bool = False, inplace: bool = False) -> PauliList:
+    def compose(
+        self, other: PauliList, qargs: None | list = None, front: bool = False, inplace: bool = False
+    ) -> PauliList:
         """Return the composition self∘other for each Pauli in the list.
 
         Args:
@@ -904,7 +906,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             inds = inds[new_inds]
         return inds
 
-    def evolve(self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h") -> Pauli:
+    def evolve(
+        self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h"
+    ) -> Pauli:
         r"""Evolve the Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
@@ -923,8 +927,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
         """
-        from qiskit.circuit import Instruction, QuantumCircuit
-        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
+        from qiskit.circuit import Instruction
 
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -1037,7 +1040,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # Custom Iterators
     # ---------------------------------------------------------------------
 
-    def label_iter(self) -> LabelIterator:
+    def label_iter(self):
         """Return a label representation iterator.
 
         This is a lazy iterator that converts each row into the string
@@ -1059,7 +1062,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse: bool = False) -> MatrixIterator:
+    def matrix_iter(self, sparse: bool = False):
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each row into the Pauli matrix
@@ -1107,7 +1110,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
-    def _noncommutation_graph(self, qubit_wise: bool) -> List[Tuple(int,int)]:
+    def _noncommutation_graph(self, qubit_wise: bool) -> List[Tuple(int, int)]:
         """Create an edge list representing the non-commutation graph (Pauli Graph).
 
         An edge (i, j) is present if i and j are not commutable.

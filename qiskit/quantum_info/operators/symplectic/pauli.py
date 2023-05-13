@@ -155,7 +155,9 @@ class Pauli(BasePauli):
     _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
-    def __init__(self, data: str | tuple | Pauli | ScalarOp | None = None, x = None, *, z = None, label = None):
+    def __init__(
+        self, data: str | tuple | Pauli | ScalarOp | None = None, x = None, *, z = None, label = None
+    ):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -462,7 +464,9 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    def compose(self, other: Pauli, qargs: list | None = None, front: bool = False, inplace: bool = False) -> Pauli:
+    def compose(
+        self, other: Pauli, qargs: list | None = None, front: bool = False, inplace: bool = False
+    ) -> Pauli:
         """Return the operator composition with another Pauli.
 
         Args:
@@ -571,7 +575,9 @@ class Pauli(BasePauli):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h") -> Pauli:
+    def evolve(
+        self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h"
+    ) -> Pauli:
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.

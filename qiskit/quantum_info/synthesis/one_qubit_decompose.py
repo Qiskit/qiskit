@@ -179,7 +179,9 @@ class OneQubitEulerDecomposer:
                 circuit._append(gate, [qr[0]], [])
             return circuit
 
-    def __call__(self, unitary: Operator | Gate | np.ndarray, simplify: bool = True, atol: float = DEFAULT_ATOL) -> QuantumCircuit:
+    def __call__(
+        self, unitary: Operator | Gate | np.ndarray, simplify: bool = True, atol: float = DEFAULT_ATOL
+    ) -> QuantumCircuit:
         """Decompose single qubit gate into a circuit.
 
         Args:

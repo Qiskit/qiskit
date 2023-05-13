@@ -29,7 +29,7 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional, Type, Union
+from typing import ClassVar, Optional, Type
 
 import logging
 

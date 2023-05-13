@@ -233,7 +233,9 @@ class ScalarOp(LinearOp):
         return ret
 
     @staticmethod
-    def _pad_with_identity(current: BaseOperator, other: BaseOperator, qargs: None | list = None) -> BaseOperator:
+    def _pad_with_identity(
+        current: BaseOperator, other: BaseOperator, qargs: None | list = None
+    ) -> BaseOperator:
         """Pad another operator with identities.
 
         Args:

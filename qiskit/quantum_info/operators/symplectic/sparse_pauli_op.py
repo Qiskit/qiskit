@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from numbers import Number
-from typing import Dict, Optional
+from typing import Dict, Iterable, List, Tuple
 from copy import deepcopy
 
 import numpy as np
@@ -37,7 +37,6 @@ from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from typing import Iterable, List, Tuple
 
 
 class SparsePauliOp(LinearOp):
@@ -83,7 +82,10 @@ class SparsePauliOp(LinearOp):
       - ``chop`` since :class:`.ParameterExpression` does not support absolute value.
     """
 
-    def __init__(self, data: PauliList | SparsePauliOp | Pauli | list | str, coeffs: np.ndarray | None = None, *, ignore_pauli_phase: bool = False, copy: bool = True):
+    def __init__(
+        self, data: PauliList | SparsePauliOp | Pauli | list | str, coeffs: np.ndarray | None = None,
+        *, ignore_pauli_phase: bool = False, copy: bool = True
+    ):
         """Initialize an operator object.
 
         Args:
@@ -287,7 +289,9 @@ class SparsePauliOp(LinearOp):
         ret._coeffs = ret._coeffs.conj()
         return ret
 
-    def compose(self, other: SparsePauliOp, qargs: list | None = None, front: bool = False) -> SparsePauliOp:
+    def compose(
+        self, other: SparsePauliOp, qargs: list | None = None, front: bool = False
+    ) -> SparsePauliOp:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
 
@@ -701,7 +705,9 @@ class SparsePauliOp(LinearOp):
     # ---------------------------------------------------------------------
 
     @staticmethod
-    def from_operator(obj: Operator, atol: float | None = None, rtol: float | None = None) -> SparsePauliOp:
+    def from_operator(
+        obj: Operator, atol: float | None = None, rtol: float | None = None
+    ) -> SparsePauliOp:
         """Construct from an Operator objector.
 
         Note that the cost of this construction is exponential as it involves
@@ -798,7 +804,10 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_sparse_list(obj: Iterable[Tuple[str, List[int], complex]], num_qubits: int, do_checks: bool = True, dtype: type = complex) -> SparsePauliOp:
+    def from_sparse_list(
+        obj: Iterable[Tuple[str, List[int], complex]], num_qubits: int, do_checks: bool = True,
+        dtype: type = complex
+    ) -> SparsePauliOp:
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
@@ -913,7 +922,7 @@ class SparsePauliOp(LinearOp):
     # Custom Iterators
     # ---------------------------------------------------------------------
 
-    def label_iter(self) -> LabelIterator:
+    def label_iter(self):
         """Return a label representation iterator.
 
         This is a lazy iterator that converts each term in the SparsePauliOp
@@ -937,7 +946,7 @@ class SparsePauliOp(LinearOp):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse: bool = False) -> MatrixIterator:
+    def matrix_iter(self, sparse: bool = False):
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each term in the SparsePauliOp

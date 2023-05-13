@@ -101,7 +101,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             npj Quantum Inf 2, 16012 (2016).
     """
 
-    def __init__(self, data: CNOTDihedral | QuantumCircuit | Instruction | None = None, num_qubits: int | None = None, validate: bool = True):
+    def __init__(
+        self, data: CNOTDihedral | QuantumCircuit | Instruction | None = None,
+        num_qubits: int | None = None, validate: bool = True
+    ):
         """Initialize a CNOTDihedral operator object.
 
         Args:
@@ -364,7 +367,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 
-    def compose(self, other: CNOTDihedral, qargs: list | None = None, front: bool = False) -> CNOTDihedral:
+    def compose(
+        self, other: CNOTDihedral, qargs: list | None = None, front: bool = False
+    ) -> CNOTDihedral:
         if qargs is not None:
             raise NotImplementedError("compose method does not support qargs.")
         if self.num_qubits != other.num_qubits:

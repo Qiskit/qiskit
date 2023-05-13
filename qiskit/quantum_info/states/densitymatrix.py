@@ -40,7 +40,10 @@ from qiskit.quantum_info.states.statevector import Statevector
 class DensityMatrix(QuantumState, TolerancesMixin):
     """DensityMatrix class"""
 
-    def __init__(self, data: np.ndarray | list | QuantumCircuit | Instruction, dims: int | tuple | list | None = None):
+    def __init__(
+        self, data: np.ndarray | list | QuantumCircuit | Instruction,
+        dims: int | tuple | list | None = None
+    ):
         """Initialize a density matrix object.
 
         Args:
@@ -299,7 +302,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._data = other * self.data
         return ret
 
-    def evolve(self, other: Operator | QuantumChannel | Instruction | QuantumCircuit, qargs: list | None = None) -> QuantumState:
+    def evolve(
+        self, other: Operator | QuantumChannel | Instruction | QuantumCircuit,
+        qargs: list | None = None
+    ) -> QuantumState:
         """Evolve a quantum state by an operator.
 
         Args:
@@ -555,7 +561,6 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             QiskitError: if the label contains invalid characters, or the length
                          of the label is larger than an explicitly specified num_qubits.
         """
-        from qiskit.quantum_info.states.statevector import Statevector
 
         return DensityMatrix(Statevector.from_label(label))
 
@@ -798,7 +803,6 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Raises:
             QiskitError: if the state is not pure.
         """
-        from qiskit.quantum_info.states.statevector import Statevector
 
         if atol is None:
             atol = self.atol

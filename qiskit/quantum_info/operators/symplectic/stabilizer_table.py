@@ -558,7 +558,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
             other = StabilizerTable(other)
         return self._tensor(other, self)
 
-    def compose(self, other: StabilizerTable, qargs: None | list = None, front: bool = False) -> StabilizerTable:
+    def compose(
+        self, other: StabilizerTable, qargs: None | list = None, front: bool = False
+    ) -> StabilizerTable:
         """Return the compose output product of two tables.
 
         This returns the combination of the compose product of all
@@ -1043,7 +1045,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
     # Custom Iterators
     # ---------------------------------------------------------------------
 
-    def label_iter(self) -> LabelIterator:
+    def label_iter(self):
         """Return a label representation iterator.
 
         This is a lazy iterator that converts each row into the string
@@ -1065,7 +1067,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse: bool = False) -> MatrixIterator:
+    def matrix_iter(self, sparse: bool = False):
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each row into the Pauli matrix

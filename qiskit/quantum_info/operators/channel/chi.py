@@ -55,7 +55,10 @@ class Chi(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
+    def __init__(
+        self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        input_dims: tuple | None = None, output_dims: tuple | None = None
+    ):
         """Initialize a quantum channel Chi-matrix operator.
 
         Args:

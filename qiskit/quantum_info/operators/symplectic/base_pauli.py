@@ -228,7 +228,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         b_dot_a = np.mod(_count_y(other._x, z1), 2)
         return a_dot_b == b_dot_a
 
-    def evolve(self, other: BasePauli | QuantumCircuit, qargs: list | None = None, frame: str = "h") -> BasePauli:
+    def evolve(
+        self, other: BasePauli | QuantumCircuit, qargs: list | None = None, frame: str = "h"
+    ) -> BasePauli:
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
@@ -397,7 +399,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return base_z, base_x, base_phase
 
     @staticmethod
-    def _to_matrix(z: np.ndarray, x: np.ndarray, phase: int = 0, group_phase: bool = False, sparse: bool = False) -> np.ndarray:
+    def _to_matrix(
+        z: np.ndarray, x: np.ndarray, phase: int = 0, group_phase: bool = False, sparse: bool = False
+    ) -> np.ndarray:
         """Return the matrix from symplectic representation.
 
         The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
@@ -461,7 +465,10 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return mat
 
     @staticmethod
-    def _to_label(z: np.ndarray, x: np.ndarray, phase: int, group_phase: bool = False, full_group: bool = True, return_phase: bool = False) -> str:
+    def _to_label(
+        z: np.ndarray, x: np.ndarray, phase: int, group_phase: bool = False, full_group: bool = True,
+        return_phase: bool = False
+    ) -> str:
         """Return the label string for a Pauli.
 
         Args:
@@ -510,7 +517,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return label, phase
         return label
 
-    def _append_circuit(self, circuit: QuantumCircuit | Instruction, qargs: list | None = None) -> BasePauli:
+    def _append_circuit(
+        self, circuit: QuantumCircuit | Instruction, qargs: list | None = None
+    ) -> BasePauli:
         """Update BasePauli inplace by applying a Clifford circuit.
 
         Args:

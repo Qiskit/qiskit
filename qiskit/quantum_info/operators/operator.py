@@ -54,7 +54,10 @@ class Operator(LinearOp):
         \rho \mapsto M \rho M^\dagger.
     """
 
-    def __init__(self, data: QuantumCircuit | Operation | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
+    def __init__(
+        self, data: QuantumCircuit | Operation | BaseOperator | np.matrix,
+        input_dims: tuple | None = None, output_dims: tuple | None = None
+    ):
         """Initialize an operator object.
 
         Args:
@@ -283,7 +286,10 @@ class Operator(LinearOp):
         return new_op
 
     @classmethod
-    def from_circuit(cls, circuit: QuantumCircuit, ignore_set_layout: bool = False, layout: Layout | None = None, final_layout: Layout | None = None) -> Operator:
+    def from_circuit(
+        cls, circuit: QuantumCircuit, ignore_set_layout: bool = False, layout: Layout | None = None,
+        final_layout: Layout | None = None
+    ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
         While a :class:`~.QuantumCircuit` object can passed directly as ``data``
@@ -570,7 +576,9 @@ class Operator(LinearOp):
         return self.data
 
     @classmethod
-    def _einsum_matmul(cls, tensor: np.ndarray, mat: np.ndarray, indices: list, shift: int = 0, right_mul: bool = False) -> np.ndarray:
+    def _einsum_matmul(
+        cls, tensor: np.ndarray, mat: np.ndarray, indices: list, shift: int = 0, right_mul: bool = False
+    ) -> np.ndarray:
         """Perform a contraction using Numpy.einsum
 
         Args:

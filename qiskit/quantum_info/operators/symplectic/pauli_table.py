@@ -1085,7 +1085,7 @@ class PauliTable(BaseOperator, AdjointMixin):
     # Custom Iterators
     # ---------------------------------------------------------------------
 
-    def label_iter(self) -> LabelIterator:
+    def label_iter(self):
         """Return a label representation iterator.
 
         This is a lazy iterator that converts each row into the string
@@ -1107,7 +1107,7 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse: bool = False) -> MatrixIterator:
+    def matrix_iter(self, sparse: bool = False):
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each row into the Pauli matrix

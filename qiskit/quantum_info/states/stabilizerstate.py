@@ -22,7 +22,7 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Instruction
 
 
 class StabilizerState(QuantumState):
@@ -62,7 +62,10 @@ class StabilizerState(QuantumState):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    def __init__(self, data: StabilizerState | Clifford | Pauli | QuantumCircuit | qiskit.circuit.Instruction, validate: bool = True):
+    def __init__(
+        self, data: StabilizerState | Clifford | Pauli | QuantumCircuit | Instruction,
+        validate: bool = True
+    ):
         """Initialize a StabilizerState object.
 
         Args:
@@ -107,12 +110,12 @@ class StabilizerState(QuantumState):
     def _multiply(self, other: complex) -> QuantumState:
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
-    def trace(self) -> double:
+    def trace(self) -> float:
         """Return the trace of the stabilizer state as a density matrix,
         which equals to 1, since it is always a pure state.
 
         Returns:
-            double: the trace (should equal 1).
+            float: the trace (should equal 1).
 
         Raises:
             QiskitError: if input is not a StabilizerState.
@@ -121,12 +124,12 @@ class StabilizerState(QuantumState):
             raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
-    def purity(self) -> double:
+    def purity(self) -> float:
         """Return the purity of the quantum state,
         which equals to 1, since it is always a pure state.
 
         Returns:
-            double: the purity (should equal 1).
+            float: the purity (should equal 1).
 
         Raises:
             QiskitError: if input is not a StabilizerState.
@@ -181,7 +184,9 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.expand(other.clifford)
         return ret
 
-    def evolve(self, other: Clifford | QuantumCircuit | qiskit.circuit.Instruction, qargs: list | None = None) -> StabilizerState:
+    def evolve(
+        self, other: Clifford | QuantumCircuit | Instruction, qargs: list | None = None
+    ) -> StabilizerState:
         """Evolve a stabilizer state by a Clifford operator.
 
         Args:

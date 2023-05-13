@@ -40,7 +40,10 @@ from qiskit._accelerate.pauli_expval import (
 class Statevector(QuantumState, TolerancesMixin):
     """Statevector class"""
 
-    def __init__(self, data: np.ndarray | list | Statevector | Operator | QuantumCircuit | Instruction, dims: int | tuple | list | None = None):
+    def __init__(
+        self, data: np.ndarray | list | Statevector | Operator | QuantumCircuit | Instruction,
+        dims: int | tuple | list | None = None
+    ):
         """Initialize a statevector object.
 
         Args:
@@ -357,7 +360,9 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._data = other * self.data
         return ret
 
-    def evolve(self, other: Operator | QuantumCircuit | Instruction, qargs: list | None = None) -> Statevector:
+    def evolve(
+        self, other: Operator | QuantumCircuit | Instruction, qargs: list | None = None
+    ) -> Statevector:
         """Evolve a quantum state by the operator.
 
         Args:

@@ -136,7 +136,7 @@ class Quaternion:
         return cls(out)
 
     @classmethod
-    def from_euler(cls, angles: array_like, order: str = "yzy") -> Quaternion:
+    def from_euler(cls, angles: list | np.ndarray, order: str = "yzy") -> Quaternion:
         """Generate a quaternion from a set of Euler angles.
 
         Args:
