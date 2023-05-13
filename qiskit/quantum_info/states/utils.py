@@ -121,30 +121,30 @@ def shannon_entropy(pvec, base=2):
 def schmidt_decomposition(state, qargs):
     r"""Return the Schmidt Decomposition of a pure quantum state.
 
-    The Schmidt Decomposition of an arbitrary bipartite state:
+    For an arbitrary bipartite state::
 
     .. math::
-        |\psi\rangle = \sum_{i=0}^{N-1}\sum_{j=0}^{M-1} c_{ij}
-                       |x_i\rangle_A \otimes |y_j\rangle_B
+         |\psi\rangle_{AB} = \sum_{j,i} c_{ji}
+                             |x_j\rangle_A \otimes |y_i\rangle_B,
 
-    is given by the single sum:
+    its Schmidt Decomposition is given by the single-index sum over k:
 
     .. math::
-        |\psi\rangle = \sum_{k} \lambda_{k}
-                       |u_k\rangle_A \otimes |v_k\rangle_B
+        |\psi\rangle_{AB} = \sum_{k} \lambda_{k} 
+                            |u_k\rangle_A \otimes |v_k\rangle_B
 
     where :math:`|u_k\rangle_A` and :math:`|v_k\rangle_B` are an
-    orthonormal set of vectors in their respective spaces A and B,
-    and the Schmidt coefficients :math:`\lambda_i` are positive real values.
+    orthonormal set of vectors in their respective spaces :math:`A` and :math:`B`,
+    and the Schmidt coefficients :math:`\lambda_k` are positive real values.
 
     Args:
         state (Statevector or DensityMatrix): the input state.
-        qargs (list): The list of Input state positions corresponding to subsystem A.
+        qargs (list): The list of Input state positions corresponding to subsystem :math:`B`.
 
     Returns:
-        list: list of tuples ``(s, u, v)``, where ``s`` (``float``) are the
-              Schmidt coefficients :math:`\lambda_k`, and ``u`` (``Statevector``),
-              ``v`` (``Statevector``) are the Schmidt vectors
+        list: list of tuples ``(s, u, v)``, where ``s`` (float) are the
+              Schmidt coefficients :math:`\lambda_k`, and ``u`` (Statevector),
+              ``v`` (Statevector) are the Schmidt vectors
               :math:`|u_k\rangle_A`, :math:`|u_k\rangle_B`, respectively.
 
     Raises:
@@ -180,7 +180,7 @@ def schmidt_decomposition(state, qargs):
     qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_a + qargs_b][::-1]
     state_tens = state_tens.transpose(qargs_axes)
 
-    # convert state tensor to matrix of prob amplitudes
+    # convert state tensor to matrix of prob amplitudes and perform svd.
     state_mat = state_tens.reshape([ndim_a, ndim_b])
     u_mat, s_arr, vh_mat = np.linalg.svd(state_mat, full_matrices=False)
 
