@@ -15,6 +15,7 @@
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 import numpy as np
 
@@ -25,6 +26,9 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class PTM(QuantumChannel):
@@ -61,7 +65,7 @@ class PTM(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
         """Initialize a PTM quantum channel operator.
 
         Args:
@@ -125,7 +129,7 @@ class PTM(QuantumChannel):
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, num_qubits=num_qubits)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             np.asarray(self.data, dtype=dtype)
         return self.data
@@ -135,7 +139,7 @@ class PTM(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._output_dim, self._output_dim, self._input_dim, self._input_dim)
 
-    def _evolve(self, state, qargs=None):
+    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -154,7 +158,7 @@ class PTM(QuantumChannel):
     def adjoint(self):
         return PTM(SuperOp(self).adjoint())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: PTM, qargs: list | None = None, front: bool = False) -> PTM:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -174,12 +178,12 @@ class PTM(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: PTM) -> PTM:
         if not isinstance(other, PTM):
             other = PTM(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: PTM) -> PTM:
         if not isinstance(other, PTM):
             other = PTM(other)
         return self._tensor(other, self)

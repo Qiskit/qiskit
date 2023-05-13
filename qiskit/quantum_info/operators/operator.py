@@ -14,6 +14,7 @@
 Matrix Operator class.
 """
 
+from __future__ import annotations
 import copy
 import re
 from numbers import Number
@@ -28,6 +29,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from qiskit.transpiler.layout import Layout
 
 
 class Operator(LinearOp):
@@ -49,7 +54,7 @@ class Operator(LinearOp):
         \rho \mapsto M \rho M^\dagger.
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(self, data: QuantumCircuit | Operation | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
         """Initialize an operator object.
 
         Args:
@@ -105,7 +110,7 @@ class Operator(LinearOp):
             shape=self._data.shape,
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -142,7 +147,7 @@ class Operator(LinearOp):
         }
 
     @classmethod
-    def from_label(cls, label):
+    def from_label(cls, label: str) -> Operator:
         """Return a tensor product of single-qubit operators.
 
         Args:
@@ -198,7 +203,7 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
-    def apply_permutation(self, perm: list, front: bool = False):
+    def apply_permutation(self, perm: list, front: bool = False) -> Operator:
         """Modifies operator's data by composing it with a permutation.
 
         Args:
@@ -278,7 +283,7 @@ class Operator(LinearOp):
         return new_op
 
     @classmethod
-    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None, final_layout=None):
+    def from_circuit(cls, circuit: QuantumCircuit, ignore_set_layout: bool = False, layout: Layout | None = None, final_layout: Layout | None = None) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
         While a :class:`~.QuantumCircuit` object can passed directly as ``data``
@@ -344,7 +349,7 @@ class Operator(LinearOp):
             op = op.apply_permutation(perm_pattern, front=False)
         return op
 
-    def is_unitary(self, atol=None, rtol=None):
+    def is_unitary(self, atol = None, rtol = None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
             atol = self.atol
@@ -376,7 +381,7 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, Operator):
@@ -426,7 +431,7 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n):
+    def power(self, n: float) -> Operator:
         """Return the matrix power of the operator.
 
         Args:
@@ -445,12 +450,12 @@ class Operator(LinearOp):
         ret._data = np.linalg.matrix_power(self.data, n)
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Operator) -> Operator:
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Operator) -> Operator:
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._tensor(other, self)
@@ -462,7 +467,7 @@ class Operator(LinearOp):
         ret._data = np.kron(a.data, b.data)
         return ret
 
-    def _add(self, other, qargs=None):
+    def _add(self, other: Operator, qargs: None | list = None) -> Operator:
         """Return the operator self + other.
 
         If ``qargs`` are specified the other operator will be added
@@ -496,7 +501,7 @@ class Operator(LinearOp):
         ret._data = self.data + other.data
         return ret
 
-    def _multiply(self, other):
+    def _multiply(self, other: complex) -> Operator:
         """Return the operator self * other.
 
         Args:
@@ -514,7 +519,7 @@ class Operator(LinearOp):
         ret._data = other * self._data
         return ret
 
-    def equiv(self, other, rtol=None, atol=None):
+    def equiv(self, other: Operator, rtol: float | None = None, atol: float | None = None) -> bool:
         """Return True if operators are equivalent up to global phase.
 
         Args:
@@ -538,7 +543,7 @@ class Operator(LinearOp):
             rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True, rtol=rtol, atol=atol)
 
-    def reverse_qargs(self):
+    def reverse_qargs(self) -> Operator:
         r"""Return an Operator with reversed subsystem ordering.
 
         For a tensor product operator this is equivalent to reversing
@@ -565,7 +570,7 @@ class Operator(LinearOp):
         return self.data
 
     @classmethod
-    def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
+    def _einsum_matmul(cls, tensor: np.ndarray, mat: np.ndarray, indices: list, shift: int = 0, right_mul: bool = False) -> np.ndarray:
         """Perform a contraction using Numpy.einsum
 
         Args:
@@ -637,7 +642,7 @@ class Operator(LinearOp):
                 pass
         return mat
 
-    def _append_instruction(self, obj, qargs=None):
+    def _append_instruction(self, obj, qargs = None):
         """Update the current Operator by apply an instruction."""
         from qiskit.circuit.barrier import Barrier
         from .scalar_op import ScalarOp

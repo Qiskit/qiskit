@@ -13,6 +13,7 @@
 Stinespring representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -28,6 +29,9 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_stinespring
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class Stinespring(QuantumChannel):
@@ -59,7 +63,7 @@ class Stinespring(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
         """Initialize a quantum channel Stinespring operator.
 
         Args:
@@ -145,7 +149,7 @@ class Stinespring(QuantumChannel):
         else:
             return self._data
 
-    def is_cptp(self, atol=None, rtol=None):
+    def is_cptp(self, atol = None, rtol = None):
         """Return True if completely-positive trace-preserving."""
         if atol is None:
             atol = self.atol
@@ -156,7 +160,7 @@ class Stinespring(QuantumChannel):
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
         return is_identity_matrix(check, rtol=self.rtol, atol=self.atol)
 
-    def _evolve(self, state, qargs=None):
+    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -186,7 +190,7 @@ class Stinespring(QuantumChannel):
         ret._data = (stine[0], stine[1])
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Stinespring, qargs: list | None = None, front: bool = False) -> Stinespring:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -195,12 +199,12 @@ class Stinespring(QuantumChannel):
         # superoperator to avoid unnecessary representation conversions
         return Stinespring(Kraus(self).compose(other, front=front))
 
-    def tensor(self, other):
+    def tensor(self, other: Stinespring) -> Stinespring:
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Stinespring) -> Stinespring:
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
         return self._tensor(other, self)
@@ -253,12 +257,12 @@ class Stinespring(QuantumChannel):
             other = Choi(other)
         return self._add(-other, qargs=qargs)
 
-    def _add(self, other, qargs=None):
+    def _add(self, other: SuperOp, qargs: None | list = None) -> SuperOp:
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
         return Stinespring(Choi(self)._add(other, qargs=qargs))
 
-    def _multiply(self, other):
+    def _multiply(self, other: complex) -> SuperOp:
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
 

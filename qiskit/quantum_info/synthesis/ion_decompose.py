@@ -14,6 +14,7 @@
 Decomposition methods for trapped-ion basis gates RXXGate, RXGate, RYGate.
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit

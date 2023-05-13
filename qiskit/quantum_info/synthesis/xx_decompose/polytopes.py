@@ -15,6 +15,7 @@ Defines bare dataclasses which house polytope information, as well as a speciali
 which describes those two-qubit programs accessible to a given sequence of XX-type interactions.
 """
 
+from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass, field
 from itertools import combinations

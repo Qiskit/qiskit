@@ -13,6 +13,7 @@
 N-qubit Pauli Operator Class
 """
 
+from __future__ import annotations
 import re
 import warnings
 from typing import Dict
@@ -28,6 +29,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+    from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 class Pauli(BasePauli):
@@ -150,7 +155,7 @@ class Pauli(BasePauli):
     _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
-    def __init__(self, data=None, x=None, *, z=None, label=None):
+    def __init__(self, data: str | tuple | Pauli | ScalarOp | None = None, x = None, *, z = None, label = None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -234,13 +239,13 @@ class Pauli(BasePauli):
             return front + "..."
         return self.to_label()
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
     @classmethod
-    def set_truncation(cls, val):
+    def set_truncation(cls, val: int):
         """Set the max number of Pauli characters to display before truncation/
 
         Args:
@@ -258,7 +263,7 @@ class Pauli(BasePauli):
             return False
         return self._eq(other)
 
-    def equiv(self, other):
+    def equiv(self, other: Pauli) -> bool:
         """Return True if Pauli's are equivalent up to group phase.
 
         Args:
@@ -335,7 +340,7 @@ class Pauli(BasePauli):
         # Add extra phase from new Pauli to current
         self._phase = self._phase + value._phase
 
-    def delete(self, qubits):
+    def delete(self, qubits: int | list) -> Pauli:
         """Return a Pauli with qubits deleted.
 
         Args:
@@ -361,7 +366,7 @@ class Pauli(BasePauli):
         x = np.delete(self._x, qubits, axis=1)
         return Pauli((z, x, self.phase))
 
-    def insert(self, qubits, value):
+    def insert(self, qubits: int | list, value: Pauli) -> Pauli:
         """Insert a Pauli at specific qubit value.
 
         Args:
@@ -409,7 +414,7 @@ class Pauli(BasePauli):
         """Make hashable based on string representation."""
         return hash(self.to_label())
 
-    def to_label(self):
+    def to_label(self) -> str:
         """Convert a Pauli to a string label.
 
         .. note::
@@ -422,7 +427,7 @@ class Pauli(BasePauli):
         """
         return self._to_label(self.z, self.x, self._phase[0])
 
-    def to_matrix(self, sparse=False):
+    def to_matrix(self, sparse: bool = False) -> np.ndarray:
         r"""Convert to a Numpy array or sparse CSR matrix.
 
         Args:
@@ -457,7 +462,7 @@ class Pauli(BasePauli):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    def compose(self, other, qargs=None, front=False, inplace=False):
+    def compose(self, other: Pauli, qargs: list | None = None, front: bool = False, inplace: bool = False) -> Pauli:
         """Return the operator composition with another Pauli.
 
         Args:
@@ -491,7 +496,7 @@ class Pauli(BasePauli):
             other = Pauli(other)
         return Pauli(super().compose(other, qargs=qargs, front=front, inplace=inplace))
 
-    def dot(self, other, qargs=None, inplace=False):
+    def dot(self, other: Pauli, qargs: list | None = None, inplace: bool = False) -> Pauli:
         """Return the right multiplied operator self * other.
 
         Args:
@@ -505,17 +510,17 @@ class Pauli(BasePauli):
         """
         return self.compose(other, qargs=qargs, front=True, inplace=inplace)
 
-    def tensor(self, other):
+    def tensor(self, other: Pauli) -> Pauli:
         if not isinstance(other, Pauli):
             other = Pauli(other)
         return Pauli(super().tensor(other))
 
-    def expand(self, other):
+    def expand(self, other: Pauli) -> Pauli:
         if not isinstance(other, Pauli):
             other = Pauli(other)
         return Pauli(super().expand(other))
 
-    def _multiply(self, other):
+    def _multiply(self, other: complex) -> Pauli:
         return Pauli(super()._multiply(other))
 
     def conjugate(self):
@@ -535,7 +540,7 @@ class Pauli(BasePauli):
     # Utility methods
     # ---------------------------------------------------------------------
 
-    def commutes(self, other, qargs=None):
+    def commutes(self, other: Pauli | PauliList, qargs: list | None = None) -> bool:
         """Return True if the Pauli commutes with other.
 
         Args:
@@ -554,7 +559,7 @@ class Pauli(BasePauli):
             return ret[0]
         return ret
 
-    def anticommutes(self, other, qargs=None):
+    def anticommutes(self, other: Pauli, qargs: list | None = None) -> bool:
         """Return True if other Pauli anticommutes with self.
 
         Args:
@@ -566,7 +571,7 @@ class Pauli(BasePauli):
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
-    def evolve(self, other, qargs=None, frame="h"):
+    def evolve(self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h") -> Pauli:
         r"""Heisenberg picture evolution of a Pauli by a Clifford.
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
@@ -602,7 +607,7 @@ class Pauli(BasePauli):
     # ---------------------------------------------------------------------
 
     @staticmethod
-    def _from_label(label):
+    def _from_label(label: str) -> BasePauli:
         """Return the symplectic representation of Pauli string.
 
         Args:

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """A collection of discrete probability metrics."""
+from __future__ import annotations
 import numpy as np
 
 

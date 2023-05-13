@@ -13,6 +13,7 @@
 PauliList utility functions.
 """
 
+from __future__ import annotations
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.utils.deprecation import deprecate_arg
 

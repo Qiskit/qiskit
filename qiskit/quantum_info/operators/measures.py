@@ -14,6 +14,7 @@
 A collection of useful quantum information functions for operators.
 """
 
+from __future__ import annotations
 import logging
 import warnings
 import numpy as np

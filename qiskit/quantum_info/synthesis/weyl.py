@@ -14,6 +14,7 @@
 """Routines that compute  and use the Weyl chamber coordinates.
 """
 
+from __future__ import annotations
 import numpy as np
 
 # "Magic" basis used for the Weyl decomposition. The basis and its adjoint are stored individually

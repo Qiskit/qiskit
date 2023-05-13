@@ -14,6 +14,7 @@
 ScalarOp class
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -35,7 +36,7 @@ class ScalarOp(LinearOp):
     :meth:`tensor`, :meth:`expand` methods.
     """
 
-    def __init__(self, dims=None, coeff=1):
+    def __init__(self, dims: int | tuple | None = None, coeff: Number = 1):
         """Initialize an operator object.
 
         Args:
@@ -51,7 +52,7 @@ class ScalarOp(LinearOp):
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
@@ -72,7 +73,7 @@ class ScalarOp(LinearOp):
     def transpose(self):
         return self.copy()
 
-    def is_unitary(self, atol=None, rtol=None):
+    def is_unitary(self, atol = None, rtol = None):
         """Return True if operator is a unitary matrix."""
         if atol is None:
             atol = self.atol
@@ -92,7 +93,7 @@ class ScalarOp(LinearOp):
             self.to_matrix(), input_dims=self.input_dims(), output_dims=self.output_dims()
         )
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: ScalarOp, qargs: list | None = None, front: bool = False) -> ScalarOp:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, BaseOperator):
@@ -129,7 +130,7 @@ class ScalarOp(LinearOp):
         # `to_operator` method).
         return other.__class__(self).compose(other, qargs=qargs, front=front)
 
-    def power(self, n):
+    def power(self, n: float) -> ScalarOp:
         """Return the power of the ScalarOp.
 
         Args:
@@ -142,7 +143,7 @@ class ScalarOp(LinearOp):
         ret._coeff = self.coeff**n
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: ScalarOp) -> ScalarOp:
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
@@ -154,7 +155,7 @@ class ScalarOp(LinearOp):
 
         return other.expand(self)
 
-    def expand(self, other):
+    def expand(self, other: ScalarOp) -> ScalarOp:
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
@@ -166,7 +167,7 @@ class ScalarOp(LinearOp):
 
         return other.tensor(self)
 
-    def _add(self, other, qargs=None):
+    def _add(self, other: BaseOperator, qargs: None | list = None) -> ScalarOp:
         """Return the operator self + other.
 
         If ``qargs`` are specified the other operator will be added
@@ -213,7 +214,7 @@ class ScalarOp(LinearOp):
         # final dimensions.
         return other.reshape(self.input_dims(), self.output_dims())._add(self)
 
-    def _multiply(self, other):
+    def _multiply(self, other: Number) -> ScalarOp:
         """Return the ScalarOp other * self.
 
         Args:
@@ -232,7 +233,7 @@ class ScalarOp(LinearOp):
         return ret
 
     @staticmethod
-    def _pad_with_identity(current, other, qargs=None):
+    def _pad_with_identity(current: BaseOperator, other: BaseOperator, qargs: None | list = None) -> BaseOperator:
         """Pad another operator with identities.
 
         Args:

@@ -12,6 +12,7 @@
 """
 Clifford operator class.
 """
+from __future__ import annotations
 import functools
 import itertools
 import re
@@ -32,6 +33,7 @@ from qiskit.utils.deprecation import deprecate_func
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
 from .stabilizer_table import StabilizerTable
+from typing import Literal
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
@@ -119,12 +121,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     _COMPOSE_PHASE_LOOKUP = None
     _COMPOSE_1Q_LOOKUP = None
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
-    def __init__(self, data, validate=True, copy=True):
+    def __init__(self, data, validate = True, copy = True):
         """Initialize an operator object."""
 
         # Initialize from another Clifford
@@ -434,12 +436,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def transpose(self):
         return Clifford._conjugate_transpose(self, "T")
 
-    def tensor(self, other):
+    def tensor(self, other: Clifford) -> Clifford:
         if not isinstance(other, Clifford):
             other = Clifford(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Clifford) -> Clifford:
         if not isinstance(other, Clifford):
             other = Clifford(other)
         return self._tensor(other, self)
@@ -463,7 +465,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         clifford.phase[n + b.num_qubits :] = a.stab_phase
         return clifford
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Clifford, qargs: list | None = None, front: bool = False) -> Clifford:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         # If other is a QuantumCircuit we can more efficiently compose
@@ -552,7 +554,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return cls._COMPOSE_1Q_LOOKUP[cls._hash(first), cls._hash(second)].copy()
 
     @classmethod
-    def _compose_lookup(cls):
+    def _compose_lookup(cls, ):
         if cls._COMPOSE_PHASE_LOOKUP is None:
             # A lookup table for calculating phases.  The indices are
             #     current_x, current_z, running_x_count, running_z_count
@@ -592,7 +594,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return self.to_operator().data
 
     @classmethod
-    def from_matrix(cls, matrix):
+    def from_matrix(cls, matrix: np.ndarray) -> Clifford:
         """Create a Clifford from a unitary matrix.
 
         Note that this function takes exponentially long time w.r.t. the number of qubits.
@@ -616,7 +618,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return Operator(self.to_instruction())
 
     @classmethod
-    def from_operator(cls, operator):
+    def from_operator(cls, operator: Operator) -> Clifford:
         """Create a Clifford from a operator.
 
         Note that this function takes exponentially long time w.r.t. the number of qubits.
@@ -663,7 +665,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return self.to_circuit().to_gate()
 
     @staticmethod
-    def from_circuit(circuit):
+    def from_circuit(circuit: QuantumCircuit | Instruction) -> Clifford:
         """Initialize from a QuantumCircuit or Instruction.
 
         Args:
@@ -689,7 +691,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return clifford
 
     @staticmethod
-    def from_label(label):
+    def from_label(label: str) -> Clifford:
         """Return a tensor product of single-qubit Clifford gates.
 
         Args:
@@ -744,7 +746,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             op = _append_operation(op, label_gates[char], qargs=[qubit])
         return op
 
-    def to_labels(self, array=False, mode="B"):
+    def to_labels(self, array: bool = False, mode: Literal["S", "D", "B"] = "B"):
         r"""Convert a Clifford to a list Pauli (de)stabilizer string labels.
 
         For large Clifford converting using the ``array=True``
@@ -856,7 +858,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return np.array_equal(np.mod(arr.T.dot(seye).dot(arr), 2), seye)
 
     @staticmethod
-    def _conjugate_transpose(clifford, method):
+    def _conjugate_transpose(clifford: Clifford, method: str) -> Clifford:
         """Return the adjoint, conjugate, or transpose of the Clifford.
 
         Args:

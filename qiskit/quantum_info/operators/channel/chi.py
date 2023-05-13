@@ -15,6 +15,7 @@
 Chi-matrix representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 import numpy as np
 
@@ -26,6 +27,9 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_chi
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class Chi(QuantumChannel):
@@ -51,7 +55,7 @@ class Chi(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
         """Initialize a quantum channel Chi-matrix operator.
 
         Args:
@@ -121,7 +125,7 @@ class Chi(QuantumChannel):
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__(chi_mat, num_qubits=num_qubits)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             return np.asarray(self.data, dtype=dtype)
         return self.data
@@ -131,7 +135,7 @@ class Chi(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._input_dim, self._output_dim, self._input_dim, self._output_dim)
 
-    def _evolve(self, state, qargs=None):
+    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -150,7 +154,7 @@ class Chi(QuantumChannel):
     def adjoint(self):
         return Chi(Choi(self).adjoint())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Chi, qargs: list | None = None, front: bool = False) -> Chi:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -159,12 +163,12 @@ class Chi(QuantumChannel):
         # representation conversion to SuperOp and then convert back to Chi
         return Chi(Choi(self).compose(other, front=front))
 
-    def tensor(self, other):
+    def tensor(self, other: Chi) -> Chi:
         if not isinstance(other, Chi):
             other = Chi(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Chi) -> Chi:
         if not isinstance(other, Chi):
             other = Chi(other)
         return self._tensor(other, self)

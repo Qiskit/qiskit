@@ -23,6 +23,7 @@ Method is described in Appendix B of Cross, A. W., Bishop, L. S., Sheldon, S., N
 Gambetta, J. M. Validating quantum computers using randomized model circuits.
 arXiv:1811.12926 [quant-ph] (2018).
 """
+from __future__ import annotations
 import cmath
 import math
 import io
@@ -133,7 +134,7 @@ class TwoQubitWeylDecomposition:
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
+    def __new__(cls, unitary_matrix, *, fidelity = (1.0 - 1.0e-9), _unpickling = False):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -313,7 +314,7 @@ class TwoQubitWeylDecomposition:
         instance._original_decomposition = od
         return instance
 
-    def __init__(self, unitary_matrix, fidelity=None):
+    def __init__(self, unitary_matrix, fidelity = None):
         del unitary_matrix  # unused in __init__ (used in new)
         od = self._original_decomposition
         self.a, self.b, self.c = od.a, od.b, od.c
@@ -369,7 +370,7 @@ class TwoQubitWeylDecomposition:
         raise NotImplementedError
 
     def circuit(
-        self, *, euler_basis: Optional[str] = None, simplify=False, atol=DEFAULT_ATOL
+        self, *, euler_basis: str | None = None, simplify = False, atol = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form.
 
@@ -618,7 +619,7 @@ class TwoQubitControlledUDecomposer:
 
         self.rxx_equivalent_gate = rxx_equivalent_gate
 
-    def __call__(self, unitary, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
+    def __call__(self, unitary, *, atol = DEFAULT_ATOL) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.
 
         Note: atol ist passed to OneQubitEulerDecomposer.
@@ -645,7 +646,7 @@ class TwoQubitControlledUDecomposer:
         circ.compose(c1l, [1], inplace=True)
         return circ
 
-    def _to_rxx_gate(self, angle: float):
+    def _to_rxx_gate(self, angle: float) -> QuantumCircuit:
         """
         Takes an angle and returns the circuit equivalent to an RXXGate with the
         RXX equivalent gate as the two-qubit unitary.
@@ -682,7 +683,7 @@ class TwoQubitControlledUDecomposer:
 
         return rxx_circ
 
-    def _weyl_gate(self, circ: QuantumCircuit, atol=1.0e-13):
+    def _weyl_gate(self, circ: QuantumCircuit, atol = 1.0e-13):
         """Appends Ud(a, b, c) to the circuit."""
 
         circ_rxx = self._to_rxx_gate(-2 * self.decomposer.a)
@@ -867,7 +868,7 @@ class TwoQubitBasisDecomposer:
         gate: Gate,
         basis_fidelity: float = 1.0,
         euler_basis: str = "U",
-        pulse_optimize: Optional[bool] = None,
+        pulse_optimize: bool | None = None,
     ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
@@ -1088,11 +1089,11 @@ class TwoQubitBasisDecomposer:
     @deprecate_arg("target", new_alias="unitary", since="0.23.0")
     def __call__(
         self,
-        unitary: Union[Operator, np.ndarray],
-        basis_fidelity: Optional[float] = None,
+        unitary: Operator | np.ndarray,
+        basis_fidelity: float | None = None,
         approximate: bool = True,
         *,
-        _num_basis_uses: int = None,
+        _num_basis_uses: int | None = None,
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite `basis_fidelity`.
@@ -1150,7 +1151,7 @@ class TwoQubitBasisDecomposer:
         return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
         return return_circuit
 
-    def _pulse_optimal_chooser(self, best_nbasis, decomposition, target_decomposed):
+    def _pulse_optimal_chooser(self, best_nbasis, decomposition, target_decomposed) -> QuantumCircuit:
         """Determine method to find pulse optimal circuit. This method may be
         removed once a more general approach is used.
 
@@ -1536,7 +1537,7 @@ class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
         if self._inner is None:
             self._inner = TwoQubitBasisDecomposer(CXGate())
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> QuantumCircuit:
         self._load()
         return self._inner(*args, **kwargs)
 

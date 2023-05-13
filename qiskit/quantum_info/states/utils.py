@@ -14,6 +14,7 @@
 Quantum information utility functions for states.
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.exceptions import QiskitError

@@ -13,6 +13,7 @@
 """
 Decompose a single-qubit unitary via Euler angles.
 """
+from __future__ import annotations
 import numpy as np
 
 from qiskit._accelerate import euler_one_qubit_decomposer
@@ -33,6 +34,8 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.circuit.gate import Gate
+from qiskit.quantum_info.operators.operator import Operator
 
 DEFAULT_ATOL = 1e-12
 
@@ -127,7 +130,7 @@ class OneQubitEulerDecomposer:
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
     """
 
-    def __init__(self, basis="U3", use_dag=False):
+    def __init__(self, basis: str = "U3", use_dag: bool = False):
         """Initialize decomposer
 
         Supported bases are: 'U', 'PSX', 'ZSXX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ',
@@ -176,7 +179,7 @@ class OneQubitEulerDecomposer:
                 circuit._append(gate, [qr[0]], [])
             return circuit
 
-    def __call__(self, unitary, simplify=True, atol=DEFAULT_ATOL):
+    def __call__(self, unitary: Operator | Gate | np.ndarray, simplify: bool = True, atol: float = DEFAULT_ATOL) -> QuantumCircuit:
         """Decompose single qubit gate into a circuit.
 
         Args:
@@ -209,7 +212,7 @@ class OneQubitEulerDecomposer:
             raise QiskitError("OneQubitEulerDecomposer: input matrix is not unitary.")
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
-    def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
+    def _decompose(self, unitary, simplify = True, atol = DEFAULT_ATOL):
         circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             unitary, [self.basis], 0, None, simplify, atol
         )
@@ -243,7 +246,7 @@ class OneQubitEulerDecomposer:
         self._basis = basis
         self._params = basis_methods[basis]
 
-    def angles(self, unitary):
+    def angles(self, unitary: np.ndarray) -> tuple:
         """Return the Euler angles for input array.
 
         Args:
@@ -256,7 +259,7 @@ class OneQubitEulerDecomposer:
         theta, phi, lam, _ = self._params(unitary)
         return theta, phi, lam
 
-    def angles_and_phase(self, unitary):
+    def angles_and_phase(self, unitary: np.ndarray) -> tuple:
         """Return the Euler angles and phase for input array.
 
         Args:

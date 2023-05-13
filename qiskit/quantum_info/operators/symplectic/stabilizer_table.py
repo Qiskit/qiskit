@@ -13,6 +13,7 @@
 Symplectic Stabilizer Table Class
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -170,7 +171,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
     """
 
     @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.24.0")
-    def __init__(self, data, phase=None):
+    def __init__(self, data: np.ndarray | str | PauliTable, phase: np.ndarray | bool | None = None):
         """Initialize the StabilizerTable.
 
         Args:
@@ -264,7 +265,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         self._array[key] = value.array
         self._phase[key] = value.phase
 
-    def delete(self, ind, qubit=False):
+    def delete(self, ind: int | list, qubit: bool = False) -> StabilizerTable:
         """Return a copy with Stabilizer rows deleted from table.
 
         When deleting qubit columns, qubit-0 is the right-most
@@ -302,7 +303,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             np.delete(self._array, ind, axis=0), np.delete(self._phase, ind, axis=0)
         )
 
-    def insert(self, ind, value, qubit=False):
+    def insert(self, ind: int, value: StabilizerTable, qubit: bool = False) -> StabilizerTable:
         """Insert stabilizers's into the table.
 
         When inserting qubit columns, qubit-0 is the right-most
@@ -337,7 +338,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             phase = np.logical_xor(self._phase, value._phase)
         return StabilizerTable(table, phase)
 
-    def argsort(self, weight=False):
+    def argsort(self, weight: bool = False) -> np.ndarray:
         """Return indices for sorting the rows of the PauliTable.
 
         The default sort method is lexicographic sorting of Paulis by
@@ -357,7 +358,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """
         return super().argsort(weight=weight)
 
-    def sort(self, weight=False):
+    def sort(self, weight: bool = False) -> StabilizerTable:
         """Sort the rows of the table.
 
         The default sort method is lexicographic sorting by qubit number.
@@ -425,7 +426,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """
         return super().sort(weight=weight)
 
-    def unique(self, return_index=False, return_counts=False):
+    def unique(self, return_index: bool = False, return_counts: bool = False) -> StabilizerTable:
         """Return unique stabilizers from the table.
 
         **Example**
@@ -485,7 +486,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
     # Utility methods
     # ---------------------------------------------------------------------
 
-    def tensor(self, other):
+    def tensor(self, other: StabilizerTable) -> StabilizerTable:
         """Return the tensor output product of two tables.
 
         This returns the combination of the tensor product of all
@@ -521,7 +522,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             other = StabilizerTable(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: StabilizerTable) -> StabilizerTable:
         """Return the expand output product of two tables.
 
         This returns the combination of the tensor product of all
@@ -557,7 +558,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             other = StabilizerTable(other)
         return self._tensor(other, self)
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: StabilizerTable, qargs: None | list = None, front: bool = False) -> StabilizerTable:
         """Return the compose output product of two tables.
 
         This returns the combination of the compose product of all
@@ -642,7 +643,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         phase = phase_shift ^ phase1 ^ phase2
         return StabilizerTable(pauli, phase)
 
-    def dot(self, other, qargs=None):
+    def dot(self, other: StabilizerTable, qargs: None | list = None) -> StabilizerTable:
         """Return the dot output product of two tables.
 
         This returns the combination of the compose product of all
@@ -697,7 +698,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         phase = np.logical_xor(phase1, phase2)
         return StabilizerTable(pauli, phase)
 
-    def _add(self, other, qargs=None):
+    def _add(self, other: StabilizerTable, qargs: None | list = None) -> StabilizerTable:
         """Append with another StabilizerTable.
 
         If ``qargs`` are specified the other operator will be added
@@ -732,7 +733,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             np.vstack((self._array, padded._array)), np.hstack((self._phase, padded._phase))
         )
 
-    def _multiply(self, other):
+    def _multiply(self, other: bool | int) -> StabilizerTable:
         """Multiply (XOR) phase vector of the StabilizerTable.
 
         This updates the phase vector of the table. Allowed values for
@@ -765,7 +766,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
     # ---------------------------------------------------------------------
 
     @classmethod
-    def from_labels(cls, labels):
+    def from_labels(cls, labels: list) -> StabilizerTable:
         r"""Construct a StabilizerTable from a list of Pauli stabilizer strings.
 
         Pauli Stabilizer string labels are Pauli strings with an optional
@@ -845,7 +846,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             table[i], phases[i] = cls._from_label(labels[i])
         return cls(table, phases)
 
-    def to_labels(self, array=False):
+    def to_labels(self, array: bool = False):
         r"""Convert a StabilizerTable to a list Pauli stabilizer string labels.
 
         For large StabilizerTables converting using the ``array=True``
@@ -915,7 +916,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             return ret
         return ret.tolist()
 
-    def to_matrix(self, sparse=False, array=False):
+    def to_matrix(self, sparse: bool = False, array: bool = False) -> list:
         r"""Convert to a list or array of Stabilizer matrices.
 
         For large StabilizerTables converting using the ``array=True``
@@ -1020,7 +1021,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         return "+" + label
 
     @staticmethod
-    def _to_matrix(pauli, phase, sparse=False):
+    def _to_matrix(pauli: np.ndarray, phase: bool, sparse: bool = False) -> np.ndarray:
         """Return the Pauli stabilizer matrix from symplectic representation.
 
         Args:
@@ -1042,7 +1043,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
     # Custom Iterators
     # ---------------------------------------------------------------------
 
-    def label_iter(self):
+    def label_iter(self) -> LabelIterator:
         """Return a label representation iterator.
 
         This is a lazy iterator that converts each row into the string
@@ -1064,7 +1065,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse=False):
+    def matrix_iter(self, sparse: bool = False) -> MatrixIterator:
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each row into the Pauli matrix

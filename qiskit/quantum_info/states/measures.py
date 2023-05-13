@@ -13,6 +13,7 @@
 Quantum information measures, metrics, and related functions for states.
 """
 
+from __future__ import annotations
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector

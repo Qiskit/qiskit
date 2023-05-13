@@ -14,6 +14,7 @@
 Simple circuit constructors for Weyl reflections.
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit

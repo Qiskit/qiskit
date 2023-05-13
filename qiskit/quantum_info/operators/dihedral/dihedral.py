@@ -13,6 +13,7 @@
 """
 CNOTDihedral operator class.
 """
+from __future__ import annotations
 import itertools
 import numpy as np
 
@@ -100,7 +101,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             npj Quantum Inf 2, 16012 (2016).
     """
 
-    def __init__(self, data=None, num_qubits=None, validate=True):
+    def __init__(self, data: CNOTDihedral | QuantumCircuit | Instruction | None = None, num_qubits: int | None = None, validate: bool = True):
         """Initialize a CNOTDihedral operator object.
 
         Args:
@@ -330,7 +331,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Return a Gate instruction implementing the CNOTDihedral object."""
         return self.to_circuit().to_gate()
 
-    def _from_circuit(self, circuit):
+    def _from_circuit(self, circuit: QuantumCircuit | Instruction) -> CNOTDihedral:
         """Initialize from a QuantumCircuit or Instruction.
 
         Args:
@@ -350,7 +351,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype = None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
@@ -363,7 +364,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: CNOTDihedral, qargs: list | None = None, front: bool = False) -> CNOTDihedral:
         if qargs is not None:
             raise NotImplementedError("compose method does not support qargs.")
         if self.num_qubits != other.num_qubits:
@@ -375,7 +376,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         other.poly.weight_0 = 0  # set global phase
         return other
 
-    def _tensor(self, other, reverse=False):
+    def _tensor(self, other, reverse = False):
         """Returns the tensor product operator."""
 
         if not isinstance(other, CNOTDihedral):
@@ -423,10 +424,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
         return result
 
-    def tensor(self, other):
+    def tensor(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=True)
 
-    def expand(self, other):
+    def expand(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=False)
 
     def adjoint(self):

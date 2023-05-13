@@ -12,6 +12,7 @@
 
 """A collection of useful functions for post processing results."""
 
+from __future__ import annotations
 from .make_observable import make_dict_observable
 
 

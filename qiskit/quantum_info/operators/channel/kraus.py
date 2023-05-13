@@ -14,6 +14,7 @@
 Kraus representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -28,6 +29,9 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class Kraus(QuantumChannel):
@@ -58,7 +62,7 @@ class Kraus(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(self, data: QuantumCircuit | Instruction | BaseOperator | np.matrix, input_dims: tuple | None = None, output_dims: tuple | None = None):
         """Initialize a quantum channel Kraus operator.
 
         Args:
@@ -171,7 +175,7 @@ class Kraus(QuantumChannel):
             # Otherwise return the tuple of both kraus sets
             return self._data
 
-    def is_cptp(self, atol=None, rtol=None):
+    def is_cptp(self, atol = None, rtol = None):
         """Return True if completely-positive trace-preserving."""
         if self._data[1] is not None:
             return False
@@ -184,7 +188,7 @@ class Kraus(QuantumChannel):
             accum += np.dot(np.transpose(np.conj(op)), op)
         return is_identity_matrix(accum, rtol=rtol, atol=atol)
 
-    def _evolve(self, state, qargs=None):
+    def _evolve(self, state: DensityMatrix | Statevector, qargs: list | None = None) -> DensityMatrix:
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -220,7 +224,7 @@ class Kraus(QuantumChannel):
         ret._data = (kraus_l, kraus_r)
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Kraus, qargs: list | None = None, front: bool = False) -> Kraus:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -252,12 +256,12 @@ class Kraus(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(other, self)
@@ -294,13 +298,13 @@ class Kraus(QuantumChannel):
             other = Choi(other)
         return self._add(-other, qargs=qargs)
 
-    def _add(self, other, qargs=None):
+    def _add(self, other: SuperOp, qargs: None | list = None) -> SuperOp:
         # Since we cannot directly add two channels in the Kraus
         # representation we try and use the other channels method
         # or convert to the Choi representation
         return Kraus(Choi(self)._add(other, qargs=qargs))
 
-    def _multiply(self, other):
+    def _multiply(self, other: complex) -> SuperOp:
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
 

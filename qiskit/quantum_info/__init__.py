@@ -130,6 +130,7 @@ Synthesis
    XXDecomposer
 """
 
+from __future__ import annotations
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
