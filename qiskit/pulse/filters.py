@@ -100,9 +100,7 @@ def _(
                     blk_new.append(inner_blk)
 
             elif isinstance(element, Instruction):
-                valid_inst = True
-                for filt in filters:
-                    valid_inst = np.logical_and(valid_inst, filt(element))
+                valid_inst = all(filt(element) for filt in filters)
                 if negate:
                     valid_inst ^= True
                 if valid_inst:
