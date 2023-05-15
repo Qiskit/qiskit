@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix deprecation warnings in :class:`.NaturalGradient`, which now uses the
+    :class:`~sklearn.preprocessing.StandardScaler` to scale the data
+    before fitting the model if the ``normalize`` parameter is set to ``True``.

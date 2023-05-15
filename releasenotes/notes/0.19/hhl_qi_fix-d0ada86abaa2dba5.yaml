@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    If an :class:`~qiskit.algorithms.HHL` algorithm instance was constructed
+    without a :obj:`.QuantumInstance` (the default), attempts to use the getter
+    and setter properties to read or set an instance later would fail. The
+    getters and setters now work as expected.

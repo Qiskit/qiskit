@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,17 +21,18 @@ from qiskit.circuit import ParameterExpression
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops import ListOp, SummedOp, TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.opflow.primitive_ops import PauliOp, PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CVaRMeasurement(OperatorStateFn):
-    r"""A specialized measurement class to compute CVaR expectation values.
+    r"""Deprecated: A specialized measurement class to compute CVaR expectation values.
         See https://arxiv.org/pdf/1907.04769.pdf for further details.
 
     Used in :class:`~qiskit.opflow.CVaRExpectation`, see there for more details.
@@ -40,6 +41,10 @@ class CVaRMeasurement(OperatorStateFn):
     primitive: OperatorBase
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: OperatorBase = None,
@@ -198,7 +203,7 @@ class CVaRMeasurement(OperatorStateFn):
                 is computed as H_j^2 + 1/α*(sum_i<j p_i*(H_i^2 - H_j^2))
         """
         energies, probabilities = self.get_outcome_energies_probabilities(front)
-        sq_energies = [energy ** 2 for energy in energies]
+        sq_energies = [energy**2 for energy in energies]
         return self.compute_cvar(sq_energies, probabilities) - self.eval(front) ** 2
 
     def get_outcome_energies_probabilities(
@@ -360,24 +365,22 @@ def _check_is_diagonal(operator: OperatorBase) -> bool:
     """
     if isinstance(operator, PauliOp):
         # every X component must be False
-        if not np.any(operator.primitive.x):
+        return not np.any(operator.primitive.x)
+
+    # For sums (PauliSumOp and SummedOp), we cover the case of sums of diagonal paulis, but don't
+    # raise since there might be summand canceling the non-diagonal parts. That case is checked
+    # in the inefficient matrix check at the bottom.
+    if isinstance(operator, PauliSumOp):
+        if not np.any(operator.primitive.paulis.x):
             return True
-        return False
 
-    if isinstance(operator, SummedOp):
-        # cover the case of sums of diagonal paulis, but don't raise since there might be summands
-        # canceling the non-diagonal parts
-
-        # ignoring mypy since we know that all operators are PauliOps
+    elif isinstance(operator, SummedOp):
         if all(isinstance(op, PauliOp) and not np.any(op.primitive.x) for op in operator.oplist):
             return True
 
-    if isinstance(operator, ListOp):
+    elif isinstance(operator, ListOp):
         return all(operator.traverse(_check_is_diagonal))
 
     # cannot efficiently check if a operator is diagonal, converting to matrix
     matrix = operator.to_matrix()
-
-    if np.all(matrix == np.diag(np.diagonal(matrix))):
-        return True
-    return False
+    return np.all(matrix == np.diag(np.diagonal(matrix)))

@@ -14,7 +14,6 @@
 import re
 import copy
 import numbers
-import warnings
 from typing import Dict, List, Any, Iterable, Tuple, Union
 from collections import defaultdict
 
@@ -27,6 +26,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class GateConfig:
@@ -361,20 +361,20 @@ class QasmBackendConfiguration:
             self.parametric_pulses = parametric_pulses
 
         # convert lo range from GHz to Hz
-        if "qubit_lo_range" in kwargs.keys():
+        if "qubit_lo_range" in kwargs:
             kwargs["qubit_lo_range"] = [
                 [min_range * 1e9, max_range * 1e9]
                 for (min_range, max_range) in kwargs["qubit_lo_range"]
             ]
 
-        if "meas_lo_range" in kwargs.keys():
+        if "meas_lo_range" in kwargs:
             kwargs["meas_lo_range"] = [
                 [min_range * 1e9, max_range * 1e9]
                 for (min_range, max_range) in kwargs["meas_lo_range"]
             ]
 
         # convert rep_times from μs to sec
-        if "rep_times" in kwargs.keys():
+        if "rep_times" in kwargs:
             kwargs["rep_times"] = [_rt * 1e-6 for _rt in kwargs["rep_times"]]
 
         self._data.update(kwargs)
@@ -831,6 +831,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
         return AcquireChannel(qubit)
 
+    @deprecate_arg(
+        "channel",
+        since="0.19.0",
+        additional_msg=(
+            "Instead, use the ``qubits`` argument. This method will now return accurate "
+            "ControlChannels determined by qubit indices."
+        ),
+    )
     def control(self, qubits: Iterable[int] = None, channel: int = None) -> List[ControlChannel]:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
@@ -848,12 +856,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             List of control channels.
         """
         if channel is not None:
-            warnings.warn(
-                "The channel argument has been deprecated in favor of qubits. "
-                "This method will now return accurate ControlChannels determined "
-                "by qubit indices.",
-                DeprecationWarning,
-            )
             qubits = [channel]
         try:
             if isinstance(qubits, list):

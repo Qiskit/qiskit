@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue where the :meth:`.HHL.construct_circuit` method under
+    certain conditions would not return a correct
+    :class:`~.QuantumCircuit`. Previously, the function had a rounding error in
+    calculating how many qubits were necessary to represent the eigenvalues
+    which would cause an incorrect circuit output.

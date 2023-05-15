@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added a new method :meth:`.QuantumCircuit.clear` which is used to remove all instructions
+    from a :class:`.QuantumCircuit`.
+  - |
+    Added a new method :meth:`.QuantumCircuit.copy_empty_like` which is used to get a cleared copy of a
+    :class:`~.QuantumCircuit` instance. This is logically equivalent to ``qc.copy().clear()``, but
+    significantly faster and more memory-efficient.  This is useful when one needs a new empty
+    circuit with all the same resources (qubits, classical bits, metadata, and so on) already
+    added.

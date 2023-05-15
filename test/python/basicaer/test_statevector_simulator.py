@@ -65,12 +65,12 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
             num_qubits = i + 1
-            psi_init = np.zeros(2 ** num_qubits)
+            psi_init = np.zeros(2**num_qubits)
             psi_init[0] = 1.0
             qr = QuantumRegister(num_qubits, "qr")
             for _ in range(num_trials):
                 # Create random unitary
-                unitary = random_unitary(2 ** num_qubits)
+                unitary = random_unitary(2**num_qubits)
                 # Compute expected output state
                 psi_target = unitary.data.dot(psi_init)
                 # Simulate output on circuit
@@ -92,7 +92,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         self.circuit = circ
         result = super().test_run_circuit()
         actual = result.get_statevector(self.circuit)
-        expected = np.exp(1j * circ.global_phase) * np.repeat([[0], [1]], [n_qubits ** 2 - 1, 1])
+        expected = np.exp(1j * circ.global_phase) * np.repeat([[0], [1]], [n_qubits**2 - 1, 1])
         self.assertTrue(np.allclose(actual, expected))
 
     def test_global_phase_composite(self):
@@ -110,7 +110,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         self.circuit = comp
         result = super().test_run_circuit()
         actual = result.get_statevector(self.circuit)
-        expected = np.exp(1j * 0.6) * np.repeat([[0], [1]], [n_qubits ** 2 - 1, 1])
+        expected = np.exp(1j * 0.6) * np.repeat([[0], [1]], [n_qubits**2 - 1, 1])
         self.assertTrue(np.allclose(actual, expected))
 
 

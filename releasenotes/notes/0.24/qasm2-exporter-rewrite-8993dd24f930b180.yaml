@@ -1,0 +1,34 @@
+---
+fixes:
+  - |
+    The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will no longer emit duplicate definitions
+    for gates that appear in other gates' definitions.  See
+    `#7771 <https://github.com/Qiskit/qiskit-terra/issues/7771>`__,
+    `#8086 <https://github.com/Qiskit/qiskit-terra/issues/8086>`__,
+    `#8402 <https://github.com/Qiskit/qiskit-terra/issues/8402>`__,
+    `#8558 <https://github.com/Qiskit/qiskit-terra/issues/8558>`__, and
+    `#9805 <https://github.com/Qiskit/qiskit-terra/issues/9805>`__.
+  - |
+    The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now handle multiple and nested
+    definitions of :class:`.UnitaryGate`.  See
+    `#4623 <https://github.com/Qiskit/qiskit-terra/issues/4623>`__,
+    `#6712 <https://github.com/Qiskit/qiskit-terra/issues/6712>`__,
+    `#7772 <https://github.com/Qiskit/qiskit-terra/issues/7772>`__, and
+    `#8222 <https://github.com/Qiskit/qiskit-terra/issues/8222>`__.
+  - |
+    The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now output definitions for gates used
+    only in other gates' definitions in a correct order.  See
+    `#7769 <https://github.com/Qiskit/qiskit-terra/issues/7769>`__ and
+    `#7773 <https://github.com/Qiskit/qiskit-terra/issues/7773>`__.
+  - |
+    Standard gates defined by Qiskit, such as :class:`.RZXGate`, will now have properly parametrised
+    definitions when exported using the OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`). See
+    `#7172 <https://github.com/Qiskit/qiskit-terra/issues/7172>`__.
+  - |
+    Quantum volume circuits (:class:`.QuantumVolume`) are now supported by the OpenQASM 2 exporter
+    (:meth:`.QuantumCircuit.qasm`).  See
+    `#6466 <https://github.com/Qiskit/qiskit-terra/issues/6466>`__ and
+    `#7051 <https://github.com/Qiskit/qiskit-terra/issues/7051>`__.
+  - |
+    The OpenQASM 2 exporter will now output gates with no known definition with ``opaque`` statements,
+    rather than failing.  See `#5036 <https://github.com/Qiskit/qiskit-terra/issues/5036>`__.

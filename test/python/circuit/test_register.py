@@ -41,15 +41,16 @@ class TestRegisterClass(QiskitTestCase):
             _ = reg_type(1, "foo", bits)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_raise_on_init_with_duplicated_bits(self, reg_type):
+        bits = [reg_type.bit_type()] * 2
+        with self.assertRaisesRegex(CircuitError, "bits must not be duplicated"):
+            _ = reg_type(bits=bits)
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_bits_of_incorrect_type(self, reg_type):
         bits = [bit.Bit()]
         with self.assertRaisesRegex(CircuitError, "did not all match register type"):
             _ = reg_type(bits=bits)
-
-    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
-    def test_init_raise_if_passed_invalid_name(self, reg_type):
-        with self.assertRaisesRegex(CircuitError, "invalid OPENQASM register name"):
-            _ = reg_type(size=1, name="_q")
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_with_zero_size(self, reg_type):
@@ -119,3 +120,15 @@ class TestRegisterClass(QiskitTestCase):
         bits_difftype = [difftype.bit_type() for _ in range(3)]
         reg_difftype = difftype(name="foo", bits=bits_difftype)
         self.assertNotEqual(reg_difftype, test_reg)
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_register_name_format_deprecation(self, reg_type):
+        """Test that the `Register.name_format` class data can be accessed and triggers its
+        deprecation correctly."""
+        # From instance:
+        reg_inst = reg_type(2)
+        with self.assertWarnsRegex(DeprecationWarning, "Register.name_format is deprecated"):
+            self.assertTrue(reg_inst.name_format.match("name"))
+        # From class:
+        with self.assertWarnsRegex(DeprecationWarning, "Register.name_format is deprecated"):
+            self.assertTrue(reg_type.name_format.match("name"))

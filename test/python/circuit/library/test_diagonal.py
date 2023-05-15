@@ -31,9 +31,9 @@ class TestDiagonalGate(QiskitTestCase):
         [0, 0.8],
         [0, 0, 1, 1],
         [0, 1, 0.5, 1],
-        (2 * np.pi * np.random.rand(2 ** 3)),
-        (2 * np.pi * np.random.rand(2 ** 4)),
-        (2 * np.pi * np.random.rand(2 ** 5)),
+        (2 * np.pi * np.random.rand(2**3)),
+        (2 * np.pi * np.random.rand(2**4)),
+        (2 * np.pi * np.random.rand(2**5)),
     )
     def test_diag_gate(self, phases):
         """Test correctness of diagonal decomposition."""

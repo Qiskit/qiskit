@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an endianness bug in :meth:`.BaseReadoutMitigator.expectation_value`
+    when a string ``diagonal`` was passed.  It will now correctly be interpreted
+    as little endian in the same manner as the rest of Qiskit Terra, instead of
+    big endian.

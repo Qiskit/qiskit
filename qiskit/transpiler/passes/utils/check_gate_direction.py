@@ -12,7 +12,8 @@
 
 """Check if the gates follow the right direction with respect to the coupling map."""
 
-from qiskit.transpiler.layout import Layout
+from qiskit.circuit import ControlFlowOp
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -21,14 +22,52 @@ class CheckGateDirection(AnalysisPass):
     respect to the coupling map.
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, target=None):
         """CheckGateDirection initializer.
 
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
+            target (Target): The backend target to use for this pass. If this is specified
+                it will be used instead of the coupling map
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.target = target
+
+    def _coupling_map_visit(self, dag, wire_map, edges=None):
+        if edges is None:
+            edges = self.coupling_map.get_edges()
+        # Don't include directives to avoid things like barrier, which are assumed always supported.
+        for node in dag.op_nodes(include_directives=False):
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    if not self._coupling_map_visit(circuit_to_dag(block), inner_wire_map, edges):
+                        return False
+            elif (
+                len(node.qargs) == 2
+                and (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in edges
+            ):
+                return False
+        return True
+
+    def _target_visit(self, dag, wire_map):
+        # Don't include directives to avoid things like barrier, which are assumed always supported.
+        for node in dag.op_nodes(include_directives=False):
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    if not self._target_visit(circuit_to_dag(block), inner_wire_map):
+                        return False
+            elif len(node.qargs) == 2 and not self.target.instruction_supported(
+                node.op.name, (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
+            ):
+                return False
+        return True
 
     def run(self, dag):
         """Run the CheckGateDirection pass on `dag`.
@@ -39,15 +78,9 @@ class CheckGateDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-        self.property_set["is_direction_mapped"] = True
-        edges = self.coupling_map.get_edges()
-
-        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
-        for gate in dag.two_qubit_ops():
-            physical_q0 = trivial_layout[gate.qargs[0]]
-            physical_q1 = trivial_layout[gate.qargs[1]]
-
-            if (physical_q0, physical_q1) not in edges:
-                self.property_set["is_direction_mapped"] = False
-                return
+        wire_map = {bit: i for i, bit in enumerate(dag.qubits)}
+        self.property_set["is_direction_mapped"] = (
+            self._coupling_map_visit(dag, wire_map)
+            if self.target is None
+            else self._target_visit(dag, wire_map)
+        )

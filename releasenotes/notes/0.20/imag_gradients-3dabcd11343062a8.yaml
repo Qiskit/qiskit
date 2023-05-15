@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    The :class:`~qiskit.opflow.gradients.Gradient` and
+    :class:`~qiskit.opflow.gradients.QFI` classes can now calculate the imaginary
+    part of expectation value gradients. When using a different measurement basis,
+    i.e. ``-Y`` instead of ``Z``, we can measure the imaginary part of gradients
+    The measurement basis can be set with the ``aux_meas_op`` argument.
+
+    For the gradients, ``aux_meas_op = Z`` computes ``0.5Re[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``
+    and ``aux_meas_op = -Y`` computes ``0.5Im[(⟨ψ(ω)|)O(θ)|dωψ(ω)〉]``.
+    For the QFIs, ``aux_meas_op = Z`` computes ``4Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]``
+    and ``aux_meas_op = -Y`` computes ``4Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]``.
+    For example::
+
+      from qiskit import QuantumRegister, QuantumCircuit
+      from qiskit.opflow import CircuitStateFn, Y
+      from qiskit.opflow.gradients.circuit_gradients import LinComb
+      from qiskit.circuit import Parameter
+
+      a = Parameter("a")
+      b = Parameter("b")
+      params = [a, b]
+
+      q = QuantumRegister(1)
+      qc = QuantumCircuit(q)
+      qc.h(q)
+      qc.rz(params[0], q[0])
+      qc.rx(params[1], q[0])
+      op = CircuitStateFn(primitive=qc, coeff=1.0)
+
+      aux_meas_op = -Y
+
+      prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)

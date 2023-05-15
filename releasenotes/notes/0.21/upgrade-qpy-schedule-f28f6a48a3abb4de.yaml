@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    QPY serialization has been upgraded to support :class:`.ScheduleBlock`.
+    Now you can save pulse program in binary and load it at later time::
+
+      from qiskit import pulse, qpy
+
+      with pulse.build() as schedule:
+          pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+      with open('schedule.qpy', 'wb') as fd:
+          qpy.dump(schedule, fd)
+
+      with open('schedule.qpy', 'rb') as fd:
+          new_schedule = qpy.load(fd)[0]
+
+    This uses the QPY interface common to :class:`.QuantumCircuit`.
+    See :ref:`qpy_schedule_block` for details of data structure.
+upgrade:
+  - |
+    QPY serialization has been upgraded to serialize :class:`.QuantumCircuit`
+    with :attr:`.QuantumCircuit.calibrations`. As of QPY Version 5, only calibration
+    entries of :class:`.ScheduleBlock` type can be serialized.
+deprecations:
+  - |
+    The ``circuits`` argument of :func:`.qpy.dump` has been deprecated and
+    replaced with ``programs`` since now QPY supports multiple data types other than circuits.
+  - |
+    :meth:`.AlignmentKind.to_dict` method has been deprecated and will be removed.

@@ -304,13 +304,16 @@ class BackwardMatch:
         """
         if (
             node_circuit.type == "op"
-            and node_circuit.op.condition
+            and getattr(node_circuit.op, "condition", None)
             and node_template.type == "op"
-            and node_template.op.condition
+            and getattr(node_template.op, "condition", None)
         ):
             if set(carg_circuit) != set(node_template.cindices):
                 return False
-            if node_circuit.op.condition[1] != node_template.op.conditon[1]:
+            if (
+                getattr(node_circuit.op, "condition", None)[1]
+                != getattr(node_template.op, "condition", None)[1]
+            ):
                 return False
         return True
 

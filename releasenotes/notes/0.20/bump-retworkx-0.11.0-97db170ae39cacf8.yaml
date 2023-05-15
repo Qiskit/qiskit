@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The core dependency ``retworkx`` had its version requirement bumped to 0.11.0, up from 0.10.1.
+    This improves the performance of transpilation pass
+    :class:`~qiskit.transpiler.passes.ConsolidateBlocks`.

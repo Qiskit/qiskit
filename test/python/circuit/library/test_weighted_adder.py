@@ -43,14 +43,14 @@ class TestWeightedAdder(QiskitTestCase):
             probabilities[i] += np.real(np.abs(statevector_amplitude) ** 2)
 
         expectations = defaultdict(float)
-        for x in range(2 ** adder.num_state_qubits):
+        for x in range(2**adder.num_state_qubits):
             bits = np.array(list(bin(x)[2:].zfill(adder.num_state_qubits)), dtype=int)
             summation = bits.dot(adder.weights[::-1])
 
             entry = bin(summation)[2:].zfill(adder.num_sum_qubits) + bin(x)[2:].zfill(
                 adder.num_state_qubits
             )
-            expectations[entry] = 1 / 2 ** adder.num_state_qubits
+            expectations[entry] = 1 / 2**adder.num_state_qubits
 
         for state, probability in probabilities.items():
             self.assertAlmostEqual(probability, expectations[state])

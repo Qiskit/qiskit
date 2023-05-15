@@ -13,6 +13,7 @@
 """
 Quantum measurement in the computational basis.
 """
+
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.exceptions import CircuitError
 

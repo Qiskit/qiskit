@@ -52,14 +52,14 @@ def is_power(num, return_decomposition=False):
     Check if num is a perfect power in O(n^3) time, n=ceil(logN)
     """
     b = 2
-    while (2 ** b) <= num:
+    while (2**b) <= num:
         a = 1
         c = num
         while (c - a) >= 2:
             m = int((a + c) / 2)
 
-            if (m ** b) < (num + 1):
-                p = int(m ** b)
+            if (m**b) < (num + 1):
+                p = int(m**b)
             else:
                 p = int(num + 1)
 

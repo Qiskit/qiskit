@@ -1,0 +1,34 @@
+---
+prelude: |
+    The Qiskit Terra 0.19 release highlights are:
+
+    * A new version of the abstract Qiskit/hardware interface, in the form of
+      :class:`.BackendV2`, which comes with a new data structure
+      :class:`~.transpiler.Target` to allow backends to better model their
+      constraints for the :ref:`transpiler <qiskit-transpiler>`.
+
+    * An :ref:`extensible plugin interface <qiskit-transpiler-plugins>` to the
+      :class:`~.passes.UnitarySynthesis` transpiler pass, allowing users or
+      other packages to extend Qiskit Terra's
+      synthesis routines with new methods.
+
+    * Control-flow instructions, for representing ``for`` and ``while`` loops
+      and ``if``/``else`` statements in :class:`.QuantumCircuit`.  The
+      simulators in Qiskit Aer will soon be able to work with these new
+      instructions, allowing you to write more dynamic quantum programs.
+
+    * Preliminary support for the evolving `OpenQASM 3 specification`_.  You can
+      use the new :mod:`qiskit.qasm3` module to serialize your
+      :class:`.QuantumCircuit`\ s into OpenQASM 3, including the new control-flow
+      constructs.
+
+    .. _OpenQASM 3 specification: https://qiskit.github.io/openqasm/
+
+    This release marks the end of support for Python 3.6 in Qiskit.  This
+    release of Qiskit Terra, and any subsequent bugfix releases in the 0.19.x
+    series, will be the last to work with Python 3.6.  Starting from the next
+    minor release (0.20.0) of Qiskit Terra, the minimum required Python version
+    will be 3.7.
+
+    As always, there are many more features and fixes in this release as well,
+    which you can read about below.

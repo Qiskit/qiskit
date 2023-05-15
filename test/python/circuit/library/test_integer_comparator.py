@@ -39,7 +39,7 @@ class TestIntegerComparator(QiskitTestCase):
             prob = np.abs(amplitude) ** 2
             if prob > 1e-6:
                 # equal superposition
-                self.assertEqual(True, np.isclose(1.0, prob * 2.0 ** num_state_qubits))
+                self.assertEqual(True, np.isclose(1.0, prob * 2.0**num_state_qubits))
                 b_value = f"{i:b}".rjust(qc.width(), "0")
                 x = int(b_value[(-num_state_qubits):], 2)
                 comp_result = int(b_value[-num_state_qubits - 1], 2)

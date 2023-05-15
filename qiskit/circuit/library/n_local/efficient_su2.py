@@ -35,13 +35,13 @@ class EfficientSU2(TwoLocal):
 
     .. parsed-literal::
 
-        ┌──────────┐┌──────────┐ ░                 ░       ░ ┌───────────┐┌───────────┐
-        ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├─░───■────■────────░─ ... ─░─┤ RY(θ[12]) ├┤ RZ(θ[15]) ├
-        ├──────────┤├──────────┤ ░ ┌─┴─┐  │        ░       ░ ├───────────┤├───────────┤
-        ┤ RY(θ[1]) ├┤ RZ(θ[4]) ├─░─┤ X ├──┼────■───░─ ... ─░─┤ RY(θ[13]) ├┤ RZ(θ[16]) ├
-        ├──────────┤├──────────┤ ░ └───┘┌─┴─┐┌─┴─┐ ░       ░ ├───────────┤├───────────┤
-        ┤ RY(θ[2]) ├┤ RZ(θ[5]) ├─░──────┤ X ├┤ X ├─░─ ... ─░─┤ RY(θ[14]) ├┤ RZ(θ[17]) ├
-        └──────────┘└──────────┘ ░      └───┘└───┘ ░       ░ └───────────┘└───────────┘
+        ┌──────────┐┌──────────┐ ░            ░       ░ ┌───────────┐┌───────────┐
+        ┤ RY(θ[0]) ├┤ RZ(θ[3]) ├─░────────■───░─ ... ─░─┤ RY(θ[12]) ├┤ RZ(θ[15]) ├
+        ├──────────┤├──────────┤ ░      ┌─┴─┐ ░       ░ ├───────────┤├───────────┤
+        ┤ RY(θ[1]) ├┤ RZ(θ[4]) ├─░───■──┤ X ├─░─ ... ─░─┤ RY(θ[13]) ├┤ RZ(θ[16]) ├
+        ├──────────┤├──────────┤ ░ ┌─┴─┐└───┘ ░       ░ ├───────────┤├───────────┤
+        ┤ RY(θ[2]) ├┤ RZ(θ[5]) ├─░─┤ X ├──────░─ ... ─░─┤ RY(θ[14]) ├┤ RZ(θ[17]) ├
+        └──────────┘└──────────┘ ░ └───┘      ░       ░ └───────────┘└───────────┘
 
     See :class:`~qiskit.circuit.library.RealAmplitudes` for more detail on the possible arguments
     and options such as skipping unentanglement qubits, which apply here too.
@@ -86,7 +86,7 @@ class EfficientSU2(TwoLocal):
                 List[Union[str, type, Instruction, QuantumCircuit]],
             ]
         ] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
@@ -106,9 +106,12 @@ class EfficientSU2(TwoLocal):
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                , 'circular' or 'sca'), a list of integer-pairs specifying the indices of qubits
-                entangled with one another, or a callable returning such a list provided with
+                , 'reverse_linear', 'circular' or 'sca'), a list of integer-pairs specifying the indices
+                of qubits entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
+                Default to 'reverse_linear' entanglement.
+                Note that 'reverse_linear' entanglement provides the same unitary as 'full'
+                with fewer entangling gates.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.

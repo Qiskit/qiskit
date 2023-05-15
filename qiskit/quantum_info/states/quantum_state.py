@@ -21,7 +21,6 @@ import numpy as np
 
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
-from qiskit.utils.deprecation import deprecate_function
 
 
 class QuantumState:
@@ -235,7 +234,9 @@ class QuantumState:
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
+            self.probabilities(qargs=qargs, decimals=decimals),
+            self.dims(qargs),
+            string_labels=True,
         )
 
     def sample_memory(self, shots, qargs=None):
@@ -455,7 +456,7 @@ class QuantumState:
         if qargs is None:
             return probs
         # Convert qargs to tensor axes
-        probs_tens = np.reshape(probs, dims)
+        probs_tens = np.reshape(probs, list(reversed(dims)))
         ndim = probs_tens.ndim
         qargs_axes = [ndim - 1 - i for i in reversed(qargs)]
         # Get sum axis for marginalized subsystems
@@ -470,18 +471,6 @@ class QuantumState:
 
     # Overloads
     def __and__(self, other):
-        return self.evolve(other)
-
-    @deprecate_function(
-        "Using `psi @ U` as shorthand for `psi.evolve(U)` is deprecated"
-        " as of version 0.17.0 and will be removed no earlier than 3 months"
-        " after the release date. It has been superceded by the `&` operator"
-        " (`psi & U == psi.evolve(U)`) instead."
-    )
-    def __matmul__(self, other):
-        # Check for subsystem case return by __call__ method
-        if isinstance(other, tuple) and len(other) == 2:
-            return self.evolve(other[0], qargs=other[1])
         return self.evolve(other)
 
     def __xor__(self, other):

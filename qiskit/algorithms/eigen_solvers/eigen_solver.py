@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,26 +11,43 @@
 # that they have been altered from the originals.
 
 """The Eigensolver interface"""
-
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 import numpy as np
+
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 from ..algorithm_result import AlgorithmResult
+from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """The Eigensolver Interface.
+    """Deprecated: Eigensolver Interface.
+
+    The Eigensolver interface has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.Eigensolver` interface.
+    This interface will be deprecated in a future release and subsequently
+    removed after that.
 
     Algorithms that can compute eigenvalues for an operator
     may implement this interface to allow different algorithms to be
     used interchangeably.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the interface ``qiskit.algorithms.eigensolvers.Eigensolver``. See "
+            "https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
+    )
+    def __init__(self) -> None:
+        pass
+
     @abstractmethod
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> "EigensolverResult":
         """
         Computes eigenvalues. Operator and aux_operators can be supplied here and
@@ -61,16 +78,30 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """Eigensolver Result."""
+    """Deprecated: Eigensolver Result.
 
+    The EigensolverResult class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.EigensolverResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.EigensolverResult``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
+    )
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalues = None
-        self._eigenstates = None
-        self._aux_operator_eigenvalues = None
+        self._eigenvalues: np.ndarray | None = None
+        self._eigenstates: np.ndarray | None = None
+        self._aux_operator_eigenvalues: list[ListOrDict[tuple[complex, complex]]] | None = None
 
     @property
-    def eigenvalues(self) -> Optional[np.ndarray]:
+    def eigenvalues(self) -> np.ndarray | None:
         """returns eigen values"""
         return self._eigenvalues
 
@@ -80,7 +111,7 @@ class EigensolverResult(AlgorithmResult):
         self._eigenvalues = value
 
     @property
-    def eigenstates(self) -> Optional[np.ndarray]:
+    def eigenstates(self) -> np.ndarray | None:
         """return eigen states"""
         return self._eigenstates
 
@@ -90,11 +121,14 @@ class EigensolverResult(AlgorithmResult):
         self._eigenstates = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
-        """return aux operator eigen values"""
+    def aux_operator_eigenvalues(self) -> list[ListOrDict[tuple[complex, complex]]] | None:
+        """Return aux operator expectation values.
+
+        These values are in fact tuples formatted as (mean, standard deviation).
+        """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
+    def aux_operator_eigenvalues(self, value: list[ListOrDict[tuple[complex, complex]]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

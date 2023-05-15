@@ -31,9 +31,9 @@ angles_list = [
     [0, 0.8],
     [0, 0, 1, 1],
     [0, 1, 0.5, 1],
-    (2 * np.pi * np.random.rand(2 ** 3)).tolist(),
-    (2 * np.pi * np.random.rand(2 ** 4)).tolist(),
-    (2 * np.pi * np.random.rand(2 ** 5)).tolist(),
+    (2 * np.pi * np.random.rand(2**3)).tolist(),
+    (2 * np.pi * np.random.rand(2**4)).tolist(),
+    (2 * np.pi * np.random.rand(2**5)).tolist(),
 ]
 
 rot_axis_list = ["X", "Y", "Z"]

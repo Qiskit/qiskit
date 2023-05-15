@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DictStateFn Class """
+"""DictStateFn Class"""
 
 import itertools
 from typing import Dict, List, Optional, Set, Union, cast
@@ -27,16 +27,21 @@ from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
 from qiskit.utils import algorithm_globals
+from qiskit.utils.deprecation import deprecate_func
 
 
 class DictStateFn(StateFn):
-    """A class for state functions and measurements which are defined by a lookup table,
+    """Deprecated: A class for state functions and measurements which are defined by a lookup table,
     stored in a dict.
     """
 
     primitive: Dict[str, complex]
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: Union[str, dict, Result] = None,
@@ -182,12 +187,12 @@ class DictStateFn(StateFn):
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
         OperatorBase._check_massive("to_density_matrix", True, self.num_qubits, massive)
-        states = int(2 ** self.num_qubits)
+        states = int(2**self.num_qubits)
         return self.to_matrix(massive=massive) * np.eye(states) * self.coeff
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         OperatorBase._check_massive("to_matrix", False, self.num_qubits, massive)
-        states = int(2 ** self.num_qubits)
+        states = int(2**self.num_qubits)
         probs = np.zeros(states) + 0.0j
         for k, v in self.primitive.items():
             probs[int(k, 2)] = v
@@ -209,7 +214,7 @@ class DictStateFn(StateFn):
         indices = [int(v, 2) for v in self.primitive.keys()]
         vals = np.array(list(self.primitive.values())) * self.coeff
         spvec = sparse.csr_matrix(
-            (vals, (np.zeros(len(indices), dtype=int), indices)), shape=(1, 2 ** self.num_qubits)
+            (vals, (np.zeros(len(indices), dtype=int), indices)), shape=(1, 2**self.num_qubits)
         )
         return spvec if not self.is_measurement else spvec.transpose()
 

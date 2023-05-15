@@ -18,6 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import Target
 
 
 class TimeUnitConversion(TransformationPass):
@@ -29,19 +30,27 @@ class TimeUnitConversion(TransformationPass):
 
     If dt (dt in seconds) is known to transpiler, the unit 'dt' is chosen. Otherwise,
     the unit to be selected depends on what units are used in delays and instruction durations:
+
     * 's': if they are all in SI units.
     * 'dt': if they are all in the unit 'dt'.
     * raise error: if they are a mix of SI units and 'dt'.
     """
 
-    def __init__(self, inst_durations: InstructionDurations):
+    def __init__(self, inst_durations: InstructionDurations = None, target: Target = None):
         """TimeUnitAnalysis initializer.
 
         Args:
             inst_durations (InstructionDurations): A dictionary of durations of instructions.
+            target: The :class:`~.Target` representing the target backend, if both
+                  ``inst_durations`` and this are specified then this argument will take
+                  precedence and ``inst_durations`` will be ignored.
+
+
         """
         super().__init__()
         self.inst_durations = inst_durations or InstructionDurations()
+        if target is not None:
+            self.inst_durations = target.durations()
 
     def run(self, dag: DAGCircuit):
         """Run the TimeUnitAnalysis pass on `dag`.

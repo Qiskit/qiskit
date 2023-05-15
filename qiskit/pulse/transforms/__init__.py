@@ -9,19 +9,21 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-===================================================
+r"""
+=================================================
 Pulse Transforms (:mod:`qiskit.pulse.transforms`)
-===================================================
+=================================================
 
 The pulse transforms provide transformation routines to reallocate and optimize
 pulse programs for backends.
 
+.. _pulse_alignments:
+
 Alignments
 ==========
 
-The alignment transforms define alignment policies of instructions in ``ScheduleBlock``.
-These transformations are called to create ``Schedule``s from ``ScheduleBlock``s.
+The alignment transforms define alignment policies of instructions in :obj:`.ScheduleBlock`.
+These transformations are called to create :obj:`.Schedule`\ s from :obj:`.ScheduleBlock`\ s.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -32,12 +34,18 @@ These transformations are called to create ``Schedule``s from ``ScheduleBlock``s
    AlignRight
    AlignSequential
 
+These are all subtypes of the abstract base class :class:`AlignmentKind`.
+
+.. autoclass:: AlignmentKind
+
+
+.. _pulse_canonical_transform:
 
 Canonicalization
 ================
 
 The canonicalization transforms convert schedules to a form amenable for execution on
-Openpulse backends.
+OpenPulse backends.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -53,6 +61,8 @@ Openpulse backends.
    remove_trivial_barriers
 
 
+.. _pulse_dag:
+
 DAG
 ===
 
@@ -64,6 +74,8 @@ optimization of instructions and equality checks.
 
    block_to_dag
 
+
+.. _pulse_transform_chain:
 
 Composite transform
 ===================
@@ -77,22 +89,18 @@ A sequence of transformations to generate a target code.
 
 """
 
-from qiskit.pulse.transforms.alignments import (
+from .alignments import (
     AlignEquispaced,
     AlignFunc,
     AlignLeft,
     AlignRight,
     AlignSequential,
-    align_equispaced,
-    align_func,
-    align_left,
-    align_right,
-    align_sequential,
+    AlignmentKind,
 )
 
-from qiskit.pulse.transforms.base_transforms import target_qobj_transform
+from .base_transforms import target_qobj_transform
 
-from qiskit.pulse.transforms.canonicalization import (
+from .canonicalization import (
     add_implicit_acquires,
     align_measures,
     block_to_schedule,
@@ -104,4 +112,4 @@ from qiskit.pulse.transforms.canonicalization import (
     remove_trivial_barriers,
 )
 
-from qiskit.pulse.transforms.dag import block_to_dag
+from .dag import block_to_dag

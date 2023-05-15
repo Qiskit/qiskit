@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,17 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PauliOp Class """
+"""PauliOp Class"""
 
 from math import pi
 from typing import Dict, List, Optional, Set, Union, cast
-
 import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.circuit.library import IGate, RXGate, RYGate, RZGate, XGate, YGate, ZGate
+from qiskit.circuit.library import RXGate, RYGate, RZGate, XGate, YGate, ZGate
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -28,13 +27,18 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``Pauli`` module."""
+    """Deprecated: Class for Operators backed by Terra's ``Pauli`` module."""
 
     primitive: Pauli
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, primitive: Pauli, coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
@@ -46,6 +50,7 @@ class PauliOp(PrimitiveOp):
         """
         if not isinstance(primitive, Pauli):
             raise TypeError(f"PauliOp can only be instantiated with Paulis, not {type(primitive)}")
+
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
@@ -84,13 +89,19 @@ class PauliOp(PrimitiveOp):
         return SummedOp([self, other])
 
     def adjoint(self) -> "PauliOp":
-        return PauliOp(self.primitive, coeff=self.coeff.conjugate())
+        return PauliOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
-        if not isinstance(other, PauliOp) or not self.coeff == other.coeff:
-            return False
+        if isinstance(other, PauliOp) and self.coeff == other.coeff:
+            return self.primitive == other.primitive
 
-        return self.primitive == other.primitive
+        # pylint: disable=cyclic-import
+        from .pauli_sum_op import PauliSumOp
+
+        if isinstance(other, PauliSumOp):
+            return other == self
+
+        return False
 
     def _expand_dim(self, num_qubits: int) -> "PauliOp":
         return PauliOp(Pauli("I" * num_qubits).expand(self.primitive), coeff=self.coeff)
@@ -148,9 +159,6 @@ class PauliOp(PrimitiveOp):
 
         if front:
             return other.compose(new_self)
-        # If self is identity, just return other.
-        if not any(new_self.primitive.x + new_self.primitive.z):
-            return other * new_self.coeff
 
         # Both Paulis
         if isinstance(other, PauliOp):
@@ -322,10 +330,12 @@ class PauliOp(PrimitiveOp):
             return qc
 
         if self.num_qubits == 1:
-            gate = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}[pauli]
+            if pauli != "I":
+                gate = {"X": XGate, "Y": YGate, "Z": ZGate}[pauli]
+                qc.append(gate(), [0])
         else:
             gate = PauliGate(pauli)
-        qc.append(gate, range(self.num_qubits))
+            qc.append(gate, range(self.num_qubits))
 
         if not phase:
             return qc

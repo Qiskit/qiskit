@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    :meth:`.QuantumCircuit.decompose` and its corresponding transpiler pass
+    :class:`~qiskit.transpiler.passes.Decompose` now optionally accept a
+    parameter containing a collection of gate names.  If this parameter is given,
+    then only gates with matching names will be decomposed.  This supports
+    Unix-shell-style wildcard matches.  For example::
+
+        qc.decompose(["h", "r[xz]"])
+
+    will decompose any ``h``, ``rx`` or ``rz`` gates, but leave (for example) ``x`` gates untouched.
+
+deprecations:
+  - |
+    The ``gate`` attribute and initialization parameter of
+    :class:`qiskit.transpiler.passes.Decompose` is deprecated, and will be
+    removed in a future release.  Instead of this single gate, you should pass a
+    list of gate names to the new parameter ``gates_to_decompose``.  This was
+    done as the new form allows you to select more than one gate as a
+    decomposition target, which is more flexible, and does not need to re-run
+    the pass several times to decompose a set of gates.

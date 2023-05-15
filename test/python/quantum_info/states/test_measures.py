@@ -135,7 +135,7 @@ class TestStateMeasures(QiskitTestCase):
             (0.75, 0.25),
             (0, 0.75),
         ]:
-            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(purity(psi), purity(rho))
 
@@ -184,7 +184,7 @@ class TestStateMeasures(QiskitTestCase):
             (0.75, 0.25),
             (0, 0.75),
         ]:
-            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(entropy(psi), entropy(rho))
 
@@ -235,7 +235,7 @@ class TestStateMeasures(QiskitTestCase):
             (0.75, 0.25),
             (0, 0.75),
         ]:
-            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(concurrence(psi), concurrence(rho))
 
@@ -288,7 +288,7 @@ class TestStateMeasures(QiskitTestCase):
             (0.75, 0.25),
             (0, 0.75),
         ]:
-            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(entanglement_of_formation(psi), entanglement_of_formation(rho))
 
@@ -337,7 +337,7 @@ class TestStateMeasures(QiskitTestCase):
             (0.75, 0.25),
             (0, 0.75),
         ]:
-            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
+            psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
 

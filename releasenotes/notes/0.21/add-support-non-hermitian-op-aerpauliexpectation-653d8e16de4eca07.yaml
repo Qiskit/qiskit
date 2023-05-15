@@ -1,0 +1,5 @@
+features:
+  - |
+    Added support for non-Hermitian operators in :class:`.AerPauliExpectation`.
+    This allows the use of Aer's fast snapshot expectation computations in
+    algorithms such as :class:`~qiskit.algorithms.QEOM`.

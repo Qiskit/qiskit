@@ -178,7 +178,7 @@ def channel_index_grouped_sort(
 
     ordered_channels = []
 
-    for ind in inds:
+    for ind in sorted(inds):
         # drive channel
         if len(d_chans) > 0 and d_chans[-1].index == ind:
             ordered_channels.append(d_chans.pop())
@@ -241,7 +241,7 @@ def channel_index_grouped_sort_u(
 
     ordered_channels = []
 
-    for ind in inds:
+    for ind in sorted(inds):
         # drive channel
         if len(d_chans) > 0 and d_chans[-1].index == ind:
             ordered_channels.append(d_chans.pop())
@@ -368,7 +368,7 @@ def detail_title(
 
     This layout writes program name, program duration, and backend name in the title.
     """
-    title_str = list()
+    title_str = []
 
     # add program name
     title_str.append(f"Name: {program.name}")

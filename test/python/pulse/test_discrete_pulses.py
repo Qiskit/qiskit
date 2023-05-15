@@ -15,9 +15,8 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import Waveform, PulseError
-import qiskit.pulse.library as library
-import qiskit.pulse.library.continuous as continuous
+from qiskit.pulse import Waveform, PulseError, library
+from qiskit.pulse.library import continuous
 
 
 class TestDiscretePulses(QiskitTestCase):

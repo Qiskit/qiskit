@@ -14,8 +14,7 @@
 
 import copy
 
-from qiskit.test.mock import FakeOurense
-from qiskit.test.mock import FakeProvider
+from qiskit.providers.fake_provider import FakeProvider, FakeOurense
 from qiskit.test import QiskitTestCase
 from qiskit.providers.exceptions import BackendPropertyError
 

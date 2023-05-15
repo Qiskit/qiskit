@@ -38,8 +38,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
             q_n: ─┤ RY(offset) ├──┤ RY(2^0 slope) ├  ...  ┤ RY(2^(n-1) slope) ├
                   └────────────┘  └───────────────┘       └───────────────────┘
 
-    This can for example be used to approximate linear functions, with :math:`a/2 =` ``slope``
-    and :math:`b/2 =` ``offset`` and the basis ``'Y'``:
+    This can for example be used to approximate linear functions, with :math:`a =` ``slope``:math:`/2`
+    and :math:`b =` ``offset``:math:`/2` and the basis ``'Y'``:
 
     .. math::
 
@@ -131,15 +131,16 @@ class LinearPauliRotations(FunctionalPauliRotations):
         Args:
             num_state_qubits: The new number of qubits.
         """
+        self.qregs = []
+
         if num_state_qubits:
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name="state")
             qr_target = QuantumRegister(1, name="target")
             self.qregs = [qr_state, qr_target]
-        else:
-            self.qregs = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -158,7 +159,10 @@ class LinearPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _build(self):
-        # check if we have to rebuild and if the configuration is valid
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)

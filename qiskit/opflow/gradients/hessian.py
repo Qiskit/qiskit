@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,8 +17,9 @@ import functools
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import _compare_parameters
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..state_fns.state_fn import StateFn
@@ -33,19 +34,19 @@ from .derivative_base import _coeff_derivative
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
 from ...utils.arithmetic import triu_to_dense
-
-try:
-    from jax import grad, jit
-
-    _HAS_JAX = True
-except ImportError:
-    _HAS_JAX = False
+from .circuit_gradients.circuit_gradient import CircuitGradient
 
 
 class Hessian(HessianBase):
-    """Compute the Hessian of an expected value."""
+    """Deprecated: Compute the Hessian of an expected value."""
 
-    # pylint: disable=signature-differs
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self, hess_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
+        super().__init__(hess_method=hess_method, **kwargs)
+
     def convert(
         self,
         operator: OperatorBase,
@@ -214,7 +215,7 @@ class Hessian(HessianBase):
             # and params = (θ0,θ1)
             dd_ops = [self.get_hessian(op, params) for op in operator.oplist]
 
-            # Note that this check to see if the ListOp has a default combo_fn
+            # TODO Note that this check to see if the ListOp has a default combo_fn
             # will fail if the user manually specifies the default combo_fn.
             # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
             # later on jax will try to differentiate it and fail.
@@ -243,34 +244,20 @@ class Hessian(HessianBase):
                 ]
             )
 
+            _optionals.HAS_JAX.require_now("automatic differentiation")
+            from jax import grad, jit
+
             if operator.grad_combo_fn:
                 first_partial_combo_fn = operator.grad_combo_fn
-                if _HAS_JAX:
-                    second_partial_combo_fn = jit(
-                        grad(lambda x: first_partial_combo_fn(x)[0], holomorphic=True)
-                    )
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname="jax",
-                        name="get_hessian",
-                        msg="This automatic differentiation function is based on JAX. Please "
-                        "install jax and use `import jax.numpy as jnp` instead of "
-                        "`import numpy as np` when defining a combo_fn.",
-                    )
+
+                second_partial_combo_fn = jit(
+                    grad(lambda x: first_partial_combo_fn(x)[0], holomorphic=True)
+                )
             else:
-                if _HAS_JAX:
-                    first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
-                    second_partial_combo_fn = jit(
-                        grad(lambda x: first_partial_combo_fn(x)[0], holomorphic=True)
-                    )
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname="jax",
-                        name="get_hessian",
-                        msg="This automatic differentiation function is based on JAX. "
-                        "Please install jax and use `import jax.numpy as jnp` instead "
-                        "of `import numpy as np` when defining a combo_fn.",
-                    )
+                first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
+                second_partial_combo_fn = jit(
+                    grad(lambda x: first_partial_combo_fn(x)[0], holomorphic=True)
+                )
 
             # For a general combo_fn F(g_0, g_1, ..., g_k)
             # dF/d θ0,θ1 = sum_i: (∂F/∂g_i)•(d g_i/ d θ0,θ1) + (∂F/∂^2 g_i)•(d g_i/d θ0)•(d g_i/d

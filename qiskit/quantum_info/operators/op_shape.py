@@ -50,6 +50,16 @@ class OpShape:
             self._dims_l = tuple(dims_l)
             self._num_qargs_l = len(self._dims_l)
 
+    @property
+    def settings(self):
+        """Return the settings of the ``OpShape`` as dictionary."""
+        return {
+            "dims_l": self._dims_l,
+            "dims_r": self._dims_r,
+            "num_qargs_l": self._num_qargs_l,
+            "num_qargs_r": self._num_qargs_r,
+        }
+
     def __repr__(self):
         if self._dims_l:
             left = f"dims_l={self._dims_l}"
@@ -113,6 +123,9 @@ class OpShape:
     @property
     def shape(self):
         """Return a tuple of the matrix shape"""
+        if self._num_qargs_l == self._num_qargs_r == 0:
+            # Scalar shape is op-like
+            return (1, 1)
         if not self._num_qargs_r:
             # Vector shape
             return (self._dim_l,)
@@ -152,14 +165,14 @@ class OpShape:
         """Return the total input dimension."""
         if self._dims_r:
             return reduce(mul, self._dims_r)
-        return 2 ** self._num_qargs_r
+        return 2**self._num_qargs_r
 
     @property
     def _dim_l(self):
         """Return the total input dimension."""
         if self._dims_l:
             return reduce(mul, self._dims_l)
-        return 2 ** self._num_qargs_l
+        return 2**self._num_qargs_l
 
     def validate_shape(self, shape):
         """Raise an exception if shape is not valid for the OpShape"""
@@ -182,7 +195,7 @@ class OpShape:
                         "({} != {})".format(reduce(mul, self._dims_l), shape[0])
                     )
                 return False
-        elif shape[0] != 2 ** self._num_qargs_l:
+        elif shape[0] != 2**self._num_qargs_l:
             if raise_exception:
                 raise QiskitError("Number of left qubits does not match matrix shape")
             return False
@@ -196,7 +209,7 @@ class OpShape:
                             "({} != {})".format(reduce(mul, self._dims_r), shape[1])
                         )
                     return False
-            elif shape[1] != 2 ** self._num_qargs_r:
+            elif shape[1] != 2**self._num_qargs_r:
                 if raise_exception:
                     raise QiskitError("Number of right qubits does not match matrix shape")
                 return False
@@ -322,7 +335,7 @@ class OpShape:
         )
 
     def remove(self, qargs=None, qargs_l=None, qargs_r=None):
-        """Return the reduced OpShape with specified qargs removed"""
+        """Return a new :class:`OpShape` with the specified qargs removed"""
         if qargs:
             # Convert qargs to left and right qargs
             if qargs_l or qargs_r:
@@ -332,7 +345,7 @@ class OpShape:
             if self._num_qargs_r:
                 qargs_r = qargs
         if qargs_l is None and qargs_r is None:
-            return self
+            return self.copy()
 
         # Format integer qargs
         if isinstance(qargs_l, Integral):
@@ -411,7 +424,7 @@ class OpShape:
     def compose(self, other, qargs=None, front=False):
         """Return composed OpShape."""
         ret = OpShape()
-        if not qargs:
+        if qargs is None:
             if front:
                 if self._num_qargs_r != other._num_qargs_l or self._dims_r != other._dims_l:
                     raise QiskitError(
@@ -453,6 +466,7 @@ class OpShape:
                 for i, dim in zip(qargs, other.dims_r()):
                     dims_r[i] = dim
                 ret._dims_r = tuple(dims_r)
+                ret._num_qargs_r = len(ret._dims_r)
             else:
                 ret._num_qargs_r = self._num_qargs_r
         else:
@@ -474,6 +488,7 @@ class OpShape:
                 for i, dim in zip(qargs, other.dims_l()):
                     dims_l[i] = dim
                 ret._dims_l = tuple(dims_l)
+                ret._num_qargs_l = len(ret._dims_l)
             else:
                 ret._num_qargs_l = self._num_qargs_l
         return ret

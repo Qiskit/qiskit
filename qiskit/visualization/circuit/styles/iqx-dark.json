@@ -1,0 +1,202 @@
+{
+    "name": "iqx-dark",
+    "textcolor": "#FFFFFF",
+    "gatetextcolor": "#FFFFFF",
+    "subtextcolor": "#FFFFFF",
+    "linecolor": "#FFFFFF",
+    "creglinecolor": "#778899",
+    "gatefacecolor": "#FF7EB6",
+    "barrierfacecolor": "#8D8D8D",
+    "backgroundcolor": "#262626",
+    "edgecolor": null,
+    "fontsize": 13,
+    "subfontsize": 8,
+    "showindex": false,
+    "figwidth": -1,
+    "dpi": 150,
+    "margin": [
+        2.0,
+        0.1,
+        0.1,
+        0.3
+    ],
+    "creglinestyle": "doublet",
+    "displaytext": {
+        "u1": "U_1",
+        "u2": "U_2",
+        "u3": "U_3",
+        "id": "I",
+        "sdg": "S^\\dagger",
+        "sx": "\\sqrt{X}",
+        "sxdg": "\\sqrt{X}^\\dagger",
+        "tdg": "T^\\dagger",
+        "ms": "MS",
+        "rx": "R_X",
+        "ry": "R_Y",
+        "rz": "R_Z",
+        "rxx": "R_{XX}",
+        "ryy": "R_{YY}",
+        "rzx": "R_{ZX}",
+        "rzz": "ZZ",
+        "reset": "\\left|0\\right\\rangle",
+        "initialize": "$|\\psi\\rangle$"
+    },
+    "displaycolor": {
+        "u1": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "u2": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "u3": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "u": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "p": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "id": [
+            "#4589FF",
+            "#000000"
+        ],
+        "x": [
+            "#4589FF",
+            "#000000"
+        ],
+        "y": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "z": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "h": [
+            "#FA4D56",
+            "#000000"
+        ],
+        "cx": [
+            "#4589FF",
+            "#000000"
+        ],
+        "ccx": [
+            "#4589FF",
+            "#000000"
+        ],
+        "mcx": [
+            "#4589FF",
+            "#000000"
+        ],
+        "mcx_gray": [
+            "#4589FF",
+            "#000000"
+        ],
+        "cy": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "cz": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "swap": [
+            "#4589FF",
+            "#000000"
+        ],
+        "cswap": [
+            "#4589FF",
+            "#000000"
+        ],
+        "ccswap": [
+            "#4589FF",
+            "#000000"
+        ],
+        "dcx": [
+            "#4589FF",
+            "#000000"
+        ],
+        "cdcx": [
+            "#4589FF",
+            "#000000"
+        ],
+        "ccdcx": [
+            "#4589FF",
+            "#000000"
+        ],
+        "iswap": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "s": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "sdg": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "t": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "tdg": [
+            "#BAE6FF",
+            "#000000"
+        ],
+        "sx": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "sxdg": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "r": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "rx": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "ry": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "rz": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "rxx": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "ryy": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "rzx": [
+            "#FF7EB6",
+            "#000000"
+        ],
+        "reset": [
+            "#8D8D8D",
+            "#000000"
+        ],
+        "target": [
+            "#262626",
+            "#262626"
+        ],
+        "measure": [
+            "#8D8D8D",
+            "#000000"
+        ]
+    }
+}

@@ -1,0 +1,47 @@
+---
+upgrade:
+  - |
+    The deprecated function :func:`.pauli_group` has been removed.
+    It was originally deprecated in Qiskit Terra 0.17.
+  - |
+    Several deprecated methods on :class:`.Pauli` have been removed, which were
+    originally deprecated in Qiskit Terra 0.17.  These were:
+
+    ``sgn_prod``
+      Use :meth:`.Pauli.compose` or :meth:`.Pauli.dot` instead.
+
+    ``to_spmatrix``
+      Use :meth:`.Pauli.to_matrix` with argument ``sparse=True`` instead.
+
+    ``kron``
+      Use :meth:`.Pauli.expand`, but beware that this returns a new object, rather
+      than mutating the existing one.
+
+    ``update_z`` and ``update_x``
+      Set the ``z`` and ``x`` attributes of the object directly.
+
+    ``insert_paulis``
+      Use :meth:`.Pauli.insert`.
+
+    ``append_paulis``
+      Use :meth:`.Pauli.expand`.
+
+    ``delete_qubits``
+      Use :meth:`.Pauli.delete`.
+
+    ``pauli_single``
+      Construct the label manually and pass directly to the initializer, such as::
+
+        Pauli("I" * index + pauli_label + "I" * (num_qubits - index - len(pauli_label)))
+
+    ``random``
+      Use :func:`.quantum_info.random_pauli` instead.
+deprecations:
+  - |
+    The arguments ``x``, ``z`` and ``label`` to the initializer of
+    :class:`.Pauli` were documented as deprecated in Qiskit Terra 0.17, but a bug
+    prevented the expected warning from being shown at runtime.  The warning will
+    now correctly show, and the arguments will be removed in Qiskit Terra 0.23 or
+    later.  A pair of ``x`` and ``z`` should be passed positionally as a single
+    tuple (``Pauli((z, x))``).  A string ``label`` should be passed positionally
+    in the first argument (``Pauli("XYZ")``).

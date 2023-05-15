@@ -23,6 +23,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -68,6 +69,20 @@ class TestOptimize1qGates(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/159
         """
+        #       ┌───┐┌───┐┌────────┐┌───┐┌─────────┐┌───────┐┌─────────┐┌───┐         ┌─┐»
+        # qr_0: ┤ H ├┤ X ├┤ U1(2π) ├┤ X ├┤ U1(π/2) ├┤ U1(π) ├┤ U1(π/2) ├┤ X ├─────────┤M├»
+        #       └───┘└─┬─┘└────────┘└─┬─┘└─────────┘└───────┘└─────────┘└─┬─┘┌───────┐└╥┘»
+        # qr_1: ───────■──────────────■───────────────────────────────────■──┤ U1(π) ├─╫─»
+        #                                                                    └───────┘ ║ »
+        # cr: 2/═══════════════════════════════════════════════════════════════════════╩═»
+        #                                                                             0 »
+        # «
+        # «qr_0: ────────────
+        # «      ┌───────┐┌─┐
+        # «qr_1: ┤ U1(π) ├┤M├
+        # «      └───────┘└╥┘
+        # «cr: 2/══════════╩═
+        # «                1
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -95,6 +110,20 @@ class TestOptimize1qGates(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/159
         """
+        #       ┌───┐┌───┐┌───────┐┌───┐┌────────┐┌──────┐┌────────┐┌───┐        ┌─┐»
+        # qr_0: ┤ H ├┤ X ├┤ P(2π) ├┤ X ├┤ P(π/2) ├┤ P(π) ├┤ P(π/2) ├┤ X ├────────┤M├»
+        #       └───┘└─┬─┘└───────┘└─┬─┘└────────┘└──────┘└────────┘└─┬─┘┌──────┐└╥┘»
+        # qr_1: ───────■─────────────■────────────────────────────────■──┤ P(π) ├─╫─»
+        #                                                                └──────┘ ║ »
+        # cr: 2/══════════════════════════════════════════════════════════════════╩═»
+        #                                                                         0 »
+        # «
+        # «qr_0: ───────────
+        # «      ┌──────┐┌─┐
+        # «qr_1: ┤ P(π) ├┤M├
+        # «      └──────┘└╥┘
+        # «cr: 2/═════════╩═
+        # «               1
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
         qc = QuantumCircuit(qr, cr)
@@ -231,9 +260,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(0.3), [qr])
+        expected.append(U1Gate(theta + 1.0), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -257,11 +284,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(0.3), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(0.5), [qr])
+        expected.append(U1Gate(2 * theta + 1.5), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -288,12 +311,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(0.7), [qr])
-        expected.append(U1Gate(theta), [qr])
-        expected.append(U1Gate(phi), [qr])
-        expected.append(U1Gate(sum_), [qr])
-        expected.append(U1Gate(product_), [qr])
-        expected.append(U1Gate(0.5), [qr])
+        expected.append(U1Gate(2 * theta + 2 * phi + product_ + 1.2), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -463,6 +481,24 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(["u2"]))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_basis_u2_with_target(self):
+        """U3(pi/2, 0, pi/4) ->  U2(0, pi/4)"""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.append(U3Gate(np.pi / 2, 0, np.pi / 4), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(U2Gate(0, np.pi / 4), [qr[0]])
+
+        target = Target(num_qubits=1)
+        target.add_instruction(U2Gate(Parameter("theta"), Parameter("phi")))
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGates(target=target))
         result = passmanager.run(circuit)
 
         self.assertEqual(expected, result)
@@ -644,6 +680,28 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Optimize1qGates(["p"]))
         result = passmanager.run(circuit)
+
+        self.assertEqual(expected, result)
+
+    def test_optimize_u3_with_parameters(self):
+        """Test correct behavior for u3 gates."""
+        phi = Parameter("φ")
+        alpha = Parameter("α")
+        qr = QuantumRegister(1, "qr")
+
+        qc = QuantumCircuit(qr)
+        qc.ry(2 * phi, qr[0])
+        qc.ry(alpha, qr[0])
+        qc.ry(0.1, qr[0])
+        qc.ry(0.2, qr[0])
+
+        passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
+        result = passmanager.run(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.append(U3Gate(2 * phi, 0, 0), [qr[0]])
+        expected.append(U3Gate(alpha, 0, 0), [qr[0]])
+        expected.append(U3Gate(0.3, 0, 0), [qr[0]])
 
         self.assertEqual(expected, result)
 

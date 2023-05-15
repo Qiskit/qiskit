@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Added a new :meth:`.SparsePauliOp.from_sparse_list` constructor that takes
+    an iterable, where the elements represent Pauli terms that are themselves
+    sparse, so that ``"XIIIIIIIIIIIIIIIX"`` can now be written as
+    ``("XX", [0, 16])``. For example, the operator
+
+    .. math::
+
+      H = X_0 Z_3 + 2 Y_1 Y_4
+
+    can now be constructed as
+
+    .. code-block:: python
+
+      op = SparsePauliOp.from_sparse_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
+      # or equivalently, as previously
+      op = SparsePauliOp.from_list([("IZIIX", 1), ("YIIYI", 2)])
+
+    This facilitates the construction of very sparse operators on many qubits,
+    as is often the case for Ising Hamiltonians.

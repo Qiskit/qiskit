@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :obj:`~qiskit.circuit.library.C3SXGate` now has a correct decomposition and
+    matrix representation.  Previously it was equivalent to
+    ``SdgXGate().control(3)``, rather than the intended ``SXGate().control(3)``.

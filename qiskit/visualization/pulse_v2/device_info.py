@@ -39,7 +39,8 @@ from collections import defaultdict
 from typing import Dict, List, Union, Optional
 
 from qiskit import pulse
-from qiskit.providers import BaseBackend, BackendConfigurationError
+from qiskit.providers import BackendConfigurationError
+from qiskit.providers.backend import Backend
 
 
 class DrawerBackendInfo(ABC):
@@ -62,12 +63,12 @@ class DrawerBackendInfo(ABC):
         """
         self.backend_name = name or "no-backend"
         self._dt = dt
-        self._chan_freq_map = channel_frequency_map or dict()
-        self._qubit_channel_map = qubit_channel_map or dict()
+        self._chan_freq_map = channel_frequency_map or {}
+        self._qubit_channel_map = qubit_channel_map or {}
 
     @classmethod
     @abstractmethod
-    def create_from_backend(cls, backend: BaseBackend):
+    def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 
         Args:
@@ -96,7 +97,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     @classmethod
-    def create_from_backend(cls, backend: BaseBackend):
+    def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 
         Args:
@@ -115,7 +116,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         dt = configuration.dt
 
         # load frequencies
-        chan_freqs = dict()
+        chan_freqs = {}
 
         chan_freqs.update(
             {pulse.DriveChannel(qind): freq for qind, freq in enumerate(defaults.qubit_freq_est)}

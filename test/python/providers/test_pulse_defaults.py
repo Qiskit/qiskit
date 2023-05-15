@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
 
 class TestPulseDefaults(QiskitTestCase):

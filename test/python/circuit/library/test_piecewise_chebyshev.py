@@ -49,9 +49,9 @@ class TestPiecewiseChebyshev(QiskitTestCase):
         for i, probability in probabilities.items():
             x, last_qubit = int(i[1:], 2), i[0]
             if last_qubit == "0":
-                expected_amplitude = np.cos(reference(x)) / np.sqrt(2 ** num_state_qubits)
+                expected_amplitude = np.cos(reference(x)) / np.sqrt(2**num_state_qubits)
             else:
-                expected_amplitude = np.sin(reference(x)) / np.sqrt(2 ** num_state_qubits)
+                expected_amplitude = np.sin(reference(x)) / np.sqrt(2**num_state_qubits)
 
             unrolled_probabilities += [probability]
             unrolled_expectations += [np.real(np.abs(expected_amplitude) ** 2)]
@@ -76,10 +76,10 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                     end = breakpoints[-1]
                 else:
                     start = breakpoints[0]
-                    end = 2 ** num_state_qubits
+                    end = 2**num_state_qubits
             else:
                 start = 0
-                end = 2 ** num_state_qubits
+                end = 2**num_state_qubits
             if start <= x < end:
                 return f_x(x)
             return np.arcsin(1)
@@ -125,7 +125,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
             self.assertFunctionIsCorrect(pw_approximation, lambda x: pw_poly(x, f_x_2))
 
         def f_x_3(x):
-            return x ** 2
+            return x**2
 
         with self.subTest(msg="changing all values"):
             pw_approximation.num_state_qubits = 4

@@ -171,7 +171,7 @@ class TestOperatorMeasures(QiskitTestCase):
 
         # Pauli channels have an analytic expression for the
         # diamond norm so we can easily test it
-        op = Choi(np.zeros((4 ** num_qubits, 4 ** num_qubits)))
+        op = Choi(np.zeros((4**num_qubits, 4**num_qubits)))
         labels = [num_qubits * i for i in ["I", "X", "Y", "Z"]]
         coeffs = [-1.0, 0.5, 2.5, -0.1]
         for coeff, label in zip(coeffs, labels):

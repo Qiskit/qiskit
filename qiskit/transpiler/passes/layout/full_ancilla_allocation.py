@@ -15,6 +15,7 @@
 from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class FullAncillaAllocation(AnalysisPass):
@@ -35,10 +36,15 @@ class FullAncillaAllocation(AnalysisPass):
         """FullAncillaAllocation initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.ancilla_name = "ancilla"
 
     def run(self, dag):
@@ -65,19 +71,19 @@ class FullAncillaAllocation(AnalysisPass):
         if layout is None:
             raise TranspilerError('FullAncillaAllocation pass requires property_set["layout"].')
 
+        virtual_bits = layout.get_virtual_bits()
+        physical_bits = layout.get_physical_bits()
         if layout:
-            FullAncillaAllocation.validate_layout(layout.get_virtual_bits(), set(dag.qubits))
-            layout_physical_qubits = list(range(max(layout.get_physical_bits()) + 1))
+            FullAncillaAllocation.validate_layout(virtual_bits, set(dag.qubits))
+            layout_physical_qubits = list(range(max(physical_bits) + 1))
         else:
             layout_physical_qubits = []
 
-        idle_physical_qubits = [
-            q for q in layout_physical_qubits if q not in layout.get_physical_bits()
-        ]
+        idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
         if self.coupling_map:
             idle_physical_qubits = [
-                q for q in self.coupling_map.physical_qubits if q not in layout.get_physical_bits()
+                q for q in self.coupling_map.physical_qubits if q not in physical_bits
             ]
 
         if idle_physical_qubits:

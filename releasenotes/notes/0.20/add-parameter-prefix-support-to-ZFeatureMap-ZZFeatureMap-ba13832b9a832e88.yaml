@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    The constructors for the :class:`~qiskit.circuit.library.ZFeatureMap` and
+    :class:`~qiskit.circuit.library.ZZFeatureMap` classes have a new keyword
+    argument ``parameter_prefix``. This new argument is used to set the prefix
+    of parameters of the data encoding circuit. For example:
+
+    .. code-block::
+
+        from qiskit.circuit.library import ZFeatureMap
+
+        feature_map = ZFeatureMap(feature_dimension=4, parameter_prefix="my_prefix")
+        feature_map.decompose().draw('mpl')
+
+    the generated :class:`~qiskit.circuit.library.ZFeatureMap` circuit has
+    prefixed all its internal parameters with the prefix ``"my_prefix"``.

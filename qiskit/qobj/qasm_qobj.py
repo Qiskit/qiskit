@@ -10,14 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Module providing definitions of QASM Qobj classes."""
 
 import copy
 import pprint
 from types import SimpleNamespace
-
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
@@ -284,7 +281,6 @@ class QasmQobjConfig(SimpleNamespace):
     def __init__(
         self,
         shots=None,
-        max_credits=None,
         seed_simulator=None,
         memory=None,
         parameter_binds=None,
@@ -303,7 +299,6 @@ class QasmQobjConfig(SimpleNamespace):
 
         Args:
             shots (int): the number of shots.
-            max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings
@@ -325,9 +320,6 @@ class QasmQobjConfig(SimpleNamespace):
         """
         if shots is not None:
             self.shots = int(shots)
-
-        if max_credits is not None:
-            self.max_credits = int(max_credits)
 
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)

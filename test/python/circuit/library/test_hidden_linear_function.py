@@ -35,8 +35,8 @@ class TestHiddenLinearFunctionLibrary(QiskitTestCase):
         hidden_function = np.asarray(hidden_function)
         simulated = Operator(hlf)
 
-        expected = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
-        for i in range(2 ** num_qubits):
+        expected = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
+        for i in range(2**num_qubits):
             i_qiskit = int(bin(i)[2:].zfill(num_qubits)[::-1], 2)
             x_vec = np.asarray(list(map(int, bin(i)[2:].zfill(num_qubits)[::-1])))
             expected[i_qiskit, i_qiskit] = 1j ** (

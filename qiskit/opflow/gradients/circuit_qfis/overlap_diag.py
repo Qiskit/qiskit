@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """The module for Quantum the Fisher Information."""
+
 import copy
 from typing import List, Union
 
@@ -18,6 +19,7 @@ import numpy as np
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.library import RZGate, RXGate, RYGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.utils.deprecation import deprecate_func
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -31,10 +33,17 @@ from ..derivative_base import _coeff_derivative
 
 
 class OverlapDiag(CircuitQFI):
-    r"""Compute the diagonal of the QFI given a pure, parameterized quantum state.
+    r"""Deprecated: Compute the diagonal of the QFI given a pure, parameterized quantum state.
 
     See also :class:`~qiskit.opflow.QFI`.
     """
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     def convert(
         self,
@@ -120,7 +129,7 @@ class OverlapDiag(CircuitQFI):
                     "circuits use LinCombFull"
                 )
 
-            gate = circuit._parameter_table[param][0][0]
+            gate = next(iter(circuit._parameter_table[param]))[0]
 
             if len(gate.params) != 1:
                 raise TypeError(
@@ -141,7 +150,7 @@ class OverlapDiag(CircuitQFI):
             rotated_op = PauliExpectation().convert(op)
             diag.append(rotated_op)
 
-        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y ** 2 for y in x])))
+        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y**2 for y in x])))
         return grad_op
 
 

@@ -1,0 +1,51 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# EditorConfig sets project-wide editor defaults: https://EditorConfig.org
+
+# top-most EditorConfig file, stop looking higher in the tree
+root = true
+
+# Default settings can be overidden by editorconfig file in a subdir
+# or by a specific glob later in this file
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+indent_style = space
+trim_trailing_whitespace = true
+
+# Python
+[*.py]
+indent_size = 4
+
+# Javascript
+[*.{js,json}]
+indent_style = space
+indent_size = 2
+
+## Windows files
+# [*.bat]
+# end_of_line = crlf
+
+# Makefile
+[Makefile]
+indent_style = tab
+
+# Markdown
+[*.md]
+# trailing whitespace is used for <br/> in md (yuck)
+trim_trailing_whitespace = false
+
+# YAML
+[*.{yaml,yml}]
+indent_size = 2

@@ -18,8 +18,10 @@ import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 
+from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
+from qiskit.extensions.quantum_initializer import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
@@ -35,9 +37,9 @@ class TestDiagonalGate(QiskitTestCase):
             [0, 0.8],
             [0, 0, 1, 1],
             [0, 1, 0.5, 1],
-            (2 * np.pi * np.random.rand(2 ** 3)).tolist(),
-            (2 * np.pi * np.random.rand(2 ** 4)).tolist(),
-            (2 * np.pi * np.random.rand(2 ** 5)).tolist(),
+            (2 * np.pi * np.random.rand(2**3)).tolist(),
+            (2 * np.pi * np.random.rand(2**4)).tolist(),
+            (2 * np.pi * np.random.rand(2**5)).tolist(),
         ]:
             with self.subTest(phases=phases):
                 diag = [np.exp(1j * ph) for ph in phases]
@@ -53,6 +55,13 @@ class TestDiagonalGate(QiskitTestCase):
                 unitary = result.get_unitary(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
                 self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=False))
+
+    def test_mod1_entries(self):
+        """Test that diagonal raises if entries do not have modules of 1."""
+        from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
+
+        with self.assertRaises(QiskitError):
+            DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
 
 
 def _get_diag_gate_matrix(diag):

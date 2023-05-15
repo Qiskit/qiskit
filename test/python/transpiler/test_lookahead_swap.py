@@ -16,11 +16,12 @@ import unittest
 from numpy import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.providers.fake_provider import FakeMelbourne
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -125,6 +126,35 @@ class TestLookaheadSwap(QiskitTestCase):
 
         self.assertIn(mapped_measure_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
 
+    def test_lookahead_swap_maps_measurements_with_target(self):
+        """Verify measurement nodes are updated to map correct cregs to re-mapped qregs.
+
+        Create a circuit with measures on q0 and q2, following a swap between q0 and q2.
+        Since that swap is not in the coupling, one of the two will be required to move.
+        Verify that the mapped measure corresponds to one of the two possible layouts following
+        the swap.
+
+        """
+
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.cx(qr[0], qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[2], cr[1])
+
+        dag_circuit = circuit_to_dag(circuit)
+
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None})
+
+        mapped_dag = LookaheadSwap(target).run(dag_circuit)
+
+        mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes("measure")}
+
+        self.assertIn(mapped_measure_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
+
     def test_lookahead_swap_maps_barriers(self):
         """Verify barrier nodes are updated to re-mapped qregs.
 
@@ -158,7 +188,38 @@ class TestLookaheadSwap(QiskitTestCase):
         Increasing the tree width and depth is expected to yield a better (or same) quality
         circuit, in the form of fewer SWAPs.
         """
-
+        # q_0: ──■───────────────────■───────────────────────────────────────────────»
+        #      ┌─┴─┐                 │                 ┌───┐                         »
+        # q_1: ┤ X ├──■──────────────┼─────────────────┤ X ├─────────────────────────»
+        #      └───┘┌─┴─┐            │                 └─┬─┘┌───┐          ┌───┐     »
+        # q_2: ─────┤ X ├──■─────────┼───────────────────┼──┤ X ├──────────┤ X ├──■──»
+        #           └───┘┌─┴─┐     ┌─┴─┐                 │  └─┬─┘     ┌───┐└─┬─┘  │  »
+        # q_3: ──────────┤ X ├──■──┤ X ├─────────────────┼────┼────■──┤ X ├──┼────┼──»
+        #                └───┘┌─┴─┐└───┘          ┌───┐  │    │    │  └─┬─┘  │    │  »
+        # q_4: ───────────────┤ X ├──■────────────┤ X ├──┼────■────┼────┼────┼────┼──»
+        #                     └───┘┌─┴─┐          └─┬─┘  │         │    │    │    │  »
+        # q_5: ────────────────────┤ X ├──■─────────┼────┼─────────┼────■────┼────┼──»
+        #                          └───┘┌─┴─┐       │    │         │         │    │  »
+        # q_6: ─────────────────────────┤ X ├──■────■────┼─────────┼─────────■────┼──»
+        #                               └───┘┌─┴─┐       │       ┌─┴─┐          ┌─┴─┐»
+        # q_7: ──────────────────────────────┤ X ├───────■───────┤ X ├──────────┤ X ├»
+        #                                    └───┘               └───┘          └───┘»
+        # «q_0: ──■───────
+        # «       │
+        # «q_1: ──┼───────
+        # «       │
+        # «q_2: ──┼───────
+        # «       │
+        # «q_3: ──┼───────
+        # «       │
+        # «q_4: ──┼───────
+        # «       │
+        # «q_5: ──┼────■──
+        # «     ┌─┴─┐  │
+        # «q_6: ┤ X ├──┼──
+        # «     └───┘┌─┴─┐
+        # «q_7: ─────┤ X ├
+        # «          └───┘
         qr = QuantumRegister(8, name="q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])

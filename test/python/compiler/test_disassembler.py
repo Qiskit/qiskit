@@ -27,7 +27,7 @@ from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.library import RXGate
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
 
 
@@ -149,10 +149,13 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.memory_slots, 0)
         self.assertEqual(len(circuits), 1)
         # params array
-        assert_allclose(circuits[0]._data[0][0].params[0], circ._data[0][0].params[0])
+        assert_allclose(circuits[0]._data[0].operation.params[0], circ._data[0].operation.params[0])
         # all other data
-        self.assertEqual(circuits[0]._data[0][0].params[1:], circ._data[0][0].params[1:])
-        self.assertEqual(circuits[0]._data[0][1:], circ._data[0][1:])
+        self.assertEqual(
+            circuits[0]._data[0].operation.params[1:], circ._data[0].operation.params[1:]
+        )
+        self.assertEqual(circuits[0]._data[0].qubits, circ._data[0].qubits)
+        self.assertEqual(circuits[0]._data[0].clbits, circ._data[0].clbits)
         self.assertEqual(circuits[0]._data[1:], circ._data[1:])
         self.assertEqual({}, header)
 
@@ -205,6 +208,26 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
+    def test_circuit_with_single_bit_conditions(self):
+        """Verify disassemble handles a simple conditional on a single bit of a register."""
+        # This circuit would fail to perfectly round-trip if 'cr' below had only one bit in it.
+        # This is because the format of QasmQobj is insufficient to disambiguate single-bit
+        # conditions from conditions on registers with only one bit. Since single-bit conditions are
+        # mostly a hack for the QasmQobj format at all, `disassemble` always prefers to return the
+        # register if it can.  It would also fail if registers overlap.
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0]).c_if(cr[0], 1)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, len(qr))
+        self.assertEqual(run_config_out.memory_slots, len(cr))
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
     def test_circuit_with_mcx(self):
         """Verify disassemble handles mcx gate - #6271."""
         qr = QuantumRegister(5)
@@ -239,6 +262,39 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         run_config_out = RunConfig(**run_config_out)
         self.assertEqual(run_config_out.n_qubits, 3)
         self.assertEqual(run_config_out.memory_slots, 15)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
+    def test_circuit_with_bit_conditional_1(self):
+        """Verify disassemble handles conditional on a single bit."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0]).c_if(cr[1], True)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 2)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
+    def test_circuit_with_bit_conditional_2(self):
+        """Verify disassemble handles multiple single bit conditionals."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        cr1 = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, cr1)
+        qc.h(qr[0]).c_if(cr1[1], False)
+        qc.h(qr[1]).c_if(cr[0], True)
+        qc.cx(qr[0], qr[1]).c_if(cr1[0], False)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 4)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)

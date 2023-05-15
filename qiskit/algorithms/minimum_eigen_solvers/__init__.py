@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Minimum Eigen Solvers Package """
+"""Minimum Eigen Solvers Package"""
 
 from .vqe import VQE, VQEResult
 from .qaoa import QAOA

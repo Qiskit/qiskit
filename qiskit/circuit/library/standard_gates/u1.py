@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """U1 Gate."""
-
-from typing import Optional, Union
+from __future__ import annotations
+from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -26,6 +26,22 @@ class U1Gate(Gate):
 
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
+
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U1(\lambda) = P(\lambda)= U(0,0,\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+
+
+
 
     **Circuit symbol:**
 
@@ -76,7 +92,7 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new U1 gate."""
         super().__init__("u1", 1, [theta], label=label)
 
@@ -96,8 +112,8 @@ class U1Gate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Return a (multi-)controlled-U1 gate.
 
@@ -151,8 +167,8 @@ class CU1Gate(ControlledGate):
 
     .. math::
 
-        CU1 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U1 =
+        CU1(\lambda) =
+            I \otimes |0\rangle\langle 0| + U1 \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -171,8 +187,8 @@ class CU1Gate(ControlledGate):
     def __init__(
         self,
         theta: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Create new CU1 gate."""
         super().__init__(
@@ -197,6 +213,11 @@ class CU1Gate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
 
+        #      ┌─────────┐
+        # q_0: ┤ U1(λ/2) ├──■────────────────■─────────────
+        #      └─────────┘┌─┴─┐┌──────────┐┌─┴─┐┌─────────┐
+        # q_1: ───────────┤ X ├┤ U1(-λ/2) ├┤ X ├┤ U1(λ/2) ├
+        #                 └───┘└──────────┘└───┘└─────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -214,8 +235,8 @@ class CU1Gate(ControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Controlled version of this gate.
 
@@ -240,7 +261,7 @@ class CU1Gate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU1 gate."""
-        eith = numpy.exp(1j * float(self.params[0]))
+        eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
@@ -280,8 +301,8 @@ class MCU1Gate(ControlledGate):
         self,
         lam: ParameterValueType,
         num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Create new MCU1 gate."""
         super().__init__(
@@ -318,8 +339,8 @@ class MCU1Gate(ControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Controlled version of this gate.
 

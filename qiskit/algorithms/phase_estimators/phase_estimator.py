@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,8 +12,8 @@
 
 """The Phase Estimator interface."""
 
-from typing import Optional
-from abc import ABC, abstractmethod, abstractproperty
+from __future__ import annotations
+from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 
@@ -32,19 +32,22 @@ class PhaseEstimator(ABC):
     @abstractmethod
     def estimate(
         self,
-        unitary: Optional[QuantumCircuit] = None,
-        state_preparation: Optional[QuantumCircuit] = None,
-        pe_circuit: Optional[QuantumCircuit] = None,
-        num_unitary_qubits: Optional[int] = None,
+        unitary: QuantumCircuit,
+        state_preparation: QuantumCircuit | None = None,
     ) -> "PhaseEstimatorResult":
         """Estimate the phase."""
         raise NotImplementedError
+
+    @staticmethod
+    def _get_reversed_bitstring(length: int, number: int) -> str:
+        return f"{number:b}".zfill(length)[::-1]
 
 
 class PhaseEstimatorResult(AlgorithmResult):
     """Phase Estimator Result."""
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def phase(self) -> float:
         r"""Return the estimated phase as a number in :math:`[0.0, 1.0)`.
 

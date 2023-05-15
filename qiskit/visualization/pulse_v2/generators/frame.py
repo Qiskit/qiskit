@@ -95,7 +95,7 @@ def gen_formatted_phase(
         xvals=[data.t0],
         yvals=[formatter["label_offset.frame_change"]],
         text=f"VZ({plain_phase})",
-        latex=fr"{{\rm VZ}}({latex_phase})",
+        latex=rf"{{\rm VZ}}({latex_phase})",
         ignore_scaling=True,
         styles=style,
     )
@@ -143,7 +143,7 @@ def gen_formatted_freq_mhz(
         xvals=[data.t0],
         yvals=[formatter["label_offset.frame_change"]],
         text=f"\u0394f = {plain_freq}",
-        latex=fr"\Delta f = {latex_freq}",
+        latex=rf"\Delta f = {latex_freq}",
         ignore_scaling=True,
         styles=style,
     )
@@ -198,7 +198,7 @@ def gen_formatted_frame_values(
             xvals=[data.t0],
             yvals=[formatter["label_offset.frame_change"]],
             text=f"VZ({plain_phase})",
-            latex=fr"{{\rm VZ}}({latex_phase})",
+            latex=rf"{{\rm VZ}}({latex_phase})",
             ignore_scaling=True,
             styles=phase_style,
         )
@@ -218,7 +218,7 @@ def gen_formatted_frame_values(
             xvals=[data.t0],
             yvals=[2 * formatter["label_offset.frame_change"]],
             text=f"\u0394f = {plain_freq}",
-            latex=fr"\Delta f = {latex_freq}",
+            latex=rf"\Delta f = {latex_freq}",
             ignore_scaling=True,
             styles=freq_style,
         )
@@ -382,7 +382,7 @@ def _phase_to_text(
     denom = frac.denominator
     if denom > max_denom:
         # denominator is too large
-        latex = fr"{np.abs(phase):.2f}"
+        latex = rf"{np.abs(phase):.2f}"
         plain = f"{np.abs(phase):.2f}"
     else:
         if num == 1:
@@ -390,10 +390,10 @@ def _phase_to_text(
                 latex = r"\pi"
                 plain = "pi"
             else:
-                latex = fr"\pi/{denom:d}"
+                latex = rf"\pi/{denom:d}"
                 plain = f"pi/{denom:d}"
         else:
-            latex = fr"{num:d}/{denom:d} \pi"
+            latex = rf"{num:d}/{denom:d} \pi"
             plain = f"{num:d}/{denom:d} pi"
 
     if flip:
@@ -431,7 +431,7 @@ def _freq_to_text(formatter: Dict[str, Any], freq: float, unit: str = "MHz") -> 
     except KeyError as ex:
         raise VisualizationError(f"Unit {unit} is not supported.") from ex
 
-    latex = fr"{value:.2f}~{{\rm {unit}}}"
+    latex = rf"{value:.2f}~{{\rm {unit}}}"
     plain = f"{value:.2f} {unit}"
 
     return plain, latex

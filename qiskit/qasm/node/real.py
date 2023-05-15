@@ -12,7 +12,6 @@
 
 """Node for an OPENQASM real number."""
 
-import warnings
 import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -36,34 +35,15 @@ class Real(Node):
         ind = indent * " "
         print(ind, "real", self.value)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Real.qasm(..., prec)' is no longer used and is being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         if self.value == np.pi:
             return "pi"
 
         return str(np.round(float(self.value)))
 
-    def latex(self, prec=None, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Real.latex(..., prec)' is no longer used and is being deprecated.",
-                DeprecationWarning,
-                2,
-            )
-        if nested_scope is not None:
-            warnings.warn(
-                "Parameter 'Real.latex(..., nested_scope)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError as ex:

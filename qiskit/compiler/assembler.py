@@ -16,18 +16,18 @@ import logging
 import uuid
 import warnings
 from time import time
-from typing import Union, List, Dict, Optional
+from typing import Dict, List, Optional, Union
+
+import numpy as np
 
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.assembler.run_config import RunConfig
-from qiskit.circuit import QuantumCircuit, Qubit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
-from qiskit.pulse import LoConfig, Instruction
-from qiskit.pulse import Schedule, ScheduleBlock
+from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.qobj import QobjHeader, Qobj
+from qiskit.qobj import Qobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 logger = logging.getLogger(__name__)
@@ -48,12 +48,11 @@ def assemble(
         ScheduleBlock,
         List[ScheduleBlock],
     ],
-    backend: Optional[Union[Backend, BaseBackend]] = None,
+    backend: Optional[Backend] = None,
     qobj_id: Optional[str] = None,
     qobj_header: Optional[Union[QobjHeader, Dict]] = None,
     shots: Optional[int] = None,
     memory: Optional[bool] = False,
-    max_credits: Optional[int] = None,
     seed_simulator: Optional[int] = None,
     qubit_lo_freq: Optional[List[float]] = None,
     meas_lo_freq: Optional[List[float]] = None,
@@ -102,7 +101,6 @@ def assemble(
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option.
-        max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
             ``schedule_los`` if specified. Must have length ``n_qubits.``
@@ -157,13 +155,13 @@ def assemble(
     """
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
         backend,
         qobj_id,
         qobj_header,
         shots,
         memory,
-        max_credits,
         seed_simulator,
         init_qubits,
         rep_delay,
@@ -172,6 +170,7 @@ def assemble(
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
+        pulse_qobj=pulse_qobj,
         **run_config,
     )
 
@@ -228,7 +227,6 @@ def _parse_common_args(
     qobj_header,
     shots,
     memory,
-    max_credits,
     seed_simulator,
     init_qubits,
     rep_delay,
@@ -237,6 +235,7 @@ def _parse_common_args(
     qubit_lo_range,
     meas_lo_range,
     schedule_los,
+    pulse_qobj=False,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -272,7 +271,14 @@ def _parse_common_args(
             raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
-        if backend_config.open_pulse:
+        pulse_param_set = (
+            qubit_lo_freq is not None
+            or meas_lo_freq is not None
+            or qubit_lo_range is not None
+            or meas_lo_range is not None
+            or schedule_los is not None
+        )
+        if pulse_qobj or (backend_config.open_pulse and pulse_param_set):
             try:
                 backend_defaults = backend.defaults()
             except AttributeError:
@@ -289,7 +295,8 @@ def _parse_common_args(
     backend_name = getattr(backend_config, "backend_name", None)
     backend_version = getattr(backend_config, "backend_version", None)
     qobj_header = {
-        **dict(backend_name=backend_name, backend_version=backend_version),
+        "backend_name": backend_name,
+        "backend_version": backend_version,
         **qobj_header,
     }
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
@@ -300,7 +307,7 @@ def _parse_common_args(
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif not isinstance(shots, int):
+    elif not isinstance(shots, (int, np.integer)):
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
@@ -346,7 +353,6 @@ def _parse_common_args(
     run_config_dict = dict(
         shots=shots,
         memory=memory,
-        max_credits=max_credits,
         seed_simulator=seed_simulator,
         init_qubits=init_qubits,
         rep_delay=rep_delay,
@@ -473,13 +479,15 @@ def _parse_circuit_args(
     parameter_binds = parameter_binds or []
     # create run configuration and populate
     run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
-    if backend:
-        run_config_dict["parametric_pulses"] = getattr(
-            backend.configuration(), "parametric_pulses", []
-        )
-    if parametric_pulses:
+    if parametric_pulses is None:
+        if backend:
+            run_config_dict["parametric_pulses"] = getattr(
+                backend.configuration(), "parametric_pulses", []
+            )
+        else:
+            run_config_dict["parametric_pulses"] = []
+    else:
         run_config_dict["parametric_pulses"] = parametric_pulses
-
     if meas_level:
         run_config_dict["meas_level"] = meas_level
         # only enable `meas_return` if `meas_level` isn't classified
@@ -547,7 +555,7 @@ def _expand_parameters(circuits, run_config):
     """
     parameter_binds = run_config.parameter_binds
 
-    if parameter_binds or any(circuit.parameters for circuit in circuits):
+    if parameter_binds and any(parameter_binds) or any(circuit.parameters for circuit in circuits):
 
         # Unroll params here in order to handle ParamVects
         all_bind_parameters = [

@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When using the ``reverse_bits``
+    option with the ``mpl``, ``latex``, or ``text`` options, bits without
+    registers did not display in the correct order.
+    Fixed `#7303 <https://github.com/Qiskit/qiskit-terra/issues/7303>`__.
+deprecations:
+  - |
+    The ``qregs``, ``cregs``, ``layout``, and ``global_phase`` kwargs to
+    the :class:`.MatplotlibDrawer`, :class:`.TextDrawing`, and
+    :class:`.QCircuitImage` classes, and the ``calibrations`` kwarg to the
+    :class:`.MatplotlibDrawer` class, are now deprecated and will be removed
+    in a subsequent release.

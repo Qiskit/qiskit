@@ -1,0 +1,48 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``BaseBackend``, ``BaseJob``, and ``BaseProvider``
+    classes have all been removed. They were originally deprecated in the
+    0.18.0 release. Instead of these classes you should be using the versioned
+    providers interface classes, the latest being :class:`~.BackendV2`,
+    :class:`~.JobV1`, and :class:`~.ProviderV1`.
+  - |
+    The previously deprecated ``backend`` argument for the constructor of the
+    :class:`~.RZXCalibrationBuilder` transpiler pass has been removed. It was
+    originally deprecated in the 0.19.0 release. Instead you should query
+    the :class:`~.Backend` object for the ``instruction_schedule_map`` and
+    ``qubit_channel_mapping`` and pass that directly to the constructor. For
+    example, with a :class:`~.BackendV1` backend::
+
+        from qiskit.transpiler.passes import RZXCalibrationBuilder
+        from qiskit.providers.fake_provider import FakeMumbai
+
+        backend = FakeMumbai()
+        inst_map = backend.defaults().instruction_schedule_map
+        channel_map = backend.configuration().qubit_channel_mapping
+        cal_pass = RZXCalibrationBuilder(
+            instruction_schedule_map=inst_map,
+            qubit_channel_mapping=channel_map,
+        )
+
+    or with a :class:`~.BackendV2` backend::
+
+        from qiskit.transpiler.passes import RZXCalibrationBuilder
+        from qiskit.providers.fake_provider import FakeMumbaiV2
+
+        backend = FakeMumbaiV2()
+        inst_map = backend.instruction_schedule_map
+        channel_map = {bit: backend.drive_channel(bit) for bit in range(backend.num_qubits)}
+        cal_pass = RZXCalibrationBuilder(
+            instruction_schedule_map=inst_map,
+            qubit_channel_mapping=channel_map,
+        )
+
+deprecations:
+  - |
+    The ``qobj_id`` and ``qobj_header`` keyword arguments for the
+    :func:`~.execute` function have been deprecated and will be removed in a
+    future release. Since the removal of the ``BaseBackend`` class these
+    arguments don't have any effect as no backend supports execution with a
+    :class:`~.Qobj` object directly and instead only work with
+    :class:`~.QuantumCircuit` objects directly.

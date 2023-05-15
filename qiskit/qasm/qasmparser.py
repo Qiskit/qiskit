@@ -17,7 +17,7 @@ import shutil
 import tempfile
 
 import numpy as np
-import ply.yacc as yacc
+from ply import yacc
 
 from . import node
 from .exceptions import QasmError
@@ -142,7 +142,7 @@ class QasmParser:
                 obj.file,
             )
         g_sym = self.global_symtab[obj.name]
-        if not (g_sym.type == "gate" or g_sym.type == "opaque"):
+        if g_sym.type not in ("gate", "opaque"):
             raise QasmError(
                 "'"
                 + obj.name
@@ -261,7 +261,7 @@ class QasmParser:
             g_sym = self.current_symtab[id_node.name]
         except KeyError:
             g_sym = self.global_symtab[id_node.name]
-        if g_sym.type == "qreg" or g_sym.type == "creg":
+        if g_sym.type in ("qreg", "creg"):
             # Return list of (name, idx) for reg ids
             for idx in range(g_sym.index):
                 bit_list.append((id_node.name, idx))
@@ -373,16 +373,13 @@ class QasmParser:
         """
         format : FORMAT
         """
-        program[0] = node.Format(program[1])
-
-    def p_format_0(self, _):
-        """
-        format : FORMAT error
-        """
-        version = "2.0;"
-        raise QasmError(
-            "Invalid version string. Expected '" + version + "'.  Is the semicolon missing?"
-        )
+        version = node.Format(program[1])
+        if (version.majorversion != "2") or (version.minorversion != "0"):
+            provided_version = f"{version.majorversion}.{version.minorversion}"
+            raise QasmError(
+                f"Invalid version: '{provided_version}'. This module supports OpenQASM 2.0 only."
+            )
+        program[0] = version
 
     # ----------------------------------------
     #  id : ID

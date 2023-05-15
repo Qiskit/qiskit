@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitStateFn Class """
+"""CircuitStateFn Class"""
 
 
 from typing import Dict, List, Optional, Set, Union, cast
@@ -20,8 +20,7 @@ import numpy as np
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import IGate
-from qiskit.extensions import Initialize
+from qiskit.circuit.library import IGate, StatePreparation
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.composed_op import ComposedOp
 from qiskit.opflow.list_ops.list_op import ListOp
@@ -34,16 +33,21 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CircuitStateFn(StateFn):
     r"""
-    A class for state functions and measurements which are defined by the action of a
+    Deprecated: A class for state functions and measurements which are defined by the action of a
     QuantumCircuit starting from \|0⟩, and stored using Terra's ``QuantumCircuit`` class.
     """
     primitive: QuantumCircuit
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: Union[QuantumCircuit, Instruction] = None,
@@ -123,7 +127,7 @@ class CircuitStateFn(StateFn):
         """
         normalization_coeff = np.linalg.norm(statevector)
         normalized_sv = statevector / normalization_coeff
-        return CircuitStateFn(Initialize(normalized_sv), coeff=normalization_coeff)
+        return CircuitStateFn(StatePreparation(normalized_sv), coeff=normalization_coeff)
 
     def primitive_strings(self) -> Set[str]:
         return {"QuantumCircuit"}
@@ -229,7 +233,7 @@ class CircuitStateFn(StateFn):
             c_op = c_op_self.tensor(c_op_other)
             if isinstance(c_op, CircuitOp):
                 return CircuitStateFn(
-                    primitive=c_op.primitive,  # pylint: disable=no-member
+                    primitive=c_op.primitive,
                     coeff=c_op.coeff,
                     is_measurement=self.is_measurement,
                 )
@@ -369,7 +373,7 @@ class CircuitStateFn(StateFn):
         if self.primitive.data is not None:
             # Need to do this from the end because we're deleting items!
             for i in reversed(range(len(self.primitive.data))):
-                [gate, _, _] = self.primitive.data[i]
+                gate = self.primitive.data[i].operation
                 # Check if Identity or empty instruction (need to check that type is exactly
                 # Instruction because some gates have lazy gate.definition population)
                 # pylint: disable=unidiomatic-typecheck

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,6 +27,7 @@ from qiskit.algorithms import (
     EstimationProblem,
 )
 from qiskit.quantum_info import Operator, Statevector
+from qiskit.primitives import Sampler
 
 
 class BernoulliStateIn(QuantumCircuit):
@@ -72,9 +73,9 @@ class SineIntegral(QuantumCircuit):
         self.h(qr_state)
 
         # apply the sine/cosine term
-        self.ry(2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
+        self.ry(2 * 1 / 2 / 2**num_qubits, qr_objective[0])
         for i, qubit in enumerate(qr_state):
-            self.cry(2 * 2 ** i / 2 ** num_qubits, qubit, qr_objective[0])
+            self.cry(2 * 2**i / 2**num_qubits, qubit, qr_objective[0])
 
 
 @ddt
@@ -89,27 +90,31 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
 
-        self._statevector = QuantumInstance(
-            backend=BasicAer.get_backend("statevector_simulator"),
-            seed_simulator=2,
-            seed_transpiler=2,
-        )
-        self._unitary = QuantumInstance(
-            backend=BasicAer.get_backend("unitary_simulator"),
-            shots=1,
-            seed_simulator=42,
-            seed_transpiler=91,
-        )
-
-        def qasm(shots=100):
-            return QuantumInstance(
-                backend=BasicAer.get_backend("qasm_simulator"),
-                shots=shots,
+        with self.assertWarns(DeprecationWarning):
+            self._statevector = QuantumInstance(
+                backend=BasicAer.get_backend("statevector_simulator"),
                 seed_simulator=2,
                 seed_transpiler=2,
             )
 
+        self._sampler = Sampler(options={"seed": 2})
+
+        def qasm(shots=100):
+            with self.assertWarns(DeprecationWarning):
+                qi = QuantumInstance(
+                    backend=BasicAer.get_backend("qasm_simulator"),
+                    shots=shots,
+                    seed_simulator=2,
+                    seed_transpiler=2,
+                )
+            return qi
+
         self._qasm = qasm
+
+        def sampler_shots(shots=100):
+            return Sampler(options={"shots": shots, "seed": 2})
+
+        self._sampler_shots = sampler_shots
 
     @idata(
         [
@@ -126,12 +131,38 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @unpack
     def test_statevector(self, prob, qae, expect):
         """statevector test"""
-        qae.quantum_instance = self._statevector
+
+        problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
+
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._statevector
+            result = qae.estimate(problem)
+
+        self._statevector.reset_execution_results()
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [0.2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2}],
+            [0.49, AmplitudeEstimation(3), {"estimation": 0.5, "mle": 0.49}],
+            [0.2, MaximumLikelihoodAmplitudeEstimation([0, 1, 2]), {"estimation": 0.2}],
+            [0.49, MaximumLikelihoodAmplitudeEstimation(3), {"estimation": 0.49}],
+            [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.2}],
+            [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {"estimation": 0.49}],
+            [0.2, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199}],
+            [0.12, FasterAmplitudeEstimation(0.1, 2, rescale=False), {"estimation": 0.12}],
+        ]
+    )
+    @unpack
+    def test_sampler(self, prob, qae, expect):
+        """sampler test"""
+        qae.sampler = self._sampler
         problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
-        self._statevector.reset_execution_results()
         for key, value in expect.items():
             self.assertAlmostEqual(
                 value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
@@ -160,7 +191,41 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @unpack
     def test_qasm(self, prob, shots, qae, expect):
         """qasm test"""
-        qae.quantum_instance = self._qasm(shots)
+
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
+            problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
+            result = qae.estimate(problem)
+
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.14644, "mle": 0.198783}],
+            [0.0, 1000, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
+            [
+                0.2,
+                100,
+                MaximumLikelihoodAmplitudeEstimation([0, 1, 2, 4, 8]),
+                {"estimation": 0.200308},
+            ],
+            [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {"estimation": 0.811711}],
+            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.198640}],
+            [
+                0.12,
+                100,
+                FasterAmplitudeEstimation(0.01, 3, rescale=False),
+                {"estimation": 0.120017},
+            ],
+        ]
+    )
+    @unpack
+    def test_sampler_with_shots(self, prob, shots, qae, expect):
+        """sampler with shots test"""
+        qae.sampler = self._sampler_shots(shots)
         problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
 
         result = qae.estimate(problem)
@@ -197,7 +262,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             if efficient_circuit:
                 qae.grover_operator = BernoulliGrover(prob)
                 for power in range(m):
-                    circuit.cry(2 * 2 ** power * angle, qr_eval[power], qr_objective[0])
+                    circuit.cry(2 * 2**power * angle, qr_eval[power], qr_objective[0])
             else:
                 oracle = QuantumCircuit(1)
                 oracle.z(0)
@@ -207,7 +272,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 grover_op = GroverOperator(oracle, state_preparation)
                 for power in range(m):
                     circuit.compose(
-                        grover_op.power(2 ** power).control(),
+                        grover_op.power(2**power).control(),
                         qubits=[qr_eval[power], qr_objective[0]],
                         inplace=True,
                     )
@@ -286,7 +351,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 # Q^(2^j) operator
                 if efficient_circuit:
                     qae.grover_operator = BernoulliGrover(prob)
-                    circuit.ry(2 * 2 ** power * angle, q_objective[0])
+                    circuit.ry(2 * 2**power * angle, q_objective[0])
 
                 else:
                     oracle = QuantumCircuit(1)
@@ -294,7 +359,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     state_preparation = QuantumCircuit(1)
                     state_preparation.ry(angle, 0)
                     grover_op = GroverOperator(oracle, state_preparation)
-                    for _ in range(2 ** power):
+                    for _ in range(2**power):
                         circuit.compose(grover_op, inplace=True)
                 circuits += [circuit]
 
@@ -316,21 +381,31 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
 
-        self._statevector = QuantumInstance(
-            backend=BasicAer.get_backend("statevector_simulator"),
-            seed_simulator=123,
-            seed_transpiler=41,
-        )
-
-        def qasm(shots=100):
-            return QuantumInstance(
-                backend=BasicAer.get_backend("qasm_simulator"),
-                shots=shots,
-                seed_simulator=7192,
-                seed_transpiler=90000,
+        with self.assertWarns(DeprecationWarning):
+            self._statevector = QuantumInstance(
+                backend=BasicAer.get_backend("statevector_simulator"),
+                seed_simulator=123,
+                seed_transpiler=41,
             )
 
+        self._sampler = Sampler(options={"seed": 123})
+
+        def qasm(shots=100):
+            with self.assertWarns(DeprecationWarning):
+                qi = QuantumInstance(
+                    backend=BasicAer.get_backend("qasm_simulator"),
+                    shots=shots,
+                    seed_simulator=7192,
+                    seed_transpiler=90000,
+                )
+                return qi
+
         self._qasm = qasm
+
+        def sampler_shots(shots=100):
+            return Sampler(options={"shots": shots, "seed": 7192})
+
+        self._sampler_shots = sampler_shots
 
     @idata(
         [
@@ -345,12 +420,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         """Statevector end-to-end test"""
         # construct factories for A and Q
         # qae.state_preparation = SineIntegral(n)
-        qae.quantum_instance = self._statevector
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
-        # result = qae.run(self._statevector)
-        result = qae.estimate(estimation_problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._statevector
+            # result = qae.run(self._statevector)
+            result = qae.estimate(estimation_problem)
+
         self._statevector.reset_execution_results()
         for key, value in expect.items():
             self.assertAlmostEqual(
@@ -359,7 +435,29 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [4, 10, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.333333}],
+            [2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2702}],
+            [4, MaximumLikelihoodAmplitudeEstimation(4), {"estimation": 0.2725}],
+            [3, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.2721}],
+            [3, FasterAmplitudeEstimation(0.01, 1), {"estimation": 0.2792}],
+        ]
+    )
+    @unpack
+    def test_sampler(self, n, qae, expect):
+        """sampler end-to-end test"""
+        # construct factories for A and Q
+        # qae.state_preparation = SineIntegral(n)
+        qae.sampler = self._sampler
+        estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
+
+        result = qae.estimate(estimation_problem)
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [4, 100, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.281196}],
             [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {"estimation": 0.256878}],
             [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {"estimation": 0.271790}],
             [3, 1000, FasterAmplitudeEstimation(0.1, 4), {"estimation": 0.274168}],
@@ -368,8 +466,30 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     @unpack
     def test_qasm(self, n, shots, qae, expect):
         """QASM simulator end-to-end test."""
+        estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
+
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
+            result = qae.estimate(estimation_problem)
+
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [4, 1000, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2636}],
+            [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {"estimation": 0.2904}],
+            [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {"estimation": 0.2706}],
+            [3, 1000, FasterAmplitudeEstimation(0.1, 4), {"estimation": 0.2764}],
+        ]
+    )
+    @unpack
+    def test_sampler_with_shots(self, n, shots, qae, expect):
+        """Sampler with shots end-to-end test."""
         # construct factories for A and Q
-        qae.quantum_instance = self._qasm(shots)
+        qae.sampler = self._sampler_shots(shots)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         result = qae.estimate(estimation_problem)
@@ -404,12 +524,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_confidence_intervals(self, qae, key, expect):
         """End-to-end test for all confidence intervals."""
         n = 3
-        qae.quantum_instance = self._statevector
-        estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
-        # statevector simulator
-        result = qae.estimate(estimation_problem)
-        self.assertGreater(self._statevector.time_taken, 0.0)
+        estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._statevector
+            # statevector simulator
+            result = qae.estimate(estimation_problem)
+
         self._statevector.reset_execution_results()
         methods = ["lr", "fi", "oi"]  # short for likelihood_ratio, fisher, observed_fisher
         alphas = [0.1, 0.00001, 0.9]  # alpha shouldn't matter in statevector
@@ -422,8 +543,10 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         # qasm simulator
         shots = 100
         alpha = 0.01
-        qae.quantum_instance = self._qasm(shots)
-        result = qae.estimate(estimation_problem)
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
+            result = qae.estimate(estimation_problem)
+
         for method, expected_confint in expect.items():
             confint = qae.compute_confidence_interval(result, alpha, method)
             np.testing.assert_array_almost_equal(confint, expected_confint)
@@ -432,13 +555,14 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_iqae_confidence_intervals(self):
         """End-to-end test for the IQAE confidence interval."""
         n = 3
-        qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
         expected_confint = (0.1984050, 0.3511015)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
-        # statevector simulator
-        result = qae.estimate(estimation_problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
+        with self.assertWarns(DeprecationWarning):
+            qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
+            # statevector simulator
+            result = qae.estimate(estimation_problem)
+
         self._statevector.reset_execution_results()
         confint = result.confidence_interval
         # confidence interval based on statevector should be empty, as we are sure of the result
@@ -447,16 +571,37 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # qasm simulator
         shots = 100
-        qae.quantum_instance = self._qasm(shots)
-        result = qae.estimate(estimation_problem)
+
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
+            result = qae.estimate(estimation_problem)
+
         confint = result.confidence_interval
         np.testing.assert_array_almost_equal(confint, expected_confint)
         self.assertTrue(confint[0] <= result.estimation <= confint[1])
 
 
+class TestAmplitudeEstimation(QiskitAlgorithmsTestCase):
+    """Specific tests for canonical AE."""
+
+    def test_warns_if_good_state_set(self):
+        """Check AE warns if is_good_state is set."""
+        circuit = QuantumCircuit(1)
+        problem = EstimationProblem(circuit, objective_qubits=[0], is_good_state=lambda x: True)
+
+        qae = AmplitudeEstimation(num_eval_qubits=1, sampler=Sampler())
+
+        with self.assertWarns(Warning):
+            _ = qae.estimate(problem)
+
+
 @ddt
 class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
     """Specific tests for Faster AE."""
+
+    def setUp(self):
+        super().setUp()
+        self._sampler = Sampler(options={"seed": 2})
 
     def test_rescaling(self):
         """Test the rescaling."""
@@ -481,13 +626,37 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # construct algo without rescaling
         backend = BasicAer.get_backend("statevector_simulator")
-        fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
+
+        with self.assertWarns(DeprecationWarning):
+            fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
+
+            # run the algo
+            result = fae.estimate(problem)
+
+        # assert the result is correct
+        self.assertAlmostEqual(result.estimation, prob)
+
+        # assert no rescaling was used
+        theta = np.mean(result.theta_intervals[-1])
+        value_without_scaling = np.sin(theta) ** 2
+        self.assertAlmostEqual(result.estimation, value_without_scaling)
+
+    def test_sampler_run_without_rescaling(self):
+        """Run Faster AE without rescaling if the amplitude is in [0, 1/4]."""
+        # construct estimation problem
+        prob = 0.11
+        a_op = QuantumCircuit(1)
+        a_op.ry(2 * np.arcsin(np.sqrt(prob)), 0)
+        problem = EstimationProblem(a_op, objective_qubits=[0])
+
+        # construct algo without rescaling
+        fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, sampler=self._sampler)
 
         # run the algo
         result = fae.estimate(problem)
 
         # assert the result is correct
-        self.assertAlmostEqual(result.estimation, prob)
+        self.assertAlmostEqual(result.estimation, prob, places=2)
 
         # assert no rescaling was used
         theta = np.mean(result.theta_intervals[-1])
@@ -503,7 +672,8 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # construct algo without rescaling
         backend = BasicAer.get_backend("statevector_simulator")
-        fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
+        with self.assertWarns(DeprecationWarning):
+            fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
 
         # run the algo
         with self.assertWarns(Warning):
@@ -534,14 +704,17 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         )
 
         # construct algo
-        backend = QuantumInstance(
-            BasicAer.get_backend(backend_str), seed_simulator=2, seed_transpiler=2
-        )
+        with self.assertWarns(DeprecationWarning):
+            backend = QuantumInstance(
+                BasicAer.get_backend(backend_str), seed_simulator=2, seed_transpiler=2
+            )
         # cannot use rescaling with a custom grover operator
-        fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
 
-        # run the algo
-        result = fae.estimate(problem)
+        with self.assertWarns(DeprecationWarning):
+            fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
+
+            # run the algo
+            result = fae.estimate(problem)
 
         # assert the result is correct
         self.assertAlmostEqual(result.estimation, expect, places=5)

@@ -41,7 +41,7 @@ def hellinger_distance(dist_p, dist_q):
 
     total = 0
     for key, val in p_normed.items():
-        if key in q_normed.keys():
+        if key in q_normed:
             total += (np.sqrt(val) - np.sqrt(q_normed[key])) ** 2
             del q_normed[key]
         else:
@@ -73,7 +73,7 @@ def hellinger_fidelity(dist_p, dist_q):
 
     Example:
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
             from qiskit.quantum_info.analysis import hellinger_fidelity
@@ -97,4 +97,4 @@ def hellinger_fidelity(dist_p, dist_q):
         `Hellinger Distance @ wikipedia <https://en.wikipedia.org/wiki/Hellinger_distance>`_
     """
     dist = hellinger_distance(dist_p, dist_q)
-    return (1 - dist ** 2) ** 2
+    return (1 - dist**2) ** 2

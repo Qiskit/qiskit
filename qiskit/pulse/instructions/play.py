@@ -13,14 +13,13 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Dict, Optional, Union, Tuple, Any, Set
+from typing import Optional, Union, Tuple, Set
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.utils import deprecated_functionality
+from qiskit.pulse.library.pulse import Pulse
 
 
 class Play(Instruction):
@@ -40,19 +39,23 @@ class Play(Instruction):
                    :py:class:`~qiskit.pulse.library.Waveform`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
-
-        Raises:
-            PulseError: If pulse is not a Pulse type.
         """
-        if not isinstance(pulse, Pulse):
-            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
-        if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `Play` must be of type `channels.PulseChannel`."
-            )
         if name is None:
             name = pulse.name
         super().__init__(operands=(pulse, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If pulse is not a Pulse type.
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.pulse, Pulse):
+            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
+
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def pulse(self) -> Pulse:
@@ -76,44 +79,18 @@ class Play(Instruction):
         """Duration of this instruction."""
         return self.pulse.duration
 
-    def _initialize_parameter_table(self, operands: Tuple[Any]):
-        """A helper method to initialize parameter table.
-
-        Args:
-            operands: List of operands associated with this instruction.
-        """
-        super()._initialize_parameter_table(operands)
-
-        if any(isinstance(val, ParameterExpression) for val in self.pulse.parameters.values()):
-            for value in self.pulse.parameters.values():
-                if isinstance(value, ParameterExpression):
-                    for param in value.parameters:
-                        # Table maps parameter to operand index, 0 for ``pulse``
-                        self._parameter_table[param].append(0)
-
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
         parameters = set()
+
+        # Note that Pulse.parameters returns dict rather than set for convention.
+        # We need special handling for Play instruction.
         for pulse_param_expr in self.pulse.parameters.values():
             if isinstance(pulse_param_expr, ParameterExpression):
-                for pulse_param in pulse_param_expr.parameters:
-                    parameters.add(pulse_param)
+                parameters = parameters | pulse_param_expr.parameters
+
         if self.channel.is_parameterized():
-            for ch_param in self.channel.parameters:
-                parameters.add(ch_param)
+            parameters = parameters | self.channel.parameters
 
         return parameters
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Play":
-        super().assign_parameters(value_dict)
-        pulse = self.pulse.assign_parameters(value_dict)
-        self._operands = (pulse, self.channel)
-        return self
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return self.pulse.is_parameterized() or super().is_parameterized()

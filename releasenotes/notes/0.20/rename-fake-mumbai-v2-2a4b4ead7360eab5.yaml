@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The previous :class:`qiskit.test.mock.fake_mumbai_v2.FakeMumbaiV2` class
+    has been renamed to ``FakeMumbaiFractionalCX`` to differentiate it from
+    the :class:`~.BackendV2` based fake backend for the IBM Mumbai device,
+    :class:`qiskit.test.mock.backends.FakeMumbaiV2`. If you were previously
+    relying on the :class:`~qiskit.test.mock.fake_mumbai_v2.FakeMumbaiV2` class
+    to get a fake backend that had fractional applications of :class:`~.CXGate`
+    defined in its target you need to use ``FakeMumbaiFractionalCX`` class
+    as the :class:`~qiskit.test.mock.backends.FakeMumbaiV2` will no longer
+    have those extra gate definitions in its :class:`~.Target`.

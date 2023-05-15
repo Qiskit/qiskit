@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" AerPauliExpectation Class """
+"""AerPauliExpectation Class"""
 
 import logging
 from functools import reduce
@@ -28,28 +28,59 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.quantum_info import SparsePauliOp
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
 class AerPauliExpectation(ExpectationBase):
-    r"""An Expectation converter for using Aer's operator snapshot to
+    r"""Deprecated: An Expectation converter for using Aer's operator snapshot to
     take expectations of quantum state circuits over Pauli observables.
 
     """
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """Accept an Operator and return a new Operator with the Pauli measurements replaced by
         AerSnapshot-based expectation circuits.
 
         Args:
-            operator: The operator to convert.
+            operator: The operator to convert. If it contains non-hermitian terms, the
+                operator is decomposed into hermitian and anti-hermitian parts.
 
         Returns:
             The converted operator.
         """
+
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
-            return self._replace_pauli_sums(operator.primitive) * operator.coeff
+            if isinstance(operator.primitive, ListOp):
+                is_herm = all((op.is_hermitian() for op in operator.primitive.oplist))
+            else:
+                is_herm = operator.primitive.is_hermitian()
+
+            if not is_herm:
+                pauli_sum_re = (
+                    self._replace_pauli_sums(
+                        1 / 2 * (operator.primitive + operator.primitive.adjoint()).reduce()
+                    )
+                    * operator.coeff
+                )
+                pauli_sum_im = (
+                    self._replace_pauli_sums(
+                        1 / 2j * (operator.primitive - operator.primitive.adjoint()).reduce()
+                    )
+                    * operator.coeff
+                )
+                pauli_sum = (pauli_sum_re + 1j * pauli_sum_im).reduce()
+            else:
+                pauli_sum = self._replace_pauli_sums(operator.primitive) * operator.coeff
+            return pauli_sum
         elif isinstance(operator, ListOp):
             return operator.traverse(self.convert)
         else:

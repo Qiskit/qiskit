@@ -16,21 +16,6 @@ from functools import lru_cache
 
 import numpy as np
 
-try:
-    from docplex.mp.model import Model
-
-    HAS_DOCPLEX = True
-except ImportError:
-    HAS_DOCPLEX = False
-
-try:
-    import cplex  # pylint: disable=unused-import
-
-    HAS_CPLEX = True
-except ImportError:
-    HAS_CPLEX = False
-
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
@@ -40,10 +25,13 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     trace_to_fid,
 )
+from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
+@_optionals.HAS_DOCPLEX.require_in_instance
 class BIPMappingModel:
     """Internal model to create and solve a BIP problem for mapping.
 
@@ -54,6 +42,12 @@ class BIPMappingModel:
             the solution will be stored in :attr:`solution`). None if it's not yet set.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This has been replaced by a new transpiler plugin package: "
+        "qiskit-bip-mapper. More details can be found here: "
+        "https://github.com/qiskit-community/qiskit-bip-mapper",
+    )  # pylint: disable=bad-docstring-quotes
     def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
         """
         Args:
@@ -69,12 +63,6 @@ class BIPMappingModel:
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
         """
-        if not HAS_DOCPLEX:
-            raise MissingOptionalLibraryError(
-                libname="DOcplex",
-                name="Decision Optimization CPLEX Modeling for Python",
-                pip_install="pip install docplex",
-            )
 
         self._dag = dag
         self._coupling = copy.deepcopy(coupling_map)  # reduced coupling map
@@ -125,6 +113,9 @@ class BIPMappingModel:
             self.gates.extend([[]] * dummy_timesteps)
 
         self.bprop = None  # Backend properties to compute cx fidelities (set later if necessary)
+        self.default_cx_error_rate = (
+            None  # Default cx error rate in case backend properties are not available
+        )
 
         logger.info("Num virtual qubits: %d", self.num_vqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
@@ -163,8 +154,14 @@ class BIPMappingModel:
         """Check if the time-step t is a dummy step or not."""
         return len(self.gates[t]) == 0
 
+    @_optionals.HAS_DOCPLEX.require_in_call
     def create_cpx_problem(
-        self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False
+        self,
+        objective: str,
+        backend_prop: BackendProperties = None,
+        line_symm: bool = False,
+        depth_obj_weight: float = 0.1,
+        default_cx_error_rate: float = 5e-3,
     ):
         """Create integer programming model to compile a circuit.
 
@@ -181,18 +178,27 @@ class BIPMappingModel:
             backend_prop:
                 Backend properties storing gate errors, which are required in computing certain
                 types of objective function such as ``'gate_error'`` or ``'balanced'``.
+                If this is not available, default_cx_error_rate is used instead.
 
             line_symm:
                 Use symmetry breaking constrainst for line topology. Should
                 only be True if the hardware graph is a chain/line/path.
 
-        Raises:
-            TranspilerError: if unknow objective type is specified or invalid options are specified.
-        """
-        if backend_prop is None and objective in ("gate_error", "balanced"):
-            raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
+            depth_obj_weight:
+                Weight of depth objective in ``'balanced'`` objective function.
 
+            default_cx_error_rate:
+                Default CX error rate to be used if backend_prop is not available.
+
+        Raises:
+            TranspilerError: if unknown objective type is specified or invalid options are specified.
+            MissingOptionalLibraryError: If docplex is not installed
+        """
         self.bprop = backend_prop
+        self.default_cx_error_rate = default_cx_error_rate
+        if self.bprop is None and self.default_cx_error_rate is None:
+            raise TranspilerError("BackendProperties or default_cx_error_rate must be specified")
+        from docplex.mp.model import Model
 
         mdl = Model()
 
@@ -355,35 +361,34 @@ class BIPMappingModel:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
         elif objective in ("gate_error", "balanced"):
-            # We multiply gate_error by 10 because the cofficients are usually very small.
-            # We add the depth objective with coefficient 0.01 if balanced was selected.
+            # We add the depth objective with coefficient depth_obj_weight if balanced was selected.
             objexr = 0
             for t in range(self.depth - 1):
                 for (p, q), node in self.gates[t]:
                     for (i, j) in self._arcs:
                         # We pay the cost for gate implementation.
                         pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
-                        objexr += 10 * y[t, p, q, i, j] * pbest_fid
+                        objexr += y[t, p, q, i, j] * pbest_fid
                         # If a gate is mirrored (followed by a swap on the same qubit pair),
                         # its cost should be replaced with the cost of the combined (mirrored) gate.
-                        pbest_fidm = -np.log(self._max_expected_mirroed_fidelity(node, i, j))
-                        objexr += 10 * x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
+                        pbest_fidm = -np.log(self._max_expected_mirrored_fidelity(node, i, j))
+                        objexr += x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
                 # Cost of swaps on unused qubits
                 for q in range(self.num_vqubits):
                     used_qubits = {q for (pair, _) in self.gates[t] for q in pair}
                     if q not in used_qubits:
                         for i in range(self.num_pqubits):
                             for j in self._coupling.neighbors(i):
-                                objexr += (
-                                    10 * x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
-                                )
+                                objexr += x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
             # Cost for the last layer (x variables are not defined for depth-1)
             for (p, q), node in self.gates[self.depth - 1]:
                 for (i, j) in self._arcs:
                     pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
-                    objexr += 10 * y[self.depth - 1, p, q, i, j] * pbest_fid
+                    objexr += y[self.depth - 1, p, q, i, j] * pbest_fid
             if objective == "balanced":
-                objexr += 0.01 * sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
+                objexr += depth_obj_weight * sum(
+                    z[t] for t in range(self.depth) if self._is_dummy_step(t)
+                )
             mdl.minimize(objexr)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
@@ -397,7 +402,7 @@ class BIPMappingModel:
             for k, gfid in enumerate(self._gate_fidelities(node))
         )
 
-    def _max_expected_mirroed_fidelity(self, node, i, j):
+    def _max_expected_mirrored_fidelity(self, node, i, j):
         return max(
             gfid * self._cx_fidelity(i, j) ** k
             for k, gfid in enumerate(self._mirrored_gate_fidelities(node))
@@ -405,7 +410,10 @@ class BIPMappingModel:
 
     def _cx_fidelity(self, i, j) -> float:
         # fidelity of cx on global physical qubits
-        return 1.0 - self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
+        if self.bprop is not None:
+            return 1.0 - self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
+        else:
+            return 1.0 - self.default_cx_error_rate
 
     @staticmethod
     @lru_cache()
@@ -424,6 +432,7 @@ class BIPMappingModel:
         tracesm = two_qubit_cnot_decompose.traces(targetm)
         return [trace_to_fid(tracesm[i]) for i in range(4)]
 
+    @_optionals.HAS_CPLEX.require_in_call
     def solve_cpx_problem(self, time_limit: float = 60, threads: int = None) -> str:
         """Solve the BIP problem using CPLEX.
 
@@ -440,12 +449,6 @@ class BIPMappingModel:
         Raises:
             MissingOptionalLibraryError: If CPLEX is not installed
         """
-        if not HAS_CPLEX:
-            raise MissingOptionalLibraryError(
-                libname="CPLEX",
-                name="CplexOptimizer",
-                pip_install="pip install cplex",
-            )
         self.problem.set_time_limit(time_limit)
         if threads is not None:
             self.problem.context.cplex_parameters.threads = threads

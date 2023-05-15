@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    There were two bugs in the ``text`` circuit drawer that were fixed.
+    These appeared when ``vertical_compression`` was set to ``medium``,
+    which is the default. The first would sometimes cause text to overwrite
+    other text or gates, and the second would sometimes cause the connections
+    between a gate and its controls to break.
+    See `#8588 <https://github.com/Qiskit/qiskit-terra/issues/8588>`__.

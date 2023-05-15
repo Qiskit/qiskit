@@ -13,8 +13,7 @@
 
 """Piecewise-linearly-controlled rotation."""
 
-from typing import List, Optional
-import warnings
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
@@ -47,10 +46,10 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
-        breakpoints: Optional[List[int]] = None,
-        slopes: Optional[List[float]] = None,
-        offsets: Optional[List[float]] = None,
+        num_state_qubits: int | None = None,
+        breakpoints: list[int] | None = None,
+        slopes: list[float] | np.ndarray | None = None,
+        offsets: list[float] | np.ndarray | None = None,
         basis: str = "Y",
         name: str = "pw_lin",
     ) -> None:
@@ -75,19 +74,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
 
     @property
-    def num_ancilla_qubits(self):
-        """Deprecated. Use num_ancillas instead."""
-        warnings.warn(
-            "The PiecewiseLinearPauliRotations.num_ancilla_qubits property is deprecated "
-            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
-            "date. You should use the num_ancillas property instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.num_ancillas
-
-    @property
-    def breakpoints(self) -> List[int]:
+    def breakpoints(self) -> list[int]:
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
@@ -96,7 +83,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return self._breakpoints
 
     @breakpoints.setter
-    def breakpoints(self, breakpoints: List[int]) -> None:
+    def breakpoints(self, breakpoints: list[int]) -> None:
         """Set the breakpoints.
 
         Args:
@@ -109,7 +96,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
             self._reset_registers(self.num_state_qubits)
 
     @property
-    def slopes(self) -> List[int]:
+    def slopes(self) -> list[float] | np.ndarray:
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
@@ -118,7 +105,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return self._slopes
 
     @slopes.setter
-    def slopes(self, slopes: List[float]) -> None:
+    def slopes(self, slopes: list[float]) -> None:
         """Set the slopes.
 
         Args:
@@ -128,7 +115,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         self._slopes = slopes
 
     @property
-    def offsets(self) -> List[float]:
+    def offsets(self) -> list[float] | np.ndarray:
         """The breakpoints of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
@@ -137,7 +124,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return self._offsets
 
     @offsets.setter
-    def offsets(self, offsets: List[float]) -> None:
+    def offsets(self, offsets: list[float]) -> None:
         """Set the offsets.
 
         Args:
@@ -147,7 +134,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         self._offsets = offsets
 
     @property
-    def mapped_slopes(self) -> List[float]:
+    def mapped_slopes(self) -> np.ndarray:
         """The slopes mapped to the internal representation.
 
         Returns:
@@ -160,7 +147,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return mapped_slopes
 
     @property
-    def mapped_offsets(self) -> List[float]:
+    def mapped_offsets(self) -> np.ndarray:
         """The offsets mapped to the internal representation.
 
         Returns:
@@ -175,7 +162,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return mapped_offsets
 
     @property
-    def contains_zero_breakpoint(self) -> bool:
+    def contains_zero_breakpoint(self) -> bool | np.bool_:
         """Whether 0 is the first breakpoint.
 
         Returns:
@@ -202,6 +189,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return y
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -224,23 +212,26 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         return valid
 
-    def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+    def _reset_registers(self, num_state_qubits: int | None) -> None:
+        """Reset the registers."""
+        self.qregs = []
+
         if num_state_qubits is not None:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
-            self._ancillas = []
 
             # add ancillas if required
             if len(self.breakpoints) > 1:
                 num_ancillas = num_state_qubits
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
-        else:
-            self.qregs = []
-            self._ancillas = []
 
     def _build(self):
+        """If not already built, build the circuit."""
+        if self._is_built:
+            return
+
         super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)

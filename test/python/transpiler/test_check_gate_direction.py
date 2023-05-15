@@ -14,13 +14,17 @@
 
 import unittest
 
+import ddt
+
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import CXGate, CZGate, ECRGate
 from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
+@ddt.ddt
 class TestCheckGateDirection(QiskitTestCase):
     """Tests the CheckGateDirection pass"""
 
@@ -194,6 +198,99 @@ class TestCheckGateDirection(QiskitTestCase):
         pass_ = CheckGateDirection(coupling)
         pass_.run(dag)
 
+        self.assertFalse(pass_.property_set["is_direction_mapped"])
+
+    @ddt.data(CXGate(), CZGate(), ECRGate())
+    def test_target_static(self, gate):
+        """Test that static 2q gates are detected correctly both if available and not available."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1], [])
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(gate, {(0, 1): None})
+        pass_ = CheckGateDirection(None, target=matching)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["is_direction_mapped"])
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(gate, {(1, 0): None})
+        pass_ = CheckGateDirection(None, target=swapped)
+        pass_(circuit)
+        self.assertFalse(pass_.property_set["is_direction_mapped"])
+
+    def test_coupling_map_control_flow(self):
+        """Test recursing into control-flow operations with a coupling map."""
+        matching = CouplingMap.from_line(5, bidirectional=True)
+        swapped = CouplingMap.from_line(5, bidirectional=False)
+
+        circuit = QuantumCircuit(5, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((2,)):
+            circuit.cx(1, 0)
+
+        pass_ = CheckGateDirection(matching)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["is_direction_mapped"])
+        pass_ = CheckGateDirection(swapped)
+        pass_(circuit)
+        self.assertFalse(pass_.property_set["is_direction_mapped"])
+
+        circuit = QuantumCircuit(5, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((2,)):
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.cz(3, 2)
+            with else_:
+                with circuit.while_loop((circuit.clbits[0], True)):
+                    circuit.ecr(4, 3)
+
+        pass_ = CheckGateDirection(matching)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["is_direction_mapped"])
+        pass_ = CheckGateDirection(swapped)
+        pass_(circuit)
+        self.assertFalse(pass_.property_set["is_direction_mapped"])
+
+    def test_target_control_flow(self):
+        """Test recursing into control-flow operations with a coupling map."""
+        swapped = Target(num_qubits=5)
+        for gate in (CXGate(), CZGate(), ECRGate()):
+            swapped.add_instruction(gate, {qargs: None for qargs in zip(range(4), range(1, 5))})
+
+        matching = Target(num_qubits=5)
+        for gate in (CXGate(), CZGate(), ECRGate()):
+            matching.add_instruction(gate, {None: None})
+
+        circuit = QuantumCircuit(5, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((2,)):
+            circuit.cx(1, 0)
+
+        pass_ = CheckGateDirection(None, target=matching)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["is_direction_mapped"])
+        pass_ = CheckGateDirection(None, target=swapped)
+        pass_(circuit)
+        self.assertFalse(pass_.property_set["is_direction_mapped"])
+
+        circuit = QuantumCircuit(5, 1)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.for_loop((2,)):
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.cz(3, 2)
+            with else_:
+                with circuit.while_loop((circuit.clbits[0], True)):
+                    circuit.ecr(4, 3)
+
+        pass_ = CheckGateDirection(None, target=matching)
+        pass_(circuit)
+        self.assertTrue(pass_.property_set["is_direction_mapped"])
+        pass_ = CheckGateDirection(None, target=swapped)
+        pass_(circuit)
         self.assertFalse(pass_.property_set["is_direction_mapped"])
 
 

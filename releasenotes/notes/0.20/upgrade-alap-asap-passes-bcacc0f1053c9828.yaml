@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a new transpiler pass, :class:`~.SetIOLatency`. This pass takes two
+    arguments ``clbit_write_latency`` and ``conditional_latency`` to define the
+    I/O latency for classical bits and classical conditions on a backend. This
+    pass will then define these values on the pass manager's property set to
+    enable subsequent scheduling and alignment passes to correct for these
+    latencies and provide a more presice scheduling output of a dynamic circuit.

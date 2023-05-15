@@ -15,21 +15,45 @@
 """
 Base register reference object.
 """
+
+from __future__ import annotations
 import re
 import itertools
+import warnings
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 
 
+class _NameFormat:
+    REGEX = re.compile("[a-z][a-zA-Z0-9_]*")
+
+    def __get__(self, obj, objtype=None):
+        warnings.warn(
+            "Register.name_format is deprecated as of Qiskit Terra 0.23, and will be removed in a"
+            " future release. There is no longer a restriction on the names of registers, so the"
+            " attribute has no meaning any more.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.REGEX
+
+
 class Register:
-    """Implement a generic register."""
+    """Implement a generic register.
 
-    __slots__ = ["_name", "_size", "_bits", "_hash", "_repr"]
+    .. note::
+        This class should not be instantiated directly. This is just a superclass
+        for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
 
-    # Register name should conform to OpenQASM 2.0 specification
-    # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
-    name_format = re.compile("[a-z][a-zA-Z0-9_]*")
+    """
+
+    __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
+
+    # In historical version of Terra, registers' name had to conform to the OpenQASM 2 specification
+    # (see appendix A of https://arxiv.org/pdf/1707.03429v2.pdf), and this regex enforced it.  That
+    # restriction has been relaxed, so this is no longer necessary.
+    name_format = _NameFormat()
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -37,7 +61,7 @@ class Register:
     prefix = "reg"
     bit_type = None
 
-    def __init__(self, size=None, name=None, bits=None):
+    def __init__(self, size: int | None = None, name: str | None = None, bits=None):
         """Create a new generic register.
 
         Either the ``size`` or the ``bits`` argument must be provided. If
@@ -57,6 +81,7 @@ class Register:
             CircuitError: if ``size`` is not valid.
             CircuitError: if ``name`` is not a valid name according to the
                 OpenQASM spec.
+            CircuitError: if ``bits`` contained duplicated bits.
             CircuitError: if ``bits`` contained bits of an incorrect type.
         """
 
@@ -99,11 +124,6 @@ class Register:
                     "The circuit name should be castable to a string "
                     "(or None for autogenerate a name)."
                 ) from ex
-            if self.name_format.match(name) is None:
-                raise CircuitError(
-                    "%s is an invalid OPENQASM register name. See appendix"
-                    " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name
-                )
 
         self._name = name
         self._size = size
@@ -111,12 +131,22 @@ class Register:
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         if bits is not None:
+            # check duplicated bits
+            if self._size != len(set(bits)):
+                raise CircuitError(f"Register bits must not be duplicated. bits={bits}")
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
-                raise CircuitError("Provided bits did not all match register type. bits=%s" % bits)
+                raise CircuitError(f"Provided bits did not all match register type. bits={bits}")
             self._bits = list(bits)
+            self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
         else:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
+
+            # Since the hash of Bits created by the line above will depend upon
+            # the the hash of self, which is not guaranteed to have been initialized
+            # first on deepcopying or on pickling, so defer populating _bit_indices
+            # until first access.
+            self._bit_indices = None
 
     @property
     def name(self):
@@ -165,6 +195,22 @@ class Register:
         for idx in range(self._size):
             yield self._bits[idx]
 
+    def __contains__(self, bit):
+        if self._bit_indices is None:
+            self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
+
+        return bit in self._bit_indices
+
+    def index(self, bit):
+        """Find the index of the provided bit within this register."""
+        if self._bit_indices is None:
+            self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
+
+        try:
+            return self._bit_indices[bit]
+        except KeyError as err:
+            raise ValueError(f"Bit {bit} not found in Register {self}.") from err
+
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
         (i.e. quantum/classical), and have the same name and size. Additionally,
@@ -198,3 +244,13 @@ class Register:
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         return self._hash
+
+    def __getstate__(self):
+        # Specifically exclude _bit_indices from pickled state as bit hashes
+        # can in general depend on the hash of their containing register,
+        # which may not have yet been initialized.
+        return self._name, self._size, self._hash, self._repr, self._bits
+
+    def __setstate__(self, state):
+        self._name, self._size, self._hash, self._repr, self._bits = state
+        self._bit_indices = None

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-""" HamiltonianGate tests """
+"""HamiltonianGate tests"""
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -86,7 +86,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertTrue(len(dag_nodes) == 1)
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, HamiltonianGate)
-        self.assertListEqual(dnode.qargs, qc.qubits)
+        self.assertEqual(dnode.qargs, tuple(qc.qubits))
         assert_allclose(dnode.op.to_matrix(), np.eye(2))
 
     def test_error_on_qasm(self):
@@ -116,7 +116,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, HamiltonianGate)
-        self.assertEqual(dnode.qargs, [qr[0], qr[1]])
+        self.assertEqual(dnode.qargs, (qr[0], qr[1]))
         # Equality based on Pauli exponential identity
         np.testing.assert_array_almost_equal(dnode.op.to_matrix(), 1j * matrix.data)
         qc3 = dag_to_circuit(dag)
@@ -140,7 +140,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, HamiltonianGate)
-        self.assertEqual(dnode.qargs, [qr[0], qr[1], qr[3]])
+        self.assertEqual(dnode.qargs, (qr[0], qr[1], qr[3]))
         np.testing.assert_almost_equal(dnode.op.to_matrix(), 1j * matrix.data)
 
     def test_qobj_with_hamiltonian(self):
@@ -171,5 +171,5 @@ class TestHamiltonianCircuit(QiskitTestCase):
         uni2q = HamiltonianGate(matrix, theta)
         qc.append(uni2q, [0, 1])
         qc = qc.bind_parameters({theta: -np.pi / 2}).decompose()
-        decomposed_ham = qc.data[0][0]
+        decomposed_ham = qc.data[0].operation
         self.assertEqual(decomposed_ham, UnitaryGate(Operator.from_label("XY")))

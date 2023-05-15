@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the :meth:`.OperatorBase.is_hermitian` method to check whether the
+    operator is Hermitian or not. :class:`~qiskit.algorithms.NumPyEigensolver`
+    and :class:`~qiskit.algorithms.NumPyMinimumEigensolver` use ``eigh`` or
+    ``eigsh`` to solve the eigenvalue problem when the operator is Hermitian.

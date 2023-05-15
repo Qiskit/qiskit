@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=abstract-method
-
 
 """This module implements the job class used by Basic Aer Provider."""
 
@@ -39,7 +37,6 @@ class BasicAerJob(JobV1):
         return
 
     def result(self, timeout=None):
-        # pylint: disable=arguments-differ
         """Get job result .
 
         Returns:
