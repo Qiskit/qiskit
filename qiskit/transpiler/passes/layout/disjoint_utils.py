@@ -141,6 +141,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
 def require_layout_isolated_to_component(
     dag: DAGCircuit, components_source: Union[Target, CouplingMap]
 ) -> bool:
+    # TODO: should return something?
     """Check that the layout of the dag does not require connectivity across connected components
     in the CouplingMap"""
     if isinstance(components_source, Target):

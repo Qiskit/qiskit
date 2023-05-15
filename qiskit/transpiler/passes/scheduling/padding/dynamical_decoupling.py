@@ -166,7 +166,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._no_dd_qubits = set()
+        self._no_dd_qubits: set[int] = set()
         self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
         if target is not None:

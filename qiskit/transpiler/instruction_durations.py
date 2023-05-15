@@ -12,7 +12,7 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union, Iterable, Set
+from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
@@ -24,7 +24,7 @@ from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
 
 
-def _is_deprecated_qubits_argument(qubits: Union[int, List[int], Qubit, List[Qubit]]) -> bool:
+def _is_deprecated_qubits_argument(qubits: Union[int, list[int], Qubit, list[Qubit]]) -> bool:
     if isinstance(qubits, (int, Qubit)):
         qubits = [qubits]
     return isinstance(qubits[0], Qubit)
