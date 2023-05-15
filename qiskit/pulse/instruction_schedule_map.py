@@ -192,7 +192,6 @@ class InstructionScheduleMap:
         Returns:
             The Schedule defined for the input.
         """
-        print(self._get_calibration_entry(instruction, qubits).get_schedule(*params, **kwparams))
         return self._get_calibration_entry(instruction, qubits).get_schedule(*params, **kwparams)
 
     def _get_calibration_entry(

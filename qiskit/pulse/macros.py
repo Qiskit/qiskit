@@ -119,17 +119,6 @@ def _measure_v1(
     """
 
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
-<<<<<<< HEAD
-    try:
-        inst_map = inst_map or backend.instruction_schedule_map
-        meas_map = meas_map or backend.meas_map
-    except AttributeError as ex:
-        raise exceptions.PulseError(
-            "inst_map or meas_map, and backend cannot be None simultaneously"
-        ) from ex
-=======
-
->>>>>>> upstream/main
     if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
 
