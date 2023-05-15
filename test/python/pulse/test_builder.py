@@ -29,7 +29,6 @@ from qiskit.providers.fake_provider.utils.configurable_backend import (
 from qiskit.pulse import library, instructions
 
 
-
 class TestBuilder(QiskitTestCase):
     """Test the pulse builder context."""
 

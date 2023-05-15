@@ -1168,7 +1168,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
         such as in the case where significant crosstalk exists.
 
     """
-    return set(active_backend().get_qubit_channel(qubit))
+    return set(active_backend().get_qubit_channels(qubit))
 
 
 def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[chans.Channel]:
