@@ -1,0 +1,23 @@
+---
+upgrade:
+  - |
+    The maximum number of trials evaluated when searching for the best
+    layout using :class:`.VF2Layout` and :class:`.VF2PostLayout` is now
+    limited in
+    :func:`qiskit.transpiler.preset_passmanagers.level_1_pass_manager`,
+    :func:`qiskit.transpiler.preset_passmanagers.level_2_pass_manager`,
+    and
+    :func:`qiskit.transpiler.preset_passmanagers.level_3_pass_manager`
+    to ``2,500``, ``25,000``, and ``250,000``, respectively. Previously,
+    all possible layouts were evaluated. This change was made to prevent
+    transpilation from hanging during layout scoring for circuits with many
+    connected components on larger devices, which scales combinatorially
+    since each connected component must be evaluated in all possible
+    positions on the device. To perform a full search as
+    before, manually run :class:`.VF2PostLayout` over the transpiled circuit
+    in strict mode, specifying ``0`` for ``max_trials``.
+fixes:
+  - |
+    Fixed a potential performance scaling issue with layout scoring in preset
+    pass managers, which could occur when transpiling circuits with many
+    connected components on large devices.

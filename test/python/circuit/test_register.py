@@ -120,3 +120,15 @@ class TestRegisterClass(QiskitTestCase):
         bits_difftype = [difftype.bit_type() for _ in range(3)]
         reg_difftype = difftype(name="foo", bits=bits_difftype)
         self.assertNotEqual(reg_difftype, test_reg)
+
+    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
+    def test_register_name_format_deprecation(self, reg_type):
+        """Test that the `Register.name_format` class data can be accessed and triggers its
+        deprecation correctly."""
+        # From instance:
+        reg_inst = reg_type(2)
+        with self.assertWarnsRegex(DeprecationWarning, "Register.name_format is deprecated"):
+            self.assertTrue(reg_inst.name_format.match("name"))
+        # From class:
+        with self.assertWarnsRegex(DeprecationWarning, "Register.name_format is deprecated"):
+            self.assertTrue(reg_type.name_format.match("name"))

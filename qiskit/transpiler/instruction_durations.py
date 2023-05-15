@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
-import warnings
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
 from qiskit.circuit import Barrier, Delay
@@ -19,7 +18,14 @@ from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
+
+
+def _is_deprecated_qubits_argument(qubits: Union[int, List[int], Qubit, List[Qubit]]) -> bool:
+    if isinstance(qubits, (int, Qubit)):
+        qubits = [qubits]
+    return isinstance(qubits[0], Qubit)
 
 
 class InstructionDurations:
@@ -74,15 +80,17 @@ class InstructionDurations:
         """
         # All durations in seconds in gate_length
         instruction_durations = []
-        for gate, insts in backend.properties()._gates.items():
-            for qubits, props in insts.items():
-                if "gate_length" in props:
-                    gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append((gate, qubits, gate_length, "s"))
-        for q, props in backend.properties()._qubits.items():
-            if "readout_length" in props:
-                readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                instruction_durations.append(("measure", [q], readout_length, "s"))
+        backend_properties = backend.properties()
+        if hasattr(backend_properties, "_gates"):
+            for gate, insts in backend_properties._gates.items():
+                for qubits, props in insts.items():
+                    if "gate_length" in props:
+                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
+                        instruction_durations.append((gate, qubits, gate_length, "s"))
+            for q, props in backend.properties()._qubits.items():
+                if "readout_length" in props:
+                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
+                    instruction_durations.append(("measure", [q], readout_length, "s"))
 
         try:
             dt = backend.configuration().dt
@@ -158,6 +166,15 @@ class InstructionDurations:
 
         return self
 
+    @deprecate_arg(
+        "qubits",
+        deprecation_description=(
+            "Using a Qubit or List[Qubit] for the ``qubits`` argument to InstructionDurations.get()"
+        ),
+        additional_msg="Instead, use an integer for the qubit index.",
+        since="0.19.0",
+        predicate=_is_deprecated_qubits_argument,
+    )
     def get(
         self,
         inst: Union[str, Instruction],
@@ -195,14 +212,6 @@ class InstructionDurations:
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):
-            warnings.warn(
-                "Querying an InstructionDurations object with a Qubit "
-                "has been deprecated and will be removed in a future "
-                "release. Instead, query using the integer qubit "
-                "index.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
             qubits = [q.index for q in qubits]
 
         try:

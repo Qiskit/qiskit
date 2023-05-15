@@ -48,8 +48,9 @@ class TimeEvolutionResult(AlgorithmResult):
             aux_ops_evaluated: Optional list of observables for which expected values on an evolved
                 state are calculated. These values are in fact tuples formatted as (mean, standard
                 deviation).
-            observables: Optional list of observables for which expected values for each timestep.
-                These values are in fact tuples formatted as (mean array, standard deviation array).
+            observables: Optional list of observables for which expected values are calculated for
+                 each timestep. These values are in fact tuples formatted as (mean array, standard
+                 deviation array).
             times: Optional list of times at which each observable has been evaluated.
         """
 

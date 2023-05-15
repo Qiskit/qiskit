@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,9 +13,16 @@
 """Exception for errors raised by Opflow module."""
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class OpflowError(QiskitError):
-    """For Opflow specific errors."""
+    """Deprecated: For Opflow specific errors."""
 
-    pass
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self, *message):
+        """Set the error message."""
+        super().__init__(*message)

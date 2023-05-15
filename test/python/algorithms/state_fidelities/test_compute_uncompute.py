@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -60,6 +60,26 @@ class TestComputeUncompute(QiskitTestCase):
         )
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([1.0]))
+
+    def test_1param_pair_local(self):
+        """test for fidelity with one pair of parameters"""
+        fidelity = ComputeUncompute(self._sampler, local=True)
+        job = fidelity.run(
+            self._circuit[0], self._circuit[1], self._left_params[0], self._right_params[0]
+        )
+        result = job.result()
+        np.testing.assert_allclose(result.fidelities, np.array([1.0]))
+
+    def test_local(self):
+        """test difference between local and global fidelity"""
+        fidelity_global = ComputeUncompute(self._sampler, local=False)
+        fidelity_local = ComputeUncompute(self._sampler, local=True)
+        fidelities = []
+        for fidelity in [fidelity_global, fidelity_local]:
+            job = fidelity.run(self._circuit[2], self._circuit[3])
+            result = job.result()
+            fidelities.append(result.fidelities[0])
+        np.testing.assert_allclose(fidelities, np.array([0.25, 0.5]), atol=1e-16)
 
     def test_4param_pairs(self):
         """test for fidelity with four pairs of parameters"""
@@ -149,10 +169,7 @@ class TestComputeUncompute(QiskitTestCase):
         n = len(self._left_params)
         right_params = [[p] for p in self._right_params[:, 0]]
         job = fidelity.run(
-            [self._circuit[0]] * n,
-            [self._circuit[4]] * n,
-            self._left_params,
-            right_params,
+            [self._circuit[0]] * n, [self._circuit[4]] * n, self._left_params, right_params
         )
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([0.5, 0.25, 0.25, 0.0]), atol=1e-16)

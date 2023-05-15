@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers.backend import BackendV1, BackendV2
@@ -30,7 +30,7 @@ from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
 
 
-class BackendSampler(BaseSampler):
+class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """A :class:`~.BaseSampler` implementation that provides an interface for
     leveraging the sampler interface from any backend.
 
@@ -68,24 +68,14 @@ class BackendSampler(BaseSampler):
             ValueError: If backend is not provided
         """
 
-        super().__init__(None, None, options)
+        super().__init__(options=options)
         self._backend = backend
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
         self._transpiled_circuits: list[QuantumCircuit] = []
         self._skip_transpilation = skip_transpilation
-
-    def __new__(  # pylint: disable=signature-differs
-        cls,
-        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
-    ):
-        self = super().__new__(cls)
-        return self
-
-    def __getnewargs__(self):
-        return (self._backend,)
+        self._circuit_ids = {}
 
     @property
     def preprocessed_circuits(self) -> list[QuantumCircuit]:
@@ -154,24 +144,26 @@ class BackendSampler(BaseSampler):
             for i, value in zip(circuits, parameter_values)
         ]
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
-
         # Run
         result, _metadata = _run_circuits(bound_circuits, self._backend, **run_options)
         return self._postprocessing(result, bound_circuits)
 
-    def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
+    def _postprocessing(
+        self, result: list[Result], circuits: list[QuantumCircuit]
+    ) -> SamplerResult:
         counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
         probabilities = []
-        metadata: list[dict[str, Any]] = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
         for count in counts:
-            prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
+            prob_dist = {k: v / shots for k, v in count.items()}
             probabilities.append(
                 QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
             )
             for metadatum in metadata:
                 metadatum["shots"] = shots
+
         return SamplerResult(probabilities, metadata)
 
     def _transpile(self):
@@ -190,14 +182,17 @@ class BackendSampler(BaseSampler):
         if self._bound_pass_manager is None:
             return circuits
         else:
-            return cast("list[QuantumCircuit]", self._bound_pass_manager.run(circuits))
+            output = self._bound_pass_manager.run(circuits)
+            if not isinstance(output, list):
+                output = [output]
+            return output
 
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))

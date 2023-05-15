@@ -172,9 +172,8 @@ def generate_preset_pass_manager(
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler.
         unitary_synthesis_method (str): The name of the unitary synthesis
-            method to use. By default 'default' is used, which is the only
-            method included with qiskit. If you have installed any unitary
-            synthesis plugins you can use the name exported by the plugin.
+            method to use. By default ``'default'`` is used. You can see a list of
+            installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary
@@ -219,27 +218,27 @@ def generate_preset_pass_manager(
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
 
-    pm_options = dict(
-        target=target,
-        basis_gates=basis_gates,
-        inst_map=inst_map,
-        coupling_map=coupling_map,
-        instruction_durations=instruction_durations,
-        backend_properties=backend_properties,
-        timing_constraints=timing_constraints,
-        layout_method=layout_method,
-        routing_method=routing_method,
-        translation_method=translation_method,
-        scheduling_method=scheduling_method,
-        approximation_degree=approximation_degree,
-        seed_transpiler=seed_transpiler,
-        unitary_synthesis_method=unitary_synthesis_method,
-        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-        initial_layout=initial_layout,
-        hls_config=hls_config,
-        init_method=init_method,
-        optimization_method=optimization_method,
-    )
+    pm_options = {
+        "target": target,
+        "basis_gates": basis_gates,
+        "inst_map": inst_map,
+        "coupling_map": coupling_map,
+        "instruction_durations": instruction_durations,
+        "backend_properties": backend_properties,
+        "timing_constraints": timing_constraints,
+        "layout_method": layout_method,
+        "routing_method": routing_method,
+        "translation_method": translation_method,
+        "scheduling_method": scheduling_method,
+        "approximation_degree": approximation_degree,
+        "seed_transpiler": seed_transpiler,
+        "unitary_synthesis_method": unitary_synthesis_method,
+        "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
+        "initial_layout": initial_layout,
+        "hls_config": hls_config,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
+    }
 
     if backend is not None:
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)

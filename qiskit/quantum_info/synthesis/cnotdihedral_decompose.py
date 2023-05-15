@@ -13,13 +13,17 @@
 Circuit synthesis for the CNOTDihedral class.
 """
 
-import warnings
 from qiskit.synthesis.cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    additional_msg="Instead, use the function qiskit.synthesis.synth_cnotdihedral_full.",
+    since="0.23.0",
+)
 def decompose_cnotdihedral(elem):
     """DEPRECATED: Decompose a CNOTDihedral element into a QuantumCircuit.
 
@@ -38,15 +42,6 @@ def decompose_cnotdihedral(elem):
     """
 
     num_qubits = elem.num_qubits
-
-    warnings.warn(
-        "The decompose_cnotdihedral function is deprecated as of Qiskit Terra 0.23.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use qiskit.synthesis.synth_cnotdihedral_full function instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
     if num_qubits < 3:
         return synth_cnotdihedral_two_qubits(elem)
 

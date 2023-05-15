@@ -12,7 +12,9 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from typing import Callable, Dict, Set, Union
+
+from __future__ import annotations
+from typing import Callable, Union
 
 import numbers
 import operator
@@ -33,7 +35,7 @@ class ParameterExpression:
 
     __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
 
-    def __init__(self, symbol_map: Dict, expr):
+    def __init__(self, symbol_map: dict, expr):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -48,15 +50,15 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._name_map = None
+        self._name_map: dict | None = None
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
         return self._parameters
 
     @property
-    def _names(self) -> Dict:
+    def _names(self) -> dict:
         """Returns a mapping of parameter names to Parameters in the expression."""
         if self._name_map is None:
             self._name_map = {p.name: p for p in self._parameters}
@@ -91,7 +93,7 @@ class ParameterExpression:
         return self.bind({parameter: value})
 
     def bind(
-        self, parameter_values: Dict, allow_unknown_parameters: bool = False
+        self, parameter_values: dict, allow_unknown_parameters: bool = False
     ) -> "ParameterExpression":
         """Binds the provided set of parameters to their corresponding values.
 
@@ -147,7 +149,7 @@ class ParameterExpression:
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
     def subs(
-        self, parameter_map: Dict, allow_unknown_parameters: bool = False
+        self, parameter_map: dict, allow_unknown_parameters: bool = False
     ) -> "ParameterExpression":
         """Returns a new Expression with replacement Parameters.
 
@@ -535,11 +537,10 @@ class ParameterExpression:
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
             if _optionals.HAS_SYMENGINE:
-                if symbol_expr.imag != 0.0:
-                    return False
-            else:
-                return False
-        return True
+                if symbol_expr.imag == 0.0:
+                    return True
+            return False
+        return symbol_expr.is_real
 
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.

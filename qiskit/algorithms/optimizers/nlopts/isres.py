@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Improved Stochastic Ranking Evolution Strategy optimizer. """
+"""Improved Stochastic Ranking Evolution Strategy optimizer."""
 
 from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 
