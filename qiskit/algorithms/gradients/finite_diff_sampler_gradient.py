@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 
-import sys
 from collections import defaultdict
+from typing import Literal, Sequence
 
 import numpy as np
 
@@ -27,12 +27,6 @@ from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
 
 from ..exceptions import AlgorithmError
-
-if sys.version_info >= (3, 8):
-    # pylint: disable=ungrouped-imports
-    from typing import Literal, Sequence
-else:
-    from typing_extensions import Literal
 
 
 class FiniteDiffSamplerGradient(BaseSamplerGradient):

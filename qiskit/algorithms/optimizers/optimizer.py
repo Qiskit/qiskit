@@ -18,19 +18,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from enum import IntEnum
 import logging
-import sys
-from typing import Any, Union
+from typing import Any, Union, Protocol
 
 import numpy as np
 import scipy
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult
-
-if sys.version_info >= (3, 8):
-    # pylint: disable=ungrouped-imports
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
 
 logger = logging.getLogger(__name__)
 
