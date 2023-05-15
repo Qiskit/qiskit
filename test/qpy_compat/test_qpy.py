@@ -333,7 +333,7 @@ def generate_evolution_gate():
     from qiskit.quantum_info import SparsePauliOp
 
     synthesis = SuzukiTrotter()
-    op = SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)])
+    op = SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)])
     evo = PauliEvolutionGate([op] * 5, time=2.0, synthesis=synthesis)
     qc = QuantumCircuit(2, name="pauli_evolution_circuit")
     qc.append(evo, range(2))
