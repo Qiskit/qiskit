@@ -23,17 +23,17 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-algorithms/           @Qiskit/terra-core @woodsp-ibm @ElePT
-opflow/               @Qiskit/terra-core @woodsp-ibm @ikkoham
-qiskit/utils/         @Qiskit/terra-core @woodsp-ibm
-providers/            @Qiskit/terra-core @jyu00
-quantum_info/         @Qiskit/terra-core @ikkoham
-qpy/                  @Qiskit/terra-core
-pulse/                @Qiskit/terra-core @eggerdj @wshanks
-synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion
-scheduler/            @Qiskit/terra-core @eggerdj @wshanks
-visualization/        @Qiskit/terra-core @nonhermitian
-primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
-# Override the release notes directories to have _no_ code owners, so any review
+algorithms/           @Qiskit/terra-core @failure132
+opflow/               @Qiskit/terra-core @failure132
+qiskit/utils/         @Qiskit/terra-core @failure132
+providers/            @Qiskit/terra-core @failure132
+quantum_info/         @Qiskit/terra-core @failure132
+qpy/                  @Qiskit/terra-core @failure132
+pulse/                @Qiskit/terra-core @failure132
+synthesis/            @Qiskit/terra-core @failure132
+scheduler/            @Qiskit/terra-core @failure132
+visualization/        @Qiskit/terra-core @failure132
+primitives/           @Qiskit/terra-core @failure132
+# Override the release notes directories to have _1_ code owners, so any review
 # from somebody with write access is acceptable.
 /releasenotes/notes
