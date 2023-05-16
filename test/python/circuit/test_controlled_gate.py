@@ -610,9 +610,8 @@ class TestControlledGate(QiskitTestCase):
         """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3
-        qc = QuantumCircuit(num_ctrls + 1)
         ry_matrix = RYGate(theta).to_matrix()
-        _mcsu2_real_diagonal(qc, ry_matrix, list(range(num_ctrls)), num_ctrls)
+        qc = _mcsu2_real_diagonal(ry_matrix, num_ctrls)
 
         mcry_matrix = _compute_control_matrix(ry_matrix, 6)
         self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
@@ -656,6 +655,11 @@ class TestControlledGate(QiskitTestCase):
             for idx, bit in enumerate(bitstr):
                 if bit == "0":
                     qc.x(q_controls[idx])
+
+            if use_basis_gates:
+                with self.subTest(msg="check only basis gates used"):
+                    gates_used = set(qc.count_ops().keys())
+                    self.assertTrue(gates_used.issubset({"x", "u", "p", "cx"}))
 
             backend = BasicAer.get_backend("unitary_simulator")
             simulated = execute(qc, backend).result().get_unitary(qc)
