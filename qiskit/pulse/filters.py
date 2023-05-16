@@ -26,6 +26,18 @@ from qiskit.pulse.exceptions import PulseError
 
 @singledispatch
 def filter_instructions(
+    sched, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
+):
+    """A catch-TypeError function which will only get called if none of the other decorated
+    functions, namely handle_schedule() and handle_scheduleblock(), handle the type passed.
+    """
+    raise TypeError(
+        f"Type '{type(sched)}' is not valid data format as an input to filter_instructions."
+    )
+
+
+@filter_instructions.register
+def handle_schedule(
     sched: Schedule, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
 ) -> Schedule:
     """A filtering function that takes a schedule and returns a schedule consisting of
@@ -65,7 +77,7 @@ def filter_instructions(
 
 
 @filter_instructions.register
-def _(
+def handle_scheduleblock(
     sched_blk: ScheduleBlock,
     filters: List[Callable],
     negate: bool = False,
@@ -163,11 +175,20 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
     channels = _if_scalar_cast_to_list(channels)
 
     @singledispatch
-    def channel_filter(time_inst) -> bool:
+    def channel_filter(time_inst):
+        """A catch-TypeError function which will only get called if none of the other decorated
+        functions, namely handle_numpyndarray() and handle_instruction(), handle the type passed.
+        """
+        raise TypeError(
+            f"Type '{type(time_inst)}' is not valid data format as an input to channel_filter."
+        )
+
+    @channel_filter.register
+    def handle_numpyndarray(time_inst: np.ndarray) -> bool:
         """Filter channel.
 
         Args:
-            time_inst (Tuple[int, Instruction]): Time
+            time_inst (numpy.ndarray([int, Instruction])): Time
 
         Returns:
             If instruction matches with condition.
@@ -175,11 +196,11 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
         return any(chan in channels for chan in time_inst[1].channels)
 
     @channel_filter.register
-    def _(inst: Instruction) -> bool:
+    def handle_instruction(inst: Instruction) -> bool:
         """Filter channel.
 
         Args:
-            inst (Instruction)
+            inst: Instruction
 
         Returns:
             If instruction matches with condition.
@@ -202,10 +223,19 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
 
     @singledispatch
     def instruction_filter(time_inst) -> bool:
+        """A catch-TypeError function which will only get called if none of the other decorated
+        functions, namely handle_numpyndarray() and handle_instruction(), handle the type passed.
+        """
+        raise TypeError(
+            f"Type '{type(time_inst)}' is not valid data format as an input to instruction_filter."
+        )
+
+    @instruction_filter.register
+    def handle_numpyndarray(time_inst: np.ndarray) -> bool:
         """Filter instruction.
 
         Args:
-            time_inst (Tuple[int, Instruction]): Time
+            time_inst (numpy.ndarray([int, Instruction])): Time
 
         Returns:
             If instruction matches with condition.
@@ -213,11 +243,11 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
         return isinstance(time_inst[1], tuple(types))
 
     @instruction_filter.register
-    def _(inst: Instruction) -> bool:
+    def handle_instruction(inst: Instruction) -> bool:
         """Filter instruction.
 
         Args:
-            inst (Instruction)
+            inst: Instruction
 
         Returns:
             If instruction matches with condition.
