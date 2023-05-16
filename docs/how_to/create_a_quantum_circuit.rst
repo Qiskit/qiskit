@@ -11,7 +11,7 @@ There are two ways to create a :class:`~.QuantumCircuit` object:
 2. Creating :class:`~.QuantumRegister`\ s and :class:`~.ClassicalRegister`\ s and use the registers to initialize a :class:`~.QuantumCircuit`
 
 Specifying the number of qubits and classical bits
-=====================================
+==================================================
 
 You can create a :class:`~.QuantumCircuit` by only specifying the number of qubits and classical bits. For example:
 
