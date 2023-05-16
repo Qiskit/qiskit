@@ -26,7 +26,7 @@ rustworkx-core = "0.12"
 # can be done in the workspace and inherited once we hit Rust 1.64.
 [dependencies.pyo3]
 version = "0.18.3"
-features = ["extension-module", "hashbrown", "indexmap", "num-complex", "num-bigint"]
+features = ["extension-module", "hashbrown", "indexmap", "num-complex", "num-bigint", "abi3"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
