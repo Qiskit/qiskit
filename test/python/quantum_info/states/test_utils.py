@@ -59,8 +59,8 @@ class TestStateUtils(QiskitTestCase):
         """Test schmidt_decomposition function"""
 
         # separable 2-level system without subsystem permutation
-        target = Statevector.from_label("10l")
-        schmidt_comps = schmidt_decomposition(Statevector.from_label("10l"), [0])
+        target = Statevector.from_label("l10")
+        schmidt_comps = schmidt_decomposition(target, [0])
         state = Statevector(sum(suv[0] * np.kron(suv[1], suv[2]) for suv in schmidt_comps))
         self.assertEqual(state, target)
 
