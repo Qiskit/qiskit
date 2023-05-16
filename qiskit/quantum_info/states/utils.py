@@ -20,6 +20,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.operators.channel import SuperOp
+from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 
 
 def partial_trace(state, qargs):
@@ -124,13 +125,13 @@ def schmidt_decomposition(state, qargs):
     For an arbitrary bipartite state::
 
     .. math::
-         |\psi\rangle_{AB} = \sum_{j,i} c_{ji}
-                             |x_j\rangle_A \otimes |y_i\rangle_B,
+         |\psi\rangle_{AB} = \sum_{i,j} c_{ij}
+                             |x_i\rangle_A \otimes |y_j\rangle_B,
 
     its Schmidt Decomposition is given by the single-index sum over k:
 
     .. math::
-        |\psi\rangle_{AB} = \sum_{k} \lambda_{k} 
+        |\psi\rangle_{AB} = \sum_{k} \lambda_{k}
                             |u_k\rangle_A \otimes |v_k\rangle_B
 
     where :math:`|u_k\rangle_A` and :math:`|v_k\rangle_B` are an
@@ -139,7 +140,7 @@ def schmidt_decomposition(state, qargs):
 
     Args:
         state (Statevector or DensityMatrix): the input state.
-        qargs (list): The list of Input state positions corresponding to subsystem :math:`B`.
+        qargs (list): the list of Input state positions corresponding to subsystem :math:`B`.
 
     Returns:
         list: list of tuples ``(s, u, v)``, where ``s`` (float) are the
@@ -152,6 +153,8 @@ def schmidt_decomposition(state, qargs):
         QiskitError: if Input qargs is not a proper subset of Input state.
     """
     state = _format_state(state, validate=False)
+
+    # convert to statevector if state is density matrix. Errors if state is mixed.
     if isinstance(state, DensityMatrix):
         state = state.to_statevector()
 
@@ -176,7 +179,7 @@ def schmidt_decomposition(state, qargs):
     ndim_a = np.prod(dims_a)
     ndim_b = np.prod(dims_b)
 
-    # Permute state for desired qargs order
+    # permute state for desired qargs order
     qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_a + qargs_b][::-1]
     state_tens = state_tens.transpose(qargs_axes)
 
@@ -184,10 +187,13 @@ def schmidt_decomposition(state, qargs):
     state_mat = state_tens.reshape([ndim_a, ndim_b])
     u_mat, s_arr, vh_mat = np.linalg.svd(state_mat, full_matrices=False)
 
-    return [
+    schmidt_components = [
         (s, Statevector(u, dims=dims_a), Statevector(v, dims=dims_b))
         for s, u, v in zip(s_arr, u_mat.T, vh_mat)
+        if s > ATOL_DEFAULT
     ]
+
+    return schmidt_components
 
 
 def _format_state(state, validate=True):
