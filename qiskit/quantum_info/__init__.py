@@ -171,6 +171,7 @@ from .states import (
     mutual_information,
     partial_trace,
     purity,
+    schmidt_decomposition,
     shannon_entropy,
     state_fidelity,
 )
