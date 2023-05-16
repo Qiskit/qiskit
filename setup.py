@@ -108,10 +108,14 @@ setup(
             "crates/accelerate/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
-            py_limited_api=True
+            py_limited_api=True,
         ),
         RustExtension(
-            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug, py_limited_api=True
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
+            py_limited_api=True,
         ),
     ],
     zip_safe=False,
