@@ -223,7 +223,7 @@ class LinearFunction(Gate):
 
     @property
     def linear(self):
-        """Returns the n x n matrix representing this linear function"""
+        """Returns the n x n matrix representing this linear function."""
         return self.params[0]
 
     @property
@@ -273,3 +273,28 @@ class LinearFunction(Gate):
             extended_mat[positions, pos] = self.linear[:, i]
 
         return LinearFunction(extended_mat)
+
+    def mat_str(self):
+        """Return string representation of the linear function
+        viewed as a matrix with 0/1 entries.
+        """
+        return str(self.linear.astype(int))
+
+    def function_str(self):
+        """Return string representation of the linear function
+        viewed as a linear transformation.
+        """
+        out = "("
+        mat = self.linear
+        for row in range(self.num_qubits):
+            first_entry = True
+            for col in range(self.num_qubits):
+                if mat[row, col]:
+                    if not first_entry:
+                        out += " + "
+                    out += "x_" + str(col)
+                    first_entry = False
+            if row != self.num_qubits - 1:
+                out += ", "
+        out += ")\n"
+        return out
