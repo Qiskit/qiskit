@@ -23,6 +23,14 @@ environment = 'RUSTUP_TOOLCHAIN="stable"'
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
 
+[tool.ruff]
+select = [
+       "F631",
+       "F632",
+       "F634",
+       "F823",
+]
+
 [tool.pylint.main]
 extension-pkg-allow-list = [
     "numpy",
