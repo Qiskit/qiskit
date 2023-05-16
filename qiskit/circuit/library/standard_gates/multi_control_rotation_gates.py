@@ -252,12 +252,12 @@ def mcrx(
             use_basis_gates=use_basis_gates,
         )
     else:
-        mcrx = _mcsu2_real_diagonal(
+        cgate = _mcsu2_real_diagonal(
             RXGate(theta).to_matrix(),
             num_controls=len(control_qubits),
             use_basis_gates=use_basis_gates,
         )
-        self.compose(mcrx, control_qubits + [target_qubit], inplace=True)
+        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
 
 def mcry(
@@ -327,12 +327,12 @@ def mcry(
                 use_basis_gates=use_basis_gates,
             )
         else:
-            mcry = _mcsu2_real_diagonal(
+            cgate = _mcsu2_real_diagonal(
                 RYGate(theta).to_matrix(),
                 num_controls=len(control_qubits),
                 use_basis_gates=use_basis_gates,
             )
-            self.compose(mcry, control_qubits + [target_qubit], inplace=True)
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
     else:
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
@@ -377,12 +377,12 @@ def mcrz(
         else:
             self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
-        mcrz = _mcsu2_real_diagonal(
+        cgate = _mcsu2_real_diagonal(
             RZGate(lam).to_matrix(),
             num_controls=len(control_qubits),
             use_basis_gates=use_basis_gates,
         )
-        self.compose(mcrz, control_qubits + [target_qubit], inplace=True)
+        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
 
 QuantumCircuit.mcrx = mcrx
