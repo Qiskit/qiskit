@@ -163,13 +163,7 @@ which supports a rich feature set of operations and can send your circuits to a 
 With only a few lines of code, it is possible to construct complex circuits like the
 one above.
 
-.. jupyter-execute::
-   :hide-code:
-
-   from qiskit import *
-
-.. jupyter-execute::
-   :hide-output:
+.. code-block:: python
 
    qr = QuantumRegister(3, 'q')
    cr = ClassicalRegister(2, 'zx_meas')
