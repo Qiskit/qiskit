@@ -118,7 +118,7 @@ def qs_decomposition(
         right_circ = _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(right_circ.to_instruction(), qr)
 
-    if opt_a2 and _depth == 0:
+    if opt_a2 and _depth == 0 and dim >= 4:
         return _apply_a2(circ)
     return circ
 

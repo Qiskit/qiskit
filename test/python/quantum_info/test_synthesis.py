@@ -1542,6 +1542,11 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             ccirc.count_ops().get("cx"), (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3
         )
 
+    def test_1q_decomposition(self):
+        """Test decomposition of single qubit matrix"""
+        mat = np.array([[0, 1], [1, 0]])
+        circ = self.qsd(mat)
+        self.assertEqual(Operator(mat), Operator(circ))
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
     """test TwoQubitDecomposeUpToDiagonal class"""
