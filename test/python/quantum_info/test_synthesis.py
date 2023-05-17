@@ -1548,6 +1548,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         circ = self.qsd(mat)
         self.assertEqual(Operator(mat), Operator(circ))
 
+
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
     """test TwoQubitDecomposeUpToDiagonal class"""
 
