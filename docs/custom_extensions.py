@@ -19,37 +19,29 @@ import tempfile
 import warnings
 from distutils import dir_util
 
-# Elements with api doc sources
-qiskit_elements = ["qiskit-terra"]
 apidocs_exists = False
 apidocs_master = None
 
 
 def _get_current_versions(app):
-    versions = {}
     setup_py_path = os.path.join(os.path.dirname(app.srcdir), "setup.py")
     with open(setup_py_path, "r") as fd:
         setup_py = fd.read()
-        for package in qiskit_elements:
-            version_regex = re.compile(package + '[=|>]=(.*)"')
-            match = version_regex.search(setup_py)
-            if match:
-                ver = match[1]
-                versions[package] = ver
-    return versions
+    version_regex = re.compile("qiskit-terra" + '[=|>]=(.*)"')
+    match = version_regex.search(setup_py)
+    return match[1]
 
 
 def _install_from_master():
-    for package in qiskit_elements + ["qiskit-ignis"]:
-        github_url = "git+https://github.com/Qiskit/%s" % package
-        cmd = [sys.executable, "-m", "pip", "install", "-U", github_url]
-        subprocess.run(cmd)
+    github_url = "git+https://github.com/Qiskit/qiskit-terra"
+    cmd = [sys.executable, "-m", "pip", "install", "-U", github_url]
+    subprocess.run(cmd)
 
 
-def _git_copy(package, sha1, meta_package_docs_dir, sub_package_docs_folder):
+def _git_copy(sha1, meta_package_docs_dir, sub_package_docs_folder):
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
-            github_source = "https://github.com/Qiskit/%s" % package
+            github_source = "https://github.com/Qiskit/qiskit-terra"
             subprocess.run(["git", "clone", github_source, temp_dir], capture_output=True)
             subprocess.run(["git", "checkout", sha1], cwd=temp_dir, capture_output=True)
             dir_util.copy_tree(
@@ -58,7 +50,7 @@ def _git_copy(package, sha1, meta_package_docs_dir, sub_package_docs_folder):
 
     except FileNotFoundError:
         warnings.warn(
-            "Copy from git failed for %s at %s, skipping..." % (package, sha1), RuntimeWarning
+            f"Copy from git failed for qiskit-terra at {sha1}, skipping...", RuntimeWarning
         )
 
 
@@ -71,10 +63,8 @@ def load_api_sources(app):
         apidocs_master = tempfile.mkdtemp()
         shutil.move(api_docs_dir, apidocs_master)
         _install_from_master()
-        for package in qiskit_elements:
-            _git_copy(package, "HEAD", api_docs_dir, "apidocs")
-        # pull migration guides from qiskit-terra
-        _git_copy("qiskit-terra", "HEAD", migration_guides_dir, "migration_guides")
+        _git_copy("HEAD", api_docs_dir, "apidocs")
+        _git_copy("HEAD", migration_guides_dir, "migration_guides")
         return
     elif os.path.isdir(api_docs_dir):
         global apidocs_exists
@@ -82,14 +72,9 @@ def load_api_sources(app):
         warnings.warn("docs/apidocs already exists skipping source clone")
         return
 
-    meta_versions = _get_current_versions(app)
-    for package in qiskit_elements:
-        _git_copy(package, meta_versions[package], api_docs_dir, "apidocs")
-
-    # pull migration guides from qiskit-terra
-    _git_copy(
-        "qiskit-terra", meta_versions["qiskit-terra"], migration_guides_dir, "migration_guides"
-    )
+    version = _get_current_versions(app)
+    _git_copy(version, api_docs_dir, "apidocs")
+    _git_copy(version, migration_guides_dir, "migration_guides")
 
 
 def load_tutorials(app):
