@@ -168,6 +168,7 @@ from .states import (
     concurrence,
     entanglement_of_formation,
     entropy,
+    renyi_entropy,
     mutual_information,
     partial_trace,
     purity,
