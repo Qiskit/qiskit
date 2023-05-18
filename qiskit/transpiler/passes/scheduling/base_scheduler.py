@@ -20,6 +20,7 @@ from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from typing import Dict
 
 
 class BaseSchedulerTransform(TransformationPass):
@@ -258,6 +259,7 @@ class BaseSchedulerTransform(TransformationPass):
     @staticmethod
     def _get_node_duration(
         node: DAGOpNode,
+        bit_index_map: Dict,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node or calibration."""

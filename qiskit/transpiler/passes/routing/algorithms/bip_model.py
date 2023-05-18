@@ -86,8 +86,8 @@ class BIPMappingModel:
                 "BIPMappingModel assumes the same size of virtual and physical qubits."
             )
 
-        self._index_to_virtual = dict(enumerate(dag.qubits))
-        self._virtual_to_index = {v: i for i, v in self._index_to_virtual.items()}
+        self._index_to_virtual = {i: dag.find_bit(q) for q in dag.qubits}
+        self._virtual_to_index = {v.index: i for i, v in self._index_to_virtual.items()}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates

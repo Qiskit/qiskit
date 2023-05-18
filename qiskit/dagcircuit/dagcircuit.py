@@ -38,16 +38,11 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
-<<<<<<< HEAD
-from qiskit.utils.deprecation import deprecate_function
 from qiskit.circuit.bit import Bit
+from qiskit.utils.deprecation import deprecate_func
 
 
 BitPosition = namedtuple("BitPosition", ("index", "registers"))
-=======
-from qiskit.utils.deprecation import deprecate_func
->>>>>>> 5323d8f460ed5f1e7b4040feeedd48950de818d6
-
 
 class DAGCircuit:
     """
@@ -96,14 +91,12 @@ class DAGCircuit:
         self.qubits: List[Qubit] = []
         self.clbits: List[Clbit] = []
 
-        # Dict mapping Qubit and Clbit instances to tuple comprised of 0) the
-        # corresponding index in circuit.{qubits,clbits} and 1) a list of
-        # Register-int pairs for each Register containing the Bit and its index
-        # within that register.
+        # Dictionary mapping of Qubit and Clbit instances to a tuple comprised of
+        # 0) corresponding index in dag.{qubits,clbits} and 
+        # 1) a list of Register-int pairs for each Register containing the Bit and 
+        # its index within that register.
         self._qubit_indices: dict[Qubit, BitPosition] = {}
         self._clbit_indices: dict[Clbit, BitPosition] = {}
-        # self._qubit_indices = {}
-        # self._clbit_indices = {}
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -241,11 +234,7 @@ class DAGCircuit:
             self.qubits.append(qubit)
             self._qubit_indices[qubit] = BitPosition(len(self.qubits) - 1, [])
             self._add_wire(qubit)
-        # for qubit in qubits:
-        #     self.qubits.append(qubit)
-        #     index = len(self.qubits) - 1
-        #     self._qubit_indices[qubit] = index
-        #     self._add_wire(qubit)
+       
 
     def add_clbits(self, clbits):
         """Add individual clbit wires."""
@@ -256,16 +245,11 @@ class DAGCircuit:
         if duplicate_clbits:
             raise DAGCircuitError("duplicate clbits %s" % duplicate_clbits)
 
-        # self.clbits.extend(clbits)
+        #self.clbits.extend(clbits)
         for clbit in clbits:
             self.clbits.append(clbit)
             self._clbit_indices[clbit] = BitPosition(len(self.clbits) - 1, [])
             self._add_wire(clbit)
-        # for clbit in clbits:
-        #     index = len(self.clbits) - 1
-        #     self.clbits.append(clbit)
-        #     self._clbit_indices[clbit] = index
-        #     self._add_wire(clbit)
 
 
     def add_qreg(self, qreg):
@@ -283,12 +267,7 @@ class DAGCircuit:
                 self.qubits.append(qreg[j])
                 self._qubit_indices[qreg[j]] = BitPosition(len(self.qubits) - 1, registers=[(qreg, j)])
                 self._add_wire(qreg[j])
-        # for j in range(qreg.size):
-        #     if qreg[j] not in self._qubit_indices:
-        #         index = len(self.qubits)
-        #         self.qubits.append(qreg[j])
-        #         self._qubit_indices[qreg[j]] = index
-        #         self._add_wire(qreg[j])
+
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -305,12 +284,6 @@ class DAGCircuit:
                 self.clbits.append(creg[j])
                 self._clbit_indices[creg[j]] = BitPosition(len(self.clbits) - 1, registers=[(creg, j)])
                 self._add_wire(creg[j])
-        # for j in range(creg.size):
-        #     if creg[j] not in self._clbit_indices:
-        #         index = len(self.clbits)
-        #         self.clbits.append(creg[j])
-        #         self._clbit_indices[creg[j]] = index
-        #         self._add_wire(creg[j])
 
 
     def _add_wire(self, wire):
@@ -339,7 +312,6 @@ class DAGCircuit:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
     def find_bit(self, bit: Bit) -> BitPosition:
-    #def find_bit(self, bit):
         """
         Finds locations in the circuit, by mapping the Qubit and Clbit to positional index
         BitPosition is defined as: BitPosition = namedtuple("BitPosition", ("index", "registers"))
@@ -410,7 +382,6 @@ class DAGCircuit:
         # Update the indices of remaining clbits
         for i, clbit in enumerate(self.clbits):
             self._clbit_indices[clbit] = self._clbit_indices[clbit]._replace(index=i)
-            #self._clbit_indices[clbit] = i
 
     def remove_cregs(self, *cregs):
         """
@@ -433,6 +404,11 @@ class DAGCircuit:
 
         for creg in cregs:
             del self.cregs[creg.name]
+            for j in range(creg.size):
+                bit = creg[j]
+                bit_position = self._clbit_indices[bit]
+                bit_position.registers.remove((creg, j))
+
 
     def remove_qubits(self, *qubits):
         """
@@ -473,7 +449,6 @@ class DAGCircuit:
         # Update the indices of remaining qubits
         for i, qubit in enumerate(self.qubits):
             self._qubit_indices[qubit] = self._qubit_indices[qubit]._replace(index=i)
-            #self._qubit_indices[qubit] = i
 
     def remove_qregs(self, *qregs):
         """
@@ -496,6 +471,11 @@ class DAGCircuit:
 
         for qreg in qregs:
             del self.qregs[qreg.name]
+            for j in range(qreg.size):
+                bit = qreg[j]
+                bit_position = self._qubit_indices[bit]
+                bit_position.registers.remove((qreg, j))
+ 
 
     def _is_wire_idle(self, wire):
         """Check if a wire is idle.
