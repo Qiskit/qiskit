@@ -140,10 +140,18 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
 
 def require_layout_isolated_to_component(
     dag: DAGCircuit, components_source: Union[Target, CouplingMap]
-) -> bool:
-    # TODO: should return something?
-    """Check that the layout of the dag does not require connectivity across connected components
-    in the CouplingMap"""
+):
+    """
+    Check that the layout of the dag does not require connectivity across connected components
+    in the CouplingMap
+
+    Args:
+        dag: DAGCircuit to check.
+        components_source: Target to check against.
+
+    Raises:
+        TranspilerError: Chosen layout is not valid for the target disjoint connectivity.
+    """
     if isinstance(components_source, Target):
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
