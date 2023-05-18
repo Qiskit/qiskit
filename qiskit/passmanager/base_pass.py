@@ -60,7 +60,24 @@ class GenericPass(metaclass=MetaPass):
     def __hash__(self):
         return self._hash
 
+    def __iter__(self):
+        # To avoid normalization overhead.
+        # A pass must be scheduled in iterable format in the pass manager,
+        # which causes serious normalization overhead, since passes can be nested.
+        # This iterator allows the pass manager to treat BasePass and FlowController equally.
+        yield self
+
+    def __len__(self):
+        return 1
+
     def __eq__(self, other):
+        try:
+            if len(other) == 1:
+                # Reference might be List[BasePass] which was conventional representation
+                # of a single base pass in the pass manager.
+                other = next(iter(other))
+        except TypeError:
+            return False
         return hash(self) == hash(other)
 
     def name(self):

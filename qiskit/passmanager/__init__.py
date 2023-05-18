@@ -87,6 +87,7 @@ PropertySet
    :toctree: ../stubs/
 
    PropertySet
+   FuturePropertySet
 
 Exceptions
 ----------
@@ -102,5 +103,5 @@ from .passrunner import BasePassRunner
 from .passmanager import BasePassManager
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
 from .base_pass import GenericPass
-from .propertyset import PropertySet
+from .propertyset import PropertySet, FuturePropertySet
 from .exceptions import PassManagerError

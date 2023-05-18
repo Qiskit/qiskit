@@ -15,14 +15,13 @@ from __future__ import annotations
 import logging
 import time
 from abc import ABC, abstractmethod
-from functools import partial
 from collections.abc import Callable
 from typing import Any
 
 from .base_pass import GenericPass
 from .exceptions import PassManagerError
-from .flow_controllers import FlowController, ConditionalController, DoWhileController
-from .propertyset import PropertySet
+from .flow_controllers import FlowController
+from .propertyset import get_property_set, init_property_set
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +50,6 @@ class BasePassRunner(ABC):
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
         self.working_list = []
-
-        # global property set is the context of the circuit held by the pass manager
-        # as it runs through its scheduled passes. The flow controller
-        # have read-only access (via the fenced_property_set).
-        self.property_set = PropertySet()
 
         # passes already run that have not been invalidated
         self.valid_passes = set()
@@ -137,6 +131,10 @@ class BasePassRunner(ABC):
             TypeError: When IR type changed during transformation.
         """
         if isinstance(pass_sequence, GenericPass):
+            # Allow mutation of property set by base pass.
+            # This binds original property set in the thread local storage.
+            pass_sequence.property_set = get_property_set()
+
             # First, do the requirements of this pass
             for required_pass in pass_sequence.requires:
                 passmanager_ir = self._run_pass_generic(
@@ -161,7 +159,7 @@ class BasePassRunner(ABC):
                         pass_=pass_sequence,
                         passmanager_ir=passmanager_ir,
                         time=run_time,
-                        property_set=self.property_set,
+                        property_set=get_property_set(),
                         count=self.count,
                     )
                     self.count += 1
@@ -175,17 +173,6 @@ class BasePassRunner(ABC):
             return passmanager_ir
 
         if isinstance(pass_sequence, FlowController):
-            # This will be removed in followup PR. Code is temporary.
-            fenced_property_set = getattr(self, "fenced_property_set")
-
-            if isinstance(pass_sequence, ConditionalController) and not isinstance(
-                pass_sequence.condition, partial
-            ):
-                pass_sequence.condition = partial(pass_sequence.condition, fenced_property_set)
-            if isinstance(pass_sequence, DoWhileController) and not isinstance(
-                pass_sequence.do_while, partial
-            ):
-                pass_sequence.do_while = partial(pass_sequence.do_while, fenced_property_set)
             for pass_ in pass_sequence:
                 passmanager_ir = self._run_pass_generic(
                     pass_sequence=pass_,
@@ -230,6 +217,9 @@ class BasePassRunner(ABC):
 
         passmanager_ir = self._to_passmanager_ir(in_program)
         del in_program
+
+        # Create property set in current thread.
+        init_property_set()
 
         for controller in self.working_list:
             passmanager_ir = self._run_pass_generic(

@@ -16,12 +16,12 @@ import inspect
 import io
 import re
 from functools import wraps
-from collections.abc import Iterator, Iterable, Callable, Sequence
+from collections.abc import Iterator, Iterable, Callable
 from typing import Union, List, Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.passmanager import BasePassManager
-from qiskit.passmanager.flow_controllers import PassSequence, FlowController
+from qiskit.passmanager.flow_controllers import PassSequence
 from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
@@ -48,8 +48,11 @@ class PassManager(BasePassManager):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        super().__init__(passes, max_iteration)
         self.property_set = None
+
+        # For backward compatibility.
+        self._pass_sets = []
+        super().__init__(passes, max_iteration)
 
     def append(
         self,
@@ -85,6 +88,14 @@ class PassManager(BasePassManager):
             self.max_iteration = max_iteration
         super().append(passes, **flow_controller_conditions)
 
+        # Backward compatibility as of Terra 0.25
+        self._pass_sets.append(
+            {
+                "passes": passes,
+                "flow_controllers": flow_controller_conditions,
+            }
+        )
+
     def replace(
         self,
         index: int,
@@ -100,14 +111,52 @@ class PassManager(BasePassManager):
                 to be added to the pass manager schedule.
             max_iteration: max number of iterations of passes.
             flow_controller_conditions: control flow plugins.
-
-        Raises:
-            TranspilerError: if a pass in passes is not a proper pass or index not found.
         """
         if max_iteration:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
         super().replace(index, passes, **flow_controller_conditions)
+
+        # Backward compatibility as of Terra 0.25
+        self._pass_sets[index] = {
+            "passes": passes,
+            "flow_controllers": flow_controller_conditions,
+        }
+
+    def remove(self, index: int) -> None:
+        """Removes a particular pass in the scheduler.
+
+        Args:
+            index: Pass index to replace, based on the position in passes().
+
+        Raises:
+            TranspilerError: if the index is not found.
+        """
+        super().remove(index)
+
+        # Backward compatibility as of Terra 0.25
+        del self._pass_sets[index]
+
+    def __getitem__(self, index):
+        new_passmanager = super().__getitem__(index)
+
+        # Backward compatibility as of Terra 0.25
+        _pass_sets = self._pass_sets[index]
+        if isinstance(_pass_sets, dict):
+            _pass_sets = [_pass_sets]
+        new_passmanager._pass_sets = _pass_sets
+        return new_passmanager
+
+    def __add__(self, other):
+        new_passmanager = super().__add__(other)
+
+        # Backward compatibility as of Terra 0.25
+        if isinstance(other, self.__class__):
+            new_passmanager._pass_sets = self._pass_sets
+            new_passmanager._pass_sets += other._pass_sets
+
+        # When other is not identical type, _pass_sets is also evaluated by self.append.
+        return new_passmanager
 
     # pylint: disable=arguments-differ
     def run(
@@ -157,19 +206,14 @@ class PassManager(BasePassManager):
             output_name=output_name,
         )
 
-    def _create_running_passmanager(self) -> RunningPassManager:
-        running_passmanager = self.PASS_RUNNER(self.max_iteration)
-        for pass_set in self._pass_sets:
-            running_passmanager.append(pass_set["passes"], **pass_set["flow_controllers"])
-        return running_passmanager
-
+    # pylint: disable=signature-differs
     def _run_single_circuit(
         self,
-        input_program: QuantumCircuit,
-        callback: Callable | None = None,
+        pass_runner: RunningPassManager,
+        input_program: Any,
+        callback: Callable,
         **metadata,
     ) -> QuantumCircuit:
-        pass_runner = self._create_running_passmanager()
         out_program = pass_runner.run(input_program, callback=callback, **metadata)
         # Store property set of pass runner for backward compatibility
         self.property_set = pass_runner.property_set
@@ -217,19 +261,6 @@ class PassManager(BasePassManager):
                 item["flow_controllers"] = {}
             ret.append(item)
         return ret
-
-    def to_flow_controller(self) -> FlowController:
-        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
-        inside another :class:`.PassManager`."""
-        return FlowController.controller_factory(
-            [
-                FlowController.controller_factory(
-                    pass_set["passes"], None, **pass_set["flow_controllers"]
-                )
-                for pass_set in self._pass_sets
-            ],
-            None,
-        )
 
 
 class StagedPassManager(PassManager):
@@ -354,10 +385,12 @@ class StagedPassManager(PassManager):
             yield "post_" + stage
 
     def _update_passmanager(self) -> None:
+        self._flow_controllers = []
         self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
+                self._flow_controllers.extend(pm._flow_controllers)
                 self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
@@ -369,7 +402,7 @@ class StagedPassManager(PassManager):
 
     def append(
         self,
-        passes: BasePass | Sequence[BasePass | FlowController],
+        passes: PassSequence,
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -394,6 +427,7 @@ class StagedPassManager(PassManager):
         # Do not inherit from the PassManager, i.e. super()
         # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
+        new_passmanager._flow_controllers = [self._flow_controllers[index]]
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]

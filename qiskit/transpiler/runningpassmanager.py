@@ -15,21 +15,27 @@ This object holds the state of a pass manager during running-time."""
 from __future__ import annotations
 import logging
 import inspect
-from functools import partial, wraps
+from functools import wraps
 from typing import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import BasePassRunner
+
+# pylint: disable=unused-import
 from qiskit.passmanager.flow_controllers import (
     PassSequence,
     FlowController,
-    DoWhileController,
+    # for backward compatibility
     ConditionalController,
+    DoWhileController,
+    FlowControllerLinear,
 )
+from qiskit.passmanager.propertyset import get_property_set
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.transpiler.basepasses import BasePass
+from qiskit.utils.deprecation import deprecate_func
 from .exceptions import TranspilerError
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .layout import TranspileLayout
@@ -44,15 +50,24 @@ class RunningPassManager(BasePassRunner):
     OUT_PROGRAM_TYPE = QuantumCircuit
     IR_TYPE = DAGCircuit
 
-    def __init__(self, max_iteration: int):
-        """Initialize an empty PassManager object (with no passes scheduled).
+    @property
+    def property_set(self):
+        """Property set of this running pass manager."""
+        return get_property_set()
 
-        Args:
-            max_iteration: The schedule looping iterates until the condition is met or until
-                max_iteration is reached.
-        """
-        super().__init__(max_iteration)
-        self.fenced_property_set = FencedPropertySet(self.property_set)
+    @property
+    @deprecate_func(
+        since="0.25",
+        pending=True,
+        additional_msg=(
+            "Property set binding to flow controllers is now managed by the "
+            "flow controller itself. This property is no longer used."
+        ),
+        is_property=True,
+    )
+    def fenced_property_set(self):
+        """Fenced property set of this running pass manager."""
+        return FencedPropertySet(get_property_set())
 
     def append(
         self,
@@ -74,26 +89,15 @@ class RunningPassManager(BasePassRunner):
                   callable returns True.
                   Default: `lambda x: True # i.e. passes run`
         """
-        # attaches the property set to the controller so it has access to it.
-        if isinstance(passes, ConditionalController):
-            passes.condition = partial(passes.condition, self.fenced_property_set)
-        elif isinstance(passes, DoWhileController):
-            if not isinstance(passes.do_while, partial):
-                passes.do_while = partial(passes.do_while, self.fenced_property_set)
-        else:
-            flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
-            passes = FlowController.controller_factory(
-                passes, self.passmanager_options, **flow_controller_conditions
-            )
-        super().append(passes)
-
-    def _normalize_flow_controller(self, flow_controller):
-        for name, param in flow_controller.items():
-            if callable(param):
-                flow_controller[name] = partial(param, self.fenced_property_set)
-            else:
-                raise TranspilerError("The flow controller parameter %s is not callable" % name)
-        return flow_controller
+        # Backward compatibility.
+        # Appended passes to the pass runner subclass is normalized by the pass manager,
+        # unless this API is directly called by end-users.
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options=self.passmanager_options,
+            **flow_controller_conditions,
+        )
+        super().append(normalized_flow_controller)
 
     def _to_passmanager_ir(self, in_program: QuantumCircuit) -> DAGCircuit:
         if not isinstance(in_program, QuantumCircuit):
@@ -107,21 +111,23 @@ class RunningPassManager(BasePassRunner):
         circuit = dag_to_circuit(passmanager_ir, copy_operations=False)
         circuit.name = self.metadata["output_name"]
 
-        if self.property_set["layout"] is not None:
-            circuit._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
-            )
-        circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
-        circuit._conditional_latency = self.property_set["conditional_latency"]
+        property_set = get_property_set()
 
-        if self.property_set["node_start_time"]:
+        if property_set["layout"] is not None:
+            circuit._layout = TranspileLayout(
+                initial_layout=property_set["layout"],
+                input_qubit_mapping=property_set["original_qubit_indices"],
+                final_layout=property_set["final_layout"],
+            )
+        circuit._clbit_write_latency = property_set["clbit_write_latency"]
+        circuit._conditional_latency = property_set["conditional_latency"]
+
+        if property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
             # also converted into list with the same ordering with circuit.data.
             topological_start_times = []
-            start_times = self.property_set["node_start_time"]
+            start_times = property_set["node_start_time"]
             for dag_node in passmanager_ir.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
             circuit._op_start_times = topological_start_times
@@ -170,8 +176,6 @@ class RunningPassManager(BasePassRunner):
             TranspilerError: When transform pass returns non DAGCircuit.
             TranspilerError: When pass is neither transform pass nor analysis pass.
         """
-        pass_.property_set = self.property_set
-
         if pass_.is_transformation_pass:
             # Measure time if we have a callback or logging set
             new_dag = pass_.run(passmanager_ir)

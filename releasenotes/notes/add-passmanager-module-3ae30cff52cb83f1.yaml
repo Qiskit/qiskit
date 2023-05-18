@@ -10,6 +10,13 @@ features:
     The :mod:`qiskit.transpiler` module is also reorganized to rebuild the existing
     quantum circuit pass manager based off of new generic pass manager.
     See upgrade notes for more details.
+  - |
+    Flow controllers conditioned on the :class:`~qiskit.passmanager.PropertySet` can be
+    instantiated without binding to a particular :class:`qiskit.passmanager.BasePassRunner`
+    instance. You can partial bind :class:`~qiskit.passmanager.FuturePropertySet`
+    to a callable instead of :class:`~qiskit.transpiler.FencedPropertySet`.
+    New FuturePropertySet class returns a handler to the property set that defined
+    in the thread that the flow controller will be evaluated.
 upgrade:
   - |
     :class:`qiskit.transpiler.PassManager` is now a subclass of
@@ -24,3 +31,6 @@ upgrade:
     because of their class hierarchy. For backward compatibility,
     :class:`qiskit.transpiler.PassManager` catches PassManagerError and
     re-raises the TranspilerError. This error replacement will be dropped in future.
+  - |
+    Pass manager base pass :class:`~qiskit.passmanager.GenericPass` becomes
+    an iterable of length 1 by itself for simplification of the internal logic.

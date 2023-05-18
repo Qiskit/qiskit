@@ -19,7 +19,6 @@ import logging
 import dill
 from qiskit.tools.parallel import parallel_map
 
-from .base_pass import GenericPass
 from .passrunner import BasePassRunner
 from .exceptions import PassManagerError
 from .flow_controllers import FlowController, PassSequence
@@ -44,9 +43,7 @@ class BasePassManager(ABC):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.append().
-        self._pass_sets: list[dict[str, Any]] = []
+        self._flow_controllers: list[FlowController] = []
         self.max_iteration = max_iteration
 
         if passes is not None:
@@ -76,8 +73,12 @@ class BasePassManager(ABC):
                   callable returns True.
                   Default: `lambda x: True # i.e. passes run`
         """
-        passes = self._normalize_passes(passes)
-        self._pass_sets.append({"passes": passes, "flow_controllers": flow_controller_conditions})
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options={"max_iteration": self.max_iteration},
+            **flow_controller_conditions,
+        )
+        self._flow_controllers.append(normalized_flow_controller)
 
     def replace(
         self,
@@ -96,13 +97,13 @@ class BasePassManager(ABC):
         Raises:
             PassManagerError: if a pass in passes is not a proper pass or index not found.
         """
-        passes = self._normalize_passes(passes)
-
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options={"max_iteration": self.max_iteration},
+            **flow_controller_conditions,
+        )
         try:
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
+            self._flow_controllers[index] = normalized_flow_controller
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -116,7 +117,7 @@ class BasePassManager(ABC):
             PassManagerError: if the index is not found.
         """
         try:
-            del self._pass_sets[index]
+            del self._flow_controllers[index]
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -124,53 +125,27 @@ class BasePassManager(ABC):
         self.replace(index, item)
 
     def __len__(self):
-        return len(self._pass_sets)
+        return len(self._flow_controllers)
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
+        new_passmanager._flow_controllers = [self._flow_controllers[index]]
         return new_passmanager
 
     def __add__(self, other):
+        new_passmanager = self.__class__(max_iteration=self.max_iteration)
+        new_passmanager._flow_controllers = self._flow_controllers
         if isinstance(other, self.__class__):
-            new_passmanager = self.__class__(max_iteration=self.max_iteration)
-            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
+            new_passmanager._flow_controllers += other._flow_controllers
             return new_passmanager
         else:
             try:
-                new_passmanager = self.__class__(max_iteration=self.max_iteration)
-                new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
                 return new_passmanager
             except PassManagerError as ex:
                 raise TypeError(
                     "unsupported operand type + for %s and %s" % (self.__class__, other.__class__)
                 ) from ex
-
-    def _normalize_passes(
-        self,
-        passes: PassSequence,
-    ) -> Sequence[GenericPass | FlowController] | FlowController:
-        if isinstance(passes, FlowController):
-            return passes
-        if isinstance(passes, GenericPass):
-            passes = [passes]
-        for pass_ in passes:
-            if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController.
-                # TODO: Internal renormalisation should be the responsibility of the
-                # `FlowController`, but the separation between `FlowController`,
-                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
-                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
-                pass_.passes = self._normalize_passes(pass_.passes)
-            elif not isinstance(pass_, GenericPass):
-                raise PassManagerError(
-                    "%s is not a pass or FlowController instance " % pass_.__class__
-                )
-        return passes
 
     def run(
         self,
@@ -213,8 +188,14 @@ class BasePassManager(ABC):
         Returns:
             The transformed program(s).
         """
-        if not self._pass_sets and not metadata and callback is None:
+        if not self._flow_controllers and not metadata and callback is None:
             return in_programs
+
+        # Create pass runner from normalized flow controllers
+        # pylint: disable=abstract-class-instantiated
+        pass_runner = self.PASS_RUNNER(self.max_iteration)
+        for controller in self._flow_controllers:
+            pass_runner.append(controller)
 
         is_list = True
         if isinstance(in_programs, self.PASS_RUNNER.IN_PROGRAM_TYPE):
@@ -222,7 +203,12 @@ class BasePassManager(ABC):
             is_list = False
 
         if len(in_programs) == 1:
-            out_program = self._run_single_circuit(in_programs[0], callback, **metadata)
+            out_program = self._run_single_circuit(
+                pass_runner=pass_runner,
+                input_program=in_programs[0],
+                callback=callback,
+                **metadata,
+            )
             if is_list:
                 return [out_program]
             return out_program
@@ -231,38 +217,43 @@ class BasePassManager(ABC):
         del metadata
         del callback
 
-        return self._run_several_circuits(in_programs)
-
-    def _create_running_passmanager(self) -> BasePassRunner:
-        # Must be implemented by followup PR.
-        # BasePassRunner.append assumes normalized pass input, which is not pass_sets.
-        raise NotImplementedError
+        return self._run_several_circuits(
+            pass_runner=pass_runner,
+            input_programs=in_programs,
+        )
 
     def _run_single_circuit(
         self,
+        pass_runner: BasePassRunner,
         input_program: Any,
         callback: Callable | None = None,
         **metadata,
     ) -> Any:
-        pass_runner = self._create_running_passmanager()
         return pass_runner.run(input_program, callback=callback, **metadata)
 
     def _run_several_circuits(
         self,
+        pass_runner: BasePassRunner,
         input_programs: Sequence[Any],
     ) -> Any:
         # Pass runner may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
         # Thus, we can resue the same runner without state collision, without building it per thread.
+        serialized_runner = dill.dumps(pass_runner)
         return parallel_map(
-            self._in_parallel, input_programs, task_kwargs={"pm_dill": dill.dumps(self)}
+            self._in_parallel, input_programs, task_kwargs={"runner_dill": serialized_runner}
         )
 
     @staticmethod
     def _in_parallel(
         in_program: Any,
-        pm_dill: bytes = None,
+        runner_dill: bytes = None,
     ) -> Any:
-        pass_runner = dill.loads(pm_dill)._create_running_passmanager()
+        pass_runner = dill.loads(runner_dill)
         return pass_runner.run(in_program)
+
+    def to_flow_controller(self) -> FlowController:
+        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
+        inside another pass manager."""
+        return FlowController.controller_factory(self._flow_controllers, {})

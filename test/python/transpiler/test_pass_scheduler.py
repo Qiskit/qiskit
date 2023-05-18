@@ -609,12 +609,12 @@ class TestUseCases(SchedulerTestCase):
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
 
-    def __init__(self, passes, options, do_x_times=0, **_):
-        self.do_x_times = do_x_times()
+    def __init__(self, passes, options, do_x_times, **_):
+        self.do_x_times = do_x_times
         super().__init__(passes, options)
 
     def __iter__(self):
-        for _ in range(self.do_x_times):
+        for _ in range(self.do_x_times()):
             yield from self.passes
 
 

@@ -13,11 +13,13 @@
 """Pass flow controllers to provide pass iterator conditioned on the property set."""
 from __future__ import annotations
 from collections import OrderedDict
-from collections.abc import Sequence
-from typing import Union, List
+from collections.abc import Sequence, Callable
+from functools import partial
+from typing import List, Union, Any
 import logging
 
 from .base_pass import GenericPass
+from .propertyset import FuturePropertySet
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,21 @@ class FlowController:
 
     registered_controllers = OrderedDict()
 
-    def __init__(self, passes, options, **partial_controller):
+    def __init__(
+        self,
+        passes: Sequence[GenericPass | "FlowController"],
+        options: dict,
+        **partial_controller: Callable,
+    ):
+        """Create new flow controller.
+
+        Args:
+            passes: passes to add to the flow controller. This must be normalized.
+            options: PassManager options.
+            **partial_controller: Partially evaluated callables representing
+                a condition to invoke flow controllers. This dictionary
+                must be keyed on the registered controller name.
+        """
         self._passes = passes
         self.passes = FlowController.controller_factory(passes, options, **partial_controller)
         self.options = options
@@ -71,6 +87,7 @@ class FlowController:
 
         Args:
             name (string): Name of the controller to remove.
+
         Raises:
             KeyError: If the controller to remove was not registered.
         """
@@ -90,7 +107,14 @@ class FlowController:
         Args:
             passes: passes to add to the flow controller.
             options: PassManager options.
-            **partial_controller: Partially evaluated controller arguments in the form `{name:partial}`
+            **partial_controller: Partially evaluated callables representing
+                a condition to invoke flow controllers. This dictionary
+                must be keyed on the registered controller name.
+                Callable may only take property set, and if the property set is unbound,
+                the factory method implicitly binds :class:`.FuturePropertySet`.
+                When multiple controllers and conditions are provided, this recursively
+                initializes controllers according to the priority defined by
+                the key order of the :attr:`FlowController.registered_controllers`.
 
         Raises:
             PassManagerError: When partial_controller is not well-formed.
@@ -98,18 +122,42 @@ class FlowController:
         Returns:
             FlowController: A FlowController instance.
         """
+        if not _is_passes_sequence(passes):
+            raise PassManagerError(
+                f"{passes.__class__} is not a valid BasePass of FlowController instance."
+            )
         if None in partial_controller.values():
             raise PassManagerError("The controller needs a condition.")
 
         if partial_controller:
-            for registered_controller in cls.registered_controllers.keys():
-                if registered_controller in partial_controller:
-                    return cls.registered_controllers[registered_controller](
-                        passes, options, **partial_controller
-                    )
-            raise PassManagerError("The controllers for %s are not registered" % partial_controller)
-
+            for key, value in partial_controller.items():
+                if callable(value) and not isinstance(value, partial):
+                    partial_controller[key] = partial(value, FuturePropertySet())
+            for label, controller_cls in cls.registered_controllers.items():
+                if label in partial_controller:
+                    return controller_cls(passes, options, **partial_controller)
+            raise PassManagerError(f"The controllers for {partial_controller} are not registered")
         return FlowControllerLinear(passes, options)
+
+
+def _is_passes_sequence(passes: Any) -> bool:
+    """Check if input is valid pass sequence.
+
+    Valid pass sequence representation are:
+
+    * BasePass,
+    * FlowController,
+    * Sequence of BasePass or FlowController.
+
+    Note that nested sequence is not a valid pass sequence.
+    FlowController.passes must be validated in constructor.
+    """
+    if isinstance(passes, (GenericPass, FlowController)):
+        return True
+    for inner_pass in passes:
+        if not isinstance(inner_pass, (GenericPass, FlowController)):
+            return False
+    return True
 
 
 class FlowControllerLinear(FlowController):
@@ -123,7 +171,17 @@ class FlowControllerLinear(FlowController):
 class DoWhileController(FlowController):
     """Implements a set of passes in a do-while loop."""
 
-    def __init__(self, passes, options=None, do_while=None, **partial_controller):
+    def __init__(
+        self,
+        passes: PassSequence,
+        options: dict = None,
+        do_while: Callable = None,
+        **partial_controller: Callable,
+    ):
+        if not callable(do_while):
+            raise PassManagerError("The flow controller parameter do_while is not callable.")
+        if not isinstance(do_while, partial):
+            do_while = partial(do_while, FuturePropertySet())
         self.do_while = do_while
         self.max_iteration = options["max_iteration"] if options else 1000
         super().__init__(passes, options, **partial_controller)
@@ -141,7 +199,17 @@ class DoWhileController(FlowController):
 class ConditionalController(FlowController):
     """Implements a set of passes under a certain condition."""
 
-    def __init__(self, passes, options=None, condition=None, **partial_controller):
+    def __init__(
+        self,
+        passes: PassSequence,
+        options: dict = None,
+        condition: Callable = None,
+        **partial_controller: Callable,
+    ):
+        if not callable(condition):
+            raise PassManagerError("The flow controller parameter condition is not callable.")
+        if not isinstance(condition, partial):
+            condition = partial(condition, FuturePropertySet())
         self.condition = condition
         super().__init__(passes, options, **partial_controller)
 
