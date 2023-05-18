@@ -925,7 +925,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         target.add_instruction(RXXGate(theta))
         qc = QuantumCircuit(2)
         qc.cp(np.pi / 2, 0, 1)
-        circ = transpile(qc, target=target, optimization_level=3)
+        circ = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
         opcount = circ.count_ops()
         self.assertEqual(opcount["rz"], 8)
         self.assertEqual(opcount["rx"], 6)
