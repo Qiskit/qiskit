@@ -237,6 +237,8 @@ def _apply_a2(circ):
         instr, _, _ = instr_context
         if instr.name == "qsd2q":
             ind2q.append(i)
+    if not ind2q:
+        return ccirc
     # rolling over diagonals
     ind2 = None  # lint
     for ind1, ind2 in zip(ind2q[0:-1:], ind2q[1::]):
