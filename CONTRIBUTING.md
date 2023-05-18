@@ -446,10 +446,11 @@ this will miss some issues that would have been caught by checking the complete
 source tree, but makes up for this by being much faster (and those rare
 oversights will still be caught by the CI after you open a pull request).
 
-You can also run just `ruff`. If you have installed the development packages in
-your python environment via `pip install -r requirements.dev`, then `ruff` will
-be available. Otherwise install it with `pip install ruff`. Running the command
-`ruff check qiskit test tools examples setup.py` will run the same `ruff` tests
+Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
+rather than via `tox`. If you have installed the development packages in your python environment via
+`pip install -r requirements.dev`, then `ruff` and `black` will be available. Otherwise install them
+with `pip install ruff black`. Running the commands `ruff check qiskit test tools examples setup.py`
+and `black --check qiskit test tools examples setup.py` will run the same tests with these tools
 that are run via `tox` as well as in CI.
 
 ## Development Cycle
