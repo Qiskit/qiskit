@@ -16,11 +16,11 @@ Visualization functions for measurement counts.
 
 from collections import OrderedDict
 import functools
-import warnings
 
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import QuasiDistribution, ProbDistribution
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
@@ -46,6 +46,28 @@ VALID_SORTS = ["asc", "desc", "hamming", "value", "value_desc"]
 DIST_MEAS = {"hamming": hamming_distance}
 
 
+def _is_deprecated_data_format(data) -> bool:
+    if not isinstance(data, list):
+        data = [data]
+    for dat in data:
+        if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
+            next(iter(dat.values())), float
+        ):
+            return True
+    return False
+
+
+@deprecate_arg(
+    "data",
+    deprecation_description=(
+        "Using plot_histogram() ``data`` argument with QuasiDistribution, ProbDistribution, or a "
+        "distribution dictionary"
+    ),
+    since="0.22.0",
+    additional_msg="Instead, use ``plot_distribution()``.",
+    predicate=_is_deprecated_data_format,
+    pending=True,
+)
 def plot_histogram(
     data,
     figsize=(7, 5),
@@ -134,13 +156,6 @@ def plot_histogram(
         if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
             next(iter(dat.values())), float
         ):
-            warnings.warn(
-                "Using plot histogram with QuasiDistribution, ProbDistribution, or a "
-                "distribution dictionary will be deprecated in 0.23.0 and subsequently "
-                "removed in a future release. You should use plot_distribution() instead.",
-                PendingDeprecationWarning,
-                stacklevel=2,
-            )
             kind = "distribution"
     return _plotting_core(
         data,

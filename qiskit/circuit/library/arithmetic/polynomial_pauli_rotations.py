@@ -14,12 +14,12 @@
 """Polynomially controlled Pauli-rotations."""
 
 from __future__ import annotations
-import warnings
 
 from itertools import product
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 
@@ -225,15 +225,13 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return 0
 
     @property
+    @deprecate_func(
+        is_property=True,
+        since="0.16.0",
+        additional_msg="Instead, use the property :attr:`~num_ancillas`.",
+    )
     def num_ancilla_qubits(self):
         """Deprecated. Use num_ancillas instead."""
-        warnings.warn(
-            "The PolynomialPauliRotations.num_ancilla_qubits property is deprecated "
-            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
-            "date. You should use the num_ancillas property instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):

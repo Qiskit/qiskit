@@ -20,7 +20,6 @@ from a backend
 from __future__ import annotations
 
 import itertools
-import warnings
 
 from typing import Tuple, Union, Optional, Dict, List, Any
 from collections.abc import Mapping
@@ -45,7 +44,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
@@ -242,7 +241,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
+    @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
     def __init__(
         self,
         description=None,
@@ -1131,19 +1130,23 @@ class Target(Mapping):
         return incomplete_basis_gates
 
     @property
+    @deprecate_func(
+        additional_msg="Use the property ``acquire_alignment`` instead.",
+        since="0.24.0",
+        is_property=True,
+    )
     def aquire_alignment(self):
         """Alias of deprecated name. This will be removed."""
-        warnings.warn(
-            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
-        )
         return self.acquire_alignment
 
     @aquire_alignment.setter
+    @deprecate_func(
+        additional_msg="Use the property ``acquire_alignment`` instead.",
+        since="0.24.0",
+        is_property=True,
+    )
     def aquire_alignment(self, new_value: int):
         """Alias of deprecated name. This will be removed."""
-        warnings.warn(
-            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
-        )
         self.acquire_alignment = new_value
 
     def __iter__(self):
