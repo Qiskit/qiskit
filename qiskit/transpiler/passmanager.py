@@ -15,7 +15,7 @@ from __future__ import annotations
 import io
 import re
 from collections.abc import Iterator, Iterable, Callable, Sequence
-from typing import Union, List, Any, TypeVar
+from typing import Union, List, Any
 
 import dill
 
@@ -25,9 +25,7 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager, FlowController
 
-# TODO: why not
-#  _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
-_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
+_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 
 
 class PassManager:
@@ -497,7 +495,7 @@ class StagedPassManager(PassManager):
     def replace(
         self,
         index: int,
-        passes: Union[BasePass, List[BasePass]],
+        passes: BasePass | list[BasePass],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
