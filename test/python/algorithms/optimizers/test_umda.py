@@ -12,9 +12,9 @@
 
 """Tests for the UMDA optimizer."""
 
-import numpy as np
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
+import numpy as np
 
 from qiskit.algorithms.optimizers.umda import UMDA
 
@@ -55,7 +55,6 @@ class TestUMDA(QiskitAlgorithmsTestCase):
     def test_minimize(self):
         """optimize function test"""
         from scipy.optimize import rosen
-        import numpy as np
         from qiskit.utils import algorithm_globals
 
         # UMDA is volatile so we need to set the seeds for the execution

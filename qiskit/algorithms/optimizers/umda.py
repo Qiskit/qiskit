@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Univariate Marginal Distribution Algorithm (Estimation-of-Distribution-Algorithm)."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -21,8 +22,6 @@ from qiskit.utils import algorithm_globals
 
 from .optimizer import OptimizerResult, POINT
 from .scipy_optimizer import Optimizer, OptimizerSupportLevel
-
-CALLBACK = Callable[[int, np.array, float], None]
 
 
 class UMDA(Optimizer):
@@ -129,7 +128,7 @@ class UMDA(Optimizer):
         maxiter: int = 100,
         size_gen: int = 20,
         alpha: float = 0.5,
-        callback: Optional[CALLBACK] = None,
+        callback: Callable[[int, np.array, float], None] | None = None,
     ) -> None:
         r"""
         Args:
