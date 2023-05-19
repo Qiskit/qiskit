@@ -236,32 +236,48 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_renyi_entropy_statevector(self):
         """Test renyi entanglement entropy on statevector states"""
-        for alpha in [0, 0.5, 1.0, 1.5, 2.0, 100]:
-            for theta in np.linspace(0, 2 * np.pi, 5):
-                for phi in np.linspace(0, np.pi, 5):
+        # Hartley case
+        psi = [0, 0, 0.70710678118654746, 0, 0.70710678118654746, 0, 0, 0]
+
+        self.assertAlmostEqual(renyi_entropy(psi, 0), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, []), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [0, 1, 2]), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [0]), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [1]), 1)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [2]), 1)
+
+        # Shannon case
+        self.assertAlmostEqual(renyi_entropy(psi, 1), entropy(psi))
+        self.assertAlmostEqual(renyi_entropy(psi, 1, []), entropy(psi))
+        self.assertAlmostEqual(renyi_entropy(psi, 1, [0, 1, 2]), 0)
+
+        # General case
+        for alpha in [0.5, 1.5, 2.0, 100]:
+            for theta in np.linspace(0, 2 * np.pi, 4):
+                for phi in np.linspace(0, np.pi, 4):
                     # Study a parametrized entangled state to test
                     # |psi> = cos(t)cos(p)|001> + sin(t)cos(p)|010> + sin(p)|100>
                     psi = [
                         0,
-                        np.cos(theta) * np.cos(phi),
+                        np.sin(phi),
                         np.sin(theta) * np.cos(phi),
                         0,
-                        np.sin(phi),
+                        np.cos(theta) * np.cos(phi),
                         0,
                         0,
                         0,
                     ]
 
-                    # Can compute entanglement of each qubit analytically:
+                    # Analytical entanglement of each qubit:
                     correct_entropy1 = np.log2(
-                        np.cos(phi) ** (2 * alpha) + np.sin(phi) ** (2 * alpha)
+                        (np.cos(phi) ** 2) ** alpha + (np.sin(phi) ** 2) ** alpha
                     ) / (1 - alpha)
                     correct_entropy2 = np.log2(
-                        (np.cos(phi) * np.sin(theta)) ** (2 * alpha)
+                        ((np.cos(phi) * np.sin(theta)) ** 2) ** alpha
                         + ((np.cos(phi) * np.cos(theta)) ** 2 + np.sin(phi) ** 2) ** alpha
                     ) / (1 - alpha)
                     correct_entropy3 = np.log2(
-                        (np.cos(theta) * np.cos(phi)) ** (2 * alpha)
+                        ((np.cos(theta) * np.cos(phi)) ** 2) ** alpha
                         + ((np.cos(phi) * np.sin(theta)) ** 2 + np.sin(phi) ** 2) ** alpha
                     ) / (1 - alpha)
 
@@ -281,14 +297,24 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_renyi_entropy_density_matrix(self):
         """Test renyi entanglement entropy on density matrix states"""
-        for alpha in [0, 0.5, 1.0, 1.5, 2.0]:
-            for a in [0, 0.25, 0.5, 0.75, 1.0]:
-                rho = [[0.5, a / 2], [a / 2, 0.5]]
 
-                # Analytical result
-                correct_entropy = (
-                    np.log2((1 - a) ** alpha + (1 + a) ** alpha) - alpha * np.log(2)
-                ) / (1 - alpha)
+        for a in [0, 0.25, 0.5, 0.75, 1.0]:
+            rho = [[0.5, a / 2], [a / 2, 0.5]]
+
+            # Hartley case
+            if a == 1.0:
+                self.assertAlmostEqual(renyi_entropy(rho, 0), 0)
+            else:
+                self.assertAlmostEqual(renyi_entropy(rho, 0), 1)
+
+            # Shannon case
+            self.assertAlmostEqual(renyi_entropy(rho, 1), entropy(rho))
+
+            # General case
+            for alpha in [0.5, 1.5, 2.0]:
+                correct_entropy = (np.log2((1 - a) ** alpha + (1 + a) ** alpha) - alpha) / (
+                    1 - alpha
+                )
 
                 self.assertAlmostEqual(renyi_entropy(rho, alpha, []), 0)
                 self.assertAlmostEqual(renyi_entropy(rho, alpha, [0]), correct_entropy)

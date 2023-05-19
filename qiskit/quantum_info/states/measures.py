@@ -214,7 +214,10 @@ def renyi_entropy(state, alpha, qbits=None):
 
     else:  # Density matrix case
         state = _format_state(state, validate=True)
-        subsystem_b = [q for q in range(state.num_qubits) if q not in qbits]
+        if qbits is None:
+            subsystem_b = []
+        else:
+            subsystem_b = [q for q in range(state.num_qubits) if q not in qbits]
         rho_a = partial_trace(state, subsystem_b)
 
         if alpha == 0:  # Hartley entropy
