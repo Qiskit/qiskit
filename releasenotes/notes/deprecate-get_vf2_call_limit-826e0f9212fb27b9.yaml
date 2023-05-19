@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The function ``get_vf2_call_limit`` available via the module
+    :mod:`qiskit.transpiler.preset_passmanagers.common` has been
+    deprecated. This will likely affect very few users since this function was
+    neither explicitly exported nor documented.  Its functionality has been
+    replaced and extended by a function in the same module.
