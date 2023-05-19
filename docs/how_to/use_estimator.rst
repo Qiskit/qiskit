@@ -32,8 +32,8 @@ Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     observable = SparsePauliOp(["II", "XX", "YY", "ZZ"], coeffs=[1, 1, -1, 1])
 
-Initialize quantum circuits
-===========================
+Initialize quantum circuit
+==========================
 
 Then you need to create the :class:`~qiskit.circuit.QuantumCircuit`\ s for which you want to obtain the expected value.
 
@@ -112,8 +112,8 @@ whose ``i``-th element is the expectation value corresponding to the ``i``-th ci
 
     3.999999999999999
 
-Parameterized circuits with ``Estimator``
-=========================================
+Parameterized circuit with ``Estimator``
+========================================
 
 The :class:`~qiskit.primitives.Estimator` primitive can be run with unbound parameterized circuits like the one below.
 You can also manually bind values to the parameters of the circuit and follow the steps
@@ -139,7 +139,7 @@ of the previous example.
 
 The main difference with the previous case is that now you need to specify the sets of parameter values
 for which you want to evaluate the expectation value as a ``list`` of ``list``\ s of ``float``\ s.
-The idea is that the ``i``-th element of the outer``list`` is the set of parameter values
+The ``i``-th element of the outer``list`` is the set of parameter values
 that corresponds to the ``i``-th circuit and observable.
 
 .. testcode::
