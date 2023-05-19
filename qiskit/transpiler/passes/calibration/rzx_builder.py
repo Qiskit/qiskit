@@ -361,8 +361,8 @@ def _check_calibration_type(
         cal_type = CRCalType.ECR_REVERSE
     else:
         raise QiskitError(
-            f"Native direction cannot be determined: qubits {qubits} "
-            f"for instruction schedule map {inst_sched_map}"
+            f"Native direction cannot be determined: operation on qubits {qubits} "
+            f"for the following instruction schedule map:\n{inst_sched_map}"
         )
 
     cr_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_cr_tone]).instructions]
