@@ -50,7 +50,6 @@ class CheckGateDirection(AnalysisPass):
             elif (
                 len(node.qargs) == 2
                 and (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in edges
-                
             ):
                 return False
         return True
@@ -62,12 +61,11 @@ class CheckGateDirection(AnalysisPass):
                 for block in node.op.blocks:
                     inner_wire_map = {
                         inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
-                    }                   
+                    }
                     if not self._target_visit(circuit_to_dag(block), inner_wire_map):
                         return False
             elif len(node.qargs) == 2 and not self.target.instruction_supported(
                 node.op.name, (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
-               
             ):
                 return False
         return True

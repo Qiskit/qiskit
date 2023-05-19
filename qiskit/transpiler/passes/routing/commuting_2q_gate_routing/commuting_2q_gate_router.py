@@ -168,7 +168,6 @@ class Commuting2qGateRouter(TransformationPass):
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
 
-
         for node in dag.topological_op_nodes():
             if isinstance(node.op, Commuting2qBlock):
 

@@ -18,7 +18,6 @@ from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
@@ -83,15 +82,12 @@ class ConsolidateBlocks(TransformationPass):
             return dag
 
         # compute ordered indices for the global circuit wires
-        
 
         blocks = self.property_set["block_list"] or []
         basis_gate_name = self.decomposer.gate.name
         all_block_gates = set()
         for block in blocks:
-            if len(block) == 1 and self._check_not_in_basis(
-                dag, block[0].name, block[0].qargs
-            ):
+            if len(block) == 1 and self._check_not_in_basis(dag, block[0].name, block[0].qargs):
                 all_block_gates.add(block[0])
                 dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
             else:
@@ -141,9 +137,7 @@ class ConsolidateBlocks(TransformationPass):
         for run in runs:
             if any(gate in all_block_gates for gate in run):
                 continue
-            if len(run) == 1 and not self._check_not_in_basis(
-                dag, run[0].name, run[0].qargs
-            ):
+            if len(run) == 1 and not self._check_not_in_basis(dag, run[0].name, run[0].qargs):
                 dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
             else:
                 qubit = run[0].qargs[0]

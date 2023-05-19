@@ -189,10 +189,7 @@ class SabreLayout(TransformationPass):
 
             physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
             physical_qubits = rng.permutation(physical_qubits)
-            initial_layout = Layout(
-                {dag.find_bit(dag.qubits[i]).index for i in physical_qubits}
-                #{q: dag.qubits[i] for i, q in enumerate(physical_qubits)}
-            )
+            initial_layout = Layout({dag.find_bit(dag.qubits[i]).index for i in physical_qubits})
 
             self.routing_pass.fake_run = True
 

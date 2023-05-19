@@ -1,7 +1,7 @@
 ---
 
 features:
-  - 
+  - |
   A new :meth:`~qiskit.dagcircuit.dag.find_bit` method has
   been added to the :class:`~qiskit.dagcircuit.DagCircuit` class,
   which is a method to get mapping of Qubit and Clbit to positional index. 
@@ -14,7 +14,7 @@ features:
 
 
 upgrades:
-  -
+  - |
   Transpiler passes have been replaced to use this new method. 
   Updated add_qubit, add_clbit, add_qreg, add_creg, remove_qubit, 
   remove_clbit, remove_qreg, remove_creg methods to update qubit 

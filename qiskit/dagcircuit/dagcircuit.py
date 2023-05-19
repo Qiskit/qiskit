@@ -44,6 +44,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 BitPosition = namedtuple("BitPosition", ("index", "registers"))
 
+
 class DAGCircuit:
     """
     Quantum circuit as a directed acyclic graph.
@@ -92,8 +93,8 @@ class DAGCircuit:
         self.clbits: List[Clbit] = []
 
         # Dictionary mapping of Qubit and Clbit instances to a tuple comprised of
-        # 0) corresponding index in dag.{qubits,clbits} and 
-        # 1) a list of Register-int pairs for each Register containing the Bit and 
+        # 0) corresponding index in dag.{qubits,clbits} and
+        # 1) a list of Register-int pairs for each Register containing the Bit and
         # its index within that register.
         self._qubit_indices: dict[Qubit, BitPosition] = {}
         self._clbit_indices: dict[Clbit, BitPosition] = {}
@@ -229,12 +230,11 @@ class DAGCircuit:
         if duplicate_qubits:
             raise DAGCircuitError("duplicate qubits %s" % duplicate_qubits)
 
-        #self.qubits.extend(qubits)
+        # self.qubits.extend(qubits)
         for qubit in qubits:
             self.qubits.append(qubit)
             self._qubit_indices[qubit] = BitPosition(len(self.qubits) - 1, [])
             self._add_wire(qubit)
-       
 
     def add_clbits(self, clbits):
         """Add individual clbit wires."""
@@ -245,12 +245,11 @@ class DAGCircuit:
         if duplicate_clbits:
             raise DAGCircuitError("duplicate clbits %s" % duplicate_clbits)
 
-        #self.clbits.extend(clbits)
+        # self.clbits.extend(clbits)
         for clbit in clbits:
             self.clbits.append(clbit)
             self._clbit_indices[clbit] = BitPosition(len(self.clbits) - 1, [])
             self._add_wire(clbit)
-
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -265,9 +264,10 @@ class DAGCircuit:
                 self._qubit_indices[qreg[j]].registers.append((qreg, j))
             if qreg[j] not in existing_qubits:
                 self.qubits.append(qreg[j])
-                self._qubit_indices[qreg[j]] = BitPosition(len(self.qubits) - 1, registers=[(qreg, j)])
+                self._qubit_indices[qreg[j]] = BitPosition(
+                    len(self.qubits) - 1, registers=[(qreg, j)]
+                )
                 self._add_wire(qreg[j])
-
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -282,9 +282,10 @@ class DAGCircuit:
                 self._clbit_indices[creg[j]].registers.append((creg, j))
             if creg[j] not in existing_clbits:
                 self.clbits.append(creg[j])
-                self._clbit_indices[creg[j]] = BitPosition(len(self.clbits) - 1, registers=[(creg, j)])
+                self._clbit_indices[creg[j]] = BitPosition(
+                    len(self.clbits) - 1, registers=[(creg, j)]
+                )
                 self._add_wire(creg[j])
-
 
     def _add_wire(self, wire):
         """Add a qubit or bit to the circuit.
@@ -409,7 +410,6 @@ class DAGCircuit:
                 bit_position = self._clbit_indices[bit]
                 bit_position.registers.remove((creg, j))
 
-
     def remove_qubits(self, *qubits):
         """
         Remove quantum bits from the circuit. All bits MUST be idle.
@@ -475,7 +475,6 @@ class DAGCircuit:
                 bit = qreg[j]
                 bit_position = self._qubit_indices[bit]
                 bit_position.registers.remove((qreg, j))
- 
 
     def _is_wire_idle(self, wire):
         """Check if a wire is idle.

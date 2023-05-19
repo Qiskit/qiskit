@@ -134,7 +134,6 @@ class BasisTranslator(TransformationPass):
         if self._target_basis is None and self._target is None:
             return dag
 
-        
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
@@ -342,7 +341,9 @@ class BasisTranslator(TransformationPass):
                 for block in instr.blocks:
                     yield from self._extract_basis(block)
 
-    def _extract_basis_target(self, dag, qarg_indices=None, source_basis= None, qargs_local_source_basis=None):
+    def _extract_basis_target(
+        self, dag, qarg_indices=None, source_basis=None, qargs_local_source_basis=None
+    ):
         if source_basis is None:
             source_basis = set()
         if qargs_local_source_basis is None:

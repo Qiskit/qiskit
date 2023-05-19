@@ -127,7 +127,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 other_node = uuid_map[node.op.label]
                 num_qubits = len(other_node.qargs) + len(node.qargs)
                 new_op = Barrier(num_qubits, label=barrier_uuid)
-                new_node = dag.replace_block_with_op([node, other_node], new_op,  qubit_indices)
+                new_node = dag.replace_block_with_op([node, other_node], new_op, qubit_indices)
                 uuid_map[barrier_uuid] = new_node
             else:
                 uuid_map[barrier_uuid] = node

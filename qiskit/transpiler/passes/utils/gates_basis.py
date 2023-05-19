@@ -44,7 +44,7 @@ class GatesInBasis(AnalysisPass):
         gates_out_of_basis = False
         if self._target is not None:
 
-            def _visit_target(dag, wire_map= None):
+            def _visit_target(dag, wire_map=None):
                 for gate in dag.op_nodes():
                     # Barrier is universal and supported by all backends
                     if gate.name == "barrier":

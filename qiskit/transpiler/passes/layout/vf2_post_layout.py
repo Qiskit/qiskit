@@ -265,7 +265,8 @@ class VF2PostLayout(AnalysisPass):
                 )
             else:
                 initial_layout = {
-                    im_graph_node_map[bit]: dag.find_bit(bit).index for bit in dag.qubits
+                    im_graph_node_map[bit]: dag.find_bit(bit).index
+                    for bit in dag.qubits
                     if bit in im_graph_node_map
                 }
                 chosen_layout_score = vf2_utils.score_layout(
