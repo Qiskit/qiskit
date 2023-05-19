@@ -120,8 +120,8 @@ If you prefer to see the output keys as binary strings instead of decimal number
 
     {'00': 0.4999999999999999, '11': 0.4999999999999999}
 
-Parameterized circuits with ``Sampler``
-=========================================
+Parameterized circuit with ``Sampler``
+========================================
 
 The :class:`~qiskit.primitives.Sampler` primitive can be run with unbound parameterized circuits like the one below.
 You can also manually bind values to the parameters of the circuit and follow the steps
@@ -150,7 +150,7 @@ of the previous example.
 
 The main difference from the previous case is that now you need to specify the sets of parameter values
 for which you want to evaluate the expectation value as a ``list`` of ``list``\ s of ``float``\ s.
-The idea is that the ``i``-th element of the outer ``list`` is the set of parameter values
+The ``i``-th element of the outer ``list`` is the set of parameter values
 that corresponds to the ``i``-th circuit.
 
 .. testcode::
