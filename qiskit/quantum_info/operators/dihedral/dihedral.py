@@ -45,7 +45,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. jupyter-execute::
+     .. code-block::
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -61,6 +61,14 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
          # Print the CNOTDihedral element
          print(elem)
 
+    .. parsed-literal::
+
+        phase polynomial =
+        0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
+        affine function =
+         (x_0,x_0 + x_1,x_2 + 1)
+
+
     **Circuit Conversion**
 
      CNOTDihedral operators can be initialized from circuits containing *only* the
@@ -70,7 +78,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :class:`~qiskit.circuit.library.TGate`, :class:`~qiskit.circuit.library.TdgGate`
      :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
      :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
-     :class:`~qiskit.circuit.library.SwapGate`.
+     :class:`~qiskit.circuit.library.CSGate`, :class:`~qiskit.circuit.library.CSdgGate`,
+     :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.CCZGate`.
      They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
      or :class:`~qiskit.circuit.Gate` object using the :meth:`~CNOTDihedral.to_circuit`
      or :meth:`~CNOTDihderal.to_instruction` methods respectively. Note that this
@@ -313,9 +322,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
+        from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
-        return decompose_cnotdihedral(self)
+        return synth_cnotdihedral_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the CNOTDihedral object."""

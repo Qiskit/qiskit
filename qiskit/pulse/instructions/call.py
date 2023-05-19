@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -49,9 +49,9 @@ class Call(instruction.Instruction):
         Raises:
             PulseError: If subroutine is not valid data format.
         """
-        from qiskit.pulse.schedule import ScheduleBlock, Schedule
+        from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
-        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+        if not isinstance(subroutine, (Schedule, ScheduleBlock)):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
         value_dict = value_dict or {}
@@ -67,7 +67,7 @@ class Call(instruction.Instruction):
             assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine
-        self._assigned_cache = tuple((self._get_arg_hash(), assigned_subroutine))
+        self._assigned_cache = (self._get_arg_hash(), assigned_subroutine)
 
         super().__init__(operands=(subroutine,), name=name or f"{self.prefix}_{subroutine.name}")
 
@@ -81,7 +81,6 @@ class Call(instruction.Instruction):
         """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
 
-    # pylint: disable=missing-return-type-doc
     @property
     def subroutine(self):
         """Return attached subroutine.
@@ -106,15 +105,11 @@ class Call(instruction.Instruction):
         if self._get_arg_hash() != self._assigned_cache[0]:
             subroutine = self.subroutine.assign_parameters(value_dict=self.arguments, inplace=False)
             # update cache data
-            self._assigned_cache = tuple((self._get_arg_hash(), subroutine))
+            self._assigned_cache = (self._get_arg_hash(), subroutine)
         else:
             subroutine = self._assigned_cache[1]
 
         return subroutine
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return any(isinstance(value, ParameterExpression) for value in self.arguments.values())
 
     @property
     def parameters(self) -> Set:
@@ -122,8 +117,7 @@ class Call(instruction.Instruction):
         params = set()
         for value in self._arguments.values():
             if isinstance(value, ParameterExpression):
-                for param in value.parameters:
-                    params.add(param)
+                params |= value.parameters
         return params
 
     @property
@@ -156,7 +150,7 @@ class Call(instruction.Instruction):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))
 
-    def __eq__(self, other: "Instruction") -> bool:
+    def __eq__(self, other: instruction.Instruction) -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
         Instructions are equal if they share the same type, operands, and channels.

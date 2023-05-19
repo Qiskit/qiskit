@@ -23,19 +23,23 @@ class ContainsInstruction(AnalysisPass):
     that instruction and ``False`` if it does not.
     """
 
-    def __init__(self, instruction_name):
+    def __init__(self, instruction_name, recurse: bool = True):
         """ContainsInstruction initializer.
 
         Args:
-            instruction_name (str): The instruction to check if it's in the
-                DAG. The output in the property set is set to ``contains_``
-                prefixed on the value for this parameter.
+            instruction_name (str | Iterable[str]): The instruction or instructions to check are in
+                the DAG. The output in the property set is set to ``contains_`` prefixed on each
+                value for this parameter.
+            recurse (bool): if ``True`` (default), then recurse into control-flow operations.
         """
         super().__init__()
-        self._instruction_name = instruction_name
+        self._instruction_names = (
+            {instruction_name} if isinstance(instruction_name, str) else set(instruction_name)
+        )
+        self._recurse = recurse
 
     def run(self, dag):
         """Run the ContainsInstruction pass on dag."""
-        self.property_set[f"contains_{self._instruction_name}"] = (
-            self._instruction_name in dag._op_names
-        )
+        names = dag.count_ops(recurse=self._recurse)
+        for name in self._instruction_names:
+            self.property_set[f"contains_{name}"] = name in names

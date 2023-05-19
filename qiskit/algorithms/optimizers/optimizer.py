@@ -15,21 +15,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from enum import IntEnum
 import logging
-import sys
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Union, Protocol
 
 import numpy as np
 import scipy
 
 from qiskit.algorithms.algorithm_result import AlgorithmResult
-
-if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -41,70 +35,70 @@ class OptimizerResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._x = None  # pylint: disable=invalid-name
-        self._fun = None
-        self._jac = None
-        self._nfev = None
-        self._njev = None
-        self._nit = None
+        self._x: POINT | None = None
+        self._fun: float | None = None
+        self._jac: POINT | None = None
+        self._nfev: int | None = None
+        self._njev: int | None = None
+        self._nit: int | None = None
 
     @property
-    def x(self) -> Optional[POINT]:
+    def x(self) -> POINT | None:
         """The final point of the minimization."""
         return self._x
 
     @x.setter
-    def x(self, x: Optional[POINT]) -> None:
+    def x(self, x: POINT | None) -> None:
         """Set the final point of the minimization."""
         self._x = x
 
     @property
-    def fun(self) -> Optional[float]:
+    def fun(self) -> float | None:
         """The final value of the minimization."""
         return self._fun
 
     @fun.setter
-    def fun(self, fun: Optional[float]) -> None:
+    def fun(self, fun: float | None) -> None:
         """Set the final value of the minimization."""
         self._fun = fun
 
     @property
-    def jac(self) -> Optional[POINT]:
+    def jac(self) -> POINT | None:
         """The final gradient of the minimization."""
         return self._jac
 
     @jac.setter
-    def jac(self, jac: Optional[POINT]) -> None:
+    def jac(self, jac: POINT | None) -> None:
         """Set the final gradient of the minimization."""
         self._jac = jac
 
     @property
-    def nfev(self) -> Optional[int]:
+    def nfev(self) -> int | None:
         """The total number of function evaluations."""
         return self._nfev
 
     @nfev.setter
-    def nfev(self, nfev: Optional[int]) -> None:
+    def nfev(self, nfev: int | None) -> None:
         """Set the total number of function evaluations."""
         self._nfev = nfev
 
     @property
-    def njev(self) -> Optional[int]:
+    def njev(self) -> int | None:
         """The total number of gradient evaluations."""
         return self._njev
 
     @njev.setter
-    def njev(self, njev: Optional[int]) -> None:
+    def njev(self, njev: int | None) -> None:
         """Set the total number of gradient evaluations."""
         self._njev = njev
 
     @property
-    def nit(self) -> Optional[int]:
+    def nit(self) -> int | None:
         """The total number of iterations."""
         return self._nit
 
     @nit.setter
-    def nit(self, nit: Optional[int]) -> None:
+    def nit(self, nit: int | None) -> None:
         """Set the total number of iterations."""
         self._nit = nit
 
@@ -180,7 +174,7 @@ class Optimizer(ABC):
         self._bounds_support_level = self.get_support_level()["bounds"]
         self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
-        self._max_evals_grouped = 1
+        self._max_evals_grouped = None
 
     @abstractmethod
     def get_support_level(self):
@@ -205,7 +199,7 @@ class Optimizer(ABC):
 
     # pylint: disable=invalid-name
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=None):
         """
         We compute the gradient with the numeric differentiation in the parallel way,
         around the point x_center.
@@ -214,11 +208,14 @@ class Optimizer(ABC):
             x_center (ndarray): point around which we compute the gradient
             f (func): the function of which the gradient is to be computed.
             epsilon (float): the epsilon used in the numeric differentiation.
-            max_evals_grouped (int): max evals grouped
+            max_evals_grouped (int): max evals grouped, defaults to 1 (i.e. no batching).
         Returns:
             grad: the gradient computed
 
         """
+        if max_evals_grouped is None:  # no batching by default
+            max_evals_grouped = 1
+
         forig = f(*((x_center,)))
         grad = []
         ei = np.zeros((len(x_center),), float)
@@ -284,7 +281,7 @@ class Optimizer(ABC):
         return ret
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """The optimizer settings in a dictionary format.
 
         The settings can for instance be used for JSON-serialization (if all settings are
@@ -305,8 +302,8 @@ class Optimizer(ABC):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         """Minimize the scalar function.
 

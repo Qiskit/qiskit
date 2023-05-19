@@ -39,7 +39,7 @@ from qiskit.providers.fake_provider import FakeOurense
 from qiskit.tools import parallel_map
 
 
-def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
+def raise_if_parameter_table_invalid(circuit):
     """Validates the internal consistency of a ParameterTable and its
     containing QuantumCircuit. Intended for use in testing.
 
@@ -106,7 +106,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
 
 @ddt
 class TestParameters(QiskitTestCase):
-    """QuantumCircuit Operations tests."""
+    """Test Parameters."""
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -185,6 +185,13 @@ class TestParameters(QiskitTestCase):
                 bqc_anonymous = getattr(qc, assign_fun)(params)
                 bqc_list = getattr(qc, assign_fun)(param_dict)
                 self.assertEqual(bqc_anonymous, bqc_list)
+
+    def test_bind_parameters_allow_unknown(self):
+        """Test binding parameters allowing unknown parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
+        self.assertEqual(c, a.bind({a: 1}))
 
     def test_bind_half_single_precision(self):
         """Test binding with 16bit and 32bit floats."""
@@ -637,7 +644,7 @@ class TestParameters(QiskitTestCase):
         qc2.h(qr)
         qc2.measure(qr, cr)
 
-        qc3 = qc1 + qc2
+        qc3 = qc1.compose(qc2)
         self.assertEqual(qc3.parameters, {theta, phi})
 
     def test_composite_instruction(self):
@@ -855,7 +862,7 @@ class TestParameters(QiskitTestCase):
 
         qc.p(theta, qr[0])
 
-        double_qc = qc + qc
+        double_qc = qc.compose(qc)
         test_qc = dag_to_circuit(circuit_to_dag(double_qc))
 
         for assign_fun in ["bind_parameters", "assign_parameters"]:
@@ -1106,6 +1113,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name="theta")
 
         qc = QuantumCircuit(2)
+        qc.p(numpy.abs(-phi), 0)
         qc.p(numpy.cos(phi), 0)
         qc.p(numpy.sin(phi), 0)
         qc.p(numpy.tan(phi), 0)
@@ -1116,6 +1124,7 @@ class TestParameters(QiskitTestCase):
         qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
 
         qc_ref = QuantumCircuit(2)
+        qc_ref.p(pi, 0)
         qc_ref.p(-1, 0)
         qc_ref.p(0, 0)
         qc_ref.p(0, 0)
@@ -1126,14 +1135,40 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc, qc_ref)
 
     def test_compile_with_ufunc(self):
-        """Test compiling of circuit with unbounded parameters
+        """Test compiling of circuit with unbound parameters
         after we apply universal functions."""
-        phi = Parameter("phi")
-        qc = QuantumCircuit(1)
-        qc.rx(numpy.cos(phi), 0)
-        backend = BasicAer.get_backend("qasm_simulator")
-        qc_aer = transpile(qc, backend)
-        self.assertIn(phi, qc_aer.parameters)
+        from math import pi
+
+        theta = ParameterVector("theta", length=7)
+
+        qc = QuantumCircuit(7)
+        qc.rx(numpy.abs(theta[0]), 0)
+        qc.rx(numpy.cos(theta[1]), 1)
+        qc.rx(numpy.sin(theta[2]), 2)
+        qc.rx(numpy.tan(theta[3]), 3)
+        qc.rx(numpy.arccos(theta[4]), 4)
+        qc.rx(numpy.arctan(theta[5]), 5)
+        qc.rx(numpy.arcsin(theta[6]), 6)
+
+        # transpile to different basis
+        transpiled = transpile(qc, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
+
+        for x in theta:
+            self.assertIn(x, transpiled.parameters)
+
+        bound = transpiled.bind_parameters({theta: [-1, pi, pi, pi, 1, 1, 1]})
+
+        expected = QuantumCircuit(7)
+        expected.rx(1.0, 0)
+        expected.rx(-1.0, 1)
+        expected.rx(0.0, 2)
+        expected.rx(0.0, 3)
+        expected.rx(0.0, 4)
+        expected.rx(pi / 4, 5)
+        expected.rx(pi / 2, 6)
+        expected = transpile(expected, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
+
+        self.assertEqual(expected, bound)
 
     def test_parametervector_resize(self):
         """Test the resize method of the parameter vector."""
@@ -1154,6 +1189,26 @@ class TestParameters(QiskitTestCase):
             # name if the instance is not the same
             self.assertIs(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
+
+    def test_raise_if_sub_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        with self.assertRaisesRegex(CircuitError, "not present"):
+            x.subs({y: z})
+
+    def test_sub_allow_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        subbed = x.subs({y: z}, allow_unknown_parameters=True)
+        self.assertEqual(subbed, x)
 
 
 def _construct_circuit(param, qr):
@@ -1179,6 +1234,29 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
         self.assertEqual(bound_expr, 2.3)
+
+    def test_abs_function_when_bound(self):
+        """Verify expression can be used with
+        abs functions when bound."""
+
+        x = Parameter("x")
+        xb_1 = x.bind({x: 2.0})
+        xb_2 = x.bind({x: 3.0 + 4.0j})
+
+        self.assertEqual(abs(xb_1), 2.0)
+        self.assertEqual(abs(-xb_1), 2.0)
+        self.assertEqual(abs(xb_2), 5.0)
+
+    def test_abs_function_when_not_bound(self):
+        """Verify expression can be used with
+        abs functions when not bound."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+
+        self.assertEqual(abs(x), abs(-x))
+        self.assertEqual(abs(x) * abs(y), abs(x * y))
+        self.assertEqual(abs(x) / abs(y), abs(x / y))
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
@@ -1245,6 +1323,17 @@ class TestParameterExpressions(QiskitTestCase):
 
         with self.assertRaisesRegex(CircuitError, "not present"):
             expr.subs({y: z})
+
+    def test_sub_allow_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+        expr = x + 2
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        subbed = expr.subs({y: z}, allow_unknown_parameters=True)
+        self.assertEqual(subbed, expr)
 
     def test_raise_if_subbing_in_parameter_name_conflict(self):
         """Verify we raise if substituting in conflicting parameter names."""
@@ -1721,10 +1810,24 @@ class TestParameterExpressions(QiskitTestCase):
     def test_bound_expression_is_real(self):
         """Test is_real on bound parameters."""
         x = Parameter("x")
+        self.assertEqual(x.is_real(), None)
+        self.assertEqual((1j * x).is_real(), None)
+
         expr = 1j * x
         bound = expr.bind({x: 2})
+        self.assertEqual(bound.is_real(), False)
 
-        self.assertFalse(bound.is_real())
+        bound = x.bind({x: 0 + 0j})
+        self.assertEqual(bound.is_real(), True)
+
+        bound = x.bind({x: 0 + 1j})
+        self.assertEqual(bound.is_real(), False)
+
+        bound = x.bind({x: 1 + 0j})
+        self.assertEqual(bound.is_real(), True)
+
+        bound = x.bind({x: 1 + 1j})
+        self.assertEqual(bound.is_real(), False)
 
 
 class TestParameterEquality(QiskitTestCase):

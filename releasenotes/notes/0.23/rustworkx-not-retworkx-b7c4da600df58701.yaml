@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The ``retworkx`` dependency for Qiskit has been removed and replaced by
+    ``rustworkx`` library. These are the same packages, but ``rustworkx`` is
+    the new name for ``retworkx`` which was renamed as part of their combined
+    0.12.0 release. If you were previously using retworkx 0.12.0 with Qiskit
+    then you already installed rustworkx (retworkx 0.12.0 was just a redirect
+    shim for backwards compatibility). This change was made to migrate to the
+    new package name which will be the only supported package in the future.

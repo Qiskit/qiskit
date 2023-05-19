@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-""" HamiltonianGate tests """
+"""HamiltonianGate tests"""
 
 import numpy as np
 from numpy.testing import assert_allclose

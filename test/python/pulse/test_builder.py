@@ -184,28 +184,6 @@ class TestContexts(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-    def test_inline(self):
-        """Test the inlining context."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-
-        with pulse.build() as schedule:
-            pulse.delay(3, d0)
-            with pulse.inline():
-                # this alignment will be ignored due to inlining.
-                with pulse.align_right():
-                    pulse.delay(5, d1)
-                    pulse.delay(7, d0)
-
-        reference = pulse.Schedule()
-        # d0
-        reference += instructions.Delay(3, d0)
-        reference += instructions.Delay(7, d0)
-        # d1
-        reference += instructions.Delay(5, d1)
-
-        self.assertScheduleEqual(schedule, reference)
-
     def test_transpiler_settings(self):
         """Test the transpiler settings context.
 

@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A module for monitoring jobs, backends, etc.
-"""
+"""A module for monitoring jobs, backends, etc."""
 
 from .job_monitor import job_monitor
 from .overview import backend_monitor, backend_overview

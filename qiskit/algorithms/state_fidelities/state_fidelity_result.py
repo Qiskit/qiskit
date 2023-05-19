@@ -19,6 +19,8 @@ from collections.abc import Sequence, Mapping
 from typing import Any
 from dataclasses import dataclass
 
+from qiskit.providers import Options
+
 
 @dataclass(frozen=True)
 class StateFidelityResult:
@@ -31,5 +33,5 @@ class StateFidelityResult:
     depending on the error mitigation method used."""
     metadata: Sequence[Mapping[str, Any]]
     """Additional information about the fidelity calculation."""
-    run_options: Mapping[str, Any]
-    """Runtime options for the execution of the fidelity job."""
+    options: Options
+    """Primitive runtime options for the execution of the fidelity job."""

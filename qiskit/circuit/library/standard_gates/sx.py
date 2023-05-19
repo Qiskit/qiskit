@@ -12,9 +12,9 @@
 
 """Sqrt(X) and C-Sqrt(X) gates."""
 
+from math import pi
 from typing import Optional, Union
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -54,7 +54,7 @@ class SXGate(Gate):
                         1 & -i \\
                         -i & 1
                       \end{pmatrix}
-                    = e^{-i pi/4} \sqrt{X}
+                    = e^{-i \pi/4} \sqrt{X}
 
     """
 

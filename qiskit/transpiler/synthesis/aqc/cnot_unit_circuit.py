@@ -52,7 +52,7 @@ class CNOTUnitCircuit(ApproximateCircuit):
         self._num_cnots = cnots.shape[1]
         self._tol = tol
 
-        # Thetas to be optimizer by the AQC algorithm
+        # Thetas to be optimized by the AQC algorithm
         self._thetas = None
 
     @property

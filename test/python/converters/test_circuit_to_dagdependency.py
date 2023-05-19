@@ -41,6 +41,24 @@ class TestCircuitToDagCanonical(QiskitTestCase):
         circuit_out = dagdependency_to_circuit(dag_dependency)
         self.assertEqual(circuit_out, circuit_in)
 
+    def test_circuit_and_dag_canonical2(self):
+        """Check convert to dag dependency and back
+        also when the option ``create_preds_and_succs`` is False."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        circuit_in = QuantumCircuit(qr, cr)
+        circuit_in.h(qr[0])
+        circuit_in.h(qr[1])
+        circuit_in.measure(qr[0], cr[0])
+        circuit_in.measure(qr[1], cr[1])
+        circuit_in.x(qr[0]).c_if(cr, 0x3)
+        circuit_in.measure(qr[0], cr[0])
+        circuit_in.measure(qr[1], cr[1])
+        circuit_in.measure(qr[2], cr[2])
+        dag_dependency = circuit_to_dagdependency(circuit_in, create_preds_and_succs=False)
+        circuit_out = dagdependency_to_circuit(dag_dependency)
+        self.assertEqual(circuit_out, circuit_in)
+
     def test_calibrations(self):
         """Test that calibrations are properly copied over."""
         circuit_in = QuantumCircuit(1)
@@ -55,7 +73,7 @@ class TestCircuitToDagCanonical(QiskitTestCase):
 
     def test_metadata(self):
         """Test circuit metadata is preservered through conversion."""
-        meta_dict = dict(experiment_id="1234", execution_number=4)
+        meta_dict = {"experiment_id": "1234", "execution_number": 4}
         qr = QuantumRegister(2)
         circuit_in = QuantumCircuit(qr, metadata=meta_dict)
         circuit_in.h(qr[0])

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,15 +11,18 @@
 # that they have been altered from the originals.
 
 """The Eigensolver algorithm."""
+from __future__ import annotations
 
 import logging
-from typing import Callable, List, Optional, Tuple, Union
+import warnings
+from collections.abc import Callable
 
 import numpy as np
 from scipy import sparse as scisparse
 
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_func
 from ..exceptions import AlgorithmError
 from .eigen_solver import Eigensolver, EigensolverResult
 from ..list_or_dict import ListOrDict
@@ -27,12 +30,14 @@ from ..list_or_dict import ListOrDict
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
-
 class NumPyEigensolver(Eigensolver):
     r"""
-    The NumPy Eigensolver algorithm.
+    Deprecated: NumPy Eigensolver algorithm.
+
+    The NumPyEigensolver class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.NumPyEigensolver` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
@@ -43,11 +48,18 @@ class NumPyEigensolver(Eigensolver):
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.NumPyEigensolver``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
+    )
     def __init__(
         self,
         k: int = 1,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
+            [list | np.ndarray, float, ListOrDict[float] | None], bool
         ] = None,
     ) -> None:
         """
@@ -61,7 +73,9 @@ class NumPyEigensolver(Eigensolver):
                 fewer elements and can even be empty.
         """
         validate_min("k", k, 1)
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._in_k = k
         self._k = k
@@ -85,16 +99,15 @@ class NumPyEigensolver(Eigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
+    ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
         """returns the filter criterion if set"""
         return self._filter_criterion
 
     @filter_criterion.setter
     def filter_criterion(
         self,
-        filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
-        ],
+        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
+        | None,
     ) -> None:
         """set the filter criterion"""
         self._filter_criterion = filter_criterion
@@ -146,7 +159,7 @@ class NumPyEigensolver(Eigensolver):
             self._solve(operator)
 
     def _get_energies(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None
     ) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
@@ -162,9 +175,9 @@ class NumPyEigensolver(Eigensolver):
     @staticmethod
     def _eval_aux_operators(
         aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> ListOrDict[Tuple[complex, complex]]:
+    ) -> ListOrDict[tuple[complex, complex]]:
 
-        values: ListOrDict[Tuple[complex, complex]]
+        values: ListOrDict[tuple[complex, complex]]
 
         # As a list, aux_operators can contain None operators for which None values are returned.
         # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
@@ -194,7 +207,7 @@ class NumPyEigensolver(Eigensolver):
         return values
 
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 

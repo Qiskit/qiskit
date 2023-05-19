@@ -103,18 +103,32 @@ class Commuting2qGateRouter(TransformationPass):
     into account.
     """
 
-    def __init__(self, swap_strategy: Optional[SwapStrategy] = None) -> None:
-        """
+    def __init__(
+        self,
+        swap_strategy: Optional[SwapStrategy] = None,
+        edge_coloring: Optional[Dict[Tuple[int, int], int]] = None,
+    ) -> None:
+        r"""
         Args:
             swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
                 that are used, and the order in which to apply them, to map the instruction to
                 the hardware. If this field is not given if should be contained in the
                 property set of the pass. This allows other passes to determine the most
                 appropriate swap strategy at run-time.
+            edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that
+                share a node have the same color). If the edge coloring is given then the commuting
+                gates that can be simultaneously applied given the current qubit permutation are
+                grouped according to the edge coloring and applied according to this edge
+                coloring. Here, a color is an int which is used as the index to define and
+                access the groups of commuting gates that can be applied simultaneously.
+                If the edge coloring is not given then the sets will be built-up using a
+                greedy algorithm. The edge coloring is useful to position gates such as
+                ``RZZGate``\s next to swap gates to exploit CX cancellations.
         """
         super().__init__()
         self._swap_strategy = swap_strategy
         self._bit_indices = None
+        self._edge_coloring = edge_coloring
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the pass by decomposing the nodes it applies on.
@@ -217,23 +231,44 @@ class Commuting2qGateRouter(TransformationPass):
 
         return bit0, bit1
 
-    @staticmethod
-    def _build_sub_layers(current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
-        """A helper method to build-up sets of gates that can simultaneously be applied.
+    def _build_sub_layers(self, current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
+        """A helper method to build-up sets of gates to simultaneously apply.
 
-        Note that this could also be done using an edge coloring of the coupling map.
+        This is done with an edge coloring if the ``edge_coloring`` init argument was given or with
+        a greedy algorithm if not. With an edge coloring all gates on edges with the same color
+        will be applied simultaneously. These sublayers are applied in the order of their color,
+        which is an int, in increasing color order.
 
         Args:
             current_layer: All gates in the current layer can be applied given the qubit ordering
-            of the current layout. However, not all gates in the current layer can be applied
-            simultaneously. This function creates sub-layers by greedily building up sub-layers
-            of gates. All gates in a sub-layer can simultaneously be applied given the coupling
-            map and current qubit configuration.
+                of the current layout. However, not all gates in the current layer can be applied
+                simultaneously. This function creates sub-layers by building up sub-layers
+                of gates. All gates in a sub-layer can simultaneously be applied given the coupling
+                map and current qubit configuration.
 
         Returns:
              A list of gate dicts that can be applied. The gates a position 0 are applied first.
              A gate dict has the qubit tuple as key and the gate to apply as value.
         """
+        if self._edge_coloring is not None:
+            return self._edge_coloring_build_sub_layers(current_layer)
+        else:
+            return self._greedy_build_sub_layers(current_layer)
+
+    def _edge_coloring_build_sub_layers(
+        self, current_layer: Dict[tuple, Gate]
+    ) -> List[Dict[tuple, Gate]]:
+        """The edge coloring method of building sub-layers of commuting gates."""
+        sub_layers = [{} for _ in set(self._edge_coloring.values())]
+        for edge, gate in current_layer.items():
+            color = self._edge_coloring[edge]
+            sub_layers[color][edge] = gate
+
+        return sub_layers
+
+    @staticmethod
+    def _greedy_build_sub_layers(current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
+        """The greedy method of building sub-layers of commuting gates."""
         sub_layers = []
         while len(current_layer) > 0:
             current_sub_layer, remaining_gates, blocked_vertices = {}, {}, set()

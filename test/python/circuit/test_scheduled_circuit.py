@@ -154,7 +154,10 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
         scheduled = transpile(
-            qc, scheduling_method="alap", instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)]
+            qc,
+            scheduling_method="alap",
+            basis_gates=["h", "cx"],
+            instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
         )
         self.assertEqual(scheduled.duration, 1200)
 
@@ -259,6 +262,7 @@ class TestScheduledCircuit(QiskitTestCase):
         sc = transpile(
             qc,
             scheduling_method="alap",
+            basis_gates=["h", "cx"],
             instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
         )
         self.assertEqual(sc.qubit_start_time(0), 300)
@@ -274,6 +278,7 @@ class TestScheduledCircuit(QiskitTestCase):
         sc = transpile(
             qc,
             scheduling_method="alap",
+            basis_gates=["h", "cx", "measure"],
             instruction_durations=[("h", None, 200), ("cx", [0, 1], 700), ("measure", None, 1000)],
         )
         q = sc.qubits

@@ -142,7 +142,7 @@ class ForLoopContext:
         from qiskit import QuantumCircuit
         qc = QuantumCircuit(2, 1)
 
-        with qc.for_loop(None, range(5)) as i:
+        with qc.for_loop(range(5)) as i:
             qc.rx(i * math.pi/4, 0)
             qc.cx(0, 1)
             qc.measure(0, 0)

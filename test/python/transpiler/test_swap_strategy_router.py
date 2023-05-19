@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,8 @@
 
 """Tests for swap strategy routers."""
 
+from ddt import ddt, data
+
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 
@@ -19,12 +21,13 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import Decompose
 
 from qiskit.test import QiskitTestCase
 
@@ -38,6 +41,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
 )
 
 
+@ddt
 class TestPauliEvolutionSwapStrategies(QiskitTestCase):
     """A class to test the swap strategies transpiler passes."""
 
@@ -72,7 +76,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         """
 
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
@@ -108,7 +112,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                  └─────────────────┘                         └────────────────┘
         """
 
-        op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+        op = SparsePauliOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
 
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 3), range(4))
@@ -145,7 +149,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             q_3: ─────────────────────────────────────────
 
         """
-        op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
+
+        op = SparsePauliOp.from_list([("IIXX", 1), ("IXIX", 2)])
 
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
         swap_strat = SwapStrategy(cmap, swap_layers=(((0, 1),),))
@@ -186,7 +191,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                                                                                       0  1  2  3
         """
 
-        op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+        op = SparsePauliOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
 
         circ = QuantumCircuit(4, 4)
         circ.append(PauliEvolutionGate(op, 3), range(4))
@@ -253,10 +258,10 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         for idx in range(4):
             mixer.ry(-idx, idx)
 
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
-
         swapped = self.pm_.run(circ.decompose())
+
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
         swapped.assign_parameters(param_dict, inplace=True)
 
@@ -298,7 +303,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         """This pass tests that idle qubits after an embedding are left idle."""
 
         # Create a four qubit problem.
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
 
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
@@ -375,7 +380,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 Commuting2qGateRouter(swap_strat),
             ]
         )
-        op = PauliSumOp.from_list([("IZZ", 1), ("ZIZ", 2)])
+        op = SparsePauliOp.from_list([("IZZ", 1), ("ZIZ", 2)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(3))
         circ.ccx(0, 2, 1)
@@ -420,7 +425,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         swap_strat = SwapStrategy(cmap, swaps)
 
         # A dense Pauli op.
-        op = PauliSumOp.from_list(
+        op = SparsePauliOp.from_list(
             [
                 ("IIIZZ", 1),
                 ("IIZIZ", 2),
@@ -458,7 +463,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             return op.name, param, qreg.index(qargs[0]), qreg.index(qargs[1])
 
         qreg = swapped.qregs["q"]
-        inst_list = list(inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes())
+        inst_list = [inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes()]
 
         # First block has the Rzz gates ("IIIZZ", 1), ("IIZZI", 5), ("IZIZI", 6), ("ZZIII", 10)
         expected = {
@@ -490,12 +495,75 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
     def test_single_qubit_circuit(self):
         """Test that a circuit with only single qubit gates is left unchanged."""
-        op = PauliSumOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
+
+        op = SparsePauliOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
 
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
         self.assertEqual(circ, self.pm_.run(circ))
+
+    @data(
+        {(0, 1): 0, (2, 3): 0, (1, 2): 1},  # better coloring for the swap strategy
+        {(0, 1): 1, (2, 3): 1, (1, 2): 0},  # worse, i.e., less CX cancellation.
+    )
+    def test_edge_coloring(self, edge_coloring):
+        """Test that the edge coloring works."""
+
+        op = SparsePauliOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
+        swaps = (((1, 2),),)
+
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        cmap.make_symmetric()
+
+        swap_strat = SwapStrategy(cmap, swaps)
+
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 1), range(4))
+
+        pm_ = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat, edge_coloring=edge_coloring),
+                Decompose(),  # double decompose gets to CX
+                Decompose(),
+                CXCancellation(),
+            ]
+        )
+
+        expected = QuantumCircuit(4)
+        if edge_coloring[(0, 1)] == 1:
+            expected.cx(1, 2)
+            expected.rz(4, 2)
+            expected.cx(1, 2)
+            expected.cx(0, 1)
+            expected.rz(2, 1)
+            expected.cx(0, 1)
+            expected.cx(2, 3)
+            expected.rz(6, 3)
+            expected.cx(2, 3)
+            expected.cx(1, 2)
+            expected.cx(2, 1)
+            expected.cx(1, 2)
+            expected.cx(2, 3)
+            expected.rz(8, 3)
+            expected.cx(2, 3)
+        else:
+            expected.cx(0, 1)
+            expected.rz(2, 1)
+            expected.cx(0, 1)
+            expected.cx(2, 3)
+            expected.rz(6, 3)
+            expected.cx(2, 3)
+            expected.cx(1, 2)
+            expected.rz(4, 2)
+            expected.cx(2, 1)
+            expected.cx(1, 2)
+            expected.cx(2, 3)
+            expected.rz(8, 3)
+            expected.cx(2, 3)
+
+        self.assertEqual(pm_.run(circ), expected)
 
 
 class TestSwapRouterExceptions(QiskitTestCase):
@@ -506,7 +574,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
         super().setUp()
 
         # A fully connected problem.
-        op = PauliSumOp.from_list(
+        op = SparsePauliOp.from_list(
             [("IIZZ", 1), ("IZIZ", 1), ("ZIIZ", 1), ("IZZI", 1), ("ZIZI", 1), ("ZZII", 1)]
         )
         self.circ = QuantumCircuit(4)

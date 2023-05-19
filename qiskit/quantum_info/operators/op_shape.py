@@ -123,6 +123,9 @@ class OpShape:
     @property
     def shape(self):
         """Return a tuple of the matrix shape"""
+        if self._num_qargs_l == self._num_qargs_r == 0:
+            # Scalar shape is op-like
+            return (1, 1)
         if not self._num_qargs_r:
             # Vector shape
             return (self._dim_l,)
@@ -421,7 +424,7 @@ class OpShape:
     def compose(self, other, qargs=None, front=False):
         """Return composed OpShape."""
         ret = OpShape()
-        if not qargs:
+        if qargs is None:
             if front:
                 if self._num_qargs_r != other._num_qargs_l or self._dims_r != other._dims_l:
                     raise QiskitError(
@@ -463,6 +466,7 @@ class OpShape:
                 for i, dim in zip(qargs, other.dims_r()):
                     dims_r[i] = dim
                 ret._dims_r = tuple(dims_r)
+                ret._num_qargs_r = len(ret._dims_r)
             else:
                 ret._num_qargs_r = self._num_qargs_r
         else:
@@ -484,6 +488,7 @@ class OpShape:
                 for i, dim in zip(qargs, other.dims_l()):
                     dims_l[i] = dim
                 ret._dims_l = tuple(dims_l)
+                ret._num_qargs_l = len(ret._dims_l)
             else:
                 ret._num_qargs_l = self._num_qargs_l
         return ret

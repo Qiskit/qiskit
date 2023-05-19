@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Support for running Qiskit with Python 3.7 support has been deprecated
+    and will be removed in the qiskit-terra 0.25.0 release. This means
+    starting in the 0.25.0 release you will need to upgrade the Python
+    version you're using to Python 3.8 or above.

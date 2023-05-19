@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Algorithm Globals """
+"""Algorithm Globals"""
 
 from typing import Optional
 import logging

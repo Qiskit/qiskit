@@ -31,7 +31,7 @@ class FakeBurlingtonV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_burlington.json"
     props_filename = "props_burlington.json"
-    backend_name = "fake_burlington_v2"
+    backend_name = "fake_burlington"
 
 
 class FakeBurlington(fake_qasm_backend.FakeQasmBackend):

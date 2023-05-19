@@ -14,27 +14,33 @@
 
 import re
 from collections import OrderedDict
-from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit import (
-    BooleanExpression,
     Clbit,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
-    ControlFlowOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_arg
 
 from ..exceptions import VisualizationError
+
+
+def _is_boolean_expression(gate_text, op):
+    if not _optionals.HAS_TWEEDLEDUM:
+        return False
+    from qiskit.circuit.classicalfunction import BooleanExpression
+
+    return isinstance(op, BooleanExpression) and gate_text == op.name
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
@@ -76,9 +82,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
 
     elif drawer == "latex":
         # Special formatting for Booleans in latex (due to '~' causing crash)
-        if (gate_text == op.name and op_type is BooleanExpression) or (
-            gate_text == base_name and base_type is BooleanExpression
-        ):
+        if _is_boolean_expression(gate_text, op):
             gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Capitalize if not a user-created gate or instruction
@@ -114,10 +118,11 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
 
 def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
-    if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
-        return ""
-
-    if isinstance(op, ControlFlowOp):
+    if (
+        not hasattr(op, "params")
+        or any(isinstance(param, np.ndarray) for param in op.params)
+        or any(isinstance(param, QuantumCircuit) for param in op.params)
+    ):
         return ""
 
     if isinstance(op, Delay):
@@ -191,6 +196,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -205,15 +211,7 @@ def get_bit_reg_index(circuit, bit, reverse_bits=None):
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
     """
-    if reverse_bits is not None:
-        warn(
-            "The 'reverse_bits' kwarg to the function "
-            "~qiskit.visualization.utils.get_bit_reg_index "
-            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
-            "after the release date.",
-            DeprecationWarning,
-            2,
-        )
+    del reverse_bits
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
     register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
@@ -286,6 +284,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 
@@ -299,15 +298,7 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
     """
-    if reverse_bits is not None:
-        warn(
-            "The 'reverse_bits' kwarg to the function "
-            "~qiskit.visualization.utils.get_condition_label_val "
-            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
-            "after the release date.",
-            DeprecationWarning,
-            2,
-        )
+    del reverse_bits
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
@@ -399,8 +390,8 @@ def _get_layered_instructions(
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    qubits = circuit.qubits
-    clbits = circuit.clbits
+    qubits = circuit.qubits.copy()
+    clbits = circuit.clbits.copy()
     nodes = []
 
     # Create a mapping of each register to the max layer number for all measure ops
@@ -548,7 +539,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 if isinstance(node.op.condition[0], Clbit):
                     cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
                     index_stop = self.measure_map[cond_bit[0]]

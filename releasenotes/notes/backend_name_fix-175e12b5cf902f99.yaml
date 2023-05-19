@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    'aer_simulator_statevector_gpu' was not recognized correctly as statevector
-    method in some function when using GPU on Qiskit Aer.
-    This fix recognizes both 'aer_simulator_statevector' and
-    'aer_simulator_statevector_gpu' the backend is statevector.

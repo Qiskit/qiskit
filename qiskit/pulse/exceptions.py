@@ -37,3 +37,7 @@ class NoActiveBuilder(PulseError):
 
 class UnassignedDurationError(PulseError):
     """Raised if instruction duration is unassigned."""
+
+
+class UnassignedReferenceError(PulseError):
+    """Raised if subroutine is unassigned."""

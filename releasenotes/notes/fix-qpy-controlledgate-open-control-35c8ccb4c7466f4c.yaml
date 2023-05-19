@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixed QPY serialisation and deserialisation of :class:`.ControlledGate`
-    with open controls (*i.e.* those whose ``ctrl_state`` is not all ones).
-    Fixed `#8549 <https://github.com/Qiskit/qiskit-terra/issues/8549>`__.

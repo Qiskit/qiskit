@@ -14,13 +14,13 @@
 
 """mpl circuit visualization backend."""
 
+import itertools
 import re
 from warnings import warn
 
 import numpy as np
 
-from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister, Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -68,21 +68,16 @@ class MatplotlibDrawer:
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=None,
         style=None,
         reverse_bits=False,
         plot_barriers=True,
-        layout=None,
         fold=25,
         ax=None,
         initial_state=False,
-        cregbundle=True,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
-        calibrations=None,
+        cregbundle=None,
         with_layout=False,
-        circuit=None,
     ):
         from matplotlib import patches
         from matplotlib import pyplot as plt
@@ -90,65 +85,7 @@ class MatplotlibDrawer:
         self._patches_mod = patches
         self._plt_mod = plt
 
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if calibrations is not None:
-            warn(
-                "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        # This check should be removed when the 5 deprecations above are removed
-        if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the MaptlotlibDrawer class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
+        self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
         self._qubits_dict = {}
@@ -169,7 +106,10 @@ class MatplotlibDrawer:
         self._plot_barriers = plot_barriers
         self._reverse_bits = reverse_bits
         if with_layout:
-            self._layout = self._circuit._layout
+            if self._circuit._layout:
+                self._layout = self._circuit._layout.initial_layout
+            else:
+                self._layout = None
         else:
             self._layout = None
 
@@ -191,9 +131,22 @@ class MatplotlibDrawer:
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
 
         self._initial_state = initial_state
-        self._cregbundle = cregbundle
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
+
+        for node in itertools.chain.from_iterable(self._nodes):
+            if node.cargs and node.op.name != "measure":
+                if cregbundle:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        3,
+                    )
+                self._cregbundle = False
+                break
+        else:
+            self._cregbundle = True if cregbundle is None else cregbundle
 
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
@@ -404,14 +357,6 @@ class MatplotlibDrawer:
             widest_box = WID
             for node in layer:
                 op = node.op
-                if self._cregbundle and node.cargs and not isinstance(op, Measure):
-                    self._cregbundle = False
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
