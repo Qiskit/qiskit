@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The method :meth:`~qiskit.pulse.schedule.ScheduleBlock.filter` is activated
+    in the :class:`~qiskit.pulse.schedule.ScheduleBlock` class.
+    This method enables users to retain only :class:`~qiskit.pulse.Instruction`
+    objects which pass through all the provided filters.
+    As the filters, :mod:`~qiskit.pulse.channels` modules and
+    :mod:`~qiskit.pulse.instructions` modules can be specified.
+    User-defined functions can be added to the filters, too.
