@@ -88,6 +88,7 @@ Parametric Pulse Representation
    Gaussian
    GaussianSquare
    GaussianSquareDrag
+   gaussian_square_echo
    Sin
    Cos
    Sawtooth
@@ -117,6 +118,7 @@ from .symbolic_pulses import (
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    gaussian_square_echo,
     Drag,
     Constant,
     Sin,
