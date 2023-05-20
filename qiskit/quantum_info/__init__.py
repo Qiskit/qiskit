@@ -83,6 +83,7 @@ Utility Functions
    :toctree: ../stubs/
 
    partial_trace
+   schmidt_decomposition
    shannon_entropy
    commutator
    anti_commutator
