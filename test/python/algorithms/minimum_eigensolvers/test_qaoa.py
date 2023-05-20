@@ -13,32 +13,34 @@
 """Test the QAOA algorithm."""
 
 import unittest
+from functools import partial
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from functools import partial
 import numpy as np
-
-from scipy.optimize import minimize as scipy_minimize
-from ddt import ddt, idata, unpack
-
 import rustworkx as rx
+from ddt import ddt, idata, unpack
+from scipy.optimize import minimize as scipy_minimize
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import Pauli
-from qiskit.result import QuasiDistribution
 from qiskit.primitives import Sampler
+from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.result import QuasiDistribution
 from qiskit.utils import algorithm_globals
 
-I = PauliSumOp.from_list([("I", 1)])
-X = PauliSumOp.from_list([("X", 1)])
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
 P1 = 1
-M1 = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
+M1 = SparsePauliOp.from_list(
+    [
+        ("IIIX", 1),
+        ("IIXI", 1),
+        ("IXII", 1),
+        ("XIII", 1),
+    ]
+)
 S1 = {"0101", "1010"}
 
 
@@ -81,8 +83,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(w)
 
         qaoa = QAOA(self.sampler, COBYLA(), reps=reps, mixer=mixer)
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -111,8 +112,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         mixer.rx(theta, range(num_qubits))
 
         qaoa = QAOA(self.sampler, optimizer, reps=prob, mixer=mixer)
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -129,8 +129,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             mixer.rx(theta, range(num_qubits))
 
         qaoa = QAOA(self.sampler, optimizer, reps=2, mixer=mixer)
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
         graph_solution = self._get_graph_solution(x)
@@ -146,8 +145,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         mixer.rx(np.pi / 2, range(num_qubits))
 
         qaoa = QAOA(self.sampler, COBYLA(), reps=1, mixer=mixer)
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
 
@@ -157,8 +155,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
         )
         qaoa = QAOA(self.sampler, COBYLA(), reps=1)
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 4x4"):
@@ -176,8 +173,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 ]
             )
         )
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 6x6"):
@@ -202,8 +198,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             initial_point=init_pt,
             callback=cb_callback,
         )
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
 
@@ -224,8 +219,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         )
         qubit_op, _ = self._get_operator(w)
         qaoa = QAOA(self.sampler, NELDER_MEAD(disp=True), reps=2)
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
         self.assertLess(result.eigenvalue, -0.97)
 
@@ -239,8 +233,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             self.sampler,
             partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
         )
-        with self.assertWarns(DeprecationWarning):
-            result = qaoa.compute_minimum_eigenvalue(qubit_op)
+        result = qaoa.compute_minimum_eigenvalue(qubit_op)
         self.assertEqual(result.cost_function_evals, 5)
 
     def _get_operator(self, weight_matrix):
@@ -266,9 +259,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                     z_p[j] = True
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
                     shift -= 0.5 * weight_matrix[i, j]
-        opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
-        with self.assertWarns(DeprecationWarning):
-            return PauliSumOp.from_list(opflow_list), shift
+        lst = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
+        return SparsePauliOp.from_list(lst), shift
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.
