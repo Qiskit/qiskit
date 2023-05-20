@@ -757,7 +757,6 @@ class TestBlockFilter(BaseTestBlock):
 
     def test_filter_channels(self):
         """Test filtering over channels."""
-        # test a non-nested block
         with pulse.build() as blk:
             pulse.play(self.test_waveform0, self.d0)
             pulse.delay(10, self.d0)
@@ -784,17 +783,19 @@ class TestBlockFilter(BaseTestBlock):
             self.assertTrue(ch in filtered_blk.channels)
         self.assertEqual(filtered_blk, blk)
 
-        # test a nested block
-        c0 = pulse.ControlChannel(0)
-        with pulse.build(self.backend) as cx_blk:
-            pulse.cx(0, 1)
-        with pulse.build(self.backend) as blk:
+    def test_filter_channels_nested_block(self):
+        """Test filtering over channels in a nested block."""
+        with pulse.build() as blk:
             with pulse.align_sequential():
                 pulse.play(self.test_waveform0, self.d0)
                 pulse.delay(5, self.d0)
+
+                with pulse.build(self.backend) as cx_blk:
+                    pulse.cx(0, 1)
+
                 pulse.call(cx_blk)
 
-        for ch in [self.d0, self.d1, c0]:
+        for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
             filtered_blk = blk.filter(channels=[ch])
             self.assertEqual(len(filtered_blk.channels), 1)
             self.assertTrue(ch in filtered_blk.channels)
