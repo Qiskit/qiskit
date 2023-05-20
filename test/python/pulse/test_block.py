@@ -758,24 +758,24 @@ class TestBlockFilter(BaseTestBlock):
     def test_filter_channels(self):
         """Test filtering over channels."""
         # test a non-nested block
-        blk = pulse.ScheduleBlock()
-        blk.append(pulse.Play(self.test_waveform0, self.d0))
-        blk.append(pulse.Delay(10, self.d0))
-        blk.append(pulse.Play(self.test_waveform1, self.d1))
+        with pulse.build() as blk:
+            pulse.play(self.test_waveform0, self.d0)
+            pulse.delay(10, self.d0)
+            pulse.play(self.test_waveform1, self.d1)
 
         filtered_blk = blk.filter(channels=[self.d0])
         self.assertEqual(len(filtered_blk.channels), 1)
         self.assertTrue(self.d0 in filtered_blk.channels)
-        ref_blk = pulse.ScheduleBlock()
-        ref_blk.append(pulse.Play(self.test_waveform0, self.d0))
-        ref_blk.append(pulse.Delay(10, self.d0))
+        with pulse.build() as ref_blk:
+            pulse.play(self.test_waveform0, self.d0)
+            pulse.delay(10, self.d0)
         self.assertEqual(filtered_blk, ref_blk)
 
         filtered_blk = blk.filter(channels=[self.d1])
         self.assertEqual(len(filtered_blk.channels), 1)
         self.assertTrue(self.d1 in filtered_blk.channels)
-        ref_blk = pulse.ScheduleBlock()
-        ref_blk.append(pulse.Play(self.test_waveform1, self.d1))
+        with pulse.build() as ref_blk:
+            pulse.play(self.test_waveform1, self.d1)
         self.assertEqual(filtered_blk, ref_blk)
 
         filtered_blk = blk.filter(channels=[self.d0, self.d1])
@@ -801,37 +801,28 @@ class TestBlockFilter(BaseTestBlock):
 
     def test_filter_inst_types(self):
         """Test filtering on instruction types."""
-        blk = pulse.ScheduleBlock()
-        blk.append(pulse.Acquire(5, pulse.AcquireChannel(0), pulse.MemorySlot(0)))
-        blk_internal = pulse.ScheduleBlock(name="internal")
-        blk_internal.append(pulse.Play(self.test_waveform1, self.d1))
-        blk.append(pulse.Call(subroutine=blk_internal))
-        blk.append(pulse.instructions.Reference(name="dummy_ref"))
-        blk.append(pulse.Delay(10, self.d0))
-        blk.append(pulse.Play(self.test_waveform0, self.d0))
-        blk.append(
-            pulse.instructions.RelativeBarrier(
-                self.d0, self.d1, pulse.AcquireChannel(0), pulse.MemorySlot(0)
-            )
-        )
-        blk.append(pulse.SetFrequency(10, self.d0))
-        blk.append(pulse.ShiftFrequency(5, self.d1))
-        blk.append(pulse.SetPhase(3.14 / 4.0, self.d0))
-        blk.append(pulse.ShiftPhase(-3.14 / 2.0, self.d1))
-        blk.append(pulse.Snapshot(label="dummy_snap"))
-        blk.append(pulse.instructions.TimeBlockade(10, self.d1))
+        with pulse.build() as blk:
+            pulse.acquire(5, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+
+            with pulse.build() as blk_internal:
+                pulse.play(self.test_waveform1, self.d1)
+
+            pulse.call(blk_internal)
+            pulse.reference(name="dummy_reference")
+            pulse.delay(10, self.d0)
+            pulse.play(self.test_waveform0, self.d0)
+            pulse.barrier(self.d0, self.d1, pulse.AcquireChannel(0), pulse.MemorySlot(0))
+            pulse.set_frequency(10, self.d0)
+            pulse.shift_frequency(5, self.d1)
+            pulse.set_phase(3.14 / 4.0, self.d0)
+            pulse.shift_phase(-3.14 / 2.0, self.d1)
+            pulse.snapshot(label="dummy_snapshot")
 
         # test filtering Acquire
         filtered_blk = blk.filter(instruction_types=[pulse.Acquire], check_subroutine=False)
         self.assertEqual(len(filtered_blk.blocks), 1)
         self.assertIsInstance(filtered_blk.blocks[0], pulse.Acquire)
         self.assertEqual(len(filtered_blk.channels), 2)
-
-        # test filtering Call
-        filtered_blk = blk.filter(instruction_types=[pulse.Call], check_subroutine=False)
-        self.assertEqual(len(filtered_blk.blocks), 1)
-        self.assertIsInstance(filtered_blk.blocks[0], pulse.Call)
-        self.assertEqual(len(filtered_blk.channels), 1)
 
         # test filtering Reference
         filtered_blk = blk.filter(
@@ -848,10 +839,6 @@ class TestBlockFilter(BaseTestBlock):
 
         # test filtering Play
         filtered_blk = blk.filter(instruction_types=[pulse.Play], check_subroutine=False)
-        self.assertEqual(len(filtered_blk.blocks), 1)
-        self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
-        self.assertEqual(len(filtered_blk.channels), 1)
-        filtered_blk = blk.filter(instruction_types=[pulse.Play], check_subroutine=True)
         self.assertEqual(len(filtered_blk.blocks), 2)
         self.assertIsInstance(filtered_blk.blocks[0].blocks[0], pulse.Play)
         self.assertIsInstance(filtered_blk.blocks[1], pulse.Play)
@@ -895,23 +882,17 @@ class TestBlockFilter(BaseTestBlock):
         self.assertIsInstance(filtered_blk.blocks[0], pulse.Snapshot)
         self.assertEqual(len(filtered_blk.channels), 1)
 
-        # test filtering TimeBlockade
-        filtered_blk = blk.filter(
-            instruction_types=[pulse.instructions.TimeBlockade], check_subroutine=False
-        )
-        self.assertEqual(len(filtered_blk.blocks), 1)
-        self.assertIsInstance(filtered_blk.blocks[0], pulse.instructions.TimeBlockade)
-        self.assertEqual(len(filtered_blk.channels), 1)
-
     def test_filter_functionals(self):
         """Test functional filtering."""
-        blk = pulse.ScheduleBlock(alignment_context=self.sequential_context)
-        blk.append(pulse.Play(self.test_waveform0, self.d0, "play0"))
-        blk.append(pulse.Delay(10, self.d0, "delay0"))
-        blk_internal = pulse.ScheduleBlock(name="internal_blk")
-        blk_internal.append(pulse.Play(self.test_waveform1, self.d1, "play1"))
-        blk.append(pulse.Call(subroutine=blk_internal))
-        blk.append(pulse.Play(self.test_waveform1, self.d1))
+        with pulse.build() as blk:
+            pulse.play(self.test_waveform0, self.d0, "play0")
+            pulse.delay(10, self.d0, "delay0")
+
+            with pulse.build() as blk_internal:
+                pulse.play(self.test_waveform1, self.d1, "play1")
+
+            pulse.call(blk_internal)
+            pulse.play(self.test_waveform1, self.d1)
 
         def filter_with_inst_name(inst: pulse.Instruction) -> bool:
             try:
@@ -924,11 +905,6 @@ class TestBlockFilter(BaseTestBlock):
             return False
 
         filtered_blk = blk.filter(filter_with_inst_name, check_subroutine=False)
-        self.assertEqual(len(filtered_blk.blocks), 1)
-        self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
-        self.assertEqual(len(filtered_blk.channels), 1)
-
-        filtered_blk = blk.filter(filter_with_inst_name, check_subroutine=True)
         self.assertEqual(len(filtered_blk.blocks), 2)
         self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
         self.assertIsInstance(filtered_blk.blocks[1].blocks[0], pulse.Play)
@@ -936,14 +912,16 @@ class TestBlockFilter(BaseTestBlock):
 
     def test_filter_multiple(self):
         """Test filter composition."""
-        blk = pulse.ScheduleBlock(alignment_context=self.sequential_context)
-        blk.append(pulse.Play(pulse.Constant(100, 0.1, name="play0"), self.d0))
-        blk.append(pulse.Delay(10, self.d0, "delay0"))
-        blk_internal = pulse.ScheduleBlock(name="internal_blk")
-        blk_internal.append(pulse.Play(pulse.Constant(50, 0.1, name="play1"), self.d0))
-        blk.append(pulse.Call(subroutine=blk_internal))
-        blk.append(pulse.instructions.RelativeBarrier(self.d0, self.d1))
-        blk.append(pulse.Play(pulse.Constant(100, 0.1, name="play2"), self.d1))
+        with pulse.build() as blk:
+            pulse.play(pulse.Constant(100, 0.1, name="play0"), self.d0)
+            pulse.delay(10, self.d0, "delay0")
+
+            with pulse.build(name="internal_blk") as blk_internal:
+                pulse.play(pulse.Constant(50, 0.1, name="play1"), self.d0)
+
+            pulse.call(blk_internal)
+            pulse.barrier(self.d0, self.d1)
+            pulse.play(pulse.Constant(100, 0.1, name="play2"), self.d1)
 
         def filter_with_pulse_name(inst: pulse.Instruction) -> bool:
             try:
@@ -960,16 +938,6 @@ class TestBlockFilter(BaseTestBlock):
             channels=[self.d1],
             instruction_types=[pulse.Play],
             check_subroutine=False,
-        )
-        self.assertEqual(len(filtered_blk.blocks), 1)
-        self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
-        self.assertEqual(len(filtered_blk.channels), 1)
-
-        filtered_blk = blk.filter(
-            filter_with_pulse_name,
-            channels=[self.d1],
-            instruction_types=[pulse.Play],
-            check_subroutine=True,
         )
         self.assertEqual(len(filtered_blk.blocks), 1)
         self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
