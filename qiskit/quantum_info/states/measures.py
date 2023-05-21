@@ -252,3 +252,41 @@ def entanglement_of_formation(state):
     conc = concurrence(state)
     val = (1 + np.sqrt(1 - (conc**2))) / 2
     return shannon_entropy([val, 1 - val])
+
+
+def negativity(state, qargs, base=2):
+    r"""Calculates the negativity and logarithmic negativity
+
+    The mathematical expression for negativity is given by:
+    .. math::
+        {\cal{N}}(\rho) = \frac{|| \rho^{T_A} - 1 ||}{2}
+
+    The mathematical expression for logarithmic negaitivity is given by:
+    .. math::
+        {\cal{E}}_N(\rho) = \log_2(|| \rho^{T_A}||)
+
+    Args:
+        state (Statevector or DensityMatrix): a quantum state.
+        qargs (list): The subsystems to be transposed.
+        base (float): the base of the logarithm [Default: 2].
+
+    Returns:
+        negv (float): Negativity value of the quantum state
+        log_negv (float): Logarithmic Negativity value of the quantum state
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+    """
+    import math
+
+    if isinstance(state, Statevector):
+        # If input is statevector then converting it into density matrix
+        state = DensityMatrix(state)
+    # Generating partially transposed state
+    state = state.partial_transpose(qargs)
+    eigvals, _ = np.linalg.eig(np.matmul(np.transpose(np.conjugate(state.data)), state.data))
+    eigvals = np.sum(np.sqrt(np.maximum(np.real(eigvals), 0.0)))
+
+    negv = (eigvals - 1) / 2
+    log_negv = math.log(eigvals, base)
+    return negv, log_negv
