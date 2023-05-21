@@ -6786,7 +6786,7 @@ Upgrade Notes
   the  :class:`~.L_BFGS_B` optimizer class have been removed. These arguments
   were originally deprecated as part of the 0.18.0 release (released on
   July 12, 2021). Instead the ``ftol`` argument should be used, you
-  can refer to the `scipy docs <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.>`__
+  can refer to the `scipy docs <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html>`__
   on the optimizer for more detail on the relationship between these arguments.
 
 .. releasenotes/notes/0.22/sabres-for-everyone-3148ccf2064ccb0d.yaml @ b'618770367f7a5a3a22fd43ea9fcfb7f17393eb6a'
@@ -10164,7 +10164,7 @@ New Features
   now are able to plot any backend not just those with the number of qubits
   equal to one of the IBM backends. This relies on
   the retworkx ``spring_layout()``
-  `function <https://qiskit.org/documentation/retworkx/apiref/retworkx.spring_layout.html>`__
+  `function <https://qiskit.org/ecosystem/rustworkx/apiref/rustworkx.spring_layout.html>`__
   to generate the layout for the visualization. If the default layout doesn't
   work with a backend's particular coupling graph you can use the
   ``qubit_coordinates`` function to set a custom layout.
@@ -12018,7 +12018,7 @@ The Qiskit Terra 0.19 release highlights are:
   :class:`.QuantumCircuit`\ s into OpenQASM 3, including the new control-flow
   constructs.
 
-.. _OpenQASM 3 specification: https://qiskit.github.io/openqasm/
+.. _OpenQASM 3 specification: https://openqasm.com/
 
 This release marks the end of support for Python 3.6 in Qiskit.  This
 release of Qiskit Terra, and any subsequent bugfix releases in the 0.19.x
@@ -13294,8 +13294,8 @@ New Features
 
 - Added a new transpiler pass, :class:`~qiskit.transpiler.passes.VF2Layout`.
   This pass models the layout allocation problem as a subgraph isomorphism
-  problem and uses the `VF2 algorithm`_ implementation in `retworkx
-  <https://qiskit.org/documentation/retworkx/stubs/retworkx.vf2_mapping.html>`__
+  problem and uses the `VF2 algorithm`_ implementation in `rustworkx
+  <https://qiskit.org/documentation/rustworkx/stubs/rustworkx.vf2_mapping.html>`__
   to find a perfect layout (a layout which would not require additional
   routing) if one exists. The functionality exposed by this new pass is very
   similar to exisiting :class:`~qiskit.transpiler.passes.CSPLayout` but
@@ -13321,7 +13321,7 @@ Known Issues
   Qiskit Terra's :obj:`.QuantumCircuit` are not yet supported.  In particular, you
   may see errors if you try to export custom subroutines with classical
   parameters, and there is no provision yet for exporting pulse-calibrated
-  operations into `OpenPulse <https://qiskit.github.io/openqasm/language/openpulse.html>`__.
+  operations into `OpenPulse <https://openqasm.com/language/openpulse.html>`__.
 
 .. releasenotes/notes/0.19/target-in-transpiler-c0a97bd33ad9417d.yaml @ b'd5094eeca27f2c0f3c13f23f1e812cd41b6108f2'
 
@@ -14750,11 +14750,11 @@ Upgrade Notes
 Bug Fixes
 ---------
 
-- Fixes `#1351 <https://github.com/Qiskit/qiskit-aer/issue/1351>`__
+- Fixes `#1351 <https://github.com/Qiskit/qiskit-aer/issues/1351>`__
   where running an empty :obj:`~qiskit.circuit.QuantumCircuit` with
   a noise model set would cause the simulator to crash.
 
-- Fixes `#1347 <https://github.com/Qiskit/qiskit-aer/issue/1347>`__
+- Fixes `#1347 <https://github.com/Qiskit/qiskit-aer/issues/1347>`__
   where the behaviour of using the
   :meth:`~qiskit.providers.aer.AerSimulator.set_options` and
   :meth:`~qiskit.providers.aer.AerSimulator.set_option` methods of
@@ -14778,7 +14778,7 @@ Bug Fixes
   `IBM Quantum API schema <https://github.com/Qiskit/ibm-quantum-schemas>`__
   invalid response in the case of an error that prevented the simulation from running.
 
-- Fixes `#1346 <https://github.com/Qiskit/qiskit-aer/issue/1346>`__
+- Fixes `#1346 <https://github.com/Qiskit/qiskit-aer/issues/1346>`__
   which was a bug in the handling of the ``parameter_binds`` kwarg of
   the backend :meth:`~qiskit.providers.aer.AerSimulator.run` method that
   would result in an error if the parameterized circuit was transpiled to
@@ -25377,7 +25377,7 @@ conventional algorithms, such as the ``MinimumEigenOptimizer``
 a set of converters to translate between different
 problem representations, such as ``QuadraticProgramToQubo``.
 See the
-`changelog <https://github.com/Qiskit/qiskit-aqua/blob/master/CHANGELOG.md>`_
+`changelog <https://github.com/Qiskit/qiskit-aqua/#migration-guide>`_
 for a list of the added features.
 
 Operator flow
@@ -25389,7 +25389,7 @@ operators and measurements and internally relies on Terra's Operator
 objects. Computing expectation values and evolutions was heavily simplified
 and objects like the ``ExpectationFactory`` produce the suitable, most
 efficient expectation algorithm based on the Operator input type.
-See the `changelog <https://github.com/Qiskit/qiskit-aqua/blob/master/CHANGELOG.md>`_
+See the `changelog <https://github.com/Qiskit/qiskit-aqua/#migration-guide>`_
 for a overview of the added functionality.
 
 Native circuits
