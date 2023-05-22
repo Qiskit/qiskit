@@ -162,7 +162,7 @@ class ConsolidateBlocks(TransformationPass):
             del self.property_set["block_list"]
         return dag
 
-    def _check_not_in_basis(self, dag, gate_name, qargs, global_index_map=None):
+    def _check_not_in_basis(self, dag, gate_name, qargs):
         if self.target is not None:
             return not self.target.instruction_supported(
                 gate_name, tuple(dag.find_bit(qubit).index for qubit in qargs)
@@ -170,7 +170,7 @@ class ConsolidateBlocks(TransformationPass):
         else:
             return self.basis_gates and gate_name not in self.basis_gates
 
-    def _block_qargs_to_indices(self, dag, block_qargs, global_index_map=None):
+    def _block_qargs_to_indices(self, dag, block_qargs):
         """Map each qubit in block_qargs to its wire position among the block's wires.
         Args:
             block_qargs (list): list of qubits that a block acts on

@@ -45,10 +45,9 @@ class ALAPScheduleAnalysis(BaseScheduler):
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         node_start_time = {}
-        bit_indices = {bit: dag.find_bit(bit).index for bit in dag.qubits}
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
         for node in reversed(list(dag.topological_op_nodes())):
-            op_duration = self._get_node_duration(node, bit_indices, dag)
+            op_duration = self._get_node_duration(node, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction

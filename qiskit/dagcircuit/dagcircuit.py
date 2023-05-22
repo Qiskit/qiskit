@@ -24,7 +24,7 @@ from collections import OrderedDict, defaultdict, namedtuple
 import copy
 import itertools
 import math
-from typing import Generator, Any, List
+from typing import Dict, Generator, Any, List
 
 import numpy as np
 import rustworkx as rx
@@ -96,8 +96,8 @@ class DAGCircuit:
         # 0) corresponding index in dag.{qubits,clbits} and
         # 1) a list of Register-int pairs for each Register containing the Bit and
         # its index within that register.
-        self._qubit_indices: dict[Qubit, BitPosition] = {}
-        self._clbit_indices: dict[Clbit, BitPosition] = {}
+        self._qubit_indices: Dict[Qubit, BitPosition] = {}
+        self._clbit_indices: Dict[Clbit, BitPosition] = {}
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -230,7 +230,6 @@ class DAGCircuit:
         if duplicate_qubits:
             raise DAGCircuitError("duplicate qubits %s" % duplicate_qubits)
 
-        # self.qubits.extend(qubits)
         for qubit in qubits:
             self.qubits.append(qubit)
             self._qubit_indices[qubit] = BitPosition(len(self.qubits) - 1, [])
@@ -245,7 +244,6 @@ class DAGCircuit:
         if duplicate_clbits:
             raise DAGCircuitError("duplicate clbits %s" % duplicate_clbits)
 
-        # self.clbits.extend(clbits)
         for clbit in clbits:
             self.clbits.append(clbit)
             self._clbit_indices[clbit] = BitPosition(len(self.clbits) - 1, [])

@@ -14,7 +14,6 @@
 
 import warnings
 
-from typing import Dict
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
@@ -60,7 +59,6 @@ class BaseScheduler(AnalysisPass):
     @staticmethod
     def _get_node_duration(
         node: DAGOpNode,
-        bit_index_map: Dict,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node or calibration."""

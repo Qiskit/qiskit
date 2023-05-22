@@ -230,7 +230,7 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
 
-        def apply_translation(dag, wire_map=None):
+        def apply_translation(dag):
             dag_updated = False
             for node in dag.op_nodes():
                 node_qargs = tuple(dag.find_bit(bit).index for bit in node.qargs)
@@ -240,13 +240,7 @@ class BasisTranslator(TransformationPass):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            dag_updated = apply_translation(
-                                dag_block,
-                                {
-                                    inner: dag.find_bit(outer).index
-                                    for inner, outer in zip(block.qubits, node.qargs)
-                                },
-                            )
+                            dag_updated = apply_translation(dag_block)
                             if dag_updated:
                                 flow_circ_block = dag_to_circuit(dag_block)
                             else:
@@ -341,9 +335,7 @@ class BasisTranslator(TransformationPass):
                 for block in instr.blocks:
                     yield from self._extract_basis(block)
 
-    def _extract_basis_target(
-        self, dag, qarg_indices=None, source_basis=None, qargs_local_source_basis=None
-    ):
+    def _extract_basis_target(self, dag, source_basis=None, qargs_local_source_basis=None):
         if source_basis is None:
             source_basis = set()
         if qargs_local_source_basis is None:
@@ -374,10 +366,6 @@ class BasisTranslator(TransformationPass):
                     block_dag = circuit_to_dag(block)
                     source_basis, qargs_local_source_basis = self._extract_basis_target(
                         block_dag,
-                        {
-                            inner: dag.find_bit(outer).index
-                            for inner, outer in zip(block.qubits, node.qargs)
-                        },
                         source_basis=source_basis,
                         qargs_local_source_basis=qargs_local_source_basis,
                     )
