@@ -24,8 +24,6 @@ from qiskit.synthesis.linear import (
 )
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_depth_line_my
-
-
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     _compute_rank,
@@ -145,7 +143,7 @@ def synth_clifford_layers(
         layeredCircuit.append(CXinv, qubit_list)
 
     else:
-        # note CZ2_circ is None and built into the CX_circ when
+        # note that CZ2_circ is None and built into the CX_circ when
         # cx_cz_synth_func is not None
         layeredCircuit.append(CX_circ, qubit_list)
 

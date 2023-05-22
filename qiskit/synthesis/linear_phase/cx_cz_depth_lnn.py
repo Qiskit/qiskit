@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2022
+# (C) Copyright IBM 2017, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,21 +20,19 @@ Args:
     mat_x: n*n invertable binary matrix representing a -CX- transformation
 
 Output:
-    qc: QuantumCircuit object containing a depth-5n circuit to implement -CZ-CX-
+    QuantumCircuit: QuantumCircuit object containing a depth-5n circuit to implement -CZ-CX-
 
 References:
     [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, "Computation at a distance," 2007.
-    [2] D. Maslove and W. Yang, "CNOT circuits need little help to implement arbitrary 
+    [2] D. Maslov and W. Yang, "CNOT circuits need little help to implement arbitrary 
         Hadamard-free Clifford transformations they generate," 2022.
 """
 
-
 from copy import deepcopy
-
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import calc_inverse_matrix
-
 from qiskit.synthesis.linear.linear_depth_lnn import _optimize_cx_circ_depth_5n_line
 
 
@@ -42,7 +40,7 @@ def _initialize_phase_schedule(mat_z):
     """
     Given a CZ layer (represented as an n*n CZ matrix Mz)
     Return a scheudle of phase gates implementing Mz in a SWAP-only netwrok
-    (Ref. [Alg 1, 2])
+    (c.f. Alg 1, [2])
     """
     n = len(mat_z)
     phase_schedule = np.zeros((n, n), dtype=int)
@@ -63,7 +61,7 @@ def _shuffle(labels, odd):
         labels : a list of indices
         odd : a boolean indicating whether this layer is odd or even,
     Shuffle the indices in labels by swapping adjacent elements
-    (Ref. [Fig.2, 2])
+    (c.f. Fig.2, [2])
     """
     swapped = [v for p in zip(labels[1::2], labels[::2]) for v in p]
     return swapped + labels[-1:] if odd else swapped
@@ -73,7 +71,7 @@ def _make_seq(n):
     """
     Given the width of the circuit n,
     Return the labels of the boxes in order from left to right, top to bottom
-    (Ref. [Fig.2, 2])
+    (c.f. Fig.2, [2])
     """
     seq = []
     wire_labels = list(range(n - 1, -1, -1))
@@ -94,10 +92,15 @@ def _make_seq(n):
 
 def _swap_plus(instructions, seq):
     """
-    Given CX instructions (Ref. [Thm 7.1, 1]) and the labels of all boxes,
+    Given CX instructions (c.f. Thm 7.1, [1]) and the labels of all boxes,
     Return a list of labels of the boxes that is SWAP+ in descending order
         * Assumes the instruction gives gates in the order from top to bottom,
           from left to right
+        * SWAP+ is defined in section 3.A. of [2]. Note the northwest
+          diagonalization procedure of [1] consists exactly n layers of boxes,
+          each being either a SWAP or a SWAP+. That is, each northwest
+          diagonalization circuit can be uniquely represented by which of its
+          n(n-1)/2 boxes are SWAP+ and which are SWAP.
     """
     instr = deepcopy(instructions)
     swap_plus = set()
@@ -116,7 +119,7 @@ def _swap_plus(instructions, seq):
 def _update_phase_schedule(n, phase_schedule, swap_plus):
     """
     Given phase_schedule initialized to induce a CZ circuit in SWAP-only network and list of SWAP+ boxes
-    Update phase_schedule for each SWAP+ according to Algorithm 2 [2]
+    Update phase_schedule for each SWAP+ according to Algorithm 2, [2]
     """
     layer_order = list(range(n))[-3::-2] + list(range(n))[-2::-2][::-1]
     order_comp = np.argsort(layer_order[::-1])
@@ -164,7 +167,12 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
         A CZ circuit, represented by the n*n phase schedule phase_schedule
         A CX circuit, represented by box-labels (seq) and whether the box is SWAP+ (swap_plus)
             *   This circuit corresponds to the CX tranformation that tranforms a matrix to
-                a NW matrix (Ref. [Prop.7.4, 1])
+                a NW matrix (c.f. Prop.7.4, [1])
+            *   SWAP+ is defined in section 3.A. of [2].
+            *   As previously noted, the northwest diagonalization procedure of [1] consists
+                of exactly n layers of boxes, each being either a SWAP or a SWAP+. That is,
+                each northwest diagonalization circuit can be uniquely represented by which
+                of its n(n-1)/2 boxes are SWAP+ and which are SWAP.
     Return a QuantumCircuit that computes the phase scheudle S inside CX
     """
     cir = QuantumCircuit(n)
@@ -214,20 +222,22 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
     This method computes the CZ circuit inside the CX circuit via phase gate insertions.
 
     Args:
-        mat_z : a boolean symetric matrix representing a CZ circuit.
+        mat_z : a boolean symmetric matrix representing a CZ circuit.
             Mz[i][j]=1 represents a CZ(i,j) gate
 
         mat_x : a boolean invertible matrix representing a CX circuit.
 
     Return:
-        qc : a circuit implementation of a CX circuit following a CZ circuit,
+        QuantumCircuit : a circuit implementation of a CX circuit following a CZ circuit,
         denoted as a -CZ-CX- circuit,in two-qubit depth at most 5n, for LNN connectivity.
 
     Reference:
-        1. S. A. Kutin, D. P. Moulton, and L. M. Smithline, "Computation at a distance," 2007.
-
-        2. D. Maslove and W. Yang, "CNOT circuits need little help to implement arbitrary
-        Hadamard-free Clifford transformations they generate," 2022.
+        1. Kutin, S., Moulton, D. P., Smithline, L.,
+           *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
+           `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
+        2. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
+           Hadamard-free Clifford transformations they generate*,
+           `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
     """
 
     # First, find circuits implementing mat_x by Proposition 7.3 and Proposition 7.4 of [1]
