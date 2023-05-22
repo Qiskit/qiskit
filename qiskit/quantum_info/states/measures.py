@@ -259,7 +259,7 @@ def negativity(state, qargs, base=2):
 
     The mathematical expression for negativity is given by:
     .. math::
-        {\cal{N}}(\rho) = \frac{|| \rho^{T_A} - 1 ||}{2}
+        {\cal{N}}(\rho) = \frac{|| \rho^{T_A}|| - 1 }{2}
 
     The mathematical expression for logarithmic negaitivity is given by:
     .. math::
