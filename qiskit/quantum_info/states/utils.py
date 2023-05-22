@@ -122,7 +122,7 @@ def shannon_entropy(pvec, base=2):
 def schmidt_decomposition(state, qargs):
     r"""Return the Schmidt Decomposition of a pure quantum state.
 
-    For an arbitrary bipartite state::
+    For an arbitrary bipartite state:
 
     .. math::
          |\psi\rangle_{AB} = \sum_{i,j} c_{ij}
@@ -162,25 +162,25 @@ def schmidt_decomposition(state, qargs):
     dims = state.dims()
     state_tens = state._data.reshape(dims[::-1])
     ndim = state_tens.ndim
+    qudits = list(range(ndim))
 
     # check if qargs are valid
     if not isinstance(qargs, (list, np.ndarray)):
         raise QiskitError("Input qargs is not a list of positions of the Input state")
-    qudits = list(range(ndim))
     qargs = set(qargs)
     if qargs == set(qudits) or not qargs.issubset(qudits):
         raise QiskitError("Input qargs is not a proper subset of Input state")
 
     # define subsystem A and B qargs and dims
-    qargs_a = list(qargs)
-    qargs_b = [i for i in qudits if i not in qargs_a]
-    dims_a = state.dims(qargs_a)
+    qargs_b = list(qargs)
+    qargs_a = [i for i in qudits if i not in qargs_b]
     dims_b = state.dims(qargs_b)
-    ndim_a = np.prod(dims_a)
+    dims_a = state.dims(qargs_a)
     ndim_b = np.prod(dims_b)
+    ndim_a = np.prod(dims_a)
 
     # permute state for desired qargs order
-    qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_a + qargs_b][::-1]
+    qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_b + qargs_a][::-1]
     state_tens = state_tens.transpose(qargs_axes)
 
     # convert state tensor to matrix of prob amplitudes and perform svd.
