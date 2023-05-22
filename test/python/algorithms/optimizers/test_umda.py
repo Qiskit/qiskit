@@ -34,7 +34,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
 
         self.assertTrue(umda.disp)
         self.assertEqual(umda.size_gen, 30)
-        self.assertAlmostEqual(umda.alpha, 0.6)
+        self.assertEqual(umda.alpha, 0.6)
         self.assertEqual(umda.maxiter, 100)
 
     def test_settings(self):
