@@ -43,7 +43,6 @@ class GlobalPhaseGate(Gate):
         super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
-
         q = QuantumRegister(0, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=self.params[0])
 
@@ -52,7 +51,7 @@ class GlobalPhaseGate(Gate):
     def inverse(self):
         r"""Return inverted GLobalPhaseGate gate.
 
-        :math:`\text{GlobalPhaseGate}(\lambda){\dagger} = \text{GlobalPhaseGate}(-\lambda)`
+        :math:`\text{GlobalPhaseGate}(\lambda)^{\dagger} = \text{GlobalPhaseGate}(-\lambda)`
         """
         return GlobalPhaseGate(-self.params[0])
 
