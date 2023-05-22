@@ -14,6 +14,8 @@
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+import numpy as np
+
 from qiskit.algorithms.optimizers.umda import UMDA
 
 
@@ -45,6 +47,7 @@ class TestUMDA(QiskitAlgorithmsTestCase):
             "maxiter": 100,
             "alpha": 0.6,
             "size_gen": 30,
+            "callback": None,
         }
 
         assert umda.settings == set_
@@ -52,7 +55,6 @@ class TestUMDA(QiskitAlgorithmsTestCase):
     def test_minimize(self):
         """optimize function test"""
         from scipy.optimize import rosen
-        import numpy as np
         from qiskit.utils import algorithm_globals
 
         # UMDA is volatile so we need to set the seeds for the execution
@@ -66,3 +68,29 @@ class TestUMDA(QiskitAlgorithmsTestCase):
         assert len(res.x) == len(x_0)
 
         np.testing.assert_array_almost_equal(res.x, [1.0] * len(x_0), decimal=2)
+
+    def test_callback(self):
+        """Test the callback."""
+
+        def objective(x):
+            return np.linalg.norm(x) - 1
+
+        nfevs, parameters, fvals = [], [], []
+
+        def store_history(*args):
+            nfevs.append(args[0])
+            parameters.append(args[1])
+            fvals.append(args[2])
+
+        optimizer = UMDA(maxiter=1, callback=store_history)
+        _ = optimizer.minimize(objective, x0=np.arange(5))
+
+        self.assertEqual(len(nfevs), 1)
+        self.assertIsInstance(nfevs[0], int)
+
+        self.assertEqual(len(parameters), 1)
+        self.assertIsInstance(parameters[0], np.ndarray)
+        self.assertEqual(parameters[0].size, 5)
+
+        self.assertEqual(len(fvals), 1)
+        self.assertIsInstance(fvals[0], float)
