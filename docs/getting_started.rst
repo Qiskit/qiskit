@@ -117,12 +117,6 @@ going to run and install the packages.  There are three main ways to do this:
        element or component usually include new features and changes, they generally
        require using the ``development`` version of the rest of the items as well.
 
-       .. note::
-
-       The Terra and Aer packages both require a compiler to build from source before
-       you can install. Ignis, Aqua, and the IBM Quantum Provider backend
-       do not require a compiler.
-
        Installing elements from source requires the following order of installation to
        prevent installing versions of elements that may be lower than those desired if the
        ``pip`` version is behind the source versions:
@@ -132,6 +126,12 @@ going to run and install the packages.  There are three main ways to do this:
 
        To work with several components and elements simultaneously, use the following
        steps for each element.
+
+       .. note::
+
+          The Terra and Aer packages both require a compiler to build from source before
+          you can install. Ignis, Aqua, and the IBM Quantum Provider backend
+          do not require a compiler.
 
        .. note::
 
@@ -337,7 +337,7 @@ going to run and install the packages.  There are three main ways to do this:
              python ./setup.py bdist_wheel
 
           If you need to set a custom option during the wheel build, refer to
-          :ref:`aer_wheel_build_options`.
+          :ref:`Custom options <aer_wheel_build_options>`.
 
           After you build the Python wheel, it will be stored in the ``dist/`` dir in the
           Aer repository. The exact version will depend

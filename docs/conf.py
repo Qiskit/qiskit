@@ -22,6 +22,8 @@ import datetime
 import os
 import sys
 
+import sphinx.ext.doctest
+
 sys.path.insert(0, os.path.abspath("."))
 
 import custom_extensions
@@ -52,12 +54,12 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
-    "jupyter_sphinx",
     "nbsphinx",
     "sphinx_design",
     "sphinx_reredirects",
     "matplotlib.sphinxext.plot_directive",
     "qiskit_sphinx_theme",
+    "sphinx.ext.doctest",
 ]
 
 redirects = url_redirects.determine_redirects()
@@ -158,6 +160,21 @@ autosummary_generate = True
 autosummary_generate_overwrite = False
 autoclass_content = "both"
 
+# The pulse library contains some names that differ only in capitalisation, during the changeover
+# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
+# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
+# from happening.
+autosummary_filename_map = {
+    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
+    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
+    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
+    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
+    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
+    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
+    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
+}
+
 # Move type hints from signatures to the parameter descriptions (except in overload cases, where
 # that's not possible).
 autodoc_typehints = "description"
@@ -169,6 +186,22 @@ autodoc_typehints_description_target = "documented_params"
 # ----------------------------
 
 plot_html_show_formats = False
+
+# ---------------------------------------------------------------------------
+# Doctest
+# ---------------------------------------------------------------------------
+
+# This option will make doctest ignore whitespace when testing code.
+# It's specially important for circuit representation as it gives an
+# error otherwise
+doctest_default_flags = sphinx.ext.doctest.doctest.NORMALIZE_WHITESPACE
+
+# Leaving this string empty disables testing of doctest blocks from docstrings.
+# Doctest blocks are structures like this one:
+# >> code
+# output
+doctest_test_doctest_blocks = ""
+
 
 # -- Extension configuration -------------------------------------------------
 

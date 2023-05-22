@@ -256,17 +256,24 @@ The module-level docstring
       =======================================
       DAG Circuits (:mod:`qiskit.dagcircuit`)
       =======================================
+
       .. currentmodule:: qiskit.dagcircuit
+
       DAG Circuits
       ============
+
       .. autosummary::
          :toctree: ../stubs/
+
          DAGCircuit
          DAGNode
+
       Exceptions
       ==========
+
       .. autosummary::
          :toctree: ../stubs/
+
          DAGCircuitError
       """
 

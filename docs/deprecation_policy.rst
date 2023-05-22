@@ -118,7 +118,7 @@ change:
   keyword argument, or add a second function that only accepts the new form.
 
 
-.. issuing-deprecation-warnings:
+.. _issuing-deprecation-warnings:
 
 Issuing deprecation warnings
 ============================
@@ -152,7 +152,7 @@ other than ``2``, but can be useful if you use a helper function to issue the
 same warning in multiple places.
 
 
-.. testing-deprecated-functionality:
+.. _testing-deprecated-functionality:
 
 Testing deprecated functionality
 ================================
