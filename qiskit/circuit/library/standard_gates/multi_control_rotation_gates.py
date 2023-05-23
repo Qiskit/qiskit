@@ -90,13 +90,7 @@ def _mcsu2_real_diagonal(
     use_basis_gates: bool = False,
 ) -> QuantumCircuit:
     """
-<<<<<<< HEAD
-    Apply multi-controlled SU(2) gate with a real main diagonal or secondary diagonal.
-
-    The algorithm this method implements is described in: https://arxiv.org/abs/2302.06377
-=======
     Return a multi-controlled SU(2) gate [1]_ with a real main diagonal or secondary diagonal.
->>>>>>> 7b677edf1 (Fix wrong relative phase of MCRZ (#9836))
 
     Args:
         unitary: SU(2) unitary matrix with one real diagonal.
