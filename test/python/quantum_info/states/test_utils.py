@@ -97,6 +97,17 @@ class TestStateUtils(QiskitTestCase):
         # entangled 3-level system
         target = Statevector(np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]) * 1 / np.sqrt(3), dims=(3, 3))
         schmidt_comps = schmidt_decomposition(target, [0])
+        # check decomposition elements
+        self.assertEqual(schmidt_comps[0][0], 1 / np.sqrt(3))
+        self.assertEqual(schmidt_comps[0][1], Statevector(np.array([1, 0, 0]), dims=(3)))
+        self.assertEqual(schmidt_comps[0][2], Statevector(np.array([1, 0, 0]), dims=(3)))
+        self.assertEqual(schmidt_comps[1][0], 1 / np.sqrt(3))
+        self.assertEqual(schmidt_comps[1][1], Statevector(np.array([0, 1, 0]), dims=(3)))
+        self.assertEqual(schmidt_comps[1][2], Statevector(np.array([0, 1, 0]), dims=(3)))
+        self.assertEqual(schmidt_comps[2][0], 1 / np.sqrt(3))
+        self.assertEqual(schmidt_comps[2][1], Statevector(np.array([0, 0, 1]), dims=(3)))
+        self.assertEqual(schmidt_comps[2][2], Statevector(np.array([0, 0, 1]), dims=(3)))
+
         # check that state can be properly reconstructed
         state = Statevector(
             sum(suv[0] * np.kron(suv[1], suv[2]) for suv in schmidt_comps), dims=(3, 3)
