@@ -329,12 +329,13 @@ class TestBackendEstimator(QiskitTestCase):
     def test_bound_pass_manager(self):
         """Test bound pass manager."""
 
-        dummy_pass = DummyTP()
-
         qc = QuantumCircuit(2)
         op = SparsePauliOp.from_list([("II", 1)])
 
         with self.subTest("Test single circuit"):
+
+            dummy_pass = DummyTP()
+
             with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
                 bound_pass = PassManager(dummy_pass)
                 estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
@@ -342,6 +343,9 @@ class TestBackendEstimator(QiskitTestCase):
                 self.assertEqual(mock_pass.call_count, 1)
 
         with self.subTest("Test circuit batch"):
+
+            dummy_pass = DummyTP()
+
             with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
                 bound_pass = PassManager(dummy_pass)
                 estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
