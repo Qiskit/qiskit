@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 
 """RZX calibration builders."""
+from __future__ import annotations
 
 import enum
 import warnings
+from collections.abc import Sequence
 from math import pi, erf
-from typing import List, Tuple, Union
 
 import numpy as np
 from qiskit.circuit import Instruction as CircuitInst
@@ -68,7 +69,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,
-        qubit_channel_mapping: List[List[str]] = None,
+        qubit_channel_mapping: list[list[str]] = None,
         verbose: bool = True,
         target: Target = None,
     ):
@@ -97,7 +98,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         if self._inst_map is None:
             raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
-    def supported(self, node_op: CircuitInst, qubits: List) -> bool:
+    def supported(self, node_op: CircuitInst, qubits: list) -> bool:
         """Determine if a given node supports the calibration.
 
         Args:
@@ -166,7 +167,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         return round_duration
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Builds the calibration schedule for the RZXGate(theta) with echos.
 
         Args:
@@ -260,7 +261,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     of the CX gate.
     """
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Builds the calibration schedule for the RZXGate(theta) without echos.
 
         Args:
@@ -336,8 +337,8 @@ def _filter_comp_tone(time_inst_tup):
 
 
 def _check_calibration_type(
-    inst_sched_map: InstructionScheduleMap, qubits: List[int]
-) -> Tuple[CRCalType, List[Play], List[Play]]:
+    inst_sched_map: InstructionScheduleMap, qubits: Sequence[int]
+) -> tuple[CRCalType, list[Play], list[Play]]:
     """A helper function to check type of CR calibration.
 
     Args:

@@ -603,15 +603,14 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
-        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
-    if version_parts >= (0, 21, 2):
-        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
     if version_parts >= (0, 24, 0):
         output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
-
+    if version_parts >= (0, 25, 0):
+        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
+        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
     return output_circuits
 
 
