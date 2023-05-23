@@ -83,13 +83,13 @@ going to run and install the packages.  There are three main ways to do this:
           <div id="tutorial-cards">
           <div class="list">
 
-       .. customcarditem::
+       .. qiskit-card-item::
           :header: IBM Quantum Lab
           :card_description: Build quantum applications and experiments with Qiskit in a cloud programming environment.
           :image: _static/ibm_qlab.png
           :link: https://quantum-computing.ibm.com/
 
-       .. customcarditem::
+       .. qiskit-card-item::
           :header: Strangeworks
           :card_description: A platform that enables users and organizations to easily apply quantum computing to their most pressing problems and research.
           :image: _static/strangeworks.png
@@ -512,14 +512,14 @@ Ready to get going?...
    <div class="tutorials-callout-container">
       <div class="row">
 
-.. customcalloutitem::
+.. qiskit-call-to-action-item::
    :description: Learn how to build, execute, and post-process quantum circuits with Qiskit.
    :header: Qiskit from the ground up
    :button_link:  intro_tutorial1.html
    :button_text: Start learning Qiskit
 
 
-.. customcalloutitem::
+.. qiskit-call-to-action-item::
    :description: Find out how to leverage Qiskit for everything from single-circuits to full quantum application development.
    :header: Dive into the tutorials
    :button_link:  tutorials.html

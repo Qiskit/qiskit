@@ -17,10 +17,10 @@ Introductory
    <div id="tutorial-cards">
    <div class="list">
 
-.. customcarditem::
+.. qiskit-card-item::
    :header: Qiskit warmup
    :card_description: An introduction to Qiskit and the primary user workflow.
-   :image: _static/no_image.png
+   :image: _static/images/logo.png
    :link: intro_tutorial1.html
 
 .. raw:: html
