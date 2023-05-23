@@ -150,8 +150,6 @@ class MatplotlibDrawer:
         self._lwidth15 = 1.5
         self._lwidth2 = 2.0
         self._x_offset = 0.0
-
-        self._n_lines = 0
         self._x_index = 0
 
         # _char_list for finding text_width of names, labels, and params
@@ -276,10 +274,10 @@ class MatplotlibDrawer:
         layer_widths = self._get_layer_widths(node_data)
 
         # load the _qubit_dict and _clbit_dict with register info
-        self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict)
+        n_lines = self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict)
 
         # load the coordinates for each gate and compute number of folds
-        max_x_index = self._get_coords(node_data, wire_map, layer_widths, qubits_dict, clbits_dict)
+        max_x_index = self._get_coords(node_data, wire_map, layer_widths, qubits_dict, clbits_dict, n_lines)
         num_folds = max(0, max_x_index - 1) // self._fold if self._fold > 0 else 0
 
         # The window size limits are computed, followed by one of the four possible ways
@@ -288,11 +286,11 @@ class MatplotlibDrawer:
         # compute the window size
         if max_x_index > self._fold > 0:
             xmax = self._fold + self._x_offset + 0.1
-            ymax = (num_folds + 1) * (self._n_lines + 1) - 1
+            ymax = (num_folds + 1) * (n_lines + 1) - 1
         else:
             x_incr = 0.4 if not self._nodes else 0.9
             xmax = max_x_index + 1 + self._x_offset - x_incr
-            ymax = self._n_lines
+            ymax = n_lines
 
         xl = -self._style["margin"][0]
         xr = xmax + self._style["margin"][1]
@@ -342,8 +340,8 @@ class MatplotlibDrawer:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
-        self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict)
-        self._draw_ops(self._nodes, node_data, wire_map, layer_widths, clbits_dict, verbose)
+        self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict, n_lines)
+        self._draw_ops(self._nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose)
 
         if filename:
             self._figure.savefig(
@@ -452,7 +450,7 @@ class MatplotlibDrawer:
         """Get all the info for drawing bit/reg names and numbers"""
 
         longest_wire_label_width = 0
-        self._n_lines = 0
+        n_lines = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
@@ -498,14 +496,14 @@ class MatplotlibDrawer:
                     "y": pos,
                     "wire_label": wire_label,
                 }
-                self._n_lines += 1
+                n_lines += 1
             else:
                 if (
                     not self._cregbundle
                     or register is None
                     or (self._cregbundle and isinstance(wire, ClassicalRegister))
                 ):
-                    self._n_lines += 1
+                    n_lines += 1
                     idx += 1
 
                 pos = y_off - idx
@@ -515,6 +513,7 @@ class MatplotlibDrawer:
                     "register": register,
                 }
         self._x_offset = -1.2 + longest_wire_label_width
+        return n_lines
 
     def _get_coords(
         self,
@@ -523,6 +522,7 @@ class MatplotlibDrawer:
         layer_widths,
         qubits_dict,
         clbits_dict,
+        n_lines
     ):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
@@ -551,14 +551,14 @@ class MatplotlibDrawer:
                 # qubit coordinates
                 node_data[node]["q_xy"] = [
                     self._plot_coord(
-                        curr_x_index, qubits_dict[ii]["y"], layer_widths[node][0], self._x_offset
+                        curr_x_index, qubits_dict[ii]["y"], layer_widths[node][0], self._x_offset, n_lines
                     )
                     for ii in q_indxs
                 ]
                 # clbit coordinates
                 node_data[node]["c_xy"] = [
                     self._plot_coord(
-                        curr_x_index, clbits_dict[ii]["y"], layer_widths[node][0], self._x_offset
+                        curr_x_index, clbits_dict[ii]["y"], layer_widths[node][0], self._x_offset, n_lines
                     )
                     for ii in c_indxs
                 ]
@@ -624,14 +624,14 @@ class MatplotlibDrawer:
             sum_text *= self._subfont_factor
         return sum_text
 
-    def _draw_regs_wires(self, num_folds, xmax, max_x_index, qubits_dict, clbits_dict):
+    def _draw_regs_wires(self, num_folds, xmax, max_x_index, qubits_dict, clbits_dict, n_lines):
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
 
         for fold_num in range(num_folds + 1):
             # quantum registers
             for qubit in qubits_dict.values():
                 qubit_label = qubit["wire_label"]
-                y = qubit["y"] - fold_num * (self._n_lines + 1)
+                y = qubit["y"] - fold_num * (n_lines + 1)
                 self._ax.text(
                     self._x_offset - 0.2,
                     y,
@@ -649,7 +649,7 @@ class MatplotlibDrawer:
             # classical registers
             this_clbit_dict = {}
             for clbit in clbits_dict.values():
-                y = clbit["y"] - fold_num * (self._n_lines + 1)
+                y = clbit["y"] - fold_num * (n_lines + 1)
                 if y not in this_clbit_dict.keys():
                     this_clbit_dict[y] = {
                         "val": 1,
@@ -705,8 +705,8 @@ class MatplotlibDrawer:
             if feedline_l or feedline_r:
                 xpos_l = self._x_offset - 0.01
                 xpos_r = self._fold + self._x_offset + 0.1
-                ypos1 = -fold_num * (self._n_lines + 1)
-                ypos2 = -(fold_num + 1) * (self._n_lines) - fold_num + 1
+                ypos1 = -fold_num * (n_lines + 1)
+                ypos2 = -(fold_num + 1) * (n_lines) - fold_num + 1
                 if feedline_l:
                     self._ax.plot(
                         [xpos_l, xpos_l],
@@ -729,7 +729,7 @@ class MatplotlibDrawer:
             for layer_num in range(max_x_index):
                 if self._fold > 0:
                     x_coord = layer_num % self._fold + self._x_offset + 0.53
-                    y_coord = -(layer_num // self._fold) * (self._n_lines + 1) + 0.65
+                    y_coord = -(layer_num // self._fold) * (n_lines + 1) + 0.65
                 else:
                     x_coord = layer_num + self._x_offset + 0.53
                     y_coord = 0.65
@@ -745,7 +745,7 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-    def _draw_ops(self, nodes, node_data, wire_map, layer_widths, clbits_dict, verbose=False):
+    def _draw_ops(self, nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose=False):
         """Draw the gates in the circuit"""
 
         prev_x_index = -1
@@ -770,6 +770,7 @@ class MatplotlibDrawer:
                             clbits_dict[ii]["y"],
                             layer_widths[node][0],
                             self._x_offset,
+                            n_lines
                         )
                         for ii in clbits_dict
                     ]
@@ -1432,7 +1433,7 @@ class MatplotlibDrawer:
                 zorder=zorder,
             )
 
-    def _plot_coord(self, x_index, y_index, gate_width, x_offset):
+    def _plot_coord(self, x_index, y_index, gate_width, x_offset, n_lines):
         """Get the coord positions for an index"""
         # check folding
         fold = self._fold if self._fold > 0 else INFINITE_FOLD
@@ -1442,7 +1443,7 @@ class MatplotlibDrawer:
             x_index += fold - (h_pos - 1)
         x_pos = x_index % fold + x_offset + 0.04
         x_pos += 0.5 * gate_width
-        y_pos = y_index - (x_index // fold) * (self._n_lines + 1)
+        y_pos = y_index - (x_index // fold) * (n_lines + 1)
 
         # could have been updated, so need to store
         self._x_index = x_index
