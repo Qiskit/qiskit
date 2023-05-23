@@ -215,7 +215,12 @@ def measure_all(backend) -> Schedule:
     Returns:
         A schedule corresponding to the inputs provided.
     """
-    return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
+    # backend is V2.
+    if hasattr(backend, "target"):
+        qubits = list(range(backend.num_qubits))
+    else:
+        qubits = list(range(backend.configuration().n_qubits))
+    return measure(qubits=qubits, backend=backend)
 
 
 def _schedule_remapping_memory_slot(

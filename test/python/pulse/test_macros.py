@@ -204,6 +204,7 @@ class TestMeasureAll(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend = FakeOpenPulse2Q()
+        self.backend_v2 = FakeHanoiV2()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_measure_all(self):
@@ -211,3 +212,20 @@ class TestMeasureAll(QiskitTestCase):
         sched = macros.measure_all(self.backend)
         expected = Schedule(self.inst_map.get("measure", [0, 1]))
         self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_measure_all_v2(self):
+        """Test measure_all function with backendV2."""
+        backend_v1 = FakeHanoi()
+        sched = macros.measure_all(self.backend_v2)
+        expected = Schedule(
+            backend_v1.defaults().instruction_schedule_map.get(
+                "measure", list(range(backend_v1.configuration().num_qubits))
+            )
+        )
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_output_of_measure_all_with_backend_v1_and_v2(self):
+        """Test make outputs of measure_all with backendV1 and backendV2 consistent."""
+        sched_measure_v1 = macros.measure_all(backend=FakeHanoi())
+        sched_measure_v2 = macros.measure_all(backend=self.backend_v2)
+        self.assertEqual(sched_measure_v1.instructions, sched_measure_v2.instructions)
