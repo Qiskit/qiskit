@@ -180,7 +180,7 @@ def schmidt_decomposition(state, qargs):
     ndim_a = np.prod(dims_a)
 
     # permute state for desired qargs order
-    qargs_axes = [list(qudits)[::-1].index(i) for i in qargs_b + qargs_a][::-1]
+    qargs_axes = [qudits[::-1].index(i) for i in qargs_b + qargs_a][::-1]
     state_tens = state_tens.transpose(qargs_axes)
 
     # convert state tensor to matrix of prob amplitudes and perform svd.
