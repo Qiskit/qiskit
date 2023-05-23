@@ -126,6 +126,55 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_8:
+
+Version 8
+=========
+
+Version 8 adds support for handling a :class:`~.TranspileLayout` stored in the
+:attr:`.QuantumCircuit.layout` attribute. In version 8 imeediately following the
+calibrations block at the end of the circuit payload there is now the
+``LAYOUT`` struct. This struct outlines the size of the three attributes of a
+:class:`~.TranspileLayout` class.
+
+LAYOUT
+------
+
+.. code-block:: c
+
+    struct {
+        int32_t initial_layout_size;
+        int32_t input_mapping_size;
+        int32_t final_layout_size;
+        uint32_t extra_registers;
+    }
+
+If any of the signed values are ``-1`` this indicates the corresponding
+attribute is ``None``
+
+Imeediately following the ``LAYOUT`` struct there is a :ref:`qpy_registers` struct
+for ``extra_registers`` (specifically the format introduced in :ref:`qpy_version_4`
+standalone register definitions that aren't present in the circuit. Then there
+are ``initial_layout_size`` ``INITIAL_LAYOUT_BIT`` structs to define the
+:attr:`.TranspileLayout.initial_layout` attribute.
+
+INITIAL_LAYOUT_BIT
+------------------
+
+.. code-block:: c
+
+    struct {
+        int32_t index;
+        int32_t register_size;
+    }
+
+Where a value of ``-1`` indicates ``None`` (as in no register is associated
+with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
+bytes for a ``utf8`` encoded string for the register name.
+
+Following the
+
+
 .. _qpy_version_7:
 
 Version 7

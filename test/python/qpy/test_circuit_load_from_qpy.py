@@ -17,11 +17,12 @@ import io
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.providers.fake_provider import FakeHanoi
+from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
 from qiskit.qpy import dump, load
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import passes
+from qiskit.compiler import transpile
 
 
 class QpyCircuitTestCase(QiskitTestCase):
@@ -35,6 +36,8 @@ class QpyCircuitTestCase(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
 
         self.assertEqual(circuit, new_circuit)
+        if getattr(circuit, "layout", None):
+            self.assertEqual(circuit.layout, new_circuit.layout)
 
 
 @ddt
@@ -67,3 +70,15 @@ class TestCalibrationPasses(QpyCircuitTestCase):
         rzx_qc = pass_manager.run(test_qc)
 
         self.assert_roundtrip_equal(rzx_qc)
+
+
+@ddt
+class TestLayout(QpyCircuitTestCase):
+    @data(0, 1, 2, 3)
+    def test_transpile_layout(self, opt_level):
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        backend = FakeSherbrooke()
+        tqc = transpile(qc, backend, optimization_level=opt_level)
+        self.assert_roundtrip_equal(tqc)
