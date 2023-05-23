@@ -63,7 +63,7 @@ Contents
     - *Reference Primitives* - The ``Sampler`` and ``Estimator`` in :mod:`qiskit.primitives` --> ``from qiskit.primitives import Sampler/Estimator``
     - *Aer Primitives* - The ``Sampler`` and ``Estimator`` in :mod:`qiskit_aer.primitives` --> ``from qiskit_aer.primitives import Sampler/Estimator``
     - *Qiskit Runtime Primitives* - The IBM's Qiskit Runtime primitive implementation. The ``Sampler`` and ``Estimator`` in :mod:`qiskit_ibm_runtime` --> ``from qiskit_ibm_runtime import Sampler/Estimator``
-    - *Backend Primitive* - Qiskit wrap for non-native backend primitives. The ``BackendSampler`` and ``BackendEstimator`` in :mod:`qiskit.primitives` --> ``from qiskit import BackendSampler/BackendEstimator``
+    - *Backend Primitives* - Qiskit wrappers for non-native backend primitives. The ``BackendSampler`` and ``BackendEstimator`` in :mod:`qiskit.primitives` --> ``from qiskit import BackendSampler/BackendEstimator``
 
     For guidelines on which primitives to choose for your task, please continue reading.
 
