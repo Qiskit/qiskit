@@ -277,7 +277,9 @@ class MatplotlibDrawer:
         n_lines = self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict)
 
         # load the coordinates for each gate and compute number of folds
-        max_x_index = self._get_coords(node_data, wire_map, layer_widths, qubits_dict, clbits_dict, n_lines)
+        max_x_index = self._get_coords(
+            node_data, wire_map, layer_widths, qubits_dict, clbits_dict, n_lines
+        )
         num_folds = max(0, max_x_index - 1) // self._fold if self._fold > 0 else 0
 
         # The window size limits are computed, followed by one of the four possible ways
@@ -341,7 +343,9 @@ class MatplotlibDrawer:
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
         self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict, n_lines)
-        self._draw_ops(self._nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose)
+        self._draw_ops(
+            self._nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose
+        )
 
         if filename:
             self._figure.savefig(
@@ -515,15 +519,7 @@ class MatplotlibDrawer:
         self._x_offset = -1.2 + longest_wire_label_width
         return n_lines
 
-    def _get_coords(
-        self,
-        node_data,
-        wire_map,
-        layer_widths,
-        qubits_dict,
-        clbits_dict,
-        n_lines
-    ):
+    def _get_coords(self, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, n_lines):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
         prev_x_index = -1
@@ -551,14 +547,22 @@ class MatplotlibDrawer:
                 # qubit coordinates
                 node_data[node]["q_xy"] = [
                     self._plot_coord(
-                        curr_x_index, qubits_dict[ii]["y"], layer_widths[node][0], self._x_offset, n_lines
+                        curr_x_index,
+                        qubits_dict[ii]["y"],
+                        layer_widths[node][0],
+                        self._x_offset,
+                        n_lines,
                     )
                     for ii in q_indxs
                 ]
                 # clbit coordinates
                 node_data[node]["c_xy"] = [
                     self._plot_coord(
-                        curr_x_index, clbits_dict[ii]["y"], layer_widths[node][0], self._x_offset, n_lines
+                        curr_x_index,
+                        clbits_dict[ii]["y"],
+                        layer_widths[node][0],
+                        self._x_offset,
+                        n_lines,
                     )
                     for ii in c_indxs
                 ]
@@ -745,7 +749,9 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-    def _draw_ops(self, nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose=False):
+    def _draw_ops(
+        self, nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose=False
+    ):
         """Draw the gates in the circuit"""
 
         prev_x_index = -1
@@ -770,7 +776,7 @@ class MatplotlibDrawer:
                             clbits_dict[ii]["y"],
                             layer_widths[node][0],
                             self._x_offset,
-                            n_lines
+                            n_lines,
                         )
                         for ii in clbits_dict
                     ]
