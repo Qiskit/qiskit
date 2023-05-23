@@ -677,6 +677,9 @@ class _PulseBuilder:
     @_requires_backend
     def num_qubits(self):
         """Get the number of qubits in the backend."""
+        # backendV2
+        if hasattr(self.backend, "target"):
+            return self.backend.num_qubits
         return self.backend.configuration().n_qubits
 
     @property
@@ -1105,6 +1108,8 @@ def num_qubits() -> int:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    if hasattr(active_backend(), "target"):
+        return active_backend().num_qubits
     return active_backend().configuration().n_qubits
 
 
@@ -1120,6 +1125,12 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        if isinstance(seconds, np.ndarray):
+            return (seconds / active_backend().dt).astype(int)
+        else:
+            return int(seconds / active_backend().dt)
     if isinstance(seconds, np.ndarray):
         return (seconds / active_backend().configuration().dt).astype(int)
     return int(seconds / active_backend().configuration().dt)
@@ -1135,6 +1146,9 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
     Returns:
         The time that elapses in ``samples``.
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        return samples * active_backend().dt
     return samples * active_backend().configuration().dt
 
 
@@ -1163,6 +1177,9 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
         such as in the case where significant crosstalk exists.
 
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        return set(active_backend().get_qubit_channels(qubit))
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
@@ -1648,7 +1665,11 @@ def frequency_offset(
     finally:
         if compensate_phase:
             duration = builder.get_context().duration - t0
-            dt = active_backend().configuration().dt
+            # backendV2
+            if hasattr(active_backend(), "target"):
+                dt = active_backend().dt
+            else:
+                dt = active_backend().configuration().dt
             accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
@@ -1675,6 +1696,9 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        return active_backend().drive_channel(qubit)
     return active_backend().configuration().drive(qubit)
 
 
@@ -1695,6 +1719,9 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        return active_backend().measure_channel(qubit)
     return active_backend().configuration().measure(qubit)
 
 
@@ -1715,6 +1742,9 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        return active_backend().acquire_channel(qubit)
     return active_backend().configuration().acquire(qubit)
 
 
@@ -1745,6 +1775,9 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
         List of control channels associated with the supplied ordered list
         of qubits.
     """
+    # backendV2
+    if hasattr(active_backend(), "target"):
+        return active_backend().control_channel(qubits)
     return active_backend().configuration().control(qubits=qubits)
 
 
@@ -2428,13 +2461,21 @@ def measure(
             registers = list(registers)
         except TypeError:
             registers = [registers]
-
-    measure_sched = macros.measure(
-        qubits=qubits,
-        inst_map=backend.defaults().instruction_schedule_map,
-        meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
-    )
+    # backendV2
+    if hasattr(backend, "target"):
+        measure_sched = macros.measure(
+            qubits=qubits,
+            backend=backend,
+            meas_map=backend.meas_map,
+            qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
+        )
+    else:
+        measure_sched = macros.measure(
+            qubits=qubits,
+            inst_map=backend.defaults().instruction_schedule_map,
+            meas_map=backend.configuration().meas_map,
+            qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
+        )
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
@@ -2478,12 +2519,21 @@ def measure_all() -> List[chans.MemorySlot]:
     backend = active_backend()
     qubits = range(num_qubits())
     registers = [chans.MemorySlot(qubit) for qubit in qubits]
-    measure_sched = macros.measure(
-        qubits=qubits,
-        inst_map=backend.defaults().instruction_schedule_map,
-        meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={qubit: qubit for qubit in qubits},
-    )
+    # backendV2
+    if hasattr(backend, "target"):
+        measure_sched = macros.measure(
+            qubits=qubits,
+            backend=backend,
+            meas_map=backend.meas_map,
+            qubit_mem_slots={qubit: qubit for qubit in qubits},
+        )
+    else:
+        measure_sched = macros.measure(
+            qubits=qubits,
+            inst_map=backend.defaults().instruction_schedule_map,
+            meas_map=backend.configuration().meas_map,
+            qubit_mem_slots={qubit: qubit for qubit in qubits},
+        )
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
