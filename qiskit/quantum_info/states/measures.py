@@ -160,9 +160,13 @@ def renyi_entropy(state, alpha, qbits=None):
     Raises:
         QiskitError: if alpha is < 0.
         QiskitError: if the input state is not a valid QuantumState.
+        QiskitError: if the passed qbits are invalid
     """
     if alpha < 0:
         raise QiskitError("The Renyi order alpha must be greater than or equal to 0.")
+
+    if qbits is not None and len([q for q in qbits if q < 0 or q > state.num_qubits]):
+        raise QiskitError("One or more of the passed qubits is not valid.")
 
     if isinstance(state, StabilizerState):
         # Renyi entropy of a stabilizer state does not depend on alpha
@@ -205,7 +209,7 @@ def renyi_entropy(state, alpha, qbits=None):
     state = _format_state(state, validate=True)
 
     if isinstance(state, Statevector):
-        # Full state is pure, so has no entropy
+        # full Statevector is pure, so has no entropy
         if qbits is None:
             return 0.0
 
@@ -224,10 +228,10 @@ def renyi_entropy(state, alpha, qbits=None):
             state_entropy = np.log2(np.linalg.matrix_rank(rho_a))
         elif alpha == 1:  # Shannon entropy
             state_entropy = entropy(rho_a, base=2)
-        else:
+        else: # General case
             from scipy.linalg import fractional_matrix_power
 
-            state_entropy = (1 / (1 - alpha)) * np.log2(
+            state_entropy = (1. / (1. - alpha)) * np.log2(
                 np.real(np.trace(fractional_matrix_power(rho_a, alpha)))
             )
 
