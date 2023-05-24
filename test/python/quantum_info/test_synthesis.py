@@ -1548,6 +1548,12 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         circ = self.qsd(mat)
         self.assertEqual(Operator(mat), Operator(circ))
 
+    def test_2q_decomposition(self):
+        """Test decomposition of two qubit matrix"""
+        mat = CXGate().to_matrix()
+        circ = self.qsd(mat)
+        self.assertEqual(Operator(mat), Operator(circ))
+
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
     """test TwoQubitDecomposeUpToDiagonal class"""
