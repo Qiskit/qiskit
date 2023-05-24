@@ -63,7 +63,7 @@ Contents
     This guide uses the following naming convention:
 
     - *Primitives* - Any Sampler/Estimator implementation using base classes :class:`~qiskit.primitives.BackendSampler` and a :class:`~qiskit.primitives.BackendEstimator`.
-    - *Reference Primitives* -  :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator` are reference implementation that come with Qiskit.
+    - *Reference Primitives* -  :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator` are reference implementations that come with Qiskit.
     - *Aer Primitives* - The `Aer <https://qiskit.org/ecosystem/aer>`_ primitive implementations: class:`qiskit_aer.primitives.Sampler` and :class:`qiskit_aer.primitives.Estimator`.
     - *Qiskit Runtime Primitives* - IBM's Qiskit Runtime primitive implementations: class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`.
     - *Backend Primitives* - Instances of :class:`qiskit.primitives.BackendSampler` and :class:`qiskit.primitives.BackendEstimator`. These allow any backend  to implement primitive interfaces  --> ``from qiskit import BackendSampler/BackendEstimator``
