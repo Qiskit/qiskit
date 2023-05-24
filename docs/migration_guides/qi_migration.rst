@@ -57,7 +57,7 @@ Contents
     :class:`qiskit.primitives.BackendSampler` and a :class:`qiskit.primitives.BackendEstimator` are
     wrappers for ``backend.run()`` that follow the primitives interface.
 
-    Providers can implement these primitives as subclasses of :class:`~qiskit.primitives.BaseSampler` and :class:`~qiskit.primitives.BaseEstimator` respectebly.
+    Providers can implement these primitives as subclasses of :class:`~qiskit.primitives.BaseSampler` and :class:`~qiskit.primitives.BaseEstimator` respectively.
     IBM's Qiskit Runtime (:mod:`qiskit_ibm_runtime`) and Aer (:mod:`qiskit_aer.primitives`) are examples of native implementations of primitives.
 
     This guide uses the following naming convention:
