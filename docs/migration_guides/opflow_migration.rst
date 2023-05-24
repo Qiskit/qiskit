@@ -22,7 +22,7 @@ the :mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qis
 
     Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
     can be replaced with instances of any primitive implementation. For example Aer primitives (:class:`qiskit_aer.primitives.Sampler`/:class:`qiskit_aer.primitives.Estimator`) or IBM's Qiskit Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`/:class:`qiskit_ibm_runtime.Estimator`).
-    Specific backends can be wrapped with (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`) to also present a primitive-compatible interfaces.
+    Specific backends can be wrapped with (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`) to also present primitive-compatible interfaces.
 
     Certain classes, such as the
     :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
