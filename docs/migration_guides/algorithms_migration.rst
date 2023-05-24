@@ -74,17 +74,19 @@ How to choose a primitive configuration for your algorithm
 
 *Back to* `TL;DR`_
 
-The classes in :mod:`qiskit.algorithms` state the base class primitive type (``Sampler``/``Estimator``)
-they require for their initialization. Once the primitive type is known, you can choose between
-four different primitive implementations, depending on how you want to configure your execution:
+The classes in
+:mod:`qiskit.algorithms` are initialised with any implementation of :class:`qiskit.primitive.BaseSampler` or class:`qiskit.primitive.BaseEstimator`.
 
-    a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
-    b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
-    c. Accessing backends using **IBM's Qiskit Runtime service**: **Runtime primitives** in :mod:`qiskit_ibm_runtime`
-    d. Accessing backends **without native primitive support**: **Backend Primitives** (:class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`). These are wrappers that implement a primitive interface on top of a backend that only supports ``.run()``.
+Once the kind of primitive is known, you can choose between the primitive implementations that better adjust to your case. For example:
 
+    a. For quick prototyping, you can use the **reference implementations of primitives** included in Qiskit: :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator`.
+    b. For finer algorithm tuning, a local simulator such as the **primitive implementation in Aer**: :class:`qiskit_aer.primitives.Sampler` and :class:`qiskit_aer.primitives.Estimator`.
+    c. For executing in quantum hardware you can:
 
-For more detailed information and examples, particularly on the use of the **backends without native primitive supports**, please refer to
+       * access a native-primitive services, such as **IBM's Qiskit Runtime service** via :class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`
+       * Wrap any backend with **Backend Primitives** (:class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`). These wrappers implement a primitive interface on top of a backend that only supports ``Backend.run()``.
+
+For more detailed information and examples, particularly on the use of the **Backend Primitives**, please refer to
 the `Quantum Instance migration guide <https://qisk.it/qi_migration>`_.
 
 In this guide, we will cover 3 different common configurations for algorithms that determine
