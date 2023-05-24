@@ -521,7 +521,7 @@ Code examples
         so if the circuit ended up on more qubits it did not matter.
 
     Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
-    primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
+    :class:`~qiskit.primitives.BackendSampler` or :class:`~qiskit.primitives.BackendEstimator, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
 
     The use-case that motivated the addition of the two-stage transpilation to the ``QuantumInstance`` was to allow
     running pulse-efficient transpilation passes with the :class:`~qiskit.opflow.CircuitSampler` class. The following
