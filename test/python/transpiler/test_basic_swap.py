@@ -368,6 +368,51 @@ class TestBasicSwap(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+      
+    
+    def test_fake_run(self):
+        """A fake run, doesn't change dag
+        q0:--(+)-------.--
+              |        |
+        q1:---|--------|--
+              |
+        q2:---|--------|--
+              |        |
+        q3:---.--[H]--(+)-
+
+        CouplingMap map: [0]--[1]--[2]--[3]
+
+        q0:-------(+)-------.---
+                   |        |
+        q1:-----X--.--[H]--(+)--
+                |
+        q2:--X--X---------------
+             |
+        q3:--X------------------
+
+        """
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+
+        qr = QuantumRegister(4, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[3], qr[0])
+        circuit.h(qr[3])
+        circuit.cx(qr[0], qr[3])
+        dag = circuit_to_dag(circuit)
+
+        # expected iff fake_run=False
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[3], qr[2])
+        expected.swap(qr[2], qr[1])
+        expected.cx(qr[1], qr[0])
+        expected.h(qr[1])
+        expected.cx(qr[0], qr[1])
+
+        pass_ = BasicSwap(coupling, fake_run=True)
+        after = pass_.run(dag)
+
+        self.assertNotEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
 
 if __name__ == "__main__":
