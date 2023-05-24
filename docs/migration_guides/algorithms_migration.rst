@@ -75,7 +75,7 @@ How to choose a primitive configuration for your algorithm
 *Back to* `TL;DR`_
 
 The classes in
-:mod:`qiskit.algorithms` are initialised with any implementation of :class:`qiskit.primitive.BaseSampler` or class:`qiskit.primitive.BaseEstimator`.
+:mod:`qiskit.algorithms` are initialized with any implementation of :class:`qiskit.primitive.BaseSampler` or class:`qiskit.primitive.BaseEstimator`.
 
 Once the kind of primitive is known, you can choose between the primitive implementations that better adjust to your case. For example:
 
