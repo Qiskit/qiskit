@@ -26,4 +26,4 @@ scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'
 docplex
-qiskit-qasm3-import; python_version>='3.8'
+qiskit-qasm3-import

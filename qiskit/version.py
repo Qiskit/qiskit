@@ -16,7 +16,6 @@
 
 import os
 import subprocess
-import sys
 from collections.abc import Mapping
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -102,10 +101,7 @@ class QiskitVersion(Mapping):
         self._loaded = False
 
     def _load_versions(self):
-        if sys.version_info >= (3, 8):
-            from importlib.metadata import version
-        else:
-            from importlib_metadata import version
+        from importlib.metadata import version
 
         try:
             # TODO: Update to use qiskit_aer instead when we remove the
