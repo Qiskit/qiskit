@@ -28,7 +28,6 @@ import warnings
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.converters import isinstanceint, isinstancelist
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
@@ -757,16 +756,27 @@ def _parse_initial_layout(initial_layout, circuits):
     def _layout_from_raw(initial_layout, circuit):
         if initial_layout is None or isinstance(initial_layout, Layout):
             return initial_layout
-        elif isinstancelist(initial_layout):
-            if all(isinstanceint(elem) for elem in initial_layout):
-                initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
-            elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
-                initial_layout = Layout.from_qubit_list(initial_layout, *circuit.qregs)
-        elif isinstance(initial_layout, dict):
-            initial_layout = Layout(initial_layout)
+        if isinstance(initial_layout, dict):
+            return Layout(initial_layout)
+        # Should be an iterable either of ints or bits/None.
+        specifier = tuple(initial_layout)
+        if all(phys is None or isinstance(phys, Qubit) for phys in specifier):
+            mapping = {phys: virt for phys, virt in enumerate(specifier) if virt is not None}
+            if len(mapping) != circuit.num_qubits:
+                raise TranspilerError(
+                    f"'initial_layout' ({len(mapping)}) and circuit ({circuit.num_qubits}) had"
+                    " different numbers of qubits"
+                )
         else:
-            raise TranspilerError("The initial_layout parameter could not be parsed")
-        return initial_layout
+            if len(specifier) != circuit.num_qubits:
+                raise TranspilerError(
+                    f"'initial_layout' ({len(specifier)}) and circuit ({circuit.num_qubits}) had"
+                    " different numbers of qubits"
+                )
+            if len(specifier) != len(set(specifier)):
+                raise TranspilerError(f"'initial_layout' contained duplicate entries: {specifier}")
+            mapping = {int(phys): virt for phys, virt in zip(specifier, circuit.qubits)}
+        return Layout(mapping)
 
     # multiple layouts?
     if isinstance(initial_layout, list) and any(
