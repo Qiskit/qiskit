@@ -1537,7 +1537,7 @@ class DAGCircuit:
         return iter(
             self._multi_graph.find_successors_by_edge(
                 node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
-            )
+            )  
         )
 
 
