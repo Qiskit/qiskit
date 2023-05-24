@@ -50,10 +50,10 @@ if optionals.HAS_MATPLOTLIB:
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
-
-RESULTDIR = os.path.dirname(os.path.abspath(__file__))
-TEST_REFERENCE_PATH = os.path.join(RESULTDIR, "references")
-FAILURE_DIFF_DIR = os.path.join(RESULTDIR, "circuitfailures", "")
+BASEDIR = os.path.dirname(os.path.abspath(__file__))
+RESULTDIR = os.path.join(BASEDIR, "results", "")
+TEST_REFERENCE_PATH = os.path.join(BASEDIR, "references")
+FAILURE_DIFF_DIR = os.path.join(BASEDIR, "circuitfailures", "")
 
 
 @contextmanager
@@ -78,6 +78,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         if not os.path.exists(FAILURE_DIFF_DIR):
             os.makedirs(FAILURE_DIFF_DIR)
+
+        if not os.path.exists(RESULTDIR):
+            os.makedirs(RESULTDIR)
 
     def tearDown(self):
         super().tearDown()
@@ -614,6 +617,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ratio2 = self._similarity_ratio(
             self._image_path(fname2), self._reference_path(fname2), fname2
         )
+
         assert ratio == 1
         assert ratio2 == 1
 
@@ -709,6 +713,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ratio3 = self._similarity_ratio(
             self._image_path(fname3), self._reference_path(fname3), fname3
         )
+
         assert ratio == 1
         assert ratio2 == 1
         assert ratio3 == 1
@@ -940,6 +945,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ratio2 = self._similarity_ratio(
             self._image_path(fname2), self._reference_path(fname2), fname2
         )
+
         assert ratio == 1
         assert ratio2 == 1
 
@@ -1154,6 +1160,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ratio2 = self._similarity_ratio(
             self._image_path(fname2), self._reference_path(fname2), fname2
         )
+
         assert ratio == 1
         assert ratio2 == 1
 
@@ -1177,6 +1184,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ratio2 = self._similarity_ratio(
             self._image_path(fname2), self._reference_path(fname2), fname2
         )
+
         assert ratio == 1
         assert ratio2 == 1
 
