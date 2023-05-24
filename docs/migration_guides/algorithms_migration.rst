@@ -81,10 +81,10 @@ four different primitive implementations, depending on how you want to configure
     a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
     b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
     c. Accessing backends using **IBM's Qiskit Runtime service**: **Runtime primitives** in :mod:`qiskit_ibm_runtime`
-    d. Accessing backends using a **non-native primitves in other provider**: **Backend Primitives** in :mod:`qiskit.primitives`
+    d. Accessing backends **without native primitves support**: **Backends without native primitive support** via :class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`.
 
 
-For more detailed information and examples, particularly on the use of the **Backend Primitives**, please refer to
+For more detailed information and examples, particularly on the use of the **backends without native primitive supports**, please refer to
 the `Quantum Instance migration guide <https://qisk.it/qi_migration>`_.
 
 In this guide, we will cover 3 different common configurations for algorithms that determine
