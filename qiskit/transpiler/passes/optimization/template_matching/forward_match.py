@@ -433,7 +433,7 @@ class ForwardMatch:
                     circuit_sublist = [x[1] for x in temp_match]
                     circuit_sublist.sort()
 
-                template = substitution._attempt_bind(template_sublist,circuit_sublist)
+                    template = substitution._attempt_bind(template_sublist,circuit_sublist)
                 
                 if template is not None : 
                 
