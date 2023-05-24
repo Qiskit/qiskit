@@ -62,11 +62,11 @@ Contents
 
     This guide uses the following naming convention:
 
-    - *Primitives* - Any Sampler/Estimator implementation using base classes :class:`~qiskit.primitives.BackendSampler` and a :class:`~qiskit.primitives.BackendEstimator`.
+    - *Primitives* - Any Sampler/Estimator implementation using base classes :class:`qiskit.primitives.BackendSampler` and a :class:`qiskit.primitives.BackendEstimator`.
     - *Reference Primitives* -  :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator` are reference implementations that come with Qiskit.
     - *Aer Primitives* - The `Aer <https://qiskit.org/ecosystem/aer>`_ primitive implementations: class:`qiskit_aer.primitives.Sampler` and :class:`qiskit_aer.primitives.Estimator`.
     - *Qiskit Runtime Primitives* - IBM's Qiskit Runtime primitive implementations: class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`.
-    - *Backend Primitives* - Instances of :class:`qiskit.primitives.BackendSampler` and :class:`qiskit.primitives.BackendEstimator`. These allow any backend  to implement primitive interfaces  --> ``from qiskit import BackendSampler/BackendEstimator``
+    - *Backend Primitives* - Instances of :class:`qiskit.primitives.BackendSampler` and :class:`qiskit.primitives.BackendEstimator`. These allow any backend to implement primitive interfaces
 
     For guidelines on which primitives to choose for your task, please continue reading.
 
@@ -521,7 +521,7 @@ Code examples
         so if the circuit ended up on more qubits it did not matter.
 
     Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
-    :class:`~qiskit.primitives.BackendSampler` or :class:`~qiskit.primitives.BackendEstimator, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
+    :class:`~qiskit.primitives.BackendSampler` or :class:`~qiskit.primitives.BackendEstimator`, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
 
     The use-case that motivated the addition of the two-stage transpilation to the ``QuantumInstance`` was to allow
     running pulse-efficient transpilation passes with the :class:`~qiskit.opflow.CircuitSampler` class. The following
