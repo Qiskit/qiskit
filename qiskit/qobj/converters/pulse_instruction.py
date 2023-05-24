@@ -16,9 +16,9 @@
 
 import hashlib
 import re
-import sys
 import warnings
 from enum import Enum
+from functools import singledispatchmethod
 from typing import Union, List, Iterator, Optional
 import numpy as np
 
@@ -32,11 +32,6 @@ from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstru
 from qiskit.qobj.utils import MeasLevel
 from qiskit.utils.deprecation import deprecate_func
 
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod
-else:
-    from singledispatchmethod import singledispatchmethod
-
 
 class ParametricPulseShapes(Enum):
     """Map the assembled pulse names to the pulse module waveforms.
@@ -48,6 +43,7 @@ class ParametricPulseShapes(Enum):
     gaussian = "Gaussian"
     gaussian_square = "GaussianSquare"
     gaussian_square_drag = "GaussianSquareDrag"
+    gaussian_square_echo = "gaussian_square_echo"
     drag = "Drag"
     constant = "Constant"
 

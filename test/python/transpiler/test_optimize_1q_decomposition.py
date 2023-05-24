@@ -99,6 +99,15 @@ target_rz_ry_u_noerror.add_instruction(UGate(θ, ϕ, λ), u_props, name="u")
 class TestOptimize1qGatesDecomposition(QiskitTestCase):
     """Test for 1q gate optimizations."""
 
+    def test_run_pass_in_parallel(self):
+        """Test running pass on multiple circuits in parallel."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        passmanager = PassManager([Optimize1qGatesDecomposition(target=target_u1_u2_u3)])
+        results = passmanager.run([circuit, circuit])
+        for result in results:
+            self.assertTrue(Operator(circuit).equiv(Operator(result)))
+
     @ddt.data(target_u1_u2_u3, target_rz_rx, target_rz_sx, target_rz_ry_u, target_h_p)
     def test_optimize_h_gates_target(self, target):
         """Transpile: qr:--[H]-[H]-[H]--"""
@@ -684,7 +693,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         test = QuantumCircuit(qr, cr)
         test.h(0)
         test.measure(0, 0)
-        test_true = QuantumCircuit(qr)
+        test_true = QuantumCircuit(qr, cr)
         test_true.h(qr[0])
         test_true.h(qr[0])
         test_true.h(qr[0])
@@ -693,7 +702,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.u(np.pi / 2, 0, -np.pi, 0)
         expected.measure(0, 0)
-        expected_true = QuantumCircuit(qr)
+        expected_true = QuantumCircuit(qr, cr)
         expected_true.u(np.pi / 2, 0, -np.pi, qr[0])
         expected.if_else((0, True), expected_true, None, range(num_qubits), [0])
 

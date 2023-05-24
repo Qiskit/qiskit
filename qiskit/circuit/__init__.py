@@ -306,9 +306,9 @@ Parametric Quantum Circuits
 .. autosummary::
    :toctree: ../stubs/
 
-    Parameter
-    ParameterVector
-    ParameterExpression
+   Parameter
+   ParameterVector
+   ParameterExpression
 
 Random Circuits
 ---------------

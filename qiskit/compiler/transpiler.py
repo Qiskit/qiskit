@@ -19,9 +19,10 @@ from itertools import cycle
 import logging
 import os
 import pickle
-import sys
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable, TypeVar
+from multiprocessing.shared_memory import SharedMemory
+from multiprocessing.managers import SharedMemoryManager
 import warnings
 
 from qiskit import user_config
@@ -47,12 +48,6 @@ from qiskit.transpiler.preset_passmanagers import (
 )
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.target import Target, target_to_backend_properties
-
-if sys.version_info >= (3, 8):
-    from multiprocessing.shared_memory import SharedMemory
-    from multiprocessing.managers import SharedMemoryManager
-else:
-    from shared_memory import SharedMemory, SharedMemoryManager
 
 logger = logging.getLogger(__name__)
 
@@ -248,9 +243,8 @@ def transpile(
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
         unitary_synthesis_method (str): The name of the unitary synthesis
-            method to use. By default 'default' is used, which is the only
-            method included with qiskit. If you have installed any unitary
-            synthesis plugins you can use the name exported by the plugin.
+            method to use. By default ``'default'`` is used. You can see a list of installed
+            plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config: An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary

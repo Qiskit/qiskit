@@ -14,6 +14,7 @@
 
 Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
+from qiskit.transpiler.basepasses import BasePass
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -83,7 +84,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         coupling_map_layout = target
 
     if layout_method == "trivial":
-        _choose_layout = TrivialLayout(coupling_map_layout)
+        _choose_layout: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
@@ -176,6 +177,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         translation_method=translation_method,
         optimization_method=optimization_method,
         scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(

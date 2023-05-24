@@ -106,7 +106,7 @@ class RZGate(Gate):
     def inverse(self):
         r"""Return inverted RZ gate
 
-        :math:`RZ(\lambda){\dagger} = RZ(-\lambda)`
+        :math:`RZ(\lambda)^{\dagger} = RZ(-\lambda)`
         """
         return RZGate(-self.params[0])
 

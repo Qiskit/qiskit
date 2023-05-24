@@ -23,11 +23,12 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
 from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.compiler.transpiler import transpile
-from qiskit.circuit import ControlFlowOp, Clbit
+from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 
 
 @ddt
@@ -994,6 +995,120 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         expected.barrier()
         expected.measure(qreg, creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
+
+    def test_switch_single_case(self):
+        """Test routing of 'switch' with just a single case."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(3, "c")
+        qc = QuantumCircuit(qreg, creg)
+
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        qc.switch(creg, [(0, case0)], qreg[[0, 1, 2]], creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = StochasticSwap(coupling, seed=58)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        case0.swap(0, 1)
+        expected.switch(creg, [(0, case0)], qreg[[0, 1, 2]], creg[:])
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_nonexhaustive(self):
+        """Test routing of 'switch' with several but nonexhaustive cases."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg, creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        case1 = QuantumCircuit(qreg, creg[:])
+        case1.cx(1, 2)
+        case1.cx(2, 3)
+        case1.cx(3, 1)
+        case2 = QuantumCircuit(qreg, creg[:])
+        case2.cx(2, 3)
+        case2.cx(3, 4)
+        case2.cx(4, 2)
+        qc.switch(creg, [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = StochasticSwap(coupling, seed=58)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg, creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        case0.swap(0, 1)
+        case1 = QuantumCircuit(qreg, creg[:])
+        case1.cx(1, 2)
+        case1.cx(2, 3)
+        case1.swap(1, 2)
+        case1.cx(3, 2)
+        case1.swap(1, 2)
+        case2 = QuantumCircuit(qreg, creg[:])
+        case2.cx(2, 3)
+        case2.cx(3, 4)
+        case2.swap(3, 4)
+        case2.cx(3, 2)
+        case2.swap(3, 4)
+        expected.switch(creg, [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    @data((0, 1, 2, 3), (CASE_DEFAULT,))
+    def test_switch_exhaustive(self, labels):
+        """Test routing of 'switch' with exhaustive cases; we should not require restoring the
+        layout afterwards."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(2, "c")
+
+        qc = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        qc.switch(creg, [(labels, case0)], qreg[[0, 1, 2]], creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = StochasticSwap(coupling, seed=58)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        expected.switch(creg, [(labels, case0)], qreg[[0, 1, 2]], creg)
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
     def test_nested_inner_cnot(self):
         """test swap in nested if else controlflow construct; swap in inner"""
