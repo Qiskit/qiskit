@@ -81,7 +81,7 @@ four different primitive implementations, depending on how you want to configure
     a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
     b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
     c. Accessing backends using **IBM's Qiskit Runtime service**: **Runtime primitives** in :mod:`qiskit_ibm_runtime`
-    d. Accessing backends **without native primitves support**: **Backends without native primitive support** via :class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`.
+    d. Accessing backends **without native primitive support**: **Backend Primitives** (:class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`). These are wrappers that implement a primitive interface on top of a backend that only supports ``.run()``.
 
 
 For more detailed information and examples, particularly on the use of the **backends without native primitive supports**, please refer to
