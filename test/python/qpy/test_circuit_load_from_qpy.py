@@ -74,6 +74,8 @@ class TestCalibrationPasses(QpyCircuitTestCase):
 
 @ddt
 class TestLayout(QpyCircuitTestCase):
+    """Test circuit serialization for layout preservation."""
+
     @data(0, 1, 2, 3)
     def test_transpile_layout(self, opt_level):
         """Test layout preserved after transpile."""
@@ -102,7 +104,7 @@ class TestLayout(QpyCircuitTestCase):
 
     @data(0, 1, 2, 3)
     def test_no_register(self, opt_level):
-        "Test layout preserved with no register." ""
+        """Test layout preserved with no register."""
         qubits = [Qubit(), Qubit()]
         qc = QuantumCircuit(qubits)
         qc.h(0)

@@ -872,7 +872,7 @@ def _read_layout(file_obj, circuit):
             if register_name in registers:
                 qubit = registers[register_name][virtual_bit.index]
             else:
-                register = next(filter(lambda x: x.name == register_name, circuit.qregs))
+                register = next(filter(lambda x, name=register_name: x.name == name, circuit.qregs))
                 qubit = register[virtual_bit.index]
         initial_layout_virtual_bits.append(qubit)
     if initial_layout_virtual_bits:
