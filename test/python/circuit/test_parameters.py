@@ -1113,6 +1113,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter(name="theta")
 
         qc = QuantumCircuit(2)
+        qc.p(numpy.abs(-phi), 0)
         qc.p(numpy.cos(phi), 0)
         qc.p(numpy.sin(phi), 0)
         qc.p(numpy.tan(phi), 0)
@@ -1123,6 +1124,7 @@ class TestParameters(QiskitTestCase):
         qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
 
         qc_ref = QuantumCircuit(2)
+        qc_ref.p(pi, 0)
         qc_ref.p(-1, 0)
         qc_ref.p(0, 0)
         qc_ref.p(0, 0)
@@ -1133,14 +1135,40 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(qc, qc_ref)
 
     def test_compile_with_ufunc(self):
-        """Test compiling of circuit with unbounded parameters
+        """Test compiling of circuit with unbound parameters
         after we apply universal functions."""
-        phi = Parameter("phi")
-        qc = QuantumCircuit(1)
-        qc.rx(numpy.cos(phi), 0)
-        backend = BasicAer.get_backend("qasm_simulator")
-        qc_aer = transpile(qc, backend)
-        self.assertIn(phi, qc_aer.parameters)
+        from math import pi
+
+        theta = ParameterVector("theta", length=7)
+
+        qc = QuantumCircuit(7)
+        qc.rx(numpy.abs(theta[0]), 0)
+        qc.rx(numpy.cos(theta[1]), 1)
+        qc.rx(numpy.sin(theta[2]), 2)
+        qc.rx(numpy.tan(theta[3]), 3)
+        qc.rx(numpy.arccos(theta[4]), 4)
+        qc.rx(numpy.arctan(theta[5]), 5)
+        qc.rx(numpy.arcsin(theta[6]), 6)
+
+        # transpile to different basis
+        transpiled = transpile(qc, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
+
+        for x in theta:
+            self.assertIn(x, transpiled.parameters)
+
+        bound = transpiled.bind_parameters({theta: [-1, pi, pi, pi, 1, 1, 1]})
+
+        expected = QuantumCircuit(7)
+        expected.rx(1.0, 0)
+        expected.rx(-1.0, 1)
+        expected.rx(0.0, 2)
+        expected.rx(0.0, 3)
+        expected.rx(0.0, 4)
+        expected.rx(pi / 4, 5)
+        expected.rx(pi / 2, 6)
+        expected = transpile(expected, basis_gates=["rz", "sx", "x", "cx"], optimization_level=0)
+
+        self.assertEqual(expected, bound)
 
     def test_parametervector_resize(self):
         """Test the resize method of the parameter vector."""
@@ -1206,6 +1234,29 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
         self.assertEqual(bound_expr, 2.3)
+
+    def test_abs_function_when_bound(self):
+        """Verify expression can be used with
+        abs functions when bound."""
+
+        x = Parameter("x")
+        xb_1 = x.bind({x: 2.0})
+        xb_2 = x.bind({x: 3.0 + 4.0j})
+
+        self.assertEqual(abs(xb_1), 2.0)
+        self.assertEqual(abs(-xb_1), 2.0)
+        self.assertEqual(abs(xb_2), 5.0)
+
+    def test_abs_function_when_not_bound(self):
+        """Verify expression can be used with
+        abs functions when not bound."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+
+        self.assertEqual(abs(x), abs(-x))
+        self.assertEqual(abs(x) * abs(y), abs(x * y))
+        self.assertEqual(abs(x) / abs(y), abs(x / y))
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
