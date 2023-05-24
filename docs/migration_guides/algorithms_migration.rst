@@ -83,7 +83,7 @@ Once the kind of primitive is known, you can choose between the primitive implem
     b. For finer algorithm tuning, a local simulator such as the **primitive implementation in Aer**: :class:`qiskit_aer.primitives.Sampler` and :class:`qiskit_aer.primitives.Estimator`.
     c. For executing in quantum hardware you can:
 
-       * access a native-primitive services, such as **IBM's Qiskit Runtime service** via :class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`
+       * access services with native primitive implementations, such as **IBM's Qiskit Runtime service** via :class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`
        * Wrap any backend with **Backend Primitives** (:class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`). These wrappers implement a primitive interface on top of a backend that only supports ``Backend.run()``.
 
 For more detailed information and examples, particularly on the use of the **Backend Primitives**, please refer to
