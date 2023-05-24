@@ -405,6 +405,8 @@ class ForwardMatch:
                 ):
                     continue
 
+                template = None
+
                 # Check if the qubit, clbit configuration are compatible for a match,
                 # also check if the operation are the same.
                 if (
