@@ -33,8 +33,8 @@ class ExcitationPreserving(TwoLocal):
 
         \begin{pmatrix}
         1 & 0 & 0 & 0 \\
-        0 & \cos(\th) & -i\sin(\th) & 0 \\
-        0 & -i\sin(\th) & \cos(\th) & 0 \\
+        0 & \cos\left(\th\right) & -i\sin\left(\th\right) & 0 \\
+        0 & -i\sin\left(\th\right) & \cos\left(\th\right) & 0 \\
         0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
