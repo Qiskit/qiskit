@@ -17,6 +17,7 @@ import collections
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.utils.deprecation import deprecate_func
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
@@ -546,6 +547,10 @@ def generate_scheduling(
     return scheduling
 
 
+@deprecate_func(
+    additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
+    since="0.25.0",
+)
 def get_vf2_call_limit(
     optimization_level: int,
     layout_method: Optional[str] = None,
