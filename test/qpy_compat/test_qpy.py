@@ -30,7 +30,6 @@ from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
 from qiskit.circuit.gate import Gate
-from qiskit.transpiler.layout import TranspileLayout, Layout
 
 try:
     from qiskit.qpy import dump, load
@@ -577,6 +576,9 @@ def generate_open_controlled_gates():
 
 def generate_layout_circuits():
     """Test qpy circuits with layout set."""
+
+    from qiskit.transpiler.layout import TranspileLayout, Layout
+
     qc = QuantumCircuit(3, name="GHZ with layout")
     qc.h(0)
     qc.cx(0, 1)
