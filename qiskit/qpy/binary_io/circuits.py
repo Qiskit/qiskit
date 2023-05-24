@@ -804,7 +804,7 @@ def _write_layout(file_obj, circuit):
     final_layout_array = []
     if circuit.layout.final_layout is not None:
         final_layout_size = len(circuit.layout.final_layout)
-        final_layout_physical = circuit.layout.physical_bits()
+        final_layout_physical = circuit.layout.final_layout.get_physical_bits()
         for i in range(circuit.num_qubits):
             virtual_bit = final_layout_physical[i]
             final_layout_array.append(circuit.find_bit(virtual_bit).index)
