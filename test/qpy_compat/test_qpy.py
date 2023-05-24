@@ -30,6 +30,7 @@ from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
 from qiskit.circuit.gate import Gate
+from qiskit.transpiler.layout import TranspileLayout, Layout
 
 try:
     from qiskit.qpy import dump, load
@@ -574,6 +575,21 @@ def generate_open_controlled_gates():
     return circuits
 
 
+def generate_layout_circuits():
+    """Test qpy circuits with layout set."""
+    qc = QuantumCircuit(3, name="GHZ with layout")
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.swap(0, 1)
+    qc.cx(0, 2)
+    qc._layout = TranspileLayout(
+        Layout.generate_trivial_layout(qc.qregs),
+        input_qubit_mapping={bit: index for index, bit in enumerate(qc.qubits)},
+        final_layout=Layout.from_qubit_list([qc.qubits[1], qc.qubits[0], qc.qubits[2]]),
+    )
+    return [qc]
+
+
 def generate_circuits(version_parts):
     """Generate reference circuits."""
     output_circuits = {
@@ -608,9 +624,10 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 24, 0):
         output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
-    if version_parts >= (0, 25, 0):
+    if version_parts > (0, 24, 0):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+        output_circuits["layout.qpy"] = generate_layout_circuits()
     return output_circuits
 
 
@@ -650,6 +667,11 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
                 )
                 sys.stderr.write(msg)
                 sys.exit(1)
+
+    if version_parts > (0, 24, 0) and reference.layout != qpy.layout:
+        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}"
+        sys.stderr.write(msg)
+        sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
