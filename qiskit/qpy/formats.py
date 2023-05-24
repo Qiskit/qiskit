@@ -263,9 +263,10 @@ MAP_ITEM_PACK = "!H1cH"
 MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
 
 LAYOUT = namedtuple(
-    "LAYOUT", ["initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"]
+    "LAYOUT",
+    ["exists", "initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"],
 )
-LAYOUT_PACK = "!iiiI"
+LAYOUT_PACK = "!?iiiI"
 LAYOUT_SIZE = struct.calcsize(LAYOUT_PACK)
 
 INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"])

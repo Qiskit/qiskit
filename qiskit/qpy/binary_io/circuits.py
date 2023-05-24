@@ -765,6 +765,8 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
 
 def _write_layout(file_obj, circuit):
     if circuit.layout is None:
+        # Write a null header if there is no layout present
+        file_obj.write(struct.pack(formats.LAYOUT_PACK, False, -1, -1, -1, 0))
         return
     initial_size = -1
     input_qubit_mapping = {}
@@ -810,6 +812,7 @@ def _write_layout(file_obj, circuit):
     file_obj.write(
         struct.pack(
             formats.LAYOUT_PACK,
+            True,
             initial_size,
             input_qubit_size,
             final_layout_size,
@@ -847,6 +850,8 @@ def _read_layout(file_obj, circuit):
     header = formats.LAYOUT._make(
         struct.unpack(formats.LAYOUT_PACK, file_obj.read(formats.LAYOUT_SIZE))
     )
+    if not header.exists:
+        return
     registers = {
         name: QuantumRegister(len(v[1]), name)
         for name, v in _read_registers_v4(file_obj, header.extra_registers)["q"].items()
