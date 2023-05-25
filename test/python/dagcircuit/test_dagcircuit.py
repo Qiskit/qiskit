@@ -751,7 +751,6 @@ class TestDagNodeSelection(QiskitTestCase):
         self.assertTrue(isinstance(predecessor1, DAGInNode))
         self.assertTrue(isinstance(predecessor1.wire, Clbit))
 
-    
     def test_classical_successors(self):
         """The method dag.classical_successors() returns successors connected by classical edges"""
 
