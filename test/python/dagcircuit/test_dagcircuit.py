@@ -398,7 +398,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_cregs_equal(self.original_cregs)
         self.assert_clbits_equal(self.original_clbits)
 
-
+ 
 class TestDagApplyOperation(QiskitTestCase):
     """Test adding an op node to a dag."""
 
@@ -751,7 +751,6 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
 
-
     def test_classical_predecessors(self):
         """The method dag.classical_predecessors() returns predecessors connected by classical edges"""
 
@@ -763,8 +762,6 @@ class TestDagNodeSelection(QiskitTestCase):
 
         self.assertTrue(isinstance(predecessor1, DAGInNode))
         self.assertTrue(isinstance(predecessor1.wire, Clbit))
-
-
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
