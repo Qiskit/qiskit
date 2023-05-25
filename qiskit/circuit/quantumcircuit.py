@@ -877,6 +877,9 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+
         if inplace and front and self._control_flow_scopes:
             # If we're composing onto ourselves while in a stateful control-flow builder context,
             # there's no clear meaning to composition to the "front" of the circuit.
@@ -955,30 +958,41 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
+        register_map = {}
+
+        def map_register_to_dest(theirs, register_map):
+            """Map the target's registers to suitable equivalents in the destination, adding an
+            extra one if there's no exact match."""
+            if theirs.name in register_map:
+                return register_map[theirs.name]
+            mapped_bits = [edge_map[bit] for bit in theirs]
+            for ours in dest.cregs:
+                if mapped_bits == list(ours):
+                    mapped_theirs = ours
+                    break
+            else:
+                mapped_theirs = ClassicalRegister(bits=[edge_map[bit] for bit in theirs])
+                dest.add_register(mapped_theirs)
+            register_map[theirs.name] = mapped_theirs
+            return mapped_theirs
+
         mapped_instrs: list[CircuitInstruction] = []
-        condition_register_map = {}
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
 
-            # Map their registers over to ours, adding an extra one if there's no exact match.
             if getattr(n_op, "condition", None) is not None:
                 target, value = n_op.condition
                 if isinstance(target, Clbit):
                     n_op.condition = (edge_map[target], value)
                 else:
-                    if target.name not in condition_register_map:
-                        mapped_bits = [edge_map[bit] for bit in target]
-                        for our_creg in dest.cregs:
-                            if mapped_bits == list(our_creg):
-                                new_target = our_creg
-                                break
-                        else:
-                            new_target = ClassicalRegister(bits=[edge_map[bit] for bit in target])
-                            dest.add_register(new_target)
-                        condition_register_map[target.name] = new_target
-                    n_op.condition = (condition_register_map[target.name], value)
+                    n_op.condition = (map_register_to_dest(target, register_map), value)
+            elif isinstance(n_op, SwitchCaseOp):
+                if isinstance(n_op.target, Clbit):
+                    n_op.target = edge_map[n_op.target]
+                else:
+                    n_op.target = map_register_to_dest(n_op.target, register_map)
 
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
