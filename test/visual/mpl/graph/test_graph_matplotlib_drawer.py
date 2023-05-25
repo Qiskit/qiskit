@@ -41,9 +41,9 @@ else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
-RESULTDIR = os.path.join(BASEDIR, "results", "")
+RESULTDIR = os.path.join(BASEDIR, "graph_results", "")
 TEST_REFERENCE_PATH = os.path.join(BASEDIR, "references")
-FAILURE_DIFF_DIR = os.path.join(BASEDIR, "graphfailures", "")
+FAILURE_DIFF_DIR = os.path.join(BASEDIR, "graph_failures", "")
 
 
 @contextmanager
