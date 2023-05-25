@@ -15,8 +15,7 @@
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
 import contextlib
-import sys
-from typing import Union, Iterable, Any, Tuple, Optional, List
+from typing import Union, Iterable, Any, Tuple, Optional, List, Literal
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
@@ -24,11 +23,6 @@ from qiskit.circuit.exceptions import CircuitError
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
 from ._builder_utils import unify_circuit_resources, partition_registers
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class _DefaultCaseType:

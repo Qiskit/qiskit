@@ -12,6 +12,8 @@
 
 """Tests for the functions in ``utils.deprecation``."""
 
+from __future__ import annotations
+
 from textwrap import dedent
 
 from qiskit.test import QiskitTestCase
@@ -229,25 +231,86 @@ future be removed.
         * If `predicate` is set, only warn if the predicate is True.
         """
 
-        @deprecate_arg("arg1", since="9.99")
-        @deprecate_arg("arg2", new_alias="new_arg2", since="9.99")
+        @deprecate_arg("arg1", new_alias="new_arg1", since="9.99")
+        @deprecate_arg("arg2", since="9.99")
         @deprecate_arg("arg3", predicate=lambda arg3: arg3 == "deprecated value", since="9.99")
-        def my_func(*, arg1: str = "a", new_arg2: str, arg3: str = "a") -> None:
-            del arg1
+        def my_func(
+            arg1: str = "a",
+            arg2: str = "a",
+            arg3: str = "a",
+            new_arg1: str | None = None,
+        ) -> None:
+            del arg2
             del arg3
-            assert new_arg2 == "z"
+            # If the old arg was set, we should set its `new_alias` to that value.
+            if arg1 != "a":
+                self.assertEqual(new_arg1, "z")
+            if new_arg1 is not None:
+                self.assertEqual(new_arg1, "z")
 
-        my_func(new_arg2="z")  # No warnings if no deprecated args used.
+        # No warnings if no deprecated args used.
+        my_func()
+        my_func(new_arg1="z")
+
+        # Warn if argument is specified, regardless of positional vs kwarg.
         with self.assertWarnsRegex(DeprecationWarning, "arg1"):
-            my_func(arg1="a", new_arg2="z")
+            my_func("z")
+        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
+            my_func(arg1="z")
         with self.assertWarnsRegex(DeprecationWarning, "arg2"):
-            # `arg2` should be converted into `new_arg2`.
-            my_func(arg2="z")  # pylint: disable=missing-kwoa
+            my_func("z", "z")
+        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
+            my_func(arg2="z")
+
+        # Error if new_alias specified at the same time as old argument name.
+        with self.assertRaises(TypeError):
+            my_func("a", new_arg1="z")
+        with self.assertRaises(TypeError):
+            my_func(arg1="a", new_arg1="z")
+        with self.assertRaises(TypeError):
+            my_func("a", "a", "a", "z")
 
         # Test the `predicate` functionality.
-        my_func(new_arg2="z", arg3="okay value")
+        my_func(arg3="okay value")
         with self.assertWarnsRegex(DeprecationWarning, "arg3"):
-            my_func(new_arg2="z", arg3="deprecated value")
+            my_func(arg3="deprecated value")
+        with self.assertWarnsRegex(DeprecationWarning, "arg3"):
+            my_func("z", "z", "deprecated value")
+
+    def test_deprecate_arg_runtime_warning_variadic_args(self) -> None:
+        """Test that `@deprecate_arg` errors when defined on a function using `*args` but can
+        handle `**kwargs`.
+
+        We know how to support *args robustly via `inspect.signature().bind()`, but it has worse
+        performance (see the commit history of PR #9884). Given how infrequent we expect
+        deprecations to involve *args, we simply error.
+        """
+
+        with self.assertRaises(ValueError):
+
+            @deprecate_arg("my_kwarg", since="9.99")
+            def my_func1(*args: int, my_kwarg: int | None = None) -> None:
+                del args
+                del my_kwarg
+
+        @deprecate_arg("my_kwarg", since="9.99")
+        def my_func2(my_kwarg: int | None = None, **kwargs) -> None:
+            # We assign an arbitrary variable `c` because it will be included in
+            # `my_func.__code__.co_varnames` and we want to make sure that does not break the
+            # implementation.
+            c = 0  # pylint: disable=unused-variable
+            del kwargs
+            del my_kwarg
+
+        # No warnings if no deprecated args used.
+        my_func2()
+        my_func2(another_arg=0, yet_another=0)
+
+        # Warn if argument is specified.
+        with self.assertWarnsRegex(DeprecationWarning, "my_kwarg"):
+            my_func2(my_kwarg=5)
+        with self.assertWarnsRegex(DeprecationWarning, "my_kwarg"):
+            my_func2(my_kwarg=5, another_arg=0, yet_another=0)
 
     def test_deprecate_arguments_runtime_warning(self) -> None:
         """Test that `@deprecate_arguments` warns whenever the arguments are used.
@@ -255,17 +318,36 @@ future be removed.
         Also check that old arguments are passed in as their new alias.
         """
 
-        @deprecate_arguments({"arg1": None, "arg2": "new_arg2"}, since="9.99")
-        def my_func(*, arg1: str = "a", new_arg2: str) -> None:
-            del arg1
-            self.assertEqual(new_arg2, "z")
+        @deprecate_arguments({"arg1": "new_arg1", "arg2": None}, since="9.99")
+        def my_func(arg1: str = "a", arg2: str = "a", new_arg1: str | None = None) -> None:
+            del arg2
+            # If the old arg was set, we should set its `new_alias` to that value.
+            if arg1 != "a":
+                self.assertEqual(new_arg1, "z")
+            if new_arg1 is not None:
+                self.assertEqual(new_arg1, "z")
 
-        my_func(new_arg2="z")  # No warnings if no deprecated args used.
+        # No warnings if no deprecated args used.
+        my_func()
+        my_func(new_arg1="z")
+
+        # Warn if argument is specified, regardless of positional vs kwarg.
         with self.assertWarnsRegex(DeprecationWarning, "arg1"):
-            my_func(arg1="a", new_arg2="z")
+            my_func("z")
+        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
+            my_func(arg1="z")
         with self.assertWarnsRegex(DeprecationWarning, "arg2"):
-            # `arg2` should be converted into `new_arg2`.
-            my_func(arg2="z")  # pylint: disable=missing-kwoa
+            my_func("z", "z")
+        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
+            my_func(arg2="z")
+
+        # Error if new_alias specified at the same time as old argument name.
+        with self.assertRaises(TypeError):
+            my_func("a", new_arg1="z")
+        with self.assertRaises(TypeError):
+            my_func(arg1="a", new_arg1="z")
+        with self.assertRaises(TypeError):
+            my_func("a", "a", "z")
 
     def test_deprecate_function_runtime_warning(self) -> None:
         """Test that `@deprecate_function` warns whenever the function is used."""

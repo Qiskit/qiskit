@@ -461,10 +461,10 @@ import collections
 import contextvars
 import functools
 import itertools
-import sys
 import uuid
 import warnings
 from contextlib import contextmanager
+from functools import singledispatchmethod
 from typing import (
     Any,
     Callable,
@@ -498,11 +498,6 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod
-else:
-    from singledispatchmethod import singledispatchmethod
 
 
 #: contextvars.ContextVar[BuilderContext]: active builder

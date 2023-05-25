@@ -30,7 +30,9 @@ ddt>=1.2.0,!=1.4.0,!=1.4.3
 # components of Terra use some of its optional dependencies in order to document
 # themselves.  These are the requirements that are _only_ required for the docs
 # build, and are not used by Terra itself.
-reno>=3.4.0
+
+# TODO: switch to stable release when 4.1 is released
+reno @ git+https://github.com/openstack/reno.git@81587f616f17904336cdc431e25c42b46cd75b8f
 Sphinx>=5.0
-qiskit-sphinx-theme~=1.10.3
+qiskit-sphinx-theme~=1.11.0
 sphinx-design>=0.2.0

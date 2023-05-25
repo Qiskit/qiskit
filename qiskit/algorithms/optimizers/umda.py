@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Univariate Marginal Distribution Algorithm (Estimation-of-Distribution-Algorithm)."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -122,12 +123,21 @@ class UMDA(Optimizer):
     ELITE_FACTOR = 0.4
     STD_BOUND = 0.3
 
-    def __init__(self, maxiter: int = 100, size_gen: int = 20, alpha: float = 0.5) -> None:
+    def __init__(
+        self,
+        maxiter: int = 100,
+        size_gen: int = 20,
+        alpha: float = 0.5,
+        callback: Callable[[int, np.array, float], None] | None = None,
+    ) -> None:
         r"""
         Args:
             maxiter: Maximum number of iterations.
             size_gen: Population size of each generation.
             alpha: Percentage (0, 1] of the population to be selected as elite selection.
+            callback: A callback function passed information in each iteration step. The
+                information is, in this order: the number of function evaluations, the parameters,
+                the best function value in this iteration.
         """
 
         self.size_gen = size_gen
@@ -147,6 +157,8 @@ class UMDA(Optimizer):
         self._evaluations: np.ndarray | None = None
 
         self._n_variables: int | None = None
+
+        self.callback = callback
 
     def _initialization(self) -> np.ndarray:
         vector = np.zeros((4, self._n_variables))
@@ -243,6 +255,11 @@ class UMDA(Optimizer):
                 if not_better_count >= self._dead_iter:
                     break
 
+            if self.callback is not None:
+                self.callback(
+                    len(history) * self._size_gen, self._best_ind_global, self._best_cost_global
+                )
+
             self._new_generation()
 
         result.x = self._best_ind_global
@@ -321,6 +338,7 @@ class UMDA(Optimizer):
             "maxiter": self.maxiter,
             "alpha": self.alpha,
             "size_gen": self.size_gen,
+            "callback": self.callback,
         }
 
     def get_support_level(self):

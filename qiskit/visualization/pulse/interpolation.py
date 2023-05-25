@@ -22,15 +22,16 @@ from functools import partial
 
 import numpy as np
 
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 
-@deprecate_function(
-    "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
-    " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer_v2`."
-    " In no less than 6 months, `pulse_drawer_v2` will become `pulse_drawer`, and these old"
-    " objects will be completely removed.",
+@deprecate_func(
+    additional_msg=(
+        "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
+        "pulse visualization."
+    ),
     since="0.23.0",
+    removal_timeline="no earlier than 6 months after the release date",
 )
 def interp1d(
     time: np.ndarray, samples: np.ndarray, nop: int, kind: str = "linear"
@@ -64,12 +65,13 @@ def interp1d(
     return time_, cs_ry(time_), cs_iy(time_)
 
 
-@deprecate_function(
-    "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
-    " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer_v2`."
-    " In no less than 6 months, `pulse_drawer_v2` will become `pulse_drawer`, and these old"
-    " objects will be completely removed.",
+@deprecate_func(
+    additional_msg=(
+        "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
+        "pulse visualization."
+    ),
     since="0.23.0",
+    removal_timeline="no earlier than 6 months after the release date",
 )
 def step_wise(
     time: np.ndarray, samples: np.ndarray, nop: int
