@@ -14,6 +14,8 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicSwap
+from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.circuit.library import CXGate
 from qiskit.converters import circuit_to_dag
@@ -398,21 +400,14 @@ class TestBasicSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         circuit.h(qr[3])
         circuit.cx(qr[0], qr[3])
-        dag = circuit_to_dag(circuit)
+ 
+        fake_pm = PassManager([BasicSwap(coupling, fake_run=True)])
+        real_pm = PassManager([BasicSwap(coupling, fake_run=False)])
 
-        # expected iff fake_run=False
-        expected = QuantumCircuit(qr)
-        expected.swap(qr[3], qr[2])
-        expected.swap(qr[2], qr[1])
-        expected.cx(qr[1], qr[0])
-        expected.h(qr[1])
-        expected.cx(qr[0], qr[1])
-
-        pass_ = BasicSwap(coupling, fake_run=True)
-        after = pass_.run(dag)
-
-        self.assertNotEqual(circuit_to_dag(expected), after)
-        self.assertEqual(dag, after)
+        self.assertEqual(circuit, fake_pm.run(circuit))
+        self.assertNotEqual(circuit, real_pm.run(circuit))
+        self.assertIsInstance(fake_pm.property_set["final_layout"], Layout)
+        self.assertEqual(fake_pm.property_set["final_layout"], real_pm.property_set["final_layout"])
 
 
 if __name__ == "__main__":
