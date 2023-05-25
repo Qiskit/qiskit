@@ -398,7 +398,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_cregs_equal(self.original_cregs)
         self.assert_clbits_equal(self.original_clbits)
 
- 
+
 class TestDagApplyOperation(QiskitTestCase):
     """Test adding an op node to a dag."""
 
@@ -690,18 +690,6 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(successor2, DAGOutNode) and isinstance(successor1.op, Reset))
         )
 
-    def test_classical_successors(self):
-        """The method dag.classical_successors() returns successors connected by classical edges"""
-
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
-
-        successor_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
-
-        successor1 = next(successor_measure)
-
-        self.assertTrue(isinstance(successor1, DAGInNode))
-        self.assertTrue(isinstance(successor1.wire, Clbit))
-
     def test_is_successor(self):
         """The method dag.is_successor(A, B) checks if node B is a successor of A"""
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
@@ -762,6 +750,19 @@ class TestDagNodeSelection(QiskitTestCase):
 
         self.assertTrue(isinstance(predecessor1, DAGInNode))
         self.assertTrue(isinstance(predecessor1.wire, Clbit))
+
+    
+    def test_classical_successors(self):
+        """The method dag.classical_successors() returns successors connected by classical edges"""
+
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        successors_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
+
+        successors1 = next(successors_measure)
+
+        self.assertTrue(isinstance(successors1, DAGInNode))
+        self.assertTrue(isinstance(successors1.wire, Clbit))
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
