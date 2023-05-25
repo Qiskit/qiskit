@@ -1249,7 +1249,7 @@ def Sin(
 
     .. math::
 
-        f(x) &= \\text{A}\\sin\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+        f(x) = \\text{A}\\sin\\left(2\\pi\\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
 
@@ -1316,7 +1316,7 @@ def Cos(
 
     .. math::
 
-        f(x) &= \\text{A}\\cos\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+        f(x) = \\text{A}\\cos\\left(2\\pi\\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
 
@@ -1383,7 +1383,7 @@ def Sawtooth(
 
     .. math::
 
-        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-
+        f(x) = 2\\text{A}\\left[g\\left(x\\right)-
             \\lfloor g\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
@@ -1454,7 +1454,7 @@ def Triangle(
 
     .. math::
 
-        f(x) &= \\text{A}\\left[\\text{sawtooth}\\left(x\\right)right]  ,  0 <= x < duration
+        f(x) = \\text{A}\\left[\\text{sawtooth}\\left(x\\right)\\right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
     and :math:`\\text{sawtooth}\\left(x\\right)` is a sawtooth wave with the same frequency
