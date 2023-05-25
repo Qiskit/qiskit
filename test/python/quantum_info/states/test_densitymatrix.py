@@ -1219,6 +1219,15 @@ class TestDensityMatrix(QiskitTestCase):
             self.assertEqual(rho.partial_transpose([0]), DensityMatrix(rho1))
             self.assertEqual(rho.partial_transpose([1]), DensityMatrix(rho1))
 
+        with self.subTest(msg="dims(3,3)"):
+            mat = np.zeros((9,9))
+            mat1 = np.zeros((9,9))
+            mat[8,0] = 1
+            mat1[0,8] = 1
+            rho = DensityMatrix(mat, dims=(3, 3))
+            rho1 = DensityMatrix(mat1, dims=(3, 3))
+            self.assertEqual(rho.partial_transpose([0,1]), rho1)
+
     def test_clip_probabilities(self):
         """Test probabilities are clipped to [0, 1]."""
         dm = DensityMatrix([[1.1, 0], [0, 0]])
