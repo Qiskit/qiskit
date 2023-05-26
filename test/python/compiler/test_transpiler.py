@@ -627,13 +627,8 @@ class TestTranspile(QiskitTestCase):
             QuantumRegister(3, "q")[2],
         ]
 
-        with self.assertRaises(TranspilerError) as cm:
+        with self.assertRaisesRegex(TranspilerError, "different numbers of qubits"):
             transpile(qc, backend, initial_layout=bad_initial_layout)
-
-        self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
-            cm.exception.message,
-        )
 
     def test_parameterized_circuit_for_simulator(self):
         """Verify that a parameterized circuit can be transpiled for a simulator backend."""
@@ -1615,6 +1610,30 @@ class TestTranspile(QiskitTestCase):
         empty_qc = QuantumCircuit(qr1, qr2, cr)
         result = transpile(qc, optimization_level=opt_level)
         self.assertEqual(empty_qc, result)
+
+    @data(0, 1, 2, 3)
+    def test_initial_layout_with_loose_qubits(self, opt_level):
+        """Regression test of gh-10125."""
+        qc = QuantumCircuit([Qubit(), Qubit()])
+        qc.cx(0, 1)
+        transpiled = transpile(qc, initial_layout=[1, 0], optimization_level=opt_level)
+        self.assertIsNotNone(transpiled.layout)
+        self.assertEqual(
+            transpiled.layout.initial_layout, Layout({0: qc.qubits[1], 1: qc.qubits[0]})
+        )
+
+    @data(0, 1, 2, 3)
+    def test_initial_layout_with_overlapping_qubits(self, opt_level):
+        """Regression test of gh-10125."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(bits=qr1[:])
+        qc = QuantumCircuit(qr1, qr2)
+        qc.cx(0, 1)
+        transpiled = transpile(qc, initial_layout=[1, 0], optimization_level=opt_level)
+        self.assertIsNotNone(transpiled.layout)
+        self.assertEqual(
+            transpiled.layout.initial_layout, Layout({0: qc.qubits[1], 1: qc.qubits[0]})
+        )
 
 
 @ddt
