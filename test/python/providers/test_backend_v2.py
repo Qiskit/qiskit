@@ -14,7 +14,6 @@
 # pylint: disable=missing-module-docstring
 
 import math
-import collections
 
 from test import combine
 
@@ -183,31 +182,6 @@ class TestBackendV2(QiskitTestCase):
         """Test that transpiler._parse_inst_map() supports BackendV2."""
         inst_map = _parse_inst_map(inst_map=None, backend=self.backend)
         self.assertIsInstance(inst_map, InstructionScheduleMap)
-
-    def test_get_qubit_channels(self):
-        """Test to get all channels operated on a given qubit."""
-        backend = FakeBogotaV2()
-        qubit = 1
-        bogota_cr_channels_map = {
-            (4, 3): 7,
-            (3, 4): 6,
-            (3, 2): 5,
-            (2, 3): 4,
-            (1, 2): 2,
-            (2, 1): 3,
-            (1, 0): 1,
-            (0, 1): 0,
-        }
-        ref = []
-        for node_qubits in bogota_cr_channels_map:
-            if qubit in node_qubits:
-                ref.append(channels.ControlChannel(bogota_cr_channels_map[node_qubits]))
-        ref.append(channels.DriveChannel(qubit))
-        ref.append(channels.MeasureChannel(qubit))
-        ref.append(channels.AcquireChannel(qubit))
-        self.assertTrue(
-            collections.Counter(backend.get_qubit_channels(qubit)) == collections.Counter(list(ref))
-        )
 
     @data(0, 1, 2, 3, 4)
     def test_drive_channel(self, qubit):

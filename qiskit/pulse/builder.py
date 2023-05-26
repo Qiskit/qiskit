@@ -498,6 +498,7 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
+from qiskit.pulse.utils import get_qubit_channels
 
 
 #: contextvars.ContextVar[BuilderContext]: active builder
@@ -1179,7 +1180,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
     """
     # backendV2
     if hasattr(active_backend(), "target"):
-        return set(active_backend().get_qubit_channels(qubit))
+        return set(get_qubit_channels(active_backend(), qubit))
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
@@ -2461,21 +2462,11 @@ def measure(
             registers = list(registers)
         except TypeError:
             registers = [registers]
-    # backendV2
-    if hasattr(backend, "target"):
-        measure_sched = macros.measure(
-            qubits=qubits,
-            backend=backend,
-            meas_map=backend.meas_map,
-            qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
-        )
-    else:
-        measure_sched = macros.measure(
-            qubits=qubits,
-            inst_map=backend.defaults().instruction_schedule_map,
-            meas_map=backend.configuration().meas_map,
-            qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
-        )
+    measure_sched = macros.measure(
+        qubits=qubits,
+        backend=backend,
+        qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
+    )
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
@@ -2519,21 +2510,12 @@ def measure_all() -> List[chans.MemorySlot]:
     backend = active_backend()
     qubits = range(num_qubits())
     registers = [chans.MemorySlot(qubit) for qubit in qubits]
-    # backendV2
-    if hasattr(backend, "target"):
-        measure_sched = macros.measure(
-            qubits=qubits,
-            backend=backend,
-            meas_map=backend.meas_map,
-            qubit_mem_slots={qubit: qubit for qubit in qubits},
-        )
-    else:
-        measure_sched = macros.measure(
-            qubits=qubits,
-            inst_map=backend.defaults().instruction_schedule_map,
-            meas_map=backend.configuration().meas_map,
-            qubit_mem_slots={qubit: qubit for qubit in qubits},
-        )
+
+    measure_sched = macros.measure(
+        qubits=qubits,
+        backend=backend,
+        qubit_mem_slots={qubit: qubit for qubit in qubits},
+    )
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
