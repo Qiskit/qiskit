@@ -14,7 +14,6 @@
 
 import os
 import json
-import zipfile
 from PIL import Image, ImageChops, ImageDraw
 
 SWD = os.path.dirname(os.path.abspath(__file__))
@@ -82,12 +81,6 @@ class Results:
         return img
 
     @staticmethod
-    def _zipfiles(files, zipname):
-        with zipfile.ZipFile(zipname, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_ in files:
-                zipf.write(file_, arcname=os.path.basename(file_))
-
-    @staticmethod
     def passed_result_html(result, reference, diff, title):
         """Creates the html for passing tests"""
         ret = '<details><summary style="background-color:lightgreen;"> %s </summary>' % title
@@ -141,26 +134,6 @@ class Results:
             self.data[name]["ratio"] = ratio
             self.data[name]["diff_name"] = diff_name
             self.data[name]["title"] = title
-
-    def summary(self):
-        """Creates the html for the header"""
-        ret = ""
-
-        if len(self.mismatch) >= 1:
-            Results._zipfiles(self.mismatch, f"{self.directory}/mismatch.zip")
-            ret += (
-                f'<div><a href="{self.directory}/mismatch.zip">'
-                "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
-            )
-
-        if len(self.missing) >= 1:
-            Results._zipfiles(self.missing, f"{self.directory}/missing.zip")
-            ret += (
-                f'<div><a href="{self.directory}/missing.zip">'
-                "Download %s missing results as a zip</a></div>" % len(self.missing)
-            )
-
-        return ret
 
     def _repr_html_(self):
         ret = self.summary()

@@ -143,6 +143,10 @@ stages:
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
 
+        - template: ".azure/test-visual.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
         - template: ".azure/docs-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.documentationPythonVersion }}
