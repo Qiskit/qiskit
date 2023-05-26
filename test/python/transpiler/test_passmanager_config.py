@@ -79,7 +79,6 @@ class TestPassManagerConfig(QiskitTestCase):
         config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
-        self.assertIsNone(config.coupling_map)
 
     def test_simulator_backend_v1(self):
         """Test that from_backend() works with backendv1 simulator."""
@@ -87,6 +86,7 @@ class TestPassManagerConfig(QiskitTestCase):
         config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
+        self.assertIsNone(config.coupling_map)
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
@@ -104,7 +104,7 @@ class TestPassManagerConfig(QiskitTestCase):
 	initial_layout: None
 	basis_gates: ['id', 'rz', 'sx', 'x']
 	inst_map: None
-	coupling_map: 
+	coupling_map: None
 	layout_method: None
 	routing_method: None
 	translation_method: None
