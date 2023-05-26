@@ -26,7 +26,7 @@ from qiskit.circuit import (
     Measure,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister, QuantumCircuit
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, IfElseOp
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -464,7 +464,7 @@ def _get_gate_span(qubits, node):
         if index > max_index:
             max_index = index
 
-    if node.cargs or getattr(node.op, "condition", None):
+    if not isinstance(node.op, IfElseOp) and (node.cargs or getattr(node.op, "condition", None)):
         return qubits[min_index : len(qubits)]
 
     return qubits[min_index : max_index + 1]
