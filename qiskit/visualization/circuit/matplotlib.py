@@ -264,17 +264,18 @@ class MatplotlibDrawer:
         # and colors 'fc', 'ec', 'lc', 'sc', 'gt', and 'tc'
         node_data = {}
 
+        # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index"
         glob_data = {}
 
         # dicts for the names and locations of register/bit labels
         qubits_dict = {}
         clbits_dict = {}
 
-        # get layer widths
-        layer_widths = self._get_layer_widths(node_data, glob_data)
-
         # load the _qubit_dict and _clbit_dict with register info
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
+
+        # get layer widths
+        layer_widths = self._get_layer_widths(node_data, glob_data)
 
         # load the coordinates for each gate and compute number of folds
         max_x_index = self._get_coords(
