@@ -132,7 +132,7 @@ Version 8
 =========
 
 Version 8 adds support for handling a :class:`~.TranspileLayout` stored in the
-:attr:`.QuantumCircuit.layout` attribute. In version 8 imeediately following the
+:attr:`.QuantumCircuit.layout` attribute. In version 8 immediately following the
 calibrations block at the end of the circuit payload there is now the
 ``LAYOUT`` struct. This struct outlines the size of the three attributes of a
 :class:`~.TranspileLayout` class.
@@ -152,7 +152,7 @@ LAYOUT
 If any of the signed values are ``-1`` this indicates the corresponding
 attribute is ``None``
 
-Imeediately following the ``LAYOUT`` struct there is a :ref:`qpy_registers` struct
+Immediately following the ``LAYOUT`` struct there is a :ref:`qpy_registers` struct
 for ``extra_registers`` (specifically the format introduced in :ref:`qpy_version_4`
 standalone register definitions that aren't present in the circuit. Then there
 are ``initial_layout_size`` ``INITIAL_LAYOUT_BIT`` structs to define the
