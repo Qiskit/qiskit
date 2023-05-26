@@ -513,10 +513,8 @@ class MatplotlibDrawer:
                         layer_widths.update(flow_widths)
                         self._flow_drawers[node].append(flow_drawer)
 
-                        curr_layer = 0
                         for width, layer_num, flow_parent in flow_widths.values():
                             if layer_num != -1 and flow_parent == flow_drawer._flow_parent:
-                                curr_layer = layer_num
                                 raw_gate_width += width
 
                         # Need extra incr of 1.0 for else box
@@ -893,7 +891,7 @@ class MatplotlibDrawer:
                     clbits_dict,
                     glob_data,
                     flow_parent=flow_drawer[i]._flow_parent,
-                    is_if=True if i == 0 else False,
+                    is_if=(i == 0),
                 )
                 # Recurse for if/else ops inside the flow_drawer
                 flow_drawer[i]._add_nodes_and_coords(
