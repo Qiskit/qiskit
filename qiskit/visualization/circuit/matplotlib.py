@@ -149,8 +149,6 @@ class MatplotlibDrawer:
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
         self._lwidth2 = 2.0
-        self._x_offset = 0.0
-        self._x_index = 0
 
         # _char_list for finding text_width of names, labels, and params
         self._char_list = {
@@ -266,19 +264,21 @@ class MatplotlibDrawer:
         # and colors 'fc', 'ec', 'lc', 'sc', 'gt', and 'tc'
         node_data = {}
 
+        glob_data = {}
+
         # dicts for the names and locations of register/bit labels
         qubits_dict = {}
         clbits_dict = {}
 
         # get layer widths
-        layer_widths = self._get_layer_widths(node_data)
+        layer_widths = self._get_layer_widths(node_data, glob_data)
 
         # load the _qubit_dict and _clbit_dict with register info
-        n_lines = self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict)
+        self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
 
         # load the coordinates for each gate and compute number of folds
         max_x_index = self._get_coords(
-            node_data, wire_map, layer_widths, qubits_dict, clbits_dict, n_lines
+            node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
         )
         num_folds = max(0, max_x_index - 1) // self._fold if self._fold > 0 else 0
 
@@ -287,12 +287,12 @@ class MatplotlibDrawer:
 
         # compute the window size
         if max_x_index > self._fold > 0:
-            xmax = self._fold + self._x_offset + 0.1
-            ymax = (num_folds + 1) * (n_lines + 1) - 1
+            xmax = self._fold + glob_data["x_offset"] + 0.1
+            ymax = (num_folds + 1) * (glob_data["n_lines"] + 1) - 1
         else:
             x_incr = 0.4 if not self._nodes else 0.9
-            xmax = max_x_index + 1 + self._x_offset - x_incr
-            ymax = n_lines
+            xmax = max_x_index + 1 + glob_data["x_offset"] - x_incr
+            ymax = glob_data["n_lines"]
 
         xl = -self._style["margin"][0]
         xr = xmax + self._style["margin"][1]
@@ -342,9 +342,9 @@ class MatplotlibDrawer:
             self._plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
-        self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict, n_lines)
+        self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict, glob_data)
         self._draw_ops(
-            self._nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose
+            self._nodes, node_data, wire_map, layer_widths, clbits_dict, glob_data, verbose
         )
 
         if filename:
@@ -358,7 +358,7 @@ class MatplotlibDrawer:
             matplotlib_close_if_inline(self._figure)
             return self._figure
 
-    def _get_layer_widths(self, node_data):
+    def _get_layer_widths(self, node_data, glob_data):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
@@ -450,11 +450,11 @@ class MatplotlibDrawer:
 
         return layer_widths
 
-    def _set_bit_reg_info(self, wire_map, qubits_dict, clbits_dict):
+    def _set_bit_reg_info(self, wire_map, qubits_dict, clbits_dict, glob_data):
         """Get all the info for drawing bit/reg names and numbers"""
 
         longest_wire_label_width = 0
-        n_lines = 0
+        glob_data["n_lines"] = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
@@ -500,14 +500,14 @@ class MatplotlibDrawer:
                     "y": pos,
                     "wire_label": wire_label,
                 }
-                n_lines += 1
+                glob_data["n_lines"] += 1
             else:
                 if (
                     not self._cregbundle
                     or register is None
                     or (self._cregbundle and isinstance(wire, ClassicalRegister))
                 ):
-                    n_lines += 1
+                    glob_data["n_lines"] += 1
                     idx += 1
 
                 pos = y_off - idx
@@ -516,10 +516,9 @@ class MatplotlibDrawer:
                     "wire_label": wire_label,
                     "register": register,
                 }
-        self._x_offset = -1.2 + longest_wire_label_width
-        return n_lines
+        glob_data["x_offset"] = -1.2 + longest_wire_label_width
 
-    def _get_coords(self, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, n_lines):
+    def _get_coords(self, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
         prev_x_index = -1
@@ -550,8 +549,7 @@ class MatplotlibDrawer:
                         curr_x_index,
                         qubits_dict[ii]["y"],
                         layer_widths[node][0],
-                        self._x_offset,
-                        n_lines,
+                        glob_data,
                     )
                     for ii in q_indxs
                 ]
@@ -561,14 +559,13 @@ class MatplotlibDrawer:
                         curr_x_index,
                         clbits_dict[ii]["y"],
                         layer_widths[node][0],
-                        self._x_offset,
-                        n_lines,
+                        glob_data,
                     )
                     for ii in c_indxs
                 ]
 
                 # update index based on the value from plotting
-                curr_x_index = self._x_index
+                curr_x_index = glob_data["next_x_index"]
                 l_width.append(layer_widths[node][0])
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -628,16 +625,16 @@ class MatplotlibDrawer:
             sum_text *= self._subfont_factor
         return sum_text
 
-    def _draw_regs_wires(self, num_folds, xmax, max_x_index, qubits_dict, clbits_dict, n_lines):
+    def _draw_regs_wires(self, num_folds, xmax, max_x_index, qubits_dict, clbits_dict, glob_data):
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
 
         for fold_num in range(num_folds + 1):
             # quantum registers
             for qubit in qubits_dict.values():
                 qubit_label = qubit["wire_label"]
-                y = qubit["y"] - fold_num * (n_lines + 1)
+                y = qubit["y"] - fold_num * (glob_data["n_lines"] + 1)
                 self._ax.text(
-                    self._x_offset - 0.2,
+                    glob_data["x_offset"] - 0.2,
                     y,
                     qubit_label,
                     ha="right",
@@ -648,12 +645,12 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
                 # draw the qubit wire
-                self._line([self._x_offset, y], [xmax, y], zorder=PORDER_REGLINE)
+                self._line([glob_data["x_offset"], y], [xmax, y], zorder=PORDER_REGLINE)
 
             # classical registers
             this_clbit_dict = {}
             for clbit in clbits_dict.values():
-                y = clbit["y"] - fold_num * (n_lines + 1)
+                y = clbit["y"] - fold_num * (glob_data["n_lines"] + 1)
                 if y not in this_clbit_dict.keys():
                     this_clbit_dict[y] = {
                         "val": 1,
@@ -667,13 +664,13 @@ class MatplotlibDrawer:
                 # cregbundle
                 if self._cregbundle and this_clbit["register"] is not None:
                     self._ax.plot(
-                        [self._x_offset + 0.2, self._x_offset + 0.3],
+                        [glob_data["x_offset"] + 0.2, glob_data["x_offset"] + 0.3],
                         [y - 0.1, y + 0.1],
                         color=self._style["cc"],
                         zorder=PORDER_LINE,
                     )
                     self._ax.text(
-                        self._x_offset + 0.1,
+                        glob_data["x_offset"] + 0.1,
                         y + 0.1,
                         str(this_clbit["register"].size),
                         ha="left",
@@ -684,7 +681,7 @@ class MatplotlibDrawer:
                         zorder=PORDER_TEXT,
                     )
                 self._ax.text(
-                    self._x_offset - 0.2,
+                    glob_data["x_offset"] - 0.2,
                     y,
                     this_clbit["wire_label"],
                     ha="right",
@@ -696,7 +693,7 @@ class MatplotlibDrawer:
                 )
                 # draw the clbit wire
                 self._line(
-                    [self._x_offset, y],
+                    [glob_data["x_offset"], y],
                     [xmax, y],
                     lc=self._style["cc"],
                     ls=self._style["cline"],
@@ -707,10 +704,10 @@ class MatplotlibDrawer:
             feedline_r = num_folds > 0 and num_folds > fold_num
             feedline_l = fold_num > 0
             if feedline_l or feedline_r:
-                xpos_l = self._x_offset - 0.01
-                xpos_r = self._fold + self._x_offset + 0.1
-                ypos1 = -fold_num * (n_lines + 1)
-                ypos2 = -(fold_num + 1) * (n_lines) - fold_num + 1
+                xpos_l = glob_data["x_offset"] - 0.01
+                xpos_r = self._fold + glob_data["x_offset"] + 0.1
+                ypos1 = -fold_num * (glob_data["n_lines"] + 1)
+                ypos2 = -(fold_num + 1) * (glob_data["n_lines"]) - fold_num + 1
                 if feedline_l:
                     self._ax.plot(
                         [xpos_l, xpos_l],
@@ -732,10 +729,10 @@ class MatplotlibDrawer:
         if self._style["index"]:
             for layer_num in range(max_x_index):
                 if self._fold > 0:
-                    x_coord = layer_num % self._fold + self._x_offset + 0.53
-                    y_coord = -(layer_num // self._fold) * (n_lines + 1) + 0.65
+                    x_coord = layer_num % self._fold + glob_data["x_offset"] + 0.53
+                    y_coord = -(layer_num // self._fold) * (glob_data["n_lines"] + 1) + 0.65
                 else:
-                    x_coord = layer_num + self._x_offset + 0.53
+                    x_coord = layer_num + glob_data["x_offset"] + 0.53
                     y_coord = 0.65
                 self._ax.text(
                     x_coord,
@@ -750,7 +747,7 @@ class MatplotlibDrawer:
                 )
 
     def _draw_ops(
-        self, nodes, node_data, wire_map, layer_widths, clbits_dict, n_lines, verbose=False
+        self, nodes, node_data, wire_map, layer_widths, clbits_dict, glob_data, verbose=False
     ):
         """Draw the gates in the circuit"""
 
@@ -775,13 +772,12 @@ class MatplotlibDrawer:
                             curr_x_index,
                             clbits_dict[ii]["y"],
                             layer_widths[node][0],
-                            self._x_offset,
-                            n_lines,
+                            glob_data,
                         )
                         for ii in clbits_dict
                     ]
                     if clbits_dict:
-                        curr_x_index = max(curr_x_index, self._x_index)
+                        curr_x_index = max(curr_x_index, glob_data["next_x_index"])
                     self._condition(node, node_data, wire_map, cond_xy)
 
                 # draw measure
@@ -1439,7 +1435,7 @@ class MatplotlibDrawer:
                 zorder=zorder,
             )
 
-    def _plot_coord(self, x_index, y_index, gate_width, x_offset, n_lines):
+    def _plot_coord(self, x_index, y_index, gate_width, glob_data):
         """Get the coord positions for an index"""
         # check folding
         fold = self._fold if self._fold > 0 else INFINITE_FOLD
@@ -1447,10 +1443,10 @@ class MatplotlibDrawer:
 
         if h_pos + (gate_width - 1) > fold:
             x_index += fold - (h_pos - 1)
-        x_pos = x_index % fold + x_offset + 0.04
+        x_pos = x_index % fold + glob_data["x_offset"] + 0.04
         x_pos += 0.5 * gate_width
-        y_pos = y_index - (x_index // fold) * (n_lines + 1)
+        y_pos = y_index - (x_index // fold) * (glob_data["n_lines"] + 1)
 
         # could have been updated, so need to store
-        self._x_index = x_index
+        glob_data["next_x_index"] = x_index
         return x_pos, y_pos
