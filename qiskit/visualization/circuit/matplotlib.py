@@ -275,7 +275,7 @@ class MatplotlibDrawer:
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
 
         # get layer widths
-        layer_widths = self._get_layer_widths(node_data, glob_data)
+        layer_widths = self._get_layer_widths(node_data)
 
         # load the coordinates for each gate and compute number of folds
         max_x_index = self._get_coords(
@@ -359,7 +359,7 @@ class MatplotlibDrawer:
             matplotlib_close_if_inline(self._figure)
             return self._figure
 
-    def _get_layer_widths(self, node_data, glob_data):
+    def _get_layer_widths(self, node_data):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
