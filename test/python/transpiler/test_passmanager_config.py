@@ -79,6 +79,7 @@ class TestPassManagerConfig(QiskitTestCase):
         config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
+        self.assertIsNone(config.coupling_map)
 
     def test_simulator_backend_v1(self):
         """Test that from_backend() works with backendv1 simulator."""
