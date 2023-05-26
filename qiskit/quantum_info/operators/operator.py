@@ -141,6 +141,59 @@ class Operator(LinearOp):
             "output_dims": self.output_dims(),
         }
 
+    def draw(self, output=None, **drawer_args):
+        """Return a visualization of the Operator.
+
+        **repr**: ASCII TextMatrix of the state's ``__repr__``.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                Default is `repr`.
+
+        Returns:
+            :class:`str` or :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the Operator.
+
+        Raises:
+            ValueError: when an invalid output method is selected.
+
+        """
+        from qiskit.visualization import array_to_latex
+        from qiskit.visualization.state_visualization import TextMatrix
+
+        default_output = "repr"
+        if output is None:
+            output = default_output
+
+        drawers = ["repr", "text", "latex", "latex_source"]
+
+        if output == "repr":
+            return self.__repr__()
+
+        if output == "text":
+            return TextMatrix(self,dims=True, **drawer_args)
+
+        if output == "latex":
+            return array_to_latex(self, **drawer_args)
+
+        if output == "latex_source":
+            return array_to_latex(self, source=True, **drawer_args)
+
+        if output not in drawers:
+            raise ValueError(
+                """'{}' is not a valid option for drawing {} objects. Please choose from:
+                'text', 'latex', or 'latex_source'.""".format(
+                    output, type(self).__name__
+                )
+            )
+
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of single-qubit operators.
