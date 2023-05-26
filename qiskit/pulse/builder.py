@@ -495,6 +495,7 @@ from qiskit.pulse import (
     library,
     transforms,
 )
+from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
@@ -679,7 +680,7 @@ class _PulseBuilder:
     def num_qubits(self):
         """Get the number of qubits in the backend."""
         # backendV2
-        if hasattr(self.backend, "target"):
+        if isinstance(self.backend, BackendV2):
             return self.backend.num_qubits
         return self.backend.configuration().n_qubits
 
@@ -1109,7 +1110,7 @@ def num_qubits() -> int:
 
     .. note:: Requires the active builder context to have a backend set.
     """
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return active_backend().num_qubits
     return active_backend().configuration().n_qubits
 
@@ -1127,7 +1128,7 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
         The number of samples for the time to elapse
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         if isinstance(seconds, np.ndarray):
             return (seconds / active_backend().dt).astype(int)
         else:
@@ -1148,7 +1149,7 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
         The time that elapses in ``samples``.
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return samples * active_backend().dt
     return samples * active_backend().configuration().dt
 
@@ -1179,7 +1180,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
 
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return set(get_qubit_channels(active_backend(), qubit))
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
@@ -1667,7 +1668,7 @@ def frequency_offset(
         if compensate_phase:
             duration = builder.get_context().duration - t0
             # backendV2
-            if hasattr(active_backend(), "target"):
+            if isinstance(active_backend(), BackendV2):
                 dt = active_backend().dt
             else:
                 dt = active_backend().configuration().dt
@@ -1698,7 +1699,7 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
     .. note:: Requires the active builder context to have a backend set.
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return active_backend().drive_channel(qubit)
     return active_backend().configuration().drive(qubit)
 
@@ -1721,7 +1722,7 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
     .. note:: Requires the active builder context to have a backend set.
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return active_backend().measure_channel(qubit)
     return active_backend().configuration().measure(qubit)
 
@@ -1744,7 +1745,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
     .. note:: Requires the active builder context to have a backend set.
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return active_backend().acquire_channel(qubit)
     return active_backend().configuration().acquire(qubit)
 
@@ -1777,7 +1778,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
         of qubits.
     """
     # backendV2
-    if hasattr(active_backend(), "target"):
+    if isinstance(active_backend(), BackendV2):
         return active_backend().control_channel(qubits)
     return active_backend().configuration().control(qubits=qubits)
 
