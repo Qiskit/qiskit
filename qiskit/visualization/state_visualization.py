@@ -1100,6 +1100,9 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
     """
     import matplotlib.colors as mcolors
 
+    # There seems to be a rounding error in which some zero bars are negative
+    dz += 1e-10
+
     cuboid = np.array(
         [
             # -z
