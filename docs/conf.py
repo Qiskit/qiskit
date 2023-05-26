@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2018.
@@ -27,7 +25,7 @@ import sphinx.ext.doctest
 sys.path.insert(0, os.path.abspath("."))
 
 import custom_extensions
-import url_redirects
+import versionutils
 
 # -- General configuration ---------------------------------------------------
 
@@ -57,13 +55,10 @@ extensions = [
     "sphinx.ext.extlinks",
     "nbsphinx",
     "sphinx_design",
-    "sphinx_reredirects",
     "matplotlib.sphinxext.plot_directive",
     "qiskit_sphinx_theme",
     "sphinx.ext.doctest",
 ]
-
-redirects = url_redirects.determine_redirects()
 
 nbsphinx_timeout = 300
 nbsphinx_execute = os.getenv("QISKIT_DOCS_BUILD_TUTORIALS", "never")
@@ -217,6 +212,6 @@ doctest_test_doctest_blocks = ""
 def setup(app):
     custom_extensions.load_api_sources(app)
     custom_extensions.load_tutorials(app)
-    app.setup_extension("versionutils")
+    versionutils.setup(app)
     app.connect("build-finished", custom_extensions.clean_api_source)
     app.connect("build-finished", custom_extensions.clean_tutorials)
