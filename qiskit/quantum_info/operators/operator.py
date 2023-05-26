@@ -194,6 +194,15 @@ class Operator(LinearOp):
                 )
             )
 
+    def _ipython_display_(self):
+        out = self.draw()
+        if isinstance(out, str):
+            print(out)
+        else:
+            from IPython.display import display
+
+            display(out)
+
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of single-qubit operators.
