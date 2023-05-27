@@ -259,15 +259,7 @@ def negativity(state, qargs):
 
     The mathematical expression for negativity is given by:
     .. math::
-<<<<<<< HEAD
         {\cal{N}}(\rho) = \frac{|| \rho^{T_A}|| - 1 }{2}
-
-    The mathematical expression for logarithmic negaitivity is given by:
-    .. math::
-        {\cal{E}}_N(\rho) = \log_2(|| \rho^{T_A}||)
-=======
-        {\cal{N}}(\rho) = \frac{|| \rho^{T_A} || - 1 }{2}
->>>>>>> 221a3c02e (Modified the negativity function, where we have removed log negativity)
 
     Args:
         state (Statevector or DensityMatrix): a quantum state.
