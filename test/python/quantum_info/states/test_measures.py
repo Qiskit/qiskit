@@ -346,33 +346,27 @@ class TestStateMeasures(QiskitTestCase):
         """Test negativity function on statevector inputs"""
         # Constructing separable quantum statevector
         state = Statevector([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])
-        negv, log_negv = negativity(state, [0])
+        negv = negativity(state, [0])
         self.assertAlmostEqual(negv, 0, places=7)
-        self.assertAlmostEqual(log_negv, 0, places=7)
         # Constructing entangled quantum statevector
         state = Statevector([0, 1 / np.sqrt(2), -1 / np.sqrt(2), 0])
-        negv, log_negv = negativity(state, [1])
+        negv = negativity(state, [1])
         self.assertAlmostEqual(negv, 0.5, places=7)
-        self.assertAlmostEqual(log_negv, 1, places=7)
 
     def test_negativity_density_matrix(self):
         """Test negativity function on density matrix inputs"""
         # Constructing separable quantum state
         rho = DensityMatrix.from_label("10+")
-        negv, log_negv = negativity(rho, [0, 1])
+        negv = negativity(rho, [0, 1])
         self.assertAlmostEqual(negv, 0, places=7)
-        self.assertAlmostEqual(log_negv, 0, places=7)
-        negv, log_negv = negativity(rho, [0, 2])
+        negv = negativity(rho, [0, 2])
         self.assertAlmostEqual(negv, 0, places=7)
-        self.assertAlmostEqual(log_negv, 0, places=7)
         # Constructing entangled quantum state
         rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
-        negv, log_negv = negativity(rho, [0])
+        negv = negativity(rho, [0])
         self.assertAlmostEqual(negv, 0.5, places=7)
-        self.assertAlmostEqual(log_negv, 1, places=7)
-        negv, log_negv = negativity(rho, [1])
+        negv = negativity(rho, [1])
         self.assertAlmostEqual(negv, 0.5, places=7)
-        self.assertAlmostEqual(log_negv, 1, places=7)
 
 
 if __name__ == "__main__":

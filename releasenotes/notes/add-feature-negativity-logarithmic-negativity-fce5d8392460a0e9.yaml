@@ -2,7 +2,7 @@
 features:
   - |
     Added a new function , :func:`negativity` that adds support for calculating
-    entanglement measures negativity and logarithmic negativity of an quantum state.
+    entanglement measures negativity of an quantum state.
     An illustrative example for using the above function is given below:
 
     .. code-block:
@@ -13,12 +13,12 @@ features:
 
       # Constructing a two-qubit bell state vector
       state = np.array([0, 1/np.sqrt(2), -1/np.sqrt(2), 0])
-      # Calculating negativity and logarithmic negativity of statevector
-      negv, lognegv = negativity(Statevector(state), [1])
+      # Calculating negativity of statevector
+      negv = negativity(Statevector(state), [1])
 
       # Creating the Density Matrix (DM)
       rho = DensityMatrix.from_label("10+")
-      # Calculating negativity and logarithmic negativity of DM
-      negv2, lognegv2 = negativity(rho, [0, 1])
+      # Calculating negativity of DM
+      negv2 = negativity(rho, [0, 1])
 
 
