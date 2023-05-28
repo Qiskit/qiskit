@@ -267,9 +267,9 @@ class MatplotlibDrawer:
         # load the wire map
         wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
 
-        # node_data per node with 'width', 'gate_text', 'raw_gate_text',
-        # 'ctrl_text', 'param_text', 'inside_flow', q_xy', and 'c_xy',
-        # and colors 'fc', 'ec', 'lc', 'sc', 'gt', and 'tc'
+        # node_data per node with "width", "gate_text", "raw_gate_text", "ctrl_text",
+        # "param_text", "if_depth", "inside_flow", "x_index", q_xy", and "c_xy",
+        # and colors "fc", "ec", "lc", "sc", "gt", and "tc"
         node_data = {}
 
         # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index"
@@ -283,9 +283,7 @@ class MatplotlibDrawer:
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
 
         # get layer widths
-        layer_widths = self._get_layer_widths(
-            node_data, wire_map, qubits_dict, clbits_dict, glob_data
-        )
+        layer_widths = self._get_layer_widths(node_data, wire_map, glob_data)
 
         # load the coordinates for each top level gate and compute number of folds.
         # coordinates for flow gates are loaded before draw_ops
@@ -394,7 +392,7 @@ class MatplotlibDrawer:
                 wire_map.update(inner_wire_map)
                 flow_drawer[i]._load_flow_wire_maps(wire_map)
 
-    def _get_layer_widths(self, node_data, wire_map, qubits_dict, clbits_dict, glob_data):
+    def _get_layer_widths(self, node_data, wire_map, glob_data):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
@@ -503,15 +501,14 @@ class MatplotlibDrawer:
                             fold=self._fold,
                             cregbundle=self._cregbundle,
                         )
+                        self._flow_drawers[node].append(flow_drawer)
+
                         # flow_parent is the parent of the new class instance
                         flow_drawer._flow_parent = node
 
                         # Recursively call _get_layer_widths for the circuit inside the if/else
-                        flow_widths = flow_drawer._get_layer_widths(
-                            node_data, wire_map, qubits_dict, clbits_dict, glob_data
-                        )
+                        flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
                         layer_widths.update(flow_widths)
-                        self._flow_drawers[node].append(flow_drawer)
 
                         for width, layer_num, flow_parent in flow_widths.values():
                             if layer_num != -1 and flow_parent == flow_drawer._flow_parent:
@@ -954,7 +951,7 @@ class MatplotlibDrawer:
 
                 # draw the box for control flow circuits
                 elif isinstance(op, IfElseOp):
-                    self._flow_op_gate(node, node_data)
+                    self._flow_op_gate(node, node_data, glob_data)
 
                 # draw single qubit gates
                 elif len(node_data[node]["q_xy"]) == 1 and not node.cargs:
@@ -1346,7 +1343,7 @@ class MatplotlibDrawer:
                 zorder=PORDER_TEXT,
             )
 
-    def _flow_op_gate(self, node, node_data):
+    def _flow_op_gate(self, node, node_data, glob_data):
         """Draw the box for a flow op circuit"""
         xy = node_data[node]["q_xy"]
         xpos = min(x[0] for x in xy)
@@ -1370,43 +1367,43 @@ class MatplotlibDrawer:
             self._style["dispcol"]["x"][0],
             self._style["cc"],
         ]
-        # FancyBbox allows rounded corners
-        box = self._patches_mod.FancyBboxPatch(
-            xy=(xpos, ypos - 0.5 * HIG),
-            width=wid,
-            height=height,
-            boxstyle="round, pad=0.1",
-            fc="none",
-            ec=colors[node_data[node]["if_depth"] % 4],
-            linewidth=3.0,
-            zorder=PORDER_FLOW,
-        )
-        self._ax.add_patch(box)
-        self._ax.spines["top"].set_visible(False)
-        self._ax.text(
-            xpos + 0.22,
-            ypos_max + 0.2,
-            "If",
-            ha="left",
-            va="center",
-            fontsize=self._fs,
-            color=node_data[node]["gt"],
-            clip_on=True,
-            zorder=PORDER_TEXT,
-        )
-        if else_width > 0.0:
-            self._ax.plot(
-                [xpos + if_width + 0.3, xpos + if_width + 0.3],
-                [ypos - 0.5 * HIG - 0.1, ypos + height - 0.22],
-                color=colors[node_data[node]["if_depth"]],
+        end_x = xpos + wid
+        i = 0
+        while end_x > 0.0:
+            if end_x < 0.0:
+                break
+            end_x = xpos + wid - i * self._fold
+            # FancyBbox allows rounded corners
+            box = self._patches_mod.FancyBboxPatch(
+                xy=(xpos - i * self._fold, ypos - 0.5 * HIG - i * (glob_data["n_lines"] + 1)),
+                width=wid,
+                height=height,
+                boxstyle="round, pad=0.1",
+                fc="none",
+                ec=colors[node_data[node]["if_depth"] % 4],
                 linewidth=3.0,
                 linestyle="solid",
                 zorder=PORDER_FLOW,
             )
+            self._ax.add_patch(box)
+            if i > 0:
+                box = self._patches_mod.FancyBboxPatch(
+                    xy=(xpos - i * self._fold, ypos - 0.5 * HIG - i * (glob_data["n_lines"] + 1)),
+                    width=wid - end_x - 0.7,
+                    height=height,
+                    boxstyle="round, pad=0.1",
+                    fc="none",
+                    ec=self._style["bg"],  # [colors[node_data[node]["if_depth"] % 4],
+                    linewidth=4.0,
+                    linestyle="solid",
+                    zorder=PORDER_FLOW,
+                )
+                self._ax.add_patch(box)
+            self._ax.spines["top"].set_visible(False)
             self._ax.text(
-                xpos + if_width + 0.5,
+                xpos + 0.22,
                 ypos_max + 0.2,
-                "Else",
+                "If",
                 ha="left",
                 va="center",
                 fontsize=self._fs,
@@ -1414,6 +1411,33 @@ class MatplotlibDrawer:
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
+            if else_width > 0.0:
+                self._ax.plot(
+                    [
+                        xpos + if_width + 0.3 - i * self._fold,
+                        xpos + if_width + 0.3 - i * self._fold,
+                    ],
+                    [
+                        ypos - 0.5 * HIG - 0.1 - i * (glob_data["n_lines"] + 1),
+                        ypos + height - 0.22 - i * (glob_data["n_lines"] + 1),
+                    ],
+                    color=colors[node_data[node]["if_depth"]],
+                    linewidth=3.0,
+                    linestyle="solid",
+                    zorder=PORDER_FLOW,
+                )
+                self._ax.text(
+                    xpos + if_width + 0.5 - i * self._fold,
+                    ypos_max + 0.2 - i * (glob_data["n_lines"] + 1),
+                    "Else",
+                    ha="left",
+                    va="center",
+                    fontsize=self._fs,
+                    color=node_data[node]["gt"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+            i += 1
 
     def _control_gate(self, node, node_data):
         """Draw a controlled gate"""
