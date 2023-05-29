@@ -1370,7 +1370,7 @@ class MatplotlibDrawer:
         # To fold box onto next lines, draw it repeatedly, shifting it left by
         # ``fold_level * self._fold`` and cutting it off at ``end_x - 0.1 + glob_data["x_offset"]``
         # so it doesn't draw in the area of the bit names.
-        fold_level= 0
+        fold_level = 0
         end_x = xpos + wid
 
         while end_x > 0.0:
@@ -1407,7 +1407,7 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
             # If there's an else, draw the box and the name unless it's off the left edge
-            if else_width > 0.0 and xpos + if_width + 0.3 - x_shift > glob_data["x_offset"]:
+            if else_width > 0.0 and (xpos + if_width + 0.3 - x_shift) > glob_data["x_offset"] + 0.1:
                 self._ax.plot(
                     [xpos + if_width + 0.3 - x_shift, xpos + if_width + 0.3 - x_shift],
                     [ypos - 0.5 * HIG - 0.1 - y_shift, ypos + height - 0.22 - y_shift],

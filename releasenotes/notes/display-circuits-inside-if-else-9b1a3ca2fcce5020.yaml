@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    In :class:`~qiskit.visualization.circuit.MatplotlibDrawer`, operations
+    built from :class:`~qiskit.circuit.control_flow.IfElseOp`, whether
+    directly instantiated or built using :meth:`~qiskit.circuit.QuantumCircuit.if_test`,
+    will now fully display the circuits inside the ``if`` and ``else`` wrapped
+    with boxes to delineate the circuits.
