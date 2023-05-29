@@ -151,6 +151,15 @@ def schmidt_decomposition(state, qargs):
     Raises:
         QiskitError: if Input qargs is not a list of positions of the Input state.
         QiskitError: if Input qargs is not a proper subset of Input state.
+
+    ..note ::
+        In Qiskit, qubits are ordered using little endian notation, with the least significant 
+        qubits having smaller indices. For example, a four-qubit system is represented as 
+        $|q_3q_2q_1q_0\rangle$. Using this convention, setting `qargs = [0]` will partition the 
+        state as $|q_3q_2q_1\rangle_A\otimes|q_0\rangle_B$. Furthermore, qubits will be organized 
+        in this notation regardless of the order they are passed. For instance, passing either 
+        `qargs = [1,2]` or `qargs = [2,1]` will result in partitioning the state as 
+        $|q_3q_0\rangle_A\otimes|q_2q_1\rangle_B$.
     """
     state = _format_state(state, validate=False)
 
