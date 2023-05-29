@@ -1367,68 +1367,58 @@ class MatplotlibDrawer:
             self._style["dispcol"]["x"][0],
             self._style["cc"],
         ]
+        # To fold box onto next lines, draw it repeatedly, shifting it left by
+        # ``fold_level * self._fold`` and cutting it off at ``end_x - 0.1 + glob_data["x_offset"]``
+        # so it doesn't draw in the area of the bit names.
+        fold_level= 0
         end_x = xpos + wid
-        i = 0
+
         while end_x > 0.0:
             if end_x < 0.0:
                 break
-            end_x = xpos + wid - i * self._fold
+            x_shift = fold_level * self._fold
+            y_shift = fold_level * (glob_data["n_lines"] + 1)
+            end_x = xpos + wid - x_shift
+            left_edge = end_x + 0.1 - glob_data["x_offset"]
+
             # FancyBbox allows rounded corners
             box = self._patches_mod.FancyBboxPatch(
-                xy=(xpos - i * self._fold, ypos - 0.5 * HIG - i * (glob_data["n_lines"] + 1)),
+                xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
                 width=wid,
                 height=height,
                 boxstyle="round, pad=0.1",
                 fc="none",
                 ec=colors[node_data[node]["if_depth"] % 4],
                 linewidth=3.0,
-                linestyle="solid",
                 zorder=PORDER_FLOW,
             )
             self._ax.add_patch(box)
-            if i > 0:
-                box = self._patches_mod.FancyBboxPatch(
-                    xy=(xpos - i * self._fold, ypos - 0.5 * HIG - i * (glob_data["n_lines"] + 1)),
-                    width=wid - end_x - 0.7,
-                    height=height,
-                    boxstyle="round, pad=0.1",
-                    fc="none",
-                    ec=self._style["bg"],  # [colors[node_data[node]["if_depth"] % 4],
-                    linewidth=4.0,
-                    linestyle="solid",
-                    zorder=PORDER_FLOW,
+            # Don't draw text in the area of the bit names
+            if xpos - x_shift > glob_data["x_offset"] + 0.1:
+                self._ax.text(
+                    xpos - x_shift + 0.22,
+                    ypos_max + 0.2 - y_shift,
+                    "If",
+                    ha="left",
+                    va="center",
+                    fontsize=self._fs,
+                    color=node_data[node]["gt"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
                 )
-                self._ax.add_patch(box)
-            self._ax.spines["top"].set_visible(False)
-            self._ax.text(
-                xpos + 0.22,
-                ypos_max + 0.2,
-                "If",
-                ha="left",
-                va="center",
-                fontsize=self._fs,
-                color=node_data[node]["gt"],
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
-            if else_width > 0.0:
+            # If there's an else, draw the box and the name unless it's off the left edge
+            if else_width > 0.0 and xpos + if_width + 0.3 - x_shift > glob_data["x_offset"]:
                 self._ax.plot(
-                    [
-                        xpos + if_width + 0.3 - i * self._fold,
-                        xpos + if_width + 0.3 - i * self._fold,
-                    ],
-                    [
-                        ypos - 0.5 * HIG - 0.1 - i * (glob_data["n_lines"] + 1),
-                        ypos + height - 0.22 - i * (glob_data["n_lines"] + 1),
-                    ],
+                    [xpos + if_width + 0.3 - x_shift, xpos + if_width + 0.3 - x_shift],
+                    [ypos - 0.5 * HIG - 0.1 - y_shift, ypos + height - 0.22 - y_shift],
                     color=colors[node_data[node]["if_depth"]],
                     linewidth=3.0,
                     linestyle="solid",
                     zorder=PORDER_FLOW,
                 )
                 self._ax.text(
-                    xpos + if_width + 0.5 - i * self._fold,
-                    ypos_max + 0.2 - i * (glob_data["n_lines"] + 1),
+                    xpos + if_width + 0.5 - x_shift,
+                    ypos_max + 0.2 - y_shift,
                     "Else",
                     ha="left",
                     va="center",
@@ -1437,7 +1427,21 @@ class MatplotlibDrawer:
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
-            i += 1
+            # To clean up box stuff in the bit name area, draw the box again using background
+            # color in that area.
+            if fold_level > 0:
+                box = self._patches_mod.FancyBboxPatch(
+                    xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
+                    width=min(wid, wid - left_edge),
+                    height=height,
+                    boxstyle="round, pad=0.1",
+                    fc="none",
+                    ec=self._style["bg"],
+                    linewidth=4.0,
+                    zorder=PORDER_FLOW,
+                )
+                self._ax.add_patch(box)
+            fold_level += 1
 
     def _control_gate(self, node, node_data):
         """Draw a controlled gate"""
