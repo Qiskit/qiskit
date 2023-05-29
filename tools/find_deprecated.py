@@ -166,10 +166,10 @@ if __name__ == "__main__":
                 release_minor_date = release_minor_datetime.strftime("%B %d, %Y")
                 diff_days = (LAST_TIME_MINOR - release_minor_datetime).days
                 DETAILS = (
-                    f"released {release_minor_date} ({diff_days} days until last minor release)"
+                    f"Released in {release_minor_date} ({diff_days} days until last minor release)"
                 )
             except KeyError:
-                DETAILS = "future release"
+                DETAILS = "Future release"
         print(f"\n{since_version}: {DETAILS}")
         for deprecation in deprecations:
             print(f" - {deprecation.location_str}")
