@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Changed :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters` to bind
+    assigned integer and float values directly into the parameters of
+    :class:`~qiskit.circuit.Instruction` instances in the circuit rather than
+    binding those values wrapped within a :class:`~qiskit.circuit.Parameter`.
+    Binding the value directly avoids mismatches between the values of circuit
+    instruction parameters and corresponding paramter keys in the circuit's
+    calibration dictionary which were already being cast from
+    :class:`~qiskit.circuit.Parameter` to ``float``. Fixes `#9764
+    <https://github.com/Qiskit/qiskit-terra/issues/9764>`_ and `#10166
+    <https://github.com/Qiskit/qiskit-terra/issues/10166>`_

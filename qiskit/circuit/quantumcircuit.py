@@ -2854,7 +2854,13 @@ class QuantumCircuit:
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
                     if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
+                        if new_param._symbol_expr.is_integer and new_param.is_real():
+                            val = int(new_param)
+                        elif new_param.is_real():
+                            val = float(new_param)
+                        else:
+                            val = complex(new_param)
+                        instr.params[param_index] = instr.validate_parameter(val)
                     else:
                         instr.params[param_index] = new_param
 
@@ -2911,7 +2917,10 @@ class QuantumCircuit:
                         if isinstance(p, ParameterExpression) and parameter in p.parameters:
                             new_param = p.assign(parameter, value)
                             if not new_param.parameters:
-                                new_param = float(new_param)
+                                if new_param._symbol_expr.is_integer:
+                                    new_param = int(new_param)
+                                else:
+                                    new_param = float(new_param)
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
