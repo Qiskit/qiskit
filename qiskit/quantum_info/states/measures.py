@@ -278,7 +278,7 @@ def negativity(state, qargs):
     # Generating partially transposed state
     state = state.partial_transpose(qargs)
     # Calculating SVD
-    _, singular_values, _ = np.linalg.svd(state.data)
+    singular_values = np.linalg.svd(state.data, compute_uv=False)
     eigvals = np.sum(singular_values)
     # Calculating negativity
     negv = (eigvals - 1) / 2
