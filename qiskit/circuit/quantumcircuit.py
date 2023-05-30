@@ -958,22 +958,23 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
-        register_map = {}
+        # Cache for `map_register_to_dest`.
+        _map_register_cache = {}
 
-        def map_register_to_dest(theirs, register_map):
+        def map_register_to_dest(theirs):
             """Map the target's registers to suitable equivalents in the destination, adding an
             extra one if there's no exact match."""
-            if theirs.name in register_map:
-                return register_map[theirs.name]
+            if theirs.name in _map_register_cache:
+                return _map_register_cache[theirs.name]
             mapped_bits = [edge_map[bit] for bit in theirs]
             for ours in dest.cregs:
                 if mapped_bits == list(ours):
                     mapped_theirs = ours
                     break
             else:
-                mapped_theirs = ClassicalRegister(bits=[edge_map[bit] for bit in theirs])
+                mapped_theirs = ClassicalRegister(bits=mapped_bits)
                 dest.add_register(mapped_theirs)
-            register_map[theirs.name] = mapped_theirs
+            _map_register_cache[theirs.name] = mapped_theirs
             return mapped_theirs
 
         mapped_instrs: list[CircuitInstruction] = []
@@ -987,12 +988,12 @@ class QuantumCircuit:
                 if isinstance(target, Clbit):
                     n_op.condition = (edge_map[target], value)
                 else:
-                    n_op.condition = (map_register_to_dest(target, register_map), value)
+                    n_op.condition = (map_register_to_dest(target), value)
             elif isinstance(n_op, SwitchCaseOp):
                 if isinstance(n_op.target, Clbit):
                     n_op.target = edge_map[n_op.target]
                 else:
-                    n_op.target = map_register_to_dest(n_op.target, register_map)
+                    n_op.target = map_register_to_dest(n_op.target)
 
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
