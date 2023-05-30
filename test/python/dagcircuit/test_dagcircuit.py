@@ -763,7 +763,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
         successors1 = next(successors_measure)
         with self.assertRaises(StopIteration):
-            next(predecessor_measure)
+            next(successor_measure)
 
         self.assertTrue(isinstance(successors1, DAGOutNode))
         self.assertTrue(isinstance(successors1.wire, Clbit))
