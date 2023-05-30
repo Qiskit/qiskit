@@ -538,58 +538,6 @@ class SabreLayout(TransformationPass):
 
         layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in first_mapping.items()}
         chosen_layout = mapping_to_layout(layout_mapping)
-        chosen_layout_score = vf2_utils.score_layout(
-            self.avg_error_map,
-            layout_mapping,
-            im_graph_node_map,
-            reverse_im_graph_node_map,
-            im_graph,
-            False,
-        )
-        trials = 1
-        for mapping in best_mapping:  # pylint: disable=not-an-iterable
-            trials += 1
-            logger.debug("Running trial: %s", trials)
-            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-            # If the graphs have the same number of nodes we don't need to score or do multiple
-            # trials as the score heuristic currently doesn't weigh nodes based on gates on a
-            # qubit so the scores will always all be the same
-            if len(cm_graph) == len(im_graph):
-                break
-            layout_score = vf2_utils.score_layout(
-                self.avg_error_map,
-                layout_mapping,
-                im_graph_node_map,
-                reverse_im_graph_node_map,
-                im_graph,
-                False,
-            )
-            logger.debug("Trial %s has score %s", trials, layout_score)
-            if chosen_layout is None:
-                chosen_layout = mapping_to_layout(layout_mapping)
-                chosen_layout_score = layout_score
-            elif layout_score < chosen_layout_score:
-                layout = mapping_to_layout(layout_mapping)
-                logger.debug(
-                    "Found layout %s has a lower score (%s) than previous best %s (%s)",
-                    layout,
-                    layout_score,
-                    chosen_layout,
-                    chosen_layout_score,
-                )
-                chosen_layout = layout
-                chosen_layout_score = layout_score
-            if self.max_trials and trials >= self.max_trials:
-                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
-                break
-            elapsed_time = time.time() - start_time
-            if self.time_limit is not None and elapsed_time >= self.time_limit:
-                logger.debug(
-                    "VF2Layout has taken %s which exceeds configured max time: %s",
-                    elapsed_time,
-                    self.time_limit,
-                )
-                break
         for reg in dag.qregs.values():
             chosen_layout.add_register(reg)
         return chosen_layout
