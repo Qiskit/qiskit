@@ -25,10 +25,10 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 
 [tool.ruff]
 select = [
-       "F631",
-       "F632",
-       "F634",
-       "F823",
+  "F631",
+  "F632",
+  "F634",
+  "F823",
 ]
 
 [tool.pylint.main]
