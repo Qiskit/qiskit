@@ -448,10 +448,8 @@ oversights will still be caught by the CI after you open a pull request).
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
 rather than via `tox`. If you have installed the development packages in your python environment via
-`pip install -r requirements.dev`, then `ruff` and `black` will be available. Otherwise install them
-with `pip install ruff black`. Running the commands `ruff check qiskit test tools examples setup.py`
-and `black --check qiskit test tools examples setup.py` will run the same tests with these tools
-that are run via `tox` as well as in CI.
+`pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
+the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ## Development Cycle
 
