@@ -748,6 +748,9 @@ class TestDagNodeSelection(QiskitTestCase):
 
         predecessor1 = next(predecessor_measure)
 
+        with self.assertRaises(StopIteration):
+            next(predecessor_measure)
+
         self.assertTrue(isinstance(predecessor1, DAGInNode))
         self.assertTrue(isinstance(predecessor1.wire, Clbit))
 
@@ -759,6 +762,8 @@ class TestDagNodeSelection(QiskitTestCase):
         successors_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
 
         successors1 = next(successors_measure)
+        with self.assertRaises(StopIteration):
+            next(predecessor_measure)
 
         self.assertTrue(isinstance(successors1, DAGOutNode))
         self.assertTrue(isinstance(successors1.wire, Clbit))
