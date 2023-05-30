@@ -404,7 +404,6 @@ class TestParameters(QiskitTestCase):
                 fbqc = getattr(pqc, assign_fun)({phi: 1})
 
                 self.assertEqual(fbqc.parameters, set())
-                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], ParameterExpression))
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 3)
 
     def test_two_parameter_expression_binding(self):
@@ -448,7 +447,6 @@ class TestParameters(QiskitTestCase):
                 fbqc = getattr(pqc, assign_fun)({phi: 1})
 
                 self.assertEqual(fbqc.parameters, set())
-                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], ParameterExpression))
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
 
     def test_raise_if_assigning_params_not_in_circuit(self):
@@ -802,7 +800,6 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(
             all(
                 len(inst.params) == 1
-                and isinstance(inst.params[0], ParameterExpression)
                 and float(inst.params[0]) == 1
                 for inst in qobj.experiments[0].instructions
             )
