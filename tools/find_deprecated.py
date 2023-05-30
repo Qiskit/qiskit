@@ -15,7 +15,7 @@
 
 from pathlib import Path
 from collections import OrderedDict, defaultdict
-from inspect import ast
+import ast
 from datetime import datetime
 import requests
 
