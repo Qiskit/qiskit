@@ -1,23 +1,22 @@
 ---
 features:
   - |
-Added :meth:`qiskit.dagcircuit.DAGCircuit.classical_predecessors` and  :meth:`qiskit.dagcircuit.DAGCircuit.classical_successors`,
-an alternative to select the classical wires without having to go to the inner graph object directly of a node in the DAG.
+    Adds :meth:`qiskit.dagcircuit.DAGCircuit.classical_predecessors` and  :meth:`qiskit.dagcircuit.DAGCircuit.classical_successors`,an alternative to select the classical wires without having to go to the inner graph object directly of a node in the DAG.
   - |
-  The following example illustrates the new functionality:
-        from qiskit import QuantumCircuit
-        from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-        from qiskit.converters import circuit_to_dag
+    The following example illustrates the new functionality:
+      from qiskit import QuantumCircuit
+      from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+      from qiskit.converters import circuit_to_dag
 
-        q = QuantumRegister(3, 'q')
-        c = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(q, c)
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.measure(q[0], c[0])
-        circ.rz(0.5, q[1]).c_if(c, 2)
-        dag = circuit_to_dag(circ)
+      q = QuantumRegister(3, 'q')
+      c = ClassicalRegister(3, 'c')
+      circ = QuantumCircuit(q, c)
+      circ.h(q[0])
+      circ.cx(q[0], q[1])
+      circ.measure(q[0], c[0])
+      circ.rz(0.5, q[1]).c_if(c, 2)
+      dag = circuit_to_dag(circ)
 
-        print("Classical predecessors, Classical Successors")
-        for i in range(len(dag.op_nodes())):
-            print(dag.classical_predecessors(dag.node(i)), dag.classical_successors(dag.node(i)))
+      print("Classical predecessors, Classical Successors")
+      for i in range(len(dag.op_nodes())):
+          print(dag.classical_predecessors(dag.node(i)), dag.classical_successors(dag.node(i)))
