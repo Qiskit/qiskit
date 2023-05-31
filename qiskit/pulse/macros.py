@@ -68,7 +68,7 @@ def measure(
         return _measure_v2(
             qubits=qubits,
             target=backend.target,
-            meas_map=meas_map or getattr(backend, "meas_map", [list(range(backend.num_qubits))]),
+            meas_map=meas_map or backend.num_qubits,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
