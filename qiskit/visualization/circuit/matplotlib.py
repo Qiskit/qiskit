@@ -60,6 +60,8 @@ PORDER_FLOW = 1
 
 INFINITE_FOLD = 10000000
 
+INFINITE_FOLD = 10000000
+
 
 @_optionals.HAS_MATPLOTLIB.require_in_instance
 @_optionals.HAS_PYLATEX.require_in_instance
@@ -243,24 +245,28 @@ class MatplotlibDrawer:
         from matplotlib import patches
         from matplotlib import pyplot as plt
 
-        self._patches_mod = patches
-        self._plt_mod = plt
+        # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index",
+        # "patches_mod", subfont_factor"
+        glob_data = {}
+
+        glob_data["patches_mod"] = patches
+        plt_mod = plt
 
         self._style, def_font_ratio = load_style(self._style)
 
         # If font/subfont ratio changes from default, have to scale width calculations for
-        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
-        self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
+        # subfont. Font change is auto scaled in the mpl_figure.set_size_inches call in draw()
+        glob_data["subfont_factor"] = self._style["sfs"] * def_font_ratio / self._style["fs"]
 
         # if no user ax, setup default figure. Else use the user figure.
         if self._ax is None:
-            self._user_ax = False
-            self._figure = plt.figure()
-            self._figure.patch.set_facecolor(color=self._style["bg"])
-            self._ax = self._figure.add_subplot(111)
+            is_user_ax = False
+            mpl_figure = plt.figure()
+            mpl_figure.patch.set_facecolor(color=self._style["bg"])
+            self._ax = mpl_figure.add_subplot(111)
         else:
-            self._user_ax = True
-            self._figure = self._ax.get_figure()
+            is_user_ax = True
+            mpl_figure = self._ax.get_figure()
         self._ax.axis("off")
         self._ax.set_aspect("equal")
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
@@ -286,7 +292,6 @@ class MatplotlibDrawer:
 
         # load the _qubit_dict and _clbit_dict with register info
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
-
         # get layer widths
         layer_widths = self._get_layer_widths(node_data, wire_map, glob_data)
 
@@ -323,25 +328,25 @@ class MatplotlibDrawer:
         scale = self._scale
 
         # if user passes in an ax, this size takes priority over any other settings
-        if self._user_ax:
+        if is_user_ax:
             # from stackoverflow #19306510, get the bbox size for the ax and then reset scale
-            bbox = self._ax.get_window_extent().transformed(self._figure.dpi_scale_trans.inverted())
+            bbox = self._ax.get_window_extent().transformed(mpl_figure.dpi_scale_trans.inverted())
             scale = bbox.width / base_fig_w / 0.8361111
 
         # if scale not 1.0, use this scale factor
         elif self._scale != 1.0:
-            self._figure.set_size_inches(base_fig_w * self._scale, base_fig_h * self._scale)
+            mpl_figure.set_size_inches(base_fig_w * self._scale, base_fig_h * self._scale)
 
         # if "figwidth" style param set, use this to scale
         elif self._style["figwidth"] > 0.0:
             # in order to get actual inches, need to scale by factor
             adj_fig_w = self._style["figwidth"] * 1.282736
-            self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
+            mpl_figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
             scale = adj_fig_w / base_fig_w
 
         # otherwise, display default size
         else:
-            self._figure.set_size_inches(base_fig_w, base_fig_h)
+            mpl_figure.set_size_inches(base_fig_w, base_fig_h)
 
         # drawing will scale with 'set_size_inches', but fonts and linewidths do not
         if scale != 1.0:
@@ -356,7 +361,7 @@ class MatplotlibDrawer:
         # Once the scaling factor has been determined, the global phase, register names
         # and numbers, wires, and gates are drawn
         if self._global_phase:
-            self._plt_mod.text(
+            plt_mod.text(
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
         self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict, glob_data)
@@ -370,17 +375,16 @@ class MatplotlibDrawer:
             glob_data,
             verbose,
         )
-
         if filename:
-            self._figure.savefig(
+            mpl_figure.savefig(
                 filename,
                 dpi=self._style["dpi"],
                 bbox_inches="tight",
-                facecolor=self._figure.get_facecolor(),
+                facecolor=mpl_figure.get_facecolor(),
             )
-        if not self._user_ax:
-            matplotlib_close_if_inline(self._figure)
-            return self._figure
+        if not is_user_ax:
+            matplotlib_close_if_inline(mpl_figure)
+            return mpl_figure
 
     def _load_flow_wire_maps(self, wire_map):
         """Load the qubits and clbits from ControlFlowOps into
@@ -444,8 +448,9 @@ class MatplotlibDrawer:
 
                 # small increments at end of the 3 _get_text_width calls are for small
                 # spacing adjustments between gates
-                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style["sfs"]) - 0.05
-
+                ctrl_width = (
+                    self._get_text_width(ctrl_text, glob_data, fontsize=self._style["sfs"]) - 0.05
+                )
                 # get param_width, but 0 for gates with array params or circuits in params
                 if (
                     hasattr(op, "params")
@@ -458,7 +463,7 @@ class MatplotlibDrawer:
                         param_text = f"$[{param_text.replace('$', '')}]$"
                     node_data[node]["param_text"] = param_text
                     raw_param_width = self._get_text_width(
-                        param_text, fontsize=self._style["sfs"], param=True
+                        param_text, glob_data, fontsize=self._style["sfs"], param=True
                     )
                     param_width = raw_param_width + 0.08
                 else:
@@ -469,7 +474,9 @@ class MatplotlibDrawer:
                     if isinstance(base_type, PhaseGate):
                         gate_text = "P"
                     raw_gate_width = (
-                        self._get_text_width(gate_text + " ()", fontsize=self._style["sfs"])
+                        self._get_text_width(
+                            gate_text + " ()", glob_data, fontsize=self._style["sfs"]
+                        )
                         + raw_param_width
                     )
                     gate_width = (raw_gate_width + 0.08) * 1.58
@@ -531,7 +538,9 @@ class MatplotlibDrawer:
 
                 # Otherwise, standard gate or multiqubit gate
                 else:
-                    raw_gate_width = self._get_text_width(gate_text, fontsize=self._style["fs"])
+                    raw_gate_width = self._get_text_width(
+                        gate_text, glob_data, fontsize=self._style["fs"]
+                    )
                     gate_width = raw_gate_width + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
                     if len(node.qargs) - num_ctrl_qubits > 1:
@@ -590,7 +599,10 @@ class MatplotlibDrawer:
             )
             reg_remove_under = 0 if reg_size < 2 else 1
             text_width = (
-                self._get_text_width(wire_label, self._style["fs"], reg_remove_under=reg_remove_under) * 1.15
+                self._get_text_width(
+                    wire_label, glob_data, self._style["fs"], reg_remove_under=reg_remove_under
+                )
+                * 1.15
             )
             if text_width > longest_wire_label_width:
                 longest_wire_label_width = text_width
@@ -679,7 +691,7 @@ class MatplotlibDrawer:
                         glob_data,
                         flow_op,
                     )
-                    for ii in q_indxs
+                   for ii in q_indxs
                 ]
                 # clbit coordinates
                 node_data[node]["c_xy"] = [
@@ -692,6 +704,7 @@ class MatplotlibDrawer:
                     )
                     for ii in c_indxs
                 ]
+
                 # update index based on the value from plotting
                 if flow_parent is None:
                     curr_x_index = glob_data["next_x_index"]
@@ -709,7 +722,7 @@ class MatplotlibDrawer:
 
         return prev_x_index + 1
 
-    def _get_text_width(self, text, fontsize, param=False, reg_remove_under=None):
+    def _get_text_width(self, text, glob_data, fontsize, param=False, reg_remove_under=None):
         """Compute the width of a string in the default font"""
 
         from pylatexenc.latex2text import LatexNodes2Text
@@ -752,7 +765,7 @@ class MatplotlibDrawer:
                 # if non-ASCII char, use width of 'c', an average size
                 sum_text += self._char_list["c"][f]
         if f == 1:
-            sum_text *= self._subfont_factor
+            sum_text *= glob_data["subfont_factor"]
         return sum_text
 
     def _draw_regs_wires(self, num_folds, xmax, max_x_index, qubits_dict, clbits_dict, glob_data):
@@ -944,11 +957,11 @@ class MatplotlibDrawer:
                         )
                         for ii in clbits_dict
                     ]
-                    self._condition(node, node_data, wire_map, cond_xy)
+                    self._condition(node, node_data, wire_map, cond_xy, glob_data)
 
                 # draw measure
                 if isinstance(op, Measure):
-                    self._measure(node, node_data)
+                    self._measure(node, node_data, glob_data)
 
                 # draw barriers, snapshots, etc.
                 elif getattr(op, "_directive", False):
@@ -958,18 +971,19 @@ class MatplotlibDrawer:
                 # draw the box for control flow circuits
                 elif isinstance(op, IfElseOp):
                     self._flow_op_gate(node, node_data, glob_data)
+                        self._barrier(node, node_data, glob_data)
 
                 # draw single qubit gates
                 elif len(node_data[node]["q_xy"]) == 1 and not node.cargs:
-                    self._gate(node, node_data)
+                    self._gate(node, node_data, glob_data)
 
                 # draw controlled gates
                 elif isinstance(op, ControlledGate):
-                    self._control_gate(node, node_data)
+                    self._control_gate(node, node_data, glob_data)
 
                 # draw multi-qubit gate as final default
                 else:
-                    self._multiqubit_gate(node, node_data)
+                    self._multiqubit_gate(node, node_data, glob_data)
 
                 # Determine the max width of the circuit only at the top level
                 if not node_data[node]["inside_flow"]:
@@ -1032,7 +1046,7 @@ class MatplotlibDrawer:
         node_data[node]["sc"] = sc
         node_data[node]["lc"] = lc
 
-    def _condition(self, node, node_data, wire_map, cond_xy):
+    def _condition(self, node, node_data, wire_map, cond_xy, glob_data):
         """Add a conditional to a gate"""
 
         label, val_bits = get_condition_label_val(
@@ -1070,7 +1084,7 @@ class MatplotlibDrawer:
                 fc = self._style["lc"]
             else:
                 fc = self._style["bg"]
-            box = self._patches_mod.Circle(
+            box = glob_data["patches_mod"].Circle(
                 xy=xy,
                 radius=WID * 0.15,
                 fc=fc,
@@ -1105,17 +1119,17 @@ class MatplotlibDrawer:
         )
         self._line(qubit_b, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
 
-    def _measure(self, node, node_data):
+    def _measure(self, node, node_data, glob_data):
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = node_data[node]["q_xy"][0]
         cx, cy = node_data[node]["c_xy"][0]
         register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
 
         # draw gate box
-        self._gate(node, node_data)
+        self._gate(node, node_data, glob_data)
 
         # add measure symbol
-        arc = self._patches_mod.Arc(
+        arc = glob_data["patches_mod"].Arc(
             xy=(qx, qy - 0.15 * HIG),
             width=WID * 0.7,
             height=HIG * 0.7,
@@ -1141,7 +1155,7 @@ class MatplotlibDrawer:
             lc=self._style["cc"],
             ls=self._style["cline"],
         )
-        arrowhead = self._patches_mod.Polygon(
+        arrowhead = glob_data["patches_mod"].Polygon(
             (
                 (cx - 0.20 * WID, cy + 0.35 * WID),
                 (cx + 0.20 * WID, cy + 0.35 * WID),
@@ -1165,7 +1179,7 @@ class MatplotlibDrawer:
                 zorder=PORDER_TEXT,
             )
 
-    def _barrier(self, node, node_data):
+    def _barrier(self, node, node_data, glob_data):
         """Draw a barrier"""
         for i, xy in enumerate(node_data[node]["q_xy"]):
             xpos, ypos = xy
@@ -1182,7 +1196,7 @@ class MatplotlibDrawer:
                 color=self._style["lc"],
                 zorder=PORDER_TEXT,
             )
-            box = self._patches_mod.Rectangle(
+            box = glob_data["patches_mod"].Rectangle(
                 xy=(xpos - (0.3 * WID), ypos - 0.5),
                 width=0.6 * WID,
                 height=1.0 + ypos_adj,
@@ -1209,14 +1223,14 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-    def _gate(self, node, node_data, xy=None):
+   def _gate(self, node, node_data, glob_data, xy=None):
         """Draw a 1-qubit gate"""
         if xy is None:
             xy = node_data[node]["q_xy"][0]
         xpos, ypos = xy
         wid = max(node_data[node]["width"], WID)
 
-        box = self._patches_mod.Rectangle(
+        box = glob_data["patches_mod"].Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
             width=wid,
             height=HIG,
@@ -1254,7 +1268,7 @@ class MatplotlibDrawer:
                 zorder=PORDER_TEXT,
             )
 
-    def _multiqubit_gate(self, node, node_data, xy=None):
+    def _multiqubit_gate(self, node, node_data, glob_data, xy=None):
         """Draw a gate covering more than one qubit"""
         op = node.op
         if xy is None:
@@ -1267,7 +1281,7 @@ class MatplotlibDrawer:
 
         # RZZ Gate
         elif isinstance(op, RZZGate):
-            self._symmetric_gate(node, node_data, RZZGate)
+            self._symmetric_gate(node, node_data, RZZGate, glob_data)
             return
 
         c_xy = node_data[node]["c_xy"]
@@ -1280,11 +1294,10 @@ class MatplotlibDrawer:
             ypos = min(ypos, cypos)
 
         wid = max(node_data[node]["width"] + 0.21, WID)
-
         qubit_span = abs(ypos) - abs(ypos_max)
         height = HIG + qubit_span
 
-        box = self._patches_mod.Rectangle(
+        box = glob_data["patches_mod"].Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
             width=wid,
             height=height,
@@ -1449,7 +1462,7 @@ class MatplotlibDrawer:
                 self._ax.add_patch(box)
             fold_level += 1
 
-    def _control_gate(self, node, node_data):
+    def _control_gate(self, node, node_data, glob_data):
         """Draw a controlled gate"""
         op = node.op
         xy = node_data[node]["q_xy"]
@@ -1462,6 +1475,7 @@ class MatplotlibDrawer:
             op.ctrl_state,
             num_ctrl_qubits,
             xy,
+            glob_data,
             ec=node_data[node]["ec"],
             tc=node_data[node]["tc"],
             text=node_data[node]["ctrl_text"],
@@ -1470,24 +1484,24 @@ class MatplotlibDrawer:
         self._line(qubit_b, qubit_t, lc=node_data[node]["lc"])
 
         if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, ZGate, RZZGate)):
-            self._symmetric_gate(node, node_data, base_type)
+            self._symmetric_gate(node, node_data, base_type, glob_data)
 
         elif num_qargs == 1 and isinstance(base_type, XGate):
             tgt_color = self._style["dispcol"]["target"]
             tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
-            self._x_tgt_qubit(xy[num_ctrl_qubits], ec=node_data[node]["ec"], ac=tgt)
+            self._x_tgt_qubit(xy[num_ctrl_qubits], glob_data, ec=node_data[node]["ec"], ac=tgt)
 
         elif num_qargs == 1:
-            self._gate(node, node_data, xy[num_ctrl_qubits:][0])
+            self._gate(node, node_data, glob_data, xy[num_ctrl_qubits:][0])
 
         elif isinstance(base_type, SwapGate):
             self._swap(xy[num_ctrl_qubits:], node, node_data, node_data[node]["lc"])
 
         else:
-            self._multiqubit_gate(node, node_data, xy[num_ctrl_qubits:])
+            self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
 
     def _set_ctrl_bits(
-        self, ctrl_state, num_ctrl_qubits, qbit, ec=None, tc=None, text="", qargs=None
+        self, ctrl_state, num_ctrl_qubits, qbit, glob_data, ec=None, tc=None, text="", qargs=None
     ):
         """Determine which qubits are controls and whether they are open or closed"""
         # place the control label at the top or bottom of controls
@@ -1509,12 +1523,14 @@ class MatplotlibDrawer:
                     text_top = True
                 elif not top and qlist[i] == max_ctbit:
                     text_top = False
-            self._ctrl_qubit(qbit[i], fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top)
+            self._ctrl_qubit(
+                qbit[i], glob_data, fc=fc_open_close, ec=ec, tc=tc, text=text, text_top=text_top
+            )
 
-    def _ctrl_qubit(self, xy, fc=None, ec=None, tc=None, text="", text_top=None):
+    def _ctrl_qubit(self, xy, glob_data, fc=None, ec=None, tc=None, text="", text_top=None):
         """Draw a control circle and if top or bottom control, draw control label"""
         xpos, ypos = xy
-        box = self._patches_mod.Circle(
+        box = glob_data["patches_mod"].Circle(
             xy=(xpos, ypos),
             radius=WID * 0.15,
             fc=fc,
@@ -1549,11 +1565,11 @@ class MatplotlibDrawer:
             zorder=PORDER_TEXT,
         )
 
-    def _x_tgt_qubit(self, xy, ec=None, ac=None):
+    def _x_tgt_qubit(self, xy, glob_data, ec=None, ac=None):
         """Draw the cnot target symbol"""
         linewidth = self._lwidth2
         xpos, ypos = xy
-        box = self._patches_mod.Circle(
+        box = glob_data["patches_mod"].Circle(
             xy=(xpos, ypos),
             radius=HIG * 0.35,
             fc=ec,
@@ -1579,7 +1595,7 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE + 1,
         )
 
-    def _symmetric_gate(self, node, node_data, base_type):
+    def _symmetric_gate(self, node, node_data, base_type, glob_data):
         """Draw symmetric gates for cz, cu1, cp, and rzz"""
         op = node.op
         xy = node_data[node]["q_xy"]
@@ -1593,7 +1609,7 @@ class MatplotlibDrawer:
         # cz and mcz gates
         if not isinstance(op, ZGate) and isinstance(base_type, ZGate):
             num_ctrl_qubits = op.num_ctrl_qubits
-            self._ctrl_qubit(xy[-1], fc=ec, ec=ec, tc=tc)
+            self._ctrl_qubit(xy[-1], glob_data, fc=ec, ec=ec, tc=tc)
             self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
 
         # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
@@ -1601,9 +1617,9 @@ class MatplotlibDrawer:
             num_ctrl_qubits = 0 if isinstance(op, RZZGate) else op.num_ctrl_qubits
             gate_text = "P" if isinstance(base_type, PhaseGate) else node_data[node]["gate_text"]
 
-            self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
+            self._ctrl_qubit(xy[num_ctrl_qubits], glob_data, fc=ec, ec=ec, tc=tc)
             if not isinstance(base_type, (U1Gate, PhaseGate)):
-                self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
+                self._ctrl_qubit(xy[num_ctrl_qubits + 1], glob_data, fc=ec, ec=ec, tc=tc)
 
             self._sidetext(
                 node,
