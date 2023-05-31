@@ -1,0 +1,4 @@
+---
+prelude: >
+    Qiskit Terra 0.24.1 is the first patch release to 0.24.0. This fixes some bugs
+    that have been discovered since the release of 0.24.0.
