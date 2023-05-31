@@ -32,7 +32,6 @@ use hashbrown::HashMap;
 /// qubit index. If an edge or qubit is ideal and has no error rate, you can
 /// either set it to ``0.0`` explicitly or as ``NaN``.
 #[pyclass(mapping, module = "qiskit._accelerate.error_map")]
-#[pyo3(text_signature = "(num_qubits, num_edges, /")]
 #[derive(Clone, Debug)]
 pub struct ErrorMap {
     pub error_map: HashMap<[usize; 2], f64>,
@@ -41,6 +40,7 @@ pub struct ErrorMap {
 #[pymethods]
 impl ErrorMap {
     #[new]
+    #[pyo3(text_signature = "(num_qubits, num_edges, /")]
     fn new(size: Option<usize>) -> Self {
         match size {
             Some(size) => ErrorMap {

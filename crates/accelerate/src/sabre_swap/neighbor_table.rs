@@ -27,7 +27,6 @@ use rayon::prelude::*;
 /// and used solely to represent neighbors of each node in qiskit-terra's rust
 /// module.
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
-#[pyo3(text_signature = "(/)")]
 #[derive(Clone, Debug)]
 pub struct NeighborTable {
     pub neighbors: Vec<Vec<usize>>,
@@ -36,6 +35,7 @@ pub struct NeighborTable {
 #[pymethods]
 impl NeighborTable {
     #[new]
+    #[pyo3(text_signature = "(/)")]
     pub fn new(adjacency_matrix: Option<PyReadonlyArray2<f64>>) -> Self {
         let run_in_parallel = getenv_use_multiple_threads();
         let neighbors = match adjacency_matrix {
