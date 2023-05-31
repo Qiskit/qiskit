@@ -751,8 +751,8 @@ class TestDagNodeSelection(QiskitTestCase):
         with self.assertRaises(StopIteration):
             next(predecessor_measure)
 
-        self.assertTrue(isinstance(predecessor1, DAGInNode))
-        self.assertTrue(isinstance(predecessor1.wire, Clbit))
+        self.assertIsInstance(predecessor1, DAGInNode)
+        self.assertIsInstance(predecessor1.wire, Clbit)
 
     def test_classical_successors(self):
         """The method dag.classical_successors() returns successors connected by classical edges"""
@@ -765,8 +765,8 @@ class TestDagNodeSelection(QiskitTestCase):
         with self.assertRaises(StopIteration):
             next(successors_measure)
 
-        self.assertTrue(isinstance(successors1, DAGOutNode))
-        self.assertTrue(isinstance(successors1.wire, Clbit))
+        self.assertIsInstance(successors1, DAGInNode)
+        self.assertIsInstance(successors1.wire, Clbit)
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""

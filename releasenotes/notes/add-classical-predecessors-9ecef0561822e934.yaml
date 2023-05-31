@@ -1,12 +1,11 @@
 ---
 features:
   - |
-    Adds :meth:`qiskit.dagcircuit.DAGCircuit.classical_predecessors` and
-    :meth:`qiskit.dagcircuit.DAGCircuit.classical_successors`,an alternative to select the classical
+    Added :meth:`.DAGCircuit.classical_predecessors` and
+    :meth:`.DAGCircuit.classical_successors`, an alternative to select the classical
     wires without having to go to the inner graph object directly of a node in the DAG.
     The following example illustrates the new functionality::
 
-        from qiskit import QuantumCircuit
         from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
         from qiskit.converters import circuit_to_dag
         from qiskit.circuit.library import RZGate
@@ -22,22 +21,5 @@ features:
         dag = circuit_to_dag(circ)
 
         rz_node = dag.op_nodes(RZGate)[0]
-
-        print("Classical predecessors of RZ:")
-        for predecessor in dag.classical_predecessors(node):
-            print(type(predecessor))
-
-        print("Classical successors of RZ:")
-        for successors in dag.classical_successors(node):
-            print(type(successors))
-
-    This code results in the following output::
-
-        Classical predecessors of RZ:
-        <class 'qiskit.dagcircuit.dagnode.DAGInNode'>
-        <class 'qiskit.dagcircuit.dagnode.DAGInNode'>
-        <class 'qiskit.dagcircuit.dagnode.DAGOpNode'>
-        Classical successors of RZ:
-        <class 'qiskit.dagcircuit.dagnode.DAGOpNode'>
-        <class 'qiskit.dagcircuit.dagnode.DAGOutNode'>
-        <class 'qiskit.dagcircuit.dagnode.DAGOutNode'>
+        classical_predecessors = list(dag.classical_predecessors(rz_node))
+        classical_successors = list(dag.classical_successors(rz_nodes))
