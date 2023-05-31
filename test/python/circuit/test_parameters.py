@@ -401,9 +401,10 @@ class TestParameters(QiskitTestCase):
                 self.assertTrue(isinstance(pqc.data[0].operation.params[0], ParameterExpression))
                 self.assertEqual(str(pqc.data[0].operation.params[0]), "phi + 2")
 
-                fbqc = getattr(pqc, assign_fun)({phi: 1})
+                fbqc = getattr(pqc, assign_fun)({phi: 1.0})
 
                 self.assertEqual(fbqc.parameters, set())
+                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], float))
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 3)
 
     def test_two_parameter_expression_binding(self):
@@ -447,6 +448,7 @@ class TestParameters(QiskitTestCase):
                 fbqc = getattr(pqc, assign_fun)({phi: 1})
 
                 self.assertEqual(fbqc.parameters, set())
+                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], int))
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
 
     def test_raise_if_assigning_params_not_in_circuit(self):
@@ -787,7 +789,7 @@ class TestParameters(QiskitTestCase):
         for qc in results:
             circuit.compose(qc, inplace=True)
 
-        parameter_values = [{x: 1 for x in parameters}]
+        parameter_values = [{x: 1.0 for x in parameters}]
 
         qobj = assemble(
             circuit,
@@ -799,7 +801,9 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(len(qobj.experiments[0].instructions), 4)
         self.assertTrue(
             all(
-                len(inst.params) == 1 and float(inst.params[0]) == 1
+                len(inst.params) == 1
+                and isinstance(inst.params[0], float)
+                and float(inst.params[0]) == 1
                 for inst in qobj.experiments[0].instructions
             )
         )
