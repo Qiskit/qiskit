@@ -21,7 +21,7 @@ from operator import add, mul, sub, truediv
 from test import combine
 
 import numpy
-from ddt import data, ddt
+from ddt import data, ddt, named_data
 
 import qiskit
 import qiskit.circuit.library as circlib
@@ -345,6 +345,24 @@ class TestParameters(QiskitTestCase):
         qc.u(0, theta, x, qr)
         self.assertEqual(theta.name, "θ")
         self.assertEqual(qc.parameters, {theta, x})
+
+    @named_data(
+        ["int", 2, int],
+        ["float", 2.1, float],
+        ["float16", numpy.float16(2.1), float],
+        ["float32", numpy.float32(2.1), float],
+        ["float64", numpy.float64(2.1), float],
+        ["complex", 1 + 2j, complex],
+    )
+    def test_circuit_assignment_to_numeric(self, value, type_):
+        """Test binding a numeric value to a circuit instruction"""
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.append(Instruction("inst", 1, 0, [x]), (0,))
+        qc.assign_parameters({x: value}, inplace=True)
+        bound = qc.data[0].operation.params[0]
+        self.assertIsInstance(bound, type_)
+        self.assertAlmostEqual(bound, value, delta=1e-4)
 
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
