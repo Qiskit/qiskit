@@ -1,7 +1,7 @@
 ---
 features:
   - |
-Added two methods, :meth:`qiskit.dagcircuit.DAGCircuit.classical_predecessors` and :meth:`qiskit.dagcircuit.DAGCircuit.classical_successors`,
+Added two methods, `qiskit.dagcircuit.DAGCircuit.classical_predecessors` and `qiskit.dagcircuit.DAGCircuit.classical_successors`,
 an alternative to select the classical wires without having to go to the inner graph object directly of a node in the DAG.
 
     The following example illustrates the new functionality::
