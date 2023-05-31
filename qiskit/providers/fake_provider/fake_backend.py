@@ -330,6 +330,20 @@ class FakeBackendV2(BackendV2):
             QiskitError: If a pulse job is supplied and qiskit-aer is not
             installed.
         """
+
+        # Assert that the QauntumCircuit number of qubits and gates are supported by the backend.
+        if type(run_input) == QuantumCircuit:
+
+            supported_qubits = self.conf_filename['n_qubits']
+            requested_qubits = run_input.num_qubit
+
+            if  supported_qubits < requested_qubits :
+                # Number of Qubits Error
+                real_backend = self.conf_filename["backend_name"]
+                raise QiskitError("The provided QuantunCircuit was implemented with " + str(requested_qubits)   + " the requested backend " + real_backend + " only supports " +  str(supported_qubits) + ".")
+
+
+
         circuits = run_input
         pulse_job = None
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
