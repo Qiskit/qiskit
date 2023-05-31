@@ -283,9 +283,6 @@ class MatplotlibDrawer:
         # and colors "fc", "ec", "lc", "sc", "gt", and "tc"
         node_data = {}
 
-        # glob_data contains global values used throughout, "n_lines", "x_offset", "next_x_index"
-        glob_data = {}
-
         # dicts for the names and locations of register/bit labels
         qubits_dict = {}
         clbits_dict = {}
@@ -691,7 +688,7 @@ class MatplotlibDrawer:
                         glob_data,
                         flow_op,
                     )
-                   for ii in q_indxs
+                    for ii in q_indxs
                 ]
                 # clbit coordinates
                 node_data[node]["c_xy"] = [
@@ -966,12 +963,11 @@ class MatplotlibDrawer:
                 # draw barriers, snapshots, etc.
                 elif getattr(op, "_directive", False):
                     if self._plot_barriers:
-                        self._barrier(node, node_data)
+                        self._barrier(node, node_data, glob_data)
 
                 # draw the box for control flow circuits
                 elif isinstance(op, IfElseOp):
                     self._flow_op_gate(node, node_data, glob_data)
-                        self._barrier(node, node_data, glob_data)
 
                 # draw single qubit gates
                 elif len(node_data[node]["q_xy"]) == 1 and not node.cargs:
@@ -1223,7 +1219,7 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-   def _gate(self, node, node_data, glob_data, xy=None):
+    def _gate(self, node, node_data, glob_data, xy=None):
         """Draw a 1-qubit gate"""
         if xy is None:
             xy = node_data[node]["q_xy"][0]
@@ -1401,7 +1397,7 @@ class MatplotlibDrawer:
             left_edge = end_x + 0.1 - glob_data["x_offset"]
 
             # FancyBbox allows rounded corners
-            box = self._patches_mod.FancyBboxPatch(
+            box = glob_data["patches_mod"].FancyBboxPatch(
                 xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
                 width=wid,
                 height=height,
@@ -1449,7 +1445,7 @@ class MatplotlibDrawer:
             # To clean up box stuff in the bit name area, draw the box again using background
             # color in that area.
             if fold_level > 0:
-                box = self._patches_mod.FancyBboxPatch(
+                box = glob_data["patches_mod"].FancyBboxPatch(
                     xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
                     width=min(wid, wid - left_edge),
                     height=height,
