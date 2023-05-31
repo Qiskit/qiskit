@@ -799,8 +799,7 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(len(qobj.experiments[0].instructions), 4)
         self.assertTrue(
             all(
-                len(inst.params) == 1
-                and float(inst.params[0]) == 1
+                len(inst.params) == 1 and float(inst.params[0]) == 1
                 for inst in qobj.experiments[0].instructions
             )
         )
