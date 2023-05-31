@@ -2857,7 +2857,8 @@ class QuantumCircuit:
                         if new_param._symbol_expr.is_integer and new_param.is_real():
                             val = int(new_param)
                         elif new_param.is_real():
-                            val = float(new_param)
+                            # Workaround symengine not supporting float(<ComplexDouble>)
+                            val = complex(new_param).real
                         else:
                             val = complex(new_param)
                         instr.params[param_index] = instr.validate_parameter(val)
@@ -2920,7 +2921,8 @@ class QuantumCircuit:
                                 if new_param._symbol_expr.is_integer:
                                     new_param = int(new_param)
                                 else:
-                                    new_param = float(new_param)
+                                    # Workaround symengine not supporting float(<ComplexDouble>)
+                                    new_param = complex(new_param).real
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
