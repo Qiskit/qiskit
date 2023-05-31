@@ -1,11 +1,10 @@
 ---
 features:
   - |
-Added two methods, `qiskit.dagcircuit.DAGCircuit.classical_predecessors` and `qiskit.dagcircuit.DAGCircuit.classical_successors`,
+Added :meth:`qiskit.dagcircuit.DAGCircuit.classical_predecessors` and  :meth:`qiskit.dagcircuit.DAGCircuit.classical_successors`,
 an alternative to select the classical wires without having to go to the inner graph object directly of a node in the DAG.
-
-    The following example illustrates the new functionality::
-
+  - |
+  The following example illustrates the new functionality:
         from qiskit import QuantumCircuit
         from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
         from qiskit.converters import circuit_to_dag
