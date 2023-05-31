@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a new parameter ``max_trials`` to pass :class:`~.VF2PostLayout`
+    which, when specified, limits the number of layouts discovered and
+    compared when searching for the best layout.
+    This differs from existing parameters ``call_limit`` and ``time_limit``
+    (which are used to limit the number of state visits performed by the VF2
+    algorithm and the total time spent by pass :class:`~.VF2PostLayout`,
+    respectively) in that it is used to place an upper bound on the time
+    spent scoring potential layouts, which may be useful for larger
+    devices.

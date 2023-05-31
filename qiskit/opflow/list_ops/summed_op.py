@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,15 +21,20 @@ from qiskit.circuit import ParameterExpression
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 
 
 class SummedOp(ListOp):
-    """A class for lazily representing sums of Operators. Often Operators cannot be
+    """Deprecated: A class for lazily representing sums of Operators. Often Operators cannot be
     efficiently added to one another, but may be manipulated further so that they can be
     later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be added together, and therefore if they reach a point in which they can be, such as after
     evaluation or conversion to matrices, they can be reduced by addition."""
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         oplist: List[OperatorBase],

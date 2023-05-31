@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -43,6 +43,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_wf_evals_x(self):
         """wf evals x test"""
         qbits = 4
+
         wf = ((Zero ^ qbits) + (One ^ qbits)) * (1 / 2**0.5)
         # Note: wf = Plus^qbits fails because TensoredOp can't handle it.
         wf_vec = StateFn(wf.to_matrix())
@@ -76,17 +77,20 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.assertEqual((~StateFn(op) @ state).eval(), 0j)
 
         backend = Aer.get_backend("aer_simulator")
-        q_instance = QuantumInstance(backend, seed_simulator=97, seed_transpiler=97)
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(backend, seed_simulator=97, seed_transpiler=97)
         op = I
         with self.subTest("zero coeff in summed StateFn and CircuitSampler"):
-            state = 0 * (Plus + Minus)
-            sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
-            self.assertEqual(sampler.eval(), 0j)
+            with self.assertWarns(DeprecationWarning):
+                state = 0 * (Plus + Minus)
+                sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
+                self.assertEqual(sampler.eval(), 0j)
 
         with self.subTest("coeff gets squared in CircuitSampler shot-based readout"):
-            state = (Plus + Minus) / numpy.sqrt(2)
-            sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
-            self.assertAlmostEqual(sampler.eval(), 1 + 0j)
+            with self.assertWarns(DeprecationWarning):
+                state = (Plus + Minus) / numpy.sqrt(2)
+                sampler = CircuitSampler(q_instance).convert(~StateFn(op) @ state)
+                self.assertAlmostEqual(sampler.eval(), 1 + 0j)
 
     def test_is_measurement_correctly_propagated(self):
         """Test if is_measurement property of StateFn is propagated to converted StateFn."""
@@ -96,10 +100,12 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
         backend = Aer.get_backend("aer_simulator")
-        q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
-        state = Plus
-        sampler = CircuitSampler(q_instance).convert(~state @ state)
-        self.assertTrue(sampler.oplist[0].is_measurement)
+
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(backend)  # no seeds needed since no values are compared
+            state = Plus
+            sampler = CircuitSampler(q_instance).convert(~state @ state)
+            self.assertTrue(sampler.oplist[0].is_measurement)
 
     def test_parameter_binding_on_listop(self):
         """Test passing a ListOp with differing parameters works with the circuit sampler."""
@@ -117,16 +123,17 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         circuit3 = QuantumCircuit(1)
         circuit3.p(y, 0)
 
-        bindings = {x: -0.4, y: 0.4}
-        listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
-
-        sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
-        sampled = sampler.convert(listop, params=bindings)
+        with self.assertWarns(DeprecationWarning):
+            bindings = {x: -0.4, y: 0.4}
+            listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
+            sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
+            sampled = sampler.convert(listop, params=bindings)
 
         self.assertTrue(all(len(op.parameters) == 0 for op in sampled.oplist))
 
     def test_list_op_eval_coeff_with_nonlinear_combofn(self):
         """Test evaluating a ListOp with non-linear combo function works with coefficients."""
+
         state = One
         op = ListOp(5 * [I], coeff=2, combo_fn=numpy.prod)
         expr1 = ~StateFn(op) @ state
@@ -147,11 +154,11 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         x = Parameter("x")
         circuit = QuantumCircuit(1)
         circuit.ry(x, 0)
-        expr = ~StateFn(H) @ StateFn(circuit)
 
-        sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"))
-
-        res = sampler.convert(expr, params={x: 0}).eval()
+        with self.assertWarns(DeprecationWarning):
+            expr = ~StateFn(H) @ StateFn(circuit)
+            sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"))
+            res = sampler.convert(expr, params={x: 0}).eval()
 
         self.assertIsInstance(res, complex)
 
@@ -167,15 +174,17 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         x = Parameter("x")
         circuit = QuantumCircuit(1)
         circuit.ry(x, 0)
-        expr1 = ~StateFn(H) @ StateFn(circuit)
-        expr2 = ~StateFn(X) @ StateFn(circuit)
 
-        sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"), caching=caching)
+        with self.assertWarns(DeprecationWarning):
 
-        res1 = sampler.convert(expr1, params={x: 0}).eval()
-        res2 = sampler.convert(expr2, params={x: 0}).eval()
-        res3 = sampler.convert(expr1, params={x: 0}).eval()
-        res4 = sampler.convert(expr2, params={x: 0}).eval()
+            expr1 = ~StateFn(H) @ StateFn(circuit)
+            expr2 = ~StateFn(X) @ StateFn(circuit)
+            sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"), caching=caching)
+
+            res1 = sampler.convert(expr1, params={x: 0}).eval()
+            res2 = sampler.convert(expr2, params={x: 0}).eval()
+            res3 = sampler.convert(expr1, params={x: 0}).eval()
+            res4 = sampler.convert(expr2, params={x: 0}).eval()
 
         self.assertEqual(res1, res3)
         self.assertEqual(res2, res4)
@@ -201,9 +210,10 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         """
         circuit = QuantumCircuit(1)
         circuit.initialize([0, 1], [0])
-        op = Z
 
+        op = Z
         res = (~StateFn(op) @ StateFn(circuit)).eval()
+
         self.assertAlmostEqual(-1 + 0j, res)
 
     def test_quantum_instance_with_backend_shots(self):
@@ -214,12 +224,15 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
 
         backend = AerSimulator(shots=10)
-        sampler = CircuitSampler(backend)
-        res = sampler.convert(~Plus @ Plus).eval()
+
+        with self.assertWarns(DeprecationWarning):
+            sampler = CircuitSampler(backend)
+            res = sampler.convert(~Plus @ Plus).eval()
         self.assertAlmostEqual(res, 1 + 0j, places=2)
 
     def test_adjoint_vector_to_circuit_fn(self):
         """Test it is possible to adjoint a VectorStateFn that was converted to a CircuitStateFn."""
+
         left = StateFn([0, 1])
         left_circuit = left.to_circuit_op().primitive
 

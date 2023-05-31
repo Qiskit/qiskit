@@ -19,10 +19,11 @@ import warnings
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import library, channels
+from qiskit.pulse import library, channels, instructions
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
+from qiskit.qpy.exceptions import QpyError
 from qiskit.utils import optionals as _optional
 
 if _optional.HAS_SYMENGINE:
@@ -238,6 +239,8 @@ def _loads_operand(type_key, data_bytes, version):
             return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
+    if type_key == type_keys.ScheduleOperand.OPERAND_STR:
+        return data_bytes.decode(common.ENCODE)
 
     return value.loads_value(type_key, data_bytes, version, {})
 
@@ -257,6 +260,24 @@ def _read_element(file_obj, version, metadata_deserializer):
     instance._hash = None
 
     return instance
+
+
+def _loads_reference_item(type_key, data_bytes, version, metadata_deserializer):
+    if type_key == type_keys.Value.NULL:
+        return None
+    if type_key == type_keys.Program.SCHEDULE_BLOCK:
+        return common.data_from_binary(
+            data_bytes,
+            deserializer=read_schedule_block,
+            version=version,
+            metadata_deserializer=metadata_deserializer,
+        )
+
+    raise QpyError(
+        f"Loaded schedule reference item is neither None nor ScheduleBlock. "
+        f"Type key {type_key} is not valid data type for a reference items. "
+        "This data cannot be loaded. Please check QPY version."
+    )
 
 
 def _write_channel(file_obj, data):
@@ -340,6 +361,9 @@ def _dumps_operand(operand):
     elif isinstance(operand, channels.Channel):
         type_key = type_keys.ScheduleOperand.CHANNEL
         data_bytes = common.data_to_binary(operand, _write_channel)
+    elif isinstance(operand, str):
+        type_key = type_keys.ScheduleOperand.OPERAND_STR
+        data_bytes = operand.encode(common.ENCODE)
     else:
         type_key, data_bytes = value.dumps_value(operand)
 
@@ -359,6 +383,20 @@ def _write_element(file_obj, element, metadata_serializer):
             serializer=_dumps_operand,
         )
         value.write_value(file_obj, element.name)
+
+
+def _dumps_reference_item(schedule, metadata_serializer):
+    if schedule is None:
+        type_key = type_keys.Value.NULL
+        data_bytes = b""
+    else:
+        type_key = type_keys.Program.SCHEDULE_BLOCK
+        data_bytes = common.data_to_binary(
+            obj=schedule,
+            serializer=write_schedule_block,
+            metadata_serializer=metadata_serializer,
+        )
+    return type_key, data_bytes
 
 
 def read_schedule_block(file_obj, version, metadata_deserializer=None):
@@ -382,7 +420,6 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         TypeError: If any of the instructions is invalid data format.
         QiskitError: QPY version is earlier than block support.
     """
-
     if version < 5:
         QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
@@ -405,6 +442,22 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
     for _ in range(data.num_elements):
         block_elm = _read_element(file_obj, version, metadata_deserializer)
         block.append(block_elm, inplace=True)
+
+    # Load references
+    if version >= 7:
+        flat_key_refdict = common.read_mapping(
+            file_obj=file_obj,
+            deserializer=_loads_reference_item,
+            version=version,
+            metadata_deserializer=metadata_deserializer,
+        )
+        ref_dict = {}
+        for key_str, schedule in flat_key_refdict.items():
+            if schedule is not None:
+                composite_key = tuple(key_str.split(instructions.Reference.key_delimiter))
+                ref_dict[composite_key] = schedule
+        if ref_dict:
+            block.assign_references(ref_dict, inplace=True)
 
     return block
 
@@ -440,5 +493,20 @@ def write_schedule_block(file_obj, block, metadata_serializer=None):
     file_obj.write(metadata)
 
     _write_alignment_context(file_obj, block.alignment_context)
-    for block_elm in block.blocks:
+    for block_elm in block._blocks:
+        # Do not call block.blocks. This implicitly assigns references to instruction.
+        # This breaks original reference structure.
         _write_element(file_obj, block_elm, metadata_serializer)
+
+    # Write references
+    flat_key_refdict = {}
+    for ref_keys, schedule in block._reference_manager.items():
+        # Do not call block.reference. This returns the reference of most outer program by design.
+        key_str = instructions.Reference.key_delimiter.join(ref_keys)
+        flat_key_refdict[key_str] = schedule
+    common.write_mapping(
+        file_obj=file_obj,
+        mapping=flat_key_refdict,
+        serializer=_dumps_reference_item,
+        metadata_serializer=metadata_serializer,
+    )

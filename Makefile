@@ -12,26 +12,6 @@
 
 OS := $(shell uname -s)
 
-ifeq ($(OS), Linux)
-  NPROCS := $(shell grep -c ^processor /proc/cpuinfo)
-else ifeq ($(OS), Darwin)
-  NPROCS := 2
-else
-  NPROCS := 0
-endif # $(OS)
-
-ifeq ($(NPROCS), 2)
-	CONCURRENCY := 2
-else ifeq ($(NPROCS), 1)
-	CONCURRENCY := 1
-else ifeq ($(NPROCS), 3)
-	CONCURRENCY := 3
-else ifeq ($(NPROCS), 0)
-	CONCURRENCY := 0
-else
-	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{printf "%.0f", $$1 / $$2}')
-endif
-
 .PHONY: default env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
 default: style lint-incr test ;
@@ -87,8 +67,7 @@ pytest_randomized:
 	pytest test/randomized
 
 test_ci:
-	@echo Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers
-	QISKIT_TEST_CAPTURE_STREAMS=1 stestr run --concurrency $(CONCURRENCY)
+	QISKIT_TEST_CAPTURE_STREAMS=1 stestr run
 
 test_randomized:
 	python3 -m unittest discover -s test/randomized -t . -v

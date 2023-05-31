@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,32 +13,34 @@
 """Test the QAOA algorithm."""
 
 import unittest
+from functools import partial
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from functools import partial
 import numpy as np
-
-from scipy.optimize import minimize as scipy_minimize
-from ddt import ddt, idata, unpack
-
 import rustworkx as rx
+from ddt import ddt, idata, unpack
+from scipy.optimize import minimize as scipy_minimize
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import Pauli
-from qiskit.result import QuasiDistribution
 from qiskit.primitives import Sampler
+from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.result import QuasiDistribution
 from qiskit.utils import algorithm_globals
 
-I = PauliSumOp.from_list([("I", 1)])
-X = PauliSumOp.from_list([("X", 1)])
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
 P1 = 1
-M1 = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
+M1 = SparsePauliOp.from_list(
+    [
+        ("IIIX", 1),
+        ("IIXI", 1),
+        ("IXII", 1),
+        ("XIII", 1),
+    ]
+)
 S1 = {"0101", "1010"}
 
 
@@ -81,7 +83,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(w)
 
         qaoa = QAOA(self.sampler, COBYLA(), reps=reps, mixer=mixer)
-
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
@@ -111,7 +112,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         mixer.rx(theta, range(num_qubits))
 
         qaoa = QAOA(self.sampler, optimizer, reps=prob, mixer=mixer)
-
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
@@ -173,7 +173,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 ]
             )
         )
-
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
@@ -199,7 +198,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             initial_point=init_pt,
             callback=cb_callback,
         )
-
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
@@ -261,8 +259,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                     z_p[j] = True
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
                     shift -= 0.5 * weight_matrix[i, j]
-        opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
-        return PauliSumOp.from_list(opflow_list), shift
+        lst = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
+        return SparsePauliOp.from_list(lst), shift
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.

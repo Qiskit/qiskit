@@ -14,12 +14,12 @@
 """Polynomially controlled Pauli-rotations."""
 
 from __future__ import annotations
-import warnings
 
 from itertools import product
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 
@@ -140,7 +140,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     .. math::
 
-        |i\rangle |0\rangle \mapsto \cos(p(i)) |i\rangle |0\rangle + \sin(p(i)) |i\rangle |1\rangle
+        |i\rangle |0\rangle \mapsto \cos\left(\frac{p(i)}{2}\right) |i\rangle |0\rangle
+        + \sin\left(\frac{p(i)}{2}\right) |i\rangle |1\rangle
 
     Let n be the number of qubits representing the state, d the degree of p(x) and q_i the qubits,
     where q_0 is the least significant qubit. Then for
@@ -153,7 +154,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     .. math::
 
-        p(x) = \sum_{j=0}^{j=d} c_j x_j
+        p(x) = \sum_{j=0}^{j=d} c_j x^j
 
     where :math:`c` are the input coefficients, ``coeffs``.
     """
@@ -182,22 +183,32 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     @property
     def coeffs(self) -> list[float]:
-        """The multiplicative factor in the rotation angle of the controlled rotations.
+        """The coefficients of the polynomial.
 
-        The rotation angles are ``slope * 2^0``, ``slope * 2^1``, ... , ``slope * 2^(n-1)`` where
-        ``n`` is the number of state qubits.
+        ``coeffs[i]`` is the coefficient of the i-th power of the function input :math:`x`,
+        that means that the rotation angles are based on the coefficients value,
+        following the formula
+
+        .. math::
+
+            c_j x^j ,  j=0, ..., d
+
+        where :math:`d` is the degree of the polynomial :math:`p(x)` and :math:`c` are the coefficients
+        ``coeffs``.
 
         Returns:
-            The rotation angle common in all controlled rotations.
+            The coefficients of the polynomial.
         """
         return self._coeffs
 
     @coeffs.setter
     def coeffs(self, coeffs: list[float]) -> None:
-        """Set the multiplicative factor of the rotation angles.
+        """Set the coefficients of the polynomial.
+
+        ``coeffs[i]`` is the coefficient of the i-th power of x.
 
         Args:
-            The slope of the rotation angles.
+            The coefficients of the polynomial.
         """
         self._invalidate()
         self._coeffs = coeffs
@@ -214,15 +225,13 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return 0
 
     @property
+    @deprecate_func(
+        is_property=True,
+        since="0.16.0",
+        additional_msg="Instead, use the property :attr:`~num_ancillas`.",
+    )
     def num_ancilla_qubits(self):
         """Deprecated. Use num_ancillas instead."""
-        warnings.warn(
-            "The PolynomialPauliRotations.num_ancilla_qubits property is deprecated "
-            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
-            "date. You should use the num_ancillas property instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):

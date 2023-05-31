@@ -36,7 +36,8 @@ class TestBIPMapping(QiskitTestCase):
         """Returns the original circuit if the circuit is empty."""
         coupling = CouplingMap([[0, 1]])
         circuit = QuantumCircuit(2)
-        actual = BIPMapping(coupling)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit)
         self.assertEqual(circuit, actual)
 
     def test_no_two_qubit_gates(self):
@@ -49,8 +50,8 @@ class TestBIPMapping(QiskitTestCase):
 
         circuit = QuantumCircuit(2)
         circuit.h(0)
-
-        actual = BIPMapping(coupling)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit)
 
         self.assertEqual(circuit, actual)
 
@@ -70,7 +71,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit.h(0)
         circuit.cx(2, 0)
 
-        actual = BIPMapping(coupling)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit)
         self.assertEqual(3, len(actual))
         for inst, _, _ in actual.data:  # there are no swaps
             self.assertFalse(isinstance(inst, SwapGate))
@@ -82,7 +84,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.cx(1, 2)
 
-        actual = BIPMapping(coupling)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit)
 
         q = QuantumRegister(3, name="q")
         expected = QuantumCircuit(q)
@@ -98,7 +101,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit.cx(1, 2)
 
         property_set = {"layout": Layout.generate_trivial_layout(*circuit.qubits)}
-        actual = BIPMapping(coupling)(circuit, property_set)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit, property_set)
 
         q = QuantumRegister(3, name="q")
         expected = QuantumCircuit(q)
@@ -117,7 +121,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
         circuit.measure(qr[2], cr[1])
 
-        actual = BIPMapping(coupling)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit)
 
         q = QuantumRegister(3, "q")
         expected = QuantumCircuit(q, cr)
@@ -139,7 +144,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
         circuit.measure(qr[2], cr[1])
 
-        actual = BIPMapping(target)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(target)(circuit)
 
         q = QuantumRegister(3, "q")
         expected = QuantumCircuit(q, cr)
@@ -162,8 +168,9 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(2, 1)
         dag = circuit_to_dag(circuit)
 
-        mapped_dag = BIPMapping(coupling).run(dag)
-        remapped_dag = BIPMapping(coupling).run(mapped_dag)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            mapped_dag = BIPMapping(coupling).run(dag)
+            remapped_dag = BIPMapping(coupling).run(mapped_dag)
 
         self.assertEqual(mapped_dag, remapped_dag)
 
@@ -177,7 +184,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
 
         property_set = {}
-        actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
         self.assertEqual(2, actual.depth())
 
         CheckMap(coupling)(actual, property_set)
@@ -194,7 +202,8 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(qr, cr)
 
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])  # {0: [1], 1: [2, 3]}
-        actual = BIPMapping(coupling)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling)(circuit)
 
         # Fails to map and returns the original circuit
         self.assertEqual(circuit, actual)
@@ -233,7 +242,8 @@ class TestBIPMapping(QiskitTestCase):
 
         coupling = CouplingMap([[0, 1], [0, 2], [2, 3]])  # linear [1, 0, 2, 3]
         property_set = {}
-        actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
         self.assertEqual(5, actual.depth())
 
         CheckMap(coupling)(actual, property_set)
@@ -264,7 +274,8 @@ class TestBIPMapping(QiskitTestCase):
 
         coupling = CouplingMap.from_line(4)
         property_set = {}
-        actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling, objective="depth")(circuit, property_set)
         self.assertEqual(7, actual.depth())
 
         CheckMap(coupling)(actual, property_set)
@@ -295,7 +306,8 @@ class TestBIPMapping(QiskitTestCase):
 
         coupling = CouplingMap.from_line(5)
         with self.assertRaises(TranspilerError):
-            BIPMapping(coupling)(circuit)
+            with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+                BIPMapping(coupling)(circuit)
 
     def test_qubit_subset(self):
         """Test if `qubit_subset` option works as expected."""
@@ -306,7 +318,8 @@ class TestBIPMapping(QiskitTestCase):
 
         coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
         qubit_subset = [0, 1, 3]
-        actual = BIPMapping(coupling, qubit_subset=qubit_subset)(circuit)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            actual = BIPMapping(coupling, qubit_subset=qubit_subset)(circuit)
         # all used qubits are in qubit_subset
         bit_indices = {bit: index for index, bit in enumerate(actual.qubits)}
         for _, qargs, _ in actual.data:
@@ -323,7 +336,8 @@ class TestBIPMapping(QiskitTestCase):
 
         coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
         with self.assertRaises(TranspilerError):
-            BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
+            with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+                BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
 
     def test_objective_function(self):
         """Test if ``objective`` functions prioritize metrics correctly."""
@@ -345,13 +359,15 @@ class TestBIPMapping(QiskitTestCase):
         qc.dcx(0, 1)
         qc.cx(2, 3)
         coupling = CouplingMap(FakeLima().configuration().coupling_map)
-        dep_opt = BIPMapping(coupling, objective="depth", qubit_subset=[0, 1, 3, 4])(qc)
-        err_opt = BIPMapping(
-            coupling,
-            objective="gate_error",
-            qubit_subset=[0, 1, 3, 4],
-            backend_prop=FakeLima().properties(),
-        )(qc)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            dep_opt = BIPMapping(coupling, objective="depth", qubit_subset=[0, 1, 3, 4])(qc)
+        with self.assertWarnsRegex(DeprecationWarning, r"^The class.*is deprecated"):
+            err_opt = BIPMapping(
+                coupling,
+                objective="gate_error",
+                qubit_subset=[0, 1, 3, 4],
+                backend_prop=FakeLima().properties(),
+            )(qc)
         # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
         pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx", "u"])])
         dep_opt = pm_.run(dep_opt)
