@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Changed :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters` to bind
+    Changed :meth:`.QuantumCircuit.assign_parameters` to bind
     assigned integer and float values directly into the parameters of
     :class:`~qiskit.circuit.Instruction` instances in the circuit rather than
     binding those values wrapped within a :class:`~qiskit.circuit.Parameter`.
