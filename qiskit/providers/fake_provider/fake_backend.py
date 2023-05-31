@@ -331,21 +331,28 @@ class FakeBackendV2(BackendV2):
             installed.
         """
 
-        # Assert that the QauntumCircuit number of qubits and gates are supported by the backend.
-        if type(run_input) == QuantumCircuit:
-
-            supported_qubits = self.conf_filename['n_qubits']
-            requested_qubits = run_input.num_qubit
-
-            if  supported_qubits < requested_qubits :
-                # Number of Qubits Error
-                real_backend = self.conf_filename["backend_name"]
-                raise QiskitError("The provided QuantunCircuit was implemented with " + str(requested_qubits)   + " the requested backend " + real_backend + " only supports " +  str(supported_qubits) + ".")
-
-
-
         circuits = run_input
         pulse_job = None
+
+        # Assert that the QuantumCircuit number of qubits and gates are supported by the backend.
+        if isinstance(circuits, circuit.QuantumCircuit):
+
+            supported_qubits = self._conf_dict["n_qubits"]
+            requested_qubits = circuits.num_qubits()
+
+            if supported_qubits < requested_qubits:
+                # Number of Qubits Error
+                raise QiskitError(f"The provided QuantumCircuit was implemented with {str(requested_qubits)} but the requested {self.backend_name} backend only supports {str(supported_qubits)}.")
+            
+            # Get dict of operations
+            ops_dict = dict(circuits.count_ops())
+            supported_gates = self._conf_dict["basis_gates"]
+            # Check if gates used in circuit are supported by backend
+            if any((x not in supported_gates) for x in ops_dict.keys()):
+                raise QiskitError(f"The provided QuantumCircuit was implemented with gates unsupported on {str(self.backend_name)} backend. Supported gates are {str(supported_gates)}.")
+
+
+
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
             pulse_job = True
         elif isinstance(circuits, circuit.QuantumCircuit):
