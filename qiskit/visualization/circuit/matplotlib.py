@@ -242,8 +242,6 @@ class MatplotlibDrawer:
         # If font/subfont ratio changes from default, have to scale width calculations for
         # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
         self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
-        self._fs = self._style["fs"]
-        self._sfs = self._style["sfs"]
 
         # if no user ax, setup default figure. Else use the user figure.
         if self._ax is None:
@@ -253,8 +251,7 @@ class MatplotlibDrawer:
             self._ax = self._figure.add_subplot(111)
         else:
             self._user_ax = True
-            self._ax = ax
-            self._figure = ax.get_figure()
+            self._figure = self._ax.get_figure()
         self._ax.axis("off")
         self._ax.set_aspect("equal")
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
@@ -310,7 +307,7 @@ class MatplotlibDrawer:
         self._ax.set_ylim(yb, yt)
 
         # update figure size and, for backward compatibility,
-        # need to scale by a default value equal to (self._fs * 3.01 / 72 / 0.65)
+        # need to scale by a default value equal to (self._style["fs"] * 3.01 / 72 / 0.65)
         base_fig_w = (xr - xl) * 0.8361111
         base_fig_h = (yt - yb) * 0.8361111
         scale = self._scale
@@ -338,8 +335,8 @@ class MatplotlibDrawer:
 
         # drawing will scale with 'set_size_inches', but fonts and linewidths do not
         if scale != 1.0:
-            self._fs *= scale
-            self._sfs *= scale
+            self._style["fs"] *= scale
+            self._style["sfs"] *= scale
             self._lwidth1 = 1.0 * scale
             self._lwidth15 = 1.5 * scale
             self._lwidth2 = 2.0 * scale
@@ -412,7 +409,7 @@ class MatplotlibDrawer:
 
                 # small increments at end of the 3 _get_text_width calls are for small
                 # spacing adjustments between gates
-                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._sfs) - 0.05
+                ctrl_width = self._get_text_width(ctrl_text, fontsize=self._style["sfs"]) - 0.05
 
                 # get param_width, but 0 for gates with array params
                 if (
@@ -425,7 +422,7 @@ class MatplotlibDrawer:
                         param_text = f"$[{param_text.replace('$', '')}]$"
                     node_data[node]["param_text"] = param_text
                     raw_param_width = self._get_text_width(
-                        param_text, fontsize=self._sfs, param=True
+                        param_text, fontsize=self._style["sfs"], param=True
                     )
                     param_width = raw_param_width + 0.08
                 else:
@@ -436,14 +433,14 @@ class MatplotlibDrawer:
                     if isinstance(base_type, PhaseGate):
                         gate_text = "P"
                     raw_gate_width = (
-                        self._get_text_width(gate_text + " ()", fontsize=self._sfs)
+                        self._get_text_width(gate_text + " ()", fontsize=self._style["sfs"])
                         + raw_param_width
                     )
                     gate_width = (raw_gate_width + 0.08) * 1.58
 
                 # Otherwise, standard gate or multiqubit gate
                 else:
-                    raw_gate_width = self._get_text_width(gate_text, fontsize=self._fs)
+                    raw_gate_width = self._get_text_width(gate_text, fontsize=self._style["fs"])
                     gate_width = raw_gate_width + 0.10
                     # add .21 for the qubit numbers on the left of the multibit gates
                     if len(node.qargs) - num_ctrl_qubits > 1:
@@ -497,7 +494,7 @@ class MatplotlibDrawer:
             )
             reg_remove_under = 0 if reg_size < 2 else 1
             text_width = (
-                self._get_text_width(wire_label, self._fs, reg_remove_under=reg_remove_under) * 1.15
+                self._get_text_width(wire_label, self._style["fs"], reg_remove_under=reg_remove_under) * 1.15
             )
             if text_width > longest_wire_label_width:
                 longest_wire_label_width = text_width
@@ -621,7 +618,7 @@ class MatplotlibDrawer:
         if param:
             text = text.replace("-", "+")
 
-        f = 0 if fontsize == self._fs else 1
+        f = 0 if fontsize == self._style["fs"] else 1
         sum_text = 0.0
         for c in text:
             try:
@@ -647,7 +644,7 @@ class MatplotlibDrawer:
                     qubit_label,
                     ha="right",
                     va="center",
-                    fontsize=1.25 * self._fs,
+                    fontsize=1.25 * self._style["fs"],
                     color=self._style["tc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -683,7 +680,7 @@ class MatplotlibDrawer:
                         str(this_clbit["register"].size),
                         ha="left",
                         va="bottom",
-                        fontsize=0.8 * self._fs,
+                        fontsize=0.8 * self._style["fs"],
                         color=self._style["tc"],
                         clip_on=True,
                         zorder=PORDER_TEXT,
@@ -694,7 +691,7 @@ class MatplotlibDrawer:
                     this_clbit["wire_label"],
                     ha="right",
                     va="center",
-                    fontsize=1.25 * self._fs,
+                    fontsize=1.25 * self._style["fs"],
                     color=self._style["tc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -748,7 +745,7 @@ class MatplotlibDrawer:
                     str(layer_num + 1),
                     ha="center",
                     va="center",
-                    fontsize=self._sfs,
+                    fontsize=self._style["sfs"],
                     color=self._style["tc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -931,7 +928,7 @@ class MatplotlibDrawer:
             label,
             ha="center",
             va="top",
-            fontsize=self._sfs,
+            fontsize=self._style["sfs"],
             color=self._style["tc"],
             clip_on=True,
             zorder=PORDER_TEXT,
@@ -992,7 +989,7 @@ class MatplotlibDrawer:
                 str(reg_index),
                 ha="left",
                 va="bottom",
-                fontsize=0.8 * self._fs,
+                fontsize=0.8 * self._style["fs"],
                 color=self._style["tc"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
@@ -1036,7 +1033,7 @@ class MatplotlibDrawer:
                     node.op.label,
                     ha="center",
                     va="top",
-                    fontsize=self._fs,
+                    fontsize=self._style["fs"],
                     color=node_data[node]["tc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -1070,7 +1067,7 @@ class MatplotlibDrawer:
                     node_data[node]["param_text"],
                     ha="center",
                     va="center",
-                    fontsize=self._sfs,
+                    fontsize=self._style["sfs"],
                     color=node_data[node]["sc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -1081,7 +1078,7 @@ class MatplotlibDrawer:
                 node_data[node]["gate_text"],
                 ha="center",
                 va="center",
-                fontsize=self._fs,
+                fontsize=self._style["fs"],
                 color=node_data[node]["gt"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
@@ -1136,7 +1133,7 @@ class MatplotlibDrawer:
                 str(bit),
                 ha="left",
                 va="center",
-                fontsize=self._fs,
+                fontsize=self._style["fs"],
                 color=node_data[node]["gt"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
@@ -1150,7 +1147,7 @@ class MatplotlibDrawer:
                     str(bit),
                     ha="left",
                     va="center",
-                    fontsize=self._fs,
+                    fontsize=self._style["fs"],
                     color=node_data[node]["gt"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -1165,7 +1162,7 @@ class MatplotlibDrawer:
                     node_data[node]["param_text"],
                     ha="center",
                     va="center",
-                    fontsize=self._sfs,
+                    fontsize=self._style["sfs"],
                     color=node_data[node]["sc"],
                     clip_on=True,
                     zorder=PORDER_TEXT,
@@ -1176,7 +1173,7 @@ class MatplotlibDrawer:
                 node_data[node]["gate_text"],
                 ha="center",
                 va="center",
-                fontsize=self._fs,
+                fontsize=self._style["fs"],
                 color=node_data[node]["gt"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
@@ -1276,7 +1273,7 @@ class MatplotlibDrawer:
             text,
             ha="center",
             va="top",
-            fontsize=self._sfs,
+            fontsize=self._style["sfs"],
             color=tc,
             clip_on=True,
             zorder=PORDER_TEXT,
@@ -1400,7 +1397,7 @@ class MatplotlibDrawer:
             text,
             ha="center",
             va="top",
-            fontsize=self._sfs,
+            fontsize=self._style["sfs"],
             color=tc,
             clip_on=True,
             zorder=PORDER_TEXT,
