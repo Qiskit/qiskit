@@ -40,7 +40,7 @@ pub struct ErrorMap {
 #[pymethods]
 impl ErrorMap {
     #[new]
-    #[pyo3(text_signature = "(num_qubits, num_edges, /")]
+    #[pyo3(text_signature = "(/, size=None)")]
     fn new(size: Option<usize>) -> Self {
         match size {
             Some(size) => ErrorMap {

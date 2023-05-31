@@ -35,7 +35,7 @@ pub struct NeighborTable {
 #[pymethods]
 impl NeighborTable {
     #[new]
-    #[pyo3(text_signature = "(/)")]
+    #[pyo3(text_signature = "(/, adjacency_matrix=None)")]
     pub fn new(adjacency_matrix: Option<PyReadonlyArray2<f64>>) -> Self {
         let run_in_parallel = getenv_use_multiple_threads();
         let neighbors = match adjacency_matrix {
