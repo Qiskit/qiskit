@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed an failure that attributes of :class:`.BackendV2` backends cannot be called
+    by introducing dispatching with backends in a builder.
