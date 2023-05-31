@@ -19,7 +19,7 @@ import random
 
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, pulse
 from qiskit.circuit import CASE_DEFAULT
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
@@ -273,6 +273,39 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_bound_calibration_parameter(self):
+        """Test a circuit with a bound calibration parameter is correctly serialized.
+
+        In particular, this test ensures that parameters on a circuit
+        instruction are consistent with the circuit's calibrations dictionary
+        after serialization.
+        """
+        amp = Parameter("amp")
+
+        with pulse.builder.build() as sched:
+            pulse.builder.play(pulse.Constant(100, amp), pulse.DriveChannel(0))
+
+        gate = Gate("custom", 1, [amp])
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, (0,))
+        qc.add_calibration(gate, (0,), sched)
+        qc.assign_parameters({amp: 1/3}, inplace=True)
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        instruction = new_circ.data[0]
+        cal_key = (
+            tuple(new_circ.find_bit(q).index for q in instruction.qubits),
+            tuple(instruction.operation.params),
+        )
+        # Make sure that looking for a calibration based on the instruction's
+        # parameters succeeds
+        self.assertTrue(cal_key in new_circ.calibrations[gate.name])
 
     def test_parameter_expression(self):
         """Test a circuit with a parameter expression."""
