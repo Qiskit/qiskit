@@ -84,12 +84,6 @@ class MatplotlibDrawer:
         cregbundle=None,
         with_layout=False,
     ):
-        from matplotlib import patches
-        from matplotlib import pyplot as plt
-
-        self._patches_mod = patches
-        self._plt_mod = plt
-
         self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
@@ -97,11 +91,7 @@ class MatplotlibDrawer:
         self._flow_parent = None
         self._scale = 1.0 if scale is None else scale
 
-        self._style, def_font_ratio = load_style(style)
-
-        # If font/subfont ratio changes from default, have to scale width calculations for
-        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
-        self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
+        self._style = style
 
         self._plot_barriers = plot_barriers
         self._reverse_bits = reverse_bits
@@ -117,18 +107,7 @@ class MatplotlibDrawer:
         if self._fold < 2:
             self._fold = -1
 
-        if ax is None:
-            self._user_ax = False
-            self._figure = plt.figure()
-            self._figure.patch.set_facecolor(color=self._style["bg"])
-            self._ax = self._figure.add_subplot(111)
-        else:
-            self._user_ax = True
-            self._ax = ax
-            self._figure = ax.get_figure()
-        self._ax.axis("off")
-        self._ax.set_aspect("equal")
-        self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        self._ax = ax
 
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
@@ -148,12 +127,11 @@ class MatplotlibDrawer:
         else:
             self._cregbundle = True if cregbundle is None else cregbundle
 
-        self._fs = self._style["fs"]
-        self._sfs = self._style["sfs"]
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
         self._lwidth2 = 2.0
         self._lwidth3 = 3.0
+        self._lwidth4 = 4.0
 
         # Class instances of MatplotlibDrawer for each flow gate - If/Else, For, While, Switch
         self._flow_drawers = {}
@@ -260,6 +238,33 @@ class MatplotlibDrawer:
         """Main entry point to 'matplotlib' ('mpl') drawer. Called from
         ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
         """
+        from matplotlib import patches
+        from matplotlib import pyplot as plt
+
+        self._patches_mod = patches
+        self._plt_mod = plt
+
+        self._style, def_font_ratio = load_style(self._style)
+
+        # If font/subfont ratio changes from default, have to scale width calculations for
+        # subfont. Font change is auto scaled in the self._figure.set_size_inches call in draw()
+        self._subfont_factor = self._style["sfs"] * def_font_ratio / self._style["fs"]
+        self._fs = self._style["fs"]
+        self._sfs = self._style["sfs"]
+
+        if self._ax is None:
+            self._user_ax = False
+            self._figure = plt.figure()
+            self._figure.patch.set_facecolor(color=self._style["bg"])
+            self._ax = self._figure.add_subplot(111)
+        else:
+            self._user_ax = True
+            self._ax = ax
+            self._figure = ax.get_figure()
+        self._ax.axis("off")
+        self._ax.set_aspect("equal")
+        self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+
         # All information for the drawing is first loaded into node_data for the gates and into
         # qubits_dict, clbits_dict, and wire_map for the qubits, clbits, and wires,
         # followed by the coordinates for each gate.
@@ -1389,7 +1394,7 @@ class MatplotlibDrawer:
                 boxstyle="round, pad=0.1",
                 fc="none",
                 ec=colors[node_data[node]["if_depth"] % 4],
-                linewidth=3.0,
+                linewidth=self._lwidth3,
                 zorder=PORDER_FLOW,
             )
             self._ax.add_patch(box)
@@ -1437,7 +1442,7 @@ class MatplotlibDrawer:
                     boxstyle="round, pad=0.1",
                     fc="none",
                     ec=self._style["bg"],
-                    linewidth=4.0,
+                    linewidth=self._lwidth4,
                     zorder=PORDER_FLOW,
                 )
                 self._ax.add_patch(box)
