@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the output of :func:`~qiskit.pulse.macros.measure` with :class:`.BackendV2` backends.
+    Also modified a failure of in :func:`~qiskit.pulse.macros.measure_all`.
+
+
