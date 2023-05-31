@@ -25,7 +25,7 @@ author = "Qiskit Development Team"
 # The short X.Y version
 version = "0.24"
 # The full version, including alpha/beta/rc tags
-release = "0.24.0"
+release = "0.24.1"
 
 extensions = [
     "sphinx.ext.napoleon",
