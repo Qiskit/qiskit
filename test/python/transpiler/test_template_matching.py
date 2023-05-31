@@ -657,7 +657,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertEqual(circuit_out, expected)
 
-    def test_issue_6974(self):
+    def test_template_match_subcircuit(self):
         """Test that the template matching works and correctly replaces a template if there is a
         naming clash between it and the circuit.  This should include binding a partial match with a
         parameter.**rzx_templates.rzx_templates()"""
