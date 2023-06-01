@@ -291,7 +291,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(gate, (0,))
         qc.add_calibration(gate, (0,), sched)
-        qc.assign_parameters({amp: 1/3}, inplace=True)
+        qc.assign_parameters({amp: 1 / 3}, inplace=True)
 
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
