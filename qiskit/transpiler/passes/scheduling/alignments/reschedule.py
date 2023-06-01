@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Rescheduler pass to adjust node start times."""
-
-from typing import List
+from __future__ import annotations
+from collections.abc import Generator
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.delay import Delay
@@ -79,7 +79,7 @@ class ConstrainedReschedule(AnalysisPass):
         self.pulse_align = pulse_alignment
 
     @classmethod
-    def _get_next_gate(cls, dag: DAGCircuit, node: DAGOpNode) -> List[DAGOpNode]:
+    def _get_next_gate(cls, dag: DAGCircuit, node: DAGOpNode) -> Generator[DAGOpNode, None, None]:
         """Get next non-delay nodes.
 
         Args:
