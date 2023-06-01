@@ -50,6 +50,7 @@ from qiskit.circuit.library import (
     IGate,
     CXGate,
     RZGate,
+    RXGate,
     SXGate,
     XGate,
     iSwapGate,
@@ -913,6 +914,21 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
+
+    def test_parameterized_basis_gate_in_target(self):
+        """Test synthesis with parameterized RXX gate."""
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(RZGate(lam))
+        target.add_instruction(RXGate(theta))
+        target.add_instruction(RXXGate(theta))
+        qc = QuantumCircuit(2)
+        qc.cp(np.pi / 2, 0, 1)
+        qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
 
 if __name__ == "__main__":
