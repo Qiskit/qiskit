@@ -16,10 +16,12 @@ from math import pi, erf
 
 import numpy as np
 from ddt import data, ddt
+from qiskit.converters import circuit_to_dag
 
-from qiskit import circuit, schedule
+from qiskit import circuit, schedule, QiskitError
 from qiskit.circuit.library.standard_gates import SXGate, RZGate
 from qiskit.providers.fake_provider import FakeHanoi  # TODO - include FakeHanoiV2, FakeSherbrooke
+from qiskit.providers.fake_provider import FakeArmonk
 from qiskit.pulse import (
     ControlChannel,
     DriveChannel,
@@ -246,6 +248,24 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         self.assertEqual(
             test_sched.duration, self.compute_stretch_duration(self.d1p_play(cr_schedule), theta)
         )
+
+    def test_raise(self):
+        """Test that the correct error is raised."""
+        theta = np.pi / 4
+
+        qc = circuit.QuantumCircuit(2)
+        qc.rzx(theta, 0, 1)
+        dag = circuit_to_dag(qc)
+
+        backend = FakeArmonk()
+        inst_map = backend.defaults().instruction_schedule_map
+        _pass = RZXCalibrationBuilder(inst_map)
+
+        qubit_map = {qubit: i for i, qubit in enumerate(dag.qubits)}
+        with self.assertRaises(QiskitError):
+            for node in dag.gate_nodes():
+                qubits = [qubit_map[q] for q in node.qargs]
+                _pass.get_calibration(node.op, qubits)
 
     def test_ecr_cx_forward(self):
         """Test that correct pulse sequence is generated for native CR pair."""
