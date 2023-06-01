@@ -469,7 +469,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "  rx(0.5) _gate_q_0;",
                 "}",
                 f"gate {circuit_name_1} _gate_q_0 {{",
-                "  rx(1) _gate_q_0;",
+                "  rx(1.0) _gate_q_0;",
                 "}",
                 "qubit[1] _all_qubits;",
                 "let q = _all_qubits[0:0];",
