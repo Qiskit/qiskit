@@ -348,10 +348,10 @@ class TestParameters(QiskitTestCase):
 
     @named_data(
         ["int", 2, int],
-        ["float", 2.1, float],
-        ["float16", numpy.float16(2.1), float],
-        ["float32", numpy.float32(2.1), float],
-        ["float64", numpy.float64(2.1), float],
+        ["float", 2.5, float],
+        ["float16", numpy.float16(2.5), float],
+        ["float32", numpy.float32(2.5), float],
+        ["float64", numpy.float64(2.5), float],
     )
     def test_circuit_assignment_to_numeric(self, value, type_):
         """Test binding a numeric value to a circuit instruction"""
@@ -361,7 +361,7 @@ class TestParameters(QiskitTestCase):
         qc.assign_parameters({x: value}, inplace=True)
         bound = qc.data[0].operation.params[0]
         self.assertIsInstance(bound, type_)
-        self.assertAlmostEqual(bound, value, delta=1e-4)
+        self.assertEqual(bound, value)
 
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
