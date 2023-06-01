@@ -1,4 +1,4 @@
 ---
 fixes:
   - Fix a bug in :class:`~.RZXCalibrationBuilder` where calling calibration with wrong parameters
-    would crash instead of raising exception.
+    would crash instead of raising an exception.
