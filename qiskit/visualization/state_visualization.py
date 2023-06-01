@@ -24,6 +24,7 @@ import colorsys
 import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
@@ -1430,7 +1431,7 @@ class TextMatrix:
             dimstr += " " * len(self.prefix)
             if isinstance(self.state, (Statevector,DensityMatrix)):
                 dimstr += f"dims={self.state._op_shape.dims_l()}"
-            else:
+            elif isinstance(self.state, Operator):
                 dimstr += f"input_dims={self.state.input_dims()}, "
                 dimstr += f"output_dims={self.state.output_dims()}"
 

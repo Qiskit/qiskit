@@ -144,7 +144,7 @@ class Operator(LinearOp):
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Operator.
 
-        **repr**: ASCII TextMatrix of the state's ``__repr__``.
+        **repr**: String of the state's ``__repr__``.
 
         **text**: ASCII TextMatrix that can be printed in the console.
 
