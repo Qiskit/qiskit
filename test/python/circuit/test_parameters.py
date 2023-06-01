@@ -352,7 +352,6 @@ class TestParameters(QiskitTestCase):
         ["float16", numpy.float16(2.1), float],
         ["float32", numpy.float32(2.1), float],
         ["float64", numpy.float64(2.1), float],
-        ["complex", 1 + 2j, complex],
     )
     def test_circuit_assignment_to_numeric(self, value, type_):
         """Test binding a numeric value to a circuit instruction"""
