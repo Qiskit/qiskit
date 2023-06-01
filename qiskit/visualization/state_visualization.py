@@ -1403,7 +1403,7 @@ class TextMatrix:
         self.state = state
         self.max_size = max_size
         if dims is None:  # show dims if state is not only qubits
-            if set(state.dims()) == {2}:
+            if isinstance(state, (Statevector,DensityMatrix)) and set(state.dims()) == {2}:
                 dims = False
             else:
                 dims = True
@@ -1428,7 +1428,12 @@ class TextMatrix:
         if self.dims:
             data += ",\n"
             dimstr += " " * len(self.prefix)
-            dimstr += f"dims={self.state._op_shape.dims_l()}"
+            if isinstance(self.state, (Statevector,DensityMatrix)):
+                dimstr += f"dims={self.state._op_shape.dims_l()}"
+            else:
+                dimstr += f"input_dims={self.state.input_dims()}, "
+                dimstr += f"output_dims={self.state.output_dims()}"
+
         return self.prefix + data + dimstr + self.suffix
 
     def __repr__(self):

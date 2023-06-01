@@ -166,7 +166,6 @@ class Operator(LinearOp):
 
         """
         from qiskit.visualization import array_to_latex
-        from qiskit.visualization.state_visualization import TextMatrix
 
         default_output = "repr"
         if output is None:
@@ -178,7 +177,8 @@ class Operator(LinearOp):
             return self.__repr__()
 
         if output == "text":
-            return TextMatrix(self,dims=True, **drawer_args)
+            from qiskit.visualization.state_visualization import TextMatrix
+            return TextMatrix(self, dims=True, **drawer_args)
 
         if output == "latex":
             return array_to_latex(self, **drawer_args)
