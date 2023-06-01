@@ -305,7 +305,7 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         # Make sure that looking for a calibration based on the instruction's
         # parameters succeeds
-        self.assertTrue(cal_key in new_circ.calibrations[gate.name])
+        self.assertIn(cal_key, new_circ.calibrations[gate.name])
 
     def test_parameter_expression(self):
         """Test a circuit with a parameter expression."""

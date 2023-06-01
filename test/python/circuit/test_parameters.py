@@ -421,7 +421,7 @@ class TestParameters(QiskitTestCase):
                 fbqc = getattr(pqc, assign_fun)({phi: 1.0})
 
                 self.assertEqual(fbqc.parameters, set())
-                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], float))
+                self.assertIsInstance(fbqc.data[0].operation.params[0], float)
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 3)
 
     def test_two_parameter_expression_binding(self):
@@ -465,7 +465,7 @@ class TestParameters(QiskitTestCase):
                 fbqc = getattr(pqc, assign_fun)({phi: 1})
 
                 self.assertEqual(fbqc.parameters, set())
-                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], int))
+                self.assertIsInstance(fbqc.data[0].operation.params[0], int)
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
 
     def test_raise_if_assigning_params_not_in_circuit(self):
@@ -529,7 +529,7 @@ class TestParameters(QiskitTestCase):
         )
         self.assertEqual(cal_key, ((0,), (3.14,)))
         # Make sure that key from instruction data matches the calibrations dictionary
-        self.assertTrue(cal_key in circ.calibrations["rxt"])
+        self.assertIn(cal_key, circ.calibrations["rxt"])
         sched = circ.calibrations["rxt"][cal_key]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
 
@@ -579,7 +579,7 @@ class TestParameters(QiskitTestCase):
         )
         self.assertEqual(cal_key, ((0,), (3.14 / 2, 4)))
         # Make sure that key from instruction data matches the calibrations dictionary
-        self.assertTrue(cal_key in circ.calibrations["rxt"])
+        self.assertIn(cal_key, circ.calibrations["rxt"])
         sched = circ.calibrations["rxt"][cal_key]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
         self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
