@@ -21,7 +21,7 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import ControlledGate, Measure, IfElseOp
+from qiskit.circuit import ControlledGate, Measure, ControlFlowOp, WhileLoopOp, IfElseOp
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -386,7 +386,7 @@ class MatplotlibDrawer:
         the wire_map if not already there.
         """
         for flow_drawer in self._flow_drawers.values():
-            for i in range(0, 2):
+            for i in range(0, len(flow_drawer)):
                 if flow_drawer[i] is None:
                     continue
                 inner_wire_map = {
@@ -476,14 +476,14 @@ class MatplotlibDrawer:
                     )
                     gate_width = (raw_gate_width + 0.08) * 1.58
 
-                # Check if an IfElseOp - node_data load for these gates is done here
-                elif isinstance(node.op, IfElseOp):
+                # Check if a ControlFlowOp - node_data load for these gates is done here
+                elif isinstance(node.op, ControlFlowOp):
                     self._flow_drawers[node] = []
                     node_data[node]["width"] = []
                     node_data[node]["if_depth"] = 0
                     gate_width = 0.0
 
-                    # params[0] holds circuit for if, params[1] holds circuit for else
+                    # params[0] holds circuit for if or while, params[1] holds circuit for else
                     for k, circuit in enumerate(node.op.params):
                         raw_gate_width = 0.0
                         if circuit is None:  # No else
@@ -491,13 +491,13 @@ class MatplotlibDrawer:
                             node_data[node]["width"].append(0.0)
                             break
 
-                        # Depth of nested if/else used for color of box
+                        # Depth of nested ControlFlowOp used for color of box
                         if self._flow_parent is not None:
                             node_data[node]["if_depth"] = (
                                 node_data[self._flow_parent]["if_depth"] + 1
                             )
                         # Get the layered node lists and instantiate a new drawer class for
-                        # the circuit inside the if or else.
+                        # the circuit inside the if, else, or while.
                         qubits, clbits, nodes = _get_layered_instructions(circuit)
                         flow_drawer = MatplotlibDrawer(
                             qubits,
@@ -514,7 +514,7 @@ class MatplotlibDrawer:
                         # flow_parent is the parent of the new class instance
                         flow_drawer._flow_parent = node
 
-                        # Recursively call _get_layer_widths for the circuit inside the if/else
+                        # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
                         layer_widths.update(flow_widths)
 
@@ -544,7 +544,7 @@ class MatplotlibDrawer:
                 box_width = max(gate_width, ctrl_width, param_width, WID)
                 if box_width > widest_box:
                     widest_box = box_width
-                if not isinstance(node.op, IfElseOp):
+                if not isinstance(node.op, ControlFlowOp):
                     node_data[node]["width"] = max(raw_gate_width, raw_param_width)
             for node in layer:
                 layer_widths[node][0] = int(widest_box) + 1
@@ -635,7 +635,7 @@ class MatplotlibDrawer:
         clbits_dict,
         glob_data,
         flow_parent=None,
-        is_if=None,
+        is_if_while=None,
     ):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
@@ -644,13 +644,13 @@ class MatplotlibDrawer:
             curr_x_index = prev_x_index + 1
             l_width = []
             for node in layer:
-                # For gates inside if/else, set the x_index and increment by if width
-                # if it's an else
+                # For gates inside if, else, or while, set the x_index and if it's an else,
+                # increment by if width
                 if flow_parent is not None:
                     node_data[node]["x_index"] = (
                         node_data[flow_parent]["x_index"] + curr_x_index + 1
                     )
-                    if not is_if:
+                    if not is_if_while:
                         node_data[node]["x_index"] += int(node_data[flow_parent]["width"][0]) + 1
 
                 # get qubit indexes
@@ -669,7 +669,7 @@ class MatplotlibDrawer:
                         else:
                             c_indxs.append(wire_map[carg])
 
-                flow_op = isinstance(node.op, IfElseOp)
+                flow_op = isinstance(node.op, ControlFlowOp)
                 if flow_parent is not None:
                     node_data[node]["inside_flow"] = True
                     x_index = node_data[node]["x_index"]
@@ -889,7 +889,7 @@ class MatplotlibDrawer:
     ):
         """Add the nodes from ControlFlowOps and their coordinates to the main circuit"""
         for flow_drawer in self._flow_drawers.values():
-            for i in range(0, 2):
+            for i in range(0, len(flow_drawer)):
                 if flow_drawer[i] is None:  # No else
                     continue
 
@@ -902,9 +902,9 @@ class MatplotlibDrawer:
                     clbits_dict,
                     glob_data,
                     flow_parent=flow_drawer[i]._flow_parent,
-                    is_if=(i == 0),
+                    is_if_while=(i == 0),
                 )
-                # Recurse for if/else ops inside the flow_drawer
+                # Recurse for ControlFlowOps inside the flow_drawer
                 flow_drawer[i]._add_nodes_and_coords(
                     nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
                 )
@@ -948,7 +948,7 @@ class MatplotlibDrawer:
                             clbits_dict[ii]["y"],
                             layer_widths[node][0],
                             glob_data,
-                            isinstance(op, IfElseOp),
+                            isinstance(op, ControlFlowOp),
                         )
                         for ii in clbits_dict
                     ]
@@ -964,7 +964,7 @@ class MatplotlibDrawer:
                         self._barrier(node, node_data, glob_data)
 
                 # draw the box for control flow circuits
-                elif isinstance(op, IfElseOp):
+                elif isinstance(op, ControlFlowOp):
                     self._flow_op_gate(node, node_data, glob_data)
 
                 # draw single qubit gates
@@ -1092,8 +1092,9 @@ class MatplotlibDrawer:
         qubit_b = min(node_data[node]["q_xy"], key=lambda xy: xy[1])
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
 
-        # For IfElseOps, place the condition at almost the left edge of the box
-        if isinstance(node.op, IfElseOp):
+        # For IfElseOp or WhileLoopOp, place the condition
+        # at almost the left edge of the box
+        if isinstance(node.op, (IfElseOp, WhileLoopOp)):
             qubit_b = (qubit_b[0], qubit_b[1] - (0.5 * HIG + 0.14))
 
         # display the label at the bottom of the lowest conditional and draw the double line
@@ -1364,7 +1365,7 @@ class MatplotlibDrawer:
         ypos_max = max(y[1] for y in xy)
 
         if_width = node_data[node]["width"][0] + WID
-        else_width = node_data[node]["width"][1]
+        else_width = 0.0 if len(node_data[node]["width"]) == 1 else node_data[node]["width"][1]
         wid = max(if_width, WID)
         if else_width > 0.0:
             wid += else_width + WID + 0.3
@@ -1407,11 +1408,12 @@ class MatplotlibDrawer:
             )
             self._ax.add_patch(box)
             # Don't draw text in the area of the bit names
+            flow_text = "  If" if isinstance(node.op, IfElseOp) else "While"
             if xpos - x_shift > glob_data["x_offset"] + 0.1:
                 self._ax.text(
-                    xpos - x_shift + 0.22,
+                    xpos - x_shift + 0.03,
                     ypos_max + 0.2 - y_shift,
-                    "If",
+                    flow_text,
                     ha="left",
                     va="center",
                     fontsize=self._style["fs"],
