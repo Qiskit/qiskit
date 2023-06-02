@@ -252,3 +252,35 @@ def entanglement_of_formation(state):
     conc = concurrence(state)
     val = (1 + np.sqrt(1 - (conc**2))) / 2
     return shannon_entropy([val, 1 - val])
+
+
+def mwb_measure(state):
+    r"""Calculate the Meyer-Wallach-Brennen measure of the quantum state.
+
+    The Meyer-Wallach-Brennen measure :math:`Q` is given by:
+
+    .. math::
+
+        Q=2\left(1-\frac{1}{n}\sum_{i=1}^n Tr(\rho_i^2)\right)
+
+    where :math:`\rho_i` is a density matrix obtained by tracing all the other
+     subsystems except the ith subsystems and N is the total number of subsystems.
+
+    Args:
+        state (Statevector or DensityMatrix)
+
+    Returns:
+        float: The Meyer-Wallach-Brennen measure :math:`Q`.
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+    """
+
+    state = _format_state(state, validate=True)
+    summ = 0.0
+    n = len(state.dims())
+    for i in range(n):
+        rhored = partial_trace(state, [i])
+        summ = summ + purity(rhored)
+    q_measure = 2 * (1 - summ / n)
+    return q_measure

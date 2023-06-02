@@ -23,4 +23,5 @@ from .measures import (
     concurrence,
     mutual_information,
     entanglement_of_formation,
+    mwb_measure,
 )

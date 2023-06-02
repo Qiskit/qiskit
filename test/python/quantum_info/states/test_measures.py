@@ -25,6 +25,7 @@ from qiskit.quantum_info import concurrence
 from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info.states import shannon_entropy
+from qiskit.quantum_info import mwb_measure
 
 
 class TestStateMeasures(QiskitTestCase):
@@ -340,6 +341,28 @@ class TestStateMeasures(QiskitTestCase):
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
+
+    def test_mwb_measure_statevector(self):
+        """Test mwb_measure function on statevector inputs"""
+        # Constructing separable quantum statevector
+        state = Statevector([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])
+        q_measure = mwb_measure(state)
+        self.assertAlmostEqual(q_measure, 0, places=7)
+        # Constructing entangled quantum statevector
+        state = Statevector([0, 1 / np.sqrt(2), -1 / np.sqrt(2), 0])
+        q_measure = mwb_measure(state)
+        self.assertAlmostEqual(q_measure, 1.0, places=7)
+
+    def test_mwb_measure_density_matrix(self):
+        """Test mwb_measure function on density matrix inputs"""
+        # Constructing separable quantum state
+        rho = DensityMatrix.from_label("10+")
+        q_measure = mwb_measure(rho)
+        self.assertAlmostEqual(q_measure, 0, places=7)
+        # Constructing entangled quantum state
+        rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
+        q_measure = mwb_measure(rho)
+        self.assertAlmostEqual(q_measure, 1.0, places=7)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a new function , :func:mwb_measure is an estimation of the quantum entanglement
+     measure known as the Meyer-Wallach-Brennen measure. This measure calculates the average 
+     subsystem linear entropy of the constituent qubits.
+
+     The mathematical formula for this measure is, 
+     $Q=2\left(1-\frac{1}{n}\sum_{i=1}^n Tr(\rho_i^2)\right)$
+
+     where :math:`\rho_i` is a density matrix obtained by tracing all the other
+     subsystems except the ith subsystem and n is the total number of subsystems.
