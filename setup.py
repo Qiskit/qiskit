@@ -16,18 +16,6 @@ import os
 import re
 from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
-from wheel.bdist_wheel import bdist_wheel
-
-
-# Taken from https://github.com/joerick/python-abi3-package-sample/blob/5273fc5446a14cbb422a0c2c09635d968b77ec53/setup.py
-# to get abi3 tagged reliably
-class bdist_wheel_abi3(bdist_wheel):
-    def get_tag(self):
-        python, abi, plat = super().get_tag()
-        if python.startswith("cp"):
-            # on CPython, our wheels are abi3 and compatible back to 3.8
-            return "cp38", "abi3", plat
-        return python, abi, plat
 
 
 with open("requirements.txt") as f:
@@ -120,17 +108,15 @@ setup(
             "crates/accelerate/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
-            py_limited_api=True,
         ),
         RustExtension(
             "qiskit._qasm2",
             "crates/qasm2/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
-            py_limited_api=True,
         ),
     ],
-    cmdclass={"bdist_wheel": bdist_wheel_abi3},
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
