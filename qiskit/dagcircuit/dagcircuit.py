@@ -1006,6 +1006,27 @@ class DAGCircuit:
         return rx.number_weakly_connected_components(self._multi_graph)
 
     def __eq__(self, other):
+        """Check if two circuits are equal.
+        This will check .cablirations and .global_phrase and
+        will not consider .data, .name, .metadata when determining.
+        The reason for this is due to being hard and
+        computationally expensive to perform.
+        Please refer to quantum_info.Operator if you need to achieve that level of comparison.
+
+        As an example:
+        qc = qk.QuantumCircuit(2)
+        qc.x(0)
+        qc.x(1)
+        dc = circuit_to_dag(qc);
+
+        qc = qk.QuantumCircuit(2)
+        qc.x(1)
+        qc.x(0)
+        dc = circuit_to_dag(qc);
+
+        The two DagCircuit above will return True
+        even though the order of elements in their .data will be different.
+        """
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
         # cases

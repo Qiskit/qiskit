@@ -504,6 +504,24 @@ class QuantumCircuit:
         return str(self.draw(output="text"))
 
     def __eq__(self, other) -> bool:
+        """Check if two circuits are equal.
+        This will check .cablirations and .global_phrase
+        and will not consider .data, .name, .metadata when determining.
+        The reason for this is due to being hard and computationally expensive to perform.
+        Please refer to quantum_info.Operator if you need to achieve that level of comparison check.
+
+        As an example:
+        qc = qk.QuantumCircuit(2)
+        qc.x(0)
+        qc.x(1)
+
+        qc = qk.QuantumCircuit(2)
+        qc.x(1)
+        qc.x(0)
+
+        The two circuit above will return True
+        even though the order of elements in their .data will be different.
+        """
         if not isinstance(other, QuantumCircuit):
             return False
 
