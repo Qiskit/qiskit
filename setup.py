@@ -19,6 +19,8 @@ from setuptools_rust import Binding, RustExtension
 from wheel.bdist_wheel import bdist_wheel
 
 
+# Taken from https://github.com/joerick/python-abi3-package-sample/blob/5273fc5446a14cbb422a0c2c09635d968b77ec53/setup.py
+# to get abi3 tagged reliably
 class bdist_wheel_abi3(bdist_wheel):
     def get_tag(self):
         python, abi, plat = super().get_tag()
