@@ -152,6 +152,18 @@ pub fn marginal_memory(
             .collect()
     };
     if return_int {
+        // Replace with:
+        //
+        // .iter()
+        // .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
+        // .collect::<Vec<BigUint>>()
+        // .to_object(py))
+        //
+        // (also this can be done in parallel, see
+        // https://github.com/Qiskit/qiskit-terra/pull/10120 for more
+        // details)
+        //
+        // After PyO3/pyo3#3198 is included in a pyo3 release.
         let int_pyobject = py.import("builtins")?.getattr("int")?;
         Ok(out_mem
             .iter()
