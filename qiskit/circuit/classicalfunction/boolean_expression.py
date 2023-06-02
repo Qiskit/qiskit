@@ -110,6 +110,7 @@ class BooleanExpression(ClassicalElement):
         Raises:
             FileNotFoundError: If filename is not found.
         """
+        HAS_TWEEDLEDUM.require_now("BooleanExpression")
 
         from tweedledum import BoolFunction  # pylint: disable=import-error
 
