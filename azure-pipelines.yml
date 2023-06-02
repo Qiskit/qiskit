@@ -174,7 +174,7 @@ stages:
             - bash: |
                 set -e
                 python -m pip install --upgrade pip
-                python -m pip install --upgrade setuptools_rust
+                python -m pip install --upgrade setuptools_rust wheel
                 python setup.py sdist
             - task: PublishBuildArtifacts@1
               inputs: {pathtoPublish: 'dist'}
