@@ -126,59 +126,6 @@ stages:
                 repositoryName: ${{ variables['Build.Repository.Name'] }}
                 id: 7864
                 comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
-  # Push to a tag.  The triggering tags are set in the triggers at the top of
-  # this file.
-  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.SourceBranch'], 'gh-readonly-queue')) }}:
-    - stage: "Deploy"
-      jobs:
-        - template: ".azure/wheels.yml"
-          parameters:
-            jobName: "linux"
-            pool: {vmImage: 'ubuntu-latest'}
-
-        - template: ".azure/wheels.yml"
-          parameters:
-            jobName: "macos"
-            pool: {vmImage: 'macOS-11'}
-
-        - template: ".azure/wheels.yml"
-          parameters:
-            jobName: "macos_arm"
-            pool: {vmImage: 'macOS-11'}
-            env:
-              CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
-              CIBW_ARCHS_MACOS: arm64 universal2
-              CIBW_ENVIRONMENT: >-
-                CARGO_BUILD_TARGET="aarch64-apple-darwin"
-                PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
-
-        - template: ".azure/wheels.yml"
-          parameters:
-            jobName: "windows"
-            pool: {vmImage: 'windows-latest'}
-            setupPython:
-              - ${{ each version in parameters.supportedPythonVersions }}:
-                - task: UsePythonVersion@0
-                  inputs:
-                    versionSpec: ${{ version }}
-                    architecture: x86
-                - task: UsePythonVersion@0
-                  inputs:
-                    versionSpec: ${{ version }}
-                    architecture: x64
-
-        - job: 'sdist'
-          pool: {vmImage: 'ubuntu-latest'}
-          steps:
-            - task: UsePythonVersion@0
-            - bash: |
-                set -e
-                python -m pip install --upgrade pip
-                python -m pip install --upgrade setuptools_rust wheel
-                python setup.py sdist
-            - task: PublishBuildArtifacts@1
-              inputs: {pathtoPublish: 'dist'}
-              condition: succeededOrFailed()
 
   # Full PR suite.  This also needs to apply to the merge queue, which appears
   # as a push event.  The queue won't get cron triggered because the schedule
@@ -255,3 +202,63 @@ stages:
             testRust: true
             testQPY: true
             testImages: true
+
+  # Push to a tag.  The triggering tags are set in the triggers at the top of
+  # this file.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}:
+    - stage: "Deploy"
+      jobs:
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "linux"
+            pool: {vmImage: 'ubuntu-latest'}
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "macos"
+            pool: {vmImage: 'macOS-11'}
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "macos_arm"
+            pool: {vmImage: 'macOS-11'}
+            env:
+              CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+              CIBW_ARCHS_MACOS: arm64 universal2
+              CIBW_ENVIRONMENT: >-
+                CARGO_BUILD_TARGET="aarch64-apple-darwin"
+                PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "windows"
+            pool: {vmImage: 'windows-latest'}
+            setupPython:
+              - ${{ each version in parameters.supportedPythonVersions }}:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: ${{ version }}
+                    architecture: x86
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: ${{ version }}
+                    architecture: x64
+
+        - job: 'sdist'
+          pool: {vmImage: 'ubuntu-latest'}
+          steps:
+            - task: UsePythonVersion@0
+            - bash: |
+                set -e
+                python -m pip install --upgrade pip
+                python -m pip install --upgrade setuptools_rust
+                python setup.py sdist
+            - task: PublishBuildArtifacts@1
+              inputs: {pathtoPublish: 'dist'}
+              condition: succeededOrFailed()
+            - bash: |
+                python -m pip install --upgrade twine
+                twine upload dist/*
+              env:
+                TWINE_USERNAME: "qiskit"
+                TWINE_PASSWORD: $(TWINE_PASSWORD)
