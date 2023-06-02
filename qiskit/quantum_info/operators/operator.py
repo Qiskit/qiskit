@@ -156,6 +156,10 @@ class Operator(LinearOp):
             output (str): Select the output method to use for drawing the
                 state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
                 Default is `repr`.
+            drawer_args: Arguments to be passed directly to the relevant drawing
+                function or constructor (`TextMatrix()`, `array_to_latex()`).
+                See the relevant function under `qiskit.visualization` for that function's
+                documentation.
 
         Returns:
             :class:`str` or :class:`TextMatrix` or :class:`IPython.display.Latex`:
@@ -171,22 +175,21 @@ class Operator(LinearOp):
         if output is None:
             output = default_output
 
-        drawers = ["repr", "text", "latex", "latex_source"]
-
         if output == "repr":
-            return self.__repr__()
+            return "self.__repr__()"
 
-        if output == "text":
+        elif output == "text":
             from qiskit.visualization.state_visualization import TextMatrix
+
             return TextMatrix(self, dims=True, **drawer_args)
 
-        if output == "latex":
+        elif output == "latex":
             return array_to_latex(self, **drawer_args)
 
-        if output == "latex_source":
+        elif output == "latex_source":
             return array_to_latex(self, source=True, **drawer_args)
 
-        if output not in drawers:
+        else:
             raise ValueError(
                 """'{}' is not a valid option for drawing {} objects. Please choose from:
                 'text', 'latex', or 'latex_source'.""".format(
