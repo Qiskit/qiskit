@@ -765,7 +765,7 @@ class TestDagNodeSelection(QiskitTestCase):
         with self.assertRaises(StopIteration):
             next(successors_measure)
 
-        self.assertIsInstance(successors1, DAGInNode)
+        self.assertIsInstance(successors1, DAGOutNode)
         self.assertIsInstance(successors1.wire, Clbit)
 
     def test_is_predecessor(self):
