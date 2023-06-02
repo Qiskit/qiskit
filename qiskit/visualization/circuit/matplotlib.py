@@ -20,8 +20,19 @@ from warnings import warn
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import ControlledGate, Measure, ControlFlowOp, WhileLoopOp, IfElseOp
+from qiskit.circuit import (
+    QuantumCircuit,
+    Qubit,
+    Clbit,
+    ClassicalRegister,
+    ControlledGate,
+    Measure,
+    ControlFlowOp,
+    WhileLoopOp,
+    IfElseOp,
+    ForLoopOp,
+    SwitchCaseOp,
+)
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -57,8 +68,6 @@ PORDER_REGLINE = 2
 PORDER_GRAY = 3
 PORDER_TEXT = 6
 PORDER_FLOW = 1
-
-INFINITE_FOLD = 10000000
 
 INFINITE_FOLD = 10000000
 
@@ -484,7 +493,18 @@ class MatplotlibDrawer:
                     gate_width = 0.0
 
                     # params[0] holds circuit for if or while, params[1] holds circuit for else
-                    for k, circuit in enumerate(node.op.params):
+                    # params is [indexset, loop_param, circuit] for for_loop
+                    circuit_list = []
+                    if isinstance(op, IfElseOp):
+                        for k in range(2):
+                            circuit_list.append(op.params[k])
+                    elif isinstance(op, WhileLoopOp):
+                        circuit_list.append(op.params[0])
+                    elif isinstance(op, ForLoopOp):
+                        node_data[node]["indexset"], node_data[node]["loop_param"], circ = op.params
+                        circuit_list.append(circ)
+
+                    for k, circuit in enumerate(circuit_list):
                         raw_gate_width = 0.0
                         if circuit is None:  # No else
                             self._flow_drawers[node].append(None)
@@ -523,10 +543,10 @@ class MatplotlibDrawer:
                                 raw_gate_width += width
 
                         # Need extra incr of 1.0 for else box
-                        gate_width += raw_gate_width + (1.0 if k == 1 else 0.0)
+                        gate_width += raw_gate_width + (1.0 if k > 0 else 0.0)
 
                         # Minor adjustment so else section gates align with indexes
-                        if k == 1:
+                        if k > 0:
                             raw_gate_width += 0.045
                         node_data[node]["width"].append(raw_gate_width)
                     self._load_flow_wire_maps(wire_map)
@@ -1407,9 +1427,16 @@ class MatplotlibDrawer:
                 zorder=PORDER_FLOW,
             )
             self._ax.add_patch(box)
+
             # Don't draw text in the area of the bit names
-            flow_text = "  If" if isinstance(node.op, IfElseOp) else "While"
             if xpos - x_shift > glob_data["x_offset"] + 0.1:
+                if isinstance(node.op, IfElseOp):
+                    flow_text = "  If"
+                elif isinstance(node.op, WhileLoopOp):
+                    flow_text = "While"
+                elif isinstance(node.op, ForLoopOp):
+                    flow_text = " For"
+
                 self._ax.text(
                     xpos - x_shift + 0.03,
                     ypos_max + 0.2 - y_shift,
@@ -1421,6 +1448,44 @@ class MatplotlibDrawer:
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
+                if isinstance(node.op, ForLoopOp):
+                    idx_set = str(node_data[node]["indexset"])
+                    # If a range was used display 'range' and grab the range value
+                    # to be displayed below as bot_idx
+                    if "range" in idx_set:
+                        top_idx = "range"
+                        bot_idx = idx_set[5:]
+                        self._ax.text(
+                            xpos - x_shift + 0.1,
+                            ypos_max - 0.2 - y_shift,
+                            top_idx,
+                            ha="left",
+                            va="center",
+                            fontsize=self._style["sfs"],
+                            color=node_data[node]["gt"],
+                            clip_on=True,
+                            zorder=PORDER_TEXT,
+                        )
+                    else:
+                        # If a tuple, show first 3 elements followed by '...'
+                        bot_idx = []
+                        for i, idx in enumerate(node_data[node]["indexset"]):
+                            if i > 2:
+                                bot_idx.append("...")
+                                break
+                            bot_idx.append(str(idx))
+                        bot_idx = "(" + f"{', '.join(bot_idx)}" + ")"
+                    self._ax.text(
+                        xpos - x_shift - 0.05,
+                        ypos_max - 0.5 - y_shift,
+                        bot_idx,
+                        ha="left",
+                        va="center",
+                        fontsize=self._style["sfs"],
+                        color=node_data[node]["gt"],
+                        clip_on=True,
+                        zorder=PORDER_TEXT,
+                    )
             # If there's an else, draw the box and the name unless it's off the left edge
             if else_width > 0.0 and (xpos + if_width + 0.3 - x_shift) > glob_data["x_offset"] + 0.1:
                 self._ax.plot(
