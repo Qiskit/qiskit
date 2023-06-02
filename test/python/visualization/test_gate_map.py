@@ -12,7 +12,6 @@
 
 """A test for visualizing device coupling maps"""
 import unittest
-import sys
 
 from io import BytesIO
 from PIL import Image
@@ -39,12 +38,6 @@ if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
 
 
-@unittest.skipIf(
-    sys.version_info < (3, 7),
-    "Skipping image comparison tests on python 3.6 as they "
-    "depend on the local matplotlib environment matching the "
-    "environment for the reference images which is only >=3.7",
-)
 @ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """visual tests for plot_gate_map"""

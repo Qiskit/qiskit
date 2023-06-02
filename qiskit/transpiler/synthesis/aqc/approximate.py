@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Base classes for an approximate circuit definition."""
-
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, SupportsFloat
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -61,10 +61,10 @@ class ApproximatingObjective(ABC):
 
     def __init__(self) -> None:
         # must be set before optimization
-        self._target_matrix = None
+        self._target_matrix: np.ndarray | None = None
 
     @abstractmethod
-    def objective(self, param_values: np.ndarray) -> float:
+    def objective(self, param_values: np.ndarray) -> SupportsFloat:
         """
         Computes a value of the objective function given a vector of parameter values.
 

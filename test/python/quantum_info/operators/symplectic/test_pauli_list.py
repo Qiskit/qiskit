@@ -2106,8 +2106,8 @@ class TestPauliListMethods(QiskitTestCase):
 
         # checking that every input Pauli in pauli_list is in a group in the ouput
         output_labels = [pauli.to_label() for group in groups for pauli in group]
-        #     assert sorted(output_labels) == sorted(input_labels)
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
+
         # Within each group, every operator qubit-wise commutes with every other operator.
         for group in groups:
             self.assertTrue(

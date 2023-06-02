@@ -30,6 +30,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
+from qiskit.circuit.controlflow.condition import condition_bits
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -38,7 +39,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 
 class DAGCircuit:
@@ -526,10 +527,8 @@ class DAGCircuit:
         self._increment_op(op)
         return node_index
 
-    @deprecate_function(
-        "The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be "
-        "removed no earlier than 3 months after the release date. You should use the "
-        "DAGCircuit.copy_empty_like method instead, which acts identically.",
+    @deprecate_func(
+        additional_msg="Instead, use :meth:`~copy_empty_like()`, which acts identically.",
         since="0.20.0",
     )
     def _copy_circuit_metadata(self):
@@ -1131,8 +1130,10 @@ class DAGCircuit:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_bits(cond))
 
         # Create replacement node
         new_node = DAGOpNode(
