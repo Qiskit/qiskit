@@ -22,6 +22,139 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.43.1
+*************
+
+.. _Release Notes_Terra_0.24.1:
+
+0.24.1
+======
+
+.. _Release Notes_Terra_0.24.1_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.24.1-388ee1564c4b7888.yaml @ b'e0c061d3f6cd6d5911be1bd1903a67d4a1c2d65a'
+
+Qiskit Terra 0.24.1 is the first patch release to 0.24.0. This fixes some bugs that have been discovered since the release of 0.24.0.
+
+
+.. _Release Notes_Terra_0.24.1_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+.. releasenotes/notes/circuit-assign-parameter-to-concrete-value-7cad75c97183257f.yaml @ b'615e42b41f9107ce0e61fd52a5704ff3d1b11708'
+
+- Changed :meth:`.QuantumCircuit.assign_parameters` to bind
+  assigned integer and float values directly into the parameters of
+  :class:`~qiskit.circuit.Instruction` instances in the circuit rather than
+  binding the values wrapped within a
+  :class:`~qiskit.circuit.ParameterExpression`. This change should have
+  little user impact as ``float(QuantumCircuit.data[i].operation.params[j])``
+  still produces a ``float`` (and is the only way to access the value of a
+  :class:`~qiskit.circuit.ParameterExpression`). Also,
+  :meth:`~qiskit.circuit.Instruction` parameters could already be ``float``
+  as well as a :class:`~qiskit.circuit.ParameterExpression`, so code dealing
+  with instruction parameters should already handle both cases. The most
+  likely chance for user impact is in code that uses ``isinstance`` to check
+  for :class:`~qiskit.circuit.ParameterExpression` and behaves differently
+  depending on the result. Additionally, qpy serializes the numeric value in
+  a bound :class:`~qiskit.circuit.ParameterExpression` at a different
+  precision than a ``float`` (see also the related bug fix note about
+  :meth:`.QuantumCircuit.assign_parameters`).
+
+
+.. _Release Notes_Terra_0.24.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/433_qubit_coordinates_map-8abc318fefdb99ac.yaml @ b'e0c061d3f6cd6d5911be1bd1903a67d4a1c2d65a'
+
+- Updated :func:`~qiskit.visualization.plot_gate_map`, :func:`~qiskit.visualization.plot_error_map`, and
+  :func:`~qiskit.visualization.plot_circuit_layout` to support 433 qubit heavy-hex coupling maps. This
+  allows coupling map visualizations for IBM Quantum's ``ibm_seattle``
+  backend.
+
+.. releasenotes/notes/circuit-assign-parameter-to-concrete-value-7cad75c97183257f.yaml @ b'615e42b41f9107ce0e61fd52a5704ff3d1b11708'
+
+- Changed the binding of numeric values with
+  :meth:`.QuantumCircuit.assign_parameters` to avoid a mismatch between the
+  values of circuit instruction parameters and corresponding parameter keys
+  in the circuit's calibration dictionary. Fixed `#9764
+  <https://github.com/Qiskit/qiskit-terra/issues/9764>`_ and `#10166
+  <https://github.com/Qiskit/qiskit-terra/issues/10166>`_. See also the
+  related upgrade note regarding :meth:`.QuantumCircuit.assign_parameters`.
+
+.. releasenotes/notes/fix-collapse-with-clbits-e14766353303d442.yaml @ b'5f39f6bc9e27de6da11a7df636dcb54e2e6d478b'
+
+- Fixed a bug in :class:`~BlockCollapser` where classical bits were ignored when collapsing
+  a block of nodes.
+
+.. releasenotes/notes/fix-collapse-with-clbits-e14766353303d442.yaml @ b'5f39f6bc9e27de6da11a7df636dcb54e2e6d478b'
+
+- Fixed a bug in :meth:`~qiskit.dagcircuit.DAGCircuit.replace_block_with_op` and
+  :meth:`~qiskit.dagcircuit.DAGDependency.replace_block_with_op`
+  that led to ignoring classical bits.
+
+.. releasenotes/notes/fix-compose-switch-19ada3828d939353.yaml @ b'e0c061d3f6cd6d5911be1bd1903a67d4a1c2d65a'
+
+- Fixed a bug in :meth:`.QuantumCircuit.compose` where the :attr:`.SwitchCaseOp.target` attribute
+  in the subcircuit was not correctly mapped to a register in the base circuit.
+
+.. releasenotes/notes/fix-exception-decription-3ba0b5db82c576cf.yaml @ b'e0c061d3f6cd6d5911be1bd1903a67d4a1c2d65a'
+
+- Fix a bug in :class:`~.RZXCalibrationBuilder` where calling calibration with wrong parameters would crash instead of raising an exception.
+
+.. releasenotes/notes/fix-exception-from_dimacs_file-b9338f3c913a9bff.yaml @ b'ab409594400b6a956d26bc67fed9330fff7097f0'
+
+- Fixed an issue with the :meth:`.BooleanExpression.from_dimacs_file`
+  constructor method where the exception type raised when tweedledum wasn't
+  installed was not the expected :class:`~.MissingOptionalLibrary`.
+  Fixed `#10079 <https://github.com/Qiskit/qiskit-terra/issues/10079>`__
+
+.. releasenotes/notes/fix-initial_layout-loose-qubits-0c59b2d6fb99d7e6.yaml @ b'4341de705d2d6b06da934f8ef933c103a7b4f554'
+
+- Using ``initial_layout`` in calls to :func:`.transpile` will no longer error if the
+  circuit contains qubits not in any registers, or qubits that exist in more than one
+  register.  See `#10125 <https://github.com/Qiskit/qiskit-terra/issues/10125>`__.
+
+.. releasenotes/notes/fix-mcrz-relative-phase-6ea81a369f8bda38.yaml @ b'c9656b23bd2f4d9b1ced10bc2be7e006a00e445f'
+
+- Fixed the gate decomposition of multi-controlled Z rotation gates added via
+  :meth:`.QuantumCircuit.mcrz`. Previously, this method implemented a multi-controlled
+  phase gate, which has a relative phase difference to the Z rotation. To obtain the
+  previous :meth:`.QuantumCircuit.mcrz` behaviour, use :meth:`.QuantumCircuit.mcp`.
+
+.. releasenotes/notes/fix-pm-config-from-backend-f3b71b11858b4f08.yaml @ b'48f26a0c1eaf52a2c6010dabe5758506ef56d1bc'
+
+- Fixed an issue with the :meth:`.PassManagerConfig.from_backend` constructor
+  when building a :class:`~.PassManagerConfig` object from a :class:`~.BackendV1`
+  instance that didn't have a coupling map attribute defined. Previously, the
+  constructor would incorrectly create a :class:`~.CouplingMap` object with
+  0 qubits instead of using ``None``.
+  Fixed `#10171 <https://github.com/Qiskit/qiskit-terra/issues/10171>`__
+
+.. releasenotes/notes/fix-synth-fail-with-symbolic-angles-a070b9973a16b8c3.yaml @ b'4e71247348955fff02a10794551ebabeae600291'
+
+- Fixes a bug introduced in Qiskit 0.24.0 where numeric rotation angles were no longer substituted
+  for symbolic ones before preparing for two-qubit synthesis. This caused an exception to be
+  raised because the synthesis routines require numberic matrices.
+
+.. releasenotes/notes/fix-transpile-pickle-4045805b67c0c11b.yaml @ b'99b1569944ced6b7e58ada3c411299b4ef5356dc'
+
+- Fix a bug in which running :class:`~.Optimize1qGatesDecomposition` in parallel would raise an error due to OneQubitGateErrorMap not being picklable.
+
+.. releasenotes/notes/fix-vf2-scoring-1q-e2ac29075831d64d.yaml @ b'e0c061d3f6cd6d5911be1bd1903a67d4a1c2d65a'
+
+- Fix a bug in the :class:`~.VF2Layout` and :class:`~.VF2PostLayout` passes
+  where the passes were failing to account for the 1 qubit error component when
+  evaluating a potential layout.
+
+
+*************
 Qiskit 0.43.0
 *************
 
