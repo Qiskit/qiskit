@@ -751,7 +751,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_list(obj, dtype=complex):
+    def from_list(obj=None, dtype=complex):
         """Construct from a list of Pauli strings and coefficients.
 
         For example, the 5-qubit Hamiltonian
@@ -768,20 +768,19 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            dtype (type): The dtype of coeffs (Default complex).
+            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms
+            (Default: None).
+            dtype (type): The dtype of coeffs (Default: complex).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
-
-        Raises:
-            QiskitError: If the list of Paulis is empty.
         """
-        obj = list(obj)  # To convert zip or other iterable
+        if obj is None or obj == []:
+            obj = [("I", 0)]  # To set the default list
+        else:
+            obj = list(obj)  # To convert zip or other iterable
 
         size = len(obj)  # number of Pauli terms
-        if size == 0:
-            raise QiskitError("Input Pauli list is empty.")
 
         # determine the number of qubits
         num_qubits = len(obj[0][0])
@@ -796,7 +795,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_sparse_list(obj, num_qubits, do_checks=True, dtype=complex):
+    def from_sparse_list(obj=None, num_qubits=1, do_checks=True, dtype=complex):
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
@@ -819,25 +818,26 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
-            num_qubits (int): The number of qubits of the operator.
-            do_checks (bool): The flag of checking if the input indices are not duplicated.
-            dtype (type): The dtype of coeffs (Default complex).
+            obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis
+            (Default: None).
+            num_qubits (int): The number of qubits of the operator (Default: 1).
+            do_checks (bool): The flag of checking if the input indices are not duplicated
+            (Default: True).
+            dtype (type): The dtype of coeffs (Default: complex).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
 
         Raises:
-            QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
             QiskitError: If the designated qubit is already assigned.
         """
-        obj = list(obj)  # To convert zip or other iterable
+        if obj is None or obj == []:
+            obj = [("I" * num_qubits, range(num_qubits), 0)]  # To set the default list
+        else:
+            obj = list(obj)  # To convert zip or other iterable
 
-        size = len(obj)  # number of Pauli terms
-        if size == 0:
-            raise QiskitError("Input Pauli list is empty.")
-
+        size = len(obj)
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
 
