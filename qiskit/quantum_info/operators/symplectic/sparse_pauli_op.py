@@ -775,10 +775,13 @@ class SparsePauliOp(LinearOp):
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
         """
-        if obj is None or obj == []:
-            obj = [("I", 0)]  # To set the default list
+        default = [("I", 0)]
+        if obj is None:
+            obj = default
         else:
-            obj = list(obj)  # To convert zip or other iterable
+            obj = list(obj)
+            if len(obj) == 0:
+                obj = default
 
         size = len(obj)  # number of Pauli terms
 
@@ -832,10 +835,13 @@ class SparsePauliOp(LinearOp):
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
             QiskitError: If the designated qubit is already assigned.
         """
-        if obj is None or obj == []:
-            obj = [("I" * num_qubits, range(num_qubits), 0)]  # To set the default list
+        default = [("I" * num_qubits, range(num_qubits), 0)]
+        if obj is None:
+            obj = default
         else:
-            obj = list(obj)  # To convert zip or other iterable
+            obj = list(obj)
+            if len(obj) == 0:
+                obj = default
 
         size = len(obj)
         coeffs = np.zeros(size, dtype=dtype)
