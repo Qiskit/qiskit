@@ -4,7 +4,7 @@ Order of qubits in Qiskit
 
 While most physics textbooks represent an :math:`n`-qubit system as the tensor product :math:`Q_0\otimes Q_1 \otimes ... \otimes Q_{n-1}`, where :math:`Q_j` is the :math:`j^{\mathrm{th}}` qubit, Qiskit uses the inverse order, that is, :math:`Q_{n-1}\otimes \dotsb \otimes Q_1 \otimes Q_{0}`. As explained in `this video <https://www.youtube.com/watch?v=EiqHj3_Avps>`_ from `Qiskit's YouTube channel <https://www.youtube.com/@qiskit>`_, this is done to follow the convention in classical computing, in which the :math:`n^{\mathrm{th}}` bit or most significant bit (MSB) is placed on the left while the least significant bit (LSB) is placed on the right. This ordering convention is called little-endian while the one from the physics textbooks is called big-endian.
 
-This means that if we have, for example, a 3-qubit system with qubit 0 in state :math:`|1\rangle` and qubits 1 and 2 in state :math:`|0\rangle`, Qiskit would represent this state as :math:`|001\rangle` while most physics textbooks would represent this state as :math:`|100\rangle`. 
+This means that if we have, for example, a 3-qubit system with qubit 0 in state :math:`|1\rangle` and qubits 1 and 2 in state :math:`|0\rangle`, Qiskit would label this state as :math:`|001\rangle` while most physics textbooks would label this state as :math:`|100\rangle`. 
 
 The matrix representation of any multi-qubit gate is also affected by this different qubit ordering. For example, if we consider the single-qubit gate
 
