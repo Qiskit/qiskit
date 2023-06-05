@@ -63,11 +63,12 @@ WID = 0.65
 HIG = 0.65
 
 PORDER_GATE = 5
-PORDER_LINE = 3
-PORDER_REGLINE = 2
-PORDER_GRAY = 3
+PORDER_LINE = 4
+PORDER_REGLINE = 3
+PORDER_GRAY = 4
 PORDER_TEXT = 6
 PORDER_FLOW = 1
+PORDER_MASK = 2
 
 INFINITE_FOLD = 10000000
 
@@ -492,8 +493,9 @@ class MatplotlibDrawer:
                     node_data[node]["if_depth"] = 0
                     gate_width = 0.0
 
-                    # params[0] holds circuit for if or while, params[1] holds circuit for else
-                    # params is [indexset, loop_param, circuit] for for_loop
+                    # params[0] holds circuit for if or while, params[1] holds circuit for else,
+                    # params is [indexset, loop_param, circuit] for for_loop,
+                    # op.cases_specifier() returns jump tuple and circuit for switch/case
                     circuit_list = []
                     if isinstance(op, IfElseOp):
                         for k in range(2):
@@ -503,7 +505,17 @@ class MatplotlibDrawer:
                     elif isinstance(op, ForLoopOp):
                         node_data[node]["indexset"], node_data[node]["loop_param"], circ = op.params
                         circuit_list.append(circ)
+                    elif isinstance(op, SwitchCaseOp):
+                        node_data[node]["jump_values"] = []
+                        cases = list(op.cases_specifier())
 
+                        # Create an empty circuit for the Switch box
+                        circuit_list.append(cases[0][1].copy_empty_like())
+                        for jump_values, circ in cases:
+                            node_data[node]["jump_values"].append(jump_values)
+                            circuit_list.append(circ)
+
+                    # Now process the circuits inside the ControlFlowOps
                     for k, circuit in enumerate(circuit_list):
                         raw_gate_width = 0.0
                         if circuit is None:  # No else
@@ -518,7 +530,7 @@ class MatplotlibDrawer:
                             )
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the if, else, or while.
-                        qubits, clbits, nodes = _get_layered_instructions(circuit)
+                        qubits, clbits, nodes = _get_layered_instructions(circuit, is_mpl=True)
                         flow_drawer = MatplotlibDrawer(
                             qubits,
                             clbits,
@@ -538,6 +550,14 @@ class MatplotlibDrawer:
                         flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
                         layer_widths.update(flow_widths)
 
+                        # Gates within a SwitchCaseOp need to know which case they are in
+                        for flow_layer in nodes:
+                            for flow_node in flow_layer:
+                                if isinstance(node.op, SwitchCaseOp):
+                                    node_data[flow_node]["case_num"] = k
+
+                        # Add up the width values of the same flow_parent that are not -1
+                        # to get the raw_gate_width
                         for width, layer_num, flow_parent in flow_widths.values():
                             if layer_num != -1 and flow_parent == flow_drawer._flow_parent:
                                 raw_gate_width += width
@@ -549,6 +569,7 @@ class MatplotlibDrawer:
                         if k > 0:
                             raw_gate_width += 0.045
                         node_data[node]["width"].append(raw_gate_width)
+
                     self._load_flow_wire_maps(wire_map)
 
                 # Otherwise, standard gate or multiqubit gate
@@ -671,7 +692,15 @@ class MatplotlibDrawer:
                         node_data[flow_parent]["x_index"] + curr_x_index + 1
                     )
                     if not is_if_while:
+                        # Add index space for else or first case if switch/case
                         node_data[node]["x_index"] += int(node_data[flow_parent]["width"][0]) + 1
+
+                        # Add index space for remaining cases for switch/case
+                        if "case_num" in node_data[node] and node_data[node]["case_num"] > 1:
+                            for width in node_data[flow_parent]["width"][
+                                1 : node_data[node]["case_num"]
+                            ]:
+                                node_data[node]["x_index"] += int(width) + 1
 
                 # get qubit indexes
                 q_indxs = []
@@ -882,6 +911,18 @@ class MatplotlibDrawer:
                         linewidth=self._lwidth15,
                         zorder=PORDER_LINE,
                     )
+            # Mask off any lines or boxes in the bit label area to clean up
+            # from folding for ControlFlow and other wrapping gates
+            box = glob_data["patches_mod"].Rectangle(
+                xy=(glob_data["x_offset"] - 0.1, -fold_num * (glob_data["n_lines"] + 1) + 1.0),
+                width=-25.0,
+                height=-(fold_num + 1) * (glob_data["n_lines"] + 1),
+                fc=self._style["bg"],
+                ec=self._style["bg"],
+                linewidth=self._lwidth15,
+                zorder=PORDER_GATE,
+            )
+            self._ax.add_patch(box)
 
         # draw index number
         if self._style["index"]:
@@ -961,7 +1002,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 # add conditional
-                if getattr(op, "condition", None):
+                if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
                     cond_xy = [
                         self._plot_coord(
                             node_data[node]["x_index"],
@@ -1063,11 +1104,18 @@ class MatplotlibDrawer:
     def _condition(self, node, node_data, wire_map, cond_xy, glob_data):
         """Add a conditional to a gate"""
 
-        label, val_bits = get_condition_label_val(
-            node.op.condition, self._circuit, self._cregbundle
-        )
-        cond_bit_reg = node.op.condition[0]
-        cond_bit_val = int(node.op.condition[1])
+        # For SwitchCaseOp convert the target to a fully closed Clbit or register
+        # in condition format
+        if isinstance(node.op, SwitchCaseOp):
+            if isinstance(node.op.target, Clbit):
+                condition = (node.op.target, 1)
+            else:
+                condition = (node.op.target, 2 ** (node.op.target.size) - 1)
+        else:
+            condition = node.op.condition
+        label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
+        cond_bit_reg = condition[0]
+        cond_bit_val = int(condition[1])
 
         first_clbit = len(self._qubits)
         cond_pos = []
@@ -1112,9 +1160,9 @@ class MatplotlibDrawer:
         qubit_b = min(node_data[node]["q_xy"], key=lambda xy: xy[1])
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
 
-        # For IfElseOp or WhileLoopOp, place the condition
+        # For IfElseOp, WhileLoopOp or SwitchCaseOp, place the condition
         # at almost the left edge of the box
-        if isinstance(node.op, (IfElseOp, WhileLoopOp)):
+        if isinstance(node.op, (IfElseOp, WhileLoopOp, SwitchCaseOp)):
             qubit_b = (qubit_b[0], qubit_b[1] - (0.5 * HIG + 0.14))
 
         # display the label at the bottom of the lowest conditional and draw the double line
@@ -1385,10 +1433,10 @@ class MatplotlibDrawer:
         ypos_max = max(y[1] for y in xy)
 
         if_width = node_data[node]["width"][0] + WID
-        else_width = 0.0 if len(node_data[node]["width"]) == 1 else node_data[node]["width"][1]
-        wid = max(if_width, WID)
-        if else_width > 0.0:
-            wid += else_width + WID + 0.3
+        box_width = if_width
+        for ewidth in node_data[node]["width"][1:]:
+            if ewidth > 0.0:
+                box_width += ewidth + WID + 0.3
 
         qubit_span = abs(ypos) - abs(ypos_max)
         height = HIG + qubit_span
@@ -1405,20 +1453,19 @@ class MatplotlibDrawer:
         # ``fold_level * self._fold`` and cutting it off at ``end_x - 0.1 + glob_data["x_offset"]``
         # so it doesn't draw in the area of the bit names.
         fold_level = 0
-        end_x = xpos + wid
+        end_x = xpos + box_width
 
         while end_x > 0.0:
             if end_x < 0.0:
                 break
             x_shift = fold_level * self._fold
             y_shift = fold_level * (glob_data["n_lines"] + 1)
-            end_x = xpos + wid - x_shift
-            left_edge = end_x + 0.1 - glob_data["x_offset"]
+            end_x = xpos + box_width - x_shift
 
             # FancyBbox allows rounded corners
             box = glob_data["patches_mod"].FancyBboxPatch(
                 xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
-                width=wid,
+                width=box_width,
                 height=height,
                 boxstyle="round, pad=0.1",
                 fc="none",
@@ -1428,99 +1475,111 @@ class MatplotlibDrawer:
             )
             self._ax.add_patch(box)
 
-            # Don't draw text in the area of the bit names
-            if xpos - x_shift > glob_data["x_offset"] + 0.1:
-                if isinstance(node.op, IfElseOp):
-                    flow_text = "  If"
-                elif isinstance(node.op, WhileLoopOp):
-                    flow_text = "While"
-                elif isinstance(node.op, ForLoopOp):
-                    flow_text = " For"
+            if isinstance(node.op, IfElseOp):
+                flow_text = "  If"
+            elif isinstance(node.op, WhileLoopOp):
+                flow_text = " While"
+            elif isinstance(node.op, ForLoopOp):
+                flow_text = " For"
+            elif isinstance(node.op, SwitchCaseOp):
+                flow_text = "Switch"
 
-                self._ax.text(
-                    xpos - x_shift + 0.03,
-                    ypos_max + 0.2 - y_shift,
-                    flow_text,
-                    ha="left",
-                    va="center",
-                    fontsize=self._style["fs"],
-                    color=node_data[node]["gt"],
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-                if isinstance(node.op, ForLoopOp):
-                    idx_set = str(node_data[node]["indexset"])
-                    # If a range was used display 'range' and grab the range value
-                    # to be displayed below as bot_idx
-                    if "range" in idx_set:
-                        top_idx = "range"
-                        bot_idx = idx_set[5:]
-                        self._ax.text(
-                            xpos - x_shift + 0.1,
-                            ypos_max - 0.2 - y_shift,
-                            top_idx,
-                            ha="left",
-                            va="center",
-                            fontsize=self._style["sfs"],
-                            color=node_data[node]["gt"],
-                            clip_on=True,
-                            zorder=PORDER_TEXT,
-                        )
-                    else:
-                        # If a tuple, show first 3 elements followed by '...'
-                        bot_idx = []
-                        for i, idx in enumerate(node_data[node]["indexset"]):
-                            if i > 2:
-                                bot_idx.append("...")
-                                break
-                            bot_idx.append(str(idx))
-                        bot_idx = "(" + f"{', '.join(bot_idx)}" + ")"
+            self._ax.text(
+                xpos - x_shift - 0.08,
+                ypos_max + 0.2 - y_shift,
+                flow_text,
+                ha="left",
+                va="center",
+                fontsize=self._style["fs"],
+                color=node_data[node]["gt"],
+                clip_on=True,
+                zorder=PORDER_FLOW,
+            )
+            if isinstance(node.op, ForLoopOp):
+                idx_set = str(node_data[node]["indexset"])
+                # If a range was used display 'range' and grab the range value
+                # to be displayed below
+                if "range" in idx_set:
+                    top_idx = "range"
+                    idx_set = idx_set[6:-1]
                     self._ax.text(
-                        xpos - x_shift - 0.05,
-                        ypos_max - 0.5 - y_shift,
-                        bot_idx,
+                        xpos - x_shift + 0.1,
+                        ypos_max - 0.2 - y_shift,
+                        top_idx,
                         ha="left",
                         va="center",
                         fontsize=self._style["sfs"],
                         color=node_data[node]["gt"],
                         clip_on=True,
-                        zorder=PORDER_TEXT,
+                        zorder=PORDER_FLOW,
                     )
-            # If there's an else, draw the box and the name unless it's off the left edge
-            if else_width > 0.0 and (xpos + if_width + 0.3 - x_shift) > glob_data["x_offset"] + 0.1:
-                self._ax.plot(
-                    [xpos + if_width + 0.3 - x_shift, xpos + if_width + 0.3 - x_shift],
-                    [ypos - 0.5 * HIG - 0.08 - y_shift, ypos + height - 0.22 - y_shift],
-                    color=colors[node_data[node]["if_depth"]],
-                    linewidth=3.0,
-                    linestyle="solid",
-                    zorder=PORDER_FLOW,
-                )
+                else:
+                    # If a tuple, show first 4 elements followed by '...'
+                    idx_set = str(node_data[node]["indexset"])[1:-1].split(",")[:5]
+                    if len(idx_set) > 4:
+                        idx_set[4] = "..."
+                    idx_set = f"{', '.join(idx_set)}"
                 self._ax.text(
-                    xpos + if_width + 0.5 - x_shift,
-                    ypos_max + 0.2 - y_shift,
-                    "Else",
+                    xpos - x_shift - 0.05,
+                    ypos_max - 0.5 - y_shift,
+                    idx_set,
                     ha="left",
                     va="center",
-                    fontsize=self._style["fs"],
+                    fontsize=self._style["sfs"],
                     color=node_data[node]["gt"],
                     clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
-            # To clean up box stuff in the bit name area, draw the box again using background
-            # color in that area.
-            if fold_level > 0:
-                box = glob_data["patches_mod"].FancyBboxPatch(
-                    xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
-                    width=min(wid, wid - left_edge),
-                    height=height,
-                    boxstyle="round, pad=0.1",
-                    fc="none",
-                    ec=self._style["bg"],
-                    linewidth=self._lwidth4,
                     zorder=PORDER_FLOW,
                 )
-                self._ax.add_patch(box)
+            # If there's an else or a case draw the vertical line and the name
+            else_case_text = "Else" if isinstance(node.op, IfElseOp) else "Case"
+            ewidth_incr = if_width
+            for case_num, ewidth in enumerate(node_data[node]["width"][1:]):
+                if ewidth > 0.0:
+                    self._ax.plot(
+                        [xpos + ewidth_incr + 0.3 - x_shift, xpos + ewidth_incr + 0.3 - x_shift],
+                        [ypos - 0.5 * HIG - 0.08 - y_shift, ypos + height - 0.22 - y_shift],
+                        color=colors[node_data[node]["if_depth"] % 4],
+                        linewidth=3.0,
+                        linestyle="solid",
+                        zorder=PORDER_FLOW,
+                    )
+                    self._ax.text(
+                        xpos + ewidth_incr + 0.4 - x_shift,
+                        ypos_max + 0.2 - y_shift,
+                        else_case_text,
+                        ha="left",
+                        va="center",
+                        fontsize=self._style["fs"],
+                        color=node_data[node]["gt"],
+                        clip_on=True,
+                        zorder=PORDER_FLOW,
+                    )
+                    if isinstance(node.op, SwitchCaseOp):
+                        jump_val = node_data[node]["jump_values"][case_num]
+                        # If only one value, e.g. (0,)
+                        if len(str(jump_val)) == 4:
+                            jump_text = str(jump_val)[1]
+                        elif "default" in str(jump_val):
+                            jump_text = "default"
+                        else:
+                            # If a tuple, show first 4 elements followed by '...'
+                            jump_text = str(jump_val)[1:-1].replace(" ", "").split(",")[:5]
+                            if len(jump_text) > 4:
+                                jump_text[4] = "..."
+                            jump_text = f"{', '.join(jump_text)}"
+                        self._ax.text(
+                            xpos + ewidth_incr + 0.4 - x_shift,
+                            ypos_max - 0.5 - y_shift,
+                            jump_text,
+                            ha="left",
+                            va="center",
+                            fontsize=self._style["sfs"],
+                            color=node_data[node]["gt"],
+                            clip_on=True,
+                            zorder=PORDER_FLOW,
+                        )
+                ewidth_incr += ewidth + 1
+
             fold_level += 1
 
     def _control_gate(self, node, node_data, glob_data):
