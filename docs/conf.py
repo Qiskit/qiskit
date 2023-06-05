@@ -151,7 +151,6 @@ html_theme_options = {
     "includehidden": True,
     "titles_only": False,
 }
-html_static_path = ["_static"]
 html_favicon = "images/favicon.ico"
 html_last_updated_fmt = "%Y/%m/%d"
 html_context = {

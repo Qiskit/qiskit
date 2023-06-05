@@ -86,13 +86,13 @@ going to run and install the packages.  There are three main ways to do this:
        .. qiskit-card-item::
           :header: IBM Quantum Lab
           :card_description: Build quantum applications and experiments with Qiskit in a cloud programming environment.
-          :image: _static/ibm_qlab.png
+          :image: images/ibm_qlab.png
           :link: https://quantum-computing.ibm.com/
 
        .. qiskit-card-item::
           :header: Strangeworks
           :card_description: A platform that enables users and organizations to easily apply quantum computing to their most pressing problems and research.
-          :image: _static/strangeworks.png
+          :image: images/strangeworks.png
           :link: https://strangeworks.com/
 
        .. raw:: html
