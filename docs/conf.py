@@ -213,8 +213,7 @@ doctest_test_doctest_blocks = ""
 
 
 def setup(app):
-    custom_extensions.load_api_sources(app)
+    custom_extensions.load_terra_docs(app)
     custom_extensions.load_tutorials(app)
     versionutils.setup(app)
-    app.connect("build-finished", custom_extensions.clean_api_source)
-    app.connect("build-finished", custom_extensions.clean_tutorials)
+    app.connect("build-finished", custom_extensions.clean_docs)
