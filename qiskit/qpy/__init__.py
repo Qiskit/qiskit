@@ -175,7 +175,7 @@ bytes for a ``utf8`` encoded string for the register name.
 Following the initial layout there is ``input_mapping_size`` array of
 ``uint32_t`` integers representing the positions of the phyiscal bit from the
 initial layout. This enbables constructing a list of virtual bits where the
-array index is it's input mapping position.
+array index is its input mapping position.
 
 Finally, there is an array of ``final_layout_size`` ``uint32_t`` integers. Each
 element is an index in the circuit's ``qubits`` attribute which enables building
