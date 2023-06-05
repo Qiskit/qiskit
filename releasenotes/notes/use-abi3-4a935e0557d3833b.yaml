@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    By default Qiskit builds it's compiled extensions using the
+    By default Qiskit builds its compiled extensions using the
     `Python Stable ABI <https://docs.python.org/3/c-api/stable.html>`__
     with support back to Python 3.8. This means that moving forward there
     will be a single precompiled wheels that are shipped on release that
