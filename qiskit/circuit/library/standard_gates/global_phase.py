@@ -25,7 +25,7 @@ class GlobalPhaseGate(Gate):
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 
-    **Mathamatical Representation:**
+    **Mathematical Representation:**
 
     .. math::
         \text{GlobalPhaseGate}\ =
