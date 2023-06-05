@@ -10,7 +10,7 @@ upgrade:
     expected runtime performance difference using the limited API so it is
     enabled by default for all builds now.
     Previously, the compiled extensions were built using the version specific API and
-    would only work with a single Python version. . This change was made
+    would only work with a single Python version. This change was made
     to reduce the number of package files we need to build and publish in each
     release. When building Qiskit from source there should be no changes
     necessary to the build process except that the default tags in the output
