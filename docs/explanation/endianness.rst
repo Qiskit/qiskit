@@ -12,13 +12,13 @@ The matrix representation of any multi-qubit gate is also affected by this diffe
 
     U = \begin{pmatrix} u_{00} & u_{01} \\ u_{10} & u_{11} \end{pmatrix}
 
-And we want a controlled version :math:`C_U` whose control qubit is qubit 0 and whose target is qubit 1, following Qiskit's ordering its matrix representation would be
+And we want a controlled version :math:`C_U` whose control qubit is qubit 0 and whose target is qubit 1, following Qiskit's little-endian convention its matrix representation would be
 
 .. math::
 
     C_U = \begin{pmatrix} 1 & 0 & 0 & 0 \\0 & u_{00} & 0 & u_{01} \\ 0 & 0 & 1 & 0 \\ 0 & u_{10} & 0& u_{11} \end{pmatrix}
 
-while in a physics textbook it would be written as 
+while it would be written as this following big-endian convention:
 
 .. math::
 
