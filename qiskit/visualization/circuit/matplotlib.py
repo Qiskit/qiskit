@@ -477,7 +477,7 @@ class MatplotlibDrawer:
                     gate_width = (raw_gate_width + 0.08) * 1.58
 
                 # Check if a ControlFlowOp - node_data load for these gates is done here
-                elif isinstance(node.op, ControlFlowOp):
+                elif isinstance(node.op, (IfElseOp, WhileLoopOp)):
                     self._flow_drawers[node] = []
                     node_data[node]["width"] = []
                     node_data[node]["if_depth"] = 0
@@ -544,7 +544,7 @@ class MatplotlibDrawer:
                 box_width = max(gate_width, ctrl_width, param_width, WID)
                 if box_width > widest_box:
                     widest_box = box_width
-                if not isinstance(node.op, ControlFlowOp):
+                if not isinstance(node.op, (IfElseOp, WhileLoopOp)):
                     node_data[node]["width"] = max(raw_gate_width, raw_param_width)
             for node in layer:
                 layer_widths[node][0] = int(widest_box) + 1
@@ -669,7 +669,7 @@ class MatplotlibDrawer:
                         else:
                             c_indxs.append(wire_map[carg])
 
-                flow_op = isinstance(node.op, ControlFlowOp)
+                flow_op = isinstance(node.op, (IfElseOp, WhileLoopOp))
                 if flow_parent is not None:
                     node_data[node]["inside_flow"] = True
                     x_index = node_data[node]["x_index"]
@@ -948,7 +948,7 @@ class MatplotlibDrawer:
                             clbits_dict[ii]["y"],
                             layer_widths[node][0],
                             glob_data,
-                            isinstance(op, ControlFlowOp),
+                            isinstance(op, (IfElseOp, WhileLoopOp)),
                         )
                         for ii in clbits_dict
                     ]
@@ -964,7 +964,7 @@ class MatplotlibDrawer:
                         self._barrier(node, node_data, glob_data)
 
                 # draw the box for control flow circuits
-                elif isinstance(op, ControlFlowOp):
+                elif isinstance(op, (IfElseOp, WhileLoopOp)):
                     self._flow_op_gate(node, node_data, glob_data)
 
                 # draw single qubit gates
