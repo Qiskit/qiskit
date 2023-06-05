@@ -130,24 +130,3 @@ def deprecated_functionality(func):
         stacklevel=2,
         since="0.22.0",
     )(func)
-
-
-def get_qubit_channels(backend: BackendV2, qubit: int):
-    r"""Return a list of channels which operate on the given ``qubit``.
-    Returns:
-        List of ``Channel``\s operated on my the given ``qubit``.
-    """
-    channels = []
-
-    # add multi-qubit channels
-    for node_qubits in backend.coupling_map:
-        if qubit in node_qubits:
-            control_channels = backend.control_channel(node_qubits)
-            if control_channels:
-                channels.extend(control_channels)
-
-    # add single qubit channels
-    channels.append(backend.drive_channel(qubit))
-    channels.append(backend.measure_channel(qubit))
-    channels.append(backend.acquire_channel(qubit))
-    return channels
