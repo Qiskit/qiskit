@@ -4,6 +4,4 @@ fixes:
     Fixed the output of pulse :func:`~qiskit.pulse.macros.measure` and
     :func:`~qiskit.pulse.macros.measure_all` when functions are called 
     with the :class:`.BackendV2` backend.
-    with :class:`.BackendV2` backends.
-
 
