@@ -11,13 +11,16 @@
 # that they have been altered from the originals.
 
 """Align measurement instructions."""
+from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
-from typing import List, Union
+from collections.abc import Iterable
+from typing import Type
+
+from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
@@ -141,12 +144,14 @@ class AlignMeasures(TransformationPass):
         # * pad_with_delay is called only with non-delay node to avoid consecutive delay
         new_dag = dag.copy_empty_like()
 
-        qubit_time_available = defaultdict(int)  # to track op start time
-        qubit_stop_times = defaultdict(int)  # to track delay start time for padding
-        clbit_readable = defaultdict(int)
-        clbit_writeable = defaultdict(int)
+        qubit_time_available: dict[QubitSpecifier, int] = defaultdict(int)  # to track op start time
+        qubit_stop_times: dict[QubitSpecifier, int] = defaultdict(
+            int
+        )  # to track delay start time for padding
+        clbit_readable: dict[ClbitSpecifier, int] = defaultdict(int)
+        clbit_writeable: dict[ClbitSpecifier, int] = defaultdict(int)
 
-        def pad_with_delays(qubits: List[int], until, unit) -> None:
+        def pad_with_delays(qubits: Iterable[QubitSpecifier], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
             for q in qubits:
                 if qubit_stop_times[q] < until:
@@ -206,7 +211,7 @@ class AlignMeasures(TransformationPass):
 def _check_alignment_required(
     dag: DAGCircuit,
     alignment: int,
-    instructions: Union[Instruction, List[Instruction]],
+    instructions: Type | list[Type],
 ) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
 
