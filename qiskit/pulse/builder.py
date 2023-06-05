@@ -499,7 +499,6 @@ from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.pulse.utils import get_qubit_channels
 
 
 #: contextvars.ContextVar[BuilderContext]: active builder
@@ -1179,9 +1178,31 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
         such as in the case where significant crosstalk exists.
 
     """
+
+    # implement as the inner function to avoid API change in 0.24.
+    def get_qubit_channels_v2(backend: BackendV2, qubit: int):
+        r"""Return a list of channels which operate on the given ``qubit``.
+        Returns:
+            List of ``Channel``\s operated on my the given ``qubit``.
+        """
+        channels = []
+
+        # add multi-qubit channels
+        for node_qubits in backend.coupling_map:
+            if qubit in node_qubits:
+                control_channel = backend.control_channel(node_qubits)
+                if control_channel:
+                    channels.extend(control_channel)
+
+        # add single qubit channels
+        channels.append(backend.drive_channel(qubit))
+        channels.append(backend.measure_channel(qubit))
+        channels.append(backend.acquire_channel(qubit))
+        return channels
+
     # backendV2
     if isinstance(active_backend(), BackendV2):
-        return set(get_qubit_channels(active_backend(), qubit))
+        return set(get_qubit_channels_v2(active_backend(), qubit))
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
