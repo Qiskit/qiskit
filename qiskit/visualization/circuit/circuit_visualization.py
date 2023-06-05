@@ -637,7 +637,7 @@ def _matplotlib_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
-        is_mpl=True
+        is_mpl=True,
     )
     if fold is None:
         fold = 25

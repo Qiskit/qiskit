@@ -289,8 +289,8 @@ class MatplotlibDrawer:
         wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
 
         # node_data per node with "width", "gate_text", "raw_gate_text", "ctrl_text",
-        # "param_text", "if_depth", "inside_flow", "x_index", q_xy", and "c_xy",
-        # and colors "fc", "ec", "lc", "sc", "gt", and "tc"
+        # "param_text", "if_depth", "inside_flow", "x_index", "indexset", "jump_values",
+        # "case_num", "q_xy", "c_xy", and colors "fc", "ec", "lc", "sc", "gt", and "tc"
         node_data = {}
 
         # dicts for the names and locations of register/bit labels
@@ -503,7 +503,7 @@ class MatplotlibDrawer:
                     elif isinstance(op, WhileLoopOp):
                         circuit_list.append(op.params[0])
                     elif isinstance(op, ForLoopOp):
-                        node_data[node]["indexset"], node_data[node]["loop_param"], circ = op.params
+                        node_data[node]["indexset"], _, circ = op.params
                         circuit_list.append(circ)
                     elif isinstance(op, SwitchCaseOp):
                         node_data[node]["jump_values"] = []
