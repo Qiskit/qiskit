@@ -44,6 +44,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.utils import format_meas_map
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
@@ -239,6 +240,7 @@ class Target(Mapping):
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
+        "meas_map",
     )
 
     @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
@@ -252,6 +254,7 @@ class Target(Mapping):
         pulse_alignment=1,
         acquire_alignment=1,
         qubit_properties=None,
+        meas_map=None,
     ):
         """
         Create a new Target object
@@ -287,6 +290,7 @@ class Target(Mapping):
                 matches the qubit number the properties are defined for. If some
                 qubits don't have properties available you can set that entry to
                 ``None``
+            meas_map(list, dict): List of sets of qubits that must be measured together.
         Raises:
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
             defined and the value of ``num_qubits`` differs from the length of
@@ -322,6 +326,7 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
+        self.meas_map = format_meas_map(meas_map) if isinstance(meas_map, list) else meas_map
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -1215,6 +1220,7 @@ class Target(Mapping):
         inst_map: Optional[InstructionScheduleMap] = None,
         backend_properties: Optional[BackendProperties] = None,
         instruction_durations: Optional[InstructionDurations] = None,
+        meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
         dt: Optional[float] = None,
         timing_constraints: Optional[TimingConstraints] = None,
         custom_name_mapping: Optional[Dict[str, Any]] = None,
@@ -1263,6 +1269,7 @@ class Target(Mapping):
             instruction_durations: Optional instruction durations for instructions. If specified
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
+            meas_map: List of sets of qubits that must be measured together.
             dt: The system time resolution of input signals in seconds
             timing_constraints: Optional timing constraints to include in the
                 :class:`~.Target`
@@ -1306,6 +1313,7 @@ class Target(Mapping):
             pulse_alignment=pulse_alignment,
             acquire_alignment=acquire_alignment,
             qubit_properties=qubit_properties,
+            meas_map=format_meas_map(meas_map) if isinstance(meas_map, list) else meas_map,
         )
         name_mapping = get_standard_gate_name_mapping()
         if custom_name_mapping is not None:

@@ -36,6 +36,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.calibration_entries import CalibrationPublisher, ScheduleDef
+from qiskit.pulse.utils import format_meas_map
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -1902,6 +1903,16 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.min_length, constraints.min_length)
         self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
         self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
+
+    def test_meas_map(self):
+        fake_backend = FakeVigo()
+        config = fake_backend.configuration()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            meas_map=config.meas_map,
+        )
+        meas_map = format_meas_map(config.meas_map)
+        self.assertEqual(meas_map, target.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
