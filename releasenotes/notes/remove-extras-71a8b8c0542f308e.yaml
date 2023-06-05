@@ -1,0 +1,12 @@
+---
+prelude: >
+    This is the last version qiskit metapackage is providing the following optional components as extras:
+
+      * ``nature``
+      * ``machine-learning``
+      * ``finance``
+      * ``optimization``
+      * ``experiments``
+
+    In the coming Qiskit release, ``pip install "qiskit[<entries in this list>]"`` will stop working and
+    ``pip install "qiskit[all]"`` will not include them.
