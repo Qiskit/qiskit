@@ -25,7 +25,7 @@ while it would be written as this following big-endian convention:
     C_U = \begin{pmatrix} 1 & 0 & 0 & 0 \\0 & 1 & 0 & 0 \\ 0 & 0 & u_{00} & u_{01} \\ 0 & 0 & u_{10} & u_{11} \end{pmatrix}
 
 
-For more details about how this ordering of MSB and LSB affects the matrix representation of any particular gate, check its entry in the circuit :mod:`~qiskit.circuit.library`.
+For more details about how the ordering of qubits affects the matrix representation of any particular gate, check its entry in the circuit :mod:`~qiskit.circuit.library`.
 
 This different order can also make the circuit corresponding to an algorithm from a textbook a bit more complicated to visualize. Fortunately, Qiskit provides a way to represent a :class:`~.QuantumCircuit` with the most significant qubits on top, just like in the textbooks. This can be done by setting the ``reverse_bits`` argument of the :meth:`~.QuantumCircuit.draw` method to ``True``.
 
