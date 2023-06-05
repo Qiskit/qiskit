@@ -27,8 +27,8 @@ Qiskit 0.43.1
 
 .. _Release Notes_Terra_0.24.1:
 
-0.24.1
-======
+Terra 0.24.1
+============
 
 .. _Release Notes_Terra_0.24.1_Prelude:
 
@@ -153,6 +153,15 @@ Bug Fixes
   where the passes were failing to account for the 1 qubit error component when
   evaluating a potential layout.
 
+Aer 0.12.0
+==========
+
+No change
+
+IBM Q Provider 0.20.2
+=====================
+
+No change
 
 *************
 Qiskit 0.43.0
