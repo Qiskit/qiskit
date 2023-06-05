@@ -22,7 +22,7 @@ while it would be written as this following big-endian convention:
 
 .. math::
 
-    C_U = \begin{pmatrix} 1 & 0 & 0 & 0 \\0 & 1 & 0 & 0 \\ 0 & 0 & u_{00} & u_{01} \\ 0 & 0 & u_{00} & u_{01} \end{pmatrix}
+    C_U = \begin{pmatrix} 1 & 0 & 0 & 0 \\0 & 1 & 0 & 0 \\ 0 & 0 & u_{00} & u_{01} \\ 0 & 0 & u_{10} & u_{11} \end{pmatrix}
 
 
 For more details about how this ordering of MSB and LSB affects the matrix representation of any particular gate, check its entry in the circuit :mod:`~qiskit.circuit.library`.
