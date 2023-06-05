@@ -31,7 +31,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
 )
 from qiskit.quantum_info import Operator
-from qiskit.circuit import ControlFlowOp, Gate
+from qiskit.circuit import ControlFlowOp, Gate, Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -673,13 +673,24 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # available instructions on this qubit pair, and their associated property.
         available_2q_basis = {}
         available_2q_props = {}
+
+        # 2q gates sent to 2q decomposers must not have any symbolic parameters.  The
+        # gates must be convertable to a numeric matrix. If a basis gate supports an arbitrary
+        # angle, we have to choose one angle (or more.)
+        def _replace_parameterized_gate(op):
+            if isinstance(op, RXXGate) and isinstance(op.params[0], Parameter):
+                op = RXXGate(pi / 2)
+            elif isinstance(op, RZXGate) and isinstance(op.params[0], Parameter):
+                op = RZXGate(pi / 4)
+            return op
+
         try:
             keys = target.operation_names_for_qargs(qubits_tuple)
             for key in keys:
                 op = target.operation_from_name(key)
                 if not isinstance(op, Gate):
                     continue
-                available_2q_basis[key] = op
+                available_2q_basis[key] = _replace_parameterized_gate(op)
                 available_2q_props[key] = target[key][qubits_tuple]
         except KeyError:
             pass
@@ -690,7 +701,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     op = target.operation_from_name(key)
                     if not isinstance(op, Gate):
                         continue
-                    available_2q_basis[key] = op
+                    available_2q_basis[key] = _replace_parameterized_gate(op)
                     available_2q_props[key] = target[key][reverse_tuple]
         except KeyError:
             pass
