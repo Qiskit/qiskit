@@ -51,7 +51,7 @@ impl CustomInstruction {
 /// The given `callable` must be a Python function that takes `num_params` floats, and returns a
 /// float.  The `name` is the identifier that refers to it in the OpenQASM 2 program.  This cannot
 /// clash with any defined gates.
-#[pyclass(text_signature = "(name, num_params, callable, /)")]
+#[pyclass()]
 #[derive(Clone)]
 pub struct CustomClassical {
     pub name: String,
@@ -62,6 +62,7 @@ pub struct CustomClassical {
 #[pymethods]
 impl CustomClassical {
     #[new]
+    #[pyo3(text_signature = "(name, num_params, callable, /)")]
     fn __new__(name: String, num_params: usize, callable: PyObject) -> Self {
         Self {
             name,
