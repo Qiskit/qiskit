@@ -21,7 +21,7 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import ControlledGate, Measure, ControlFlowOp, WhileLoopOp, IfElseOp
+from qiskit.circuit import ControlledGate, Measure, WhileLoopOp, IfElseOp
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
