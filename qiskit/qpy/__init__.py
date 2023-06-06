@@ -143,6 +143,7 @@ LAYOUT
 .. code-block:: c
 
     struct {
+        char exists;
         int32_t initial_layout_size;
         int32_t input_mapping_size;
         int32_t final_layout_size;
@@ -150,10 +151,10 @@ LAYOUT
     }
 
 If any of the signed values are ``-1`` this indicates the corresponding
-attribute is ``None``
+attribute is ``None``.
 
 Immediately following the ``LAYOUT`` struct there is a :ref:`qpy_registers` struct
-for ``extra_registers`` (specifically the format introduced in :ref:`qpy_version_4`
+for ``extra_registers`` (specifically the format introduced in :ref:`qpy_version_4`)
 standalone register definitions that aren't present in the circuit. Then there
 are ``initial_layout_size`` ``INITIAL_LAYOUT_BIT`` structs to define the
 :attr:`.TranspileLayout.initial_layout` attribute.
