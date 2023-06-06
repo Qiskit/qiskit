@@ -672,11 +672,11 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
                 sys.exit(1)
 
     if (
-        version_parts > (0, 24, 0)
+        version_parts >= (0, 24, 2)
         and isinstance(reference, QuantumCircuit)
         and reference.layout != qpy.layout
     ):
-        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}"
+        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
         sys.stderr.write(msg)
         sys.exit(4)
 
