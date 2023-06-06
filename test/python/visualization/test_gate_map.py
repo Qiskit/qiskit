@@ -61,7 +61,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             fig.save(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
-        # plt.close(fig)
 
     @data(*backends)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -82,7 +81,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             fig.save(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
-        # plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map_no_backend(self):
@@ -98,7 +96,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             fig.save(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
-        # plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_backend_v1(self):
