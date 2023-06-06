@@ -584,9 +584,10 @@ def generate_layout_circuits():
     qc.cx(0, 1)
     qc.swap(0, 1)
     qc.cx(0, 2)
+    input_layout = {Qubit(): index for index in range(len(qc.qubits))}
     qc._layout = TranspileLayout(
-        Layout({bit: index for index, bit in enumerate(qc.qubits)}),
-        input_qubit_mapping={bit: index for index, bit in enumerate(qc.qubits)},
+        Layout(input_layout),
+        input_qubit_mapping=input_layout,
         final_layout=Layout.from_qubit_list([qc.qubits[1], qc.qubits[0], qc.qubits[2]]),
     )
     return [qc]
