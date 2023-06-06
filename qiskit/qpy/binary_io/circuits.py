@@ -822,20 +822,13 @@ def _write_layout(file_obj, circuit):
     _write_registers(
         file_obj, list(extra_registers), [x for bits in extra_registers.values() for x in bits]
     )
-    for virt in initial_layout_array:
-        index = -1
-        if virt[0] is not None:
-            index = virt[0]
-        reg_size = -1
-        reg_name_bytes = None
-        if virt[1] is not None:
-            reg_name_bytes = virt[1].name.encode(common.ENCODE)
-            reg_size = len(reg_name_bytes)
+    for index, register in initial_layout_array:
+        reg_name_bytes = None if register is None else register.name.encode(common.ENCODE)
         file_obj.write(
             struct.pack(
                 formats.INITIAL_LAYOUT_BIT_PACK,
-                index,
-                reg_size,
+                -1 if index is None else index,
+                -1 if reg_name_bytes is None else len(reg_name_bytes),
             )
         )
         if reg_name_bytes is not None:
