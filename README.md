@@ -24,7 +24,6 @@ Pip will handle all dependencies automatically and you will always install the l
 
 To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
-
 ## Creating Your First Quantum Program in Qiskit Terra
 
 Now that Qiskit is installed, it's time to begin working with Qiskit. To do this
