@@ -58,10 +58,10 @@ class TestGateMap(QiskitVisualizationTestCase):
         img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
         fig = plot_gate_map(backend)
         with BytesIO() as img_buffer:
-            fig.savefig(img_buffer, format="png")
+            fig.save(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
-        plt.close(fig)
+        # plt.close(fig)
 
     @data(*backends)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -79,10 +79,10 @@ class TestGateMap(QiskitVisualizationTestCase):
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         fig = plot_circuit_layout(circuit, backend)
         with BytesIO() as img_buffer:
-            fig.savefig(img_buffer, format="png")
+            fig.save(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
-        plt.close(fig)
+        # plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map_no_backend(self):
@@ -95,10 +95,10 @@ class TestGateMap(QiskitVisualizationTestCase):
             num_qubits=n_qubits, qubit_coordinates=qubit_coordinates, coupling_map=coupling_map
         )
         with BytesIO() as img_buffer:
-            fig.savefig(img_buffer, format="png")
+            fig.save(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
-        plt.close(fig)
+        # plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_backend_v1(self):
