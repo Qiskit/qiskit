@@ -95,8 +95,8 @@ class CustomCX(Gate):
 def connected_qubits(physical: int, coupling_map: CouplingMap) -> set:
     """Get the physical qubits that have a connection to this one in the coupling map."""
     for component in coupling_map.connected_components():
-        if physical in (qubits := component.graph.nodes()):
-            return set(qubits)
+        if physical in (qubits := set(component.graph.nodes())):
+            return qubits
     raise ValueError(f"physical qubit {physical} is not in the coupling map")
 
 
