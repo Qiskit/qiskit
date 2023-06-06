@@ -10,8 +10,9 @@ Qiskit Terra documentation
    getting_started
    intro_tutorial1
    How-to Guides <how_to/index>
-   API Reference <apidoc/terra>
-   Explanation <explanation/index>Migration Guides <migration_guides/index>
+   API Reference <apidocs/terra>
+   Explanation <explanation/index>
+   Migration Guides <migration_guides/index>
    release_notes
    configuration
    GitHub <https://github.com/Qiskit/qiskit-terra>
