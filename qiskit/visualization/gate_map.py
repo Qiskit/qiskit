@@ -30,6 +30,8 @@ def _get_backend_interface_version(backend):
     backend_interface_version = getattr(backend, "version", None)
     return backend_interface_version
 
+
+@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_gate_map(
     backend,
     plot_directed=False,
@@ -951,6 +953,8 @@ def plot_gate_map(
         filename,
     )
 
+
+@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
@@ -1006,10 +1010,10 @@ def plot_coupling_map(
 
     # set coloring
     if qubit_color is None:
-        qubit_color = [f"\"#648fff\""] * num_qubits
+        qubit_color = [f'"#648fff"'] * num_qubits
     if line_color is None:
-        line_color = [f"\"#648fff\""] * len(coupling_map)
-        
+        line_color = [f'"#648fff"'] * len(coupling_map)
+
     graph = CouplingMap(coupling_map).graph
     for node in graph.node_indices():
         graph[node] = node
@@ -1035,9 +1039,13 @@ def plot_coupling_map(
         }
         return out_dict
 
-    fig = graphviz_draw(graph, method="neato", node_attr_fn=color_node, edge_attr_fn=color_edge, filename=filename)
+    fig = graphviz_draw(
+        graph, method="neato", node_attr_fn=color_node, edge_attr_fn=color_edge, filename=filename
+    )
     return fig
 
+
+@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
     """Plot the layout of a circuit transpiled for a given
     target backend.
@@ -1121,15 +1129,15 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     else:
         raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
 
-    qcolors = [f"\"#648fff\""] * num_qubits
+    qcolors = [f'"#648fff"'] * num_qubits
     for k in qubits:
-        qcolors[k] = f"\"#ff91a4\""
+        qcolors[k] = f'"#ff91a4"'
 
-    lcolors = [f"\"#648fff\""] * cmap_len
+    lcolors = [f'"#648fff"'] * cmap_len
 
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:
-            lcolors[idx] = f"\"#ff91a4\""
+            lcolors[idx] = f'"#ff91a4"'
 
     fig = plot_gate_map(
         backend,
@@ -1143,6 +1151,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
+@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=None):
     """Plots the error map of a given backend.
 
@@ -1179,7 +1188,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker
     import math
-    
+
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     backend_version = _get_backend_interface_version(backend)
@@ -1268,8 +1277,10 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     single_norm = matplotlib.colors.Normalize(
         vmin=min(single_gate_errors), vmax=max(single_gate_errors)
     )
-    q_colors = [f"\"{matplotlib.colors.to_hex(color_map(single_norm(err)))}\"" for err in single_gate_errors]
-    
+    q_colors = [
+        f'"{matplotlib.colors.to_hex(color_map(single_norm(err)))}"' for err in single_gate_errors
+    ]
+
     directed = False
     line_colors = []
     if cmap:
@@ -1279,7 +1290,9 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         avg_cx_err = np.mean(cx_errors)
 
         cx_norm = matplotlib.colors.Normalize(vmin=min(cx_errors), vmax=max(cx_errors))
-        line_colors = [f"\"{matplotlib.colors.to_hex(color_map(cx_norm(err)))}\"" for err in cx_errors]
+        line_colors = [
+            f'"{matplotlib.colors.to_hex(color_map(cx_norm(err)))}"' for err in cx_errors
+        ]
 
     read_err = 100 * np.asarray(read_err)
     avg_read_err = np.mean(read_err)
@@ -1299,14 +1312,15 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     if cmap:
         bright_ax = plt.subplot(grid_spec[-1, 7:])
 
-    main_ax.imshow(plot_gate_map(
-                                            backend,
-                                            plot_directed = directed,
-                                            qubit_color=q_colors,
-                                            line_color=line_colors,
-                                            qubit_coordinates=qubit_coordinates,
-                                        )
-                  )
+    main_ax.imshow(
+        plot_gate_map(
+            backend,
+            plot_directed=directed,
+            qubit_color=q_colors,
+            line_color=line_colors,
+            qubit_coordinates=qubit_coordinates,
+        )
+    )
     main_ax.axis("off")
     main_ax.set_aspect(1)
     if cmap:
