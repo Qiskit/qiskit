@@ -903,7 +903,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     def evolve(self, other, qargs=None, frame="h"):
         r"""Evolve the Pauli by a Clifford.
 
-        This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
+        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
         By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
         :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
@@ -914,7 +914,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
 
         Returns:
-            Pauli: the Pauli :math:`C.P.C^\dagger`.
+            Pauli: the Pauli :math:`C^\dagger.P.C`.
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
