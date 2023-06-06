@@ -28,6 +28,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import shutil
 from warnings import warn
 
 from qiskit import user_config
@@ -495,7 +496,6 @@ def _latex_circuit_drawer(
         image = trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
-                import shutil
                 shutil.move(base + ".pdf", filename)
             else:
                 try:

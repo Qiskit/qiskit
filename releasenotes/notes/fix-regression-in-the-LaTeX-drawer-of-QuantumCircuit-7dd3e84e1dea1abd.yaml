@@ -1,0 +1,6 @@
+
+fixes:
+  - |
+    Fixed regression in the LaTeX drawer of `QuantumCircuit`.
+    See `#10211 <https://github.com/Qiskit/qiskit-terra/issues/10211>`__
+
