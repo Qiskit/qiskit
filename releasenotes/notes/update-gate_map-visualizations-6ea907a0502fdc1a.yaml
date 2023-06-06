@@ -1,0 +1,16 @@
+---
+prelude: >
+    The following modules in `qiskit-terra/qiskit/visualization/gate_map.py` have been 
+    updated to leverage graphviz plotting for gate maps
+    - `plot_gate_map` 
+    - `plot_coupling_map`
+    - `plot_circuit_layout`
+    - `plot_error_map` 
+  This allows the plotting of backends with large number of qubits without causing
+  issues due to migration to matplotlib. 
+
+fixes:
+  - |
+    Fixes the gate maap visualizations in `qiskit-terra/qiskit/visualization/gate_map.py`. Refer to
+    `#9031 <https://github.com/Qiskit/qiskit-terra/issues/9031>` for more
+    details.
