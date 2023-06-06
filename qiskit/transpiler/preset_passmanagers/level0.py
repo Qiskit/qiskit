@@ -163,7 +163,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         pre_opt += translation
     else:
         pre_opt = None
-    if scheduling_method is None or scheduling_method in {"alap", "asap"}:
+    if scheduling_method is None or scheduling_method in {"alap", "asap", "as_late_as_possible", "as_soon_as_possible"}:
         sched = common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
         )

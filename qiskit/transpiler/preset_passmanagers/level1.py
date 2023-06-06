@@ -288,7 +288,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config, optimization_level=1
         )
-    if scheduling_method is None or scheduling_method in {"alap", "asap"}:
+    if scheduling_method is None or scheduling_method in {"alap", "asap", "as_late_as_possible", "as_soon_as_possible"}:
         sched = common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
         )
