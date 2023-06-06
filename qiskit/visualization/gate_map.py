@@ -30,8 +30,6 @@ def _get_backend_interface_version(backend):
     backend_interface_version = getattr(backend, "version", None)
     return backend_interface_version
 
-
-@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_gate_map(
     backend,
     plot_directed=False,
@@ -953,8 +951,6 @@ def plot_gate_map(
         filename,
     )
 
-
-@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
@@ -1042,8 +1038,6 @@ def plot_coupling_map(
     fig = graphviz_draw(graph, method="neato", node_attr_fn=color_node, edge_attr_fn=color_edge, filename=filename)
     return fig
 
-
-@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None):
     """Plot the layout of a circuit transpiled for a given
     target backend.
@@ -1149,7 +1143,6 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
-@_optionals.HAS_RUSTWORKX.require_in_call
 def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=None):
     """Plots the error map of a given backend.
 
