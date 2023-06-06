@@ -1333,6 +1333,11 @@ class ScheduleBlock:
         every function in ``filter_funcs`` returns ``True``, the instruction occurs on
         a channel type contained in ``channels``, and the instruction type is contained
         in ``instruction_types``.
+        
+        .. warning::
+            Because ``ScheduleBlock`` is not aware of the execution time of 
+            the context instructions, filtering out some instructions may
+            change the execution time of the remaining instructions.
 
         If no arguments are provided, ``self`` is returned.
 
