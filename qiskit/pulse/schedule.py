@@ -1348,7 +1348,7 @@ class ScheduleBlock:
         """
         from qiskit.pulse.filters import composite_filter, filter_instructions
 
-        filters = composite_filter(channels, instruction_types, None, None)
+        filters = composite_filter(channels, instruction_types)
         filters.extend(filter_funcs)
 
         return filter_instructions(
