@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
 from qiskit.qpy import dump, load
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
 from qiskit.compiler import transpile
 
@@ -36,7 +36,7 @@ class QpyCircuitTestCase(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
 
         self.assertEqual(circuit, new_circuit)
-        if getattr(circuit, "layout", None):
+        if circuit.layout is not None:
             self.assertEqual(circuit.layout, new_circuit.layout)
 
 
@@ -86,6 +86,41 @@ class TestLayout(QpyCircuitTestCase):
         backend = FakeSherbrooke()
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_with_routing(self, opt_level):
+        """Test full layout with routing is preserved."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure_all()
+        backend = FakeSherbrooke()
+        tqc = transpile(qc, backend, optimization_level=opt_level)
+        self.assert_roundtrip_equal(tqc)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_layout_explicit_None_final_layout(self, opt_level):
+        """Test layout preserved after transpile."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        backend = FakeSherbrooke()
+        tqc = transpile(qc, backend, optimization_level=opt_level)
+        tqc.layout.final_layout = None
+        self.assert_roundtrip_equal(tqc)
+
+    def test_empty_layout(self):
+        """Test an empty layout is preserved correctly."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        qc._layout = TranspileLayout(None, None, None)
+        self.assert_roundtrip_equal(qc)
 
     @data(0, 1, 2, 3)
     def test_custom_register_name(self, opt_level):
