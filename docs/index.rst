@@ -3,16 +3,31 @@ Qiskit Terra documentation
 ##########################
 
 .. toctree::
-  :maxdepth: 2
-  :hidden:
+   :hidden:
 
-  How-to Guides <how_to/index>
-  API References <apidocs/terra>
-  Explanation <explanation/index>
-  Migration Guides <migration_guides/index>
-  Release Notes <release_notes>
+   Documentation Home <self>
+   qc_intro
+   getting_started
+   intro_tutorial1
+   How-to Guides <how_to/index>
+   API Reference <apidoc/terra>
+   Explanation <explanation/index>Migration Guides <migration_guides/index>
+   release_notes
+   configuration
+   GitHub <https://github.com/Qiskit/qiskit-terra>
+   faq
 
-.. Hiding - Indices and tables
-   :ref:`genindex`
-   :ref:`modindex`
-   :ref:`search`
+.. toctree::
+   :caption: Contributing
+   :hidden:
+
+   contributing_to_qiskit
+   deprecation_policy
+   maintainers_guide
+
+.. toctree::
+   :caption: Other API References
+   :hidden:
+
+   Qiskit Aer <https://qiskit.org/ecosystem/aer>
+   Qiskit IBM Quantum Provider (deprecated) <https://qiskit.org/ecosystem/ibmq-provider>

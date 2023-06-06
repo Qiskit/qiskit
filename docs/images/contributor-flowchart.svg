@@ -1,0 +1,183 @@
+<svg width="750" height="1185" viewBox="0 0 750 1185" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<style>
+@import url("https://fonts.googleapis.com/css?family=IBM Plex Sans")
+</style>
+</defs>
+<rect x="359.5" y="0.5" width="137" height="47" fill="#6929C4" stroke="#491D8B"/>
+<rect x="384.5" y="116.5" width="84" height="47" fill="#6929C4" stroke="#491D8B"/>
+<rect x="382.5" y="217.5" width="116" height="63" fill="#6929C4" stroke="#491D8B"/>
+<rect x="0.5" y="342.5" width="125" height="59" fill="#6929C4" stroke="#491D8B"/>
+<rect x="23.5" y="616.5" width="135" height="87" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="30" y="647.5">Report/fix typos, </tspan><tspan x="30" y="663.5">broken links etc. in </tspan><tspan x="30" y="679.5">the relevant package </tspan><tspan x="30" y="695.5">or textbook repo</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="30" y="631.5">Documentation:&#10;</tspan></text>
+<rect x="22.5" y="515.5" width="143" height="87" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="100.293" y="546.5">Answer </tspan><tspan x="27" y="562.5">questions in </tspan><tspan x="129.99" y="562.5">, </tspan><tspan x="112.992" y="578.5">, </tspan><tspan x="159.829" y="578.5"> </tspan><tspan x="27" y="594.5">or </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="27" y="530.5">Help others in the </tspan><tspan x="27" y="546.5">community! </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="99.3748" y="562.5"><a fill="white" href="https://qisk.it/join-slack">Slack</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="27" y="578.5"><a fill="white" href="https://qisk.it/stack-exchange">StackExchange</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="119.738" y="578.5"><a fill="white" href="https://qisk.it/contributors-guide-twitter">Twitter</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="41.917" y="594.5"><a fill="white" href="https://qisk.it/Feedback-Wiki">other channels</a></tspan></text>
+<rect x="22.5" y="414.5" width="134" height="88" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="30" y="445.5">Check out the &#10;</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="30" y="429.5">Translations:&#10;</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="133.896" y="477.5"> </tspan><tspan x="30" y="493.5">repo</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="30" y="461.5"><a fill="white" href="https://qisk.it/qiskit-translations">qiskit-community/</a></tspan><tspan x="30" y="477.5"><a href="https://qisk.it/qiskit-translations">qiskit-translations</a></tspan></text>
+<rect x="293.5" y="342.5" width="163" height="59" fill="#6929C4" stroke="#491D8B"/>
+<rect x="209.5" y="116.5" width="129" height="63" fill="#6929C4" stroke="#491D8B"/>
+<rect x="208.5" y="222.5" width="129" height="47" fill="#6929C4" stroke="#491D8B"/>
+<rect x="580.5" y="116.5" width="95" height="47" fill="#6929C4" stroke="#491D8B"/>
+<path d="M273 104V84.6418C273 81.8804 275.239 79.6418 278 79.6418H383C385.761 79.6418 388 77.4032 388 74.6418V56" stroke="#343A3F"/>
+<path d="M625 104V84.6418C625 81.8804 622.761 79.6418 620 79.6418H474C471.239 79.6418 469 77.4032 469 74.6418V56" stroke="#343A3F"/>
+<path d="M434 750V763.269C434 766.03 431.761 768.269 429 768.269H318.5C315.739 768.269 313.5 770.507 313.5 773.269V786" stroke="#343A3F"/>
+<path d="M193 750V763.269C193 766.03 195.239 768.269 198 768.269H308.5C311.261 768.269 313.5 770.507 313.5 773.269V786" stroke="#343A3F"/>
+<path d="M474 286V875.172C474 877.934 471.761 880.172 469 880.172H420C417.239 880.172 415 882.411 415 885.172V906" stroke="#343A3F"/>
+<rect x="342.5" y="416.5" width="80" height="46" fill="#6929C4" stroke="#491D8B"/>
+<path d="M427 104L428.5 108L430 104H427Z" fill="#343A3F"/>
+<line x1="428.5" y1="104" x2="428.5" y2="56" stroke="#343A3F"/>
+<path d="M271.5 104L273 108L274.5 104H271.5Z" fill="#343A3F"/>
+<line x1="273" y1="104" x2="273" y2="92" stroke="#343A3F"/>
+<path d="M271 210L272.5 214L274 210H271Z" fill="#343A3F"/>
+<line x1="272.5" y1="210" x2="272.5" y2="188" stroke="#343A3F"/>
+<path d="M312 788L313.5 792L315 788H312Z" fill="#343A3F"/>
+<line x1="313.5" y1="788" x2="313.5" y2="778" stroke="#343A3F"/>
+<path d="M429 210L430.5 214L432 210H429Z" fill="#343A3F"/>
+<line x1="430.5" y1="210" x2="430.5" y2="172" stroke="#343A3F"/>
+<path d="M532 994V1007.92C532 1010.68 529.761 1012.92 527 1012.92H480.5C477.739 1012.92 475.5 1015.16 475.5 1017.92V1031.29" stroke="#343A3F"/>
+<path d="M419 994V1007.92C419 1010.68 421.239 1012.92 424 1012.92H470.5C473.261 1012.92 475.5 1015.16 475.5 1017.92V1031.29" stroke="#343A3F"/>
+<path d="M474.014 1030L475.514 1034L477.014 1030H474.014Z" fill="#343A3F"/>
+<line x1="475.514" y1="1030" x2="475.514" y2="1016" stroke="#343A3F"/>
+<path d="M623.5 104L625 108L626.5 104H623.5Z" fill="#343A3F"/>
+<line x1="625" y1="104" x2="625" y2="90" stroke="#343A3F"/>
+<path d="M431 441H437C439.761 441 442 438.761 442 436V408" stroke="#343A3F"/>
+<path d="M431 497H437C439.761 497 442 494.761 442 492V433" stroke="#343A3F"/>
+<path d="M431 549H437C439.761 549 442 546.761 442 544V486" stroke="#343A3F"/>
+<path d="M431 605H437C439.761 605 442 602.761 442 600V531" stroke="#343A3F"/>
+<path d="M17 469.894H11C8.23858 469.894 6 467.655 6 464.894L6 406" stroke="#343A3F"/>
+<path d="M17 578.319H11C8.23858 578.319 6 576.081 6 573.319L6 454.404" stroke="#343A3F"/>
+<path d="M17 679H11C8.23858 679 6 676.761 6 674L6 557.021" stroke="#343A3F"/>
+<rect x="342.5" y="471.5" width="80" height="46" fill="#6929C4" stroke="#491D8B"/>
+<rect x="342.5" y="526.5" width="80" height="46" fill="#6929C4" stroke="#491D8B"/>
+<rect x="342.5" y="581.5" width="80" height="46" fill="#6929C4" stroke="#491D8B"/>
+<rect x="181.5" y="416.5" width="130" height="40" fill="#6929C4" stroke="#491D8B"/>
+<path d="M319 440L315 441.5L319 443V440Z" fill="#343A3F"/>
+<line x1="319" y1="441.5" x2="334" y2="441.5" stroke="#343A3F"/>
+<path d="M319 493L315 494.5L319 496V493Z" fill="#343A3F"/>
+<line x1="319" y1="494.5" x2="334" y2="494.5" stroke="#343A3F"/>
+<path d="M319 547L315 548.5L319 550V547Z" fill="#343A3F"/>
+<line x1="319" y1="548.5" x2="334" y2="548.5" stroke="#343A3F"/>
+<path d="M319 604L315 605.5L319 607V604Z" fill="#343A3F"/>
+<line x1="319" y1="605.5" x2="334" y2="605.5" stroke="#343A3F"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="367" y="20.5">Looking to contribute </tspan><tspan x="367" y="36.5">to Qiskit?</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="217" y="136.5">I&#x2019;m not sure how </tspan><tspan x="217" y="152.5">yet but I want to </tspan><tspan x="217" y="168.5">get involved!</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="390" y="237.5">Is there already a </tspan><tspan x="390" y="253.5">GitHub issue open </tspan><tspan x="390" y="269.5">for this bug?</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="223" y="242.5">Would you like to </tspan><tspan x="223" y="258.5">code?</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="303" y="360.5">Which programming </tspan><tspan x="303" y="376.5">language are you most </tspan><tspan x="303" y="392.5">comfortable with?</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="369" y="443.5">Rust</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="237.384" y="447.5">, </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="187" y="431.5">Take a look at: </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="187" y="447.5"><a href="https://qisk.it/retworkx">retworkx</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="244.13" y="447.5"><a href="https://qisk.it/Rust-Terra">qiskit-terra</a></tspan></text>
+<rect x="181.5" y="471.5" width="130" height="43" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="190" y="488.5">Take a look at: </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="190" y="504.5"><a href="https://qisk.it/aer">qiskit-aer</a></tspan></text>
+<rect x="180.5" y="526.5" width="130" height="42" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="271.894" y="544.5"> </tspan><tspan x="235.025" y="560.5">, </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="186" y="544.5">Take a look at:</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186" y="560.5"><a href="https://qisk.it/platypus ">platypus</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="241.77" y="560.5"><a href="https://qisk.it/qiskitorg">qiskit.org</a></tspan></text>
+<rect x="180.5" y="581.5" width="126" height="165" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="250.45" y="611.524">,&#10;</tspan><tspan x="260.04" y="627.524">, &#10;</tspan><tspan x="264.259" y="643.524">, &#10;</tspan><tspan x="293.894" y="659.524">, </tspan><tspan x="232.999" y="691.524">, &#10;</tspan><tspan x="293.984" y="707.524">, </tspan><tspan x="277.145" y="723.524">, &#10;</tspan><tspan x="255.478" y="739.524">  </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" font-weight="bold" letter-spacing="0.32px"><tspan x="186.786" y="595.524">Take a look at: </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="611.524"><a fill="white" href="https://qisk.it/Python-Terra">qiskit-terra</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="627.524"><a fill="white" href="https://qisk.it/nature">qiskit-nature</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="643.524"><a fill="white" href="https://qisk.it/python-finance">qiskit-finance</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="659.524"><a fill="white" href="https://qisk.it/optimization&#10;">qiskit-optimization</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="675.524"><a fill="white" href="https://qisk.it/machine-learning">qiskit-machine-</a></tspan><tspan x="186.786" y="691.524"><a fill="white" href="https://qisk.it/machine-learning">learning</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="707.524"><a fill="white" href="https://qisk.it/experiments">qiskit-experiments</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="723.524"><a fill="white" href="https://qisk.it/Dynamics">qiskit-dynamics</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="186.786" y="739.524"><a fill="white" href="https://qisk.it/qiskit-metal">qiskit-metal</a></tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="370" y="499.5">C++</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="351" y="545.5">Javascript/</tspan><tspan x="351" y="561.5">web dev.</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="362" y="608.5">Python</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="11" y="366.5">Consider the </tspan><tspan x="11" y="382.5">following options:</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="392" y="136.5">I&#x2019;d like to </tspan><tspan x="392" y="152.5">report a bug</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="588" y="136.5">I have an idea </tspan><tspan x="588" y="152.5">for a feature</tspan></text>
+<rect x="527.5" y="217.5" width="95" height="63" fill="#6929C4" stroke="#491D8B"/>
+<rect x="631.5" y="217.5" width="95" height="63" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="539" y="237.5">I have some </tspan><tspan x="539" y="253.5">code for this </tspan><tspan x="539" y="269.5">feature</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="658" y="245.5">It&#x2019;s just &#10;</tspan><tspan x="658" y="261.5">an idea</tspan></text>
+<rect x="547.5" y="340.5" width="160" height="63" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="555" y="360.5">Do you know which Qiskit </tspan><tspan x="555" y="376.5">package you would like </tspan><tspan x="555" y="392.5">your feature added to?</tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="420" y="892.5">Yes</tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="511" y="892.5">No</tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="293" y="301.5">Yes</tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="236" y="300.5">No</tspan></text>
+<path d="M532 906V885.582C532 882.821 529.761 880.582 527 880.582H479C476.239 880.582 474 878.344 474 875.582V853" stroke="#343A3F"/>
+<rect x="520.5" y="744.5" width="101" height="95" fill="#6929C4" stroke="#491D8B"/>
+<rect x="630.5" y="744.5" width="113" height="95" fill="#6929C4" stroke="#491D8B"/>
+<rect x="570.5" y="625.5" width="115" height="47" fill="#6929C4" stroke="#491D8B"/>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="528" y="701.5">work is in scope</tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="637" y="703.5">work is not in scope</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="578" y="645.5">Discuss your idea </tspan><tspan x="578" y="661.5">with maintainers</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="528" y="764.5">Work with </tspan><tspan x="528" y="780.5">maintainers to </tspan><tspan x="528" y="796.5">integrate your </tspan><tspan x="528" y="812.5">feature into </tspan><tspan x="528" y="828.5">Qiskit</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="636" y="763.5">Consider creating </tspan><tspan x="636" y="779.5">a standalone </tspan><tspan x="636" y="795.5">module and join </tspan><tspan x="636" y="811.5">the </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="657.729" y="811.5"><a fill="white" href="https://qisk.it/qiskit-ecosystems">Qiskit </a></tspan><tspan x="636" y="827.5"><a fill="white" href="https://qisk.it/qiskit-ecosystems">Ecosystem</a></tspan></text>
+<path d="M683.5 736V713.09C683.5 710.328 681.261 708.09 678.5 708.09H633.5C630.739 708.09 628.5 705.851 628.5 703.09V681" stroke="#343A3F"/>
+<path d="M573.5 736V713.09C573.5 710.328 575.739 708.09 578.5 708.09H623.5C626.261 708.09 628.5 705.851 628.5 703.09V681" stroke="#343A3F"/>
+<path d="M572 735.999L573.5 739.999L575 735.999H572Z" fill="#343A3F"/>
+<line x1="573.5" y1="735.999" x2="573.5" y2="712.999" stroke="#343A3F"/>
+<path d="M682 735.999L683.5 739.999L685 735.999H682Z" fill="#343A3F"/>
+<line x1="683.5" y1="735.999" x2="683.5" y2="712.999" stroke="#343A3F"/>
+<rect x="511.5" y="475.5" width="90" height="81" fill="#6929C4" stroke="#491D8B"/>
+<rect x="630.5" y="475.5" width="119" height="81" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="536.485" y="495.5">Open a </tspan><tspan x="535.98" y="511.5">feature </tspan><tspan x="534.743" y="527.5">request </tspan><tspan x="520.398" y="543.5">GitHub issue</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="637" y="494.5">Open a GitHub </tspan><tspan x="637" y="510.5">discussion in the </tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="689.271" y="542.5"> repo</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px" text-decoration="underline"><tspan x="637" y="526.5"><a fill="white" href="https://qisk.it/feedback-discussions">qiskit-community/</a></tspan><tspan x="637" y="542.5"><a fill="white" href="https://qisk.it/feedback-discussions">feedback</a></tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="579" y="448.5">Yes</tspan></text>
+<text fill="#121619" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="658.179" y="448.5">No</tspan></text>
+<path d="M681.04 562V584.91C681.04 587.672 678.802 589.91 676.04 589.91H632.52C629.759 589.91 627.52 592.149 627.52 594.91V617" stroke="#343A3F"/>
+<path d="M574 562V584.91C574 587.672 576.239 589.91 579 589.91H622.52C625.282 589.91 627.52 592.149 627.52 594.91V617" stroke="#343A3F"/>
+<path d="M626.007 617L627.507 621L629.007 617H626.007Z" fill="#343A3F"/>
+<line x1="627.507" y1="617" x2="627.507" y2="594" stroke="#343A3F"/>
+<path d="M680.074 463V440.09C680.074 437.328 677.835 435.09 675.074 435.09H631.554C628.792 435.09 626.554 432.851 626.554 430.09V408" stroke="#343A3F"/>
+<path d="M573.034 463V440.09C573.034 437.328 575.272 435.09 578.034 435.09H621.554C624.315 435.09 626.554 432.851 626.554 430.09V408" stroke="#343A3F"/>
+<path d="M571.52 462.999L573.02 466.999L574.52 462.999H571.52Z" fill="#343A3F"/>
+<line x1="573.02" y1="462.999" x2="573.02" y2="439.999" stroke="#343A3F"/>
+<path d="M678.561 462.999L680.061 466.999L681.561 462.999H678.561Z" fill="#343A3F"/>
+<line x1="680.061" y1="462.999" x2="680.061" y2="439.999" stroke="#343A3F"/>
+<path d="M683.496 209.289V195.366C683.496 192.605 681.257 190.366 678.496 190.366H633.005C630.243 190.366 628.005 188.128 628.005 185.366V172" stroke="#343A3F"/>
+<path d="M572.513 209.289V195.366C572.513 192.605 574.752 190.366 577.513 190.366H623.005C625.766 190.366 628.005 188.128 628.005 185.366V172" stroke="#343A3F"/>
+<path d="M571.018 208L572.518 212L574.018 208H571.018Z" fill="#343A3F"/>
+<line x1="572.518" y1="208" x2="572.518" y2="194" stroke="#343A3F"/>
+<path d="M682 208L683.5 212L685 208H682Z" fill="#343A3F"/>
+<line x1="683.5" y1="208" x2="683.5" y2="194" stroke="#343A3F"/>
+<path d="M684 288V305.617C684 308.378 681.761 310.617 679 310.617H634C631.239 310.617 629 312.856 629 315.617V332.569" stroke="#343A3F"/>
+<path d="M574 288V305.617C574 308.378 576.239 310.617 579 310.617H624C626.761 310.617 629 312.856 629 315.617V332.569" stroke="#343A3F"/>
+<path d="M684 288V305.617C684 308.378 681.761 310.617 679 310.617H634C631.239 310.617 629 312.856 629 315.617V332.569" stroke="#343A3F"/>
+<path d="M574 288V305.617C574 308.378 576.239 310.617 579 310.617H624C626.761 310.617 629 312.856 629 315.617V332.569" stroke="#343A3F"/>
+<path d="M627.5 331L629 335L630.5 331H627.5Z" fill="#343A3F"/>
+<line x1="629" y1="331" x2="629" y2="313" stroke="#343A3F"/>
+<path d="M341 333V310C341 307.239 338.761 305 336 305H278C275.239 305 273 302.761 273 300V278" stroke="#343A3F"/>
+<path d="M65.5755 335.527V309.304C65.5755 306.543 67.8141 304.304 70.5755 304.304H268C270.761 304.304 273 302.066 273 299.304V274" stroke="#343A3F"/>
+<path d="M64.1007 336L65.6007 340L67.1007 336H64.1007Z" fill="#343A3F"/>
+<line x1="65.6007" y1="336" x2="65.6007" y2="310" stroke="#343A3F"/>
+<path d="M339.5 332.999L341 336.999L342.5 332.999H339.5Z" fill="#343A3F"/>
+<line x1="341" y1="332.999" x2="341" y2="309.999" stroke="#343A3F"/>
+<path d="M347 1070.21L351 1068.71L347 1067.21V1070.21Z" fill="#343A3F"/>
+<line x1="347" y1="1068.71" x2="333" y2="1068.71" stroke="#343A3F"/>
+<path d="M335.174 1068.66H265C262.239 1068.66 260 1066.42 260 1063.66V872" stroke="#343A3F"/>
+<rect x="320.5" y="910.5" width="136" height="79" fill="#6929C4" stroke="#491D8B"/>
+<rect x="465.5" y="910.5" width="136" height="79" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="473" y="930.5">Open an issue with a </tspan><tspan x="473" y="946.5">minimum </tspan><tspan x="473" y="962.5">reproducible code </tspan><tspan x="473" y="978.5">example</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="328" y="930.5">Leave a comment or </tspan><tspan x="328" y="946.5">+1 in the issue (with </tspan><tspan x="328" y="962.5">a code example even </tspan><tspan x="328" y="978.5">better!)</tspan></text>
+<rect x="361.5" y="1038.5" width="236" height="63" fill="#6929C4" stroke="#491D8B"/>
+<rect x="385.5" y="1145.5" width="181" height="34" fill="#6929C4" stroke="#491D8B"/>
+<path d="M473.827 1133L475.327 1137L476.827 1133H473.827Z" fill="#343A3F"/>
+<line x1="475.327" y1="1133" x2="475.327" y2="1110" stroke="#343A3F"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="375.256" y="1057.5">If you would like to work on this </tspan><tspan x="375.256" y="1073.5">issue, leave a comment in the issue </tspan><tspan x="375.256" y="1089.5">requesting to be assigned</tspan></text>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="401.985" y="1165.5">Get coding and open a PR!</tspan></text>
+<path d="M173.5 793.5H452.5V865.5H173.5V793.5Z" fill="#6929C4" stroke="#491D8B"/>
+<text fill="white" xml:space="preserve" style="white-space: pre" font-family="IBM Plex Sans" font-size="12" letter-spacing="0.32px"><tspan x="180" y="810.5">Choose the repo you want to work on, look at </tspan><tspan x="180" y="826.5">the open issues in the issues tab, look for </tspan><tspan x="180" y="842.5">issues with &#34;good first issue&#34; or &#34;help wanted&#34; </tspan><tspan x="180" y="858.5">labels </tspan></text>
+</svg>
