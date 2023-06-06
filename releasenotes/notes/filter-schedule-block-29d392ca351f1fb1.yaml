@@ -5,6 +5,8 @@ features:
     in the :class:`~qiskit.pulse.schedule.ScheduleBlock` class.
     This method enables users to retain only :class:`~qiskit.pulse.Instruction`
     objects which pass through all the provided filters.
-    As the filters, :mod:`~qiskit.pulse.channels` modules and
-    :mod:`~qiskit.pulse.instructions` modules can be specified.
-    User-defined functions can be added to the filters, too.
+    As builtin filter conditions, pulse :class:`~qiskit.pulse.channels.Channel` 
+    subclass instance and :class:`~qiskit.pulse.instructions.Instruction` 
+    subclass type can be specified.
+    User-defined callbacks taking :class:`~qiskit.pulse.instructions.Instruction` instance 
+    can be added to the filters, too.
