@@ -24,36 +24,6 @@ Pip will handle all dependencies automatically and you will always install the l
 
 To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
-## Setup Development Enviroment
-
-If Rust has not been installed on your system, run the following command in the qiskit-terra directory:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-python setup.py build_rust
-```
-
-Create a new virtual environment:
-
-```bash
-python3 -m venv ~/.venvs/qiskit-dev
-```
-
-Activate the environment using activation script for your system. For bash/zsh:
-
-```bash
-source ~/.venvs/qiskit-dev/bin/activate
-```
-
-Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections can be located for your system.
-
-```bash
-pip install -U pip
-```
-
-```bash
-pip install -e .
-```
 
 ## Creating Your First Quantum Program in Qiskit Terra
 
