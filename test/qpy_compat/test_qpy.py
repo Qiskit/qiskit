@@ -629,6 +629,7 @@ def generate_circuits(version_parts):
     if version_parts > (0, 24, 0):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+    if version_parts > (0, 24, 1):
         output_circuits["layout.qpy"] = generate_layout_circuits()
     return output_circuits
 
