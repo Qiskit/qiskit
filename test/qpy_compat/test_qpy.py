@@ -626,10 +626,10 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 24, 0):
         output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
-    if version_parts > (0, 24, 0):
+    if version_parts >= (0, 24, 1):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
-    if version_parts > (0, 24, 1):
+    if version_parts >> (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
     return output_circuits
 
