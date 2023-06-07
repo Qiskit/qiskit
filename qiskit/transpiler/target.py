@@ -20,9 +20,8 @@ from a backend
 from __future__ import annotations
 
 import itertools
-import warnings
 
-from typing import Tuple, Union, Optional, Dict, List, Any
+from typing import Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -45,7 +44,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
@@ -71,9 +70,9 @@ class InstructionProperties:
 
     def __init__(
         self,
-        duration: float = None,
-        error: float = None,
-        calibration: Union[Schedule, ScheduleBlock, CalibrationEntry] = None,
+        duration: float | None = None,
+        error: float | None = None,
+        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -84,7 +83,7 @@ class InstructionProperties:
                 set of qubits.
             calibration: The pulse representation of the instruction.
         """
-        self._calibration = None
+        self._calibration: CalibrationEntry | None = None
 
         self.duration = duration
         self.error = error
@@ -123,7 +122,7 @@ class InstructionProperties:
         return self._calibration.get_schedule()
 
     @calibration.setter
-    def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
+    def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
             new_entry.define(calibration, user_provided=True)
@@ -242,7 +241,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
+    @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
     def __init__(
         self,
         description=None,
@@ -861,7 +860,7 @@ class Target(Mapping):
     def has_calibration(
         self,
         operation_name: str,
-        qargs: Tuple[int, ...],
+        qargs: tuple[int, ...],
     ) -> bool:
         """Return whether the instruction (operation + qubits) defines a calibration.
 
@@ -882,10 +881,10 @@ class Target(Mapping):
     def get_calibration(
         self,
         operation_name: str,
-        qargs: Tuple[int, ...],
+        qargs: tuple[int, ...],
         *args: ParameterValueType,
         **kwargs: ParameterValueType,
-    ) -> Union[Schedule, ScheduleBlock]:
+    ) -> Schedule | ScheduleBlock:
         """Get calibrated pulse schedule for the instruction.
 
         If calibration is templated with parameters, one can also provide those values
@@ -1131,19 +1130,23 @@ class Target(Mapping):
         return incomplete_basis_gates
 
     @property
+    @deprecate_func(
+        additional_msg="Use the property ``acquire_alignment`` instead.",
+        since="0.24.0",
+        is_property=True,
+    )
     def aquire_alignment(self):
         """Alias of deprecated name. This will be removed."""
-        warnings.warn(
-            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
-        )
         return self.acquire_alignment
 
     @aquire_alignment.setter
+    @deprecate_func(
+        additional_msg="Use the property ``acquire_alignment`` instead.",
+        since="0.24.0",
+        is_property=True,
+    )
     def aquire_alignment(self, new_value: int):
         """Alias of deprecated name. This will be removed."""
-        warnings.warn(
-            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
-        )
         self.acquire_alignment = new_value
 
     def __iter__(self):
@@ -1206,15 +1209,15 @@ class Target(Mapping):
     @classmethod
     def from_configuration(
         cls,
-        basis_gates: List[str],
-        num_qubits: Optional[int] = None,
-        coupling_map: Optional[CouplingMap] = None,
-        inst_map: Optional[InstructionScheduleMap] = None,
-        backend_properties: Optional[BackendProperties] = None,
-        instruction_durations: Optional[InstructionDurations] = None,
-        dt: Optional[float] = None,
-        timing_constraints: Optional[TimingConstraints] = None,
-        custom_name_mapping: Optional[Dict[str, Any]] = None,
+        basis_gates: list[str],
+        num_qubits: int | None = None,
+        coupling_map: CouplingMap | None = None,
+        inst_map: InstructionScheduleMap | None = None,
+        backend_properties: BackendProperties | None = None,
+        instruction_durations: InstructionDurations | None = None,
+        dt: float | None = None,
+        timing_constraints: TimingConstraints | None = None,
+        custom_name_mapping: dict[str, Any] | None = None,
     ) -> Target:
         """Create a target object from the individual global configuration
 
@@ -1348,7 +1351,7 @@ class Target(Mapping):
                         "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
                     )
             for gate in one_qubit_gates:
-                gate_properties = {}
+                gate_properties: dict[tuple, InstructionProperties] = {}
                 for qubit in range(num_qubits):
                     error = None
                     duration = None
@@ -1438,7 +1441,7 @@ class Target(Mapping):
 def target_to_backend_properties(target: Target):
     """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
 
-    properties_dict = {
+    properties_dict: dict[str, Any] = {
         "backend_name": "",
         "backend_version": "",
         "last_update_date": None,
@@ -1478,7 +1481,7 @@ def target_to_backend_properties(target: Target):
                         }
                     )
         else:
-            qubit_props = {x: None for x in range(target.num_qubits)}
+            qubit_props: dict[int, Any] = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
                 if qargs is None:
                     continue

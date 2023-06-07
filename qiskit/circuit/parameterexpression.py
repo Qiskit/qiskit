@@ -498,6 +498,21 @@ class ParameterExpression:
     def __deepcopy__(self, memo=None):
         return self
 
+    def __abs__(self):
+        """Absolute of a ParameterExpression"""
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
+            return self._call(symengine.Abs)
+        else:
+            from sympy import Abs as _abs
+
+            return self._call(_abs)
+
+    def abs(self):
+        """Absolute of a ParameterExpression"""
+        return self.__abs__()
+
     def __eq__(self, other):
         """Check if this parameter expression is equal to another parameter expression
            or a fixed value (only if this is a bound expression).
