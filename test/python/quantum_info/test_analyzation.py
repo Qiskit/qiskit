@@ -100,7 +100,7 @@ class TestAnalyzation(QiskitTestCase):
         self.assertAlmostEqual(mean_iz, 0, places=1)
 
     def test_make_dict_observable(self):
-        """Test which makes_dict_observable."""
+        """Test makes_dict_observable."""
         list_in = [1, 1, -1, -1]
         list_out = make_dict_observable(list_in)
         list_expected = {"00": 1, "01": 1, "10": -1, "11": -1}
