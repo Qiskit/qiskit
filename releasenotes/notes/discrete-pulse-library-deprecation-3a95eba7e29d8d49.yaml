@@ -2,10 +2,12 @@
 features:
   - |
     The ``SymbolicPulse`` library was extended. The new pulses in the library are:
+
       * :func:``~qiskit.pulse.library.GaussianDeriv``
       * :func:``~qiskit.pulse.library.Sech``
       * :func:``~qiskit.pulse.library.SechDeriv``
       * :func:``~qiskit.pulse.library.Square``
+
     The new functions return a ``ScalableSymbolicPulse``, and match the functionality
     of the corresponding functions in the discrete pulse library, with the exception of
     ``Square()`` which uses the convention ``sign(0)=0`` instead of ``sign(0)=1`` in
@@ -14,6 +16,7 @@ deprecations:
   - |
     The discrete pulse library is now pending deprecation. All ``Waveform`` creating
     functions within the library now raise a ``PendingDeprecationWarning``:
+
       * :func:``~qiskit.pulse.library.gaussian``
       * :func:``~qiskit.pulse.library.gaussian_deriv``
       * :func:``~qiskit.pulse.library.sech``
@@ -27,6 +30,7 @@ deprecations:
       * :func:``~qiskit.pulse.library.sin``
       * :func:``~qiskit.pulse.library.cos``
       * :func:``~qiskit.pulse.library.gaussian_square``
+
     All functions have a corresponding pulse in the `SymbolicPulse` library
     (and the method ``get_waveform()`` can return the ``Waveform`` if needed).
     Some of the corresponding functions don't support complex values for the
