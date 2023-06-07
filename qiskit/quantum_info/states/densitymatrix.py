@@ -832,4 +832,4 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             lst[i], lst[i + n] = lst[i + n], lst[i]
         rho = np.transpose(arr, lst)
         rho = np.reshape(rho, self._op_shape.shape)
-        return DensityMatrix(rho)
+        return DensityMatrix(rho, dims=self.dims())
