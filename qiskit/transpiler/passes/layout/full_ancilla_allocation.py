@@ -19,11 +19,11 @@ from qiskit.transpiler.target import Target
 
 
 class FullAncillaAllocation(AnalysisPass):
-    """Allocate all idle nodes from the coupling map as ancilla on the layout.
+    """Allocate all idle nodes from the coupling map or target as ancilla on the layout.
 
     A pass for allocating all idle physical qubits (those that exist in coupling
-    map but not the dag circuit) as ancilla. It will also choose new virtual
-    qubits to correspond to those physical ancilla.
+    map or target but not the dag circuit) as ancilla. It will also choose new
+    virtual qubits to correspond to those physical ancilla.
 
     Note:
         This is an analysis pass, and only responsible for choosing physical
@@ -85,6 +85,16 @@ class FullAncillaAllocation(AnalysisPass):
             idle_physical_qubits = [
                 q for q in self.coupling_map.physical_qubits if q not in physical_bits
             ]
+        else:
+            if self.target:
+                idle_physical_qubits = [
+                    q for q in range(self.target.num_qubits) if q not in physical_bits
+                ]
+            else:
+                raise TranspilerError(
+                    "Coupling map is None as well as Target. "
+                    "Could not determine number of qubits to allocate to."
+                )
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:

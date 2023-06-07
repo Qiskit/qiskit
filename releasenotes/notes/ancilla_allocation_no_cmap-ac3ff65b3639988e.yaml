@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    FullAncillaAllocation can now function with target's that do not have a
+    coupling map. In this case FullAncillaAllocation will add a number of
+    ancilla qubits so that the number of qubits in the dag matches the number
+    of qubits in the target.
