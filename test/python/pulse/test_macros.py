@@ -148,14 +148,13 @@ class TestMeasure(QiskitTestCase):
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_output_with_measure_v1_and_measure_v2(self):
-        """Test which makes outputs of measure_v1 and measure_v2 consistent."""
+        """Test make outputs of measure_v1 and measure_v2 consistent."""
         sched_measure_v1 = macros.measure(qubits=[0, 1], backend=FakeHanoi())
         sched_measure_v2 = macros.measure(qubits=[0, 1], backend=self.backend_v2)
         self.assertEqual(sched_measure_v1.instructions, sched_measure_v2.instructions)
 
     def test_output_with_measure_v1_and_measure_v2_sched_with_qubit_mem_slots(self):
-        """Test which makes outputs of measure_v1 and measure_v2
-        with custom qubit_mem_slots consistent."""
+        """Test make outputs of measure_v1 and measure_v2 with custom qubit_mem_slots consistent."""
         sched_measure_v1 = macros.measure(qubits=[0], backend=FakeHanoi(), qubit_mem_slots={0: 2})
         sched_measure_v2 = macros.measure(
             qubits=[0], backend=self.backend_v2, qubit_mem_slots={0: 2}
@@ -163,7 +162,7 @@ class TestMeasure(QiskitTestCase):
         self.assertEqual(sched_measure_v1.instructions, sched_measure_v2.instructions)
 
     def test_output_with_measure_v1_and_measure_v2_sched_with_meas_map(self):
-        """Test which makes outputs of measure_v1 and measure_v2
+        """Test make outputs of measure_v1 and measure_v2
         with custom meas_map as list and dict consistent."""
         num_qubits_list_measure_v1 = list(range(FakeHanoi().configuration().num_qubits))
         num_qubits_list_measure_v2 = list(range(self.backend_v2.num_qubits))
@@ -226,7 +225,7 @@ class TestMeasureAll(QiskitTestCase):
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_output_of_measure_all_with_backend_v1_and_v2(self):
-        """Test which makes outputs of measure_all with backendV1 and backendV2 consistent."""
+        """Test make outputs of measure_all with backendV1 and backendV2 consistent."""
         sched_measure_v1 = macros.measure_all(backend=FakeHanoi())
         sched_measure_v2 = macros.measure_all(backend=self.backend_v2)
         self.assertEqual(sched_measure_v1.instructions, sched_measure_v2.instructions)
