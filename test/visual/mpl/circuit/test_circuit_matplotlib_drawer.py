@@ -53,7 +53,8 @@ else:
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 RESULTDIR = os.path.join(BASEDIR, "circuit_results", "")
 TEST_REFERENCE_PATH = os.path.join(BASEDIR, "references")
-FAILURE_DIFF_DIR = os.path.join(BASEDIR, "circuit_failures", "")
+FAILURE_DIFF_DIR = os.path.join(os.path.dirname(BASEDIR), "visual_test_failures", "")
+FAILURE_PREFIX = "circuit_failure_"
 
 
 @contextmanager
@@ -142,7 +143,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         if ratio != 1:
             TestCircuitMatplotlibDrawer._black_or_b(diff, current, expected).save(
-                FAILURE_DIFF_DIR + image_name, "PNG"
+                FAILURE_DIFF_DIR + FAILURE_PREFIX + image_name, "PNG"
             )
         else:
             TestCircuitMatplotlibDrawer._black_or_b(diff, current, expected).save(diff_name, "PNG")

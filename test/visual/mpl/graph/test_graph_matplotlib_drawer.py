@@ -43,7 +43,8 @@ else:
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 RESULTDIR = os.path.join(BASEDIR, "graph_results", "")
 TEST_REFERENCE_PATH = os.path.join(BASEDIR, "references")
-FAILURE_DIFF_DIR = os.path.join(BASEDIR, "graph_failures", "")
+FAILURE_DIFF_DIR = os.path.join(os.path.dirname(BASEDIR), "visual_test_failures", "")
+FAILURE_PREFIX = "graph_failure_"
 
 
 @contextmanager
@@ -131,7 +132,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         if ratio != 1:
             TestGraphMatplotlibDrawer._black_or_b(diff, current, expected).save(
-                FAILURE_DIFF_DIR + image_name, "PNG"
+                FAILURE_DIFF_DIR + FAILURE_PREFIX + image_name, "PNG"
             )
         else:
             TestGraphMatplotlibDrawer._black_or_b(diff, current, expected).save(diff_name, "PNG")
