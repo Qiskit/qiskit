@@ -90,11 +90,6 @@ class FullAncillaAllocation(AnalysisPass):
                 idle_physical_qubits = [
                     q for q in range(self.target.num_qubits) if q not in physical_bits
                 ]
-            else:
-                raise TranspilerError(
-                    "Coupling map is None as well as Target. "
-                    "Could not determine number of qubits to allocate to."
-                )
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
