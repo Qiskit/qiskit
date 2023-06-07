@@ -1546,7 +1546,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         elif nqubits == 1:
             self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
         elif nqubits == 2:
-            breakpoint()
             self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
 
 
