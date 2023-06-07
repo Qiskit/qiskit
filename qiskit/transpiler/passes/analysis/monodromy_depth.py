@@ -24,8 +24,6 @@ class MonodromyDepth(AnalysisPass):
 
     This class requires the Collect2qBlocks and ConsolidateBlocks passes to decompose the 
     CircuitDAG into 2-qubit blocks and consolidate them respectively. 
-
-    Reference: https://github.com/evmckinney9/monodromy/blob/main/monodromy/depthPass.py
     """
 
     def __init__(self, basis_gate: Instruction):
@@ -120,6 +118,12 @@ class MonodromyDepth(AnalysisPass):
             target_node = dag._multi_graph[node]
             if not isinstance(target_node, DAGOpNode):
                 return 0
+            elif target_node.op.name in ["barrier", "measure"]:
+                return 0
+            elif len(target_node.qargs) == 1:
+                return 0
+            elif len(target_node.qargs) > 2:
+                raise TranspilerError("Operation not supported.")
             else:
                 return self._operation_to_cost(target_node.op)
         
