@@ -22,9 +22,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
 from qiskit.utils.deprecation import deprecate_func, deprecate_function
 
-if TYPE_CHECKING:
-    from qiskit.providers.backend import BackendV2
-
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
     """
