@@ -25,18 +25,26 @@ from qiskit.pulse.library import (
     GaussianSquare,
     GaussianSquareDrag,
     gaussian_square_echo,
+    GaussianDeriv,
     Drag,
     Sin,
     Cos,
     Sawtooth,
     Triangle,
+    Square,
+    Sech,
+    SechDeriv,
     gaussian,
     gaussian_square,
+    gaussian_deriv,
     drag as pl_drag,
     sin,
     cos,
     triangle,
     sawtooth,
+    square,
+    sech,
+    sech_deriv,
 )
 
 from qiskit.pulse import functional_pulse, PulseError
@@ -138,12 +146,17 @@ class TestParametricPulses(QiskitTestCase):
         Gaussian(duration=25, sigma=4, amp=0.5j)
         GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
         GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=2.5)
+        GaussianDeriv(duration=150, amp=0.2, sigma=8)
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
         Sin(duration=25, amp=0.5, freq=0.1, phase=0.5, angle=0.5)
         Cos(duration=30, amp=0.5, freq=0.1, phase=-0.5)
         Sawtooth(duration=40, amp=0.5, freq=0.2, phase=3.14)
         Triangle(duration=50, amp=0.5, freq=0.01, phase=0.5)
+        Square(duration=50, amp=0.5, freq=0.01, phase=0.5)
+        Sech(duration=50, amp=0.5, sigma=10)
+        Sech(duration=50, amp=0.5, sigma=10, zero_ends=False)
+        SechDeriv(duration=50, amp=0.5, sigma=10)
 
     # This test should be removed once deprecation of complex amp is completed.
     def test_complex_amp_deprecation(self):
@@ -412,7 +425,7 @@ class TestParametricPulses(QiskitTestCase):
             Sin(duration=duration, amp=amp, freq=5, phase=phase)
 
     def test_cos_pulse(self):
-        """Test that Cin sample pulse matches expectations, and parameter validation"""
+        """Test that Cos sample pulse matches expectations, and parameter validation"""
         duration = 100
         amp = 0.5
         freq = 0.1
@@ -427,6 +440,24 @@ class TestParametricPulses(QiskitTestCase):
         )
         with self.assertRaises(PulseError):
             Cos(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_square_pulse(self):
+        """Test that Square sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0
+        square_pulse = Square(duration=duration, amp=amp, freq=freq, phase=phase)
+        square_waveform = square(duration=duration, amp=amp, freq=freq, phase=phase)
+        # According to square() documentation, the sign function used there differs
+        # than that of the symengine.There sign(0)=1 while for sympy\symengine sign(0)=0.
+        # Therefore, this test might fail for parameter choices where the trig function
+        # in Square() takes exactly the value of 0.
+
+        np.testing.assert_almost_equal(square_pulse.get_waveform().samples, square_waveform.samples)
+
+        with self.assertRaises(PulseError):
+            Square(duration=duration, amp=amp, freq=5, phase=phase)
 
     def test_sawtooth_pulse(self):
         """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
@@ -449,7 +480,7 @@ class TestParametricPulses(QiskitTestCase):
             Sawtooth(duration=duration, amp=amp, freq=5, phase=phase)
 
     def test_triangle_pulse(self):
-        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
+        """Test that Triangle sample pulse matches expectations, and parameter validation"""
         duration = 100
         amp = 0.5
         freq = 0.1
@@ -466,6 +497,51 @@ class TestParametricPulses(QiskitTestCase):
 
         with self.assertRaises(PulseError):
             Triangle(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_gaussian_deriv_pulse(self):
+        """Test that GaussianDeriv sample pulse matches expectations"""
+        duration = 300
+        amp = 0.5
+        sigma = 100
+        gaussian_deriv_pulse = GaussianDeriv(duration=duration, amp=amp, sigma=sigma)
+        gaussian_deriv_waveform = gaussian_deriv(duration=duration, amp=amp, sigma=sigma)
+        np.testing.assert_almost_equal(
+            gaussian_deriv_pulse.get_waveform().samples, gaussian_deriv_waveform.samples
+        )
+        with self.assertRaises(PulseError):
+            Sech(duration=duration, amp=amp, sigma=0)
+
+    def test_sech_pulse(self):
+        """Test that Sech sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        sigma = 10
+        # Zero ends = True
+        sech_pulse = Sech(duration=duration, amp=amp, sigma=sigma)
+        sech_waveform = sech(duration=duration, amp=amp, sigma=sigma)
+        np.testing.assert_almost_equal(sech_pulse.get_waveform().samples, sech_waveform.samples)
+
+        # Zero ends = False
+        sech_pulse = Sech(duration=duration, amp=amp, sigma=sigma, zero_ends=False)
+        sech_waveform = sech(duration=duration, amp=amp, sigma=sigma, zero_ends=False)
+        np.testing.assert_almost_equal(sech_pulse.get_waveform().samples, sech_waveform.samples)
+
+        with self.assertRaises(PulseError):
+            Sech(duration=duration, amp=amp, sigma=-5)
+
+    def test_sech_deriv_pulse(self):
+        """Test that SechDeriv sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        sigma = 10
+        sech_deriv_pulse = SechDeriv(duration=duration, amp=amp, sigma=sigma)
+        sech_deriv_waveform = sech_deriv(duration=duration, amp=amp, sigma=sigma)
+        np.testing.assert_almost_equal(
+            sech_deriv_pulse.get_waveform().samples, sech_deriv_waveform.samples
+        )
+
+        with self.assertRaises(PulseError):
+            SechDeriv(duration=duration, amp=amp, sigma=-5)
 
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
@@ -531,6 +607,32 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0)")
         const = Constant(duration=150, amp=0.1, angle=0.3)
         self.assertEqual(repr(const), "Constant(duration=150, amp=0.1, angle=0.3)")
+        sin_pulse = Sin(duration=150, amp=0.1, angle=0.3, freq=0.2, phase=0)
+        self.assertEqual(
+            repr(sin_pulse), "Sin(duration=150, freq=0.2, phase=0, amp=0.1, angle=0.3)"
+        )
+        cos_pulse = Cos(duration=150, amp=0.1, angle=0.3, freq=0.2, phase=0)
+        self.assertEqual(
+            repr(cos_pulse), "Cos(duration=150, freq=0.2, phase=0, amp=0.1, angle=0.3)"
+        )
+        triangle_pulse = Triangle(duration=150, amp=0.1, angle=0.3, freq=0.2, phase=0)
+        self.assertEqual(
+            repr(triangle_pulse), "Triangle(duration=150, freq=0.2, phase=0, amp=0.1, angle=0.3)"
+        )
+        sawtooth_pulse = Sawtooth(duration=150, amp=0.1, angle=0.3, freq=0.2, phase=0)
+        self.assertEqual(
+            repr(sawtooth_pulse), "Sawtooth(duration=150, freq=0.2, phase=0, amp=0.1, angle=0.3)"
+        )
+        sech_pulse = Sech(duration=150, amp=0.1, angle=0.3, sigma=10)
+        self.assertEqual(repr(sech_pulse), "Sech(duration=150, sigma=10, amp=0.1, angle=0.3)")
+        sech_deriv_pulse = SechDeriv(duration=150, amp=0.1, angle=0.3, sigma=10)
+        self.assertEqual(
+            repr(sech_deriv_pulse), "SechDeriv(duration=150, sigma=10, amp=0.1, angle=0.3)"
+        )
+        gaussian_deriv_pulse = GaussianDeriv(duration=150, amp=0.1, angle=0.3, sigma=10)
+        self.assertEqual(
+            repr(gaussian_deriv_pulse), "GaussianDeriv(duration=150, sigma=10, amp=0.1, angle=0.3)"
+        )
 
     def test_param_validation(self):
         """Test that parametric pulse parameters are validated when initialized."""
@@ -726,6 +828,74 @@ class TestParametricPulses(QiskitTestCase):
 
         waveform = Triangle(duration=100, amp=1.1, phase=0, limit_amplitude=False)
         self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_square_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Square(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Square(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_square_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Square(duration=100, amp=1.1, phase=0)
+
+        waveform = Square(duration=100, amp=1.1, phase=0, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_gaussian_deriv_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            GaussianDeriv(duration=100, amp=5, sigma=1)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = GaussianDeriv(duration=100, amp=5, sigma=1)
+            self.assertGreater(np.abs(waveform.amp / waveform.sigma), np.exp(0.5))
+
+    def test_gaussian_deriv_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            GaussianDeriv(duration=100, amp=5, sigma=1)
+
+        waveform = GaussianDeriv(duration=100, amp=5, sigma=1, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp / waveform.sigma), np.exp(0.5))
+
+    def test_sech_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Sech(duration=100, amp=5, sigma=1)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Sech(duration=100, amp=5, sigma=1)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sech_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Sech(duration=100, amp=5, sigma=1)
+
+        waveform = Sech(duration=100, amp=5, sigma=1, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sech_deriv_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            SechDeriv(duration=100, amp=5, sigma=1)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = SechDeriv(duration=100, amp=5, sigma=1)
+            self.assertGreater(np.abs(waveform.amp) / waveform.sigma, 2.0)
+
+    def test_sech_deriv_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            SechDeriv(duration=100, amp=5, sigma=1)
+
+        waveform = SechDeriv(duration=100, amp=5, sigma=1, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp) / waveform.sigma, 2.0)
 
     def test_get_parameters(self):
         """Test getting pulse parameters as attribute."""
