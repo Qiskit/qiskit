@@ -913,7 +913,8 @@ class TestTwoLocal(QiskitTestCase):
         reverse = RealAmplitudes(num_qubits=num_qubits, entanglement="reverse_linear", reps=reps)
         full.assign_parameters(params, inplace=True)
         reverse.assign_parameters(params, inplace=True)
-        assert Operator(full) == Operator(reverse)
+
+        self.assertEqual(Operator(full), Operator(reverse))
 
 
 if __name__ == "__main__":
