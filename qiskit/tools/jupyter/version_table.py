@@ -14,6 +14,8 @@
 """A module for monitoring backends."""
 
 import time
+from sys import modules
+from collections import OrderedDict
 from IPython.display import HTML, display
 from IPython.core.magic import line_magic, Magics, magics_class
 import qiskit
@@ -33,19 +35,30 @@ class VersionTable(Magics):
         """
         html = "<h3>Version Information</h3>"
         html += "<table>"
-        html += "<tr><th>Qiskit Software</th><th>Version</th></tr>"
+        html += "<tr><th>Software</th><th>Version</th></tr>"
 
-        packages = []
-        qver = qiskit.__qiskit_version__
+        packages = OrderedDict()
 
-        for pkg in qver:
-            if qver[pkg]:
-                packages.append((f"<code>{pkg}</code>", qver[pkg]))
+        from importlib.metadata import metadata
 
-        for name, version in packages:
-            html += f"<tr><td>{name}</td><td>{version}</td></tr>"
+        try:
+            packages["qiskit"] = metadata("qiskit")["Version"]
+        except Exception:
+            packages["qiskit"] = None
 
-        html += "<tr><th>System information</th></tr>"
+        packages["qiskit-terra"] = qiskit.__version__
+
+        qiskit_modules = {module.split(".")[0] for module in modules.keys() if "qiskit" in module}
+        for qiskit_module in qiskit_modules:
+            try:
+                packages[metadata(qiskit_module)["Name"]] = metadata(qiskit_module)["Version"]
+            except Exception:
+                packages["qiskit"] = None
+
+        for name, version in packages.items():
+            html += f"<tr><td><code>{name}</code></td><td>{version}</td></tr>"
+
+        html += "<tr><th colspan='2'>System information</th></tr>"
 
         local_hw_info = local_hardware_info()
         sys_info = [

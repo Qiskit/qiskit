@@ -91,7 +91,7 @@ def deprecate_func(
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(msg, category=category, stacklevel=2)
+            warnings.warn(msg, category=category)
             return func(*args, **kwargs)
 
         add_deprecation_to_docstring(wrapper, msg, since=since, pending=pending)

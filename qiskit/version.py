@@ -18,6 +18,8 @@ import os
 import subprocess
 from collections.abc import Mapping
 
+import warnings
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -86,16 +88,19 @@ __version__ = get_version_info()
 
 
 class QiskitVersion(Mapping):
-    """A lazy loading wrapper to get qiskit versions."""
+    """DEPRECATED in 0.25.0 use qiskit.__version__"""
 
     __slots__ = ["_version_dict", "_loaded"]
 
     def __init__(self):
+        warnings.warn(
+            "qiskit.__qiskit_version__ is deprecated since "
+            "Qiskit Terra 0.25.0, and will be removed 3 months or more later. "
+            "Instead, you should use qiskit.__version__.",
+            category=DeprecationWarning,
+        )
         self._version_dict = {
             "qiskit-terra": __version__,
-            "qiskit-aer": None,
-            "qiskit-ignis": None,
-            "qiskit-ibmq-provider": None,
             "qiskit": None,
         }
         self._loaded = False
@@ -103,50 +108,6 @@ class QiskitVersion(Mapping):
     def _load_versions(self):
         from importlib.metadata import version
 
-        try:
-            # TODO: Update to use qiskit_aer instead when we remove the
-            # namespace redirect
-            from qiskit.providers import aer
-
-            self._version_dict["qiskit-aer"] = aer.__version__
-        except Exception:
-            self._version_dict["qiskit-aer"] = None
-        try:
-            from qiskit import ignis
-
-            self._version_dict["qiskit-ignis"] = ignis.__version__
-        except Exception:
-            self._version_dict["qiskit-ignis"] = None
-        try:
-            from qiskit.providers import ibmq
-
-            self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
-        except Exception:
-            self._version_dict["qiskit-ibmq-provider"] = None
-        try:
-            import qiskit_nature
-
-            self._version_dict["qiskit-nature"] = qiskit_nature.__version__
-        except Exception:
-            self._version_dict["qiskit-nature"] = None
-        try:
-            import qiskit_finance
-
-            self._version_dict["qiskit-finance"] = qiskit_finance.__version__
-        except Exception:
-            self._version_dict["qiskit-finance"] = None
-        try:
-            import qiskit_optimization
-
-            self._version_dict["qiskit-optimization"] = qiskit_optimization.__version__
-        except Exception:
-            self._version_dict["qiskit-optimization"] = None
-        try:
-            import qiskit_machine_learning
-
-            self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
-        except Exception:
-            self._version_dict["qiskit-machine-learning"] = None
         try:
             self._version_dict["qiskit"] = version("qiskit")
         except Exception:
