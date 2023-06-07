@@ -81,7 +81,7 @@ def qs_decomposition(
         circ = decomposer_1q(mat)
     elif dim == 4:
         if decomposer_2q is None:
-            if opt_a2:
+            if opt_a2 and _depth > 0:
                 from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):

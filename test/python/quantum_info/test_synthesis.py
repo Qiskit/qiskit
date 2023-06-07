@@ -1530,7 +1530,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
-    @data(*list(range(3, 6)))
+    @data(*list(range(1, 6)))
     def test_opt_a1a2(self, nqubits):
         """Test decomposition with both optimization a1 and a2 from shende2006"""
         dim = 2**nqubits
@@ -1538,23 +1538,16 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         circ = self.qsd(umat, opt_a1=True, opt_a2=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(Operator(umat) == Operator(ccirc))
-        self.assertEqual(
-            ccirc.count_ops().get("cx"), (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3
-        )
-
-    # From: https://github.com/Qiskit/qiskit-terra/issues/10036
-    def test_1q_decomposition(self):
-        """Test decomposition of single qubit matrix"""
-        mat = np.array([[0, 1], [1, 0]])
-        circ = self.qsd(mat)
-        self.assertEqual(Operator(mat), Operator(circ))
-
-    # From: https://github.com/Qiskit/qiskit-terra/issues/10036
-    def test_2q_with_no_qsd2q(self):
-        """Test decomposition of unitary whose decomposition is all "u" and "cx"."""
-        mat = CXGate().to_matrix()
-        circ = self.qsd(mat)
-        self.assertEqual(Operator(mat), Operator(circ))
+        if nqubits > 2:
+            self.assertEqual(
+                ccirc.count_ops().get("cx"),
+                (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3,
+            )
+        elif nqubits == 1:
+            self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
+        elif nqubits == 2:
+            breakpoint()
+            self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
