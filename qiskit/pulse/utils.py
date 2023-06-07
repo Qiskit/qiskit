@@ -13,7 +13,7 @@
 """Module for common pulse programming utilities."""
 from __future__ import annotations
 
-from typing import List, Dict, Union, TYPE_CHECKING
+from typing import List, Dict, Union
 import warnings
 
 import numpy as np
