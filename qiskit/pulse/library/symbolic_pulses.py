@@ -1786,7 +1786,7 @@ def Square(
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
 ) -> ScalableSymbolicPulse:
-    """A quare wave pulse.
+    """A square wave pulse.
 
     The envelope of the pulse is given by:
 
