@@ -11,11 +11,11 @@
 # that they have been altered from the originals.
 
 """Dynamical Decoupling insertion pass."""
+from __future__ import annotations
 
 import logging
-from typing import List, Optional
-
 import numpy as np
+
 from qiskit.circuit import Qubit, Gate
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
@@ -106,9 +106,9 @@ class PadDynamicalDecoupling(BasePadding):
     def __init__(
         self,
         durations: InstructionDurations = None,
-        dd_sequence: List[Gate] = None,
-        qubits: Optional[List[int]] = None,
-        spacing: Optional[List[float]] = None,
+        dd_sequence: list[Gate] = None,
+        qubits: list[int] | None = None,
+        spacing: list[float] | None = None,
         skip_reset_qubits: bool = True,
         pulse_alignment: int = 1,
         extra_slack_distribution: str = "middle",
@@ -166,8 +166,8 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._no_dd_qubits = set()
-        self._dd_sequence_lengths = {}
+        self._no_dd_qubits: set[int] = set()
+        self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
         if target is not None:
             self._durations = target.durations()

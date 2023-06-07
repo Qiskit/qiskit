@@ -19,6 +19,7 @@ from ddt import ddt, data
 
 import numpy as np
 
+import qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
 from qiskit.compiler import transpile, assemble
@@ -262,6 +263,11 @@ class TestPresetPassManager(QiskitTestCase):
             translation_method="synthesis",
         )
         self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
+
+    def test_get_vf2_call_limit_deprecated(self):
+        """Test that calling test_get_vf2_call_limit emits deprecation warning."""
+        with self.assertWarns(DeprecationWarning):
+            qiskit.transpiler.preset_passmanagers.common.get_vf2_call_limit(optimization_level=3)
 
 
 @ddt
