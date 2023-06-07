@@ -1284,7 +1284,7 @@ def GaussianDeriv(
 
     .. math::
 
-        f(x) = \\text{A}\\frac{x-\\mu}{\\text{sigma}^{2}}\\exp
+        f(x) = -\\text{A}\\frac{x-\\mu}{\\text{sigma}^{2}}\\exp
             \\left[-\\left(\\frac{x-\\mu}{2\\text{sigma}}\\right)^{2}\\right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
@@ -1793,11 +1793,11 @@ def Square(
     .. math::
 
         f(x) = \\text{A}\\text{sign}\\left[\\sin
-            \\left(2\\pi\\text{freq}x+\\text{phase}\\right)\\right]  ,  0 <= x < duration
+            \\left(2\\pi x\\times\\text{freq}+\\text{phase}\\right)\\right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
-    and :math:`\\text{sign}'
-    is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=0'.
+    and :math:`\\text{sign}`
+    is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=0`.
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
@@ -1865,7 +1865,8 @@ def Sech(
 
     .. math::
 
-        f(x) = \\text{A}\\sech\\left(\\frac{x-\\mu}{\\text{sigma}}\\right)  ,  0 <= x < duration
+        f(x) = \\text{A}\\text{sech}\\left(
+            \\frac{x-\\mu}{\\text{sigma}}\\right)  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
     and :math:`\\mu=\\text{duration}/2`.
@@ -1942,8 +1943,8 @@ def SechDeriv(
 
     .. math::
 
-        f(x) = \\text{A}\\frac{d}{dx}\\left[
-            \\sech\\left(\\frac{x-\\mu}{\\text{sigma}}\\right)\\right]  ,  0 <= x < duration
+        f(x) = \\text{A}\\frac{d}{dx}\\left[\\text{sech}
+            \\left(\\frac{x-\\mu}{\\text{sigma}}\\right)\\right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
     :math:`\\mu=\\text{duration}/2`, and :math:`d/dx` is a derivative with respect to `x`.
