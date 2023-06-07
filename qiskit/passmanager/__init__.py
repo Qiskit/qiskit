@@ -23,19 +23,19 @@ Overview
 Qiskit pass manager is somewhat inspired by the `LLVM compiler <https://llvm.org/>`_,
 but it is designed to take Qiskit object as an input instead of plain source code.
 
-Pass manager converts the input object into some intermediate representation (IR),
+The pass manager converts the input object into an intermediate representation (IR),
 and it can be optimized and get lowered with a variety of transformations over multiple passes.
 This representation must be preserved throughout the transformation.
 The passes may consume the hardware constraints that Qiskit backend may provide.
-Finary, the IR is converted back to some Qiskit object.
+Finally, the IR is converted back to some Qiskit object.
 Note that the input type and output type don't need to match.
 
-Execution of transform pass is managed by the :class:`.FlowController`,
-which is initialized with a set of transform passes and provides an iterator of passes.
+Execution of passes is managed by the :class:`.FlowController`,
+which is initialized with a set of transform and analysis passes and provides an iterator of them.
 This iterator can be conditioned on the :class:`.PropertySet`, which is a namespace
 storing the intermediate data necessary for the transformation.
-A transform pass has read and write access to the property set namespace,
-and the stored data is shared among scheduled transform passes.
+A pass has read and write access to the property set namespace,
+and the stored data is shared among scheduled passes.
 
 The :class:`BasePassManager` provides a user interface to build and execute transform passes.
 It internally spawns a :class:`BasePassRunner` instance to apply transforms to
@@ -52,8 +52,8 @@ The responsibilities of the pass runner are the following:
 
 A single pass runner always takes a single input object and returns a single output object.
 Parallelism for multiple input objects is supported by the :class:`BasePassManager` by
-broadcasting the pass runner in the multithread environment offered by
-the :mod:`qiskit.tools.parallel` module.
+broadcasting the pass runner via multiprocessing is available by internally
+leveraging the :mod:`qiskit.tools.parallel_map` function.
 
 The base class :class:`BasePassRunner` doesn't define any associated type by itself,
 and a developer needs to implement a subclass for a particular object type to optimize.

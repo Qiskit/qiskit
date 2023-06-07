@@ -392,7 +392,7 @@ class StagedPassManager(PassManager):
         self._update_passmanager()
 
         # Do not inherit from the PassManager, i.e. super()
-        # It returns instance of self.__class__ which is StagetPassManager.
+        # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
