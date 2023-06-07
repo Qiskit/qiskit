@@ -12,29 +12,3 @@ features:
     of the corresponding functions in the discrete pulse library, with the exception of
     ``Square()`` which uses the convention ``sign(0)=0`` instead of ``sign(0)=1`` in
     the discrete ``square()``.
-deprecations:
-  - |
-    The discrete pulse library is now pending deprecation. All ``Waveform`` creating
-    functions within the library now raise a ``PendingDeprecationWarning``:
-
-      * :func:``~qiskit.pulse.library.gaussian``
-      * :func:``~qiskit.pulse.library.gaussian_deriv``
-      * :func:``~qiskit.pulse.library.sech``
-      * :func:``~qiskit.pulse.library.sech_deriv``
-      * :func:``~qiskit.pulse.library.square``
-      * :func:``~qiskit.pulse.library.triangle``
-      * :func:``~qiskit.pulse.library.sawtooth``
-      * :func:``~qiskit.pulse.library.zero``
-      * :func:``~qiskit.pulse.library.constant``
-      * :func:``~qiskit.pulse.library.drag``
-      * :func:``~qiskit.pulse.library.sin``
-      * :func:``~qiskit.pulse.library.cos``
-      * :func:``~qiskit.pulse.library.gaussian_square``
-
-    All functions have a corresponding pulse in the `SymbolicPulse` library
-    (and the method ``get_waveform()`` can return the ``Waveform`` if needed).
-    Some of the corresponding functions don't support complex values for the
-    ``amp`` parameter, and for the others this support is pending deprecation.
-    Use of ``float`` representation in the (``amp``,``angle``) format is thus
-    needed \ will be needed in the near future. Note that the ``phase`` parameter
-    of ``sawtooth`` is defined differently in the two libraries.
