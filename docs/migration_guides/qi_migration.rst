@@ -50,20 +50,23 @@ Contents
     The Qiskit Primitives are algorithmic abstractions that encapsulate the access to backends or simulators
     for an easy integration into algorithm workflows.
 
-    The current pool of primitives includes **two** different **classes** (:class:`~qiskit.primitives.Sampler` and
-    :class:`~qiskit.primitives.Estimator`) that can be imported from **three** different locations (
-    :mod:`qiskit.primitives`, :mod:`qiskit_aer.primitives` and :mod:`qiskit_ibm_runtime` ). In addition to the
-    reference Sampler and Estimator, :mod:`qiskit.primitives` also contains a
-    :class:`~qiskit.primitives.BackendSampler` and a :class:`~qiskit.primitives.BackendEstimator` class. These are
+    The current pool of primitives includes **two** different types of primitives: Sampler and
+    Estimator.
+
+    Qiskit provides reference implementations in :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator`. Additionally,
+    :class:`qiskit.primitives.BackendSampler` and a :class:`qiskit.primitives.BackendEstimator` are
     wrappers for ``backend.run()`` that follow the primitives interface.
 
-    This guide uses the following naming standard to refer to the primitives:
+    Providers can implement these primitives as subclasses of :class:`~qiskit.primitives.BaseSampler` and :class:`~qiskit.primitives.BaseEstimator` respectively.
+    IBM's Qiskit Runtime (:mod:`qiskit_ibm_runtime`) and Aer (:mod:`qiskit_aer.primitives`) are examples of native implementations of primitives.
 
-    - *Primitives* - Any Sampler/Estimator implementation
-    - *Reference Primitives* - The Sampler and Estimator in :mod:`qiskit.primitives` --> ``from qiskit.primitives import Sampler/Estimator``
-    - *Aer Primitives* - The Sampler and Estimator in :mod:`qiskit_aer.primitives` --> ``from qiskit_aer.primitives import Sampler/Estimator``
-    - *Runtime Primitives* - The Sampler and Estimator in :mod:`qiskit_ibm_runtime` --> ``from qiskit_ibm_runtime import Sampler/Estimator``
-    - *Backend Primitives* - The BackendSampler and BackendEstimator in :mod:`qiskit.primitives` --> ``from qiskit import BackendSampler/BackendEstimator``
+    This guide uses the following naming convention:
+
+    - *Primitives* - Any Sampler/Estimator implementation using base classes :class:`qiskit.primitives.BackendSampler` and a :class:`qiskit.primitives.BackendEstimator`.
+    - *Reference Primitives* -  :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator` are reference implementations that come with Qiskit.
+    - *Aer Primitives* - The `Aer <https://qiskit.org/ecosystem/aer>`_ primitive implementations: class:`qiskit_aer.primitives.Sampler` and :class:`qiskit_aer.primitives.Estimator`.
+    - *Qiskit Runtime Primitives* - IBM's Qiskit Runtime primitive implementations: class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`.
+    - *Backend Primitives* - Instances of :class:`qiskit.primitives.BackendSampler` and :class:`qiskit.primitives.BackendEstimator`. These allow any backend to implement primitive interfaces
 
     For guidelines on which primitives to choose for your task, please continue reading.
 
@@ -103,7 +106,7 @@ yourself two questions:
 
     a. Using **local** statevector simulators for quick prototyping: **Reference Primitives**
     b. Using **local** noisy simulations for finer algorithm tuning: **Aer Primitives**
-    c. Accessing **runtime-enabled backends** (or cloud simulators): **Runtime Primitives**
+    c. Accessing **runtime-enabled backends** (or cloud simulators): **Qiskit Runtime Primitives**
     d. Accessing **non runtime-enabled backends** : **Backend Primitives**
 
 Arguably, the ``Sampler`` is the closest primitive to :class:`~qiskit.utils.QuantumInstance`, as they
@@ -136,7 +139,7 @@ primitives **expose a similar setting through their interface**:
    * - QuantumInstance
      - Reference Primitives
      - Aer Primitives
-     - Runtime Primitives
+     - Qiskit Runtime Primitives
      - Backend Primitives
    * - Select ``backend``
      - No
@@ -186,7 +189,7 @@ primitives **expose a similar setting through their interface**:
      - No
 
 
-(*) For more information on error mitigation and setting options on Runtime Primitives, visit
+(*) For more information on error mitigation and setting options on Qiskit Runtime Primitives, visit
 `this link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
 
 (**) For more information on Runtime sessions, visit `this how-to <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/how_to/run_session.html>`_.
@@ -447,12 +450,12 @@ Code examples
 
     **Using Primitives**
 
-    The Runtime Primitives offer a suite of error mitigation methods that can be easily turned on with the
+    The Qiskit Runtime Primitives offer a suite of error mitigation methods that can be easily turned on with the
     ``resilience_level`` option. These are, however, not configurable. The sampler's ``resilience_level=1``
     is the closest alternative to the Quantum Instance's measurement error mitigation implementation, but this
     is not a 1-1 replacement.
 
-    For more information on the error mitigation options in the Runtime Primitives, you can check out the following
+    For more information on the error mitigation options in the Qiskit Runtime Primitives, you can check out the following
     `link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
 
     .. code-block:: python
@@ -503,7 +506,7 @@ Code examples
     * You cannot explicitly access their transpilation routine.
     * The mechanism to apply custom transpilation passes to the Aer, Runtime and Backend primitives is to pre-transpile
       locally and set ``skip_transpilation=True`` in the corresponding primitive.
-    * The only primitives that currently accept a custom **bound** transpiler pass manager are the **Backend Primitives**.
+    * The only primitives that currently accept a custom **bound** transpiler pass manager are instances of :class:`~qiskit.primitives.BackendSampler` or :class:`~qiskit.primitives.BackendEstimator`.
       If a ``bound_pass_manager`` is defined, the ``skip_transpilation=True`` option will **not** skip this bound pass.
 
     .. attention::
@@ -518,7 +521,7 @@ Code examples
         so if the circuit ended up on more qubits it did not matter.
 
     Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
-    Backend Primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
+    :class:`~qiskit.primitives.BackendSampler` or :class:`~qiskit.primitives.BackendEstimator`, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
 
     The use-case that motivated the addition of the two-stage transpilation to the ``QuantumInstance`` was to allow
     running pulse-efficient transpilation passes with the :class:`~qiskit.opflow.CircuitSampler` class. The following
