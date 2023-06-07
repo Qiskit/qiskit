@@ -1246,15 +1246,14 @@ Exceptions
 
 # For backward compatibility
 from qiskit.passmanager import (
-    PropertySet,
     FlowController,
     ConditionalController,
     DoWhileController,
 )
-from qiskit.passmanager import propertyset
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
+from .propertyset import PropertySet  # pylint: disable=no-name-in-module
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
