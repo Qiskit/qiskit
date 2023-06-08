@@ -21,7 +21,10 @@ Utilities (:mod:`qiskit.utils`)
 .. autosummary::
    :toctree: ../stubs/
 
+   add_deprecation_to_docstring
+   deprecate_arg
    deprecate_arguments
+   deprecate_func
    deprecate_function
    local_hardware_info
    is_main_process
@@ -64,8 +67,13 @@ Optional Depedency Checkers (:mod:`qiskit.utils.optionals`)
 """
 
 from .quantum_instance import QuantumInstance
-from .deprecation import deprecate_arguments
-from .deprecation import deprecate_function
+from .deprecation import (
+    add_deprecation_to_docstring,
+    deprecate_arg,
+    deprecate_arguments,
+    deprecate_func,
+    deprecate_function,
+)
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
 from .units import apply_prefix, detach_prefix
@@ -93,7 +101,10 @@ __all__ = [
     "has_aer",
     "name_args",
     "algorithm_globals",
+    "add_deprecation_to_docstring",
+    "deprecate_arg",
     "deprecate_arguments",
+    "deprecate_func",
     "deprecate_function",
     "local_hardware_info",
     "is_main_process",

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,6 +20,7 @@ import random
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import CASE_DEFAULT
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
@@ -41,9 +42,9 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
-from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 
@@ -302,7 +303,12 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_string_parameter(self):
         """Test a PauliGate instruction that has string parameters."""
-        circ = (X ^ Y ^ Z).to_circuit_op().to_circuit()
+
+        circ = QuantumCircuit(3)
+        circ.z(0)
+        circ.y(1)
+        circ.x(2)
+
         qpy_file = io.BytesIO()
         dump(circ, qpy_file)
         qpy_file.seek(0)
@@ -624,6 +630,37 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
+    def test_statepreparation(self):
+        """Test that state preparation with a complex statevector and qft work."""
+        k = 5
+        state = (1 / np.sqrt(8)) * np.array(
+            [
+                np.exp(-1j * 2 * np.pi * k * (0) / 8),
+                np.exp(-1j * 2 * np.pi * k * (1) / 8),
+                np.exp(-1j * 2 * np.pi * k * (2) / 8),
+                np.exp(-1j * 2 * np.pi * k * 3 / 8),
+                np.exp(-1j * 2 * np.pi * k * 4 / 8),
+                np.exp(-1j * 2 * np.pi * k * 5 / 8),
+                np.exp(-1j * 2 * np.pi * k * 6 / 8),
+                np.exp(-1j * 2 * np.pi * k * 7 / 8),
+            ]
+        )
+
+        qubits = 3
+        qc = QuantumCircuit(qubits, qubits)
+        qc.prepare_state(state)
+        qc.append(QFT(qubits), range(qubits))
+        qc.measure(range(qubits), range(qubits))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
     def test_single_bit_teleportation(self):
         """Test a teleportation circuit with single bit conditions."""
         qr = QuantumRegister(1)
@@ -645,8 +682,9 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
-        cost_operator = Z ^ I ^ I ^ Z
+        cost_operator = Pauli("ZIIZ")
         qaoa = QAOAAnsatz(cost_operator, reps=2)
+
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
@@ -660,7 +698,10 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
         synthesis = LieTrotter(reps=2)
-        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=2, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=2, synthesis=synthesis
+        )
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -681,7 +722,10 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a circuit with an evolution gate that has a parameter for time."""
         synthesis = LieTrotter(reps=2)
         time = Parameter("t")
-        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=time, synthesis=synthesis
+        )
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -702,7 +746,10 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a circuit with an evolution gate that has a parameter for time."""
         synthesis = LieTrotter(reps=2)
         time = Parameter("t")
-        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time * time, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=time * time, synthesis=synthesis
+        )
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -723,7 +770,10 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a an evolution gate that has a param vector element for time."""
         synthesis = LieTrotter(reps=2)
         time = ParameterVector("TimeVec", 1)
-        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time[0], synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=time[0], synthesis=synthesis
+        )
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -742,7 +792,10 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_op_list_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
-        evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=0.2, synthesis=None)
+
+        evo = PauliEvolutionGate(
+            [SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)])] * 5, time=0.2, synthesis=None
+        )
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -762,7 +815,10 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_op_evolution_gate_suzuki_trotter(self):
         """Test qpy path with a suzuki trotter synthesis method on an evolution gate."""
         synthesis = SuzukiTrotter()
-        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=0.2, synthesis=synthesis
+        )
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -900,7 +956,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomSerializer(json.JSONEncoder):
             """Custom json encoder to handle CustomObject."""
 
-            def default(self, o):  # pylint: disable=invalid-name
+            def default(self, o):
                 if isinstance(o, CustomObject):
                     return {"__type__": "Custom", "value": o.string}
                 return json.JSONEncoder.default(self, o)
@@ -1019,6 +1075,45 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_qpy_clbit_switch(self):
+        """Test QPY serialisation for a switch statement with a Clbit target."""
+        case_t = QuantumCircuit(2, 1)
+        case_t.x(0)
+        case_f = QuantumCircuit(2, 1)
+        case_f.z(0)
+        qc = QuantumCircuit(2, 1)
+        qc.switch(0, [(True, case_t), (False, case_f)], qc.qubits, qc.clbits)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_qpy_register_switch(self):
+        """Test QPY serialisation for a switch statement with a ClassicalRegister target."""
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(3, "c")
+
+        case_0 = QuantumCircuit(qreg, creg)
+        case_0.x(0)
+        case_1 = QuantumCircuit(qreg, creg)
+        case_1.z(1)
+        case_2 = QuantumCircuit(qreg, creg)
+        case_2.x(1)
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.switch(creg, [(0, case_0), ((1, 2), case_1), ((3, 4, CASE_DEFAULT), case_2)], qreg, creg)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
     def test_standalone_register_partial_bit_in_circuit(self):
         """Test qpy with only some bits from standalone register."""
         qr = QuantumRegister(2)
@@ -1045,7 +1140,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_empty_tuple_param(self):
         """Test qpy with an instruction that contains an empty tuple."""
-        inst = Instruction("empty_tuple_test", 1, 0, [tuple()])
+        inst = Instruction("empty_tuple_test", 1, 0, [()])
         qc = QuantumCircuit(1)
         qc.append(inst, [0])
         qpy_file = io.BytesIO()

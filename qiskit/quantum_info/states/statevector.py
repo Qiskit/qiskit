@@ -360,7 +360,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """Evolve a quantum state by the operator.
 
         Args:
-            other (Operator): The operator to evolve by.
+            other (Operator | QuantumCircuit | circuit.Instruction): The operator to evolve by.
             qargs (list): a list of Statevector subsystem positions to apply
                            the operator on.
 
@@ -575,8 +575,13 @@ class Statevector(QuantumState, TolerancesMixin):
         probs = self._subsystem_probabilities(
             np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs
         )
+
+        # to account for roundoff errors, we clip
+        probs = np.clip(probs, a_min=0, a_max=1)
+
         if decimals is not None:
             probs = probs.round(decimals=decimals)
+
         return probs
 
     def reset(self, qargs=None):

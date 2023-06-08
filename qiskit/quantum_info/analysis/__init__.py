@@ -13,3 +13,4 @@
 """Module for functions for post processing results."""
 from .average import average_data
 from .distance import hellinger_fidelity, hellinger_distance
+from .z2_symmetries import Z2Symmetries

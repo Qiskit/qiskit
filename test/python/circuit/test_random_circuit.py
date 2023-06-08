@@ -13,7 +13,7 @@
 
 """Test random circuit generation utility."""
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
 from qiskit.converters import circuit_to_dag
@@ -63,3 +63,8 @@ class TestCircuitRandom(QiskitTestCase):
         conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
         conditions = [x for x in conditions if x is not None]
         self.assertNotEqual(conditions, [])
+        for (register, value) in conditions:
+            self.assertIsInstance(register, (ClassicalRegister, Clbit))
+            # Condition values always have to be Python bigints (of which `bool` is a subclass), not
+            # any of Numpy's fixed-width types, for example.
+            self.assertIsInstance(value, int)

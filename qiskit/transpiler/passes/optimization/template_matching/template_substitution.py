@@ -360,9 +360,7 @@ class TemplateSubstitution:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
         # Unmatched gates that are not predecessors of any group of matches.
-        self.unmatched_list = sorted(
-            list(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
-        )
+        self.unmatched_list = sorted(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
         """
@@ -435,6 +433,7 @@ class TemplateSubstitution:
                 inst = node.op.copy()
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
 
+            dag_dep_opt._add_predecessors()
             dag_dep_opt._add_successors()
         # If there is no valid match, it returns the original dag.
         else:

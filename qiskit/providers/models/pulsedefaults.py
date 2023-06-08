@@ -205,7 +205,7 @@ class PulseDefaults:
 
         for inst in cmd_def:
             entry = PulseQobjDef(converter=self.converter, name=inst.name)
-            entry.define(inst.sequence)
+            entry.define(inst.sequence, user_provided=False)
             self.instruction_schedule_map._add(
                 instruction_name=inst.name,
                 qubits=tuple(inst.qubits),

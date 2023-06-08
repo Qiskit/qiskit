@@ -31,7 +31,7 @@ class FakeVigoV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_vigo.json"
     props_filename = "props_vigo.json"
-    backend_name = "fake_vigo_v2"
+    backend_name = "fake_vigo"
 
 
 class FakeVigo(fake_qasm_backend.FakeQasmBackend):

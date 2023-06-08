@@ -127,7 +127,7 @@ class BasePass(metaclass=MetaPass):
             property_set.update(self.property_set)
 
         if isinstance(result, DAGCircuit):
-            result_circuit = dag_to_circuit(result)
+            result_circuit = dag_to_circuit(result, copy_operations=False)
         elif result is None:
             result_circuit = circuit.copy()
 

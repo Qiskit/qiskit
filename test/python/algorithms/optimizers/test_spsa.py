@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -40,8 +40,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test SPSA on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
         parameters = list(circuit.parameters)
-        obs = Z ^ Z ^ I
-        expr = ~StateFn(obs) @ StateFn(circuit)
+        with self.assertWarns(DeprecationWarning):
+            obs = Z ^ Z ^ I
+            expr = ~StateFn(obs) @ StateFn(circuit)
 
         initial_point = np.array(
             [0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447, 0.62013131]
@@ -202,8 +203,13 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test using a backend and expectation converter in get_fidelity warns."""
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
 
-        with self.assertWarns(PendingDeprecationWarning):
-            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+        with self.assertWarns(DeprecationWarning):
+            QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
+        with self.assertWarns(DeprecationWarning):
+            QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
+
+        # No warning when used correctly.
+        QNSPSA.get_fidelity(ansatz)
 
     def test_qnspsa_fidelity_primitives(self):
         """Test the primitives can be used in get_fidelity."""
@@ -227,7 +233,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test using max_evals_grouped with QNSPSA."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
         num_parameters = circuit.num_parameters
-        obs = Z ^ Z ^ I
+
+        with self.assertWarns(DeprecationWarning):
+            obs = Z ^ Z ^ I
 
         estimator = Estimator(options={"seed": 12})
 
@@ -258,7 +266,6 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
     def test_point_sample(self):
         """Test point sample function in QNSPSA"""
-        # pylint: disable=invalid-name
 
         def fidelity(x, _y):
             x = np.asarray(x)
