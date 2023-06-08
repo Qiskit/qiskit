@@ -1761,8 +1761,15 @@ class DAGCircuit:
         return {tuple(x) for x in group_list}
 
     def collect_1q_runs(self):
-        """Return a set of non-conditional runs of 1q "op" nodes."""
+        """Return a list of runs of 1q gates that are neither classically conditioned nor parameterized.
 
+        Nodes are processed in canonical topological order. Qualifying nodes are 1q gates with a
+        defined numerical matrix that are neither classically conditioned nor parameterized. The
+        first qualifying gate begins the first run. All consecutive qualifying gates are added to
+        this run as long as all gates in the run are on a single wire. Any other node terminates a
+        run, and the next run begins with the next qualifying gate. A qualifying gate terminating a
+        run may be the first gate in the next run.
+        """
         def filter_fn(node):
             return (
                 isinstance(node, DAGOpNode)
@@ -1777,8 +1784,15 @@ class DAGCircuit:
         return rx.collect_runs(self._multi_graph, filter_fn)
 
     def collect_2q_runs(self):
-        """Return a set of non-conditional runs of 2q "op" nodes."""
+        """Return a list of runs of 1q and 2q gates that are neither classically conditioned nor parameterized.
 
+        Nodes are processed in canonical topological order. Qualifying nodes are 1q and 2q gates
+        that are neither classically conditioned nor parameterized. The first qualifying gate begins
+        the first run. All consecutive qualifying gates are added to this run as long as the number
+        of wires touched by any gate in the run does not exceed two.  Any other node terminates a
+        run, and the next run begins with the next qualifying gate. A qualifying gate terminating a
+        run may be the first gate in the next run. Any run consisting of only 1q gates is discarded.
+        """
         to_qid = {}
         for i, qubit in enumerate(self.qubits):
             to_qid[qubit] = i
