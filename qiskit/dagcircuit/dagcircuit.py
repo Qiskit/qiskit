@@ -1761,7 +1761,8 @@ class DAGCircuit:
         return {tuple(x) for x in group_list}
 
     def collect_1q_runs(self):
-        """Return a list of runs of 1q gates that are neither classically conditioned nor parameterized.
+        """Return a list of runs of 1q gates that are neither classically conditioned nor
+        parameterized.
 
         Nodes are processed in canonical topological order. Qualifying nodes are 1q gates with a
         defined numerical matrix that are neither classically conditioned nor parameterized. The
@@ -1770,6 +1771,7 @@ class DAGCircuit:
         run, and the next run begins with the next qualifying gate. A qualifying gate terminating a
         run may be the first gate in the next run.
         """
+
         def filter_fn(node):
             return (
                 isinstance(node, DAGOpNode)
@@ -1784,7 +1786,8 @@ class DAGCircuit:
         return rx.collect_runs(self._multi_graph, filter_fn)
 
     def collect_2q_runs(self):
-        """Return a list of runs of 1q and 2q gates that are neither classically conditioned nor parameterized.
+        """Return a list of runs of 1q and 2q gates that are neither classically conditioned nor
+        parameterized.
 
         Nodes are processed in canonical topological order. Qualifying nodes are 1q and 2q gates
         that are neither classically conditioned nor parameterized. The first qualifying gate begins
