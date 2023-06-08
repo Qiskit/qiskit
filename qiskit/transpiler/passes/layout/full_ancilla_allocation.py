@@ -81,15 +81,14 @@ class FullAncillaAllocation(AnalysisPass):
 
         idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
-        if self.coupling_map:
+        if self.target:
+            idle_physical_qubits = [
+                q for q in range(self.target.num_qubits) if q not in physical_bits
+            ]
+        elif self.coupling_map:
             idle_physical_qubits = [
                 q for q in self.coupling_map.physical_qubits if q not in physical_bits
             ]
-        else:
-            if self.target:
-                idle_physical_qubits = [
-                    q for q in range(self.target.num_qubits) if q not in physical_bits
-                ]
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
