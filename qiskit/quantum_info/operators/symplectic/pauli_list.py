@@ -911,7 +911,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for Schrödinger framework.
 
         Returns:
             Pauli: the Pauli :math:`C^\dagger.P.C`.
