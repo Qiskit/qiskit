@@ -14,11 +14,12 @@
 Instruction collection.
 """
 
+from __future__ import annotations
 import functools
-import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_arg
 from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
@@ -28,7 +29,9 @@ from .quantumcircuitdata import CircuitInstruction
 # its creation, so caching this allows us to only pay the register-unrolling penalty once.  The
 # cache does not need to be large, because in general only one circuit is constructed at once.
 @functools.lru_cache(4)
-def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
+def _requester_from_cregs(
+    cregs: tuple[ClassicalRegister],
+) -> Callable[[Clbit | ClassicalRegister | int], ClassicalRegister | Clbit]:
     """Get a classical resource requester from an iterable of classical registers.
 
     This implements the deprecated functionality of constructing an :obj:`.InstructionSet` with a
@@ -60,7 +63,7 @@ def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
     clbit_set = frozenset(clbit_flat)
     creg_set = frozenset(cregs)
 
-    def requester(classical):
+    def requester(classical: Clbit | ClassicalRegister | int) -> ClassicalRegister | Clbit:
         if isinstance(classical, Clbit):
             if classical not in clbit_set:
                 raise CircuitError(
@@ -92,22 +95,30 @@ class InstructionSet:
 
     __slots__ = ("_instructions", "_requester")
 
-    def __init__(self, circuit_cregs=None, *, resource_requester: Optional[Callable] = None):
+    @deprecate_arg(
+        "circuit_cregs",
+        since="0.19.0",
+        additional_msg=(
+            "Instead, pass a complete resource requester with the 'resource_requester' argument. "
+            "The classical registers are insufficient to access all classical resources in a "
+            "circuit, as there may be loose classical bits as well. It can also cause integer "
+            "indices to be resolved incorrectly if any registers overlap."
+        ),
+    )
+    def __init__(  # pylint: disable=bad-docstring-quotes
+        self,
+        circuit_cregs: list[ClassicalRegister] | None = None,
+        *,
+        resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,
+    ):
         """New collection of instructions.
 
-        The context (qargs and cargs that each instruction is attached to) is also stored separately
-        for each instruction.
+        The context (``qargs`` and ``cargs`` that each instruction is attached to) is also stored
+        separately for each instruction.
 
         Args:
-            circuit_cregs (list[ClassicalRegister]): Optional. List of cregs of the
+            circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
                 circuit to which the instruction is added. Default: `None`.
-
-                .. deprecated:: qiskit-terra 0.19
-                    The classical registers are insufficient to access all classical resources in a
-                    circuit, as there may be loose classical bits as well.  It can also cause
-                    integer indices to be resolved incorrectly if any registers overlap.  Instead,
-                    pass a complete requester to the ``resource_requester`` argument.
-
             resource_requester: A callable that takes in the classical resource used in the
                 condition, verifies that it is present in the attached circuit, resolves any indices
                 into concrete :obj:`.Clbit` instances, and returns the concrete resource.  If this
@@ -124,18 +135,13 @@ class InstructionSet:
             CircuitError: if both ``resource_requester`` and ``circuit_cregs`` are passed.  Only one
                 of these may be passed, and it should be ``resource_requester``.
         """
-        self._instructions = []
+        self._instructions: list[CircuitInstruction] = []
         if circuit_cregs is not None:
             if resource_requester is not None:
                 raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")
-            warnings.warn(
-                "The 'circuit_cregs' argument to 'InstructionSet' is deprecated as of"
-                " qiskit-terra 0.19, and will be removed no sooner than 3 months after its release."
-                " Pass a complete resource requester as the 'resource_requester' instead.",
-                DeprecationWarning,
-                stacklevel=2,
+            self._requester: Callable[..., ClassicalRegister | Clbit] = _requester_from_cregs(
+                tuple(circuit_cregs)
             )
-            self._requester: Optional[Callable] = _requester_from_cregs(tuple(circuit_cregs))
         else:
             self._requester = resource_requester
 
@@ -163,7 +169,7 @@ class InstructionSet:
             self._instructions[i] = instruction.replace(operation=instruction.operation.inverse())
         return self
 
-    def c_if(self, classical: Union[Clbit, ClassicalRegister, int], val: int) -> "InstructionSet":
+    def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
 

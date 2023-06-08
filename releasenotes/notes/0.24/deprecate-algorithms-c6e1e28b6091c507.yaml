@@ -1,0 +1,38 @@
+---
+deprecations:
+  - |
+    All of the following features are now deprecated, after having been made pending deprecation
+    since 0.22.0. More information is available at https://qisk.it/algo_migration.
+
+    Module :mod:`qiskit.algorithms.minimum_eigen_solvers` is deprecated and
+    superseded by :mod:`qiskit.algorithms.minimum_eigensolvers`.
+
+    Module :mod:`qiskit.algorithms.eigen_solvers` is deprecated and
+    superseded by :mod:`qiskit.algorithms.eigensolvers`.
+
+    Module :mod:`qiskit.algorithms.evolvers` is deprecated and
+    superseded by :mod:`qiskit.algorithms.time_evolvers`.
+
+    Class :class:`qiskit.algorithms.TrotterQRTE` is deprecated and superseded by
+    :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE`.
+
+    Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend`
+    is deprecated and superseded by
+    :class:`~qiskit.primitives.BaseSampler` in the following classes:
+    :class:`~qiskit.algorithms.amplitude_amplifiers.Grover`,
+    :class:`~qiskit.algorithms.amplitude_estimators.AmplitudeEstimation`,
+    :class:`~qiskit.algorithms.amplitude_estimators.FasterAmplitudeEstimation`,
+    :class:`~qiskit.algorithms.amplitude_estimators.IterativePhaseEstimation`,
+    :class:`~qiskit.algorithms.amplitude_estimators.MaximumLikelihoodAmplitudeEstimation`,
+    :class:`~qiskit.algorithms.phase_estimators.HamiltonianPhaseEstimation`,
+    :class:`~qiskit.algorithms.phase_estimators.IterativePhaseEstimation`,
+    :class:`~qiskit.algorithms.phase_estimators.PhaseEstimation`
+
+    Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend`
+    or :class:`~qiskit.opflow.ExpectationBase` is deprecated and superseded by
+    :class:`~qiskit.primitives.BaseSampler` in the following static method:
+    :meth:`~qiskit.algorithms.optimizers.QNSPSA.get_fidelity`
+
+    Function :func:`~qiskit.algorithms.aux_ops_evaluator.eval_observables` is deprecated
+    and superseded by
+    :func:`~qiskit.algorithms.observables_evaluator.estimate_observables` function.

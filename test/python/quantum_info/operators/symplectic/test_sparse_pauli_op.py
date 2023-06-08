@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,6 +21,7 @@ from ddt import ddt
 
 from qiskit import QiskitError
 from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -227,7 +228,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
 
-    def to_matrix(self):
+    def test_to_matrix(self):
         """Test to_matrix method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
@@ -236,18 +237,32 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         for coeff, label in zip(coeffs, labels):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
+        np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
 
-    def to_matrix_parameters(self):
+    def test_to_matrix_large(self):
+        """Test to_matrix method with a large number of qubits."""
+        reps = 5
+        labels = ["XI" * reps, "YZ" * reps, "YY" * reps, "ZZ" * reps]
+        coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
+        spp_op = SparsePauliOp(labels, coeffs)
+        size = 1 << 2 * reps
+        target = np.zeros((size, size), dtype=complex)
+        for coeff, label in zip(coeffs, labels):
+            target += coeff * pauli_mat(label)
+        np.testing.assert_array_equal(spp_op.to_matrix(), target)
+        np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
+
+    def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
         labels = ["XI", "YZ", "YY", "ZZ"]
-        coeffs = ParameterVector("a", 4)
+        coeffs = np.array(ParameterVector("a", 4))
         spp_op = SparsePauliOp(labels, coeffs)
         target = np.zeros((4, 4), dtype=object)
         for coeff, label in zip(coeffs, labels):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
 
-    def to_operator(self):
+    def test_to_operator(self):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
@@ -257,7 +272,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target = target + Operator(coeff * pauli_mat(label))
         self.assertEqual(spp_op.to_operator(), target)
 
-    def to_list(self):
+    def test_to_list(self):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
@@ -265,7 +280,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         target = list(zip(labels, coeffs))
         self.assertEqual(op.to_list(), target)
 
-    def to_list_parameters(self):
+    def test_to_list_parameters(self):
         """Test to_operator method with paramters."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = np.array(ParameterVector("a", 4))
@@ -946,6 +961,33 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         y = SparsePauliOp("Y", np.array([1]))
         iz = SparsePauliOp("Z", 1j)
         self.assertEqual(x.dot(y), iz)
+
+    def test_get_parameters(self):
+        """Test getting the parameters."""
+        x, y = Parameter("x"), Parameter("y")
+        op = SparsePauliOp(["X", "Y", "Z"], coeffs=[1, x, x * y])
+
+        with self.subTest(msg="all parameters"):
+            self.assertEqual(ParameterView([x, y]), op.parameters)
+
+        op.assign_parameters({y: 2}, inplace=True)
+        with self.subTest(msg="after partial binding"):
+            self.assertEqual(ParameterView([x]), op.parameters)
+
+    def test_assign_parameters(self):
+        """Test assign parameters."""
+        x, y = Parameter("x"), Parameter("y")
+        op = SparsePauliOp(["X", "Y", "Z"], coeffs=[1, x, x * y])
+
+        # partial binding inplace
+        op.assign_parameters({y: 2}, inplace=True)
+        with self.subTest(msg="partial binding"):
+            self.assertListEqual(op.coeffs.tolist(), [1, x, 2 * x])
+
+        # bind via array
+        bound = op.assign_parameters([3])
+        with self.subTest(msg="fully bound"):
+            self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
 
 
 if __name__ == "__main__":

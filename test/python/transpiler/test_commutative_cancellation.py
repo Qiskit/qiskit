@@ -26,7 +26,6 @@ from qiskit.quantum_info import Operator
 
 
 class TestCommutativeCancellation(QiskitTestCase):
-
     """Test the CommutativeCancellation pass."""
 
     def setUp(self):

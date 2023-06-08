@@ -18,6 +18,7 @@ import warnings
 
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.opflow import (
     SummedOp,
     PauliOp,
@@ -92,6 +93,14 @@ class HamiltonianPhaseEstimation:
 
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
+    )
     def __init__(
         self,
         num_evaluation_qubits: int,
@@ -102,22 +111,18 @@ class HamiltonianPhaseEstimation:
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: Pending deprecation\: The quantum instance on which
+            quantum_instance: Deprecated: The quantum instance on which
                 the circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
         """
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
+        # Avoid double warning on deprecated used of `quantum_instance`.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            self._phase_estimation = PhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits,
+                quantum_instance=quantum_instance,
+                sampler=sampler,
             )
-        self._phase_estimation = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits,
-            quantum_instance=quantum_instance,
-            sampler=sampler,
-        )
 
     def _get_scale(self, hamiltonian, bound=None) -> PhaseEstimationScale:
         if bound is None:

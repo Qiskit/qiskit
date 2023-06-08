@@ -28,7 +28,7 @@ class FakeMelbourneV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_melbourne.json"
     props_filename = "props_melbourne.json"
-    backend_name = "fake_melbourne_v2"
+    backend_name = "fake_melbourne"
 
 
 class FakeMelbourne(FakeBackend):

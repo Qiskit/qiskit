@@ -15,12 +15,17 @@ Circuit synthesis for the Clifford class into layers.
 # pylint: disable=invalid-name
 
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh
+from qiskit.synthesis.linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+)
+from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
+
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
-    check_invertible_binary_matrix,
     _compute_rank,
     _gauss_elimination,
     _gauss_elimination_with_perm,
@@ -32,24 +37,17 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def _default_cx_synth_func(mat, validate):
+def _default_cx_synth_func(mat):
     """
     Construct the layer of CX gates from a boolean invertible matrix mat.
     """
-    if validate:
-        if not check_invertible_binary_matrix(mat):
-            raise QiskitError("The matrix for CX circuit is not invertible.")
-
     CX_circ = synth_cnot_count_full_pmh(mat)
     CX_circ.name = "CX"
-
-    if validate:
-        _check_gates(CX_circ, ("cx", "swap"))
 
     return CX_circ
 
 
-def _default_cz_synth_func(symmetric_mat, validate):
+def _default_cz_synth_func(symmetric_mat):
     """
     Construct the layer of CZ gates from a symmetric matrix.
     """
@@ -60,9 +58,6 @@ def _default_cz_synth_func(symmetric_mat, validate):
         for i in range(0, j):
             if symmetric_mat[i][j]:
                 qc.cz(i, j)
-
-    if validate:
-        _check_gates(qc, "cz")
     return qc
 
 
@@ -71,10 +66,11 @@ def synth_clifford_layers(
     cx_synth_func=_default_cx_synth_func,
     cz_synth_func=_default_cz_synth_func,
     cx_cz_synth_func=None,
+    cz_func_reverse_qubits=False,
     validate=False,
 ):
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
-    described in Lemma 8 of [1].
+    described in Lemma 8 of Bravyi and Maslov.
 
     For example, a 5-qubit Clifford circuit is decomposed into the following layers:
 
@@ -91,12 +87,19 @@ def synth_clifford_layers(
         q_4: ┤4    ├┤4    ├┤4       ├┤4    ├┤4    ├┤4    ├┤4    ├┤4       ├
              └─────┘└─────┘└────────┘└─────┘└─────┘└─────┘└─────┘└────────┘
 
+    This decomposition is for the default cz_synth_func and cx_synth_func functions,
+    with other functions one may see slightly different decomposition.
+
     Args:
         cliff (Clifford): a clifford operator.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
+            It gets as input a boolean invertible matrix, and outputs a QuantumCircuit.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+            It gets as input a boolean symmetric matrix, and outputs a QuantumCircuit.
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         validate (Boolean): if True, validates the synthesis process.
+        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
+            since this function returns a circuit that reverts the order of qubits.
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
@@ -108,11 +111,15 @@ def synth_clifford_layers(
     """
 
     num_qubits = cliff.num_qubits
+    if cz_func_reverse_qubits:
+        cliff0 = _reverse_clifford(cliff)
+    else:
+        cliff0 = cliff
 
     qubit_list = list(range(num_qubits))
     layeredCircuit = QuantumCircuit(num_qubits)
 
-    H1_circ, cliff1 = _create_graph_state(cliff, validate=validate)
+    H1_circ, cliff1 = _create_graph_state(cliff0, validate=validate)
 
     H2_circ, CZ1_circ, S1_circ, cliff2 = _decompose_graph_state(
         cliff1, validate=validate, cz_synth_func=cz_synth_func
@@ -124,6 +131,7 @@ def synth_clifford_layers(
         cz_synth_func=cz_synth_func,
         cx_synth_func=cx_synth_func,
         cx_cz_synth_func=cx_cz_synth_func,
+        cz_func_reverse_qubits=cz_func_reverse_qubits,
     )
 
     layeredCircuit.append(S2_circ, qubit_list)
@@ -136,6 +144,8 @@ def synth_clifford_layers(
     layeredCircuit.append(S1_circ, qubit_list)
     layeredCircuit.append(CZ1_circ, qubit_list)
 
+    if cz_func_reverse_qubits:
+        H1_circ = H1_circ.reverse_bits()
     layeredCircuit.append(H1_circ, qubit_list)
 
     # Add Pauli layer to fix the Clifford phase signs
@@ -269,7 +279,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
                 "The multiplication of stabx_inv and stab_z is not a symmetric matrix."
             )
 
-    CZ1_circ = cz_synth_func(stabz_update, validate=validate)
+    CZ1_circ = cz_synth_func(stabz_update)
 
     for j in range(num_qubits):
         for i in range(0, j):
@@ -288,7 +298,9 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     return H2_circ, CZ1_circ, S1_circ, cliff_cpy
 
 
-def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_cz_synth_func):
+def _decompose_hadamard_free(
+    cliff, validate, cz_synth_func, cx_synth_func, cx_cz_synth_func, cz_func_reverse_qubits
+):
     """Assumes that the Clifford cliff is Hadamard free.
     Decompose it into the layers S2 - CZ2 - CX, where
     S2_circ is a circuit that can contain only S gates,
@@ -301,6 +313,7 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
+        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr.
 
     Return:
         S2_circ: a circuit that can contain only S gates.
@@ -339,10 +352,12 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
         )
         return S2_circ, CZ2_circ, CX_circ
 
-    CZ2_circ = cz_synth_func(destabz_update, validate=validate)
+    CZ2_circ = cz_synth_func(destabz_update)
 
     mat = destabx.transpose()
-    CX_circ = cx_synth_func(mat, validate=validate)
+    if cz_func_reverse_qubits:
+        mat = np.flip(mat, axis=0)
+    CX_circ = cx_synth_func(mat)
 
     return S2_circ, CZ2_circ, CX_circ
 
@@ -381,11 +396,33 @@ def _calc_pauli_diff(cliff, cliff_target):
     return pauli_circ
 
 
-def _check_gates(qc, allowed_gates):
-    """Check that quantum circuit qc consists only of allowed_gates.
-    qc - a QuantumCircuit
-    allowed_gates - list of strings
+def synth_clifford_depth_lnn(cliff):
+    """Synthesis of a Clifford into layers for linear-nearest neighbour connectivity.
+
+    The depth of the synthesized n-qubit circuit is bounded by 9*n+4, which is not optimal.
+    It should be replaced by a better algorithm that provides depth bounded by 7*n-4 [3].
+
+    Args:
+        cliff (Clifford): a clifford operator.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+
+    Reference:
+        1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+           structure of the Clifford group*,
+           `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+        2. Dmitri Maslov, Martin Roetteler,
+           *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
+           `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
+        3. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
+           Hadamard-free Clifford transformations they generate*,
+           `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
     """
-    for inst, _, _ in qc.data:
-        if not inst.name in allowed_gates:
-            raise QiskitError("The gate name is not in the allowed_gates list.")
+    circ = synth_clifford_layers(
+        cliff,
+        cx_synth_func=synth_cnot_depth_line_kms,
+        cz_synth_func=synth_cz_depth_line_mr,
+        cz_func_reverse_qubits=True,
+    )
+    return circ

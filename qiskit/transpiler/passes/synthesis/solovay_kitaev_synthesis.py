@@ -63,11 +63,12 @@ class SolovayKitaev(TransformationPass):
 
     Examples:
 
+        Per default, the basis gate set is ``["t", "tdg", "h"]``:
+
         .. code-block::
 
             import numpy as np
             from qiskit.circuit import QuantumCircuit
-            from qiskit.circuit.library import TGate, HGate, TdgGate
             from qiskit.transpiler.passes.synthesis import SolovayKitaev
             from qiskit.quantum_info import Operator
 
@@ -77,7 +78,6 @@ class SolovayKitaev(TransformationPass):
             print("Original circuit:")
             print(circuit.draw())
 
-            basis_gates = [TGate(), TdgGate(), HGate()]
             skd = SolovayKitaev(recursion_degree=2)
 
             discretized = skd(circuit)
@@ -99,6 +99,18 @@ class SolovayKitaev(TransformationPass):
             q: ┤ H ├┤ T ├┤ H ├
                └───┘└───┘└───┘
             Error: 2.828408279166474
+
+        For individual basis gate sets, the ``generate_basic_approximations`` function can be used:
+
+        .. code-block::
+
+            from qiskit.synthesis import generate_basic_approximations
+            from qiskit.transpiler.passes import SolovayKitaev
+
+            basis = ["s", "sdg", "t", "tdg", "z", "h"]
+            approx = generate_basic_approximations(basis, depth=3)
+
+            skd = SolovayKitaev(recursion_degree=2, basic_approximations=approx)
 
     References:
 

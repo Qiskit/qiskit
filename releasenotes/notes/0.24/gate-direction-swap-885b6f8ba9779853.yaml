@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The :class:`.GateDirection` transpiler pass can now flip the direction
+    of ``swap`` (:class`.SwapGate`) instructions.

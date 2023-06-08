@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
 from .estimation_problem import EstimationProblem
@@ -48,6 +48,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
     Using a maximum likelihood post processing, this grid constraint can be circumvented.
     This improved estimator is implemented as well, see [2] Appendix A for more detail.
 
+    .. note::
+
+        This class does not support the :attr:`.EstimationProblem.is_good_state` property,
+        as for phase estimation-based QAE, the oracle that identifes the good states
+        must be encoded in the Grover operator. To set custom oracles, the
+        :attr:`.EstimationProblem.grover_operator` attribute can be set directly.
+
     References:
         [1]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
              Quantum Amplitude Amplification and Estimation.
@@ -57,6 +64,14 @@ class AmplitudeEstimation(AmplitudeEstimator):
              `arXiv:1912.05559 <https://arxiv.org/abs/1912.05559>`_.
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
+    )
     def __init__(
         self,
         num_eval_qubits: int,
@@ -73,7 +88,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 `qiskit.circuit.library.PhaseEstimation` when None.
             iqft: The inverse quantum Fourier transform component, defaults to using a standard
                 implementation from `qiskit.circuit.library.QFT` when None.
-            quantum_instance: Pending deprecation\: The backend (or `QuantumInstance`) to execute
+            quantum_instance: Deprecated: The backend (or `QuantumInstance`) to execute
                 the circuits on.
             sampler: A sampler primitive to evaluate the circuits.
 
@@ -86,19 +101,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
-            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.quantum_instance = quantum_instance
 
         # get parameters
-        self._m = num_eval_qubits  # pylint: disable=invalid-name
+        self._m = num_eval_qubits
         self._M = 2**num_eval_qubits  # pylint: disable=invalid-name
 
         self._iqft = iqft
@@ -124,14 +132,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_function(
-        "The AmplitudeEstimation.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+        since="0.24.0",
+        is_property=True,
     )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated: Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -139,14 +146,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The AmplitudeEstimation.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+        since="0.24.0",
+        is_property=True,
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated: Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -198,7 +204,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         self,
         circuit_results: dict[str, int] | np.ndarray,
         threshold: float = 1e-6,
-    ) -> tuple[dict[int, float], dict[float, float]]:
+    ) -> tuple[dict[float, float], dict[int, float]]:
         """Evaluate the results from the circuit simulation.
 
         Given the probabilities from statevector simulation of the QAE circuit, compute the
@@ -260,10 +266,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         return samples, measurements
 
-    def _evaluate_count_results(self, counts):
+    def _evaluate_count_results(self, counts) -> tuple[dict[float, float], dict[int, float]]:
         # construct probabilities
-        measurements = OrderedDict()
-        samples = OrderedDict()
+        measurements: dict[int, float] = OrderedDict()
+        samples: dict[float, float] = OrderedDict()
         shots = sum(counts.values())
         for state, count in counts.items():
             y = int(state.replace(" ", "")[: self._m][::-1], 2)
@@ -359,6 +365,14 @@ class AmplitudeEstimation(AmplitudeEstimator):
         if estimation_problem.objective_qubits is None:
             raise ValueError("The objective_qubits property of the estimation problem must be set.")
 
+        if estimation_problem.has_good_state:
+            warnings.warn(
+                "The AmplitudeEstimation class does not support an is_good_state function to "
+                "identify good states. For this algorithm, a custom oracle has to be encoded directly "
+                "in the grover_operator. If no custom oracle is set, this algorithm identifies good "
+                "states as those, where all objective qubits are in state 1."
+            )
+
         result = AmplitudeEstimationResult()
         result.num_evaluation_qubits = self._m
         result.post_processing = estimation_problem.post_processing
@@ -416,7 +430,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         # store the number of oracle queries
         result.num_oracle_queries = result.shots * (self._M - 1)
 
-        # run the MLE post processing
+        # run the MLE post-processing
         mle = self.compute_mle(result)
         result.mle = mle
         result.mle_processed = estimation_problem.post_processing(mle)
@@ -468,13 +482,13 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._num_evaluation_qubits = None
-        self._mle = None
-        self._mle_processed = None
-        self._samples = None
-        self._samples_processed = None
-        self._y_measurements = None
-        self._max_probability = None
+        self._num_evaluation_qubits: int | None = None
+        self._mle: float | None = None
+        self._mle_processed: float | None = None
+        self._samples: dict[float, float] | None = None
+        self._samples_processed: dict[float, float] | None = None
+        self._y_measurements: dict[int, float] | None = None
+        self._max_probability: float | None = None
 
     @property
     def num_evaluation_qubits(self) -> int:
@@ -582,7 +596,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
 
 def _fisher_confint(
     result: AmplitudeEstimationResult, alpha: float, observed: bool = False
-) -> list[float]:
+) -> tuple[float, float]:
     """Compute the Fisher information confidence interval for the MLE of the previous run.
 
     Args:
@@ -599,10 +613,12 @@ def _fisher_confint(
     confint = result.mle + norm.ppf(1 - alpha / 2) / std * np.array([-1, 1])
 
     # transform the confidence interval from [0, 1] to the target interval
-    return tuple(result.post_processing(bound) for bound in confint)
+    return result.post_processing(confint[0]), result.post_processing(confint[1])
 
 
-def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> list[float]:
+def _likelihood_ratio_confint(
+    result: AmplitudeEstimationResult, alpha: float
+) -> tuple[float, float]:
     """Compute the likelihood ratio confidence interval for the MLE of the previous run.
 
     Args:
@@ -670,5 +686,4 @@ def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -
                 upper = np.maximum(upper, right)
 
     # Put together CI
-    confint = [lower, upper]
-    return tuple(result.post_processing(bound) for bound in confint)
+    return result.post_processing(lower), result.post_processing(upper)

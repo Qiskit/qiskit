@@ -12,7 +12,7 @@
 
 """RunningPassManager class for the transpiler.
 This object holds the state of a pass manager during running-time."""
-
+from __future__ import annotations
 from functools import partial
 from collections import OrderedDict
 import logging
@@ -58,11 +58,11 @@ class RunningPassManager:
 
         self.count = 0
 
-    def append(self, passes, **flow_controller_conditions):
+    def append(self, passes: list[BasePass], **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
 
         Args:
-            passes (list[BasePass]): passes to be added to schedule
+            passes (list[TBasePass]): passes to be added to schedule
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
 
@@ -124,7 +124,7 @@ class RunningPassManager:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
 
-        circuit = dag_to_circuit(dag)
+        circuit = dag_to_circuit(dag, copy_operations=False)
         if output_name:
             circuit.name = output_name
         else:
@@ -308,11 +308,11 @@ class FlowController:
         del cls.registered_controllers[name]
 
     @classmethod
-    def controller_factory(cls, passes, options, **partial_controller):
+    def controller_factory(cls, passes: list[BasePass], options, **partial_controller):
         """Constructs a flow controller based on the partially evaluated controller arguments.
 
         Args:
-            passes (list[BasePass]): passes to add to the flow controller.
+            passes (list[TBasePass]): passes to add to the flow controller.
             options (dict): PassManager options.
             **partial_controller (dict): Partially evaluated controller arguments in the form
                 `{name:partial}`

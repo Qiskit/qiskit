@@ -153,31 +153,31 @@ class TestCollect2qBlocks(QiskitTestCase):
             Gate("custom1qgate2", 1, []),
         ),
     )
-    def test_collect_arbitrary_gates(self, twoQ_gate, oneQ_gate1, oneQ_gate2):
+    def test_collect_arbitrary_gates(self, twoq_gate, oneq_gate1, oneq_gate2):
         """Validate we can collect blocks irrespective of gate types in the circuit."""
 
         qc = QuantumCircuit(3)
 
         # Block 1 - q[0] and q[1]
-        qc.append(oneQ_gate1, [0])
-        qc.append(oneQ_gate2, [1])
-        qc.append(twoQ_gate, [0, 1])
-        qc.append(oneQ_gate1, [0])
-        qc.append(oneQ_gate2, [1])
+        qc.append(oneq_gate1, [0])
+        qc.append(oneq_gate2, [1])
+        qc.append(twoq_gate, [0, 1])
+        qc.append(oneq_gate1, [0])
+        qc.append(oneq_gate2, [1])
 
         # Block 2 - q[1] and q[2]
-        qc.append(oneQ_gate1, [1])
-        qc.append(oneQ_gate2, [2])
-        qc.append(twoQ_gate, [1, 2])
-        qc.append(oneQ_gate1, [1])
-        qc.append(oneQ_gate2, [2])
+        qc.append(oneq_gate1, [1])
+        qc.append(oneq_gate2, [2])
+        qc.append(twoq_gate, [1, 2])
+        qc.append(oneq_gate1, [1])
+        qc.append(oneq_gate2, [2])
 
         # Block 3 - q[0] and q[1]
-        qc.append(oneQ_gate1, [0])
-        qc.append(oneQ_gate2, [1])
-        qc.append(twoQ_gate, [0, 1])
-        qc.append(oneQ_gate1, [0])
-        qc.append(oneQ_gate2, [1])
+        qc.append(oneq_gate1, [0])
+        qc.append(oneq_gate2, [1])
+        qc.append(twoq_gate, [0, 1])
+        qc.append(oneq_gate1, [0])
+        qc.append(oneq_gate2, [1])
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())

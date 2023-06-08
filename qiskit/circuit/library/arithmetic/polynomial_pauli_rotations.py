@@ -13,19 +13,19 @@
 
 """Polynomially controlled Pauli-rotations."""
 
-import warnings
-from typing import List, Optional, Dict, Sequence
+from __future__ import annotations
 
 from itertools import product
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 
 
 def _binomial_coefficients(n):
-    """ "Return a dictionary of binomial coefficients
+    """Return a dictionary of binomial coefficients
 
     Based-on/forked from sympy's binomial_coefficients() function [#]
 
@@ -41,7 +41,7 @@ def _binomial_coefficients(n):
 
 
 def _large_coefficients_iter(m, n):
-    """ "Return an iterator of multinomial coefficients
+    """Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients_iterator() function [#]
 
@@ -87,7 +87,7 @@ def _large_coefficients_iter(m, n):
 
 
 def _multinomial_coefficients(m, n):
-    """ "Return an iterator of multinomial coefficients
+    """Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients() function [#]
 
@@ -135,12 +135,13 @@ def _multinomial_coefficients(m, n):
 class PolynomialPauliRotations(FunctionalPauliRotations):
     r"""A circuit implementing polynomial Pauli rotations.
 
-    For a polynomial :math`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
     :math:`|0\rangle` this operator acts as:
 
     .. math::
 
-        |i\rangle |0\rangle \mapsto \cos(p(i)) |i\rangle |0\rangle + \sin(p(i)) |i\rangle |1\rangle
+        |i\rangle |0\rangle \mapsto \cos\left(\frac{p(i)}{2}\right) |i\rangle |0\rangle
+        + \sin\left(\frac{p(i)}{2}\right) |i\rangle |1\rangle
 
     Let n be the number of qubits representing the state, d the degree of p(x) and q_i the qubits,
     where q_0 is the least significant qubit. Then for
@@ -153,15 +154,15 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     .. math::
 
-        p(x) = \sum_{j=0}^{j=d} c_j x_j
+        p(x) = \sum_{j=0}^{j=d} c_j x^j
 
     where :math:`c` are the input coefficients, ``coeffs``.
     """
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
-        coeffs: Optional[List[float]] = None,
+        num_state_qubits: int | None = None,
+        coeffs: list[float] | None = None,
         basis: str = "Y",
         name: str = "poly",
     ) -> None:
@@ -181,23 +182,33 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
 
     @property
-    def coeffs(self) -> List[float]:
-        """The multiplicative factor in the rotation angle of the controlled rotations.
+    def coeffs(self) -> list[float]:
+        """The coefficients of the polynomial.
 
-        The rotation angles are ``slope * 2^0``, ``slope * 2^1``, ... , ``slope * 2^(n-1)`` where
-        ``n`` is the number of state qubits.
+        ``coeffs[i]`` is the coefficient of the i-th power of the function input :math:`x`,
+        that means that the rotation angles are based on the coefficients value,
+        following the formula
+
+        .. math::
+
+            c_j x^j ,  j=0, ..., d
+
+        where :math:`d` is the degree of the polynomial :math:`p(x)` and :math:`c` are the coefficients
+        ``coeffs``.
 
         Returns:
-            The rotation angle common in all controlled rotations.
+            The coefficients of the polynomial.
         """
         return self._coeffs
 
     @coeffs.setter
-    def coeffs(self, coeffs: List[float]) -> None:
-        """Set the multiplicative factor of the rotation angles.
+    def coeffs(self, coeffs: list[float]) -> None:
+        """Set the coefficients of the polynomial.
+
+        ``coeffs[i]`` is the coefficient of the i-th power of x.
 
         Args:
-            The slope of the rotation angles.
+            The coefficients of the polynomial.
         """
         self._invalidate()
         self._coeffs = coeffs
@@ -214,15 +225,13 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return 0
 
     @property
+    @deprecate_func(
+        is_property=True,
+        since="0.16.0",
+        additional_msg="Instead, use the property :attr:`~num_ancillas`.",
+    )
     def num_ancilla_qubits(self):
         """Deprecated. Use num_ancillas instead."""
-        warnings.warn(
-            "The PolynomialPauliRotations.num_ancilla_qubits property is deprecated "
-            "as of 0.16.0. It will be removed no earlier than 3 months after the release "
-            "date. You should use the num_ancillas property instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
@@ -255,7 +264,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         return valid
 
-    def _get_rotation_coefficients(self) -> Dict[Sequence[int], float]:
+    def _get_rotation_coefficients(self) -> dict[tuple[int, ...], float]:
         """Compute the coefficient of each monomial.
 
         Returns:
@@ -269,7 +278,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             if 0 < sum(combination) <= self.degree:
                 valid_combinations += [combination]
 
-        rotation_coeffs = {control_state: 0 for control_state in valid_combinations}
+        rotation_coeffs = {control_state: 0.0 for control_state in valid_combinations}
 
         # compute the coefficients for the control states
         for i, coeff in enumerate(self.coeffs[1:]):
@@ -277,7 +286,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
             # iterate over the multinomial coefficients
             for comb, num_combs in _multinomial_coefficients(self.num_state_qubits, i).items():
-                control_state = ()
+                control_state: tuple[int, ...] = ()
                 power = 1
                 for j, qubit in enumerate(comb):
                     if qubit > 0:  # means we control on qubit i

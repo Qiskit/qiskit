@@ -141,7 +141,7 @@ class PhaseEstimationScale:
             bound = sum(abs(coeff) for coeff in pauli_sum.coeffs)
             return PhaseEstimationScale(bound)
         elif isinstance(pauli_sum, Operator):
-            bound = np.sum(np.abs(np.eigvalsh(pauli_sum)))
+            bound = np.sum(np.abs(np.linalg.eigvalsh(pauli_sum)))
             return PhaseEstimationScale(bound)
         elif isinstance(pauli_sum, BaseOperator):
             raise ValueError(

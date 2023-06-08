@@ -28,6 +28,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import shutil
 from warnings import warn
 
 from qiskit import user_config
@@ -363,16 +364,12 @@ def _text_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=reverse_bits,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
         encoding=encoding,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -499,7 +496,7 @@ def _latex_circuit_drawer(
         image = trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
-                os.rename(base + ".pdf", filename)
+                shutil.move(base + ".pdf", filename)
             else:
                 try:
                     image.save(filename)
@@ -565,12 +562,8 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
         circuit=circuit,
     )
@@ -603,7 +596,6 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
 ):
-
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -654,20 +646,15 @@ def _matplotlib_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        calibrations=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     return qcd.draw(filename)
