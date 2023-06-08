@@ -15,6 +15,7 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+import sys
 import collections.abc
 import copy
 import itertools
@@ -37,6 +38,7 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    overload,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -44,7 +46,6 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression, ParameterValueType
@@ -70,6 +71,11 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -871,6 +877,9 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+
         if inplace and front and self._control_flow_scopes:
             # If we're composing onto ourselves while in a stateful control-flow builder context,
             # there's no clear meaning to composition to the "front" of the circuit.
@@ -949,30 +958,42 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
+        # Cache for `map_register_to_dest`.
+        _map_register_cache = {}
+
+        def map_register_to_dest(theirs):
+            """Map the target's registers to suitable equivalents in the destination, adding an
+            extra one if there's no exact match."""
+            if theirs.name in _map_register_cache:
+                return _map_register_cache[theirs.name]
+            mapped_bits = [edge_map[bit] for bit in theirs]
+            for ours in dest.cregs:
+                if mapped_bits == list(ours):
+                    mapped_theirs = ours
+                    break
+            else:
+                mapped_theirs = ClassicalRegister(bits=mapped_bits)
+                dest.add_register(mapped_theirs)
+            _map_register_cache[theirs.name] = mapped_theirs
+            return mapped_theirs
+
         mapped_instrs: list[CircuitInstruction] = []
-        condition_register_map = {}
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
 
-            # Map their registers over to ours, adding an extra one if there's no exact match.
             if getattr(n_op, "condition", None) is not None:
                 target, value = n_op.condition
                 if isinstance(target, Clbit):
                     n_op.condition = (edge_map[target], value)
                 else:
-                    if target.name not in condition_register_map:
-                        mapped_bits = [edge_map[bit] for bit in target]
-                        for our_creg in dest.cregs:
-                            if mapped_bits == list(our_creg):
-                                new_target = our_creg
-                                break
-                        else:
-                            new_target = ClassicalRegister(bits=[edge_map[bit] for bit in target])
-                            dest.add_register(new_target)
-                        condition_register_map[target.name] = new_target
-                    n_op.condition = (condition_register_map[target.name], value)
+                    n_op.condition = (map_register_to_dest(target), value)
+            elif isinstance(n_op, SwitchCaseOp):
+                if isinstance(n_op.target, Clbit):
+                    n_op.target = edge_map[n_op.target]
+                else:
+                    n_op.target = map_register_to_dest(n_op.target)
 
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
@@ -1575,8 +1596,11 @@ class QuantumCircuit:
         to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
-                Defaults to all gates in circuit.
+            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
+                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
+                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
+                of these. If a gate name is entered, it will decompose all gates with that
+                name, whether the gates have labels or not. Defaults to all gates in circuit.
             reps (int): Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
                 can decompose specific gates specific time
@@ -2488,11 +2512,23 @@ class QuantumCircuit:
 
         Args:
           path (str): Path to the file for a QASM program
+
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
+
+        See also:
+            :func:`.qasm2.load`: the complete interface to the OpenQASM 2 importer.
         """
-        qasm = Qasm(filename=path)
-        return _circuit_from_qasm(qasm)
+        # pylint: disable=cyclic-import
+        from qiskit import qasm2
+
+        return qasm2.load(
+            path,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
@@ -2502,9 +2538,20 @@ class QuantumCircuit:
           qasm_str (str): A QASM program string
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
+
+        See also:
+            :func:`.qasm2.loads`: the complete interface to the OpenQASM 2 importer.
         """
-        qasm = Qasm(data=qasm_str)
-        return _circuit_from_qasm(qasm)
+        # pylint: disable=cyclic-import
+        from qiskit import qasm2
+
+        return qasm2.loads(
+            qasm_str,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     @property
     def global_phase(self) -> ParameterValueType:
@@ -2607,6 +2654,22 @@ class QuantumCircuit:
             parameters.update(self.global_phase.parameters)
 
         return parameters
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[False] = ...,
+    ) -> "QuantumCircuit":
+        ...
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[True] = ...,
+    ) -> None:
+        ...
 
     def assign_parameters(
         self,
@@ -2791,7 +2854,17 @@ class QuantumCircuit:
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
                     if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
+                        if new_param._symbol_expr.is_integer and new_param.is_real():
+                            val = int(new_param)
+                        elif new_param.is_real():
+                            # Workaround symengine not supporting float(<ComplexDouble>)
+                            val = complex(new_param).real
+                        else:
+                            # complex values may no longer be supported but we
+                            # defer raising an exception to validdate_parameter
+                            # below for now.
+                            val = complex(new_param)
+                        instr.params[param_index] = instr.validate_parameter(val)
                     else:
                         instr.params[param_index] = new_param
 
@@ -2848,7 +2921,11 @@ class QuantumCircuit:
                         if isinstance(p, ParameterExpression) and parameter in p.parameters:
                             new_param = p.assign(parameter, value)
                             if not new_param.parameters:
-                                new_param = float(new_param)
+                                if new_param._symbol_expr.is_integer:
+                                    new_param = int(new_param)
+                                else:
+                                    # Workaround symengine not supporting float(<ComplexDouble>)
+                                    new_param = complex(new_param).real
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
@@ -4902,16 +4979,6 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
-
-
-def _circuit_from_qasm(qasm: Qasm) -> "QuantumCircuit":
-    # pylint: disable=cyclic-import
-    from qiskit.converters import ast_to_dag
-    from qiskit.converters import dag_to_circuit
-
-    ast = qasm.parse()
-    dag = ast_to_dag(ast)
-    return dag_to_circuit(dag, copy_operations=False)
 
 
 def _standard_compare(value1, value2):

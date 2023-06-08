@@ -354,6 +354,7 @@ class BackendV2(Backend, ABC):
         self.description = description
         self.online_date = online_date
         self.backend_version = backend_version
+        self._coupling_map = None
 
     @property
     def instructions(self) -> List[Tuple[Instruction, Tuple[int]]]:
@@ -387,7 +388,9 @@ class BackendV2(Backend, ABC):
     @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
-        return self.target.build_coupling_map()
+        if self._coupling_map is None:
+            self._coupling_map = self.target.build_coupling_map()
+        return self._coupling_map
 
     @property
     def instruction_durations(self):

@@ -12,65 +12,73 @@
 
 """Tests basic functionality of the transpile function"""
 
+import copy
 import io
+import math
 import os
 import sys
-import math
-
+import unittest
 from logging import StreamHandler, getLogger
-from unittest.mock import patch
-
-from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
+from unittest.mock import patch
 
 import numpy as np
 import rustworkx as rx
+from ddt import data, ddt, unpack
 
-from qiskit.exceptions import QiskitError
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse, qpy, qasm3
-from qiskit.circuit import Parameter, Gate, Qubit, Clbit, Reset
-from qiskit.compiler import transpile
-from qiskit.dagcircuit import DAGOutNode, DAGOpNode
-from qiskit.converters import circuit_to_dag
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, pulse, qasm3, qpy
+from qiskit.circuit import (
+    Clbit,
+    ControlFlowOp,
+    ForLoopOp,
+    Gate,
+    IfElseOp,
+    Parameter,
+    Qubit,
+    Reset,
+    SwitchCaseOp,
+    WhileLoopOp,
+)
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import (
     CXGate,
-    U3Gate,
-    U2Gate,
-    U1Gate,
+    CZGate,
+    HGate,
     RXGate,
     RYGate,
     RZGate,
-    UGate,
-    CZGate,
-    XGate,
     SXGate,
-    HGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    UGate,
+    XGate,
 )
-from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, SwitchCaseOp, ControlFlowOp
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.delay import Delay
-from qiskit.test import QiskitTestCase
+from qiskit.compiler import transpile
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGOpNode, DAGOutNode
+from qiskit.exceptions import QiskitError
+from qiskit.providers.backend import BackendV2
 from qiskit.providers.fake_provider import (
-    FakeMelbourne,
-    FakeRueschlikon,
     FakeBoeblingen,
+    FakeMelbourne,
     FakeMumbaiV2,
     FakeNairobiV2,
+    FakeRueschlikon,
+    FakeSherbrooke,
 )
-from qiskit.transpiler import Layout, CouplingMap
-from qiskit.transpiler import PassManager, TransformationPass
-from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit.providers.options import Options
+from qiskit.pulse import InstructionScheduleMap
+from qiskit.quantum_info import Operator, random_unitary
+from qiskit.test import QiskitTestCase, slow_test
+from qiskit.tools import parallel
+from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
-from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
-from qiskit.tools import parallel
-from qiskit.pulse import InstructionScheduleMap
-from qiskit.providers.backend import BackendV2
-from qiskit.providers.options import Options
-from qiskit.test import slow_test
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
+from qiskit.transpiler.target import InstructionProperties, Target
 
 
 class CustomCX(Gate):
@@ -82,6 +90,14 @@ class CustomCX(Gate):
     def _define(self):
         self._definition = QuantumCircuit(2)
         self._definition.cx(0, 1)
+
+
+def connected_qubits(physical: int, coupling_map: CouplingMap) -> set:
+    """Get the physical qubits that have a connection to this one in the coupling map."""
+    for component in coupling_map.connected_components():
+        if physical in (qubits := set(component.graph.nodes())):
+            return qubits
+    raise ValueError(f"physical qubit {physical} is not in the coupling map")
 
 
 @ddt
@@ -619,13 +635,8 @@ class TestTranspile(QiskitTestCase):
             QuantumRegister(3, "q")[2],
         ]
 
-        with self.assertRaises(TranspilerError) as cm:
+        with self.assertRaisesRegex(TranspilerError, "different numbers of qubits"):
             transpile(qc, backend, initial_layout=bad_initial_layout)
-
-        self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
-            cm.exception.message,
-        )
 
     def test_parameterized_circuit_for_simulator(self):
         """Verify that a parameterized circuit can be transpiled for a simulator backend."""
@@ -1608,6 +1619,30 @@ class TestTranspile(QiskitTestCase):
         result = transpile(qc, optimization_level=opt_level)
         self.assertEqual(empty_qc, result)
 
+    @data(0, 1, 2, 3)
+    def test_initial_layout_with_loose_qubits(self, opt_level):
+        """Regression test of gh-10125."""
+        qc = QuantumCircuit([Qubit(), Qubit()])
+        qc.cx(0, 1)
+        transpiled = transpile(qc, initial_layout=[1, 0], optimization_level=opt_level)
+        self.assertIsNotNone(transpiled.layout)
+        self.assertEqual(
+            transpiled.layout.initial_layout, Layout({0: qc.qubits[1], 1: qc.qubits[0]})
+        )
+
+    @data(0, 1, 2, 3)
+    def test_initial_layout_with_overlapping_qubits(self, opt_level):
+        """Regression test of gh-10125."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(bits=qr1[:])
+        qc = QuantumCircuit(qr1, qr2)
+        qc.cx(0, 1)
+        transpiled = transpile(qc, initial_layout=[1, 0], optimization_level=opt_level)
+        self.assertIsNotNone(transpiled.layout)
+        self.assertEqual(
+            transpiled.layout.initial_layout, Layout({0: qc.qubits[1], 1: qc.qubits[0]})
+        )
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
@@ -1886,6 +1921,19 @@ class TestTranspileParallel(QiskitTestCase):
 
         self.addCleanup(restore_default)
         parallel.PARALLEL_DEFAULT = True
+
+    @data(0, 1, 2, 3)
+    def test_parallel_multiprocessing(self, opt_level):
+        """Test parallel dispatch works with multiprocessing."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        backend = FakeMumbaiV2()
+        pm = generate_preset_pass_manager(opt_level, backend)
+        res = pm.run([qc, qc])
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
 
     @data(0, 1, 2, 3)
     def test_parallel_with_target(self, opt_level):
@@ -2274,9 +2322,64 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         )
 
     @slow_test
-    @data(1, 2, 3)
+    @data(2, 3)
     def test_six_component_circuit(self, opt_level):
         """Test input circuit with more than 1 component per backend component."""
+        qc = QuantumCircuit(42)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.h(30)
+        qc.cx(30, 31)
+        qc.cx(30, 32)
+        qc.cx(30, 33)
+        qc.h(34)
+        qc.cx(34, 35)
+        qc.cx(34, 36)
+        qc.cx(34, 37)
+        qc.h(38)
+        qc.cx(38, 39)
+        qc.cx(39, 40)
+        qc.cx(39, 41)
+        qc.measure_all()
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    def test_six_component_circuit_level_1(self):
+        """Test input circuit with more than 1 component per backend component."""
+        opt_level = 1
         qc = QuantumCircuit(42)
         qc.h(0)
         qc.h(10)
@@ -2371,10 +2474,12 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         creg = ClassicalRegister(2)
         qc = QuantumCircuit(25)
         qc.add_register(creg)
+        # Component 0
         qc.h(24)
         qc.cx(24, 23)
         qc.measure(24, creg[0])
         qc.measure(23, creg[1])
+        # Component 1
         qc.h(0).c_if(creg, 0)
         for i in range(18):
             qc.ecr(0, i + 1).c_if(creg, 0)
@@ -2400,14 +2505,22 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             tqc,
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
-        # Check clbits are in order
-        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # Check that virtual qubits that interact with each other via quantum links are placed into
+        # the same component of the coupling map.
+        initial_layout = tqc.layout.initial_layout
+        coupling_map = self.backend.target.build_coupling_map()
+        components = [
+            connected_qubits(initial_layout[qc.qubits[23]], coupling_map),
+            connected_qubits(initial_layout[qc.qubits[0]], coupling_map),
+        ]
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in [23, 24]}, components[0])
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in range(19)}, components[1])
+
+        # Check clbits are in order.
+        # Traverse the output dag over the sole clbit, checking that the qubits of the ops
         # go in order between the components. This is a sanity check to ensure that routing
         # doesn't reorder a classical data dependency between components. Inside a component
         # we have the dag ordering so nothing should be out of order within a component.
-        initial_layout = tqc.layout.initial_layout
-        first_component = {qc.qubits[23], qc.qubits[24]}
-        second_component = {qc.qubits[i] for i in range(19)}
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
@@ -2416,13 +2529,13 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
-        # This shoulde be in the first ocmponent
-        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        # This should be in the first component
+        self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
         op_node = tqc_dag._multi_graph.find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
-            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            self.assertIn(qubit_map[op_node.qargs[0]], components[1])
             op_node = tqc_dag._multi_graph.find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
@@ -2435,10 +2548,12 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         creg = ClassicalRegister(2)
         qc = QuantumCircuit(25)
         qc.add_register(creg)
+        # Component 0
         qc.h(0)
         qc.cx(0, 1)
         qc.measure(0, creg[0])
         qc.measure(1, creg[1])
+        # Component 1
         qc.h(24).c_if(creg, 0)
         for i in range(23, 5, -1):
             qc.ecr(24, i).c_if(creg, 0)
@@ -2464,14 +2579,22 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             tqc,
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
-        # Check clbits are in order
-        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # Check that virtual qubits that interact with each other via quantum links are placed into
+        # the same component of the coupling map.
+        initial_layout = tqc.layout.initial_layout
+        coupling_map = self.backend.target.build_coupling_map()
+        components = [
+            connected_qubits(initial_layout[qc.qubits[0]], coupling_map),
+            connected_qubits(initial_layout[qc.qubits[6]], coupling_map),
+        ]
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in range(2)}, components[0])
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in range(6, 25)}, components[1])
+
+        # Check clbits are in order.
+        # Traverse the output dag over the sole clbit, checking that the qubits of the ops
         # go in order between the components. This is a sanity check to ensure that routing
         # doesn't reorder a classical data dependency between components. Inside a component
         # we have the dag ordering so nothing should be out of order within a component.
-        initial_layout = tqc.layout.initial_layout
-        first_component = {qc.qubits[i] for i in range(2)}
-        second_component = {qc.qubits[i] for i in range(6, 25)}
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
@@ -2481,39 +2604,35 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
         # This shoulde be in the first ocmponent
-        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
         op_node = tqc_dag._multi_graph.find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while isinstance(op_node, DAGOpNode):
-            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            self.assertIn(qubit_map[op_node.qargs[0]], components[1])
             op_node = tqc_dag._multi_graph.find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
-    # Level 1 skipped in this test for now because routing inserts more swaps
-    # and tricking the intermediate layout permutation to validate ordering
-    # will be different compared to higher optimization levels. We have similar
-    # coverage provided by above tests for level 1.
-    @data(2, 3)
+    @data(1, 2, 3)
     def test_chained_data_dependency(self, opt_level):
         """Test 3 component circuit with shared clbits between each component."""
         creg = ClassicalRegister(1)
         qc = QuantumCircuit(30)
         qc.add_register(creg)
-        # Component 1
+        # Component 0
         qc.h(0)
         for i in range(9):
             qc.cx(0, i + 1)
         measure_op = Measure()
         qc.append(measure_op, [9], [creg[0]])
-        # Component 2
+        # Component 1
         qc.h(10).c_if(creg, 0)
         for i in range(11, 20):
             qc.ecr(10, i).c_if(creg, 0)
         measure_op = Measure()
         qc.append(measure_op, [19], [creg[0]])
-        # Component 3
+        # Component 2
         qc.h(20).c_if(creg, 0)
         for i in range(21, 30):
             qc.cz(20, i).c_if(creg, 0)
@@ -2541,16 +2660,24 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             tqc,
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
-        # Check clbits are in order
-        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # Check that virtual qubits that interact with each other via quantum links are placed into
+        # the same component of the coupling map.
+        initial_layout = tqc.layout.initial_layout
+        coupling_map = self.backend.target.build_coupling_map()
+        components = [
+            connected_qubits(initial_layout[qc.qubits[0]], coupling_map),
+            connected_qubits(initial_layout[qc.qubits[10]], coupling_map),
+            connected_qubits(initial_layout[qc.qubits[20]], coupling_map),
+        ]
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in range(10)}, components[0])
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in range(10, 20)}, components[1])
+        self.assertLessEqual({initial_layout[qc.qubits[i]] for i in range(20, 30)}, components[2])
+
+        # Check clbits are in order.
+        # Traverse the output dag over the sole clbit, checking that the qubits of the ops
         # go in order between the components. This is a sanity check to ensure that routing
         # doesn't reorder a classical data dependency between components. Inside a component
-        # we have the dag ordering so nothing should be incompatible there.
-
-        initial_layout = tqc.layout.initial_layout
-        first_component = {qc.qubits[i] for i in range(10)}
-        second_component = {qc.qubits[i] for i in range(10, 20)}
-        third_component = {qc.qubits[i] for i in range(20, 30)}
+        # we have the dag ordering so nothing should be out of order within a component.
         tqc_dag = circuit_to_dag(tqc)
         qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
         input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
@@ -2558,25 +2685,25 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         self.assertIsInstance(first_meas_node.op, Measure)
-        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
         op_node = tqc_dag._multi_graph.find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
-            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            self.assertIn(qubit_map[op_node.qargs[0]], components[1])
             op_node = tqc_dag._multi_graph.find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
-        self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+        self.assertIn(qubit_map[op_node.qargs[0]], components[1])
         op_node = tqc_dag._multi_graph.find_successors_by_edge(
             op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
         )[0]
         while not isinstance(op_node.op, Measure):
-            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], third_component)
+            self.assertIn(qubit_map[op_node.qargs[0]], components[2])
             op_node = tqc_dag._multi_graph.find_successors_by_edge(
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
-        self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], third_component)
+        self.assertIn(qubit_map[op_node.qargs[0]], components[2])
 
     @data("sabre", "stochastic", "basic", "lookahead")
     def test_basic_connected_circuit_dense_layout(self, routing_method):
@@ -2838,3 +2965,65 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.x(4)
         with self.assertRaises(TranspilerError):
             transpile(qc, target=target, optimization_level=opt_level)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_does_not_affect_backend_coupling(self, opt_level):
+        """Test that transpiliation of a circuit does not mutate the `CouplingMap` stored by a V2
+        backend.  Regression test of gh-9997."""
+        if opt_level == 3:
+            raise unittest.SkipTest("unitary resynthesis fails due to gh-10004")
+        qc = QuantumCircuit(127)
+        for i in range(1, 127):
+            qc.ecr(0, i)
+        backend = FakeSherbrooke()
+        original_map = copy.deepcopy(backend.coupling_map)
+        transpile(qc, backend, optimization_level=opt_level)
+        self.assertEqual(original_map, backend.coupling_map)
+
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        scheduling_method=["asap", "alap"],
+    )
+    def test_transpile_target_with_qubits_without_delays_with_scheduling(
+        self, optimization_level, scheduling_method
+    ):
+        """Test qubits without operations aren't ever used."""
+        no_delay_qubits = [1, 3, 4]
+        target = Target(num_qubits=5, dt=1)
+        target.add_instruction(
+            XGate(), {(i,): InstructionProperties(duration=160) for i in range(4)}
+        )
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=160) for i in range(4)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                edge: InstructionProperties(duration=800)
+                for edge in [(0, 1), (1, 2), (2, 0), (2, 3)]
+            },
+        )
+        target.add_instruction(
+            Delay(Parameter("t")), {(i,): None for i in range(4) if i not in no_delay_qubits}
+        )
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 3)
+        qc.cx(0, 3)
+        tqc = transpile(
+            qc,
+            target=target,
+            optimization_level=optimization_level,
+            scheduling_method=scheduling_method,
+        )
+        invalid_qubits = {
+            4,
+        }
+        self.assertEqual(tqc.num_qubits, 5)
+        for inst in tqc.data:
+            for bit in inst.qubits:
+                self.assertNotIn(tqc.find_bit(bit).index, invalid_qubits)
+                if isinstance(inst.operation, Delay):
+                    self.assertNotIn(tqc.find_bit(bit).index, no_delay_qubits)

@@ -21,15 +21,6 @@ import warnings
 import qiskit._accelerate
 
 
-if sys.version_info < (3, 8):
-    warnings.warn(
-        "Using Qiskit with Python 3.7 is deprecated as of the 0.23.0 release. "
-        "Support for running Qiskit with Python 3.7 will be removed in the "
-        "0.25.0 release",
-        DeprecationWarning,
-    )
-
-
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules

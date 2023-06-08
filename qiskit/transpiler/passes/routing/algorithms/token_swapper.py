@@ -26,8 +26,9 @@
 
 """Permutation algorithms for general graphs."""
 
+from __future__ import annotations
 import logging
-from typing import Mapping, List, Union
+from collections.abc import Mapping, MutableSet, MutableMapping, Iterator, Iterable
 
 import numpy as np
 import rustworkx as rx
@@ -45,9 +46,7 @@ class ApproximateTokenSwapper:
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(
-        self, graph: rx.PyGraph, seed: Union[int, np.random.Generator, None] = None
-    ) -> None:
+    def __init__(self, graph: rx.PyGraph, seed: int | np.random.Generator | None = None) -> None:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
@@ -79,9 +78,7 @@ class ApproximateTokenSwapper:
         parallel_swaps = [[swap] for swap in sequential_swaps]
         return permutation_circuit(parallel_swaps)
 
-    def map(
-        self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 50
-    ) -> List[Swap[int]]:
+    def map(self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 50) -> list[Swap[int]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
