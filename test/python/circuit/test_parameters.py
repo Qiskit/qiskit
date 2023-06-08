@@ -1332,7 +1332,7 @@ class TestParameterExpressions(QiskitTestCase):
         imaginary part, with a sensible error message."""
         x = Parameter("x")
         bound_expr = (x + 1.0j).bind({x: 1.0})
-        with self.assertRaisesRegex(TypeError, "cannot cast to float"):
+        with self.assertRaisesRegex(TypeError, "could not cast expression to float"):
             float(bound_expr)
 
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
