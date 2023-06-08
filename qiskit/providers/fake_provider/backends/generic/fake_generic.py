@@ -12,15 +12,16 @@
 
 
 import numpy as np
-from qiskit.transpiler import CouplingMap
 from typing import Optional, List, Tuple
 
+from qiskit.transpiler import CouplingMap
+from qiskit import Aer
 from qiskit.transpiler import Target, InstructionProperties, QubitProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.options import Options
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate
-from qiskit.circuit import Measure, Parameter, Delay
+from qiskit.circuit import Measure, Parameter, Delay, Reset
 from qiskit.circuit.controlflow import (
     IfElseOp,
     WhileLoopOp,
@@ -65,10 +66,16 @@ class FakeGeneric(BackendV2):
                              True: Enable
                              False: Disable (Default)
         replace_cx_with_ecr:
-                    Enable/Disable bi-directional coupling map.
-                    True: Enable (Default)
-                    False: Disable
+                    True: (Default) Replace every occurance of 'cx' with 'ecr'
+                    False: Do not replace 'cx' with 'ecr'
 
+        enable_reset:
+                    True: (Default) this enables the reset on the backend
+                    False: This disables the reset on the backend
+
+        dt:
+            The system time resolution of input signals in seconds.
+            Default is 0.22ns
 
 
 
@@ -89,6 +96,8 @@ class FakeGeneric(BackendV2):
         dynamic: bool = False,
         bidirectional_cp_mp: bool = False,
         replace_cx_with_ecr: bool = True,
+        enable_reset: bool = True,
+        dt: float = 0.222e-9,
     ):
 
         super().__init__(
@@ -118,6 +127,7 @@ class FakeGeneric(BackendV2):
         self._target = Target(
             description="Fake Generic Backend",
             num_qubits=num_qubits,
+            dt=dt,
             qubit_properties=[
                 QubitProperties(
                     t1=rng.uniform(100e-6, 200e-6),
@@ -217,11 +227,16 @@ class FakeGeneric(BackendV2):
 
         if dynamic:
             self._target.add_instruction(IfElseOp, name="if_else")
-            self._target.add_instruction(WhileLoopOp, name="while")
-            self._target.add_instruction(ForLoopOp, name="for")
+            self._target.add_instruction(WhileLoopOp, name="while_loop")
+            self._target.add_instruction(ForLoopOp, name="for_loop")
             self._target.add_instruction(SwitchCaseOp, name="switch_case")
             self._target.add_instruction(BreakLoopOp, name="break")
             self._target.add_instruction(ContinueLoopOp, name="continue")
+
+        if enable_reset:
+            self._target.add_instruction(
+                Reset(), {(qubit_idx,): None for qubit_idx in range(num_qubits)}
+            )
 
     @property
     def target(self):
@@ -243,9 +258,5 @@ class FakeGeneric(BackendV2):
         return Options(shots=1024)
 
     def run(self, circuit, **kwargs):
-        from qiskit_aer import AerSimulator
-        from qiskit_aer.noise import NoiseModel
-
-        noise_model = NoiseModel.from_backend(self)
-        simulator = AerSimulator(noise_model=None)
-        return simulator.run(circuit, **kwargs)
+        noise_model = None
+        return Aer.get_backend("aer_simulator").run(circuit, noise_model=noise_model, **kwargs)
