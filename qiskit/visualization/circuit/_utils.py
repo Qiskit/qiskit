@@ -26,7 +26,7 @@ from qiskit.circuit import (
     Measure,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, ControlFlowOp
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -390,7 +390,10 @@ def _get_layered_instructions(
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    qubits = circuit.qubits.copy()
+    if wire_map is not None:
+        qubits = [bit for bit in list(wire_map.keys()).copy() if isinstance(bit, Qubit)]
+    else:
+        qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()
     nodes = []
 
@@ -457,12 +460,7 @@ def _get_gate_span(qubits, node, wire_map):
     min_index = len(qubits)
     max_index = 0
     for qreg in node.qargs:
-        if wire_map is None:
-            index = qubits.index(qreg)
-        else:
-            # Use wire_map for gates inside ControlFlowOps
-            # since qubit ordering is random
-            index = wire_map[qreg]
+        index = qubits.index(qreg)
 
         if index < min_index:
             min_index = index
