@@ -17,8 +17,9 @@ import unittest
 import ddt
 
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout
-from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler import CouplingMap, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
@@ -120,6 +121,27 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc, qc)
 
+    def test_trivial_with_target(self):
+        """Test that an already mapped circuit is unchanged with target."""
+        coupling = CouplingMap.from_ring(5)
+        target = Target(num_qubits=5)
+        target.add_instruction(SwapGate(), {edge: None for edge in coupling.get_edges()})
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.cx(0, 1)  # free
+        qc.cx(2, 3)  # free
+        qc.h(0)  # free
+        qc.cx(1, 2)  # F
+        qc.cx(1, 0)
+        qc.cx(4, 3)  # F
+        qc.cx(0, 4)
+
+        passmanager = PassManager(SabreSwap(target, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
     def test_lookahead_mode(self):
         """Test lookahead mode's lookahead finds single SWAP gate.
                   ┌───┐
@@ -158,7 +180,7 @@ class TestSabreSwap(QiskitTestCase):
         coupling = CouplingMap(cm_edges)
 
         passmanager = PassManager(SabreSwap(coupling))
-        _ = passmanager.run(QuantumCircuit(1))
+        _ = passmanager.run(QuantumCircuit(coupling.size()))
 
         self.assertEqual(set(cm_edges), set(coupling.get_edges()))
 
@@ -261,6 +283,98 @@ class TestSabreSwap(QiskitTestCase):
             expected = PassManager([TrivialLayout(cm)]).run(qc)
             actual = PassManager([TrivialLayout(cm), SabreSwap(cm)]).run(qc)
             self.assertEqual(expected, actual)
+
+    def test_classical_condition_cargs(self):
+        """Test that classical conditions are preserved even if missing from cargs DAGNode field.
+
+        Created from reproduction in https://github.com/Qiskit/qiskit-terra/issues/8675
+        """
+        with self.subTest("missing measurement"):
+            qc = QuantumCircuit(3, 1)
+            qc.cx(0, 2).c_if(0, 0)
+            qc.measure(1, 0)
+            qc.h(2).c_if(0, 0)
+            expected = QuantumCircuit(3, 1)
+            expected.swap(1, 2)
+            expected.cx(0, 1).c_if(0, 0)
+            expected.measure(2, 0)
+            expected.h(1).c_if(0, 0)
+            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+            self.assertEqual(result, expected)
+        with self.subTest("reordered measurement"):
+            qc = QuantumCircuit(3, 1)
+            qc.cx(0, 1).c_if(0, 0)
+            qc.measure(1, 0)
+            qc.h(0).c_if(0, 0)
+            expected = QuantumCircuit(3, 1)
+            expected.cx(0, 1).c_if(0, 0)
+            expected.measure(1, 0)
+            expected.h(0).c_if(0, 0)
+            result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+            self.assertEqual(result, expected)
+
+    def test_conditional_measurement(self):
+        """Test that instructions with cargs and conditions are handled correctly."""
+        qc = QuantumCircuit(3, 2)
+        qc.cx(0, 2).c_if(0, 0)
+        qc.measure(2, 0).c_if(1, 0)
+        qc.h(2).c_if(0, 0)
+        qc.measure(1, 1)
+        expected = QuantumCircuit(3, 2)
+        expected.swap(1, 2)
+        expected.cx(0, 1).c_if(0, 0)
+        expected.measure(1, 0).c_if(1, 0)
+        expected.h(1).c_if(0, 0)
+        expected.measure(2, 1)
+        result = SabreSwap(CouplingMap.from_line(3), seed=12345)(qc)
+        self.assertEqual(result, expected)
+
+    @ddt.data("basic", "lookahead", "decay")
+    def test_deterministic(self, heuristic):
+        """Test that the output of the SabreSwap pass is deterministic for a given random seed."""
+        width = 40
+
+        # The actual circuit is unimportant, we just need one with lots of scoring degeneracy.
+        qc = QuantumCircuit(width)
+        for i in range(width // 2):
+            qc.cx(i, i + (width // 2))
+        for i in range(0, width, 2):
+            qc.cx(i, i + 1)
+        dag = circuit_to_dag(qc)
+
+        coupling = CouplingMap.from_line(width)
+        pass_0 = SabreSwap(coupling, heuristic, seed=0, trials=1)
+        pass_1 = SabreSwap(coupling, heuristic, seed=1, trials=1)
+        dag_0 = pass_0.run(dag)
+        dag_1 = pass_1.run(dag)
+
+        # This deliberately avoids using a topological order, because that introduces an opportunity
+        # for the re-ordering to sort the swaps back into a canonical order.
+        def normalize_nodes(dag):
+            return [(node.op.name, node.qargs, node.cargs) for node in dag.op_nodes()]
+
+        # A sanity check for the test - if unequal seeds don't produce different outputs for this
+        # degenerate circuit, then the test probably needs fixing (or Sabre is ignoring the seed).
+        self.assertNotEqual(normalize_nodes(dag_0), normalize_nodes(dag_1))
+
+        # Check that a re-run with the same seed produces the same circuit in the exact same order.
+        self.assertEqual(normalize_nodes(dag_0), normalize_nodes(pass_0.run(dag)))
+
+    def test_rejects_too_many_qubits(self):
+        """Test that a sensible Python-space error message is emitted if the DAG has an incorrect
+        number of qubits."""
+        pass_ = SabreSwap(CouplingMap.from_line(4))
+        qc = QuantumCircuit(QuantumRegister(5, "q"))
+        with self.assertRaisesRegex(TranspilerError, "More qubits in the circuit"):
+            pass_(qc)
+
+    def test_rejects_too_few_qubits(self):
+        """Test that a sensible Python-space error message is emitted if the DAG has an incorrect
+        number of qubits."""
+        pass_ = SabreSwap(CouplingMap.from_line(4))
+        qc = QuantumCircuit(QuantumRegister(3, "q"))
+        with self.assertRaisesRegex(TranspilerError, "Fewer qubits in the circuit"):
+            pass_(qc)
 
 
 if __name__ == "__main__":

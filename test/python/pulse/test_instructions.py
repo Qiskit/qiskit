@@ -161,6 +161,15 @@ class TestSetFrequency(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.SetFrequency(4.5e9, channels.RegisterSlot(1), name="test")
 
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.SetFrequency(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestShiftFrequency(QiskitTestCase):
     """Shift frequency tests."""
@@ -188,6 +197,15 @@ class TestShiftFrequency(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.ShiftFrequency(4.5e9, channels.RegisterSlot(1), name="test")
 
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.ShiftFrequency(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestSetPhase(QiskitTestCase):
     """Test the instruction construction."""
@@ -214,6 +232,15 @@ class TestSetPhase(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.SetPhase(1.57, channels.RegisterSlot(1), name="test")
 
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.SetPhase(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
+
 
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
@@ -239,6 +266,15 @@ class TestShiftPhase(QiskitTestCase):
         """Test shift phase constructor with illegal channel"""
         with self.assertRaises(exceptions.PulseError):
             instructions.ShiftPhase(1.57, channels.RegisterSlot(1), name="test")
+
+    def test_parameter_expression(self):
+        """Test getting all parameters assigned by expression."""
+        p1 = circuit.Parameter("P1")
+        p2 = circuit.Parameter("P2")
+        expr = p1 + p2
+
+        instr = instructions.ShiftPhase(expr, channel=channels.DriveChannel(0))
+        self.assertSetEqual(instr.parameters, {p1, p2})
 
 
 class TestSnapshot(QiskitTestCase):

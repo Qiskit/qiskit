@@ -18,6 +18,8 @@ import ipywidgets as wid
 from IPython.display import display
 from qiskit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 
 try:
     import pygments
@@ -29,6 +31,29 @@ except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
+def _generate_circuit_library_visualization(circuit: QuantumCircuit):
+    import matplotlib.pyplot as plt
+
+    circuit = circuit.decompose()
+    ops = circuit.count_ops()
+    num_nl = circuit.num_nonlocal_gates()
+    _fig, (ax0, ax1) = plt.subplots(2, 1)
+    circuit.draw("mpl", ax=ax0)
+    ax1.axis("off")
+    ax1.grid(visible=None)
+    ax1.table(
+        [[circuit.name], [circuit.width()], [circuit.depth()], [sum(ops.values())], [num_nl]],
+        rowLabels=["Circuit Name", "Width", "Depth", "Total Gates", "Non-local Gates"],
+    )
+    plt.tight_layout()
+    plt.show()
+
+
+@deprecate_func(
+    since="0.25.0",
+    additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+)
 def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
     """Create a HTML table widget for a given quantum circuit.
 
@@ -94,6 +119,10 @@ property_label = wid.HTML(
 )
 
 
+@deprecate_func(
+    since="0.25.0",
+    additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+)
 def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Create a HTML table widget with header for a given quantum circuit.
 
@@ -110,6 +139,10 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     return properties
 
 
+@deprecate_func(
+    since="0.25.0",
+    additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+)
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Generate a QASM widget with header for a quantum circuit.
 
@@ -170,6 +203,10 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     return qasm
 
 
+@deprecate_func(
+    since="0.25.0",
+    additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+)
 def circuit_diagram_widget() -> wid.Box:
     """Create a circuit diagram widget.
 
@@ -192,6 +229,10 @@ def circuit_diagram_widget() -> wid.Box:
     return top
 
 
+@deprecate_func(
+    since="0.25.0",
+    additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+)
 def circuit_library_widget(circuit: QuantumCircuit) -> None:
     """Create a circuit library widget.
 

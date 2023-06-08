@@ -24,6 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
+from qiskit.transpiler.target import Target
 
 
 class TestUnroller(QiskitTestCase):
@@ -36,6 +37,21 @@ class TestUnroller(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
         pass_ = Unroller(["u2"])
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(op_nodes[0].name, "u2")
+
+    def test_basic_unroll_target(self):
+        """Test decompose a single H into U2 from target."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        target = Target(num_qubits=1)
+        phi = Parameter("phi")
+        lam = Parameter("lam")
+        target.add_instruction(U2Gate(phi, lam))
+        dag = circuit_to_dag(qc)
+        pass_ = Unroller(target=target)
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)

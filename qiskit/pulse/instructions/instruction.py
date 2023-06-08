@@ -24,11 +24,15 @@ For example::
 from abc import ABC, abstractmethod
 from typing import Callable, Iterable, List, Optional, Set, Tuple
 
+from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.utils import optionals as _optionals
+
+from qiskit.utils.deprecation import deprecate_func
 
 
-# pylint: disable=missing-return-doc
+# pylint: disable=bad-docstring-quotes
 
 
 class Instruction(ABC):
@@ -46,16 +50,18 @@ class Instruction(ABC):
         Args:
             operands: The argument list.
             name: Optional display name for this instruction.
-
-        Raises:
-            PulseError: If duration is negative.
-            PulseError: If the input ``channels`` are not all of
-                type :class:`Channel`.
         """
         self._operands = operands
         self._name = name
         self._hash = None
+        self._validate()
 
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channels`` are not all of type :class:`Channel`.
+        """
         for channel in self.channels:
             if not isinstance(channel, Channel):
                 raise PulseError(f"Expected a channel, got {channel} instead.")
@@ -197,17 +203,35 @@ class Instruction(ABC):
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
+
+        def _get_parameters_recursive(obj):
+            params = set()
+            if hasattr(obj, "parameters"):
+                for param in obj.parameters:
+                    if isinstance(param, Parameter):
+                        params.add(param)
+                    else:
+                        params |= _get_parameters_recursive(param)
+            return params
+
         parameters = set()
         for op in self.operands:
-            if hasattr(op, "parameters"):
-                for op_param in op.parameters:
-                    parameters.add(op_param)
+            parameters |= _get_parameters_recursive(op)
         return parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any(chan.is_parameterized() for chan in self.channels)
+        return any(self.parameters)
 
+    @deprecate_func(
+        additional_msg=(
+            "No direct alternative is being provided to drawing individual pulses. But, "
+            "instructions can be visualized as part of a complete schedule using "
+            "``qiskit.visualization.pulse_drawer``."
+        ),
+        since="0.23.0",
+    )
+    @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
         self,
         dt: float = 1,
@@ -244,23 +268,29 @@ class Instruction(ABC):
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=cyclic-import
-        from qiskit import visualization
+        from qiskit.visualization.pulse.matplotlib import ScheduleDrawer
+        from qiskit.visualization.utils import matplotlib_close_if_inline
 
-        return visualization.pulse_drawer(
+        drawer = ScheduleDrawer(style=style)
+        image = drawer.draw(
             self,
             dt=dt,
-            style=style,
-            filename=filename,
             interp_method=interp_method,
             scale=scale,
-            plot_all=plot_all,
             plot_range=plot_range,
-            interactive=interactive,
+            plot_all=plot_all,
             table=table,
             label=label,
             framechange=framechange,
             channels=channels,
         )
+        if filename:
+            image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
+
+        matplotlib_close_if_inline(image)
+        if image and interactive:
+            image.show()
+        return image
 
     def __eq__(self, other: "Instruction") -> bool:
         """Check if this Instruction is equal to the `other` instruction.

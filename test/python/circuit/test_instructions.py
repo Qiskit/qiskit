@@ -400,7 +400,7 @@ class TestInstructions(QiskitTestCase):
 
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
-        with self.assertRaisesRegex(CircuitError, r"Object is a subclass of Instruction"):
+        with self.assertRaisesRegex(CircuitError, r"Object is a subclass of Operation"):
             qc.append(HGate, qr[:], [])
 
     def test_repr_of_instructions(self):
@@ -568,14 +568,14 @@ class TestInstructions(QiskitTestCase):
         registers = [ClassicalRegister(2), ClassicalRegister(3), ClassicalRegister(1)]
         bits = [bit for register in registers for bit in register]
 
-        deprecated_regex = r"The 'circuit_cregs' argument to 'InstructionSet' is deprecated .*"
+        deprecated_regex = r".* argument ``circuit_cregs`` is deprecated .*"
 
         def dummy_requester(specifier):
             """A dummy requester that technically fulfills the spec."""
             raise CircuitError
 
         with self.subTest("cannot pass both registers and requester"):
-            with self.assertRaisesRegex(
+            with self.assertWarns(DeprecationWarning), self.assertRaisesRegex(
                 CircuitError, r"Cannot pass both 'circuit_cregs' and 'resource_requester'\."
             ):
                 InstructionSet(registers, resource_requester=dummy_requester)

@@ -12,7 +12,7 @@
 
 """RunningPassManager class for the transpiler.
 This object holds the state of a pass manager during running-time."""
-
+from __future__ import annotations
 from functools import partial
 from collections import OrderedDict
 import logging
@@ -24,6 +24,7 @@ from qiskit.transpiler.basepasses import BasePass
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+from .layout import TranspileLayout
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +58,11 @@ class RunningPassManager:
 
         self.count = 0
 
-    def append(self, passes, **flow_controller_conditions):
+    def append(self, passes: list[BasePass], **flow_controller_conditions):
         """Append a Pass to the schedule of passes.
 
         Args:
-            passes (list[BasePass]): passes to be added to schedule
+            passes (list[TBasePass]): passes to be added to schedule
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
 
@@ -123,12 +124,17 @@ class RunningPassManager:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
 
-        circuit = dag_to_circuit(dag)
+        circuit = dag_to_circuit(dag, copy_operations=False)
         if output_name:
             circuit.name = output_name
         else:
             circuit.name = name
-        circuit._layout = self.property_set["layout"]
+        if self.property_set["layout"] is not None:
+            circuit._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+                final_layout=self.property_set["final_layout"],
+            )
         circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         circuit._conditional_latency = self.property_set["conditional_latency"]
 
@@ -181,7 +187,7 @@ class RunningPassManager:
                 pass_.do_while = partial(pass_.do_while, self.fenced_property_set)
 
             for _pass in pass_:
-                self._do_pass(_pass, dag, pass_.options)
+                dag = self._do_pass(_pass, dag, pass_.options)
         else:
             raise TranspilerError(
                 "Expecting type BasePass or FlowController, got %s." % type(pass_)
@@ -302,11 +308,11 @@ class FlowController:
         del cls.registered_controllers[name]
 
     @classmethod
-    def controller_factory(cls, passes, options, **partial_controller):
+    def controller_factory(cls, passes: list[BasePass], options, **partial_controller):
         """Constructs a flow controller based on the partially evaluated controller arguments.
 
         Args:
-            passes (list[BasePass]): passes to add to the flow controller.
+            passes (list[TBasePass]): passes to add to the flow controller.
             options (dict): PassManager options.
             **partial_controller (dict): Partially evaluated controller arguments in the form
                 `{name:partial}`

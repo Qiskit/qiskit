@@ -20,6 +20,7 @@ from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class BaseSchedulerTransform(TransformationPass):
@@ -217,9 +218,10 @@ class BaseSchedulerTransform(TransformationPass):
 
     def __init__(
         self,
-        durations: InstructionDurations,
+        durations: InstructionDurations = None,
         clbit_write_latency: int = 0,
         conditional_latency: int = 0,
+        target: Target = None,
     ):
         """Scheduler initializer.
 
@@ -237,16 +239,22 @@ class BaseSchedulerTransform(TransformationPass):
                 The gate operation occurs after this latency. This appears as a delay
                 in front of the DAGOpNode of the gate.
                 This defaults to 0 dt.
+            target: The :class:`~.Target` representing the target backend, if both
+                ``durations`` and this are specified then this argument will take
+                precedence and ``durations`` will be ignored.
         """
         super().__init__()
         self.durations = durations
+        # Ensure op node durations are attached and in consistent unit
+        if target is not None:
+            self.durations = target.durations()
+        self.requires.append(TimeUnitConversion(self.durations))
 
         # Control flow constraints.
         self.clbit_write_latency = clbit_write_latency
         self.conditional_latency = conditional_latency
 
-        # Ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
+        self.target = target
 
     @staticmethod
     def _get_node_duration(
@@ -273,6 +281,12 @@ class BaseSchedulerTransform(TransformationPass):
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 
         return duration
+
+    def _delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
 
     def run(self, dag: DAGCircuit):
         raise NotImplementedError

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix :meth:`.SparsePauliOp.dot` between operators with real coefficients.
+    To fix this, the dtype that :class:`SparsePauliOp` can take is restricted to
+    ``np.complex128`` and ``object``.

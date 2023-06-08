@@ -21,13 +21,27 @@ from .instruction import Instruction
 
 
 class Barrier(Instruction):
-    """Barrier instruction."""
+    """Barrier instruction.
+
+    A barrier is a visual indicator of the grouping of a circuit section.
+    It also acts as a directive for circuit compilation to separate pieces
+    of a circuit so that any optimizations or re-writes are constrained
+    to only act between barriers."""
 
     _directive = True
 
-    def __init__(self, num_qubits):
-        """Create new barrier instruction."""
-        super().__init__("barrier", num_qubits, 0, [])
+    def __init__(self, num_qubits, label=None):
+        """Create new barrier instruction.
+
+        Args:
+            num_qubits (int): the number of qubits for the barrier type [Default: 0].
+            label (str): the barrier label
+
+        Raises:
+            TypeError: if barrier label is invalid.
+        """
+        self._label = label
+        super().__init__("barrier", num_qubits, 0, [], label=label)
 
     def inverse(self):
         """Special case. Return self."""

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.VF2PostLayout` pass when transpiling for backends
+    with a defined :class:`.Target`, where the interaction graph would be built
+    incorrectly.  This could result in excessive runtimes due to the graph being
+    far more complex than necessary.

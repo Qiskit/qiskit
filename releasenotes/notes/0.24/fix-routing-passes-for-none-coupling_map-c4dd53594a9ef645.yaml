@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Throw ``TranspileError`` when routing passes (``StochasticSwap``, ``SabreSwap``, 
+    ``LookaheadSwap``, and ``BasicSwap``) run with ``coupling_map=None``. Refer to
+    `#7127 <https://github.com/Qiskit/qiskit-terra/issues/7127>` for more details.

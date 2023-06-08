@@ -323,7 +323,7 @@ class TestInitialize(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.initialize(desired_vector_2, [qr[0]])
 
-        job = execute(qc1 + qc2, BasicAer.get_backend("statevector_simulator"))
+        job = execute(qc1.compose(qc2), BasicAer.get_backend("statevector_simulator"))
         result = job.result()
         quantum_state = result.get_statevector()
         fidelity = state_fidelity(quantum_state, desired_vector_2)

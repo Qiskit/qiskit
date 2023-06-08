@@ -110,6 +110,9 @@ class UCGate(Gate):
         definition = QuantumCircuit(*self.definition.qregs)
         for inst in reversed(self._definition):
             definition._append(inst.replace(operation=inst.operation.inverse()))
+
+        definition.global_phase = -self.definition.global_phase
+
         inverse_gate.definition = definition
         return inverse_gate
 

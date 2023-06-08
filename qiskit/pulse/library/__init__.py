@@ -38,11 +38,6 @@ Note that :class:`~Waveform` object can be generated from an instance of
 a :class:`~SymbolicPulse` which will set values for the parameters and
 sample the parametric expression to create the :class:`~Waveform`.
 
-.. note::
-
-    QPY serialization support for :class:`.SymbolicPulse` is currently not available.
-    This feature will be implemented soon in Qiskit terra version 0.21.
-
 
 .. _pulse_models:
 
@@ -92,6 +87,12 @@ Parametric Pulse Representation
    Drag
    Gaussian
    GaussianSquare
+   GaussianSquareDrag
+   gaussian_square_echo
+   Sin
+   Cos
+   Sawtooth
+   Triangle
 
 """
 
@@ -111,6 +112,19 @@ from .discrete import (
     drag,
 )
 from .parametric_pulses import ParametricPulse
-from .symbolic_pulses import SymbolicPulse, Gaussian, GaussianSquare, Drag, Constant
+from .symbolic_pulses import (
+    SymbolicPulse,
+    ScalableSymbolicPulse,
+    Gaussian,
+    GaussianSquare,
+    GaussianSquareDrag,
+    gaussian_square_echo,
+    Drag,
+    Constant,
+    Sin,
+    Cos,
+    Sawtooth,
+    Triangle,
+)
 from .pulse import Pulse
 from .waveform import Waveform

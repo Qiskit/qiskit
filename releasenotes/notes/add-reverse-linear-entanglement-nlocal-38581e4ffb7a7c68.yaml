@@ -1,9 +1,0 @@
----
-features:
-  - |
-    Add a new entanglement method `entanglement="reverse_linear"` to :class:`~.NLocal` circuits.
-    In the case of :class:`~.TwoLocal` circuits, if `entanglement_blocks="cx"` then
-    `entanglement="reverse_linear"` actually provides the same n-qubit circuit as
-    `entanglement="full"` but with only n-1 CX gates, instead of n(n-1)/2.
-    For :class:`~.RealAmplitudes` and :class:`~.EfficientSU2` circuits, the default value
-    has therefore been changed from `entanglement="full"` to `entanglement="reverse_linear"`.

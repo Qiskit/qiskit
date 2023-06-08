@@ -44,7 +44,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         yield the components comprising the original circuit.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.converters import circuit_to_instruction
@@ -110,7 +110,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     # fix condition
     for rule in definition:
-        condition = rule.operation.condition
+        condition = getattr(rule.operation, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):

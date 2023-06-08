@@ -12,11 +12,10 @@
 
 """ALAP Scheduling."""
 
-import warnings
-
 from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_func
 
 from .base_scheduler import BaseSchedulerTransform
 
@@ -26,23 +25,18 @@ class ALAPSchedule(BaseSchedulerTransform):
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
-
-    .. note::
-
-        This base class has been superseded by :class:`~.ALAPScheduleAnalysis` and
-        the new scheduling workflow. It will be deprecated and subsequently
-        removed in a future release.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.ALAPScheduleAnalysis`, which is an "
+            "analysis pass that requires a padding pass to later modify the circuit."
+        ),
+        since="0.21.0",
+        pending=True,
+    )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        warnings.warn(
-            "The ALAPSchedule class has been supersceded by the ALAPScheduleAnalysis class "
-            "which performs the as analysis pass that requires a padding pass to later modify "
-            "the circuit. This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -137,7 +131,7 @@ class ALAPSchedule(BaseSchedulerTransform):
 
             for bit in node.qargs:
                 delta = t0 - idle_before[bit]
-                if delta > 0:
+                if delta > 0 and self._delay_supported(bit_indices[bit]):
                     new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
                 idle_before[bit] = t1
 
@@ -148,7 +142,8 @@ class ALAPSchedule(BaseSchedulerTransform):
             delta = circuit_duration - before
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
-            new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
+            if self._delay_supported(bit_indices[bit]):
+                new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata

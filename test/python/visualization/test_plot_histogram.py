@@ -19,7 +19,7 @@ from collections import Counter
 import matplotlib as mpl
 from PIL import Image
 
-from qiskit.tools.visualization import plot_histogram
+from qiskit.visualization import plot_histogram
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
