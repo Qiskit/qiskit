@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The :class:`~qiskit.pulse.instructions.Call` has been deprecated and will
+    be removed in a future release.
+    Instead, use the pulse builder function :func:`~qiskit.pulse.builder.call`
+    within an active building context.
