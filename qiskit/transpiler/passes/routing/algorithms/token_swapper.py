@@ -28,7 +28,7 @@
 
 from __future__ import annotations
 import logging
-from collections.abc import Mapping, MutableSet, MutableMapping, Iterator, Iterable
+from collections.abc import Mapping
 
 import numpy as np
 import rustworkx as rx
