@@ -75,10 +75,13 @@ class ApproximateTokenSwapper:
           The circuit to implement the permutation
         """
         sequential_swaps = self.map(permutation, trials=trials)
+
         parallel_swaps = [[swap] for swap in sequential_swaps]
         return permutation_circuit(parallel_swaps)
 
-    def map(self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 50) -> list[Swap[int]]:
+    def map(
+        self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 50
+    ) -> list[Swap[int]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
