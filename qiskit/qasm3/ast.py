@@ -135,6 +135,10 @@ class IntType(ClassicalType):
         self.size = size
 
 
+class BitType(ClassicalType):
+    """Type information for a single bit."""
+
+
 class BitArrayType(ClassicalType):
     """Type information for a sized number of classical bits."""
 
@@ -332,9 +336,9 @@ class AliasStatement(ASTNode):
         : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
 
-    def __init__(self, identifier: Identifier, concatenation: List[Identifier]):
+    def __init__(self, identifier: Identifier, value: Expression):
         self.identifier = identifier
-        self.concatenation = concatenation
+        self.value = value
 
 
 class QuantumGateModifierName(enum.Enum):
