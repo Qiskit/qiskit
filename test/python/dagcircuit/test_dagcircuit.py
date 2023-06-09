@@ -166,7 +166,7 @@ class TestDagRegisters(QiskitTestCase):
             ],
         )
 
-    def test_add_reg_duplicate(self):
+    def test_add_reg_duplicatef(self):
         """add_qreg with the same register twice is not allowed."""
         dag = DAGCircuit()
         qr = QuantumRegister(2)
@@ -742,6 +742,25 @@ class TestDagNodeSelection(QiskitTestCase):
     def test_classical_predecessors(self):
         """The method dag.classical_predecessors() returns predecessors connected by classical edges"""
 
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
 
         predecessor_measure = self.dag.classical_predecessors(self.dag.named_nodes("measure").pop())
@@ -757,6 +776,25 @@ class TestDagNodeSelection(QiskitTestCase):
     def test_classical_successors(self):
         """The method dag.classical_successors() returns successors connected by classical edges"""
 
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
 
         successors_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
