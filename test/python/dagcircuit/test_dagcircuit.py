@@ -1241,15 +1241,15 @@ class TestCircuitProperties(QiskitTestCase):
         dag.apply_operation_back(HGate(), [qreg[1]], [])
         dag.apply_operation_back(HGate(), [qreg[2]], [])
         dag.apply_operation_back(HGate(), [qreg[2]], [])
-        self.assertEqual(3, len(dag.separable_circuits()))
+        self.assertEqual(3, len(dag.separable_circuits(remove_idle_wires=True)))
 
         # 2 sets of disconnected qubits
         dag.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
-        self.assertEqual(2, len(dag.separable_circuits()))
+        self.assertEqual(2, len(dag.separable_circuits(remove_idle_wires=True)))
 
         # One connected component
         dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
-        self.assertEqual(1, len(dag.separable_circuits()))
+        self.assertEqual(1, len(dag.separable_circuits(remove_idle_wires=True)))
 
         # Test circuit ordering with measurements
         dag = DAGCircuit()

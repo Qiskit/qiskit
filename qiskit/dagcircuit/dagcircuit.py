@@ -1407,7 +1407,7 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
-    def separable_circuits(self) -> List["DAGCircuit"]:
+    def separable_circuits(self, remove_idle_wires=False) -> List["DAGCircuit"]:
         """Decompose the circuit into sets of qubits with no gates connecting them.
 
         The global phase information in `self` will not be maintained in the
@@ -1442,6 +1442,12 @@ class DAGCircuit:
             # Ignore DAGs created for empty clbits
             if not subgraph_is_classical:
                 decomposed_dags.append(new_dag)
+
+        if remove_idle_wires:
+            for dag in decomposed_dags:
+                idle_qubits = [qubit for qubit in dag.idle_wires() if isinstance(qubit, Qubit)]
+                for qubit in idle_qubits:
+                    dag.remove_qubits(qubit)
 
         return decomposed_dags
 
