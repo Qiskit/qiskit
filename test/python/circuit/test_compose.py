@@ -29,6 +29,8 @@ from qiskit.circuit import (
     Parameter,
     Gate,
     Instruction,
+    CASE_DEFAULT,
+    SwitchCaseOp,
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
@@ -476,6 +478,45 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(len(x.condition[0]), len(right.cregs[1]))
         self.assertEqual(z.condition[1], 1)
         self.assertIs(x.condition[0][0], test.clbits[1])
+
+    def test_compose_switch_match(self):
+        """Test that composition containing a `switch` with a register that matches proceeds
+        correctly."""
+        case_0 = QuantumCircuit(1, 2)
+        case_0.x(0)
+        case_1 = QuantumCircuit(1, 2)
+        case_1.z(0)
+        case_default = QuantumCircuit(1, 2)
+        cr = ClassicalRegister(2, "target")
+        right = QuantumCircuit(QuantumRegister(1), cr)
+        right.switch(cr, [(0, case_0), (1, case_1), (CASE_DEFAULT, case_default)], [0], [0, 1])
+
+        test = QuantumCircuit(QuantumRegister(3), cr, ClassicalRegister(2)).compose(
+            right, [1], [0, 1]
+        )
+
+        expected = test.copy_empty_like()
+        expected.switch(cr, [(0, case_0), (1, case_1), (CASE_DEFAULT, case_default)], [1], [0, 1])
+        self.assertEqual(test, expected)
+
+    def test_compose_switch_no_match(self):
+        """Test that composition containing a `switch` with a register that matches proceeds
+        correctly."""
+        case_0 = QuantumCircuit(1, 2)
+        case_0.x(0)
+        case_1 = QuantumCircuit(1, 2)
+        case_1.z(0)
+        case_default = QuantumCircuit(1, 2)
+        cr = ClassicalRegister(2, "target")
+        right = QuantumCircuit(QuantumRegister(1), cr)
+        right.switch(cr, [(0, case_0), (1, case_1), (CASE_DEFAULT, case_default)], [0], [0, 1])
+        test = QuantumCircuit(3, 3).compose(right, [1], [0, 1])
+
+        self.assertEqual(len(test.data), 1)
+        self.assertIsInstance(test.data[0].operation, SwitchCaseOp)
+        target = test.data[0].operation.target
+        self.assertIn(target, test.cregs)
+        self.assertEqual(list(target), test.clbits[0:2])
 
     def test_compose_gate(self):
         """Composing with a gate.
