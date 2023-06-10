@@ -37,11 +37,6 @@ class Deprecation:
         self._since = None
 
     @property
-    def type(self):
-        """The kind of deprecation, like 'deprecate_func' and 'deprecate_arg'."""
-        return self.decorator_node.func.id
-
-    @property
     def since(self):
         """Version since the deprecation applies."""
         if not self._since:
