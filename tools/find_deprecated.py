@@ -12,7 +12,8 @@
 # that they have been altered from the originals.
 
 """List deprecated decorators."""
-
+from __future__ import annotations
+from typing import cast
 from pathlib import Path
 from collections import OrderedDict, defaultdict
 import ast
@@ -30,33 +31,35 @@ class Deprecation:
         func_node: AST node of the decorated call.
     """
 
-    def __init__(self, filename, decorator_node, func_node):
+    def __init__(
+        self, filename: Path, decorator_node: ast.Call, func_node: ast.FunctionDef
+    ) -> None:
         self.filename = filename
         self.decorator_node = decorator_node
         self.func_node = func_node
-        self._since = None
+        self._since: str | None = None
 
     @property
-    def since(self):
+    def since(self) -> str | None:
         """Version since the deprecation applies."""
         if not self._since:
             for kwarg in self.decorator_node.keywords:
                 if kwarg.arg == "since":
-                    self._since = ".".join(kwarg.value.value.split(".")[:2])
+                    self._since = ".".join(cast(ast.Constant, kwarg.value).value.split(".")[:2])
         return self._since
 
     @property
-    def lineno(self):
+    def lineno(self) -> int:
         """Line number of the decorator."""
         return self.decorator_node.lineno
 
     @property
-    def target(self):
+    def target(self) -> str:
         """Name of the decorated function/method."""
         return self.func_node.name
 
     @property
-    def location_str(self):
+    def location_str(self) -> str:
         """String with the location of the deprecated decorator <filename>:<line number>"""
         return f"{self.filename}:{self.lineno}"
 
@@ -68,12 +71,12 @@ class DecoratorVisitor(ast.NodeVisitor):
         filename: Name of the file to analyze
     """
 
-    def __init__(self, filename=None):
+    def __init__(self, filename: Path):
         self.filename = filename
-        self.deprecations = []
+        self.deprecations: list[Deprecation] = []
 
     @staticmethod
-    def is_deprecation_decorator(node):
+    def is_deprecation_decorator(node: ast.expr) -> bool:
         """Check if a node is a deprecation decorator"""
         return (
             isinstance(node, ast.Call)
@@ -81,10 +84,10 @@ class DecoratorVisitor(ast.NodeVisitor):
             and node.func.id.startswith("deprecate_")
         )
 
-    def visit_FunctionDef(self, node):  # pylint: disable=invalid-name
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pylint: disable=invalid-name
         """Visitor for function declarations"""
         self.deprecations += [
-            Deprecation(self.filename, d_node, node)
+            Deprecation(self.filename, cast(ast.Call, d_node), node)
             for d_node in node.decorator_list
             if DecoratorVisitor.is_deprecation_decorator(d_node)
         ]
@@ -99,26 +102,26 @@ class DeprecationCollection:
         dirname: Directory name that would be checked recursively for deprecations.
     """
 
-    def __init__(self, dirname):
+    def __init__(self, dirname: Path):
         self.dirname = dirname
-        self._deprecations = None
-        self.grouped = OrderedDict()
+        self._deprecations: list[Deprecation] | None = None
+        self.grouped: OrderedDict[str, list[Deprecation]] = OrderedDict()
 
     @property
-    def deprecations(self):
+    def deprecations(self) -> list[Deprecation]:
         """List of deprecation :class:~.Deprecation"""
-        if not self._deprecations:
+        if self._deprecations is None:
             self.collect_deprecations()
-        return self._deprecations
+        return cast(list[Deprecation], self._deprecations)
 
-    def collect_deprecations(self):
-        """Run the :class:~.DecoratorVisitor on `self.dirname`"""
+    def collect_deprecations(self) -> None:
+        """Run the :class:~.DecoratorVisitor on `self.dirname` (in place)"""
         self._deprecations = []
         files = [self.dirname] if self.dirname.is_file() else self.dirname.rglob("*.py")
         for filename in files:
             self._deprecations.extend(DeprecationCollection.find_deprecations(filename))
 
-    def group_by(self, attribute_idx):
+    def group_by(self, attribute_idx: str) -> None:
         """Group :class:~`.Deprecation` in self.deprecations based on the attribute attribute_idx"""
         grouped = defaultdict(list)
         for obj in self.deprecations:
@@ -127,7 +130,7 @@ class DeprecationCollection:
             self.grouped[key] = grouped[key]
 
     @staticmethod
-    def find_deprecations(file_name):
+    def find_deprecations(file_name: Path) -> list[Deprecation]:
         """Runs the deprecation finder on file_name"""
         with open(file_name, encoding="utf-8") as fp:
             code = fp.read()
