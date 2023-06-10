@@ -39,11 +39,11 @@ class VersionTable(Magics):
 
         packages = OrderedDict()
 
-        from importlib.metadata import metadata
+        from importlib.metadata import metadata, PackageNotFoundError
 
         try:
             packages["qiskit"] = metadata("qiskit")["Version"]
-        except Exception:
+        except PackageNotFoundError:
             packages["qiskit"] = None
 
         packages["qiskit-terra"] = qiskit.__version__
@@ -52,7 +52,7 @@ class VersionTable(Magics):
         for qiskit_module in qiskit_modules:
             try:
                 packages[metadata(qiskit_module)["Name"]] = metadata(qiskit_module)["Version"]
-            except Exception:
+            except PackageNotFoundError:
                 packages["qiskit"] = None
 
         for name, version in packages.items():
