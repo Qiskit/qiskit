@@ -1760,7 +1760,7 @@ class DAGCircuit:
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
         return {tuple(x) for x in group_list}
 
-    def collect_1q_runs(self) -> list[list[DAGOpNode]]:
+    def collect_1q_runs(self) -> List[List[DAGOpNode]]:
         """Return a list of runs of 1q gates that are neither classically conditioned nor
         parameterized.
 
@@ -1783,7 +1783,7 @@ class DAGCircuit:
 
         return rx.collect_runs(self._multi_graph, filter_fn)
 
-    def collect_2q_runs(self) -> list[list[DAGOpNode]]:
+    def collect_2q_runs(self) -> List[List[DAGOpNode]]:
         """Return a list of runs of 1q and 2q gates that are neither classically conditioned nor
         parameterized.
 
