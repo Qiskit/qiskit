@@ -68,6 +68,7 @@ from qiskit.pulse.builder import (
     qubit_channels,
     samples_to_seconds,
     seconds_to_samples,
+    get_dt_from_backend,
     # Instructions.
     acquire,
     barrier,

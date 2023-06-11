@@ -456,6 +456,7 @@ how the program is built.
     qubit_channels
     samples_to_seconds
     seconds_to_samples
+    get_dt_from_backend
 """
 import collections
 import contextvars
@@ -1127,14 +1128,10 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
         The number of samples for the time to elapse
     """
     # backendV2
-    if isinstance(active_backend(), BackendV2):
-        if isinstance(seconds, np.ndarray):
-            return (seconds / active_backend().dt).astype(int)
-        else:
-            return int(seconds / active_backend().dt)
+    dt = get_dt_from_backend()
     if isinstance(seconds, np.ndarray):
-        return (seconds / active_backend().configuration().dt).astype(int)
-    return int(seconds / active_backend().configuration().dt)
+        return (seconds / dt).astype(int)
+    return int(seconds / dt)
 
 
 def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarray]:
@@ -1147,10 +1144,7 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
     Returns:
         The time that elapses in ``samples``.
     """
-    # backendV2
-    if isinstance(active_backend(), BackendV2):
-        return samples * active_backend().dt
-    return samples * active_backend().configuration().dt
+    return samples * get_dt_from_backend()
 
 
 def qubit_channels(qubit: int) -> Set[chans.Channel]:
@@ -1272,6 +1266,13 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 
     """
     return dict(_active_builder().circuit_scheduler_settings)
+
+
+def get_dt_from_backend() -> float:
+    """Retrieve dt differently based on the type of Backend"""
+    if isinstance(active_backend(), BackendV2):
+        return active_backend().dt
+    return active_backend().configuration().dt
 
 
 # Contexts
@@ -1688,11 +1689,7 @@ def frequency_offset(
     finally:
         if compensate_phase:
             duration = builder.get_context().duration - t0
-            # backendV2
-            if isinstance(active_backend(), BackendV2):
-                dt = active_backend().dt
-            else:
-                dt = active_backend().configuration().dt
+            dt = get_dt_from_backend()
             accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)

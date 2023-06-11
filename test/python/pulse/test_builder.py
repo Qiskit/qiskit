@@ -656,6 +656,13 @@ class TestUtilities(TestBuilder):
             self.assertTrue(np.issubdtype(samples.dtype, np.integer))
             np.testing.assert_allclose(pulse.seconds_to_samples(times), np.array([100, 200, 300]))
 
+    def test_get_dt_from_backend(self):
+        """Test getting dt"""
+        config = self.backend.configuration()
+        config.dt = 0.1
+        with pulse.build(self.backend):
+            self.assertEqual(pulse.get_dt_from_backend(), 0.1)
+
 
 class TestMacros(TestBuilder):
     """Test builder macros."""
