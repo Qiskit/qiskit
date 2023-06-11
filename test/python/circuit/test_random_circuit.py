@@ -30,7 +30,6 @@ class TestCircuitRandom(QiskitTestCase):
         self.assertEqual(circ.width(), 5)
         self.assertEqual(circ.depth(), 4)
 
-
     def test_random_depth_0(self):
         """Test random depth 0 circuit."""
         circ = random_circuit(num_qubits=1, depth=0)
@@ -69,6 +68,3 @@ class TestCircuitRandom(QiskitTestCase):
             # Condition values always have to be Python bigints (of which `bool` is a subclass), not
             # any of Numpy's fixed-width types, for example.
             self.assertIsInstance(value, int)
-
-if __name__ == "__main__":
-    TestCircuitRandom().test_simple_random()

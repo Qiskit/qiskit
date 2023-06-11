@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Utility functions for generating random circuits."""
-from typing import Optional
 
 import numpy as np
 
@@ -22,16 +21,8 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 def random_circuit(
-    num_qubits: int,
-    depth: int,
-    max_operands: int = 4,
-    measure: bool = False,
-    conditional: bool = False,
-    reset: bool = False,
-    measured_by_n_qubit_depth: bool = False,
-    seed: Optional[int] = None
+    num_qubits, depth, max_operands=4, measure=False, conditional=False, reset=False, seed=None
 ):
-
     """Generate random circuit of arbitrary size and form.
 
     This function will generate a random circuit by randomly selecting gates
@@ -52,8 +43,6 @@ def random_circuit(
         measure (bool): if True, measure all qubits at the end
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
-        measured_by_n_qubit_depth (bool): if True,
-            depth will be measured by n-qubit gate depth which is equal to the max_operand
         seed (int): sets random seed (optional)
 
     Returns:
@@ -155,8 +144,7 @@ def random_circuit(
     qubits = np.array(qc.qubits, dtype=object, copy=True)
 
     # Apply arbitrary random operations in layers across all qubits.
-    while
-    # for _ in range(depth):
+    for _ in range(depth):
         # We generate all the randomness for the layer in one go, to avoid many separate calls to
         # the randomisation routines, which can be fairly slow.
 
