@@ -2073,7 +2073,7 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops: dict[Instruction, int] = {}
-        if not qubits:
+        if qubits is None:
             for instruction in self._data:
                 count_ops[instruction.operation.name] = count_ops.get(instruction.operation.name, 0) + 1
         else:
