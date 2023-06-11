@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Added a new option ``collect_from_back`` to :class:`~BlockCollector`. By default, blocks are
+    greedily collected in the direction from the inputs towards the outputs of the circuit.
+    The option ``collect_from_back`` allows to change this direction, that is to collect
+    blocks from the outputs towards the inputs of the circuit. This is important in combination
+    with ALAP-scheduling passes where we may prefer to put gates in the later rather than earlier
+    blocks.
+
+  - |
+    Added a new option ``collect_from_back`` to :class:`~CollectLinearFunctions` and
+    :class:`~CollectCliffords` transpiler passes. When `True`, the blocks are collected
+    and from the outputs towards the inputs of the circuit.
+    As an example, the default behaviour of running the :class:`~CollectLinearFunctions`
+    transpiler pass on the following circuit::
+
+        circuit = QuantumCircuit(3)
+        circuit.cx(1, 2)
+        circuit.cx(1, 0)
+        circuit.h(2)
+        circuit.cx(1, 2)
+
+    will produce two :class:`.LinearFunction` objects, the first from gates `CX(1, 2)` and
+    `CX(1, 0)`, and the second from gate `CX(1, 2)`.
+    Running the pass with the option ``collect_from_back=True``, will put the gate `CX(1, 0)`
+    into the second linear function instead.
