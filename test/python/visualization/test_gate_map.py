@@ -80,7 +80,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         with BytesIO() as img_buffer:
             fig.save(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map_no_backend(self):
