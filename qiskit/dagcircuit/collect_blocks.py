@@ -50,6 +50,7 @@ class BlockCollector:
         self.dag = dag
         self._pending_nodes = None
         self._in_degree = None
+        self._collect_from_back = False
 
         if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
@@ -86,22 +87,48 @@ class BlockCollector:
             return self.dag.get_nodes()
 
     def _direct_preds(self, node):
-        """Returns direct predecessors of a node."""
+        """Returns direct predecessors of a node. This function takes into account the
+        direction of collecting blocks, that is node's predecessors when collecting
+        backwards are the direct successors of a node in the DAG.
+        """
         if not self.is_dag_dependency:
-            return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+            if self._collect_from_back:
+                return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
+            else:
+                return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
         else:
-            return [
-                self.dag.get_node(pred_id) for pred_id in self.dag.direct_predecessors(node.node_id)
-            ]
+            if self._collect_from_back:
+                return [
+                    self.dag.get_node(pred_id)
+                    for pred_id in self.dag.direct_successors(node.node_id)
+                ]
+            else:
+                return [
+                    self.dag.get_node(pred_id)
+                    for pred_id in self.dag.direct_predecessors(node.node_id)
+                ]
 
     def _direct_succs(self, node):
-        """Returns direct successors of a node."""
+        """Returns direct successors of a node. This function takes into account the
+        direction of collecting blocks, that is node's successors when collecting
+        backwards are the direct predecessors of a node in the DAG.
+        """
         if not self.is_dag_dependency:
-            return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
+            if self._collect_from_back:
+                return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
+            else:
+                return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
         else:
-            return [
-                self.dag.get_node(succ_id) for succ_id in self.dag.direct_successors(node.node_id)
-            ]
+            if self._collect_from_back:
+                return [
+                    self.dag.get_node(succ_id)
+                    for succ_id in self.dag.direct_predecessors(node.node_id)
+                ]
+            else:
+                return [
+                    self.dag.get_node(succ_id)
+                    for succ_id in self.dag.direct_successors(node.node_id)
+                ]
 
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
@@ -142,16 +169,22 @@ class BlockCollector:
 
         return current_block
 
-    def collect_all_matching_blocks(self, filter_fn, split_blocks=True, min_block_size=2):
+    def collect_all_matching_blocks(
+        self, filter_fn, split_blocks=True, min_block_size=2, collect_from_back=False
+    ):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
         then the largest block that matches filter_fn, and so on, until no more uncollected
         nodes remain. Intuitively, finding larger blocks of non-matching nodes helps to
         find larger blocks of matching nodes later on.
 
-        The option ``split_blocks`` allows to collected blocks into sub-blocks over
+        The option ``split_blocks`` allows to split collected blocks into sub-blocks over
         disjoint qubit subsets. The option ``min_block_size``specifies the minimum number
         of gates in the block for the block to be collected.
+
+        By default, blocks are collected in the direction from the inputs towards the outputs
+        of the circuit. The option ``collect_from_back`` allows to change this direction,
+        that is collect blocks from the outputs towards the inputs of the circuit.
 
         Returns the list of matching blocks only.
         """
@@ -160,6 +193,8 @@ class BlockCollector:
             """Returns the opposite of filter_fn."""
             return not filter_fn(node)
 
+        # Note: the collection direction must be specified before setting in-degrees
+        self._collect_from_back = collect_from_back
         self._setup_in_degrees()
 
         # Iteratively collect non-matching and matching blocks.
@@ -169,6 +204,13 @@ class BlockCollector:
             matching_block = self.collect_matching_block(filter_fn)
             if matching_block:
                 matching_blocks.append(matching_block)
+
+        # If we are collecting from the back, both the order of the blocks
+        # and the order of nodes in each block should be reversed.
+        if self._collect_from_back:
+            matching_blocks = matching_blocks[::-1]
+            for i, block in enumerate(matching_blocks):
+                matching_blocks[i] = block[::-1]
 
         # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
         # disconnected qubit subsets.
