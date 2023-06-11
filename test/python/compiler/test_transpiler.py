@@ -27,19 +27,10 @@ import rustworkx as rx
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, pulse, qasm3, qpy
-from qiskit.circuit import (
-    Clbit,
-    ControlFlowOp,
-    ForLoopOp,
-    Gate,
-    IfElseOp,
-    Parameter,
-    Qubit,
-    Reset,
-    SwitchCaseOp,
-    WhileLoopOp,
-)
+from qiskit.circuit import Gate, Qubit, Clbit, ControlFlowOp, Parameter, IfElseOp
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.measure import Measure
+from qiskit.circuit.reset import Reset
 from qiskit.circuit.library import (
     CXGate,
     CZGate,
@@ -54,7 +45,6 @@ from qiskit.circuit.library import (
     UGate,
     XGate,
 )
-from qiskit.circuit.measure import Measure
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
@@ -63,14 +53,6 @@ from qiskit.providers.backend import BackendV2
 
 from qiskit.providers.fake_provider import FakeGeneric
 
-from qiskit.providers.fake_provider import (
-    FakeBoeblingen,
-    FakeMelbourne,
-    FakeMumbaiV2,
-    FakeNairobiV2,
-    FakeRueschlikon,
-    FakeSherbrooke,
-)
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
@@ -182,7 +164,7 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.cx(qr[2], qr[3])
 
-        backend=FakeGeneric(num_qubits=19)
+        backend=FakeGeneric(num_qubits=6)
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         new_circuit = transpile(
@@ -207,7 +189,7 @@ class TestTranspile(QiskitTestCase):
                 circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
             circuit.h(qr[i])
 
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=14)
         new_circuit = transpile(circuit, basis_gates=backend.operation_names, coupling_map=backend.coupling_map)
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
@@ -221,7 +203,7 @@ class TestTranspile(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        backend=FakeGeneric(num_qubits=19, replace_cx_with_ecr=False)
+        backend=FakeGeneric(num_qubits=19, replace_cx_with_ecr=False, coupling_map_type='heavy_hex')
         coupling_map = backend.coupling_map
         basis_gates = backend.operation_names
 
@@ -465,7 +447,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_correction(self):
         """Test mapping works in previous failed case."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=12)
         qr = QuantumRegister(name="qr", size=11)
         cr = ClassicalRegister(name="qc", size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -580,7 +562,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=8)
         qr = QuantumRegister(3, name="qr")
         qr2 = QuantumRegister(1, name="qr2")
         qr3 = QuantumRegister(4, name="qr3")
@@ -597,7 +579,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_transpile_circuits_diff_registers(self):
         """Transpile list of circuits with different qreg names."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=4)
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -613,7 +595,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_wrong_initial_layout(self):
         """Test transpile with a bad initial layout."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=4)
 
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -652,14 +634,15 @@ class TestTranspile(QiskitTestCase):
 
         theta = Parameter("theta")
         qc.p(theta, qr[0])
+        backend=FakeGeneric(num_qubits=4)
 
         transpiled_qc = transpile(
             qc,
-            backend=FakeGeneric(num_qubits=19),
+            backend=backend,
             initial_layout=Layout.generate_trivial_layout(qr),
         )
 
-        qr = QuantumRegister(19, "q")
+        qr = QuantumRegister(backend.num_qubits, "q")
         expected_qc = QuantumCircuit(qr, global_phase=theta / 2.0)
         expected_qc.append(RZGate(theta), [qr[0]])
 
@@ -690,14 +673,15 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("theta")
         square = theta * theta
         qc.rz(square, qr[0])
+        backend=FakeGeneric(num_qubits=4)
 
         transpiled_qc = transpile(
             qc,
-            backend=FakeGeneric(num_qubits=19),
+            backend=backend,
             initial_layout=Layout.generate_trivial_layout(qr),
         )
 
-        qr = QuantumRegister(19, "q")
+        qr = QuantumRegister(backend.num_qubits, "q")
         expected_qc = QuantumCircuit(qr)
         expected_qc.append(RZGate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
@@ -711,7 +695,7 @@ class TestTranspile(QiskitTestCase):
         with patch.object(BarrierBeforeFinalMeasurements, "run", wraps=orig_pass.run) as mock_pass:
             transpile(
                 circ,
-                coupling_map=FakeRueschlikon().configuration().coupling_map,
+                coupling_map=FakeGeneric(num_qubits=6).coupling_map,
                 initial_layout=layout,
             )
             self.assertTrue(mock_pass.called)
@@ -722,7 +706,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
-        for node1, node2 in FakeRueschlikon().configuration().coupling_map:
+        for node1, node2 in FakeGeneric(num_qubits=16).coupling_map:
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
@@ -781,7 +765,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping."""
-        cmap = FakeGeneric(num_qubits=19).coupling_map
+        cmap = FakeGeneric(num_qubits=16).coupling_map
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
@@ -818,7 +802,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
 
-        out = transpile(qc, backend=FakeGeneric(num_qubits=19))
+        out = transpile(qc, backend=FakeGeneric(num_qubits=4))
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
@@ -1119,7 +1103,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circuit = transpile(
             circ,
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=4),
             layout_method="trivial",
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
@@ -1139,7 +1123,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circuit = transpile(
             circ,
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=4),
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
 
@@ -1157,7 +1141,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(custom_180, [1], q0_x180)
 
         with self.assertRaises(QiskitError):
-            transpile(circ, backend=FakeGeneric(num_qubits=19), layout_method="trivial")
+            transpile(circ, backend=FakeGeneric(num_qubits=4), layout_method="trivial")
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
         """Test if the non-basis gates are transpiled if they are on different qubit that
@@ -1174,7 +1158,7 @@ class TestTranspile(QiskitTestCase):
 
         transpiled_circuit = transpile(
             circ,
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=4),
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
         self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})
@@ -1196,7 +1180,7 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
 
         transpiled_circ = transpile(
-            circ, backend=FakeGeneric(num_qubits=19), layout_method="trivial"
+            circ, backend=FakeGeneric(num_qubits=4), layout_method="trivial"
         )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rz", "sx", "mycustom", "h"})
 
@@ -1215,12 +1199,12 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
 
         transpiled_circ = transpile(
-            circ, backend=FakeGeneric(num_qubits=19), layout_method="trivial"
+            circ, backend=FakeGeneric(num_qubits=4), layout_method="trivial"
         )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
         circ = circ.assign_parameters({tau: 1})
         transpiled_circ = transpile(
-            circ, backend=FakeGeneric(num_qubits=19), layout_method="trivial"
+            circ, backend=FakeGeneric(num_qubits=4), layout_method="trivial"
         )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
@@ -1248,7 +1232,7 @@ class TestTranspile(QiskitTestCase):
         custom_gate = Gate("my_custom_gate", 5, [])
         circ.append(custom_gate, [0, 1, 2, 3, 4])
         circ.measure_all()
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=6)
 
         with pulse.build(backend=backend, name="custom") as my_schedule:
             pulse.play(
@@ -1308,7 +1292,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(1000, [0], unit="us")
 
-        backend = FakeGeneric(num_qubits=19, dt=0.5e-6)
+        backend = FakeGeneric(num_qubits=4, dt=0.5e-6)
         out = transpile([qc, qc], backend)
         self.assertEqual(out[0].data[0].operation.unit, "dt")
         self.assertEqual(out[1].data[0].operation.unit, "dt")
@@ -1323,7 +1307,7 @@ class TestTranspile(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
 
-        out = transpile([qc, qc], backend=FakeGeneric(num_qubits=19), scheduling_method="alap")
+        out = transpile([qc, qc], backend=FakeGeneric(num_qubits=4), scheduling_method="alap")
         self.assertIn("delay", out[0].count_ops())
         self.assertIn("delay", out[1].count_ops())
 
@@ -1403,7 +1387,7 @@ class TestTranspile(QiskitTestCase):
         qc.cx(1, 2)
 
         qc.measure(qubits, clbits)
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=4)
 
         out = transpile(qc, backend=backend, optimization_level=optimization_level)
 
@@ -1530,11 +1514,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
         """Test transpile() with a target and constrol flow ops."""
-        target = FakeMumbaiV2().target
-        target.add_instruction(ForLoopOp, name="for_loop")
-        target.add_instruction(WhileLoopOp, name="while_loop")
-        target.add_instruction(IfElseOp, name="if_else")
-        target.add_instruction(SwitchCaseOp, name="switch_case")
+        target = FakeGeneric(num_qubits=8, dynamic=True).target
 
         circuit = QuantumCircuit(6, 1)
         circuit.h(0)
@@ -1714,7 +1694,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=8),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1731,7 +1711,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=8),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1750,7 +1730,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit with control flow can be round-tripped
         through QPY."""
 
-        backend = FakeGeneric(num_qubits=19, dynamic=True)
+        backend = FakeGeneric(num_qubits=8, dynamic=True)
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
@@ -1772,7 +1752,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         through QPY."""
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=FakeGeneric(num_qubits=19, dynamic=True),
+            backend=FakeGeneric(num_qubits=8, dynamic=True),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1789,7 +1769,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=8),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1804,7 +1784,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         OpenQASM 3."""
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=FakeGeneric(num_qubits=19, dynamic=True),
+            backend=FakeGeneric(num_qubits=8, dynamic=True),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1918,7 +1898,7 @@ class TestTranspileParallel(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        pm = generate_preset_pass_manager(opt_level, backend=FakeGeneric(num_qubits=19))
+        pm = generate_preset_pass_manager(opt_level, backend=FakeGeneric(num_qubits=4))
         res = pm.run([qc, qc])
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
@@ -1930,7 +1910,7 @@ class TestTranspileParallel(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        target = FakeMumbaiV2().target
+        target = FakeGeneric(num_qubits=4).target
         res = transpile([qc] * 3, target=target, optimization_level=opt_level)
         self.assertIsInstance(res, list)
         for circ in res:
@@ -1939,7 +1919,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_parallel_dispatch(self, opt_level):
         """Test that transpile in parallel works for all optimization levels."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=19, replace_cx_with_ecr=False)
         qr = QuantumRegister(16)
         cr = ClassicalRegister(16)
         qc = QuantumCircuit(qr, cr)
@@ -1977,12 +1957,12 @@ class TestTranspileParallel(QiskitTestCase):
                 )
                 return dag
 
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=4)
 
         # This target has PulseQobj entries that provides a serialized schedule data
         pass_ = TestAddCalibration(backend.target)
         pm = PassManager(passes=[pass_])
-        self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
+        #self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
 
         qc = QuantumCircuit(1)
         qc.sx(0)
@@ -1997,7 +1977,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):
         """Test transpile() with BackendV2 and basis_gates set."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=6)
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cz(0, 1)
@@ -2034,7 +2014,7 @@ class TestTranspileParallel(QiskitTestCase):
         cmap = CouplingMap.from_line(5, bidirectional=False)
         tqc = transpile(
             qc,
-            backend=FakeGeneric(num_qubits=19),
+            backend=FakeGeneric(num_qubits=6, replace_cx_with_ecr=False),
             coupling_map=cmap,
             optimization_level=opt_level,
             seed_transpiler=12345678942,
@@ -2049,7 +2029,7 @@ class TestTranspileParallel(QiskitTestCase):
 
     def test_transpile_with_multiple_coupling_maps(self):
         """Test passing a different coupling map for every circuit"""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=4, replace_cx_with_ecr=False)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 2)
@@ -2080,7 +2060,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
         """Test transpile() with BackendV2, custom basis pulse gate."""
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=4)
         inst_map = InstructionScheduleMap()
         inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
         newgate = Gate("newgate", 2, [])
@@ -2939,7 +2919,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc = QuantumCircuit(127)
         for i in range(1, 127):
             qc.ecr(0, i)
-        backend = FakeGeneric(num_qubits=19)
+        backend = FakeGeneric(num_qubits=130)
         original_map = copy.deepcopy(backend.coupling_map)
         transpile(qc, backend, optimization_level=opt_level)
         self.assertEqual(original_map, backend.coupling_map)

@@ -251,3 +251,4 @@ from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 # Configurable fake backend
 from .utils.configurable_backend import ConfigurableFakeBackend
+from .fake_generic import FakeGeneric
