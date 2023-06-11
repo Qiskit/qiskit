@@ -510,6 +510,65 @@ class TestCliffordPasses(QiskitTestCase):
         qct = PassManager(CollectCliffords(min_block_size=4)).run(qc)
         self.assertNotIn("clifford", qct.count_ops())
 
+    def test_collect_from_back_corectness(self):
+        """Test the option collect_from_back for collecting Clifford gates."""
+
+        # original circuit (with non-Clifford gate on the first qubit in the middle
+        # of the circuit)
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(0)
+        qc.x(1)
+        qc.h(1)
+        qc.rx(np.pi / 2, 0)
+        qc.y(0)
+        qc.h(1)
+
+        qct1 = PassManager(CollectCliffords(collect_from_back=False)).run(qc)
+        qct2 = PassManager(CollectCliffords(collect_from_back=True)).run(qc)
+        self.assertEqual(Operator(qct1), Operator(qct2))
+
+    def test_collect_from_back_as_expected(self):
+        """Test the option collect_from_back for collecting Clifford gates."""
+        # original circuit (with non-Clifford gate on the first qubit in the middle
+        # of the circuit)
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(0)
+        qc.x(1)
+        qc.h(1)
+        qc.rx(np.pi / 2, 0)
+        qc.y(0)
+        qc.h(1)
+
+        qct = PassManager(
+            CollectCliffords(collect_from_back=True, split_blocks=False, min_block_size=1)
+        ).run(qc)
+
+        self.assertIsInstance(qct.data[0].operation, Clifford)
+        self.assertIsInstance(qct.data[2].operation, Clifford)
+
+        collected_clifford1 = qct.data[0].operation
+        collected_clifford2 = qct.data[2].operation
+
+        # The first Clifford is over qubit {0}, the second is over qubits {0, 1}.
+        expected_clifford_circuit1 = QuantumCircuit(1)
+        expected_clifford_circuit1.x(0)
+        expected_clifford_circuit1.h(0)
+
+        expected_clifford_circuit2 = QuantumCircuit(2)
+        expected_clifford_circuit2.x(1)
+        expected_clifford_circuit2.h(1)
+        expected_clifford_circuit2.y(0)
+        expected_clifford_circuit2.h(1)
+
+        expected_clifford1 = Clifford(expected_clifford_circuit1)
+        expected_clifford2 = Clifford(expected_clifford_circuit2)
+
+        # Check that collected and expected cliffords are equal
+        self.assertEqual(collected_clifford1, expected_clifford1)
+        self.assertEqual(collected_clifford2, expected_clifford2)
+
     def test_do_not_merge_conditional_gates(self):
         """Test that collecting Cliffords works properly when there the circuit
         contains conditional gates."""
