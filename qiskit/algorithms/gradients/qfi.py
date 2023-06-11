@@ -26,8 +26,8 @@ from .base.base_qgt import BaseQGT
 from .lin_comb.lin_comb_estimator_gradient import DerivativeType
 from .qfi_result import QFIResult
 
-from ...algorithm_job import AlgorithmJob
-from ...exceptions import AlgorithmError
+from ..algorithm_job import AlgorithmJob
+from ..exceptions import AlgorithmError
 
 
 class QFI(ABC):

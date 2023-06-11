@@ -97,7 +97,7 @@ from .lin_comb.lin_comb_qgt import LinCombQGT
 from .lin_comb.lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift.param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift.param_shift_sampler_gradient import ParamShiftSamplerGradient
-from .qfi.qfi import QFI
+from .qfi import QFI
 from .qfi_result import QFIResult
 from .base.qgt_result import QGTResult
 from .base.sampler_gradient_result import SamplerGradientResult
