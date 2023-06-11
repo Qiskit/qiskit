@@ -905,7 +905,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
 
-        By choosing the parameter ``frame='s'``, this function returns the Schrödinger evolution of the Pauli
+        By choosing the parameter ``frame='s'``, 
+        this function returns the Schrödinger evolution of the Pauli
         :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
 
         Args:
@@ -914,7 +915,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for Schrödinger framework.
 
         Returns:
-            Pauli: the Pauli :math:`C^\dagger.P.C` (Schrödinger framework) or the Pauli :math:`C.P.C^\dagger` (Heisenberg framework).
+            Pauli: the Pauli :math:`C^\dagger.P.C` (Schrödinger framework)
+            or the Pauli :math:`C.P.C^\dagger` (Heisenberg framework).
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
