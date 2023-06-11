@@ -29,7 +29,13 @@ class CollectCliffords(CollectAndCollapse):
     object.
     """
 
-    def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+    def __init__(
+        self,
+        do_commutative_analysis=False,
+        split_blocks=True,
+        min_block_size=2,
+        collect_from_back=False,
+    ):
         """CollectCliffords initializer.
 
         Args:
@@ -39,6 +45,8 @@ class CollectCliffords(CollectAndCollapse):
                 over disjoint qubit subsets.
             min_block_size (int): specifies the minimum number of gates in the block
                 for the block to be collected.
+            collect_from_back (bool): specifies if blocks should be collected started
+                from the end of the circuit.
         """
 
         collect_function = partial(
@@ -46,6 +54,7 @@ class CollectCliffords(CollectAndCollapse):
             filter_function=_is_clifford_gate,
             split_blocks=split_blocks,
             min_block_size=min_block_size,
+            collect_from_back=collect_from_back,
         )
         collapse_function = partial(collapse_to_operation, collapse_function=_collapse_to_clifford)
 
