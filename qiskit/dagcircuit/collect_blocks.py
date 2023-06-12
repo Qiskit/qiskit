@@ -170,7 +170,12 @@ class BlockCollector:
         return current_block
 
     def collect_all_matching_blocks(
-        self, filter_fn, split_blocks=True, min_block_size=2, collect_from_back=False
+        self,
+        filter_fn,
+        split_blocks=True,
+        min_block_size=2,
+        collect_from_back=False,
+        split_layers=False,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
@@ -178,9 +183,11 @@ class BlockCollector:
         nodes remain. Intuitively, finding larger blocks of non-matching nodes helps to
         find larger blocks of matching nodes later on.
 
-        The option ``split_blocks`` allows to split collected blocks into sub-blocks over
-        disjoint qubit subsets. The option ``min_block_size``specifies the minimum number
-        of gates in the block for the block to be collected.
+        After the blocks are collected, they can be optionally refined. The option
+        ``split_blocks`` allows to split collected blocks into sub-blocks over disjoint
+        qubit subsets. The option ``split_layers`` allows to split collected blocks
+        into layers of non-overlapping instructions. The option ``min_block_size``
+        specifies the minimum number of gates in the block for the block to be collected.
 
         By default, blocks are collected in the direction from the inputs towards the outputs
         of the circuit. The option ``collect_from_back`` allows to change this direction,
@@ -205,20 +212,28 @@ class BlockCollector:
             if matching_block:
                 matching_blocks.append(matching_block)
 
+        # If the option split_layers is set, refine blocks by splitting them into layers
+        # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
+        if split_layers:
+            tmp_blocks = []
+            for block in matching_blocks:
+                tmp_blocks.extend(split_block_into_layers(block))
+            matching_blocks = tmp_blocks
+
+        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
+        # disconnected qubit subsets.
+        if split_blocks:
+            tmp_blocks = []
+            for block in matching_blocks:
+                tmp_blocks.extend(BlockSplitter().run(block))
+            matching_blocks = tmp_blocks
+
         # If we are collecting from the back, both the order of the blocks
         # and the order of nodes in each block should be reversed.
         if self._collect_from_back:
             matching_blocks = matching_blocks[::-1]
             for i, block in enumerate(matching_blocks):
                 matching_blocks[i] = block[::-1]
-
-        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-        # disconnected qubit subsets.
-        if split_blocks:
-            split_blocks = []
-            for block in matching_blocks:
-                split_blocks.extend(BlockSplitter().run(block))
-            matching_blocks = split_blocks
 
         # Keep only blocks with at least min_block_sizes.
         matching_blocks = [block for block in matching_blocks if len(block) >= min_block_size]
@@ -275,6 +290,33 @@ class BlockSplitter:
                 blocks.append(self.group[index])
 
         return blocks
+
+
+def split_block_into_layers(block):
+    """Splits a block of nodes into sub-blocks of non-overlapping instructions
+    (or, in other words, into depth-1 sub-blocks).
+    """
+    bit_depths = {}
+    layers = []
+
+    for node in block:
+        cur_bits = set()
+        cur_bits.update(node.qargs)
+        cur_bits.update(node.cargs)
+
+        cond = getattr(node.op, "condition", None)
+        if cond is not None:
+            cur_bits.update(condition_bits(cond))
+
+        cur_depth = max(bit_depths.get(bit, 0) for bit in cur_bits)
+        while len(layers) <= cur_depth:
+            layers.append([])
+
+        for bit in cur_bits:
+            bit_depths[bit] = cur_depth + 1
+        layers[cur_depth].append(node)
+
+    return layers
 
 
 class BlockCollapser:
