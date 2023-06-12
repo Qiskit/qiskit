@@ -152,8 +152,8 @@ class Exporter:
 
                 .. seealso::
                     Parameter ``allow_aliasing``
-                        A value for ``allow_aliasing`` overrides any value given here, and is
-                        superseding this parameter.
+                        A value for ``allow_aliasing`` overrides any value given here, and
+                        supersedes this parameter.
             allow_aliasing: If ``True``, then bits may be contained in more than one register.  If
                 so, the registers will be emitted using "alias" definitions, which might not be
                 well supported by consumers of OpenQASM 3.  Defaults to ``False`` or the value of
