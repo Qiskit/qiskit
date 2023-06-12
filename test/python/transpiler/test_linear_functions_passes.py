@@ -671,6 +671,34 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         # Make sure that the condition on the middle gate is not lost
         self.assertIsNotNone(qct.data[1].operation.condition)
 
+    @combine(do_commutative_analysis=[False, True])
+    def test_split_layers(self, do_commutative_analysis):
+        """Test that splitting blocks of nodes into layers works correctly."""
+
+        # original circuit is linear
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.cx(2, 0)
+        circuit.cx(0, 3)
+        circuit.swap(3, 2)
+        circuit.swap(4, 1)
+
+        circuit2 = PassManager(
+            CollectLinearFunctions(
+                split_blocks=False,
+                min_block_size=1,
+                split_layers=True,
+                do_commutative_analysis=do_commutative_analysis,
+            )
+        ).run(circuit)
+
+        # check that we have an equivalent circuit
+        self.assertEqual(Operator(circuit), Operator(circuit2))
+
+        # Check that we have the expected number of linear blocks
+        self.assertEqual(circuit2.count_ops()["linear_function"], 4)
+
 
 if __name__ == "__main__":
     unittest.main()

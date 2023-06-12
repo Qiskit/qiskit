@@ -569,6 +569,45 @@ class TestCliffordPasses(QiskitTestCase):
         self.assertEqual(collected_clifford1, expected_clifford1)
         self.assertEqual(collected_clifford2, expected_clifford2)
 
+    def test_collect_split_layers(self):
+        """Test the option split_layers for collecting Clifford gates."""
+
+        # original circuit (consisting of Clifford gates only)
+        qc = QuantumCircuit(3)
+        qc.y(2)
+        qc.z(2)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.swap(0, 2)
+
+        # When split_layers=True, we should get three layers:
+        #   cx(0, 1), y(2)
+        #   h(0), z(2)
+        #   swap(0, 2)
+        qct = PassManager(
+            CollectCliffords(
+                split_blocks=False,
+                min_block_size=1,
+                split_layers=True,
+                do_commutative_analysis=False,
+            )
+        ).run(qc)
+
+        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(qct.size(), 3)
+
+        qct = PassManager(
+            CollectCliffords(
+                split_blocks=False,
+                min_block_size=1,
+                split_layers=True,
+                do_commutative_analysis=True,
+            )
+        ).run(qc)
+
+        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(qct.size(), 3)
+
     def test_do_not_merge_conditional_gates(self):
         """Test that collecting Cliffords works properly when there the circuit
         contains conditional gates."""
