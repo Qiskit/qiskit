@@ -343,20 +343,30 @@ class FakeBackendV2(BackendV2):
             if supported_qubits < requested_qubits:
                 # Error: Number of qubits exceeds backend qubit count
                 raise QiskitError(
-                    f"The provided QuantumCircuit was implemented with "
-                    f"{str(requested_qubits)} qubits, but the requested {self.backend_name} "
-                    f"backend only supports {str(supported_qubits)} qubits."
+                    f"Unable to retrieve result for job. "
+                    f"Job has failed: The number of qubits "
+                    f"in the Qobj ({str(requested_qubits)}) "
+                    f"is higher than the number of qubits "
+                    f"supported by the device ({str(supported_qubits)}). "
+                    f"Error code: 1109."
                 )
 
             # Get dict of operations
             ops_dict = dict(circuits.count_ops())
             supported_gates = self._conf_dict["basis_gates"]
             # Check if gates used in circuit are supported by backend
-            if any((x not in supported_gates) for x in ops_dict.keys()):
+            unsupported_gates = []
+            for x in ops_dict.keys():
+                if x not in supported_gates and x != "measure":
+                    unsupported_gates.append(x)
+            if len(unsupported_gates) > 0:
                 raise QiskitError(
-                    f"The provided QuantumCircuit was implemented with "
-                    f"gates unsupported on {str(self.backend_name)} backend. "
-                    f"Supported gates are {str(supported_gates)}."
+                    f"Unable to retrieve result for job. "
+                    f"Job has failed: The Qobj uses gates "
+                    f"({str(unsupported_gates)}). "
+                    f"that are not among the basis gates "
+                    f"({str(supported_gates)}). "
+                    f"Error code: 1106."
                 )
 
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
@@ -571,20 +581,30 @@ class FakeBackend(BackendV1):
             if supported_qubits < requested_qubits:
                 # Number of Qubits Error
                 raise QiskitError(
-                    f"The provided QuantumCircuit was implemented with "
-                    f"{str(requested_qubits)} qubits, but the requested {self.backend_name} "
-                    f"backend only supports {str(supported_qubits)} qubits."
+                    f"Unable to retrieve result for job. "
+                    f"Job has failed: The number of qubits "
+                    f"in the Qobj ({str(requested_qubits)}) "
+                    f"is higher than the number of qubits "
+                    f"supported by the device ({str(supported_qubits)}). "
+                    f"Error code: 1109."
                 )
 
             # Get dict of operations
             ops_dict = dict(circuits.count_ops())
             supported_gates = self.configuration().basis_gates
             # Check if gates used in circuit are supported by backend
-            if any((x not in supported_gates) for x in ops_dict.keys()):
+            unsupported_gates = []
+            for x in ops_dict.keys():
+                if x not in supported_gates and x != "measure":
+                    unsupported_gates.append(x)
+            if len(unsupported_gates) > 0:
                 raise QiskitError(
-                    f"The provided QuantumCircuit was implemented with "
-                    f"gates unsupported on {str(self.backend_name)} backend. "
-                    f"Supported gates are {str(supported_gates)}."
+                    f"Unable to retrieve result for job. "
+                    f"Job has failed: The Qobj uses gates "
+                    f"({str(unsupported_gates)}). "
+                    f"that are not among the basis gates "
+                    f"({str(supported_gates)}). "
+                    f"Error code: 1106."
                 )
 
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
