@@ -1776,7 +1776,7 @@ class DAGCircuit:
 
         return rx.collect_runs(self._multi_graph, filter_fn)
 
-    def collect_2q_runs(self):
+    def _collect_2q_runs_no_recurse(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 
         to_qid = {}
@@ -1801,6 +1801,25 @@ class DAGCircuit:
                 return None
 
         return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
+
+    def collect_2q_runs(self):
+        """Return a set of non-conditional runs of 2q "op" nodes."""
+        from qiskit.converters import circuit_to_dag
+
+        # Collect 2q runs of all qualifying gates, skipping all else, including control flow.
+        runs = self._collect_2q_runs_no_recurse()
+
+        # Get list of all control flow nodes at top level of dag
+        control_flow_nodes = self.named_nodes(
+            "break_loop", "continue_loop", "for_loop", "if_else", "switch_case", "while_loop"
+        )
+
+        # Append the runs from each block of nodes in each control flow op.
+        # Call collect_2q_runs to get runs from control flow ops inside control flow ops.
+        for node in control_flow_nodes:
+            for flowblock in node.op.params:
+                runs.extend(circuit_to_dag(flowblock).collect_2q_runs())
+        return runs
 
     def nodes_on_wire(self, wire, only_ops=False):
         """

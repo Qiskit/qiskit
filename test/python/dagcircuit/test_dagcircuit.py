@@ -1107,6 +1107,25 @@ class TestDagNodeSelection(QiskitTestCase):
             else:
                 self.fail("Unknown run encountered")
 
+    def test_dag_collect_2q_runs(self):
+        """Test collect_2q_runs."""
+        qc = QuantumCircuit(2, 1)
+        clbit = qc.clbits[0]
+        qc.x(0)
+        qc.cx(0, 1)
+        with qc.if_test((clbit, 0)) as else_:
+            qc.y(1)
+            qc.cz(0, 1)
+        with else_:
+            qc.cy(0, 1)
+            qc.h(0)
+        dag = circuit_to_dag(qc)
+        runs = dag.collect_2q_runs()
+        runnames = []
+        for run in runs:
+            runnames.append([node.op.name for node in run])
+        self.assertEqual(runnames, [["x", "cx"], ["y", "cz"], ["cy", "h"]])
+
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""
