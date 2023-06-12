@@ -110,9 +110,6 @@ class QuantumInstruction(ASTNode):
         | quantumBarrier
     """
 
-    def __init__(self):
-        pass
-
 
 class ClassicalType(ASTNode):
     """Information about a classical type.  This is just an abstract base for inheritance tests."""
