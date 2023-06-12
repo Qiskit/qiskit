@@ -164,7 +164,7 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.cx(qr[2], qr[3])
 
-        backend=FakeGeneric(num_qubits=6)
+        backend = FakeGeneric(num_qubits=6)
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         new_circuit = transpile(
@@ -190,7 +190,9 @@ class TestTranspile(QiskitTestCase):
             circuit.h(qr[i])
 
         backend = FakeGeneric(num_qubits=14)
-        new_circuit = transpile(circuit, basis_gates=backend.operation_names, coupling_map=backend.coupling_map)
+        new_circuit = transpile(
+            circuit, basis_gates=backend.operation_names, coupling_map=backend.coupling_map
+        )
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
@@ -203,7 +205,9 @@ class TestTranspile(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        backend=FakeGeneric(num_qubits=19, replace_cx_with_ecr=False, coupling_map_type='heavy_hex')
+        backend = FakeGeneric(
+            num_qubits=19, replace_cx_with_ecr=False, coupling_map_type="heavy_hex"
+        )
         coupling_map = backend.coupling_map
         basis_gates = backend.operation_names
 
@@ -634,7 +638,7 @@ class TestTranspile(QiskitTestCase):
 
         theta = Parameter("theta")
         qc.p(theta, qr[0])
-        backend=FakeGeneric(num_qubits=4)
+        backend = FakeGeneric(num_qubits=4)
 
         transpiled_qc = transpile(
             qc,
@@ -673,7 +677,7 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("theta")
         square = theta * theta
         qc.rz(square, qr[0])
-        backend=FakeGeneric(num_qubits=4)
+        backend = FakeGeneric(num_qubits=4)
 
         transpiled_qc = transpile(
             qc,
@@ -1962,7 +1966,7 @@ class TestTranspileParallel(QiskitTestCase):
         # This target has PulseQobj entries that provides a serialized schedule data
         pass_ = TestAddCalibration(backend.target)
         pm = PassManager(passes=[pass_])
-        #self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
+        # self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
 
         qc = QuantumCircuit(1)
         qc.sx(0)

@@ -277,4 +277,4 @@ class FakeGeneric(BackendV2):
 
     def run(self, circuit, **kwargs):
         noise_model = None
-        return BasicAer.get_backend('qasm_simulator').run(circuit, **kwargs)
+        return BasicAer.get_backend("qasm_simulator").run(circuit, **kwargs)
