@@ -32,6 +32,7 @@ class CollectLinearFunctions(CollectAndCollapse):
         do_commutative_analysis=False,
         split_blocks=True,
         min_block_size=2,
+        split_layers=False,
         collect_from_back=False,
     ):
         """CollectLinearFunctions initializer.
@@ -43,6 +44,8 @@ class CollectLinearFunctions(CollectAndCollapse):
                 over disjoint qubit subsets.
             min_block_size (int): specifies the minimum number of gates in the block
                 for the block to be collected.
+            split_layers (bool): if True, splits collected blocks into sub-blocks
+                over disjoint qubit subsets.
             collect_from_back (bool): specifies if blocks should be collected started
                 from the end of the circuit.
         """
@@ -52,6 +55,7 @@ class CollectLinearFunctions(CollectAndCollapse):
             filter_function=_is_linear_gate,
             split_blocks=split_blocks,
             min_block_size=min_block_size,
+            split_layers=split_layers,
             collect_from_back=collect_from_back,
         )
         collapse_function = partial(

@@ -174,8 +174,8 @@ class BlockCollector:
         filter_fn,
         split_blocks=True,
         min_block_size=2,
-        collect_from_back=False,
         split_layers=False,
+        collect_from_back=False,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
