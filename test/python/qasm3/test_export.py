@@ -867,7 +867,7 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
-    def test_alias_classical_registers(self):
+    def test_classical_register_aliasing(self):
         """Test that clbits that are not in any register can be used without issue."""
         qreg = QuantumRegister(1, name="qr")
         bits = [Clbit() for _ in [None] * 7]
@@ -910,6 +910,51 @@ class TestCircuitQASM3(QiskitTestCase):
             ]
         )
         self.assertEqual(dumps(qc, allow_aliasing=True), expected_qasm)
+
+    def test_old_alias_classical_registers_option(self):
+        """Test that the ``alias_classical_registers`` option still functions during its changeover
+        period."""
+        qreg = QuantumRegister(1, name="qr")
+        bits = [Clbit() for _ in [None] * 7]
+        cr1 = ClassicalRegister(name="cr1", bits=bits[1:3])
+        cr2 = ClassicalRegister(name="cr2", bits=bits[4:6])
+        # cr3 overlaps cr2, but this should be allowed in this alias form.
+        cr3 = ClassicalRegister(name="cr3", bits=bits[5:])
+        qc = QuantumCircuit(bits, qreg, cr1, cr2, cr3)
+        qc.measure(0, 0)
+        qc.measure(0, 1)
+        qc.measure(0, 2)
+        qc.measure(0, 3)
+        qc.measure(0, 4)
+        qc.measure(0, 5)
+        qc.measure(0, 6)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit _bit0;",
+                "bit _bit1;",
+                "bit _bit2;",
+                "bit _bit3;",
+                "bit _bit4;",
+                "bit _bit5;",
+                "bit _bit6;",
+                "let cr1 = {_bit1, _bit2};",
+                "let cr2 = {_bit4, _bit5};",
+                "let cr3 = {cr2[1], _bit6};",
+                "qubit[1] qr;",
+                "_bit0 = measure qr[0];",
+                "cr1[0] = measure qr[0];",
+                "cr1[1] = measure qr[0];",
+                "_bit3 = measure qr[0];",
+                "cr2[0] = measure qr[0];",
+                "cr3[0] = measure qr[0];",
+                "cr3[1] = measure qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc, alias_classical_registers=True), expected_qasm)
 
     def test_simple_for_loop(self):
         """Test that a simple for loop outputs the expected result."""
