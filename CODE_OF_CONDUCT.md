@@ -56,6 +56,7 @@ Examples of unacceptable behavior by participants, even when presented as
 - "Doxxing," Publishing screenshots or quotes, especially from identity slack
   channels, private chat, or public events, without all quoted users' explicit
   consent.
+- Engaging in spamming activities, such as repeatedly sending unsolicited messages, LLMs (Large Language Models) output, advertisements, or promotional content to community members without previous IBM authorization.
 - Other conduct which could reasonably be considered inappropriate in a
   professional setting
 
