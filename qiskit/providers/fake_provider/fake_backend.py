@@ -355,9 +355,10 @@ class FakeBackendV2(BackendV2):
             ops_dict = dict(circuits.count_ops())
             supported_gates = self._conf_dict["basis_gates"]
             # Check if gates used in circuit are supported by backend
+            other_supported = ["measure", "barrier"]
             unsupported_gates = []
             for x in ops_dict.keys():
-                if x not in supported_gates and x != "measure":
+                if x not in supported_gates and x not in other_supported:
                     unsupported_gates.append(x)
             if len(unsupported_gates) > 0:
                 raise QiskitError(
@@ -593,9 +594,10 @@ class FakeBackend(BackendV1):
             ops_dict = dict(circuits.count_ops())
             supported_gates = self.configuration().basis_gates
             # Check if gates used in circuit are supported by backend
+            other_supported = ["measure", "barrier"]
             unsupported_gates = []
             for x in ops_dict.keys():
-                if x not in supported_gates and x != "measure":
+                if x not in supported_gates and x not in other_supported:
                     unsupported_gates.append(x)
             if len(unsupported_gates) > 0:
                 raise QiskitError(
