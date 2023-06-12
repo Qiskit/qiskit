@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added a new keyword argument ``flatten`` to the constructor for the
+    following classes:
+
+      * :class:`~.EfficientSU2`
+      * :class:`~.ExcitationPreserving`
+      * :class:`~.NLocal`
+      * :class:`~.RealAmplitudes`
+      * :class:`~.TwoLocal`
+
+    If this argument is set to ``True`` the :class:`~.QuantumCircuit` subclass
+    generated will not wrap the implementation into :class:`~.Gate` or
+    :class:`~.Instruction` objects. While this isn't optimal for visualization
+    it typically results in much better runtime performance, especially with
+    :meth:`.QuantumCircuit.bind_parameters` and
+    :meth:`.QuantumCircuit.assign_parameters` which can see a substatial
+    runtime improvement with a flattened output compared to the nested
+    wrapped default output.
