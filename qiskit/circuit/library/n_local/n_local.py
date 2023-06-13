@@ -197,6 +197,16 @@ class NLocal(BlueprintCircuit):
             self._num_qubits = num_qubits
             self.qregs = [QuantumRegister(num_qubits, name="q")]
 
+    @property
+    def flatten(self) -> bool:
+        """Returns whether the circuit is wrapped in nested gates/instructions or flattened."""
+        return bool(self._flatten)
+
+    @flatten.setter
+    def flatten(self, flatten: bool) -> None:
+        self._invalidate()
+        self._flatten = flatten
+
     def _convert_to_block(self, layer: Any) -> QuantumCircuit:
         """Try to convert ``layer`` to a QuantumCircuit.
 
