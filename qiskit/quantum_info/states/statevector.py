@@ -476,6 +476,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         x_max = qubits[pauli.x][-1]
         y_phase = (-1j) ** pauli._count_y()
+        y_phase = y_phase[0]
 
         return pauli_phase * expval_pauli_with_x(
             self.data, self.num_qubits, z_mask, x_mask, y_phase, x_max
