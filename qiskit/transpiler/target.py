@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import itertools
 
-from typing import Any
+from typing import Union, Optional, Dict, List, Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -1220,6 +1220,7 @@ class Target(Mapping):
         inst_map: InstructionScheduleMap | None = None,
         backend_properties: BackendProperties | None = None,
         instruction_durations: InstructionDurations | None = None,
+        meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
         dt: float | None = None,
         timing_constraints: TimingConstraints | None = None,
         custom_name_mapping: dict[str, Any] | None = None,

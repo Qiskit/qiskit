@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 """Module for common pulse programming utilities."""
-from __future__ import annotations
-
-from typing import List, Dict, Union, TYPE_CHECKING
+from typing import List, Dict, Union
 import warnings
 
 import numpy as np
@@ -21,9 +19,6 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
 from qiskit.utils.deprecation import deprecate_func, deprecate_function
-
-if TYPE_CHECKING:
-    from qiskit.providers.backend import BackendV2
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:

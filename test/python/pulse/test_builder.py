@@ -258,6 +258,7 @@ class TestContexts(TestBuilder):
         """Test that the phase offset context properly compensates for phase
         accumulation."""
         d0 = pulse.DriveChannel(0)
+
         with pulse.build(self.backend) as schedule:
             with pulse.frequency_offset(1e9, d0, compensate_phase=True):
                 pulse.delay(10, d0)
@@ -269,6 +270,7 @@ class TestContexts(TestBuilder):
             -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0
         )
         reference += instructions.ShiftFrequency(-1e9, d0)
+
         self.assertScheduleEqual(schedule, reference)
 
 
@@ -533,6 +535,7 @@ class TestDirectives(TestBuilder):
         """Test barrier directive on qubits."""
         with pulse.build(self.backend) as schedule:
             pulse.barrier(0, 1)
+
         reference = pulse.ScheduleBlock()
         reference += directives.RelativeBarrier(
             pulse.DriveChannel(0),
