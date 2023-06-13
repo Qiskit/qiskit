@@ -1127,7 +1127,6 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
-    # backendV2
     dt = get_dt_from_backend()
     if isinstance(seconds, np.ndarray):
         return (seconds / dt).astype(int)
@@ -1689,8 +1688,8 @@ def frequency_offset(
     finally:
         if compensate_phase:
             duration = builder.get_context().duration - t0
-            dt = get_dt_from_backend()
-            accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
+
+            accumulated_phase = 2 * np.pi * ((duration * get_dt_from_backend() * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 
