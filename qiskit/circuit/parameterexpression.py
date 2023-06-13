@@ -464,30 +464,47 @@ class ParameterExpression:
             return complex(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to a complex.".format(self.parameters)
-            ) from exc
+            if self.parameters:
+                raise TypeError(
+                    "ParameterExpression with unbound parameters ({}) "
+                    "cannot be cast to a complex.".format(self.parameters)
+                ) from None
+            raise TypeError("could not cast expression to complex") from exc
 
     def __float__(self):
         try:
             return float(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to a float.".format(self.parameters)
-            ) from exc
+            if self.parameters:
+                raise TypeError(
+                    "ParameterExpression with unbound parameters ({}) "
+                    "cannot be cast to a float.".format(self.parameters)
+                ) from None
+            try:
+                # In symengine, if an expression was complex at any time, its type is likely to have
+                # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
+                # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
+                # real.  This second attempt at a cast is a way of unifying the behaviour to the
+                # more expected form for our users.
+                cval = complex(self)
+                if cval.imag == 0.0:
+                    return cval.real
+            except TypeError:
+                pass
+            raise TypeError("could not cast expression to float") from exc
 
     def __int__(self):
         try:
             return int(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to an int.".format(self.parameters)
-            ) from exc
+            if self.parameters:
+                raise TypeError(
+                    "ParameterExpression with unbound parameters ({}) "
+                    "cannot be cast to an int.".format(self.parameters)
+                ) from None
+            raise TypeError("could not cast expression to int") from exc
 
     def __hash__(self):
         return hash((frozenset(self._parameter_symbols), self._symbol_expr))
