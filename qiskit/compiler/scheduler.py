@@ -22,10 +22,12 @@ from typing import List, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
-from qiskit.providers.backend import Backend
+from qiskit.providers.backend import Backend, BackendV2
+from qiskit.transpiler import Target
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.tools.parallel import parallel_map
+from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,11 @@ def _log_schedule_time(start_time, end_time):
     logger.info(log_msg)
 
 
+@deprecate_arg(
+    "backend",
+    additional_msg=("'backend' argument becomes required from Optional."),
+    since="0.25.0",
+)
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
@@ -67,13 +74,22 @@ def schedule(
     """
     arg_circuits_list = isinstance(circuits, list)
     start_time = time()
-    if backend and getattr(backend, "version", 0) > 1:
+    if isinstance(backend, BackendV2):
         if inst_map is None:
             inst_map = backend.instruction_schedule_map
         if meas_map is None:
             meas_map = backend.meas_map
         if dt is None:
             dt = backend.dt
+        target = Target.from_configuration(
+            basis_gates=backend.operation_names
+            if isinstance(backend, BackendV2)
+            else backend.configuration().basis_gates,
+            inst_map=inst_map,
+            meas_map=meas_map,
+            dt=dt,
+        )
+        schedule_config = None
     else:
         if inst_map is None:
             if backend is None:
@@ -96,9 +112,10 @@ def schedule(
             if backend is not None:
                 dt = backend.configuration().dt
 
-    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
+            target = None
+            schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    schedules = parallel_map(schedule_circuit, circuits, (schedule_config, method))
+    schedules = parallel_map(schedule_circuit, circuits, (schedule_config, target, method))
     end_time = time()
     _log_schedule_time(start_time, end_time)
     if arg_circuits_list:
