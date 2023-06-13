@@ -40,6 +40,7 @@ class EvolvedOperatorAnsatz(NLocal):
         name: str = "EvolvedOps",
         parameter_prefix: str | Sequence[str] = "t",
         initial_state: QuantumCircuit | None = None,
+        flatten: Optional[bool] = None,
     ):
         """
         Args:
@@ -59,6 +60,13 @@ class EvolvedOperatorAnsatz(NLocal):
                 will be used for each parameters. Can also be a list to specify a prefix per
                 operator.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
         """
         super().__init__(
             initial_state=initial_state,
@@ -66,6 +74,7 @@ class EvolvedOperatorAnsatz(NLocal):
             reps=reps,
             insert_barriers=insert_barriers,
             name=name,
+            flatten=flatten,
         )
         self._operators = None
 

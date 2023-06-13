@@ -39,6 +39,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         initial_state: QuantumCircuit | None = None,
         mixer_operator=None,
         name: str = "QAOA",
+        flatten: Optional[bool] = None,
     ):
         r"""
         Args:
@@ -55,8 +56,15 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 in the original paper. Can be an operator or an optionally parameterized quantum
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
         """
-        super().__init__(reps=reps, name=name)
+        super().__init__(reps=reps, name=name, flatten=flatten)
 
         self._cost_operator = None
         self._reps = reps
