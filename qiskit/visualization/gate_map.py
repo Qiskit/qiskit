@@ -415,7 +415,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             if num_qubits < 20:
                 for edge in cmap:
                     if not [edge[1], edge[0]] in cmap:
-                        directed = True  # a necessary detail for graphviz_plot?
+                        directed = True
                         break
 
             for line in cmap:
