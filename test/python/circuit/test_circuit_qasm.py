@@ -785,7 +785,7 @@ custom q[0];
         qc.append(gate_b, qubits_range)
         qc.z(qubits_range)
 
-        gate_a_id = id(gate_a)
+        gate_a_id = id(qc.data[0].operation)
 
         expected_output = """OPENQASM 2.0;
 include "qelib1.inc";
