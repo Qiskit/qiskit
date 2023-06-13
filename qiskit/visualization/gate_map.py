@@ -99,7 +99,6 @@ def plot_gate_map(
         config = backend.configuration()
         num_qubits = config.n_qubits
         coupling_map = CouplingMap(config.coupling_map)
-
     else:
         num_qubits = backend.num_qubits
         coupling_map = backend.coupling_map
