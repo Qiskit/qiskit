@@ -5090,6 +5090,11 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
             statements.append(f"{new_operation.qasm()} {bits_qasm};")
         body_qasm = " ".join(statements)
+
+        if operation.name in gates_to_define:
+            new_name = f"{operation.name}_{id(operation)}"
+            operation = operation.copy(name=new_name)
+
         definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
         gates_to_define[new_name] = (parameterized_operation, definition_qasm)
     return operation
