@@ -80,14 +80,16 @@ class IfElseOp(ControlFlowOp):
         # Type checking generally left to @params.setter, but required here for
         # finding num_qubits and num_clbits.
         from qiskit.converters.circuit import is_circuit
+        from qiskit.converters.circuit import num_qubits as _num_qubits
+        from qiskit.converters.circuit import num_clbits as _num_clbits
         if not is_circuit(true_body):
             raise CircuitError(
                 "IfElseOp expects a true_body parameter "
                 f"of type QuantumCircuit or DAGCircuit, but received {type(true_body)}."
             )
 
-        num_qubits = true_body.num_qubits
-        num_clbits = true_body.num_clbits
+        num_qubits = _num_qubits(true_body)
+        num_clbits = _num_clbits(true_body)
 
         super().__init__("if_else", num_qubits, num_clbits, [true_body, false_body], label=label)
 
@@ -99,21 +101,23 @@ class IfElseOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        from qiskit.converters.circuit import is_circuit
+        from qiskit.converters.circuit import num_qubits as _num_qubits
+        from qiskit.converters.circuit import num_clbits as _num_clbits
         true_body, false_body = parameters
 
-        from qiskit.converters.circuit import is_circuit
         if not is_circuit(true_body):
             raise CircuitError(
                 "IfElseOp expects a true_body parameter of type "
                 f"QuantumCircuit or DAGCircuit, but received {type(true_body)}."
             )
 
-        if true_body.num_qubits != self.num_qubits or true_body.num_clbits != self.num_clbits:
+        if _num_qubits(true_body) != self.num_qubits or _num_clbits(true_body) != self.num_clbits:
             raise CircuitError(
                 "Attempted to assign a true_body parameter with a num_qubits or "
                 "num_clbits different than that of the IfElseOp. "
                 f"IfElseOp num_qubits/clbits: {self.num_qubits}/{self.num_clbits} "
-                f"Supplied body num_qubits/clbits: {true_body.num_qubits}/{true_body.num_clbits}."
+                f"Supplied body num_qubits/clbits: {_num_qubits(true_body)}/{_num_clbits(true_body)}."
             )
 
         if false_body is not None:
@@ -123,7 +127,7 @@ class IfElseOp(ControlFlowOp):
                     f"QuantumCircuit or DAGCircuit, but received {type(false_body)}."
                 )
 
-            if false_body.num_qubits != self.num_qubits or false_body.num_clbits != self.num_clbits:
+            if _num_qubits(false_body) != self.num_qubits or _num_clbits(false_body) != self.num_clbits:
                 raise CircuitError(
                     "Attempted to assign a false_body parameter with a num_qubits or "
                     "num_clbits different than that of the IfElseOp. "

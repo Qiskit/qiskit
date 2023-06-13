@@ -14,9 +14,9 @@
 import copy
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
+from qiskit.circuit.controlflow import is_control_flow_name
 
-
-def dag_to_circuit(dag, copy_operations=True):
+def dag_to_circuit(dag, copy_operations=True, recurse=False):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
 
     Args:
@@ -70,6 +70,8 @@ def dag_to_circuit(dag, copy_operations=True):
         op = node.op
         if copy_operations:
             op = copy.deepcopy(op)
+        if is_control_flow_name(op.name) and recurse and op.name == "if_else":
+            op.params = [dag_to_circuit(param, recurse=True) for param in op.params]
         circuit._append(CircuitInstruction(op, node.qargs, node.cargs))
 
     circuit.duration = dag.duration

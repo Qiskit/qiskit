@@ -18,7 +18,6 @@ from typing import Iterable, Optional, Union
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-# from qiskit.utils.circuit import is_circuit
 
 from .control_flow import ControlFlowOp
 
@@ -80,6 +79,7 @@ class ForLoopOp(ControlFlowOp):
                 f"{type(loop_parameter)}."
             )
 
+        from qiskit.converters.circuit import is_circuit
         if not is_circuit(body):
             raise CircuitError(
                 "ForLoopOp expects a body parameter to be of type "
