@@ -1179,7 +1179,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
 
     """
 
-    # implement as the inner function to avoid API change in 0.24.
+    # implement as the inner function to avoid API change for a patch release in 0.24.2.
     def get_qubit_channels_v2(backend: BackendV2, qubit: int):
         r"""Return a list of channels which operate on the given ``qubit``.
         Returns:

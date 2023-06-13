@@ -11,8 +11,10 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
-from typing import Optional, List, Tuple, Union, Iterable, Set
+from __future__ import annotations
+from typing import Optional, List, Tuple, Union, Iterable
 
+import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
@@ -22,7 +24,7 @@ from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
 
 
-def _is_deprecated_qubits_argument(qubits: Union[int, List[int], Qubit, List[Qubit]]) -> bool:
+def _is_deprecated_qubits_argument(qubits: Union[int, list[int], Qubit, list[Qubit]]) -> bool:
     if isinstance(qubits, (int, Qubit)):
         qubits = [qubits]
     return isinstance(qubits[0], Qubit)
@@ -41,11 +43,13 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: Optional["InstructionDurationsType"] = None, dt: float = None
+        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
     ):
-        self.duration_by_name = {}
-        self.duration_by_name_qubits = {}
-        self.duration_by_name_qubits_params = {}
+        self.duration_by_name: dict[str, tuple[float, str]] = {}
+        self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
+        self.duration_by_name_qubits_params: dict[
+            tuple[str, tuple[int, ...], tuple[float, ...]], tuple[float, str]
+        ] = {}
         self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
@@ -99,7 +103,7 @@ class InstructionDurations:
 
         return InstructionDurations(instruction_durations, dt=dt)
 
-    def update(self, inst_durations: Optional["InstructionDurationsType"], dt: float = None):
+    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:
@@ -177,10 +181,10 @@ class InstructionDurations:
     )
     def get(
         self,
-        inst: Union[str, Instruction],
-        qubits: Union[int, List[int], Qubit, List[Qubit]],
+        inst: str | qiskit.circuit.Instruction,
+        qubits: int | list[int] | Qubit | list[Qubit] | list[int | Qubit],
         unit: str = "dt",
-        parameters: Optional[List[float]] = None,
+        parameters: list[float] | None = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters.
 
@@ -224,9 +228,9 @@ class InstructionDurations:
     def _get(
         self,
         name: str,
-        qubits: List[int],
+        qubits: list[int],
         to_unit: str,
-        parameters: Optional[Iterable[float]] = None,
+        parameters: Iterable[float] | None = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters."""
         if name == "barrier":
@@ -270,7 +274,7 @@ class InstructionDurations:
         else:
             raise TranspilerError(f"Conversion from '{from_unit}' to '{to_unit}' is not supported")
 
-    def units_used(self) -> Set[str]:
+    def units_used(self) -> set[str]:
         """Get the set of all units used in this instruction durations.
 
         Returns:
