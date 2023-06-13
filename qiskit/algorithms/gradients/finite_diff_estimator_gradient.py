@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Sequence
+from typing import Literal
 
 import numpy as np
 
@@ -29,11 +29,6 @@ from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 
 from ..exceptions import AlgorithmError
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 
 class FiniteDiffEstimatorGradient(BaseEstimatorGradient):

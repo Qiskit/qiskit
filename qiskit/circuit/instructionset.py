@@ -16,10 +16,10 @@ Instruction collection.
 
 from __future__ import annotations
 import functools
-import warnings
 from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_arg
 from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
@@ -95,7 +95,17 @@ class InstructionSet:
 
     __slots__ = ("_instructions", "_requester")
 
-    def __init__(
+    @deprecate_arg(
+        "circuit_cregs",
+        since="0.19.0",
+        additional_msg=(
+            "Instead, pass a complete resource requester with the 'resource_requester' argument. "
+            "The classical registers are insufficient to access all classical resources in a "
+            "circuit, as there may be loose classical bits as well. It can also cause integer "
+            "indices to be resolved incorrectly if any registers overlap."
+        ),
+    )
+    def __init__(  # pylint: disable=bad-docstring-quotes
         self,
         circuit_cregs: list[ClassicalRegister] | None = None,
         *,
@@ -109,13 +119,6 @@ class InstructionSet:
         Args:
             circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
                 circuit to which the instruction is added. Default: `None`.
-
-                .. deprecated:: 0.19
-                    The classical registers are insufficient to access all classical resources in a
-                    circuit, as there may be loose classical bits as well.  It can also cause
-                    integer indices to be resolved incorrectly if any registers overlap.  Instead,
-                    pass a complete requester to the ``resource_requester`` argument.
-
             resource_requester: A callable that takes in the classical resource used in the
                 condition, verifies that it is present in the attached circuit, resolves any indices
                 into concrete :obj:`.Clbit` instances, and returns the concrete resource.  If this
@@ -136,13 +139,6 @@ class InstructionSet:
         if circuit_cregs is not None:
             if resource_requester is not None:
                 raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")
-            warnings.warn(
-                "The 'circuit_cregs' argument to 'InstructionSet' is deprecated as of"
-                " qiskit-terra 0.19, and will be removed no sooner than 3 months after its release."
-                " Pass a complete resource requester as the 'resource_requester' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
             self._requester: Callable[..., ClassicalRegister | Clbit] = _requester_from_cregs(
                 tuple(circuit_cregs)
             )

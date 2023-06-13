@@ -382,6 +382,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         x_max = qubits[pauli.x][-1]
         y_phase = (-1j) ** pauli._count_y()
+        y_phase = y_phase[0]
         return pauli_phase * density_expval_pauli_with_x(
             data, self.num_qubits, z_mask, x_mask, y_phase, x_max
         )
@@ -832,4 +833,4 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             lst[i], lst[i + n] = lst[i + n], lst[i]
         rho = np.transpose(arr, lst)
         rho = np.reshape(rho, self._op_shape.shape)
-        return DensityMatrix(rho)
+        return DensityMatrix(rho, dims=self.dims())
