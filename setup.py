@@ -110,9 +110,13 @@ setup(
             debug=rust_debug,
         ),
         RustExtension(
-            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
         ),
     ],
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
