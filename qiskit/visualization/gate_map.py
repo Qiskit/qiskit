@@ -203,12 +203,6 @@ def plot_coupling_map(
     if line_color is None:
         line_color = ["#648fff"] * len(coupling_map)
 
-    # set coloring
-    if qubit_color is None:
-        qubit_color = ["#648fff"] * num_qubits
-    if line_color is None:
-        line_color = ["#648fff"] * len(coupling_map)
-
     graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
