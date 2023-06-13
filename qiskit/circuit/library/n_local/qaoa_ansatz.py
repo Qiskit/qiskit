@@ -14,6 +14,8 @@
 
 # pylint: disable=cyclic-import
 from __future__ import annotations
+from typing import Optional
+
 import numpy as np
 
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
