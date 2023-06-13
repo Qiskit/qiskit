@@ -41,7 +41,7 @@ features:
     we should end up with a single linear function. However, when collecting linear gates and
     splitting into layers, we should end up with 4 linear functions.
 
-    When ``collect_from_back` is `True`, the blocks are greedily collected from the outputs towards
+    When ``collect_from_back`` is `True`, the blocks are greedily collected from the outputs towards
     the inputs of the circuit. Consider the following example::
 
         from qiskit.circuit import QuantumCircuit
@@ -61,7 +61,7 @@ features:
 
     The original circuit contains a Hadamard gate, so that the `CX(1, 0)` gate can be
     combined either with `CX(1, 2)` or with `SWAP(1, 2)`, but not with both. When
-    ``collect_from_back` is `False`, the linear blocks are greedily collected from the start
+    ``collect_from_back`` is `False`, the linear blocks are greedily collected from the start
     of the circuit, and thus `CX(1, 0)` is combined with `CX(1, 2)`. When
-    ``collect_from_back` is `True`, the linear blocks are greedily collected from the end
+    ``collect_from_back`` is `True`, the linear blocks are greedily collected from the end
     of the circuit, and thus `CX(1, 0)` is combined with `SWAP(1, 2)`.
