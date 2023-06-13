@@ -16,6 +16,7 @@
 from typing import Optional, Tuple, Union, Iterable
 import itertools
 
+import qiskit
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
@@ -78,10 +79,11 @@ class IfElseOp(ControlFlowOp):
     ):
         # Type checking generally left to @params.setter, but required here for
         # finding num_qubits and num_clbits.
-        if not isinstance(true_body, QuantumCircuit):
+        from qiskit.converters.circuit import is_circuit
+        if not is_circuit(true_body):
             raise CircuitError(
                 "IfElseOp expects a true_body parameter "
-                f"of type QuantumCircuit, but received {type(true_body)}."
+                f"of type QuantumCircuit or DAGCircuit, but received {type(true_body)}."
             )
 
         num_qubits = true_body.num_qubits
@@ -99,10 +101,11 @@ class IfElseOp(ControlFlowOp):
     def params(self, parameters):
         true_body, false_body = parameters
 
-        if not isinstance(true_body, QuantumCircuit):
+        from qiskit.converters.circuit import is_circuit
+        if not is_circuit(true_body):
             raise CircuitError(
                 "IfElseOp expects a true_body parameter of type "
-                f"QuantumCircuit, but received {type(true_body)}."
+                f"QuantumCircuit or DAGCircuit, but received {type(true_body)}."
             )
 
         if true_body.num_qubits != self.num_qubits or true_body.num_clbits != self.num_clbits:
@@ -114,10 +117,10 @@ class IfElseOp(ControlFlowOp):
             )
 
         if false_body is not None:
-            if not isinstance(false_body, QuantumCircuit):
+            if not is_circuit(false_body):
                 raise CircuitError(
                     "IfElseOp expects a false_body parameter of type "
-                    f"QuantumCircuit, but received {type(false_body)}."
+                    f"QuantumCircuit or DAGCircuit, but received {type(false_body)}."
                 )
 
             if false_body.num_qubits != self.num_qubits or false_body.num_clbits != self.num_clbits:

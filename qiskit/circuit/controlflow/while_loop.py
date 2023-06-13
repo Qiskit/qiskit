@@ -75,7 +75,8 @@ class WhileLoopOp(ControlFlowOp):
     def params(self, parameters):
         (body,) = parameters
 
-        if not isinstance(body, QuantumCircuit):
+        from qiskit.converters.circuit import is_circuit
+        if not is_circuit(body):
             raise CircuitError(
                 "WhileLoopOp expects a body parameter of type "
                 f"QuantumCircuit, but received {type(body)}."

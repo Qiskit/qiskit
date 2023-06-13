@@ -69,6 +69,8 @@ class SwitchCaseOp(ControlFlowOp):
         *,
         label: Optional[str] = None,
     ):
+
+        from qiskit.converters.circuit import is_circuit
         if not isinstance(target, (Clbit, ClassicalRegister)):
             raise CircuitError("the switch target must be a classical bit or register")
 
@@ -108,7 +110,7 @@ class SwitchCaseOp(ControlFlowOp):
                         )
                 self._case_map[value] = i
             self._label_spec.append(values)
-            if not isinstance(case_, QuantumCircuit):
+            if not is_circuit(case_):
                 raise CircuitError("case blocks must be QuantumCircuit instances")
             if id(case_) in case_ids:
                 raise CircuitError("ungrouped cases cannot point to the same block")
