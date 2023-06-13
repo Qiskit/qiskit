@@ -21,20 +21,24 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.transforms import pad
+from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.lowering import lower_gates
 
 
-def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Schedule:
+def sequence(
+    scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
+) -> Schedule:
     """
     Return the pulse Schedule which implements the input scheduled circuit.
 
     Assume all measurements are done at once at the last of the circuit.
-    Schedules according to the command definition given by the schedule_config.
+    Schedules according to the command definition given by the schedule_config or target.
 
     Args:
         scheduled_circuit: The scheduled quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
+        target: Target built from some Backend parameters.
 
     Returns:
         A schedule corresponding to the input ``circuit``.
@@ -42,7 +46,7 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     Raises:
         QiskitError: If invalid scheduled circuit is supplied.
     """
-    circ_pulse_defs = lower_gates(scheduled_circuit, schedule_config)
+    circ_pulse_defs = lower_gates(scheduled_circuit, schedule_config, target)
 
     # find the measurement start time (assume measurement once)
     def _meas_start_time():

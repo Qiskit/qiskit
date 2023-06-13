@@ -27,6 +27,7 @@ from qiskit.pulse import instructions as pulse_inst
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
+from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
 
 CircuitPulseDef = namedtuple(
@@ -35,7 +36,9 @@ CircuitPulseDef = namedtuple(
 )  # The labels of the qubits involved in the command according to the circuit
 
 
-def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> List[CircuitPulseDef]:
+def lower_gates(
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target = None
+) -> List[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
     input circuit.
@@ -48,6 +51,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
+        target: Target built from some Backend parameters.
 
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element.
@@ -57,13 +61,19 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     """
     from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
+    if schedule_config is None and target is None:
+        raise QiskitError("Either schedule_config or target must be specified.")
+
+    inst_map = target.instruction_schedule_map() if target else schedule_config.inst_map
+    meas_map = target.meas_map if target else schedule_config.meas_map
+    dt = target.dt if target else schedule_config.dt
+
     circ_pulse_defs = []
 
-    inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
     # convert the unit of durations from SI to dt before lowering
-    circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
+    circuit = convert_durations_to_dt(circuit, dt_in_sec=dt, inplace=False)
 
     def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
@@ -98,7 +108,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             meas_sched = measure(
                 qubits=qubits,
                 inst_map=inst_map,
-                meas_map=schedule_config.meas_map,
+                meas_map=meas_map,
                 qubit_mem_slots=qubit_mem_slots,
             )
             meas_sched = target_qobj_transform(meas_sched)

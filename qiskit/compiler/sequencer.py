@@ -17,12 +17,19 @@ from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.providers.backend import Backend
+from qiskit.providers.backend import Backend, BackendV2
 from qiskit.pulse import InstructionScheduleMap, Schedule
+from qiskit.transpiler import Target
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.sequence import sequence as _sequence
+from qiskit.utils.deprecation import deprecate_arg
 
 
+@deprecate_arg(
+    "backend",
+    additional_msg=("'backend' argument becomes required from Optional."),
+    since="0.25.0",
+)
 def sequence(
     scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
@@ -50,20 +57,44 @@ def sequence(
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
-    if inst_map is None:
-        if backend is None:
-            raise QiskitError("Must supply either a backend or inst_map for sequencing.")
-        inst_map = backend.defaults().instruction_schedule_map
-    if meas_map is None:
-        if backend is None:
-            raise QiskitError("Must supply either a backend or a meas_map for sequencing.")
-        meas_map = backend.configuration().meas_map
-    if dt is None:
-        if backend is None:
-            raise QiskitError("Must supply either a backend or a dt for sequencing.")
-        dt = backend.configuration().dt
-
-    schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
+    if isinstance(backend, BackendV2):
+        if inst_map is None:
+            inst_map = backend.instruction_schedule_map
+        if meas_map is None:
+            meas_map = backend.meas_map
+        if dt is None:
+            dt = backend.dt
+    else:
+        if inst_map is None:
+            if backend is None:
+                raise QiskitError("Must supply either a backend or inst_map for sequencing.")
+            defaults = backend.defaults()
+            if defaults is None:
+                raise QiskitError(
+                    "The backend defaults are unavailable. The backend may not support pulse."
+                )
+            inst_map = defaults.instruction_schedule_map
+        if meas_map is None:
+            if backend is None:
+                raise QiskitError("Must supply either a backend or a meas_map for sequencing.")
+            meas_map = backend.configuration().meas_map
+        if dt is None:
+            if backend is None:
+                raise QiskitError("Must supply either a backend or a dt for sequencing.")
+            dt = backend.configuration().dt
+    if backend:
+        target = Target.from_configuration(
+            basis_gate=backend.operation_names
+            if isinstance(backend, BackendV2)
+            else backend.configuratio().basis_gate,
+            inst_map=inst_map,
+            meas_map=meas_map,
+            dt=dt,
+        )
+        schedule_config = None
+    else:
+        target = None
+        schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
-    schedules = [_sequence(circuit, schedule_config) for circuit in circuits]
+    schedules = [_sequence(circuit, schedule_config, target) for circuit in circuits]
     return schedules[0] if len(schedules) == 1 else schedules
