@@ -370,8 +370,7 @@ class TestBasicSwap(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
-      
-    
+
     def test_fake_run(self):
         """A fake run, doesn't change dag
         q0:--(+)-------.--
@@ -400,7 +399,7 @@ class TestBasicSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         circuit.h(qr[3])
         circuit.cx(qr[0], qr[3])
- 
+
         fake_pm = PassManager([BasicSwap(coupling, fake_run=True)])
         real_pm = PassManager([BasicSwap(coupling, fake_run=False)])
 
