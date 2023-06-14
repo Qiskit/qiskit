@@ -416,7 +416,6 @@ class ForwardMatch:
                 ):
                 ################################################
                 # Check if parameters match the template or not.
-                # parameter check까지 여기서 해버리자.
                     temp_match = self.match.copy()
                     temp_match.append([i,label])
 
@@ -427,8 +426,6 @@ class ForwardMatch:
                         None,
                     )
                     
-                ##user_cost_dict = None 
-
                     template_sublist = [x[0] for x in temp_match]
                     circuit_sublist = [x[1] for x in temp_match]
                     circuit_sublist.sort()
