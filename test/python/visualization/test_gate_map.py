@@ -52,6 +52,7 @@ class TestGateMap(QiskitVisualizationTestCase):
 
     @data(*backends)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_gate_map(self, backend):
         """tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
         n = backend.configuration().n_qubits
@@ -65,6 +66,7 @@ class TestGateMap(QiskitVisualizationTestCase):
 
     @data(*backends)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_circuit_layout(self, backend):
         """tests plot_circuit_layout for each device"""
         layout_length = int(backend._configuration.n_qubits / 2)
@@ -102,6 +104,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_error_map_backend_v1(self):
         """Test plotting error map with fake backend v1."""
         backend = FakeKolkata()
@@ -114,6 +117,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_error_map_backend_v2(self):
         """Test plotting error map with fake backend v2."""
         backend = FakeKolkataV2()
@@ -126,6 +130,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_error_map_over_100_qubit(self):
         """Test plotting error map with large fake backend."""
         backend = FakeWashington()
@@ -138,6 +143,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_error_map_over_100_qubit_backend_v2(self):
         """Test plotting error map with large fake backendv2."""
         backend = FakeWashingtonV2()
