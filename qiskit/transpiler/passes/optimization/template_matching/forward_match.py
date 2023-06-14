@@ -414,7 +414,7 @@ class ForwardMatch:
                     and self._is_same_c_conf(node_circuit, node_template)
                     and self._is_same_op(node_circuit, node_template)
                 ):
-                ################################################
+                
                 # Check if parameters match the template or not.
                     temp_match = self.match.copy()
                     temp_match.append([i,label])
@@ -433,8 +433,6 @@ class ForwardMatch:
                     template = substitution._attempt_bind(template_sublist,circuit_sublist)
                 
                 if template is not None : 
-                
-                ##########################################################
 
                     v[1].matchedwith = [i]
 
