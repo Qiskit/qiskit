@@ -65,7 +65,6 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_gate_map, str(self)
         )
-        @_optionals.HAS_MATPLOTLIB.require_in_call
         self.graph_plot_coupling_map = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_coupling_map, str(self)
         )
