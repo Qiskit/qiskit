@@ -193,6 +193,17 @@ class TestParameters(QiskitTestCase):
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
 
+    @data(QuantumCircuit.assign_parameters, QuantumCircuit.bind_parameters)
+    def test_bind_parameters_custom_definition_global_phase(self, assigner):
+        x = Parameter("x")
+        custom = QuantumCircuit(1, global_phase=x).to_gate()
+        base = QuantumCircuit(1)
+        base.append(custom, [0], [])
+
+        test = Operator(base.assign_parameters({x: math.pi}))
+        expected = Operator(numpy.array([[-1, 0], [0, -1]]))
+        self.assertEqual(test, expected)
+
     def test_bind_half_single_precision(self):
         """Test binding with 16bit and 32bit floats."""
         phase = Parameter("phase")

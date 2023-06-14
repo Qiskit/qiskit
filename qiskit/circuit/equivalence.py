@@ -20,6 +20,7 @@ import rustworkx as rx
 
 from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError
+from .parameter import Parameter
 from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
@@ -284,7 +285,7 @@ def _raise_if_shape_mismatch(gate, circuit):
 
 def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
-    param_map = dict(zip(equiv_params, query_params))
-    equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
+    param_map = dict((x, y) for x, y in zip(equiv_params, query_params) if isinstance(x, Parameter))
+    equiv = equiv_circuit.assign_parameters(param_map, inplace=False, flat_input=True)
 
     return equiv

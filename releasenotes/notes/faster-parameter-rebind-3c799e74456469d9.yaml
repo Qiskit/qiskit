@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The performance of :meth:`.QuantumCircuit.assign_parameters` and :meth:`~.QuantumCircuit.bind_parameters`
+    has significantly increased for large circuits with structures typical of applications uses.
+    This includes most circuits based on the :class:`.NLocal` structure, such as
+    :class:`.EfficientSU2`.  See `#10282 <https://github.com/Qiskit/qiskit-terra/issues/10282>`__ for more
+    detail.
+fixes:
+  - |
+    A parametrised circuit that contains a custom gate whose definition has a parametrised global phase
+    can now successfully bind the parameter in the inner global phase.
+    See `#10283 <https://github.com/Qiskit/qiskit-terra/issues/10283>`__ for more detail.

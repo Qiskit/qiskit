@@ -779,6 +779,7 @@ class NLocal(BlueprintCircuit):
         parameters: Mapping[Parameter, ParameterExpression | float]
         | Sequence[ParameterExpression | float],
         inplace: bool = False,
+        **kwargs,
     ) -> QuantumCircuit | None:
         """Assign parameters to the n-local circuit.
 
@@ -800,7 +801,7 @@ class NLocal(BlueprintCircuit):
         if not self._is_built:
             self._build()
 
-        return super().assign_parameters(parameters, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace, **kwargs)
 
     def _parameterize_block(
         self, block, param_iter=None, rep_num=None, block_num=None, indices=None, params=None
