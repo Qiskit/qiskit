@@ -36,8 +36,6 @@ from .visualization import path_to_diagram_reference, QiskitVisualizationTestCas
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
-if optionals.HAS_GRAPHVIZ:
-    from rustworkx.visualization import graphviz_draw
 
 
 @ddt
@@ -87,7 +85,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
-    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "graphviz not available.")
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_gate_map_no_backend(self):
         """tests plotting of gate map without a device"""
         n_qubits = 8
