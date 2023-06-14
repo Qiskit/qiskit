@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix wrong qasm exported when you have two inner gates sequentially added with the same name.
+    Before that, algorithms, like Grover's algorithm, wasn't possible to be exported with ``qasm()``
+    in a correct way.
+    Fixed: `#10162 <https://github.com/Qiskit/qiskit-terra/issues/10162>`
