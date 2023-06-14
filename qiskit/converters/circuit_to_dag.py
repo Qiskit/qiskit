@@ -14,9 +14,10 @@
 import copy
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.controlflow import is_control_flow_name
 
-def circuit_to_dag(circuit, copy_operations=True, recurse=False):
+def circuit_to_dag(circuit, copy_operations=True, recurse=True):
     """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
     Args:
@@ -48,6 +49,9 @@ def circuit_to_dag(circuit, copy_operations=True, recurse=False):
             circ.rz(0.5, q[1]).c_if(c, 2)
             dag = circuit_to_dag(circ)
     """
+    if isinstance(circuit, DAGCircuit):
+        return circuit
+
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
     dagcircuit.global_phase = circuit.global_phase
@@ -67,8 +71,9 @@ def circuit_to_dag(circuit, copy_operations=True, recurse=False):
         op = instruction.operation
         if copy_operations:
             op = copy.deepcopy(op)
-        if is_control_flow_name(op.name) and recurse and op.name == "if_else":
-            op.params = [circuit_to_dag(param, recurse=True) for param in op.params]
+        if is_control_flow_name(op.name) and recurse:
+#        if is_control_flow_name(op.name) and recurse and op.name in ("if_else", "for_loop", "while_loop", "switch_case"):
+            op = op.replace_blocks([circuit_to_dag(block, recurse=True) if block is not None else None for block in op.blocks])
         dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits)
 
     dagcircuit.duration = circuit.duration

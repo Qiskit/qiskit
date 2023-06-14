@@ -16,7 +16,7 @@ import copy
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.controlflow import is_control_flow_name
 
-def dag_to_circuit(dag, copy_operations=True, recurse=False):
+def dag_to_circuit(dag, copy_operations=True, recurse=True):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
 
     Args:
@@ -54,6 +54,9 @@ def dag_to_circuit(dag, copy_operations=True, recurse=False):
            circuit.draw('mpl')
     """
 
+    if isinstance(dag, QuantumCircuit):
+        return dag
+
     name = dag.name or None
     circuit = QuantumCircuit(
         dag.qubits,
@@ -70,8 +73,10 @@ def dag_to_circuit(dag, copy_operations=True, recurse=False):
         op = node.op
         if copy_operations:
             op = copy.deepcopy(op)
-        if is_control_flow_name(op.name) and recurse and op.name == "if_else":
-            op.params = [dag_to_circuit(param, recurse=True) for param in op.params]
+        if is_control_flow_name(op.name) and recurse:
+#        if is_control_flow_name(op.name) and recurse and op.name in ("if_else", "for_loop", "while_loop", "switch_case"):
+            op = op.replace_blocks([dag_to_circuit(block, recurse=True) if block is not None else None for block in op.blocks])
+#            op.params = [dag_to_circuit(param, recurse=True) if param is not None else None for param in op.params]
         circuit._append(CircuitInstruction(op, node.qargs, node.cargs))
 
     circuit.duration = dag.duration

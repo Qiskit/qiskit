@@ -71,6 +71,8 @@ class SwitchCaseOp(ControlFlowOp):
     ):
 
         from qiskit.converters.circuit import is_circuit
+        from qiskit.converters.circuit import num_qubits as _num_qubits
+        from qiskit.converters.circuit import num_clbits as _num_clbits
         if not isinstance(target, (Clbit, ClassicalRegister)):
             raise CircuitError("the switch target must be a classical bit or register")
 
@@ -116,8 +118,8 @@ class SwitchCaseOp(ControlFlowOp):
                 raise CircuitError("ungrouped cases cannot point to the same block")
             case_ids.add(id(case_))
             if num_qubits is None:
-                num_qubits, num_clbits = case_.num_qubits, case_.num_clbits
-            if case_.num_qubits != num_qubits or case_.num_clbits != num_clbits:
+                num_qubits, num_clbits = _num_qubits(case_), _num_clbits(case_)
+            if _num_qubits(case_) != num_qubits or _num_clbits(case_) != num_clbits:
                 raise CircuitError("incompatible bits between cases")
             self._params.append(case_)
         if not self._params:
