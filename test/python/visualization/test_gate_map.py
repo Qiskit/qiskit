@@ -36,6 +36,8 @@ from .visualization import path_to_diagram_reference, QiskitVisualizationTestCas
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
+if optionals.HAS_RUSTWORKX:
+    import rustworkx as rx
 
 
 @ddt
