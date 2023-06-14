@@ -790,14 +790,14 @@ custom q[0];
         expected_output = """OPENQASM 2.0;
 include "qelib1.inc";
 gate a q0,q1,q2 {{ h q0; h q1; h q2; }}
-gate a_{} q0,q1,q2 {{ a q0,q1,q2; x q0; x q1; x q2; }}
+gate a_{0} q0,q1,q2 {{ a q0,q1,q2; x q0; x q1; x q2; }}
 qreg q[3];
-a_{} q[0],q[1],q[2];
+a_{0} q[0],q[1],q[2];
 z q[0];
 z q[1];
 z q[2];
 """.format(
-            gate_a_id, gate_a_id
+            gate_a_id
         )
         self.assertEqual(qc.qasm(), expected_output)
 
