@@ -39,6 +39,9 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class DAGCircuit:
@@ -95,6 +98,69 @@ class DAGCircuit:
 
         self.duration = None
         self.unit = "dt"
+
+        # Initialize the parameter table
+        self._parameter_table = {}
+        # Initialize the parameters
+        self._parameters = None
+
+    @property
+    def parameters(self):
+        """Convenience function to get the parameters defined in the parameter table."""
+        if self._parameters is None:
+            self._parameters = []
+            for parameter, _ in self._parameter_table.items():
+                if parameter not in self._parameters:
+                    self._parameters.append(parameter)
+        return ParameterView(self._parameters)
+
+    def _assign_parameter(self, parameter: Parameter, value: ParameterValueType) -> None:
+        """Update this DAGCircuit where instances of ``parameter`` are replaced by ``value``,
+        which can be either a numeric value or a new parameter expression.
+        """
+
+        # Check if parameter is in the parameter table
+        if parameter in self._parameter_table:
+            # Fetch the nodes and indices where the parameter is used
+            nodes_and_indices = self._parameter_table[parameter]
+
+            for node, param_index in nodes_and_indices:
+                operation = node.op
+
+                # Replace the parameter
+                if isinstance(value, ParameterExpression):
+                    operation.params[param_index] = value
+                else:
+                    operation.params[param_index] = operation.validate_parameter(value)
+
+                # Update the parameter table
+                self._update_parameter_table(node)
+
+            # If the parameter was replaced by another parameter, update the operation names
+            if isinstance(value, Parameter):
+                self._op_names[value.name] = operation
+
+            # Remove the old parameter from the parameter table
+            del self._parameter_table[parameter]
+
+        # Clear the parameter cache
+        self._parameters = None
+
+    def _update_parameter_table(self, node):
+        """Update the parameter table of this DAGCircuit based on a new node."""
+        for param_index, param in enumerate(node.op.params):
+            if isinstance(param, ParameterExpression):
+                atomic_parameters = set(param.parameters)
+            else:
+                atomic_parameters = set()
+
+            for parameter in atomic_parameters:
+                if parameter in self._parameter_table:
+                    self._parameter_table[parameter].add((node, param_index))
+                else:
+                    self._parameter_table[parameter] = {(node, param_index)}
+                    # clear cache if new parameter is added
+                    self._parameters = None
 
     @property
     def wires(self):
