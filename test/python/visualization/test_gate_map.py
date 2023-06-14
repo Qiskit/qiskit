@@ -85,6 +85,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "graphviz not available.")
     def test_plot_gate_map_no_backend(self):
         """tests plotting of gate map without a device"""
         n_qubits = 8
