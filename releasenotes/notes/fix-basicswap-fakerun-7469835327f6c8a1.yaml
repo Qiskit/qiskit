@@ -1,0 +1,4 @@
+fixes:
+  - |
+    Fixes a typo where BasicSwap called ``fake_run()`` the attribute instead of  ``_fake_run()`` the function.
+    Refer to `#10149 <hhttps://github.com/Qiskit/qiskit-terra/issues/10147>` for more details.
