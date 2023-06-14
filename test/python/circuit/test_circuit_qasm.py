@@ -769,7 +769,7 @@ custom q[0];
         self.assertEqual(qasm, expected)
 
     def test_sequencial_inner_gates_with_same_name(self):
-        """Test if inner gates sequencially added with the same name, result in the correct number of gates"""
+        """Test if inner gates sequentially added with the same name result in the correct qasm"""
         qubits_range = range(3)
 
         gate_a = QuantumCircuit(3, name="a")
