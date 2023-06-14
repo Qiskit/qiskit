@@ -5062,10 +5062,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     # Otherwise, if there's a naming clash, we need a unique name.
     if operation.name in gates_to_define:
-        new_name = f"{operation.name}_{id(operation)}"
-        operation = operation.copy(name=new_name)
-    else:
-        new_name = operation.name
+        operation = _rename_operation(operation)
+
+    new_name = operation.name
 
     if parameterized_operation.params:
         parameters_qasm = (
@@ -5091,14 +5090,20 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             statements.append(f"{new_operation.qasm()} {bits_qasm};")
         body_qasm = " ".join(statements)
 
+        # if an inner gate has the same name as the actual gate, it needs to be renamed
         if operation.name in gates_to_define:
-            new_name = f"{operation.name}_{id(operation)}"
-            operation = operation.copy(name=new_name)
+            operation = _rename_operation(operation)
+            new_name = operation.name
 
         definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
         gates_to_define[new_name] = (parameterized_operation, definition_qasm)
     return operation
 
+def _rename_operation(operation):
+    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
+    new_name = f"{operation.name}_{id(operation)}"
+    updated_operation = operation.copy(name=new_name)
+    return updated_operation
 
 def _qasm_escape_name(name: str, prefix: str) -> str:
     """Returns a valid OpenQASM identifier, using `prefix` as a prefix if necessary.  `prefix` must
