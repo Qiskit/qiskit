@@ -1114,7 +1114,7 @@ def plot_coupling_map(
     if not input_axes:
         if figsize is None:
             width, height = plot.size
-            figsize = (width * px, height * px)
+            figsize = (width*px, height*px)
         fig, ax = plt.subplots(figsize=figsize)
     ax.axis("off")
     ax.imshow(plot)
