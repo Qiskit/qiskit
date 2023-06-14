@@ -18,7 +18,7 @@ from typing import List
 import numpy as np
 from rustworkx.visualization import graphviz_draw
 import seaborn as sns
-import graphviz
+import python-graphviz
 
 import matplotlib
 import matplotlib.pyplot as plt
