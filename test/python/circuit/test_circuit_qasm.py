@@ -796,8 +796,11 @@ a_{} q[0],q[1],q[2];
 z q[0];
 z q[1];
 z q[2];
-""".format(gate_a_id, gate_a_id)
+""".format(
+            gate_a_id, gate_a_id
+        )
         self.assertEqual(qc.qasm(), expected_output)
+
 
 if __name__ == "__main__":
     unittest.main()
