@@ -657,61 +657,29 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertEqual(circuit_out, expected)
 
-    def test_template_match_subcircuit(self):
-        """Test that the template matching works and correctly replaces a template if there is a
-        naming clash between it and the circuit.  This should include binding a partial match with a
-        parameter.**rzx_templates.rzx_templates()"""
+    def test_template_match_parameter_matching(self):
+        """
+        Test that the template matching works and correctly replaces a template if there is a
+        parameter clash between it and the circuit. This should include binding a partial match with a
+        parameter. Used the rzx template ('zz3').
+        """
         
-        """
-        Test a template based on rzx_templates(["zz3"]),
-                                                                                    »
-        q_0: ──■─────────────■──────────────────────────────────────────────────────»
-             ┌─┴─┐┌───────┐┌─┴─┐┌────────┐┌─────────┐┌─────────┐┌─────────┐┌───────┐»
-        q_1: ┤ X ├┤ RZ(ϴ) ├┤ X ├┤ RZ(-ϴ) ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├»
-             └───┘└───────┘└───┘└────────┘└─────────┘└─────────┘└─────────┘└───────┘»
-        «     ┌──────────┐
-        «q_0: ┤0         ├─────────────────────────────────
-        «     │  RZX(-ϴ) │┌─────────┐┌─────────┐┌─────────┐
-        «q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
-        «     └──────────┘└─────────┘└─────────┘└─────────┘
-        correctly template if there is a naming clash between it and the circuit.
-        """
-        theta = Parameter("θ")
-
-        template = QuantumCircuit(2)
-        template.cx(0, 1)
-        template.rz(theta, 1)
-        template.cx(0, 1)
-        template.rz(-1 * theta, 1)
-        # Hadamard
-        template.rz(np.pi / 2, 1)
-        template.rx(np.pi / 2, 1)
-        template.rz(np.pi / 2, 1)
-
-        template.rx(theta, 1)
-        template.rzx(-1 * theta, 0, 1)
-        # Hadamard
-        template.rz(np.pi / 2, 1)
-        template.rx(np.pi / 2, 1)
-        template.rz(np.pi / 2, 1)
-
+        theta = Parameter("ϴ")
         circuit_in = QuantumCircuit(2)
         circuit_in.cx(0, 1)
         circuit_in.rz(0.42, 1)
         circuit_in.cx(0, 1)
         circuit_in.rz(np.pi/2, 1)
 
-        pass_ = TemplateOptimization(
-            [template],
-            user_cost_dict={"cx": 6, "rz": 0, "rx": 1, "rzx": 0},
-        )
+        pass_ = TemplateOptimization(**rzx_templates(["zz3"]))
         circuit_out = PassManager(pass_).run(circuit_in)
-
+       
         # these are NOT equal if template optimization works
         self.assertNotEqual(circuit_in, circuit_out)
 
         # however these are equivalent if the operators are the same
         self.assertTrue(Operator(circuit_in).equiv(circuit_out))
+
     def test_consecutive_templates_apply(self):
         """Test the scenario where one template optimization creates an opportunity for
         another template optimization.
