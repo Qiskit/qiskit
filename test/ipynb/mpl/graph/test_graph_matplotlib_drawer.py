@@ -347,7 +347,6 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             backend=backend, line_color=["#00ff00"] * 144, filename="line_color.png"
         )
     
-    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_font_color(self):
         """Test font_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
