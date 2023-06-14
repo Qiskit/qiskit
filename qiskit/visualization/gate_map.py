@@ -18,6 +18,7 @@ from typing import List
 import numpy as np
 from rustworkx.visualization import graphviz_draw
 import seaborn as sns
+import graphviz
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -958,6 +959,7 @@ def plot_gate_map(
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
+@_optionals.HAS_GRAPHVIZ.require_in_call
 def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
@@ -1000,7 +1002,7 @@ def plot_coupling_map(
         Figure: A Matplotlib figure instance.
 
     Raises:
-        MissingOptionalLibraryError: if matplotlib not installed.
+        MissingOptionalLibraryError: If matplotlib or graphviz is not installed.
         QiskitError: If length of qubit labels does not match number of qubits.
 
     Example:
