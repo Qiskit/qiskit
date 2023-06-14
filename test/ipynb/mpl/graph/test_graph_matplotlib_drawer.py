@@ -356,6 +356,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename="font_color.png")
 
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_coupling_map(self):
         """Test plot_coupling_map"""
 
