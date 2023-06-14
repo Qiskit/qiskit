@@ -195,12 +195,13 @@ class TestParameters(QiskitTestCase):
 
     @data(QuantumCircuit.assign_parameters, QuantumCircuit.bind_parameters)
     def test_bind_parameters_custom_definition_global_phase(self, assigner):
+        """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
         x = Parameter("x")
         custom = QuantumCircuit(1, global_phase=x).to_gate()
         base = QuantumCircuit(1)
         base.append(custom, [0], [])
 
-        test = Operator(base.assign_parameters({x: math.pi}))
+        test = Operator(assigner(base, {x: math.pi}))
         expected = Operator(numpy.array([[-1, 0], [0, -1]]))
         self.assertEqual(test, expected)
 
