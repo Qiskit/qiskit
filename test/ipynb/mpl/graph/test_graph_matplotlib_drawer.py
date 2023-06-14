@@ -53,7 +53,6 @@ def cwd(path):
     finally:
         os.chdir(oldpwd)
 
-@unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
 class TestGraphMatplotlibDrawer(QiskitTestCase):
     """Graph MPL visualization"""
 
@@ -66,6 +65,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_gate_map, str(self)
         )
+        @_optionals.HAS_MATPLOTLIB.require_in_call
         self.graph_plot_coupling_map = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_coupling_map, str(self)
         )
@@ -348,6 +348,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             backend=backend, line_color=["#00ff00"] * 144, filename="line_color.png"
         )
     
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_font_color(self):
         """Test font_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
@@ -356,6 +357,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename="font_color.png")
        
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     def test_plot_coupling_map(self):
         """Test plot_coupling_map"""
 
