@@ -1494,10 +1494,10 @@ class MatplotlibDrawer:
                 # If a range was used display 'range' and grab the range value
                 # to be displayed below
                 if "range" in idx_set:
-                    top_idx = "range"
+                    top_idx = " range"
                     idx_set = idx_set[6:-1]
                     self._ax.text(
-                        xpos - x_shift + 0.1,
+                        xpos - x_shift - 0.08,
                         ypos_max - 0.2 - y_shift,
                         top_idx,
                         ha="left",
@@ -1514,7 +1514,7 @@ class MatplotlibDrawer:
                         idx_set[4] = "..."
                     idx_set = f"{', '.join(idx_set)}"
                 self._ax.text(
-                    xpos - x_shift - 0.05,
+                    xpos - x_shift - 0.04,
                     ypos_max - 0.5 - y_shift,
                     idx_set,
                     ha="left",
