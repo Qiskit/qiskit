@@ -27,6 +27,7 @@ from qiskit.transpiler import Target
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.tools.parallel import parallel_map
+from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,11 @@ def _log_schedule_time(start_time, end_time):
     log_msg = "Total Scheduling Time - %.5f (ms)" % ((end_time - start_time) * 1000)
     logger.info(log_msg)
 
-
+@deprecate_arg(
+    "backend",
+    additional_msg=("'backend' argument becomes required from Optional."),
+    since="0.25.0",
+)
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
