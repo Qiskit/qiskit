@@ -14,6 +14,7 @@
 
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.layout import Layout
 
 
 class SetLayout(AnalysisPass):
@@ -41,5 +42,10 @@ class SetLayout(AnalysisPass):
         Returns:
             DAGCircuit: the original DAG.
         """
-        self.property_set["layout"] = None if self.layout is None else self.layout.copy()
+        if isinstance(self.layout, list):
+            layout = Layout({dag.qubits[i]: phys for i, phys in enumerate(self.layout)})
+        else:
+            layout = self.layout
+
+        self.property_set["layout"] = None if layout is None else layout.copy()
         return dag

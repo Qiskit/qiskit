@@ -92,6 +92,8 @@ def generate_preset_pass_manager(
     hls_config=None,
     init_method=None,
     optimization_method=None,
+    *,
+    _skip_target=False,
 ):
     """Generate a preset :class:`~.PassManager`
 
@@ -241,6 +243,7 @@ def generate_preset_pass_manager(
     }
 
     if backend is not None:
+        pm_options["_skip_target"] = _skip_target
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
