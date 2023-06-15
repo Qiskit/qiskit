@@ -202,7 +202,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_optimal_values(self, op):
-        """Test the VQD result.optimal_values field"""
+        """Test running same VQD twice to re-use optimizer, then switch optimizer"""
 
         vqd = VQD(
             estimator=self.estimator,
@@ -215,7 +215,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         result = vqd.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(
-            result.optimal_values[-1], self.h2_energy_excited, decimal=3
+            result.optimal_points, self.h2_energy_excited, decimal=3
         )
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
