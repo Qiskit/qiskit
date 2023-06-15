@@ -2884,8 +2884,7 @@ class QuantumCircuit:
                         if new_param._symbol_expr.is_integer and new_param.is_real():
                             val = int(new_param)
                         elif new_param.is_real():
-                            # Workaround symengine not supporting float(<ComplexDouble>)
-                            val = complex(new_param).real
+                            val = float(new_param)
                         else:
                             # complex values may no longer be supported but we
                             # defer raising an exception to validdate_parameter
@@ -2951,8 +2950,7 @@ class QuantumCircuit:
                                 if new_param._symbol_expr.is_integer:
                                     new_param = int(new_param)
                                 else:
-                                    # Workaround symengine not supporting float(<ComplexDouble>)
-                                    new_param = complex(new_param).real
+                                    new_param = float(new_param)
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
