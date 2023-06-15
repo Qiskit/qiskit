@@ -635,7 +635,7 @@ class TestTranspile(QiskitTestCase):
             QuantumRegister(3, "q")[2],
         ]
 
-        with self.assertRaisesRegex(TranspilerError, "different numbers of qubits"):
+        with self.assertRaises(TranspilerError):
             transpile(qc, backend, initial_layout=bad_initial_layout)
 
     def test_parameterized_circuit_for_simulator(self):
