@@ -242,7 +242,9 @@ class CCZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
-    _ARRAYS = [None, None, None, None]
+    _ARRAY_3 = numpy.eye(8, dtype=numpy.complex128)
+    _ARRAY_3[-1, -1] = -1
+    _ARRAY_3.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCZ gate."""
@@ -274,13 +276,11 @@ class CCZGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CCZ gate."""
-        if self._ARRAYS[self.ctrl_state] is None:
-            mat = numpy.asarray(
-                _compute_control_matrix(
-                    self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-                ),
-                dtype=numpy.complex128,
-            )
-            mat.setflags(write=False)
-            self._ARRAYS[self.ctrl_state] = mat
-        return numpy.asarray(self._ARRAYS[self.ctrl_state], dtype=dtype)
+        if self.ctrl_state == 3:
+            return numpy.asarray(self._ARRAY_3, dtype=dtype)
+        return numpy.asarray(
+            _compute_control_matrix(
+                self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+            ),
+            dtype=dtype,
+        )
