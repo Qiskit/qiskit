@@ -61,11 +61,9 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
         TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
             coefficient.
     """
-    from qiskit.opflow import PauliSumOp
-
     if isinstance(observable, SparsePauliOp):
         return observable
-    elif isinstance(observable, PauliSumOp):
+    elif hasattr(observable, "primitive") and isinstance(observable.primitive, SparsePauliOp):
         if isinstance(observable.coeff, ParameterExpression):
             raise TypeError(
                 f"Observable must have numerical coefficient, not {type(observable.coeff)}."
