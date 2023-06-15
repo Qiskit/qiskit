@@ -1058,8 +1058,8 @@ def plot_coupling_map(
     for node in graph.node_indices():
         graph[node] = node
 
-    for edge, triple in graph.edge_index_map().items():
-        graph.update_edge_by_index(edge, (triple[0], triple[1]))
+    for edge_index in graph.edge_indices():
+        graph.update_edge_by_index(edge_index, edge_index)
 
     # pixel-to-inch conversion
     px = 1 / plt.rcParams["figure.dpi"]
@@ -1093,11 +1093,10 @@ def plot_coupling_map(
         return out_dict
 
     def color_edge(edge):
-        edge_index = list(graph.edge_list()).index(edge)
         out_dict = {
-            "color": f'"{line_color[edge_index]}"',
-            "fill_color": f'"{line_color[edge_index]}"',
-            "penwidth": str(line_width),
+            "color": f'"{line_color[edge]}"',
+            "fillcolor": f'"{line_color[edge]}"',
+            "penwidth": str(line_width)
         }
         return out_dict
 
