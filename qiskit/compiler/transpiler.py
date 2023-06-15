@@ -533,14 +533,14 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuit):
     if not inst_durations:
         circ_durations.update(backend_durations, dt or backend_durations.dt)
 
-        if circuit.calibrations:
-            cal_durations = []
-            for gate, gate_cals in circuit.calibrations.items():
-                for (qubits, parameters), schedule in gate_cals.items():
-                    cal_durations.append((gate, qubits, parameters, schedule.duration))
-            circ_durations.update(cal_durations, circ_durations.dt)
+    if circuit.calibrations:
+        cal_durations = []
+        for gate, gate_cals in circuit.calibrations.items():
+            for (qubits, parameters), schedule in gate_cals.items():
+                cal_durations.append((gate, qubits, parameters, schedule.duration))
+        circ_durations.update(cal_durations, circ_durations.dt)
 
-    else:
+    if inst_durations:
         circ_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
 
     return circ_durations
