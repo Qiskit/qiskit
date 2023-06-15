@@ -16,24 +16,21 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import (
-    _circuit_key,
-    _observable_key,
-    bound_circuit_to_instruction,
-    init_observable,
-)
+from .utils import _circuit_key, _observable_key, bound_circuit_to_instruction, init_observable
+
+if TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
 
 
 class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):

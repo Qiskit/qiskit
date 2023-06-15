@@ -18,12 +18,12 @@ from __future__ import annotations
 import copy
 from collections.abc import Sequence
 from itertools import accumulate
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -33,6 +33,9 @@ from qiskit.transpiler import PassManager
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
+
+if TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
 
 
 def _run_circuits(

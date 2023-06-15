@@ -15,16 +15,19 @@ Utility functions for primitives
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+
+if TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
@@ -58,6 +61,8 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
         TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
             coefficient.
     """
+    from qiskit.opflow import PauliSumOp
+
     if isinstance(observable, SparsePauliOp):
         return observable
     elif isinstance(observable, PauliSumOp):

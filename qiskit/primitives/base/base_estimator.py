@@ -83,11 +83,10 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -96,6 +95,9 @@ from ..utils import init_observable
 from .base_primitive import BasePrimitive
 
 T = TypeVar("T", bound=Job)
+
+if TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
 
 
 class BaseEstimator(BasePrimitive, Generic[T]):
