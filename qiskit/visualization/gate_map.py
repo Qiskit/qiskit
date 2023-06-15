@@ -1096,7 +1096,7 @@ def plot_coupling_map(
         out_dict = {
             "color": f'"{line_color[edge]}"',
             "fillcolor": f'"{line_color[edge]}"',
-            "penwidth": str(line_width)
+            "penwidth": str(line_width),
         }
         return out_dict
 
