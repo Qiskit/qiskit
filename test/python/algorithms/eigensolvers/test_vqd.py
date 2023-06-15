@@ -215,7 +215,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         result = vqd.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(
-            result.optimal_points, self.h2_energy_excited, decimal=3
+            result.optimal_values, self.h2_energy_excited[:2], decimal=3
         )
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
