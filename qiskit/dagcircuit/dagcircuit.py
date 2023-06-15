@@ -49,13 +49,15 @@ class DAGCircuit:
     There are 3 types of nodes in the graph: inputs, outputs, and operations.
     The nodes are connected by directed edges that correspond to qubits and
     bits.
+
+    Create an empty circuit.
+
+    .. automethod:: __eq__
     """
 
     # pylint: disable=invalid-name
 
     def __init__(self):
-        """Create an empty circuit."""
-
         # Circuit name.  Generally, this corresponds to the name
         # of the QuantumCircuit from which the DAG was generated.
         self.name = None
@@ -1012,21 +1014,28 @@ class DAGCircuit:
         will not consider .data, .name, .metadata when determining.
         The reason for this is due to being hard and
         computationally expensive to perform.
-        Please refer to quantum_info.Operator if you need to achieve that level of comparison.
+        Please refer to :class:`.Operator` if you need to achieve that level of comparison.
 
-        As an example:
-        qc = qk.QuantumCircuit(2)
-        qc.x(0)
-        qc.x(1)
-        dc = circuit_to_dag(qc);
+        Examples:
 
-        qc = qk.QuantumCircuit(2)
-        qc.x(1)
-        qc.x(0)
-        dc = circuit_to_dag(qc);
+            .. code-block:: python
 
-        The two DagCircuit above will return True
-        even though the order of elements in their .data will be different.
+                from qiskit import QuantumCircuit
+                from qiskit.dagcircuit import DAGCircuit
+
+                qc = qk.QuantumCircuit(2)
+                qc.x(0)
+                qc.x(1)
+                dc = circuit_to_dag(qc);
+
+                qc1 = qk.QuantumCircuit(2)
+                qc1.x(1)
+                qc1.x(0)
+                dc1 = circuit_to_dag(qc1);
+
+                DAGCircuit.__eq__(dc, dc1)
+                # The two circuit above will return True
+                # even though the order of elements in their .data will be different.
         """
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those

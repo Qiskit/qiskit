@@ -220,6 +220,9 @@ class QuantumCircuit:
            qc.measure(qr, cr)
 
            qc.draw('mpl')
+
+    .. automethod:: __eq__
+
     """
 
     instances = 0
@@ -508,19 +511,25 @@ class QuantumCircuit:
         This will check .cablirations and .global_phrase
         and will not consider .data, .name, .metadata when determining.
         The reason for this is due to being hard and computationally expensive to perform.
-        Please refer to quantum_info.Operator if you need to achieve that level of comparison check.
+        Please refer to :class:`.Operator` if you need to achieve that level of comparison.
 
-        As an example:
-        qc = qk.QuantumCircuit(2)
-        qc.x(0)
-        qc.x(1)
+        Examples:
 
-        qc = qk.QuantumCircuit(2)
-        qc.x(1)
-        qc.x(0)
+            .. code-block:: python
 
-        The two circuit above will return True
-        even though the order of elements in their .data will be different.
+                from qiskit import QuantumCircuit
+
+                qc = qk.QuantumCircuit(2)
+                qc.x(0)
+                qc.x(1)
+
+                qc1 = qk.QuantumCircuit(2)
+                qc1.x(1)
+                qc1.x(0)
+
+                QuantumCircuit.__eq__(qc, qc1)
+                # The two circuit above will return True
+                # even though the order of elements in their .data will be different.
         """
         if not isinstance(other, QuantumCircuit):
             return False
