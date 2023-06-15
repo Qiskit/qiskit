@@ -296,6 +296,8 @@ def transpile(  # pylint: disable=too-many-return-statements
             " 'instruction_durations' should be usually provided.",
             UserWarning,
         )
+
+    _skip_target = False
     # If a target is specified have it override any implicit selections from a backend
     if target is not None:
         if coupling_map is None:
@@ -312,6 +314,11 @@ def transpile(  # pylint: disable=too-many-return-statements
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
+    # If target is not specified and any hardware constraint object is
+    # manually specified then do not use the target from the backend as
+    # it is invalidated by a custom basis gate list or a custom coupling map
+    elif basis_gates or coupling_map:
+        _skip_target = True
 
     initial_layout = _parse_initial_layout(initial_layout)
     coupling_map = _parse_coupling_map(coupling_map, backend)
@@ -327,13 +334,6 @@ def transpile(  # pylint: disable=too-many-return-statements
         # Do not mutate backend target
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
-
-    # If target is not specified and any hardware constraint object is
-    # manually specified then do not use the target from the backend as
-    # it is invalidated by a custom basis gate list or a custom coupling map
-    _skip_target = False
-    if target is None and basis_gates is None and coupling_map is None:
-        _skip_target = True
 
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
