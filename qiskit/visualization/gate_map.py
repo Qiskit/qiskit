@@ -1086,7 +1086,7 @@ def plot_coupling_map(
                 "style": "filled",
                 "shape": "circle",
             }
-        out_dict["fontcolor"] = font_color
+        out_dict["fontcolor"] = f'"{font_color}"'
         out_dict["fontsize"] = str(font_size)
         out_dict["height"] = str(qubit_size * px)
         out_dict["pin"] = "True"
