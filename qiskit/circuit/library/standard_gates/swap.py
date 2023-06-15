@@ -53,6 +53,10 @@ class SwapGate(Gate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
+    _ARRAY = numpy.array(
+        [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=numpy.complex128
+    )
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
@@ -109,7 +113,7 @@ class SwapGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the SWAP gate."""
-        return numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class CSwapGate(ControlledGate):
@@ -188,8 +192,7 @@ class CSwapGate(ControlledGate):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _ARRAY_1 = numpy.array(
         [
             [1, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0],
@@ -199,9 +202,11 @@ class CSwapGate(ControlledGate):
             [0, 0, 0, 1, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
-    _matrix0 = numpy.array(
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
         [
             [1, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0],
@@ -211,8 +216,10 @@ class CSwapGate(ControlledGate):
             [0, 0, 0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
+    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSWAP gate."""
@@ -256,7 +263,5 @@ class CSwapGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)

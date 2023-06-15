@@ -82,6 +82,10 @@ class iSwapGate(Gate):
                 0 & 0 & 0 & 1
             \end{pmatrix}
     """
+    _ARRAY = np.array(
+        [[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=np.complex128
+    )
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
@@ -122,7 +126,7 @@ class iSwapGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+        return np.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

@@ -46,6 +46,8 @@ class DCXGate(Gate):
                 0 & 0 & 1 & 0
             \end{pmatrix}
     """
+    _ARRAY = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=np.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self):
         """Create new DCX gate."""
@@ -69,4 +71,4 @@ class DCXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the DCX gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=dtype)
+        return np.asarray(self._ARRAY, dtype=dtype)

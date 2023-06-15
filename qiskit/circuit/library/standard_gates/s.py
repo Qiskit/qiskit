@@ -52,6 +52,8 @@ class SGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
+    _ARRAY = numpy.array([[1, 0], [0, 1j]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
@@ -80,7 +82,7 @@ class SGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the S gate."""
-        return numpy.array([[1, 0], [0, 1j]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -116,6 +118,8 @@ class SdgGate(Gate):
 
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
+    _ARRAY = numpy.array([[1, 0], [0, -1j]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
@@ -144,7 +148,7 @@ class SdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
-        return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -179,23 +183,26 @@ class CSGate(ControlledGate):
                 0 & 0 & 0 & i
             \end{pmatrix}
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _ARRAY_1 = numpy.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1j],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
-    _matrix0 = numpy.array(
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, 1j, 0],
             [0, 0, 0, 1],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
+    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CS gate."""
@@ -215,10 +222,8 @@ class CSGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CS gate."""
-        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        mat = self._ARRAY_1 if self.ctrl_state == 1 else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -253,23 +258,26 @@ class CSdgGate(ControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _ARRAY_1 = numpy.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, -1j],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
-    _matrix0 = numpy.array(
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
         [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
             [0, 0, -1j, 0],
             [0, 0, 0, 1],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
+    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSdg gate."""
@@ -295,10 +303,8 @@ class CSdgGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CSdg gate."""
-        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        mat = self._ARRAY_1 if self.ctrl_state == 1 else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

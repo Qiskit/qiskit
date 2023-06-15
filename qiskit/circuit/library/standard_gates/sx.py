@@ -57,6 +57,10 @@ class SXGate(Gate):
                     = e^{-i \pi/4} \sqrt{X}
 
     """
+    _ARRAY = numpy.array(
+        [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]], dtype=numpy.complex128
+    )
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
@@ -109,7 +113,7 @@ class SXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the SX gate."""
-        return numpy.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=dtype) / 2
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class SXdgGate(Gate):
@@ -140,6 +144,10 @@ class SXdgGate(Gate):
                     = e^{-i pi/4} \sqrt{X}^{\dagger}
 
     """
+    _ARRAY = numpy.array(
+        [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]], dtype=numpy.complex128
+    )
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
@@ -167,7 +175,7 @@ class SXdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the SXdg gate."""
-        return numpy.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]], dtype=dtype) / 2
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class CSXGate(ControlledGate):
@@ -225,23 +233,26 @@ class CSXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
+    _ARRAY_1 = numpy.array(
         [
             [1, 0, 0, 0],
             [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
             [0, 0, 1, 0],
             [0, (1 - 1j) / 2, 0, (1 + 1j) / 2],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
-    _matrix0 = numpy.array(
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
         [
             [(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
             [0, 1, 0, 0],
             [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
             [0, 0, 0, 1],
-        ]
+        ],
+        dtype=numpy.complex128,
     )
+    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSX gate."""
@@ -267,7 +278,5 @@ class CSXGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CSX gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)

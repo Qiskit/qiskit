@@ -70,6 +70,8 @@ class ZGate(Gate):
         |0\rangle \rightarrow |0\rangle \\
         |1\rangle \rightarrow -|1\rangle
     """
+    _ARRAY = numpy.array([[1, 0], [0, -1]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
@@ -120,7 +122,7 @@ class ZGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
-        return numpy.array([[1, 0], [0, -1]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -159,6 +161,14 @@ class CZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
+    _ARRAY_1 = numpy.array(
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=numpy.complex128
+    )
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=numpy.complex128
+    )
+    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CZ gate."""
@@ -190,14 +200,8 @@ class CZGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CZ gate."""
-        if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=dtype
-            )
-        else:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
-            )
+        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)
 
 
 class CCZGate(ControlledGate):
@@ -238,6 +242,7 @@ class CCZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
+    _ARRAYS = [None, None, None, None]
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCZ gate."""
@@ -269,9 +274,13 @@ class CCZGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CCZ gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        if self._ARRAYS[self.ctrl_state] is None:
+            mat = numpy.asarray(
+                _compute_control_matrix(
+                    self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+                ),
+                dtype=numpy.complex128,
+            )
+            mat.setflags(write=False)
+            self._ARRAYS[self.ctrl_state] = mat
+        return numpy.asarray(self._ARRAYS[self.ctrl_state], dtype=dtype)

@@ -43,6 +43,8 @@ class IGate(Gate):
         q_0: ┤ I ├
              └───┘
     """
+    _ARRAY = numpy.eye(2, dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new Identity gate."""
@@ -54,7 +56,7 @@ class IGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""
-        return numpy.array([[1, 0], [0, 1]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

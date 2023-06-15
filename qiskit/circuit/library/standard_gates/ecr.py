@@ -79,6 +79,10 @@ class ECRGate(Gate):
                     -i  & 1   &  0  & 0
                 \end{pmatrix}
     """
+    _ARRAY = sqrt(0.5) * np.array(
+        [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]], dtype=np.complex128
+    )
+    _ARRAY.setflags(write=False)
 
     def __init__(self):
         """Create new ECR gate."""
@@ -107,13 +111,6 @@ class ECRGate(Gate):
         """Return inverse ECR gate (itself)."""
         return ECRGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the ECR gate."""
-        return (
-            1
-            / sqrt(2)
-            * np.array(
-                [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]],
-                dtype=complex,
-            )
-        )
+        return np.asarray(self._ARRAY, dtype=dtype)

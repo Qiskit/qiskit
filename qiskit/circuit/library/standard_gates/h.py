@@ -49,6 +49,8 @@ class HGate(Gate):
                 1 & -1
             \end{pmatrix}
     """
+    _ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new H gate."""
@@ -101,7 +103,7 @@ class HGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the H gate."""
-        return numpy.array([[1, 1], [1, -1]], dtype=dtype) / numpy.sqrt(2)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class CHGate(ControlledGate):
@@ -160,16 +162,16 @@ class CHGate(ControlledGate):
                     0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
-    # Define class constants. This saves future allocation time.
-    _sqrt2o2 = 1 / sqrt(2)
-    _matrix1 = numpy.array(
-        [[1, 0, 0, 0], [0, _sqrt2o2, 0, _sqrt2o2], [0, 0, 1, 0], [0, _sqrt2o2, 0, -_sqrt2o2]],
-        dtype=complex,
+    _ARRAY_1 = numpy.array(
+        [[1, 0, 0, 0], [0, sqrt(0.5), 0, sqrt(0.5)], [0, 0, 1, 0], [0, sqrt(0.5), 0, -sqrt(0.5)]],
+        dtype=numpy.complex128,
     )
-    _matrix0 = numpy.array(
-        [[_sqrt2o2, 0, _sqrt2o2, 0], [0, 1, 0, 0], [_sqrt2o2, 0, -_sqrt2o2, 0], [0, 0, 0, 1]],
-        dtype=complex,
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
+        [[sqrt(0.5), 0, sqrt(0.5), 0], [0, 1, 0, 0], [sqrt(0.5), 0, -sqrt(0.5), 0], [0, 0, 0, 1]],
+        dtype=numpy.complex128,
     )
+    _ARRAY_0.setflags(write=True)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[int, str]] = None):
         """Create new CH gate."""
@@ -215,7 +217,5 @@ class CHGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CH gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)

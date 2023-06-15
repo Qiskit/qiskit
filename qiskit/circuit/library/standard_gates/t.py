@@ -52,6 +52,8 @@ class TGate(Gate):
 
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
+    _ARRAY = numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
@@ -80,7 +82,7 @@ class TGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
-        return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -116,6 +118,8 @@ class TdgGate(Gate):
 
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
+    _ARRAY = numpy.array([[1, 0], [0, (1 - 1j) / numpy.sqrt(2)]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
@@ -144,7 +148,7 @@ class TdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

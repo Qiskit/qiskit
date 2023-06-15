@@ -71,6 +71,8 @@ class XGate(Gate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
+    _ARRAY = numpy.array([[0, 1], [1, 0]], dtype=numpy.complex128)
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
@@ -121,7 +123,7 @@ class XGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the X gate."""
-        return numpy.array([[0, 1], [1, 0]], dtype=dtype)
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class CXGate(ControlledGate):
@@ -186,6 +188,14 @@ class CXGate(ControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
+    _ARRAY_1 = numpy.array(
+        [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=numpy.complex128
+    )
+    _ARRAY_1.setflags(write=False)
+    _ARRAY_0 = numpy.array(
+        [[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=numpy.complex128
+    )
+    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CX gate."""
@@ -247,14 +257,8 @@ class CXGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CX gate."""
-        if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=dtype
-            )
-        else:
-            return numpy.array(
-                [[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=dtype
-            )
+        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
+        return numpy.asarray(mat, dtype=dtype)
 
 
 class CCXGate(ControlledGate):
@@ -324,6 +328,7 @@ class CCXGate(ControlledGate):
                 \end{pmatrix}
 
     """
+    _ARRAYS = [None, None, None, None]
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCX gate."""
@@ -403,12 +408,16 @@ class CCXGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CCX gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        if self._ARRAYS[self.ctrl_state] is None:
+            mat = numpy.asarray(
+                _compute_control_matrix(
+                    self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+                ),
+                dtype=numpy.complex128,
+            )
+            mat.setflags(write=False)
+            self._ARRAYS[self.ctrl_state] = mat
+        return numpy.asarray(self._ARRAYS[self.ctrl_state], dtype=dtype)
 
 
 class RCCXGate(Gate):
@@ -426,6 +435,21 @@ class RCCXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
+
+    _ARRAY = numpy.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, -1j],
+            [0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, -1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 1j, 0, 0, 0, 0],
+        ],
+        dtype=numpy.complex128,
+    )
+    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
@@ -468,19 +492,7 @@ class RCCXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the simplified CCX gate."""
-        return numpy.array(
-            [
-                [1, 0, 0, 0, 0, 0, 0, 0],
-                [0, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 1, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, -1j],
-                [0, 0, 0, 0, 1, 0, 0, 0],
-                [0, 0, 0, 0, 0, -1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 1, 0],
-                [0, 0, 0, 1j, 0, 0, 0, 0],
-            ],
-            dtype=dtype,
-        )
+        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class C3SXGate(ControlledGate):
