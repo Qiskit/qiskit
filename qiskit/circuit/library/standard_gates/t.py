@@ -52,7 +52,7 @@ class TGate(Gate):
 
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
-    _ARRAY = numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=numpy.complex128)
+    _ARRAY = numpy.array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]], dtype=numpy.complex128)
     _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
@@ -118,7 +118,7 @@ class TdgGate(Gate):
 
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
-    _ARRAY = numpy.array([[1, 0], [0, (1 - 1j) / numpy.sqrt(2)]], dtype=numpy.complex128)
+    _ARRAY = numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=numpy.complex128)
     _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
