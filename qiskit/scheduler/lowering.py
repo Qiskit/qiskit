@@ -63,11 +63,9 @@ def lower_gates(
 
     if schedule_config is None and target is None:
         raise QiskitError("Either schedule_config or target must be specified.")
-
     inst_map = target.instruction_schedule_map() if target else schedule_config.inst_map
     meas_map = target.meas_map if target else schedule_config.meas_map
     dt = target.dt if target else schedule_config.dt
-
     circ_pulse_defs = []
 
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
@@ -107,6 +105,7 @@ def lower_gates(
             qubit_mem_slots.update(acquire_excludes)
             meas_sched = measure(
                 qubits=qubits,
+                target=target,
                 inst_map=inst_map,
                 meas_map=meas_map,
                 qubit_mem_slots=qubit_mem_slots,

@@ -27,7 +27,6 @@ from qiskit.transpiler import Target
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
 from qiskit.tools.parallel import parallel_map
-from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +36,6 @@ def _log_schedule_time(start_time, end_time):
     logger.info(log_msg)
 
 
-@deprecate_arg(
-    "backend",
-    additional_msg=("'backend' argument becomes required from Optional."),
-    since="0.25.0",
-)
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
@@ -82,9 +76,9 @@ def schedule(
         if dt is None:
             dt = backend.dt
         target = Target.from_configuration(
-            basis_gates=backend.operation_names
-            if isinstance(backend, BackendV2)
-            else backend.configuration().basis_gates,
+            basis_gates=backend.operation_names,
+            num_qubits=backend.num_qubits,
+            coupling_map=backend.coupling_map,
             inst_map=inst_map,
             meas_map=meas_map,
             dt=dt,
