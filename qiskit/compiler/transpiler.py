@@ -319,6 +319,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     # it is invalidated by a custom basis gate list or a custom coupling map
     elif basis_gates or coupling_map:
         _skip_target = True
+    else:
+        target = getattr(backend, "target", None)
 
     initial_layout = _parse_initial_layout(initial_layout)
     coupling_map = _parse_coupling_map(coupling_map, backend)
