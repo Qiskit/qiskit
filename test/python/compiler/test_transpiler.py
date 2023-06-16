@@ -1653,7 +1653,7 @@ class TestTranspile(QiskitTestCase):
         qc.y(0)
         qc.barrier()
         qc.z(0)
-        transpiled = transpile(qc, basis_gates=basis)
+        transpiled = transpile(qc, basis_gates=basis, optimization_level=opt_level)
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
 
