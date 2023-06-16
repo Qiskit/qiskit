@@ -36,8 +36,7 @@ with the following parameters
   (list of list of float).
 
 The method returns a :class:`~qiskit.providers.JobV1` object, calling
-:meth:`qiskit.providers.JobV1.result()` yields the
-a list of expectation values plus optional metadata like confidence intervals for
+:meth:`qiskit.providers.JobV1.result()` yields a list of expectation values plus optional metadata like confidence intervals for
 the estimation.
 
 .. math::
