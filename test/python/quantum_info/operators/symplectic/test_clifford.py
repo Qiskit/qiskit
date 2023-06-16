@@ -586,7 +586,7 @@ class TestCliffordGates(QiskitTestCase):
                 qc.sdg(0)
                 self.definition = qc
 
-        Clifford(MyHGate())
+        print(Clifford(MyHGate()))
 
 
 @ddt
