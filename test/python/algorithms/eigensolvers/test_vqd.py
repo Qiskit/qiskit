@@ -103,6 +103,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             )
             np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
 
+        with self.subTest(msg="assert returned values are eigenvalues"):
+            np.testing.assert_array_almost_equal(
+                result.optimal_values, self.h2_energy_excited[:2], decimal=3
+            )
+
     def test_full_spectrum(self):
         """Test obtaining all eigenvalues."""
         vqd = VQD(self.estimator, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B(), k=4)
@@ -199,24 +204,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
-
-    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
-    def test_optimal_values(self, op):
-        """Test running same VQD twice to re-use optimizer, then switch optimizer"""
-
-        vqd = VQD(
-            estimator=self.estimator,
-            fidelity=self.fidelity,
-            ansatz=RealAmplitudes(),
-            optimizer=SLSQP(),
-            k=2,
-            betas=self.betas,
-        )
-
-        result = vqd.compute_eigenvalues(operator=op)
-        np.testing.assert_array_almost_equal(
-            result.optimal_values, self.h2_energy_excited[:2], decimal=3
-        )
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_vqd_optimizer(self, op):
