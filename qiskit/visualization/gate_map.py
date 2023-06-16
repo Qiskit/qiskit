@@ -1261,7 +1261,7 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
             plot_error_map(backend)
     """
     import seaborn as sns
-    
+
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     backend_version = _get_backend_interface_version(backend)
