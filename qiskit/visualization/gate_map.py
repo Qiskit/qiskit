@@ -1026,7 +1026,7 @@ def plot_coupling_map(
         qubit_size = 24
 
     if num_qubits > 20:
-        qubit_size = 18
+        qubit_size = 20
         font_size = 10
 
     if qubit_labels is None:
@@ -1037,11 +1037,6 @@ def plot_coupling_map(
 
     if not label_qubits:
         qubit_labels = [""] * num_qubits
-
-    if qubit_color is None:
-        qubit_color = ["#648fff"] * num_qubits
-    if line_color is None:
-        line_color = ["#648fff"] * len(coupling_map)
 
     # set coloring
     if qubit_color is None:
@@ -1089,6 +1084,7 @@ def plot_coupling_map(
         out_dict["fontsize"] = str(font_size)
         out_dict["height"] = str(qubit_size * px)
         out_dict["pin"] = "True"
+        out_dict["fixedsize"] = "True"
         return out_dict
 
     def color_edge(edge):
