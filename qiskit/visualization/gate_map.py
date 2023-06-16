@@ -17,7 +17,6 @@ from typing import List
 
 import numpy as np
 from rustworkx.visualization import graphviz_draw
-import seaborn as sns
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -1261,6 +1260,8 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
             backend = FakeVigoV2()
             plot_error_map(backend)
     """
+    import seaborn as sns
+    
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
     backend_version = _get_backend_interface_version(backend)
