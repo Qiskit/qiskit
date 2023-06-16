@@ -1238,6 +1238,22 @@ class TestParameterExpressions(QiskitTestCase):
         bound_expr = x.bind({x: 2.3})
         self.assertEqual(bound_expr, 2.3)
 
+    def test_cast_to_complex_when_bound(self):
+        """Verify that the cast to complex works for bound objects."""
+        x = Parameter("x")
+        y = Parameter("y")
+        bound_expr = (x + y).bind({x: 1.0, y: 1j})
+        self.assertEqual(complex(bound_expr), 1 + 1j)
+
+    def test_raise_if_cast_to_complex_when_not_fully_bound(self):
+        """Verify raises if casting to complex and not fully bound."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+        bound_expr = (x + y).bind({x: 1j})
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            complex(bound_expr)
+
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
 
@@ -1251,6 +1267,22 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         expr = x - x + 2.3
         self.assertEqual(float(expr), 2.3)
+
+    def test_cast_to_float_intermediate_complex_value(self):
+        """Verify expression can be cast to a float when it is fully bound, but an intermediate part
+        of the expression evaluation involved complex types.  Sympy is generally more permissive
+        than symengine here, and sympy's tends to be the expected behaviour for our users."""
+        x = Parameter("x")
+        bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
+        self.assertEqual(float(bound_expr), 1.0)
+
+    def test_cast_to_float_of_complex_fails(self):
+        """Test that an attempt to produce a float from a complex value fails if there is an
+        imaginary part, with a sensible error message."""
+        x = Parameter("x")
+        bound_expr = (x + 1.0j).bind({x: 1.0})
+        with self.assertRaisesRegex(TypeError, "could not cast expression to float"):
+            float(bound_expr)
 
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
         """Verify raises if casting to float and not fully bound."""
