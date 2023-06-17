@@ -6,7 +6,7 @@ features:
     instead of a Matplotlib Figure. If a `filename` is provided, the high-res PIL image is directly 
     saved. Otherwise, it is converted to a Matplotlib figure.  
 
-upgrades:
+upgrade:
   - |
     The gate map visualization methods
     The plotting functions in the ``qiskit.visualization.gate_map`` file now use the function
