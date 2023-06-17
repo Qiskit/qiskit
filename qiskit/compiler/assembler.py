@@ -173,7 +173,13 @@ def assemble(
         pulse_qobj=pulse_qobj,
         **run_config,
     )
+    # Verify that rep_time is chosen from the backend's rep_times
+    backend_rep_times = backend.configuration().rep_times
 
+    if rep_time is not None and rep_time not in backend_rep_times:
+        raise QiskitError("Invalid repetition time. Choose from the list provided by the backend: "
+                          f"{backend_rep_times}")
+        
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
         run_config = _parse_circuit_args(
