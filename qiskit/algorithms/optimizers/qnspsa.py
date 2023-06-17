@@ -259,6 +259,9 @@ class QNSPSA(SPSA):
         "backend",
         since="0.24.0",
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+        # We allow passing a sampler as the second argument because that will become a positional
+        # argument for `sampler` after removing `backend` and `expectation`.
+        predicate=lambda backend: not isinstance(backend, BaseSampler),
     )
     @deprecate_arg(
         "expectation",

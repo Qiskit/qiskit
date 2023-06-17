@@ -1,43 +1,46 @@
 ---
+# We use quotes around users who don`t want a GitHub notification,
+# but whom we still want their name in the Qiskit Bot message so
+# people know they are relevant.
 notifications:
     ".*":
-        - "@Qiskit/terra-core"
+        - "`@Qiskit/terra-core`"
     "visualization/pulse_v2":
-        - "@nkanazawa1989"
+        - "`@nkanazawa1989`"
     "visualization/timeline":
-        - "@nkanazawa1989"
+        - "`@nkanazawa1989`"
     "pulse":
-        - "@nkanazawa1989"
+        - "`@nkanazawa1989`"
     "scheduler":
-        - "@nkanazawa1989"
+        - "`@nkanazawa1989`"
     "qpy":
-        - "@mtreinish"
-        - "@nkanazawa1989"
+        - "`@mtreinish`"
+        - "`@nkanazawa1989`"
     "two_qubit_decompose":
-        - "@levbishop"
+        - "`@levbishop`"
     "quantum_info":
-        - "@ikkoham"
+        - "`@ikkoham`"
     "utils/run_circuits":
-        - "@woodsp-ibm"
+        - "`@woodsp-ibm`"
     "utils/quantum_instance":
-        - "@woodsp-ibm"
+        - "`@woodsp-ibm`"
     "opflow":
-        - "@woodsp-ibm"
-        - "@Cryoris"
+        - "`@woodsp-ibm`"
+        - "`@Cryoris`"
     "algorithms":
-        - "@ElePT"
-        - "@woodsp-ibm"
+        - "`@ElePT`"
+        - "`@woodsp-ibm`"
     "circuit/library":
-        - "@Cryoris"
-        - "@ajavadia"
+        - "`@Cryoris`"
+        - "`@ajavadia`"
     "primitives":
-        - "@ikkoham"
-        - "@t-imamichi"
-        - "@ajavadia"
-        - "@levbishop"
+        - "`@ikkoham`"
+        - "`@t-imamichi`"
+        - "`@ajavadia`"
+        - "`@levbishop`"
     ".*\\.rs$|^Cargo":
-        - "@mtreinish"
-        - "@kevinhartman"
+        - "`@mtreinish`"
+        - "`@kevinhartman`"
         - "@Eric-Arellano"
     "(?!.*pulse.*)\\bvisualization\\b":
         - "@enavarro51"

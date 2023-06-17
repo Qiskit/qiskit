@@ -21,11 +21,10 @@ from qiskit.algorithms.optimizers import Minimizer, Optimizer
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.opflow import PauliSumOp, PrimitiveOp
+from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseSampler
 from qiskit.utils.validation import validate_min
 
-from ..exceptions import AlgorithmError
 from .sampling_vqe import SamplingVQE
 
 
@@ -136,13 +135,6 @@ class QAOA(SamplingVQE):
         )
 
     def _check_operator_ansatz(self, operator: BaseOperator | PauliSumOp):
-        if isinstance(operator, BaseOperator):
-            try:
-                operator = PrimitiveOp(operator)
-            except TypeError as error:
-                raise AlgorithmError(
-                    f"Unsupported operator type {type(operator)} passed to QAOA."
-                ) from error
         # Recreates a circuit based on operator parameter.
         self.ansatz = QAOAAnsatz(
             operator, self.reps, initial_state=self.initial_state, mixer_operator=self.mixer

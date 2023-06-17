@@ -19,6 +19,7 @@ from collections import OrderedDict, defaultdict
 
 import rustworkx as rx
 
+from qiskit.circuit.controlflow.condition import condition_bits
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
@@ -91,7 +92,7 @@ class DAGDependency:
         self.name = None
 
         # Circuit metadata
-        self.metadata = None
+        self.metadata = {}
 
         # Directed multigraph whose nodes are operations(gates) and edges
         # represent non-commutativity between two gates.
@@ -394,11 +395,8 @@ class DAGDependency:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                if isinstance(operation.condition[0], Clbit):
-                    condition_bits = [operation.condition[0]]
-                else:
-                    condition_bits = operation.condition[0]
-                cindices_list = [self.clbits.index(clbit) for clbit in condition_bits]
+                cond_bits = condition_bits(operation.condition)
+                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
         else:
@@ -591,8 +589,10 @@ class DAGDependency:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if nd.op.condition:
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_bits(cond))
 
         # Create replacement node
         new_node = self._create_op_node(

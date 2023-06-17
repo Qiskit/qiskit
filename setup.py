@@ -58,7 +58,7 @@ toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.24.0",
+    version="0.25.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -75,7 +75,6 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -86,7 +85,7 @@ setup(
     packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     extras_require={
         "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
@@ -111,9 +110,13 @@ setup(
             debug=rust_debug,
         ),
         RustExtension(
-            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
         ),
     ],
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [

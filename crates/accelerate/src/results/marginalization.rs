@@ -152,19 +152,24 @@ pub fn marginal_memory(
             .collect()
     };
     if return_int {
-        if out_mem.len() < parallel_threshold || !run_in_parallel {
-            Ok(out_mem
-                .iter()
-                .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
-                .collect::<Vec<BigUint>>()
-                .to_object(py))
-        } else {
-            Ok(out_mem
-                .par_iter()
-                .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
-                .collect::<Vec<BigUint>>()
-                .to_object(py))
-        }
+        // Replace with:
+        //
+        // .iter()
+        // .map(|x| BigUint::parse_bytes(x.as_bytes(), 2).unwrap())
+        // .collect::<Vec<BigUint>>()
+        // .to_object(py))
+        //
+        // (also this can be done in parallel, see
+        // https://github.com/Qiskit/qiskit-terra/pull/10120 for more
+        // details)
+        //
+        // After PyO3/pyo3#3198 is included in a pyo3 release.
+        let int_pyobject = py.import("builtins")?.getattr("int")?;
+        Ok(out_mem
+            .iter()
+            .map(|x| int_pyobject.call1((x, 2u8)).unwrap())
+            .collect::<Vec<_>>()
+            .to_object(py))
     } else {
         Ok(out_mem.to_object(py))
     }

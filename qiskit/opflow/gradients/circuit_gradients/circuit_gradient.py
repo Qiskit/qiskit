@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,12 +17,13 @@ from typing import List, Union, Optional, Tuple, Set
 
 from qiskit import QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.utils.deprecation import deprecate_func
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
 
 class CircuitGradient(ConverterBase):
-    r"""Circuit to gradient operator converter.
+    r"""Deprecated: Circuit to gradient operator converter.
 
     Converter for changing parameterized circuits into operators
     whose evaluation yields the gradient with respect to the circuit parameters.
@@ -35,6 +36,14 @@ class CircuitGradient(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate operator flow data structures
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
+
+    # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
         self,
