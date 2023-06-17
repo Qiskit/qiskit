@@ -1,15 +1,19 @@
 ---
-prelude: >
-    The following modules in `qiskit-terra/qiskit/visualization/gate_map.py` have been 
-    updated to leverage graphviz plotting for gate maps:
-    - `plot_gate_map` 
-    - `plot_coupling_map`
-    - `plot_circuit_layout`
-    - `plot_error_map` 
-    This allows the plotting of backends with large number of qubits without causing
-    issues due to migration to matplotlib. 
-
-fixes:
+features:
   - |
-    Fixes the gate maap visualizations in `qiskit-terra/qiskit/visualization/gate_map.py`. 
-    Refer to `#9031 <https://github.com/Qiskit/qiskit-terra/issues/9031>` for more details.
+    The gate map visualizations in the ``qiskit.visualization.gate_map`` file have been
+    improved for rendering layouts of large backends. The plots are now rendered as a PIL image
+    instead of a Matplotlib Figure. If a `filename` is provided, the high-res PIL image is directly 
+    saved. Otherwise, it is converted to a Matplotlib figure.  
+
+upgrades:
+  - |
+    The gate map visualization methods
+    The plotting functions in the ``qiskit.visualization.gate_map`` file now use the function
+    func:`~rustworkx.graphviz_draw` instead of matplotlib to render the plots. In case `qubit_coordinates` 
+    is not available in the function :func:`~qiskit.visualization.plot_gate_map`, the  
+    func:~`rustworkx.spring_layout` function is not used for the graph layout anymore; instead the
+    `func:~rustworkx.graphviz_draw` function automatically renders the layout. 
+    This allows the effective layout rendering of large graphs. 
+    As the visualization methods now rely on graphviz, install it before using them.  
+    Fixes `#9031 <https://github.com/Qiskit/qiskit-terra/issues/9031>`__.
