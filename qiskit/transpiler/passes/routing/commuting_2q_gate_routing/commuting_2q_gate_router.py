@@ -11,11 +11,10 @@
 # that they have been altered from the originals.
 
 """A swap strategy pass for blocks of commuting gates."""
-
+from __future__ import annotations
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
 
-from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import Gate, QuantumCircuit, Qubit
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler import TransformationPass, Layout, TranspilerError
@@ -105,8 +104,8 @@ class Commuting2qGateRouter(TransformationPass):
 
     def __init__(
         self,
-        swap_strategy: Optional[SwapStrategy] = None,
-        edge_coloring: Optional[Dict[Tuple[int, int], int]] = None,
+        swap_strategy: SwapStrategy | None = None,
+        edge_coloring: dict[tuple[int, int], int] | None = None,
     ) -> None:
         r"""
         Args:
@@ -127,7 +126,7 @@ class Commuting2qGateRouter(TransformationPass):
         """
         super().__init__()
         self._swap_strategy = swap_strategy
-        self._bit_indices = None
+        self._bit_indices: dict[Qubit, int] | None = None
         self._edge_coloring = edge_coloring
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -204,7 +203,7 @@ class Commuting2qGateRouter(TransformationPass):
         """
         # Add all the non-swap strategy nodes that we have accumulated up to now.
         order = layout.reorder_bits(new_dag.qubits)
-        order_bits = [None] * len(layout)
+        order_bits: list[int | None] = [None] * len(layout)
         for idx, val in enumerate(order):
             order_bits[val] = idx
 
@@ -213,7 +212,8 @@ class Commuting2qGateRouter(TransformationPass):
         # Re-initialize the node accumulator
         return new_dag.copy_empty_like()
 
-    def _position_in_cmap(self, dag, j: int, k: int, layout: Layout) -> Tuple[int, ...]:
+
+    def _position_in_cmap(self, j: int, k: int, layout: Layout) -> tuple[int, ...]:
         """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
@@ -229,7 +229,9 @@ class Commuting2qGateRouter(TransformationPass):
 
         return bit0, bit1
 
-    def _build_sub_layers(self, current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
+    def _build_sub_layers(
+        self, current_layer: dict[tuple[int, int], Gate]
+    ) -> list[dict[tuple[int, int], Gate]]:
         """A helper method to build-up sets of gates to simultaneously apply.
 
         This is done with an edge coloring if the ``edge_coloring`` init argument was given or with
@@ -254,10 +256,12 @@ class Commuting2qGateRouter(TransformationPass):
             return self._greedy_build_sub_layers(current_layer)
 
     def _edge_coloring_build_sub_layers(
-        self, current_layer: Dict[tuple, Gate]
-    ) -> List[Dict[tuple, Gate]]:
+        self, current_layer: dict[tuple[int, int], Gate]
+    ) -> list[dict[tuple[int, int], Gate]]:
         """The edge coloring method of building sub-layers of commuting gates."""
-        sub_layers = [{} for _ in set(self._edge_coloring.values())]
+        sub_layers: list[dict[tuple[int, int], Gate]] = [
+            {} for _ in set(self._edge_coloring.values())
+        ]
         for edge, gate in current_layer.items():
             color = self._edge_coloring[edge]
             sub_layers[color][edge] = gate
@@ -265,11 +269,14 @@ class Commuting2qGateRouter(TransformationPass):
         return sub_layers
 
     @staticmethod
-    def _greedy_build_sub_layers(current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
+    def _greedy_build_sub_layers(
+        current_layer: dict[tuple[int, int], Gate]
+    ) -> list[dict[tuple[int, int], Gate]]:
         """The greedy method of building sub-layers of commuting gates."""
         sub_layers = []
         while len(current_layer) > 0:
-            current_sub_layer, remaining_gates, blocked_vertices = {}, {}, set()
+            current_sub_layer, remaining_gates = {}, {}
+            blocked_vertices: set[tuple] = set()
 
             for edge, evo_gate in current_layer.items():
                 if blocked_vertices.isdisjoint(edge):
@@ -340,10 +347,10 @@ class Commuting2qGateRouter(TransformationPass):
 
     def _make_op_layers(
         self, dag: DAGCircuit, op: Commuting2qBlock, layout: Layout, swap_strategy: SwapStrategy
-    ) -> Dict[int, Dict[tuple, Gate]]:
+    ) -> dict[int, dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
 
-        gate_layers = defaultdict(dict)
+        gate_layers: dict[int, dict[tuple, Gate]] = defaultdict(dict)
 
         for node in op.node_block:
             edge = (dag.find_bit(node.qargs[0]).index, dag.find_bit(node.qargs[1]).index)

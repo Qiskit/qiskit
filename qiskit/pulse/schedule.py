@@ -1326,44 +1326,38 @@ class ScheduleBlock:
         *filter_funcs: List[Callable],
         channels: Optional[Iterable[Channel]] = None,
         instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
-        time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-        intervals: Optional[Iterable[Interval]] = None,
         check_subroutine: bool = True,
     ):
-        """Return a new ``Schedule`` with only the instructions from this ``ScheduleBlock``
-        which pass though the provided filters; i.e. an instruction will be retained iff
+        """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
+        which pass though the provided filters; i.e. an instruction will be retained if
         every function in ``filter_funcs`` returns ``True``, the instruction occurs on
-        a channel type contained in ``channels``, the instruction type is contained
-        in ``instruction_types``, and the period over which the instruction operates
-        is *fully* contained in one specified in ``time_ranges`` or ``intervals``.
+        a channel type contained in ``channels``, and the instruction type is contained
+        in ``instruction_types``.
+
+        .. warning::
+            Because ``ScheduleBlock`` is not aware of the execution time of
+            the context instructions, filtering out some instructions may
+            change the execution time of the remaining instructions.
 
         If no arguments are provided, ``self`` is returned.
 
-        .. note:: This method is currently not supported. Support will be soon added
-            please create an issue if you believe this must be prioritized.
-
         Args:
-            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
-                tuple and return a bool.
+            filter_funcs: A list of Callables which take a ``Instruction`` and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
             instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
-            time_ranges: For example, ``[(0, 5), (6, 10)]``.
-            intervals: For example, ``[(0, 5), (6, 10)]``.
             check_subroutine: Set `True` to individually filter instructions inside a subroutine
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
         Returns:
-            ``Schedule`` consisting of instructions that matches with filtering condition.
-
-        Raises:
-            PulseError: When this method is called. This method will be supported soon.
+            ``ScheduleBlock`` consisting of instructions that matches with filtering condition.
         """
-        raise PulseError(
-            "Method ``ScheduleBlock.filter`` is not supported as this program "
-            "representation does not have the notion of an explicit instruction "
-            "time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to "
-            "this program to obtain the ``Schedule`` representation supporting "
-            "this method."
+        from qiskit.pulse.filters import composite_filter, filter_instructions
+
+        filters = composite_filter(channels, instruction_types)
+        filters.extend(filter_funcs)
+
+        return filter_instructions(
+            self, filters=filters, negate=False, recurse_subroutines=check_subroutine
         )
 
     def exclude(
@@ -1371,41 +1365,37 @@ class ScheduleBlock:
         *filter_funcs: List[Callable],
         channels: Optional[Iterable[Channel]] = None,
         instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
-        time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-        intervals: Optional[Iterable[Interval]] = None,
         check_subroutine: bool = True,
     ):
-        """Return a ``Schedule`` with only the instructions from this Schedule *failing*
-        at least one of the provided filters.
+        """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
+        *failing* at least one of the provided filters.
         This method is the complement of py:meth:`~self.filter`, so that::
 
-            self.filter(args) | self.exclude(args) == self
+            self.filter(args) + self.exclude(args) == self in terms of instructions included.
 
-        .. note:: This method is currently not supported. Support will be soon added
-            please create an issue if you believe this must be prioritized.
+        .. warning::
+            Because ``ScheduleBlock`` is not aware of the execution time of
+            the context instructions, excluding some instructions may
+            change the execution time of the remaining instructions.
 
         Args:
-            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
-                tuple and return a bool.
+            filter_funcs: A list of Callables which take a ``Instruction`` and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
             instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
-            time_ranges: For example, ``[(0, 5), (6, 10)]``.
-            intervals: For example, ``[(0, 5), (6, 10)]``.
             check_subroutine: Set `True` to individually filter instructions inside of a subroutine
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
         Returns:
-            ``Schedule`` consisting of instructions that are not match with filtering condition.
-
-        Raises:
-            PulseError: When this method is called. This method will be supported soon.
+            ``ScheduleBlock`` consisting of instructions that do not match with
+            at least one of filtering conditions.
         """
-        raise PulseError(
-            "Method ``ScheduleBlock.exclude`` is not supported as this program "
-            "representation does not have the notion of instruction "
-            "time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to "
-            "this program to obtain the ``Schedule`` representation supporting "
-            "this method."
+        from qiskit.pulse.filters import composite_filter, filter_instructions
+
+        filters = composite_filter(channels, instruction_types)
+        filters.extend(filter_funcs)
+
+        return filter_instructions(
+            self, filters=filters, negate=True, recurse_subroutines=check_subroutine
         )
 
     def replace(
