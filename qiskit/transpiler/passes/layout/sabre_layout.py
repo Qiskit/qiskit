@@ -189,7 +189,7 @@ class SabreLayout(TransformationPass):
 
             physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
             physical_qubits = rng.permutation(physical_qubits)
-            initial_layout = Layout({dag.find_bit(dag.qubits[i]).index for i in physical_qubits})
+            initial_layout = Layout({q: dag.qubits[i] for i, q in enumerate(physical_qubits)})
 
             self.routing_pass.fake_run = True
 
@@ -262,7 +262,7 @@ class SabreLayout(TransformationPass):
             {dag.qubits[k]: v for (k, v) in final_layout_dict.items()}
         )
         canonical_register = dag.qregs["q"]
-        qubit_indices = {bit: dag.find_bit(bit).index for bit in canonical_register}
+        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
         for (
             _layout_dict,

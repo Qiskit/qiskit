@@ -79,7 +79,7 @@ class CheckGateDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-        wire_map = {bit: dag.find_bit(bit).index for bit in dag.qubits}
+        wire_map = {bit: i for i, bit in enumerate(dag.qubits)}
         self.property_set["is_direction_mapped"] = (
             self._coupling_map_visit(dag, wire_map)
             if self.target is None

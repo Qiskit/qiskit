@@ -212,8 +212,7 @@ class Commuting2qGateRouter(TransformationPass):
         # Re-initialize the node accumulator
         return new_dag.copy_empty_like()
 
-
-    def _position_in_cmap(self, j: int, k: int, layout: Layout) -> tuple[int, ...]:
+    def _position_in_cmap(self, dag: DAGCircuit, j: int, k: int, layout: Layout) -> tuple[int, ...]:
         """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
@@ -364,7 +363,7 @@ class Commuting2qGateRouter(TransformationPass):
 
         return gate_layers
 
-    def _check_edges(self, dag, node: DAGOpNode, swap_strategy: SwapStrategy):
+    def _check_edges(self, dag: DAGCircuit, node: DAGOpNode, swap_strategy: SwapStrategy):
         """Check if the swap strategy can create the required connectivity.
 
         Args:

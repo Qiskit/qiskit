@@ -134,6 +134,8 @@ class BasisTranslator(TransformationPass):
         if self._target_basis is None and self._target is None:
             return dag
 
+        qarg_indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
+
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
@@ -143,7 +145,7 @@ class BasisTranslator(TransformationPass):
         else:
             basic_instrs = ["barrier", "snapshot"]
             target_basis = self._target.keys() - set(self._non_global_operations)
-            source_basis, qargs_local_source_basis = self._extract_basis_target(dag)
+            source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
 
@@ -230,17 +232,23 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
 
-        def apply_translation(dag):
+        def apply_translation(dag, wire_map):
             dag_updated = False
             for node in dag.op_nodes():
-                node_qargs = tuple(dag.find_bit(bit).index for bit in node.qargs)
+                node_qargs = tuple(wire_map[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
                 if node.name in target_basis:
                     if isinstance(node.op, ControlFlowOp):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            dag_updated = apply_translation(dag_block)
+                            dag_updated = apply_translation(
+                                dag_block,
+                                {
+                                    inner: wire_map[outer]
+                                    for inner, outer in zip(block.qubits, node.qargs)
+                                },
+                            )
                             if dag_updated:
                                 flow_circ_block = dag_to_circuit(dag_block)
                             else:
@@ -265,7 +273,7 @@ class BasisTranslator(TransformationPass):
                 dag_updated = True
             return dag_updated
 
-        apply_translation(dag)
+        apply_translation(dag, qarg_indices)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
@@ -335,14 +343,15 @@ class BasisTranslator(TransformationPass):
                 for block in instr.blocks:
                     yield from self._extract_basis(block)
 
-    def _extract_basis_target(self, dag, source_basis=None, qargs_local_source_basis=None):
+    def _extract_basis_target(
+        self, dag, qarg_indices, source_basis=None, qargs_local_source_basis=None
+    ):
         if source_basis is None:
             source_basis = set()
         if qargs_local_source_basis is None:
             qargs_local_source_basis = defaultdict(set)
         for node in dag.op_nodes():
-            qargs = tuple(dag.find_bit(bit).index for bit in node.qargs)
-
+            qargs = tuple(qarg_indices[bit] for bit in node.qargs)
             if dag.has_calibration_for(node):
                 continue
             # Treat the instruction as on an incomplete basis if the qargs are in the
@@ -366,6 +375,10 @@ class BasisTranslator(TransformationPass):
                     block_dag = circuit_to_dag(block)
                     source_basis, qargs_local_source_basis = self._extract_basis_target(
                         block_dag,
+                        {
+                            inner: qarg_indices[outer]
+                            for inner, outer in zip(block.qubits, node.qargs)
+                        },
                         source_basis=source_basis,
                         qargs_local_source_basis=qargs_local_source_basis,
                     )

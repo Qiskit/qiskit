@@ -1,18 +1,19 @@
 ---
 features:
   - |
-    A new :meth:`~qiskit.dagcircuit.dag.find_bit` method has
-    been added to the :class:`~qiskit.dagcircuit.DagCircuit` class,
-    which is a method to get mapping of Qubit and Clbit to positional index. 
+    A new method, :meth:`~qiskit.dagcircuit.dag.find_bit`, has
+    been added to the :class:`~qiskit.dagcircuit.DagCircuit` class.
+    This is a method to get mapping of Qubit and Clbit to positional index. 
     The method takes a Bit as input, checks whether it's a Qubit or a Clbit, 
-    and then returns the corresponding BitPosition from the respective index 
+    and then returns the corresponding BitLocations from the respective index 
     dictionary (_qubit_indices or _clbit_indices).
-    The BitPosition is a namedtuple which includes the positional index of the 
+    The BitLocations is a namedtuple which includes the positional index of the 
     bit in the circuit and a list of registers containing the bit. If the bit 
     cannot be found or is of an unknown type, it raises a DAGCircuitError.
 upgrade:
   - |
-    Transpiler passes have been replaced to use this new method. 
-    Updated add_qubit, add_clbit, add_qreg, add_creg, remove_qubit, 
-    remove_clbit, remove_qreg, remove_creg methods to update qubit 
-    and clbit indices and registers.
+    Transpiler passes have been updated to use this new method. 
+    Methods from :class:`~qiskit.dagcircuit.DagCircuit` such as
+    add_qubit, add_clbit, add_qreg, add_creg, remove_qubit, remove_clbit, 
+    remove_qreg, remove_creg, have been updated to maintain qubit and 
+    clbit indices and registers.

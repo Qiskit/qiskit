@@ -57,8 +57,7 @@ class MergeAdjacentBarriers(TransformationPass):
 
     def run(self, dag):
         """Run the MergeAdjacentBarriers pass on `dag`."""
-
-        indices = {qubit: dag.find_bit(qubit).index for qubit in dag.qubits}
+        indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
 
         # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense

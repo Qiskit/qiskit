@@ -163,7 +163,6 @@ class GateDirection(TransformationPass):
                         self._run_coupling_map(
                             circuit_to_dag(block),
                             {
-                                # inner: dag.find_bit(outer).index
                                 inner: wire_map[outer]
                                 for outer, inner in zip(node.qargs, block.qubits)
                             },
@@ -177,7 +176,6 @@ class GateDirection(TransformationPass):
                 continue
             if dag.has_calibration_for(node):
                 continue
-            # qargs = (dag.find_bit(node.qargs[0]).index, dag.find_bit(node.qargs[1]).index)
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             if qargs not in edges and (qargs[1], qargs[0]) not in edges:
                 raise TranspilerError(
@@ -326,7 +324,7 @@ class GateDirection(TransformationPass):
             TranspilerError: If the circuit cannot be mapped just by flipping the
                 cx nodes.
         """
-        layout_map = {bit: dag.find_bit(bit).index for bit in dag.qubits}
+        layout_map = {bit: i for i, bit in enumerate(dag.qubits)}
         if len(dag.qregs) > 1:
             raise TranspilerError(
                 "GateDirection expects a single qreg input DAG,"

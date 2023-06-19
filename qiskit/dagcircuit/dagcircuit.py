@@ -43,7 +43,7 @@ from qiskit.circuit.bit import Bit
 from qiskit.utils.deprecation import deprecate_func
 
 
-BitPosition = namedtuple("BitPosition", ("index", "registers"))
+BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
 
 class DAGCircuit:
@@ -97,8 +97,8 @@ class DAGCircuit:
         # 0) corresponding index in dag.{qubits,clbits} and
         # 1) a list of Register-int pairs for each Register containing the Bit and
         # its index within that register.
-        self._qubit_indices: Dict[Qubit, BitPosition] = {}
-        self._clbit_indices: Dict[Clbit, BitPosition] = {}
+        self._qubit_indices: Dict[Qubit, BitLocations] = {}
+        self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -233,7 +233,7 @@ class DAGCircuit:
 
         for qubit in qubits:
             self.qubits.append(qubit)
-            self._qubit_indices[qubit] = BitPosition(len(self.qubits) - 1, [])
+            self._qubit_indices[qubit] = BitLocations(len(self.qubits) - 1, [])
             self._add_wire(qubit)
 
     def add_clbits(self, clbits):
@@ -247,7 +247,7 @@ class DAGCircuit:
 
         for clbit in clbits:
             self.clbits.append(clbit)
-            self._clbit_indices[clbit] = BitPosition(len(self.clbits) - 1, [])
+            self._clbit_indices[clbit] = BitLocations(len(self.clbits) - 1, [])
             self._add_wire(clbit)
 
     def add_qreg(self, qreg):
@@ -263,7 +263,7 @@ class DAGCircuit:
                 self._qubit_indices[qreg[j]].registers.append((qreg, j))
             if qreg[j] not in existing_qubits:
                 self.qubits.append(qreg[j])
-                self._qubit_indices[qreg[j]] = BitPosition(
+                self._qubit_indices[qreg[j]] = BitLocations(
                     len(self.qubits) - 1, registers=[(qreg, j)]
                 )
                 self._add_wire(qreg[j])
@@ -281,7 +281,7 @@ class DAGCircuit:
                 self._clbit_indices[creg[j]].registers.append((creg, j))
             if creg[j] not in existing_clbits:
                 self.clbits.append(creg[j])
-                self._clbit_indices[creg[j]] = BitPosition(
+                self._clbit_indices[creg[j]] = BitLocations(
                     len(self.clbits) - 1, registers=[(creg, j)]
                 )
                 self._add_wire(creg[j])
@@ -311,10 +311,10 @@ class DAGCircuit:
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
-    def find_bit(self, bit: Bit) -> BitPosition:
+    def find_bit(self, bit: Bit) -> BitLocations:
         """
         Finds locations in the circuit, by mapping the Qubit and Clbit to positional index
-        BitPosition is defined as: BitPosition = namedtuple("BitPosition", ("index", "registers"))
+        BitLocations is defined as: BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
         Args:
             bit (Bit): The bit to locate.

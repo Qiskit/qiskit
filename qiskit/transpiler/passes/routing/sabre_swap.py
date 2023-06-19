@@ -230,7 +230,7 @@ class SabreSwap(TransformationPass):
         current_layout = Layout.generate_trivial_layout(canonical_register)
         self._qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         layout_mapping = {
-            dag.find_bit(k).index: v for k, v in current_layout.get_virtual_bits().items()
+            self._qubit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
         }
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
         original_layout = layout.copy()
@@ -245,7 +245,7 @@ class SabreSwap(TransformationPass):
             dag_list.append(
                 (
                     node._node_id,
-                    [dag.find_bit(x).index for x in node.qargs],
+                    [self._qubit_indices[x] for x in node.qargs],
                     cargs,
                 )
             )

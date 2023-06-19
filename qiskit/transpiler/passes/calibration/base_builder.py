@@ -60,7 +60,6 @@ class CalibrationBuilder(TransformationPass):
         Returns:
             A DAG with calibrations added to it.
         """
-
         for node in dag.gate_nodes():
             qubits = [dag.find_bit(q).index for q in node.qargs]
 

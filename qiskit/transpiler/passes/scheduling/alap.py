@@ -62,9 +62,9 @@ class ALAPSchedule(BaseSchedulerTransform):
             new_dag.add_creg(creg)
 
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
-        bit_indices = {bit: dag.find_bit(bit).index for bit in dag.qubits}
+        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
-            op_duration = self._get_node_duration(node, dag)
+            op_duration = self._get_node_duration(node, bit_indices, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction

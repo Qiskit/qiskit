@@ -189,10 +189,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Note: current implementation assumes that the CX error rates and
         crosstalk behavior are independent of gate direction
         """
-
         physical_q_0 = self.qubit_indices[gate.qargs[0]]
         physical_q_1 = self.qubit_indices[gate.qargs[1]]
-
         r_0 = min(physical_q_0, physical_q_1)
         r_1 = max(physical_q_0, physical_q_1)
         return (r_0, r_1)
@@ -387,7 +385,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
 
         for gate in self.gate_start_time:
             q_0 = self.qubit_indices[gate.qargs[0]]
-
             no_xtalk = False
             if gate not in self.xtalk_overlap_set:
                 no_xtalk = True
