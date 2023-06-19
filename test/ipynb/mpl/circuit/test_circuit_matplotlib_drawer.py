@@ -1014,7 +1014,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
             inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
             circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
         circuit.x(0)
-        self.circuit_drawer(circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], filename="if_else_op_wire_order.png")
+        self.circuit_drawer(
+            circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], filename="if_else_op_wire_order.png"
+        )
 
     def test_if_else_op_fold(self):
         """Test the IfElseOp with complex nested if/else and fold"""
@@ -1073,7 +1075,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         with circuit.for_loop((2, 4, 8, 16)) as i:
             circuit.h(0)
             circuit.cx(0, 1)
-            circuit.rx(pi/i, 1)
+            circuit.rx(pi / i, 1)
             circuit.measure(0, 0)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
