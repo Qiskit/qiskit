@@ -1,0 +1,33 @@
+---
+upgrade:
+  - |
+    The deprecated ``circuit_cregs`` argument to the constructor for the
+    :class:`~.InstructionSet` class has been removed. It was deprecated in the
+    0.19.0 release. If you were using this argument and manually constructing
+    an :class:`~.InstructionSet` object (which should be quite uncommon as it's
+    mostly used internally) you should pass a callable to the
+    ``resource_requester`` keyword argument instead. For example::
+
+        from qiskit.circuit import Clbit, ClassicalRegister, InstructionSet
+        from qiskit.circuit.exceptions import CircuitError
+
+        def my_requester(bits, registers):
+            bits_set = set(bits)
+            bits_flat = tuple(bits)
+            registers_set = set(registers)
+
+            def requester(specifier):
+                if isinstance(specifer, Clbit) and specifier in bits_set:
+                    return specifier
+                if isinstance(specifer, ClassicalRegster) and specifier in register_set:
+                    return specifier
+                if isinstance(specifier, int) and 0 <= specifier < len(bits_flat):
+                    return bits_flat[specifier]
+                raise CircuitError(f"Unknown resource: {specifier}")
+
+            return requester
+
+        my_bits = [Clbit() for _ in [None]*5]
+        my_registers = [ClassicalRegister(n) for n in range(3)]
+
+        InstructionSet(resource_requester=my_requester(my_bits, my_registers))
