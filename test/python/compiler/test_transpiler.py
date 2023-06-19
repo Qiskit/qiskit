@@ -1643,6 +1643,20 @@ class TestTranspile(QiskitTestCase):
             transpiled.layout.initial_layout, Layout({0: qc.qubits[1], 1: qc.qubits[0]})
         )
 
+    @combine(opt_level=[0, 1, 2, 3], basis=[["rz", "x"], ["rx", "z"], ["rz", "y"], ["ry", "x"]])
+    def test_paulis_to_constrained_1q_basis(self, opt_level, basis):
+        """Test that Pauli-gate circuits can be transpiled to constrained 1q bases that do not
+        contain any root-Pauli gates."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.barrier()
+        qc.y(0)
+        qc.barrier()
+        qc.z(0)
+        transpiled = transpile(qc, basis_gates=basis, optimization_level=opt_level)
+        self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
+        self.assertEqual(Operator(qc), Operator(transpiled))
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
