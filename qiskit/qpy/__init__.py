@@ -334,7 +334,7 @@ The ``type`` field determines what type of object will get
 created with the custom definition.
 
 If it's ``'g'``, it will be a :class:`~qiskit.circuit.Gate` object, with ``'i'``
-it will be a :class:`~qiskit.circuit.Instruction` object (serialized as :ref:`_qpy_instructions`). The type value
+it will be a :class:`~qiskit.circuit.Instruction` object (serialized as :ref:`qpy_instructions`). The type value
 ``'p'`` represents a
 :class:`~qiskit.circuit.library.PauliEvolutionGate` (only after v.3), and the
 data payload is defined in :ref:`pauli_evo_qpy`.
@@ -422,8 +422,8 @@ The ``INSTRUCTION`` header is a struct:
         _Bool has_conditional;
         uint16_t conditional_reg_name_size;
         int64_t conditional_value;
-        uint32_t num_ctrl_qubits; # added in QPY v.5
-        uint32_t ctrl_state;  # added in QPY v.5
+        uint32_t num_ctrl_qubits; // added in QPY v.5
+        uint32_t ctrl_state;  // added in QPY v.5
     }
 
 This object is immediately followed by ``name_size`` bytes of UTF-8 bytes
@@ -671,8 +671,10 @@ associated to the custom instruction.
 The ``type`` indicates the class of pulse program which is either, in pricinple,
 :class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
 only :class:`~.ScheduleBlock` payload is supported.
-Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
+Finally, a :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
 
+
+.. _qpy_schedule_block:
 
 :class:`.~ScheduleBlock`  Payloads
 ===================================
