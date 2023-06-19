@@ -60,7 +60,7 @@ class BasicSwap(TransformationPass):
             compatible with the DAG, or if the coupling_map=None.
         """
         if self.fake_run:
-            return self.fake_run(dag)
+            return self._fake_run(dag)
 
         new_dag = dag.copy_empty_like()
 
