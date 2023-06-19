@@ -16,7 +16,7 @@
 import copy
 import logging
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Iterable, TypeVar
+from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
 import warnings
 
 from qiskit import user_config
