@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
+use std::collections::HashMap;
 use hashbrown::HashSet;
 use ndarray::prelude::*;
 use numpy::IntoPyArray;
@@ -144,7 +145,7 @@ fn layout_trial(
     }
     let layout_dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
     let mut final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
-    let (swap_map, gate_order) = build_swap_map_inner(
+    let sabre_result = build_swap_map_inner(
         num_physical_qubits,
         &layout_dag,
         neighbor_table,
@@ -155,7 +156,7 @@ fn layout_trial(
         num_swap_trials,
         Some(run_swap_in_parallel),
     );
-    ([initial_layout, final_layout], swap_map, gate_order)
+    ([initial_layout, final_layout], sabre_result.map, sabre_result.node_order)
 }
 
 fn apply_layout(
@@ -171,7 +172,8 @@ fn apply_layout(
             (*node_index, new_qargs, cargs.clone())
         })
         .collect();
-    SabreDAG::new(num_qubits, num_clbits, layout_dag_nodes).unwrap()
+    // TODO: populate node_blocks when CF support is enabled
+    SabreDAG::new(num_qubits, num_clbits, layout_dag_nodes, HashMap::new()).unwrap()
 }
 
 fn compose_layout(initial_layout: &NLayout, final_layout: &NLayout) -> NLayout {

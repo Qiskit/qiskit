@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::collections::HashMap;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
@@ -23,16 +24,18 @@ use rustworkx_core::petgraph::prelude::*;
 pub struct SabreDAG {
     pub dag: DiGraph<(usize, Vec<usize>), ()>,
     pub first_layer: Vec<NodeIndex>,
+    pub node_blocks: HashMap<usize, Vec<SabreDAG>>,
 }
 
 #[pymethods]
 impl SabreDAG {
     #[new]
-    #[pyo3(text_signature = "(num_qubits, num_clbits, nodes, /)")]
+    #[pyo3(text_signature = "(num_qubits, num_clbits, nodes, node_blocks, /)")]
     pub fn new(
         num_qubits: usize,
         num_clbits: usize,
         nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+        node_blocks: HashMap<usize, Vec<SabreDAG>>,
     ) -> PyResult<Self> {
         let mut qubit_pos: Vec<Option<NodeIndex>> = vec![None; num_qubits];
         let mut clbit_pos: Vec<Option<NodeIndex>> = vec![None; num_clbits];
@@ -62,6 +65,6 @@ impl SabreDAG {
                 first_layer.push(gate_index);
             }
         }
-        Ok(SabreDAG { dag, first_layer })
+        Ok(SabreDAG { dag, first_layer, node_blocks })
     }
 }
