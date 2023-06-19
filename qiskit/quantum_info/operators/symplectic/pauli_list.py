@@ -197,7 +197,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 )
             base_z[i] = pauli._z
             base_x[i] = pauli._x
-            base_phase[i] = pauli._phase
+            base_phase[i] = pauli._phase.item()
         return base_z, base_x, base_phase
 
     def __repr__(self):
@@ -348,7 +348,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             self._phase[index] = value._phase
         else:
             # Row and Qubit indexing
-            self._phase[index[0]] += value._phase
+            self._phase[index[0]] += value._phase.item()
             self._phase %= 4
 
     def delete(self, ind, qubit=False):
