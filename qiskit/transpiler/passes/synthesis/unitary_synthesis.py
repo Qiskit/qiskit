@@ -179,7 +179,7 @@ def _error(circuit, target=None, qubits=None):
                 f"Target has no {inst.operation} on qubits {qubits}."
             ) from error
     # TODO:return np.sum(gate_durations)
-    return 1 - np.product(gate_fidelities)
+    return 1 - np.prod(gate_fidelities)
 
 
 def _preferred_direction(

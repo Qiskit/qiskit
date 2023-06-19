@@ -275,7 +275,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         else:
             qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
             gammas = self._gammas[qubit_indices]
-        return np.product(gammas)
+        return np.prod(gammas)
 
     def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
         """Return an upper bound on standard deviation of expval estimator.
