@@ -39,7 +39,7 @@ parameters:
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
     type: string
-    default: "3.7.16"
+    default: "3.7"
 
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
@@ -177,7 +177,8 @@ stages:
 
         - template: ".azure/test-macos.yml"
           parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            # Overridden to specific version to account for _bz2 missing on Azure images.
+            pythonVersion: "3.7.16"
 
         - template: ".azure/test-macos.yml"
           parameters:
