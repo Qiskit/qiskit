@@ -102,7 +102,7 @@ class Stinespring(QuantumChannel):
                     raise QiskitError("Invalid Stinespring input.")
             input_dim = dim_right
             if output_dims:
-                output_dim = np.product(output_dims)
+                output_dim = np.prod(output_dims)
             else:
                 output_dim = input_dim
             if dim_left % output_dim != 0:
