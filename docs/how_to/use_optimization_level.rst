@@ -937,12 +937,11 @@ map connection **[[0,1],[1,0],[2,1]]**.
     «                                          
 
 
-Plot the results
+Plotting the Results
 ================
 
-In this section you can see the results of the previous examples,
-considering the depth, the number of gates, the number of cx gates of
-the previous quantum circuits in different plots.
+In this section, you can visualize the results of the previous examples by considering the depth,
+ the number of gates, and the number of cx gates in different plots for the previous quantum circuits.
 
 .. testcode::
 
@@ -1003,13 +1002,13 @@ the previous quantum circuits in different plots.
 
 
 
-.. image:: depth.png
+.. image:: ../source_images/depth.png
 
 
 
-.. image:: num_gates.png
+.. image:: ../source_images/num_gates.png
 
 
 
-.. image:: num_cx_gates.png
+.. image:: ../source_images/num_cx_gates.png
 
