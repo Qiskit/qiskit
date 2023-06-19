@@ -332,6 +332,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     cmap_conf = [coupling_map] * len(circuits)
     _check_circuits_coupling_map(circuits, cmap_conf, backend)
 
+    timing_constraints = _parse_timing_constraints(backend, timing_constraints)
+
     if inst_map is not None and inst_map.has_custom_gate() and target is not None:
         # Do not mutate backend target
         target = copy.deepcopy(target)
@@ -343,9 +345,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
 
-    timing_constraints = _parse_timing_constraints(backend, timing_constraints)
-
-    if instruction_durations:
+    if instruction_durations or dt:
         # If durations are provided and there is more than one circuit
         # we need to serialize the execution because the full durations
         # is dependent on the circuit calibrations which are per circuit
