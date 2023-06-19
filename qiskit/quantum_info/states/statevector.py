@@ -722,7 +722,7 @@ class Statevector(QuantumState, TolerancesMixin):
               as an N-qubit state. If it is not a power of  two the state
               will have a single d-dimensional subsystem.
         """
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros(size, dtype=complex)
         state[i] = 1.0
         return Statevector(state, dims=dims)
