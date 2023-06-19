@@ -384,10 +384,7 @@ def transpile(  # pylint: disable=too-many-return-statements
                 circ.name = name
                 end_time = time()
             _log_transpile_time(start_time, end_time)
-            if arg_circuits_list:
-                return out_circuits
-            else:
-                return out_circuits[0]
+            return out_circuits
         else:
             instruction_durations = _parse_instruction_durations(
                 backend, instruction_durations, dt, circuits[0]
@@ -609,11 +606,3 @@ def _parse_timing_constraints(backend, timing_constraints):
         else:
             timing_constraints = backend.target.timing_constraints()
     return timing_constraints
-
-
-def _zip_dict(mapping: Dict[Any, Iterable]) -> Iterable[Dict]:
-    """Zip a dictionary where all the values are iterables of the same length into an iterable of
-    dictionaries with the same keys.  This has the same semantics as zip with regard to laziness
-    (over the iterables; there must be a finite number of keys!) and unequal lengths."""
-    keys, iterables = zip(*mapping.items())
-    return (dict(zip(keys, values)) for values in zip(*iterables))
