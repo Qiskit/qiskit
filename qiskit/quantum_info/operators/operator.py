@@ -176,7 +176,7 @@ class Operator(LinearOp):
             output = default_output
 
         if output == "repr":
-            return "self.__repr__()"
+            return self.__repr__()
 
         elif output == "text":
             from qiskit.visualization.state_visualization import TextMatrix
@@ -191,10 +191,8 @@ class Operator(LinearOp):
 
         else:
             raise ValueError(
-                """'{}' is not a valid option for drawing {} objects. Please choose from:
-                'text', 'latex', or 'latex_source'.""".format(
-                    output, type(self).__name__
-                )
+                f"""'{output}' is not a valid option for drawing {type(self).__name__} objects. 
+            Please choose from: 'text', 'latex', or 'latex_source'."""
             )
 
     def _ipython_display_(self):
