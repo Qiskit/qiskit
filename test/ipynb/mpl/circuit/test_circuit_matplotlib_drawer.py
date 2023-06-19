@@ -931,6 +931,175 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(label="End Y/X")
         self.circuit_drawer(circuit, filename="barrier_label.png")
 
+    def test_if_op(self):
+        """Test the IfElseOp with if only"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+        circuit.draw()
+        self.circuit_drawer(circuit, filename="if_op.png")
+
+    def test_if_else_op(self):
+        """Test the IfElseOp with else"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+        self.circuit_drawer(circuit, filename="if_else_op.png")
+
+    def test_if_else_op_nested(self):
+        """Test the IfElseOp with complex nested if/else"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+        self.circuit_drawer(circuit, filename="if_else_op_nested.png")
+
+    def test_if_else_op_wire_order(self):
+        """Test the IfElseOp with complex nested if/else and wire_order"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+        self.circuit_drawer(circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], filename="if_else_op_wire_order.png")
+
+    def test_if_else_op_fold(self):
+        """Test the IfElseOp with complex nested if/else and fold"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+        self.circuit_drawer(circuit, fold=7, filename="if_else_op_fold.png")
+
+    def test_while_loop_op(self):
+        """Test the WhileLoopOp"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.while_loop((cr[0], 0)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+        self.circuit_drawer(circuit, filename="while_loop.png")
+
+    def test_for_loop_op(self):
+        """Test the ForLoopOp"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.for_loop((2, 4, 8, 16)) as i:
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.rx(pi/i, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+        self.circuit_drawer(circuit, filename="for_loop.png")
+
+    def test_switch_case_op(self):
+        """Test the SwitchCaseOp"""
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+            with case(3, 4, 5):
+                circuit.y(1)
+                circuit.y(0)
+                circuit.y(0)
+            with case(case.DEFAULT):
+                circuit.cx(0, 1)
+        circuit.h(0)
+        self.circuit_drawer(circuit, filename="switch_case.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
