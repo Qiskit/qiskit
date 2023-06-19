@@ -915,8 +915,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for Schrödinger framework.
 
         Returns:
-            Pauli: the Pauli :math:`C^\dagger.P.C` (Schrödinger framework)
-            or the Pauli :math:`C.P.C^\dagger` (Heisenberg framework).
+            Pauli: the Pauli :math:`C.P.C^\dagger` (Schrödinger framework)
+            or the Pauli :math:`C^\dagger.P.C` (Heisenberg framework).
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
