@@ -39,7 +39,7 @@ parameters:
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
     type: string
-    default: "3.7"
+    default: "3.7.16"
 
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
