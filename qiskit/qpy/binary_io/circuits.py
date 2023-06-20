@@ -28,6 +28,7 @@ from qiskit import extensions
 from qiskit.circuit import library, controlflow, CircuitInstruction
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -292,9 +293,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             if "label" in inspect.signature(gate_class).parameters:
                 gate = gate_class(*params, label=label)
             else:
-                gate = gate_class(*params)
                 if label is not None:
-                    gate.label = label
+                    if issubclass(gate_class, SingletonGate):
+                        gate = gate_class(*params, label=label)
+                    else:
+                        gate = gate_class(*params)
+                        gate.label = label
+                else:
+                    gate = gate_class(*params)
         if condition_tuple:
             gate = gate.c_if(*condition_tuple)
     if circuit is None:
