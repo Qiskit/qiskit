@@ -78,7 +78,7 @@ class TestJupyter(QiskitTestCase):
         execute_preprocessor.preprocess(notebook, {"metadata": {"path": self.execution_path}})
 
     @unittest.skipIf(
-        sys.version_info >= (3, 8) and sys.platform != "linux",
+        sys.platform != "linux",
         "Fails with Python >=3.8 on osx and windows",
     )
     def test_jupyter_jobs_pbars(self):

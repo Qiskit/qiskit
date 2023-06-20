@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,10 +25,11 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.mixins import StarAlgebraMixin, TensorMixin
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
+from qiskit.utils.deprecation import deprecate_func
 
 
 class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
-    """A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
+    """Deprecated: A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
     defined as functions which take one complex binary function to another. These complex binary
     functions are represented by StateFns, which are themselves a special class of Operators
     taking only the ``Zero`` StateFn to the complex binary function they represent.
@@ -44,7 +45,12 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     _count = itertools.count()
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self) -> None:
+        super().__init__()
         self._instance_id = next(self._count)
 
     @property

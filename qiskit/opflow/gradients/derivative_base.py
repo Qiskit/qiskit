@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,6 @@ from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.providers import Backend
-
 from ..converters.converter_base import ConverterBase
 from ..expectations import ExpectationBase, PauliExpectation
 from ..list_ops.composed_op import ComposedOp
@@ -34,7 +33,7 @@ OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 
 
 class DerivativeBase(ConverterBase):
-    r"""Base class for differentiating opflow objects.
+    r"""Deprecated: Base class for differentiating opflow objects.
 
     Converter for differentiating opflow objects and handling
     things like properly differentiating combo_fn's and enforcing product rules
@@ -48,6 +47,14 @@ class DerivativeBase(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
+
+    # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
         self,

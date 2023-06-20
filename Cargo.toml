@@ -5,7 +5,7 @@ members = ["crates/*"]
 # to inherit from this rather than needing to duplicate its content themselves.  Until we get there,
 # keep this in sync with each subpackage `Cargo.toml`'s `package` key.
 [workspace.package]
-version = "0.24.0"
+version = "0.25.0"
 edition = "2021"
 rust-version = "1.61"  # Keep in sync with README.md and rust-toolchain.toml.
 license = "Apache-2.0"

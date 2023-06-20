@@ -11,17 +11,19 @@
 # that they have been altered from the originals.
 
 """This module contains common utils for disjoint coupling maps."""
-
+from __future__ import annotations
 from collections import defaultdict
-from typing import List, Callable, TypeVar, Dict
+from typing import List, Callable, TypeVar, Dict, Union
 import uuid
 
 import rustworkx as rx
+from qiskit.dagcircuit import DAGOpNode
 
 from qiskit.circuit import Qubit, Barrier, Clbit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagnode import DAGOutNode
 from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
 
@@ -30,13 +32,22 @@ T = TypeVar("T")
 
 def run_pass_over_connected_components(
     dag: DAGCircuit,
-    coupling_map: CouplingMap,
+    components_source: Union[Target, CouplingMap],
     run_func: Callable[[DAGCircuit, CouplingMap], T],
 ) -> List[T]:
     """Run a transpiler pass inner function over mapped components."""
+    if isinstance(components_source, Target):
+        coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
+    else:
+        coupling_map = components_source
     cmap_components = coupling_map.connected_components()
     # If graph is connected we only need to run the pass once
     if len(cmap_components) == 1:
+        if dag.num_qubits() > cmap_components[0].size():
+            raise TranspilerError(
+                "A connected component of the DAGCircuit is too large for any of the connected "
+                "components in the coupling map."
+            )
         return [run_func(dag, cmap_components[0])]
     dag_components = separate_dag(dag)
     mapped_components = map_components(dag_components, cmap_components)
@@ -55,7 +66,7 @@ def run_pass_over_connected_components(
             for qreg in dag.qregs:
                 out_dag.add_qreg(qreg)
             for creg in dag.cregs:
-                out_dag.add_cregs(creg)
+                out_dag.add_creg(creg)
             out_dag.compose(dag, qubits=dag.qubits, clbits=dag.clbits)
         out_component_pairs.append((out_dag, cmap_components[cmap_index]))
     res = [run_func(out_dag, cmap) for out_dag, cmap in out_component_pairs]
@@ -109,7 +120,7 @@ def split_barriers(dag: DAGCircuit):
 def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     """Mutate input dag to combine barriers with UUID labels into a single barrier."""
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-    uuid_map = {}
+    uuid_map: dict[uuid.UUID, DAGOpNode] = {}
     for node in dag.op_nodes(Barrier):
         if isinstance(node.op.label, uuid.UUID):
             barrier_uuid = node.op.label
@@ -127,9 +138,24 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 node.op.label = None
 
 
-def require_layout_isolated_to_component(dag: DAGCircuit, coupling_map: CouplingMap) -> bool:
-    """Check that the layout of the dag does not require connectivity across connected components
-    in the CouplingMap"""
+def require_layout_isolated_to_component(
+    dag: DAGCircuit, components_source: Union[Target, CouplingMap]
+):
+    """
+    Check that the layout of the dag does not require connectivity across connected components
+    in the CouplingMap
+
+    Args:
+        dag: DAGCircuit to check.
+        components_source: Target to check against.
+
+    Raises:
+        TranspilerError: Chosen layout is not valid for the target disjoint connectivity.
+    """
+    if isinstance(components_source, Target):
+        coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
+    else:
+        coupling_map = components_source
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():

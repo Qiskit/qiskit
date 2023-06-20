@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,11 +19,12 @@ import numpy as np
 
 from qiskit.opflow.converters import ConverterBase
 from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ExpectationBase(ConverterBase):
     r"""
-    A base for Expectation value converters. Expectations are converters which enable the
+    Deprecated: A base for Expectation value converters. Expectations are converters which enable the
     computation of the expectation value of an Observable with respect to some state function.
     They traverse an Operator tree, replacing OperatorStateFn measurements with equivalent
     measurements which are more amenable to computation on quantum or classical hardware. For
@@ -36,6 +37,13 @@ class ExpectationBase(ConverterBase):
     ``my_sampler.convert(my_expect.convert(~StateFn(o)) @ my_state).eval()``.
 
     """
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:

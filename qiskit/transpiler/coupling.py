@@ -21,13 +21,13 @@ onto a device with this coupling.
 
 import math
 from typing import List
-import warnings
 
 import numpy as np
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CouplingMap:
@@ -125,18 +125,17 @@ class CouplingMap:
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :meth:`~reduce`. It does the same thing, but preserves nodelist order."
+        ),
+        since="0.20.0",
+    )
     def subgraph(self, nodelist):
         """Return a CouplingMap object for a subgraph of self.
 
         nodelist (list): list of integer node labels
         """
-        warnings.warn(
-            "The .subgraph() method is deprecated and will be removed in a "
-            "future release. Instead the .reduce() method should be used "
-            "instead which does the same thing but preserves nodelist order.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
         return subcoupling
@@ -458,7 +457,7 @@ class CouplingMap:
             from qiskit.transpiler import CouplingMap
 
             cmap = CouplingMap([[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]])
-            component_cmaps = cmap.get_component_subgraphs()
+            component_cmaps = cmap.connected_components()
             print(component_cmaps[1].graph[0])
 
         will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
