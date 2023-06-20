@@ -101,12 +101,10 @@ class StatePreparation(Gate):
         # if initialized from a vector, check that the parameters are normalized
         if not self._from_label and not self._from_int:
             norm = np.linalg.norm(params)
-
             if normalize:
                 params = np.array(params, dtype=np.complex128) / norm
-            else:
-                if not math.isclose(norm, 1.0, abs_tol=_EPS):
-                    raise QiskitError(f"Sum of amplitudes-squared is not 1, but {norm}.")
+            elif not math.isclose(norm, 1.0, abs_tol=_EPS):
+                raise QiskitError(f"Sum of amplitudes-squared is not 1, but {norm}.")
 
         num_qubits = self._get_num_qubits(num_qubits, params)
         params = [params] if isinstance(params, int) else params

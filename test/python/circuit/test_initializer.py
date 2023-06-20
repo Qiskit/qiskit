@@ -244,7 +244,9 @@ class TestInitialize(QiskitTestCase):
 
         qc = QuantumCircuit(1)
         qc.initialize(desired_vector, [0], normalize=True)
-        self.assertTrue(np.all(qc.data[0][0].params == normalized))
+        op = qc.data[0].operation
+        self.assertAlmostEqual(np.linalg.norm(op.params), 1)
+        self.assertEqual(Statevector(qc), Statevector(normalized))
 
     def test_wrong_vector_size(self):
         """Initializing to a vector with a size different to the qubit parameter length.
