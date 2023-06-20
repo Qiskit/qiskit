@@ -290,17 +290,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
                 params = [len(qargs)]
             elif gate_name in {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
-            if "label" in inspect.signature(gate_class).parameters:
-                gate = gate_class(*params, label=label)
-            else:
-                if label is not None:
-                    if issubclass(gate_class, SingletonGate):
-                        gate = gate_class(*params, label=label)
-                    else:
-                        gate = gate_class(*params)
-                        gate.label = label
+            if label is not None:
+                if issubclass(gate_class, SingletonGate):
+                    gate = gate_class(*params, label=label)
                 else:
                     gate = gate_class(*params)
+                    gate.label = label
+            else:
+                gate = gate_class(*params)
         if condition_tuple:
             gate = gate.c_if(*condition_tuple)
     if circuit is None:
