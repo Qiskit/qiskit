@@ -167,7 +167,7 @@ class TestDagRegisters(QiskitTestCase):
             ],
         )
 
-    def test_add_reg_duplicatef(self):
+    def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
         dag = DAGCircuit()
         qr = QuantumRegister(2)
