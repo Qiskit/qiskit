@@ -12,6 +12,7 @@
 
 """T and Tdg gate."""
 import math
+from math import pi
 from typing import Optional
 
 import numpy
@@ -19,7 +20,6 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import pi
 
 
 class TGate(Gate):

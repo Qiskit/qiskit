@@ -12,9 +12,19 @@
 
 """Standard gates."""
 
+from __future__ import annotations
 
-from qiskit.qasm import pi
-from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
+from math import pi
+
+from qiskit.circuit import (
+    EquivalenceLibrary,
+    Parameter,
+    QuantumCircuit,
+    QuantumRegister,
+    Gate,
+    Qubit,
+    Clbit,
+)
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
@@ -629,6 +639,45 @@ for inst, qargs, cargs in [
     def_ecr.append(inst, qargs, cargs)
 _sel.add_equivalence(ECRGate(), def_ecr)
 
+# ECRGate decomposed to Clifford gates (up to a global phase)
+#
+#                  global phase: 7π/4
+#      ┌──────┐         ┌───┐      ┌───┐
+# q_0: ┤0     ├    q_0: ┤ S ├───■──┤ X ├
+#      │  Ecr │  ≡      ├───┴┐┌─┴─┐└───┘
+# q_1: ┤1     ├    q_1: ┤ √X ├┤ X ├─────
+#      └──────┘         └────┘└───┘
+
+q = QuantumRegister(2, "q")
+def_ecr_cliff = QuantumCircuit(q, global_phase=-pi / 4)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SXGate(), [q[1]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (XGate(), [q[0]], []),
+]:
+    def_ecr_cliff.append(inst, qargs, cargs)
+_sel.add_equivalence(ECRGate(), def_ecr_cliff)
+
+# CXGate decomposed using an ECRGate and Clifford 1-qubit gates
+#                global phase: π/4
+# q_0: ──■──          ┌─────┐ ┌──────┐┌───┐
+#      ┌─┴─┐  ≡  q_0: ┤ Sdg ├─┤0     ├┤ X ├
+# q_1: ┤ X ├          ├─────┴┐│  Ecr │└───┘
+#      └───┘     q_1: ┤ √Xdg ├┤1     ├─────
+#                     └──────┘└──────┘
+
+q = QuantumRegister(2, "q")
+def_ecr_to_cx_cliff = QuantumCircuit(q, global_phase=pi / 4)
+for inst, qargs, cargs in [
+    (SdgGate(), [q[0]], []),
+    (SXdgGate(), [q[1]], []),
+    (ECRGate(), [q[0], q[1]], []),
+    (XGate(), [q[0]], []),
+]:
+    def_ecr_to_cx_cliff.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), def_ecr_to_cx_cliff)
+
 # SGate
 #
 #    ┌───┐        ┌─────────┐
@@ -766,6 +815,17 @@ for inst, qargs, cargs in [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgG
     def_sx.append(inst, qargs, cargs)
 _sel.add_equivalence(SXGate(), def_sx)
 
+# HGate decomposed into SXGate and SGate
+#              global phase: -π/4
+#    ┌───┐        ┌───┐┌────┐┌───┐
+# q: ┤ H ├  ≡  q: ┤ S ├┤ √X ├┤ S ├
+#    └───┘        └───┘└────┘└───┘
+q = QuantumRegister(1, "q")
+def_h_to_sx = QuantumCircuit(q, global_phase=-pi / 4)
+for inst, qargs, cargs in [(SGate(), [q[0]], []), (SXGate(), [q[0]], []), (SGate(), [q[0]], [])]:
+    def_h_to_sx.append(inst, qargs, cargs)
+_sel.add_equivalence(HGate(), def_h_to_sx)
+
 # SXGate
 #               global phase: π/4
 #    ┌────┐        ┌─────────┐
@@ -786,6 +846,21 @@ def_sxdg = QuantumCircuit(q, global_phase=-pi / 4)
 for inst, qargs, cargs in [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]:
     def_sxdg.append(inst, qargs, cargs)
 _sel.add_equivalence(SXdgGate(), def_sxdg)
+
+# HGate decomposed into SXdgGate and SdgGate
+#              global phase: π/4
+#    ┌───┐        ┌─────┐┌──────┐┌─────┐
+# q: ┤ H ├  ≡  q: ┤ Sdg ├┤ √Xdg ├┤ Sdg ├
+#    └───┘        └─────┘└──────┘└─────┘
+q = QuantumRegister(1, "q")
+def_h_to_sxdg = QuantumCircuit(q, global_phase=pi / 4)
+for inst, qargs, cargs in [
+    (SdgGate(), [q[0]], []),
+    (SXdgGate(), [q[0]], []),
+    (SdgGate(), [q[0]], []),
+]:
+    def_h_to_sxdg.append(inst, qargs, cargs)
+_sel.add_equivalence(HGate(), def_h_to_sxdg)
 
 # SXdgGate
 #                 global phase: 7π/4
@@ -1126,6 +1201,15 @@ for inst, qargs, cargs in [
     def_x.append(inst, qargs, cargs)
 _sel.add_equivalence(XGate(), def_x)
 
+# XGate
+#                 global phase: π/2
+#    ┌───┐        ┌───┐┌───┐
+# q: ┤ X ├  ≡  q: ┤ Y ├┤ Z ├
+#    └───┘        └───┘└───┘
+def_x = QuantumCircuit(1, global_phase=pi / 2)
+def_x.y(0)
+def_x.z(0)
+_sel.add_equivalence(XGate(), def_x)
 
 # CXGate
 
@@ -1345,6 +1429,16 @@ for inst, qargs, cargs in [
     def_y.append(inst, qargs, cargs)
 _sel.add_equivalence(YGate(), def_y)
 
+# YGate
+#                 global phase: π/2
+#    ┌───┐        ┌───┐┌───┐
+# q: ┤ Y ├  ≡  q: ┤ Z ├┤ X ├
+#    └───┘        └───┘└───┘
+def_y = QuantumCircuit(1, global_phase=pi / 2)
+def_y.z(0)
+def_y.x(0)
+_sel.add_equivalence(YGate(), def_y)
+
 # CYGate
 #
 # q_0: ──■──     q_0: ─────────■───────
@@ -1371,7 +1465,6 @@ def_z = QuantumCircuit(q)
 def_z.append(U1Gate(pi), [q[0]], [])
 _sel.add_equivalence(ZGate(), def_z)
 
-# """
 # ZGate
 #
 #    ┌───┐        ┌───┐┌───┐
@@ -1384,6 +1477,16 @@ for inst, qargs, cargs in [
     (SGate(), [q[0]], []),
 ]:
     def_z.append(inst, qargs, cargs)
+_sel.add_equivalence(ZGate(), def_z)
+
+# ZGate
+#                 global phase: π/2
+#    ┌───┐        ┌───┐┌───┐
+# q: ┤ Z ├  ≡  q: ┤ X ├┤ Y ├
+#    └───┘        └───┘└───┘
+def_z = QuantumCircuit(1, global_phase=pi / 2)
+def_z.x(0)
+def_z.y(0)
 _sel.add_equivalence(ZGate(), def_z)
 
 # CZGate
@@ -1481,7 +1584,7 @@ q = QuantumRegister(2, "q")
 xxplusyy = QuantumCircuit(q)
 beta = Parameter("beta")
 theta = Parameter("theta")
-rules = [
+rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
     (RZGate(beta), [q[0]], []),
     (RZGate(-pi / 2), [q[1]], []),
     (SXGate(), [q[1]], []),
@@ -1516,7 +1619,7 @@ q = QuantumRegister(2, "q")
 xxminusyy = QuantumCircuit(q)
 beta = Parameter("beta")
 theta = Parameter("theta")
-rules = [
+rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
     (RZGate(-beta), [q[1]], []),
     (RZGate(-pi / 2), [q[0]], []),
     (SXGate(), [q[0]], []),

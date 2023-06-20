@@ -12,18 +12,16 @@
 
 """Check if the CNOTs follow the right direction with respect to the coupling map.."""
 
-import warnings
 from qiskit.transpiler.passes.utils.check_gate_direction import CheckGateDirection
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CheckCXDirection(CheckGateDirection):
     """Deprecated: use :class:`qiskit.transpiler.passes.CheckGateDirection` pass instead."""
 
+    @deprecate_func(
+        additional_msg="Instead, use the more generic :class:`~.CheckGateDirection` pass.",
+        since="0.21.0",
+    )
     def __init__(self, coupling_map=None, target=None):
         super().__init__(coupling_map=coupling_map, target=target)
-        warnings.warn(
-            "The CheckCXDirection pass has been deprecated "
-            "and replaced by a more generic CheckGateDirection pass.",
-            DeprecationWarning,
-            stacklevel=2,
-        )

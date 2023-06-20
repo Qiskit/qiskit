@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added a new option, ``copy_operations``, to :func:`~.dag_to_circuit` to
+    enable optionally disabling deep copying the operations from the input
+    :class`~.DAGCircuit` to the output :class:`~.QuantumCircuit`. In cases
+    where the input :class`~.DAGCircuit` is not used anymore after conversion
+    this deep copying is unnecessary overhead as any shared references wouldn't
+    have any potential unwanted side effects if the input :class`~.DAGCircuit`
+    is discarded.

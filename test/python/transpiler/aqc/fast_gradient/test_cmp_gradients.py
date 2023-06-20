@@ -94,7 +94,7 @@ class TestCompareGradientImpls(QiskitTestCase):
             )
         ]
 
-        results = list()
+        results = []
 
         # Run the tests sequentially.
         for nqubits, depth in configs:

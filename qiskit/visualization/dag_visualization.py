@@ -15,7 +15,7 @@
 """
 Visualization function for DAG circuit representation.
 """
-from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit import Qubit

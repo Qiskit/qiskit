@@ -234,7 +234,9 @@ class QuantumState:
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals), self.dims(qargs), string_labels=True
+            self.probabilities(qargs=qargs, decimals=decimals),
+            self.dims(qargs),
+            string_labels=True,
         )
 
     def sample_memory(self, shots, qargs=None):

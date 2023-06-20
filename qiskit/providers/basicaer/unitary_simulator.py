@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Contains a Python simulator that returns the unitary of the circuit.
 
 It simulates a unitary of a quantum circuit that has been compiled to run on
