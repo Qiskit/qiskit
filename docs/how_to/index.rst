@@ -13,4 +13,4 @@ Use the primitives
 
   use_sampler
   use_estimator
-  use_optimization_level
+  use_optimizationlevel
