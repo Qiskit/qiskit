@@ -37,11 +37,6 @@ def _log_schedule_time(start_time, end_time):
     logger.info(log_msg)
 
 
-# @deprecate_arg(
-#     "backend",
-#     additional_msg=("'backend' argument becomes required from Optional."),
-#     since="0.25.0",
-# )
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
