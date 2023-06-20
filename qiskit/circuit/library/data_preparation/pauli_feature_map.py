@@ -27,29 +27,33 @@ class PauliFeatureMap(NLocal):
     r"""The Pauli Expansion circuit.
 
     The Pauli Expansion circuit is a data encoding circuit that transforms input data
-    :math:`\vec{x} \in \mathbb{R}^n` as
+    :math:`\vec{x} \in \mathbb{R}^n`, where `n` is the ``feature_dimension``, as
 
     .. math::
 
-        U_{\Phi(\vec{x})}=\exp\left(i\sum_{S\subseteq [n]}
-        \phi_S(\vec{x})\prod_{i\in S} P_i\right)
+        U_{\Phi(\vec{x})}=\exp\left(i\sum_{S \in \mathcal{I}}
+        \phi_S(\vec{x})\prod_{i\in S} P_i\right).
 
-    The circuit contains ``reps`` repetitions of this transformation.
-    The variable :math:`P_i \in \{ I, X, Y, Z \}` denotes the Pauli matrices.
-    The index :math:`S` describes connectivities between different qubits or datapoints:
-    :math:`S \in \{\binom{n}{k}\ combinations,\ k = 1,... n \}`. Per default the data-mapping
+    Here, :math:`S` is a set of qubit indices that describes the connections in the feature map,
+    :math:`\mathcal{I}` is a set containing all these index sets, and
+    :math:`P_i \in \{I, X, Y, Z\}`. Per default the data-mapping
     :math:`\phi_S` is
 
     .. math::
 
         \phi_S(\vec{x}) = \begin{cases}
-            x_0 \text{ if } k = 1 \\
-            \prod_{j \in S} (\pi - x_j) \text{ otherwise }
-            \end{cases}
+            x_i \text{ if } S = \{i\} \\
+            \prod_{j \in S} (\pi - x_j) \text{ if } |S| > 1
+            \end{cases}.
 
-    For example, if the Pauli strings are chosen to be :math:`P_0 = Z` and :math:`P_{0,1} = YY` on
-    2 qubits and with 1 repetition using the default data-mapping, the Pauli evolution feature map
-    is represented by:
+    The possible connections can be set using the ``entanglement`` and ``paulis`` arguments.
+    For example, for single-qubit :math:`Z` rotations and two-qubit :math:`YY` interactions
+    between all qubit pairs, we can set::
+
+
+        feature_map = PauliFeatureMap(..., paulis=["Z", "YY"], entanglement="full")
+
+    which will produce blocks of the form
 
     .. parsed-literal::
 
@@ -59,9 +63,10 @@ class PauliFeatureMap(NLocal):
         ┤ H ├┤ U1(2.0*x[1]) ├┤ RX(pi/2) ├┤ X ├┤ U1(2.0*(pi - x[0])*(pi - x[1])) ├┤ X ├┤ RX(-pi/2) ├
         └───┘└──────────────┘└──────────┘└───┘└─────────────────────────────────┘└───┘└───────────┘
 
-    Please refer to :class:`ZFeatureMap` for the case :math:`k = 1`, :math:`P_0 = Z`
-    and to :class:`ZZFeatureMap` for the case :math:`k = 2`, :math:`P_0 = Z` and
-    :math:`P_{0,1} = ZZ`.
+    The circuit contains ``reps`` repetitions of this transformation.
+
+    Please refer to :class:`.ZFeatureMap` for the case of single-qubit Pauli-:math:`Z` rotations
+    and to :class:`.ZZFeatureMap` for the single- and two-qubit Pauli-:math:`Z` rotations.
 
     Examples:
 
@@ -99,8 +104,12 @@ class PauliFeatureMap(NLocal):
         OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
 
     References:
-        [1]: Havlicek et al. (2018), Supervised learning with quantum enhanced feature spaces.
-           `arXiv:1804.11326 <https://arxiv.org/abs/1804.11326>`_
+
+
+
+    [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
+    `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
+
     """
 
     def __init__(

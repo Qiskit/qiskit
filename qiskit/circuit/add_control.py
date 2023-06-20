@@ -148,6 +148,7 @@ def control(
                     q_target[bit_indices[qargs[0]]],
                     use_basis_gates=True,
                 )
+                continue
             elif gate.name == "p":
                 from qiskit.circuit.library import MCPhaseGate
 
@@ -184,13 +185,9 @@ def control(
                             use_basis_gates=True,
                         )
                     elif theta == 0 and phi == 0:
-                        controlled_circ.mcrz(
-                            lamb, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+                        controlled_circ.mcp(lamb, q_control, q_target[bit_indices[qargs[0]]])
                     else:
-                        controlled_circ.mcrz(
-                            lamb, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+                        controlled_circ.mcp(lamb, q_control, q_target[bit_indices[qargs[0]]])
                         controlled_circ.mcry(
                             theta,
                             q_control,
@@ -198,9 +195,7 @@ def control(
                             q_ancillae,
                             use_basis_gates=True,
                         )
-                        controlled_circ.mcrz(
-                            phi, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+                        controlled_circ.mcp(phi, q_control, q_target[bit_indices[qargs[0]]])
             elif gate.name == "z":
                 controlled_circ.h(q_target[bit_indices[qargs[0]]])
                 controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)

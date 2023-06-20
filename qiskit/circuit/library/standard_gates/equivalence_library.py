@@ -1188,6 +1188,15 @@ for inst, qargs, cargs in [
     def_x.append(inst, qargs, cargs)
 _sel.add_equivalence(XGate(), def_x)
 
+# XGate
+#                 global phase: π/2
+#    ┌───┐        ┌───┐┌───┐
+# q: ┤ X ├  ≡  q: ┤ Y ├┤ Z ├
+#    └───┘        └───┘└───┘
+def_x = QuantumCircuit(1, global_phase=pi / 2)
+def_x.y(0)
+def_x.z(0)
+_sel.add_equivalence(XGate(), def_x)
 
 # CXGate
 
@@ -1407,6 +1416,16 @@ for inst, qargs, cargs in [
     def_y.append(inst, qargs, cargs)
 _sel.add_equivalence(YGate(), def_y)
 
+# YGate
+#                 global phase: π/2
+#    ┌───┐        ┌───┐┌───┐
+# q: ┤ Y ├  ≡  q: ┤ Z ├┤ X ├
+#    └───┘        └───┘└───┘
+def_y = QuantumCircuit(1, global_phase=pi / 2)
+def_y.z(0)
+def_y.x(0)
+_sel.add_equivalence(YGate(), def_y)
+
 # CYGate
 #
 # q_0: ──■──     q_0: ─────────■───────
@@ -1433,7 +1452,6 @@ def_z = QuantumCircuit(q)
 def_z.append(U1Gate(pi), [q[0]], [])
 _sel.add_equivalence(ZGate(), def_z)
 
-# """
 # ZGate
 #
 #    ┌───┐        ┌───┐┌───┐
@@ -1446,6 +1464,16 @@ for inst, qargs, cargs in [
     (SGate(), [q[0]], []),
 ]:
     def_z.append(inst, qargs, cargs)
+_sel.add_equivalence(ZGate(), def_z)
+
+# ZGate
+#                 global phase: π/2
+#    ┌───┐        ┌───┐┌───┐
+# q: ┤ Z ├  ≡  q: ┤ X ├┤ Y ├
+#    └───┘        └───┘└───┘
+def_z = QuantumCircuit(1, global_phase=pi / 2)
+def_z.x(0)
+def_z.y(0)
 _sel.add_equivalence(ZGate(), def_z)
 
 # CZGate
