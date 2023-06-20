@@ -14,7 +14,6 @@
 
 """Binary IO for circuit objects."""
 
-import inspect
 import io
 import json
 import struct
