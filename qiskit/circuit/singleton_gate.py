@@ -40,7 +40,6 @@ class SingletonGate(Gate):
 
     _instance = None
 
-    @classmethod
     def __new__(cls, *_args, **kwargs):
         if "label" in kwargs or "_condition" in kwargs or "duration" in kwargs or "unit" in kwargs:
             return super().__new__(cls)
