@@ -17,7 +17,7 @@ from math import pi
 import numpy as np
 
 from qiskit import circuit, compiler, pulse
-from qiskit.pulse import builder, exceptions, macros
+from qiskit.pulse import builder, macros
 
 from qiskit.pulse import library, instructions
 from qiskit.pulse.instructions import directives

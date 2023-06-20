@@ -37,7 +37,7 @@ CircuitPulseDef = namedtuple(
 
 
 def lower_gates(
-    circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target = None
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
 ) -> List[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
@@ -61,8 +61,8 @@ def lower_gates(
     """
     from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
-    if schedule_config is None and target is None:
-        raise QiskitError("Either schedule_config or target must be specified.")
+    if (schedule_config and target) or (schedule_config is None and target is None):
+        raise QiskitError("Only one of schedule_config or target must be specified.")
     inst_map = target.instruction_schedule_map() if target else schedule_config.inst_map
     meas_map = target.meas_map if target else schedule_config.meas_map
     dt = target.dt if target else schedule_config.dt
@@ -106,7 +106,6 @@ def lower_gates(
             meas_sched = measure(
                 qubits=qubits,
                 target=target,
-                inst_map=inst_map,
                 meas_map=meas_map,
                 qubit_mem_slots=qubit_mem_slots,
             )

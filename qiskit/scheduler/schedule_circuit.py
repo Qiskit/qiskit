@@ -24,7 +24,7 @@ from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
 
 def schedule_circuit(
     circuit: QuantumCircuit,
-    schedule_config: ScheduleConfig,
+    schedule_config: ScheduleConfig = None,
     target: Target = None,
     method: Optional[str] = None,
 ) -> Schedule:

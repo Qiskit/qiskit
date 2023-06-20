@@ -26,7 +26,7 @@ from qiskit.scheduler.lowering import lower_gates
 
 
 def as_soon_as_possible(
-    circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target = None
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as soon as possible"
@@ -76,7 +76,7 @@ def as_soon_as_possible(
 
 
 def as_late_as_possible(
-    circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target = None
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
 ) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as late as possible"

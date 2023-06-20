@@ -36,11 +36,12 @@ def _log_schedule_time(start_time, end_time):
     log_msg = "Total Scheduling Time - %.5f (ms)" % ((end_time - start_time) * 1000)
     logger.info(log_msg)
 
-@deprecate_arg(
-    "backend",
-    additional_msg=("'backend' argument becomes required from Optional."),
-    since="0.25.0",
-)
+
+# @deprecate_arg(
+#     "backend",
+#     additional_msg=("'backend' argument becomes required from Optional."),
+#     since="0.25.0",
+# )
 def schedule(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
@@ -71,6 +72,12 @@ def schedule(
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
+    if backend is None:
+        deprecate_arg(
+            "backend",
+            additional_msg=("'backend' argument becomes required from Optional."),
+            since="0.25.0",
+        )
     arg_circuits_list = isinstance(circuits, list)
     start_time = time()
     if isinstance(backend, BackendV2):
