@@ -65,7 +65,7 @@ include multiple circuits in a single QPY file::
     with open('twenty_bells.qpy', 'wb') as fd:
         qpy.dump([qc] * 20, fd)
 
-and then loading that file will return a list with all the circuits
+and then loading that file will return a list with all the circuits::
 
     with open('twenty_bells.qpy', 'rb') as fd:
         twenty_new_bells = qpy.load(fd)
@@ -229,8 +229,8 @@ The following field contains a series of ``REGISTER`` blocks of format:
 
 ``HEADER | REGISTER_NAME | REGISTER_MAP``
 
-The number of blocks is determined by the ``CIRCUIT_HEADER``'s ``num_registers`` field (if ``num_registers==0``, no registers
-will be parsed).
+The number of blocks is determined by the ``CIRCUIT_HEADER``'s ``num_registers`` field
+(if ``num_registers==0``, no registers will be parsed).
 
 Each ``REGISTER`` contains a header struct:
 
@@ -334,8 +334,8 @@ The ``type`` field determines what type of object will get
 created with the custom definition.
 
 If it's ``'g'``, it will be a :class:`~qiskit.circuit.Gate` object, with ``'i'``
-it will be a :class:`~qiskit.circuit.Instruction` object (serialized as :ref:`qpy_instructions`). The type value
-``'p'`` represents a
+it will be a :class:`~qiskit.circuit.Instruction` object (serialized as :ref:`qpy_instructions`).
+The type value ``'p'`` represents a
 :class:`~qiskit.circuit.library.PauliEvolutionGate` (only after v.3), and the
 data payload is defined in :ref:`pauli_evo_qpy`.
 
@@ -366,8 +366,9 @@ The ``PAULI_EVOLUTION`` header is a C struct:
         uint64_t synthesis_size;
     }
 
-The header is immediately followed by ``operator_count`` elements defined by the :ref:`qpy_sparse_pauli_op`
-payload.  Following that we have ``time_size`` bytes representing the ``time`` attribute.
+The header is immediately followed by ``operator_count`` elements defined by the
+:ref:`qpy_sparse_pauli_op` payload.
+Following that we have ``time_size`` bytes representing the ``time`` attribute.
 
 If ``standalone_op`` is ``True`` then there must only be a single operator. The
 encoding of these bytes is determined by the value of ``time_type``. Possible values of
