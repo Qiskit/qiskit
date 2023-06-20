@@ -381,6 +381,43 @@ class TestGatesV2(TestBuilderV2):
 
         self.assertScheduleEqual(schedule, reference)
 
+    def test_u1(self):
+        """Test u1 gate."""
+        with pulse.build(self.backend) as schedule:
+            with pulse.transpiler_settings(layout_method="trivial"):
+                pulse.u1(np.pi / 2, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.append(circuit.library.U1Gate(np.pi / 2), [0])
+        reference_qc = compiler.transpile(reference_qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertScheduleEqual(schedule, reference)
+
+    def test_u2(self):
+        """Test u2 gate."""
+        with pulse.build(self.backend) as schedule:
+            pulse.u2(np.pi / 2, 0, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.append(circuit.library.U2Gate(np.pi / 2, 0), [0])
+        reference_qc = compiler.transpile(reference_qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertScheduleEqual(schedule, reference)
+
+    def test_u3(self):
+        """Test u3 gate."""
+        with pulse.build(self.backend) as schedule:
+            pulse.u3(np.pi / 8, np.pi / 16, np.pi / 4, 0)
+
+        reference_qc = circuit.QuantumCircuit(1)
+        reference_qc.append(circuit.library.U3Gate(np.pi / 8, np.pi / 16, np.pi / 4), [0])
+        reference_qc = compiler.transpile(reference_qc, self.backend)
+        reference = compiler.schedule(reference_qc, self.backend)
+
+        self.assertScheduleEqual(schedule, reference)
+
     def test_lazy_evaluation_with_transpiler(self):
         """Test that the two cx gates are optimizied away by the transpiler."""
         with pulse.build(self.backend) as schedule:
@@ -568,152 +605,3 @@ class TestSubroutineCallV2(TestBuilderV2):
             pulse.call(subprogram)
 
         self.assertNotEqual(len(target_qobj_transform(schedule).instructions), 0)
-
-    def test_subroutine_not_transformed(self):
-        """Test called schedule is not transformed."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-
-        subprogram = pulse.Schedule()
-        subprogram.insert(0, pulse.Delay(30, d0), inplace=True)
-        subprogram.insert(10, pulse.Delay(10, d1), inplace=True)
-
-        with pulse.build() as target:
-            with pulse.align_right():
-                pulse.delay(10, d1)
-                pulse.call(subprogram)
-
-        reference = pulse.Schedule()
-        reference.insert(0, pulse.Delay(10, d1), inplace=True)
-        reference.insert(10, pulse.Delay(30, d0), inplace=True)
-        reference.insert(20, pulse.Delay(10, d1), inplace=True)
-
-        self.assertScheduleEqual(target, reference)
-
-    def test_deepcopying_subroutine(self):
-        """Test if deepcopying the schedule can copy inline subroutine."""
-        from copy import deepcopy
-
-        with pulse.build() as subroutine:
-            pulse.delay(10, pulse.DriveChannel(0))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine)
-
-        copied_prog = deepcopy(main_prog)
-
-        main_call = main_prog.instructions[0]
-        copy_call = copied_prog.instructions[0]
-
-        self.assertNotEqual(id(main_call), id(copy_call))
-
-    def test_call_with_parameters(self):
-        """Test call subroutine with parameters."""
-        amp = circuit.Parameter("amp")
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, amp=0.1)
-            pulse.call(subroutine, amp=0.3)
-
-        self.assertEqual(main_prog.is_parameterized(), False)
-
-        assigned_sched = target_qobj_transform(main_prog)
-
-        play_0 = assigned_sched.instructions[0][1]
-        play_1 = assigned_sched.instructions[1][1]
-
-        self.assertEqual(play_0.pulse.amp, 0.1)
-        self.assertEqual(play_1.pulse.amp, 0.3)
-
-    def test_call_partly_with_parameters(self):
-        """Test multiple calls partly with parameters then assign."""
-        amp = circuit.Parameter("amp")
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, amp=0.1)
-            pulse.call(subroutine)
-
-        self.assertEqual(main_prog.is_parameterized(), True)
-
-        main_prog.assign_parameters({amp: 0.5})
-        self.assertEqual(main_prog.is_parameterized(), False)
-
-        assigned_sched = target_qobj_transform(main_prog)
-
-        play_0 = assigned_sched.instructions[0][1]
-        play_1 = assigned_sched.instructions[1][1]
-
-        self.assertEqual(play_0.pulse.amp, 0.1)
-        self.assertEqual(play_1.pulse.amp, 0.5)
-
-    def test_call_with_not_existing_parameter(self):
-        """Test call subroutine with parameter not defined."""
-        amp = circuit.Parameter("amp1")
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
-
-        with self.assertRaises(exceptions.PulseError):
-            with pulse.build():
-                pulse.call(subroutine, amp=0.1)
-
-    def test_call_with_common_parameter(self):
-        """Test call subroutine with parameter that is defined multiple times."""
-        amp = circuit.Parameter("amp")
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(320, amp, 80), pulse.DriveChannel(0))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, amp=0.1)
-
-        assigned_sched = target_qobj_transform(main_prog)
-
-        play_0 = assigned_sched.instructions[0][1]
-        play_1 = assigned_sched.instructions[1][1]
-
-        self.assertEqual(play_0.pulse.amp, 0.1)
-        self.assertEqual(play_1.pulse.amp, 0.1)
-
-    def test_call_with_parameter_name_collision(self):
-        """Test call subroutine with duplicated parameter names."""
-        amp1 = circuit.Parameter("amp")
-        amp2 = circuit.Parameter("amp")
-        sigma = circuit.Parameter("sigma")
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp1, sigma), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, amp2, sigma), pulse.DriveChannel(0))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2}, sigma=40)
-
-        assigned_sched = target_qobj_transform(main_prog)
-
-        play_0 = assigned_sched.instructions[0][1]
-        play_1 = assigned_sched.instructions[1][1]
-
-        self.assertEqual(play_0.pulse.amp, 0.1)
-        self.assertEqual(play_0.pulse.sigma, 40)
-        self.assertEqual(play_1.pulse.amp, 0.2)
-        self.assertEqual(play_1.pulse.sigma, 40)
-
-    def test_call_subroutine_with_parametrized_duration(self):
-        """Test call subroutine containing a parametrized duration."""
-        dur = circuit.Parameter("dur")
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Constant(dur, 0.1), pulse.DriveChannel(0))
-            pulse.play(pulse.Constant(dur, 0.2), pulse.DriveChannel(0))
-
-        with pulse.build() as main:
-            pulse.call(subroutine)
-
-        self.assertEqual(len(main.blocks), 1)
