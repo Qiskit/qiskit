@@ -72,6 +72,8 @@ PORDER_MASK = 3
 
 INFINITE_FOLD = 10000000
 
+INFINITE_FOLD = 10000000
+
 
 @_optionals.HAS_MATPLOTLIB.require_in_instance
 @_optionals.HAS_PYLATEX.require_in_instance
