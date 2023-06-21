@@ -174,7 +174,7 @@ def assemble(
         **run_config,
     )
     # Verify that rep_time is chosen from the backend's rep_times
-    if backend is not None and hasattr(backend.configuration(), 'rep_times'):
+    if backend is not None and hasattr(backend.configuration(), "rep_times"):
         backend_rep_times = backend.configuration().rep_times
 
         if rep_time is not None and rep_time not in backend_rep_times:
