@@ -365,7 +365,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 

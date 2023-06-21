@@ -616,7 +616,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             raise QiskitError("Non-Clifford matrix is not convertible")
         return cls(tableau)
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 

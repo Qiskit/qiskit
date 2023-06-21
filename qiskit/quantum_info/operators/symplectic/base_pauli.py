@@ -497,7 +497,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Returns:
             str: the Pauli label from the full Pauli group (if ``full_group=True``) or
                 from the unsigned Pauli group (if ``full_group=False``).
-            Tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
+            tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
                             label (from either the full or unsigned Pauli group) and
                             the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
                             for the label from the full Pauli group.
