@@ -84,7 +84,7 @@ upgrade:
     these classes to be :class:`~.SingletonGate` types which greatly reduces the
   - |
     For anything that interacts with :class:`~.Gate`, :class:`~.Operation`,
-    or :class:`~.Instruction` objects or works with these as part of a
+    or :class:`~.circuit.Instruction` objects or works with these as part of a
     :class:`~.QuantumCircuit` or :class:`~.DAGCircuit` classes it is important
     to note that the use of shared references for instances is much more common
     now. Previously, it was possible to reuse and share an instance of a
