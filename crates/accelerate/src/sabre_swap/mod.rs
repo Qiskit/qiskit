@@ -21,8 +21,9 @@ use std::cmp::Ordering;
 
 use hashbrown::HashMap;
 use ndarray::prelude::*;
-use numpy::IntoPyArray;
+use numpy::{IntoPyArray, ToPyArray};
 use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
@@ -63,21 +64,68 @@ pub enum Heuristic {
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[derive(Clone, Debug)]
 pub struct SabreResult {
+    #[pyo3(get)]
     pub map: SwapMap,
     pub node_order: Vec<usize>,
-    pub node_block_results: HashMap<usize, Vec<BlockResult>>,
+    #[pyo3(get)]
+    pub node_block_results: NodeBlockResults,
 }
 
+#[pymethods]
+impl SabreResult {
+    #[getter]
+    fn node_order(&self, py: Python) -> PyObject {
+        self.node_order.to_pyarray(py).into()
+    }
+}
+
+#[pyclass(module = "qiskit._accelerate.sabre_swap")]
+#[derive(Clone, Debug)]
+pub struct NodeBlockResults {
+    pub results: HashMap<usize, Vec<BlockResult>>,
+}
+
+#[pymethods]
+impl NodeBlockResults {
+    // Mapping Protocol
+    pub fn __len__(&self) -> usize {
+        self.results.len()
+    }
+
+    pub fn __contains__(&self, object: usize) -> bool {
+        self.results.contains_key(&object)
+    }
+
+    pub fn __getitem__(&self, py: Python, object: usize) -> PyResult<PyObject> {
+        match self.results.get(&object) {
+            Some(val) => Ok(
+                val.iter().map(|x| x.clone().into_py(py)).collect::<Vec<_>>().into_pyarray(py).into()
+            ),
+            None => Err(PyIndexError::new_err(format!(
+                "Node index {object} has no block results",
+            ))),
+        }
+    }
+
+    pub fn __str__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self.results))
+    }
+}
+
+#[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[derive(Clone, Debug)]
 pub struct BlockResult {
+    #[pyo3(get)]
     pub result: SabreResult,
     pub swap_epilogue: Vec<[usize; 2]>,
 }
 
-struct TrialResult {
-    out_map: HashMap<usize, Vec<[usize; 2]>>,
-    gate_order: Vec<usize>,
-    layout: NLayout,
+#[pymethods]
+impl BlockResult {
+    #[getter]
+    fn swap_epilogue(&self, py: Python) -> PyObject {
+        self.swap_epilogue.iter().map(|x| x.into_py(py)).collect::<Vec<_>>().into_pyarray(py).into()
+    }
 }
 
 /// Return a set of candidate swaps that affect qubits in front_layer.
@@ -383,7 +431,9 @@ fn swap_map_trial(
             map: out_map,
         },
         node_order: gate_order,
-        node_block_results,
+        node_block_results: NodeBlockResults {
+            results: node_block_results
+        },
     }, layout)
 }
 
@@ -648,6 +698,8 @@ pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<NeighborTable>()?;
     m.add_class::<SabreDAG>()?;
     m.add_class::<SwapMap>()?;
+    m.add_class::<BlockResult>()?;
+    m.add_class::<NodeBlockResults>()?;
     m.add_class::<SabreResult>()?;
     Ok(())
 }
