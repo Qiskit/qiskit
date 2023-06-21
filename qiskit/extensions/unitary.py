@@ -153,16 +153,20 @@ class UnitaryGate(Gate):
             QiskitError: Invalid ctrl_state.
             ExtensionError: Non-unitary controlled unitary.
         """
+        from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            qs_decomposition,
+        )
+
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
-        iso = isometry.Isometry(cmat, 0, 0)
+        cmat_def = qs_decomposition(cmat)
         return ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,
             params=[mat],
             label=label,
             num_ctrl_qubits=num_ctrl_qubits,
-            definition=iso.definition,
+            definition=cmat_def,
             ctrl_state=ctrl_state,
             base_gate=self.copy(),
         )

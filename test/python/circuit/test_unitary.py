@@ -19,12 +19,13 @@ from numpy.testing import assert_allclose
 import qiskit
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
 from qiskit.transpiler.passes import CXCancellation
+from qiskit.circuit._utils import _compute_control_matrix
 
 
 class TestUnitaryGate(QiskitTestCase):
@@ -309,3 +310,15 @@ class TestUnitaryCircuit(QiskitTestCase):
         gate = UnitaryGate(mat).control()
         self.assertTrue(numpy.allclose(gate.params, mat))
         self.assertTrue(numpy.allclose(gate.base_gate.params, mat))
+
+    def test_unitary_control_4q(self):
+        """Test decomposition for unitary gates over 2 qubits."""
+        num_qubits = 4
+        qc = QuantumCircuit(num_qubits)
+        mat = random_unitary(2 ** (num_qubits - 1), seed=42).data
+        gate = UnitaryGate(mat).control()
+        cmat = _compute_control_matrix(mat, 1)
+        qc.append(gate, range(num_qubits), [])
+        cqc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertEqual(Operator(cqc), Operator(cmat))
+        self.assertLessEqual(cqc.count_ops().get("cx", 0), 100)
