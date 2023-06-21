@@ -13,10 +13,13 @@
 """A collection of useful functions for post processing results."""
 
 from __future__ import annotations
+
+import numpy as np
+
 from .make_observable import make_dict_observable
 
 
-def average_data(counts, observable):
+def average_data(counts: dict, observable: dict | np.ndarray | list) -> float:
     """Compute the mean value of an diagonal observable.
 
     Takes in a diagonal observable in dictionary, list or matrix format and then
