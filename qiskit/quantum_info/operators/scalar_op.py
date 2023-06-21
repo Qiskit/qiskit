@@ -87,7 +87,7 @@ class ScalarOp(LinearOp):
         iden = np.eye(dim, dtype=complex)
         return self.coeff * iden
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(
             self.to_matrix(), input_dims=self.input_dims(), output_dims=self.output_dims()

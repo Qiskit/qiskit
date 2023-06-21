@@ -58,7 +58,7 @@ class Operator(LinearOp):
 
     def __init__(
         self,
-        data: QuantumCircuit | Operation | BaseOperator | np.matrix,
+        data: QuantumCircuit | Operation | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
@@ -370,7 +370,7 @@ class Operator(LinearOp):
             rtol = self.rtol
         return is_unitary_matrix(self._data, rtol=rtol, atol=atol)
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert operator to matrix operator class"""
         return self
 
@@ -436,7 +436,7 @@ class Operator(LinearOp):
         tensor = np.reshape(self.data, self._op_shape.tensor_shape)
         mat = np.reshape(other.data, other._op_shape.tensor_shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [int(np.product(output_dims)), int(np.product(input_dims))]
+        final_shape = [int(np.prod(output_dims)), int(np.prod(input_dims))]
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
         )

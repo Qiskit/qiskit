@@ -16,7 +16,6 @@ Optimized list of Pauli operators
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List, Tuple
 
 import numpy as np
 import rustworkx as rx
@@ -202,7 +201,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 )
             base_z[i] = pauli._z
             base_x[i] = pauli._x
-            base_phase[i] = pauli._phase
+            base_phase[i] = pauli._phase.item()
         return base_z, base_x, base_phase
 
     def __repr__(self):
@@ -1117,7 +1116,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
-    def _noncommutation_graph(self, qubit_wise: bool) -> List[Tuple(int, int)]:
+    def _noncommutation_graph(self, qubit_wise):
         """Create an edge list representing the non-commutation graph (Pauli Graph).
 
         An edge (i, j) is present if i and j are not commutable.
@@ -1127,7 +1126,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 or on a per-qubit basis.
 
         Returns:
-            List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
+            list[tuple[int,int]]: A list of pairs of indices of the PauliList that are not commutable.
         """
         # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
         mat1 = np.array(
@@ -1165,15 +1164,15 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         graph.add_edges_from_no_data(edges)
         return graph
 
-    def group_qubit_wise_commuting(self) -> List[PauliList]:
+    def group_qubit_wise_commuting(self) -> list[PauliList]:
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
 
         Returns:
-            List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
+            list[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
         """
         return self.group_commuting(qubit_wise=True)
 
-    def group_commuting(self, qubit_wise: bool = False) -> List[PauliList]:
+    def group_commuting(self, qubit_wise: bool = False) -> list[PauliList]:
         """Partition a PauliList into sets of commuting Pauli strings.
 
         Args:
@@ -1190,7 +1189,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                     [PauliList(['XX']), PauliList(['YY']), PauliList(['IZ', 'ZZ'])]
 
         Returns:
-            List[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
+            list[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
         """
 
         graph = self._create_graph(qubit_wise)

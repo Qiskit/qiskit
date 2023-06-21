@@ -19,7 +19,6 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import List
 
 import numpy as np
 
@@ -42,8 +41,8 @@ class ConvexPolytopeData:
         equalities[j][0] + sum_i equalities[j][i] * xi == 0.
     """
 
-    inequalities: List[List[int]]
-    equalities: List[List[int]] = field(default_factory=list)
+    inequalities: list[list[int]]
+    equalities: list[list[int]] = field(default_factory=list)
     name: str = ""
 
 
@@ -53,7 +52,7 @@ class PolytopeData:
     The raw data of a union of convex polytopes.
     """
 
-    convex_subpolytopes: List[ConvexPolytopeData]
+    convex_subpolytopes: list[ConvexPolytopeData]
 
 
 def polytope_has_element(polytope, point):

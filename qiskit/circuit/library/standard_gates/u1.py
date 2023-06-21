@@ -138,7 +138,7 @@ class U1Gate(Gate):
         return gate
 
     def inverse(self):
-        r"""Return inverted U1 gate (:math:`U1(\lambda){\dagger} = U1(-\lambda)`)"""
+        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda)`)"""
         return U1Gate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -256,7 +256,7 @@ class CU1Gate(ControlledGate):
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
-        r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
+        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda)`)"""
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
@@ -365,5 +365,5 @@ class MCU1Gate(ControlledGate):
         return gate
 
     def inverse(self):
-        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
+        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)

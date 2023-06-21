@@ -60,7 +60,7 @@ class SuperOp(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
@@ -225,7 +225,7 @@ class SuperOp(QuantumChannel):
         indices = [2 * num_indices - 1 - qubit for qubit in qargs] + [
             num_indices - 1 - qubit for qubit in qargs
         ]
-        final_shape = [np.product(output_dims) ** 2, np.product(input_dims) ** 2]
+        final_shape = [np.prod(output_dims) ** 2, np.prod(input_dims) ** 2]
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
         )
@@ -294,7 +294,7 @@ class SuperOp(QuantumChannel):
         output_dims = self.output_dims()
         for i, qubit in enumerate(qargs):
             new_dims[qubit] = output_dims[i]
-        new_dim = np.product(new_dims)
+        new_dim = np.prod(new_dims)
         # reshape tensor to density matrix
         tensor = np.reshape(tensor, (new_dim, new_dim))
         return DensityMatrix(tensor, dims=new_dims)

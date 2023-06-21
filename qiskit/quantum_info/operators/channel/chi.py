@@ -57,9 +57,9 @@ class Chi(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None,
-        output_dims: tuple | None = None,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
     ):
         """Initialize a quantum channel Chi-matrix operator.
 
@@ -92,9 +92,9 @@ class Chi(QuantumChannel):
             if dim_l != dim_r:
                 raise QiskitError("Invalid Chi-matrix input.")
             if input_dims:
-                input_dim = np.product(input_dims)
+                input_dim = np.prod(input_dims)
             if output_dims:
-                output_dim = np.product(input_dims)
+                output_dim = np.prod(input_dims)
             if output_dims is None and input_dims is None:
                 output_dim = int(np.sqrt(dim_l))
                 input_dim = dim_l // output_dim

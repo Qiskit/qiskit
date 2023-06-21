@@ -26,7 +26,9 @@ from .pauli_table import PauliTable
 from .stabilizer_table import StabilizerTable
 
 
-def random_pauli(num_qubits, group_phase=False, seed=None):
+def random_pauli(
+    num_qubits: int, group_phase: bool = False, seed: int | np.random.Generator | None = None
+):
     """Return a random Pauli.
 
     Args:
@@ -53,7 +55,12 @@ def random_pauli(num_qubits, group_phase=False, seed=None):
     return pauli
 
 
-def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
+def random_pauli_list(
+    num_qubits: int,
+    size: int = 1,
+    seed: int | np.random.Generator | None = None,
+    phase: bool = True,
+):
     """Return a random PauliList.
 
     Args:
@@ -81,7 +88,9 @@ def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
     return PauliList.from_symplectic(z, x)
 
 
-def random_pauli_table(num_qubits, size=1, seed=None):
+def random_pauli_table(
+    num_qubits: int, size: int = 1, seed: int | np.random.Generator | None = None
+):
     """Return a random PauliTable.
 
     Args:
@@ -132,7 +141,7 @@ def random_stabilizer_table(num_qubits, size=1, seed=None):
     return StabilizerTable(table, phase)
 
 
-def random_clifford(num_qubits, seed=None):
+def random_clifford(num_qubits: int, seed: int | np.random.Generator | None = None):
     """Return a random Clifford operator.
 
     The Clifford is sampled using the method of Reference [1].

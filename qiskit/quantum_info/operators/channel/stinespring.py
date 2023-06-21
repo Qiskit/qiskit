@@ -65,9 +65,9 @@ class Stinespring(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None,
-        output_dims: tuple | None = None,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
     ):
         """Initialize a quantum channel Stinespring operator.
 
@@ -111,7 +111,7 @@ class Stinespring(QuantumChannel):
                     raise QiskitError("Invalid Stinespring input.")
             input_dim = dim_right
             if output_dims:
-                output_dim = np.product(output_dims)
+                output_dim = np.prod(output_dims)
             else:
                 output_dim = input_dim
             if dim_left % output_dim != 0:

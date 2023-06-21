@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from numbers import Number
-from typing import Dict, Iterable, List, Tuple
+from typing import Iterable
 from copy import deepcopy
 
 import numpy as np
@@ -210,7 +210,7 @@ class SparsePauliOp(LinearOp):
         return np.allclose((self - other).simplify().coeffs, 0.0, atol=atol)
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return settings."""
         return {"data": self._pauli_list, "coeffs": self._coeffs}
 
@@ -494,7 +494,7 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
-    def argsort(self, weight=False):
+    def argsort(self, weight: bool = False):
         """Return indices for sorting the rows of the table.
 
         Returns the composition of permutations in the order of sorting
@@ -562,7 +562,7 @@ class SparsePauliOp(LinearOp):
         sort_pauli_inds = pauli_list.argsort(weight=weight, phase=False)
         return sort_coeffs_inds[sort_pauli_inds]
 
-    def sort(self, weight=False):
+    def sort(self, weight: bool = False):
         """Sort the rows of the table.
 
         After sorting the coefficients using numpy's argsort, sort by Pauli.
@@ -763,7 +763,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_list(obj: Iterable[Tuple[str, complex]], dtype: type = complex) -> SparsePauliOp:
+    def from_list(obj: Iterable[tuple[str, complex]], dtype: type = complex) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
         For example, the 5-qubit Hamiltonian
@@ -780,7 +780,7 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
+            obj (Iterable[tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
             dtype (type): The dtype of coeffs (Default complex).
 
         Returns:
@@ -809,7 +809,7 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_sparse_list(
-        obj: Iterable[Tuple[str, List[int], complex]],
+        obj: Iterable[tuple[str, list[int], complex]],
         num_qubits: int,
         do_checks: bool = True,
         dtype: type = complex,
@@ -836,7 +836,7 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
+            obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
             do_checks (bool): The flag of checking if the input indices are not duplicated.
             dtype (type): The dtype of coeffs (Default complex).
@@ -920,7 +920,7 @@ class SparsePauliOp(LinearOp):
                 mat += i
         return mat
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to a matrix Operator object"""
         return Operator(self.to_matrix())
 
@@ -998,7 +998,7 @@ class SparsePauliOp(LinearOp):
         graph.add_edges_from_no_data(edges)
         return graph
 
-    def group_commuting(self, qubit_wise: bool = False) -> List[SparsePauliOp]:
+    def group_commuting(self, qubit_wise: bool = False) -> list[SparsePauliOp]:
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
 
         Args:
@@ -1017,7 +1017,7 @@ class SparsePauliOp(LinearOp):
                      SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
 
         Returns:
-            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
+            list[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
                 commuting Pauli operators.
         """
 

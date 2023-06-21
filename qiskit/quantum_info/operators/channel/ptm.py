@@ -67,9 +67,9 @@ class PTM(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.matrix,
-        input_dims: tuple | None = None,
-        output_dims: tuple | None = None,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
     ):
         """Initialize a PTM quantum channel operator.
 
@@ -100,11 +100,11 @@ class PTM(QuantumChannel):
             # Determine input and output dimensions
             dout, din = ptm.shape
             if input_dims:
-                input_dim = np.product(input_dims)
+                input_dim = np.prod(input_dims)
             else:
                 input_dim = int(np.sqrt(din))
             if output_dims:
-                output_dim = np.product(input_dims)
+                output_dim = np.prod(input_dims)
             else:
                 output_dim = int(np.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
