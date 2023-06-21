@@ -20,11 +20,11 @@ from abc import abstractmethod
 
 import numpy as np
 
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
-from qiskit.quantum_info.operators.op_shape import OpShape
-from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class QuantumState:
@@ -139,7 +139,7 @@ class QuantumState:
         """
         pass
 
-    def _add(self, other: QuantumState) -> QuantumState:
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
@@ -153,7 +153,7 @@ class QuantumState:
         """
         raise NotImplementedError(f"{type(self)} does not support addition")
 
-    def _multiply(self, other: complex) -> QuantumState:
+    def _multiply(self, other):
         """Return the scalar multipled state other * self.
 
         Args:

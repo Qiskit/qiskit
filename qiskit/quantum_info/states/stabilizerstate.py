@@ -19,6 +19,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
@@ -139,7 +140,7 @@ class StabilizerState(QuantumState):
             raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert state to matrix operator class"""
         return Clifford(self.clifford).to_operator()
 

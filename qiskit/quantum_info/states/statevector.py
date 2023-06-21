@@ -17,7 +17,6 @@ from __future__ import annotations
 import copy
 import re
 from numbers import Number
-from typing import Dict
 
 import numpy as np
 
@@ -26,7 +25,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.mixins.tolerances import TolerancesMixin
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.operator import Operator, BaseOperator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -125,7 +124,7 @@ class Statevector(QuantumState, TolerancesMixin):
         )
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return settings."""
         return {"data": self._data, "dims": self._op_shape.dims_l()}
 
@@ -233,7 +232,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """Return data."""
         return self._data
 
-    def is_valid(self, atol=None, rtol=None):
+    def is_valid(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if a Statevector has norm 1."""
         if atol is None:
             atol = self.atol
@@ -247,15 +246,15 @@ class Statevector(QuantumState, TolerancesMixin):
         mat = np.outer(self.data, np.conj(self.data))
         return Operator(mat, input_dims=self.dims(), output_dims=self.dims())
 
-    def conjugate(self):
+    def conjugate(self) -> Statevector:
         """Return the conjugate of the operator."""
         return Statevector(np.conj(self.data), dims=self.dims())
 
-    def trace(self):
+    def trace(self) -> np.float64:
         """Return the trace of the quantum state as a density matrix."""
         return np.sum(np.abs(self.data) ** 2)
 
-    def purity(self):
+    def purity(self) -> np.float64:
         """Return the purity of the quantum state."""
         # For a valid statevector the purity is always 1, however if we simply
         # have an arbitrary vector (not correctly normalized) then the
@@ -362,7 +361,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return ret
 
     def evolve(
-        self, other: Operator | QuantumCircuit | Instruction, qargs: list | None = None
+        self, other: Operator | QuantumCircuit | Instruction, qargs: list[int] | None = None
     ) -> Statevector:
         """Evolve a quantum state by the operator.
 
@@ -457,7 +456,7 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
-    def _expectation_value_pauli(self, pauli: Pauli, qargs: None | list = None) -> complex:
+    def _expectation_value_pauli(self, pauli, qargs=None):
         """Compute the expectation value of a Pauli.
 
         Args:
@@ -491,7 +490,9 @@ class Statevector(QuantumState, TolerancesMixin):
             self.data, self.num_qubits, z_mask, x_mask, y_phase, x_max
         )
 
-    def expectation_value(self, oper: Operator, qargs: None | list = None) -> complex:
+    def expectation_value(
+        self, oper: BaseOperator | QuantumCircuit | Instruction, qargs: None | list[int] = None
+    ) -> complex:
         """Compute the expectation value of an operator.
 
         Args:
@@ -514,7 +515,9 @@ class Statevector(QuantumState, TolerancesMixin):
         conj = self.conjugate()
         return np.dot(conj.data, val.data)
 
-    def probabilities(self, qargs: None | list = None, decimals: None | int = None) -> np.ndarray:
+    def probabilities(
+        self, qargs: None | list[int] = None, decimals: None | int = None
+    ) -> np.ndarray:
         """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
@@ -594,7 +597,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         return probs
 
-    def reset(self, qargs: list | None = None) -> Statevector:
+    def reset(self, qargs: list[int] | None = None) -> Statevector:
         """Reset state or subsystems to the 0-state.
 
         Args:
