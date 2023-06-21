@@ -292,7 +292,8 @@ CUSTOM_DEFINITIONS
 ------------------
 
 The block after REGISTERS is CUSTOM_DEFINITIONS. This block allows to specify custom definitions for any
-of the instructions in the circuit. It contains a HEADER followed by a series of CUSTOM_INSTRUCTION blocks:
+of the instructions in the circuit. It contains a HEADER followed
+by a series of CUSTOM_INSTRUCTION blocks:
 
 ``HEADER | CUSTOM_INSTRUCTIONS``
 
@@ -378,13 +379,15 @@ elements (SPARSE_PAULI_OPS). If ``standalone_op`` is ``True``, there must be a s
 
 The following block contains ``time_size`` bytes representing the TIME.
 The encoding of these bytes is determined by the value of ``time_type``. Possible values of
-``time_type`` are ``'f'``, ``'p'``, and ``'e'``. If ``time_type`` is ``'f'``, TIME is encoded as a double;
+``time_type`` are ``'f'``, ``'p'``, and ``'e'``. If ``time_type`` is ``'f'``,
+TIME is encoded as a double;
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object (represented by a
 :ref:`qpy_param_struct`); and ``e`` defines a :class:`~qiskit.circuit.ParameterExpression` object
-(careful, do not confuse with :class:`~qiskit.circuit.Parameter`),  represented by a :ref:`qpy_param_expr`.
+(careful, do not confuse with :class:`~qiskit.circuit.Parameter`),
+represented by a :ref:`qpy_param_expr`.
 
-Finally, the PAULI_EVOLUTION format contains ``synthesis_size`` bytes of a UTF-8 encoded JSON payload
-representing the :class:`.EvolutionSynthesis` class used by the gate.
+Finally, the PAULI_EVOLUTION format contains ``synthesis_size`` bytes of a UTF-8 encoded JSON
+payload representing the :class:`.EvolutionSynthesis` class used by the gate.
 
 .. _qpy_sparse_pauli_op:
 
