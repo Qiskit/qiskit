@@ -284,7 +284,7 @@ fn swap_map_trial(
     // This lambda is used to curry parameters so we can avoid
     // passing everything and the kitchen sink to update_routes
     // and route_reachable_nodes.
-    let route_block_dag = |block_dag: &SabreDAG, mut current_layout: NLayout| {
+    let route_block_dag = |block_dag: &SabreDAG, current_layout: NLayout| {
         swap_map_trial(
             num_qubits,
             block_dag,
@@ -433,6 +433,7 @@ fn update_route<F>(
 }
 
 fn gen_swap_epilogue(coupling: &DiGraph<(), ()>, from_layout: &NLayout, to_layout: &NLayout, seed: u64) -> Vec<[usize; 2]> {
+    // Map physical location in from_layout to physical location in to_layout
     let mapping: HashMap<NodeIndex, NodeIndex> = from_layout
         .logic_to_phys
         .iter()
@@ -440,7 +441,8 @@ fn gen_swap_epilogue(coupling: &DiGraph<(), ()>, from_layout: &NLayout, to_layou
         .map(|(v, p)| (NodeIndex::new(*p), NodeIndex::new(to_layout.logic_to_phys[v])))
         .collect();
 
-    token_swapper(coupling, mapping, Some(SWAP_EPILOGUE_TRIALS), Some(seed), None)
+    let swaps = token_swapper(coupling, mapping, Some(SWAP_EPILOGUE_TRIALS), Some(seed), None);
+    swaps.into_iter().map(|(l, r)| [l.index(), r.index()]).collect()
 }
 
 /// Search forwards in the `dag` from all the nodes in `to_visit`, adding them to the `gate_order`
@@ -475,9 +477,9 @@ fn route_reachable_nodes<F>(
                 for inner_dag in blocks {
                     let (inner_dag_routed, inner_final_layout) = route_block_dag(inner_dag, layout.copy());
 
-                    // For now, we always add a swap circuit that gets the inner block
+                    // For now, we always append a swap circuit that gets the inner block
                     // back to the parent's layout.
-                    let swap_epilogue = gen_swap_epilogue(coupling, layout, &inner_final_layout, seed);
+                    let swap_epilogue = gen_swap_epilogue(coupling, &inner_final_layout, layout, seed);
                     let block_result = BlockResult {
                         result: inner_dag_routed,
                         swap_epilogue,
