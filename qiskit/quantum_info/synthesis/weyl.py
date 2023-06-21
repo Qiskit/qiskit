@@ -27,7 +27,7 @@ _B_nonnormalized = np.array([[1, 1j, 0, 0], [0, 0, 1j, 1], [0, 0, 1j, -1], [1, -
 _B_nonnormalized_dagger = 0.5 * _B_nonnormalized.conj().T
 
 
-def transform_to_magic_basis(U, reverse=False):
+def transform_to_magic_basis(U: np.ndarray, reverse: bool = False) -> np.ndarray:
     """Transform the 4-by-4 matrix ``U`` into the magic basis.
 
     This method internally uses non-normalized versions of the basis to minimize the floating-point
@@ -46,7 +46,7 @@ def transform_to_magic_basis(U, reverse=False):
     return _B_nonnormalized @ U @ _B_nonnormalized_dagger
 
 
-def weyl_coordinates(U):
+def weyl_coordinates(U: np.ndarray) -> np.ndarray:
     """Computes the Weyl coordinates for a given two-qubit unitary matrix.
 
     Args:
