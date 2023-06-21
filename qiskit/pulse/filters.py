@@ -13,16 +13,31 @@
 """A collection of functions that filter instructions in a pulse program."""
 
 import abc
+from functools import singledispatch
 from typing import Callable, List, Union, Iterable, Optional, Tuple, Any
 
 import numpy as np
 
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock, Instruction
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.schedule import Interval
+from qiskit.pulse.exceptions import PulseError
 
 
+@singledispatch
 def filter_instructions(
+    sched, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
+):
+    """A catch-TypeError function which will only get called if none of the other decorated
+    functions, namely handle_schedule() and handle_scheduleblock(), handle the type passed.
+    """
+    raise TypeError(
+        f"Type '{type(sched)}' is not valid data format as an input to filter_instructions."
+    )
+
+
+@filter_instructions.register
+def handle_schedule(
     sched: Schedule, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
 ) -> Schedule:
     """A filtering function that takes a schedule and returns a schedule consisting of
@@ -59,6 +74,58 @@ def filter_instructions(
         filter_schedule.insert(time, inst, inplace=True)
 
     return filter_schedule
+
+
+@filter_instructions.register
+def handle_scheduleblock(
+    sched_blk: ScheduleBlock,
+    filters: List[Callable],
+    negate: bool = False,
+    recurse_subroutines: bool = True,
+) -> ScheduleBlock:
+    """A filtering function that takes a schedule_block and returns a schedule_block consisting of
+    filtered instructions.
+
+    Args:
+        sched_blk: A pulse schedule_block to be filtered.
+        filters: List of callback functions that take an instruction and return boolean.
+        negate: Set `True` to accept an instruction if a filter function returns `False`.
+            Otherwise the instruction is accepted when the filter function returns `False`.
+        recurse_subroutines: Set `True` to individually filter instructions inside of a subroutine
+            defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
+
+    Returns:
+        Filtered pulse schedule_block.
+    """
+    from qiskit.pulse.transforms import inline_subroutines
+
+    target_sched_blk = sched_blk
+    if recurse_subroutines:
+        target_sched_blk = inline_subroutines(target_sched_blk)
+
+    def apply_filters_to_insts_in_scheblk(blk: ScheduleBlock) -> ScheduleBlock:
+        blk_new = ScheduleBlock.initialize_from(blk)
+        for element in blk.blocks:
+            if isinstance(element, ScheduleBlock):
+                inner_blk = apply_filters_to_insts_in_scheblk(element)
+                if len(inner_blk) > 0:
+                    blk_new.append(inner_blk)
+
+            elif isinstance(element, Instruction):
+                valid_inst = all(filt(element) for filt in filters)
+                if negate:
+                    valid_inst ^= True
+                if valid_inst:
+                    blk_new.append(element)
+
+            else:
+                raise PulseError(
+                    f"An unexpected element '{element}' is included in ScheduleBlock.blocks."
+                )
+        return blk_new
+
+    filter_sched_blk = apply_filters_to_insts_in_scheblk(target_sched_blk)
+    return filter_sched_blk
 
 
 def composite_filter(
@@ -107,16 +174,38 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
     """
     channels = _if_scalar_cast_to_list(channels)
 
-    def channel_filter(time_inst) -> bool:
+    @singledispatch
+    def channel_filter(time_inst):
+        """A catch-TypeError function which will only get called if none of the other decorated
+        functions, namely handle_numpyndarray() and handle_instruction(), handle the type passed.
+        """
+        raise TypeError(
+            f"Type '{type(time_inst)}' is not valid data format as an input to channel_filter."
+        )
+
+    @channel_filter.register
+    def handle_numpyndarray(time_inst: np.ndarray) -> bool:
         """Filter channel.
 
         Args:
-            time_inst (Tuple[int, Instruction]): Time
+            time_inst (numpy.ndarray([int, Instruction])): Time
 
         Returns:
             If instruction matches with condition.
         """
         return any(chan in channels for chan in time_inst[1].channels)
+
+    @channel_filter.register
+    def handle_instruction(inst: Instruction) -> bool:
+        """Filter channel.
+
+        Args:
+            inst: Instruction
+
+        Returns:
+            If instruction matches with condition.
+        """
+        return any(chan in channels for chan in inst.channels)
 
     return channel_filter
 
@@ -132,16 +221,38 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
     """
     types = _if_scalar_cast_to_list(types)
 
+    @singledispatch
     def instruction_filter(time_inst) -> bool:
+        """A catch-TypeError function which will only get called if none of the other decorated
+        functions, namely handle_numpyndarray() and handle_instruction(), handle the type passed.
+        """
+        raise TypeError(
+            f"Type '{type(time_inst)}' is not valid data format as an input to instruction_filter."
+        )
+
+    @instruction_filter.register
+    def handle_numpyndarray(time_inst: np.ndarray) -> bool:
         """Filter instruction.
 
         Args:
-            time_inst (Tuple[int, Instruction]): Time
+            time_inst (numpy.ndarray([int, Instruction])): Time
 
         Returns:
             If instruction matches with condition.
         """
         return isinstance(time_inst[1], tuple(types))
+
+    @instruction_filter.register
+    def handle_instruction(inst: Instruction) -> bool:
+        """Filter instruction.
+
+        Args:
+            inst: Instruction
+
+        Returns:
+            If instruction matches with condition.
+        """
+        return isinstance(inst, tuple(types))
 
     return instruction_filter
 

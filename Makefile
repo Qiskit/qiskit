@@ -12,9 +12,9 @@
 
 OS := $(shell uname -s)
 
-.PHONY: default env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
-default: style lint-incr test ;
+default: ruff style lint-incr test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -40,6 +40,9 @@ lint-incr:
 	tools/pylint_incr.py -j4 -rn -sn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths ':(glob,top)examples/python/*.py'
 	tools/verify_headers.py qiskit test tools examples
 	tools/find_optional_imports.py
+
+ruff:
+	ruff qiskit test tools examples setup.py
 
 style:
 	black --check qiskit test tools examples setup.py
