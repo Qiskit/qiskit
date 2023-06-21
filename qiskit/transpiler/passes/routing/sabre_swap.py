@@ -17,7 +17,9 @@ from copy import copy, deepcopy
 
 import rustworkx
 
+from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -236,22 +238,30 @@ class SabreSwap(TransformationPass):
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
         original_layout = layout.copy()
 
-        dag_list = []
-        for node in dag.topological_op_nodes():
-            cargs = {self._clbit_indices[x] for x in node.cargs}
-            if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
-                    cargs.add(self._clbit_indices[clbit])
-
-            dag_list.append(
-                (
-                    node._node_id,
-                    [self._qubit_indices[x] for x in node.qargs],
-                    cargs,
+        def build_sabre_dag(d):
+            dag_list = []
+            node_blocks = {}
+            for node in d.topological_op_nodes():
+                cargs = {self._clbit_indices[x] for x in node.cargs}
+                if node.op.condition is not None:
+                    for clbit in d._bits_in_condition(node.op.condition):
+                        cargs.add(self._clbit_indices[clbit])
+                if isinstance(node.op, ControlFlowOp):
+                    node_blocks[node._node_id] = [
+                        build_sabre_dag(circuit_to_dag(block))
+                        for block in node.op.blocks
+                    ]
+                dag_list.append(
+                    (
+                        node._node_id,
+                        [self._qubit_indices[x] for x in node.qargs],
+                        cargs,
+                    )
                 )
-            )
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list)
-        swap_map, gate_order = build_swap_map(
+            return SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, node_blocks)
+
+        sabre_dag = build_sabre_dag(dag)
+        sabre_result = build_swap_map(
             len(dag.qubits),
             sabre_dag,
             self._neighbor_table,
@@ -262,6 +272,8 @@ class SabreSwap(TransformationPass):
             self.seed,
         )
 
+        swap_map = sabre_result.map
+        gate_order = sabre_result.node_order
         layout_mapping = layout.layout_mapping()
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
