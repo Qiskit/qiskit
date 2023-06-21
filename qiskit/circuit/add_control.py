@@ -58,11 +58,8 @@ def add_control(
     cgate = control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
     if operation.label is not None:
         if isinstance(cgate.base_gate, SingletonGate):
-            cgate.base_gate = type(cgate.base_gate)(
-                label=operation.label, duration=operation.duration, unit=operation.unit
-            )
-        else:
-            cgate.base_gate.label = operation.label
+            cgate.base_gate = cgate.base_gate.to_mutable()
+        cgate.base_gate.label = operation.label
     return cgate
 
 

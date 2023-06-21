@@ -198,3 +198,41 @@ class TestSingletonGate(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr, 1)
         self.assertIsNot(gate, circuit.data[0].operation)
         self.assertEqual(circuit.data[0].operation.condition, (cr, 1))
+
+    def test_is_mutable(self):
+        gate = HGate()
+        self.assertFalse(gate.mutable)
+        label_gate = HGate(label="foo")
+        self.assertTrue(label_gate.mutable)
+        self.assertIsNot(gate, label_gate)
+
+    def test_to_mutable(self):
+        gate = HGate()
+        self.assertFalse(gate.mutable)
+        new_gate = gate.to_mutable()
+        self.assertTrue(new_gate.mutable)
+        self.assertIsNot(gate, new_gate)
+
+    def test_to_mutable_setter(self):
+        gate = HGate()
+        self.assertFalse(gate.mutable)
+        mutable_gate = gate.to_mutable()
+        mutable_gate.label = "foo"
+        mutable_gate.duration = 3
+        mutable_gate.unit = "s"
+        clbit = Clbit()
+        mutable_gate.condition = (clbit, 0)
+        self.assertTrue(mutable_gate.mutable)
+        self.assertIsNot(gate, mutable_gate)
+        self.assertEqual(mutable_gate.label, "foo")
+        self.assertEqual(mutable_gate.duration, 3)
+        self.assertEqual(mutable_gate.unit, "s")
+        self.assertEqual(mutable_gate.condition, (clbit, 0))
+
+    def test_to_mutable_of_mutable_instance(self):
+        gate = HGate(label="foo")
+        mutable_copy = gate.to_mutable()
+        self.assertIsNot(gate, mutable_copy)
+        self.assertEqual(mutable_copy.label, gate.label)
+        mutable_copy.label = "not foo"
+        self.assertNotEqual(mutable_copy.label, gate.label)

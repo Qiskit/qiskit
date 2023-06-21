@@ -74,9 +74,8 @@ class BaseScheduler(AnalysisPass):
 
             # Note that node duration is updated (but this is analysis pass)
             if isinstance(node.op, SingletonGate):
-                node.op = type(node.op)(label=node.op.label, duration=duration, unit=node.op.unit)
-            else:
-                node.op.duration = duration
+                node.op = node.op.to_mutable()
+            node.op.duration = duration
         else:
             duration = node.op.duration
 

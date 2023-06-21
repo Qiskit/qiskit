@@ -247,10 +247,9 @@ class PadDynamicalDecoupling(BasePadding):
                 sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
                 if isinstance(gate, SingletonGate):
-                    gate = type(gate)(label=gate.label, duration=gate_length)
+                    gate = gate.to_mutable()
                     self._dd_sequence[index] = gate
-                else:
-                    gate.duration = gate_length
+                gate.duration = gate_length
             self._dd_sequence_lengths[qubit] = sequence_lengths
 
     def __gate_supported(self, gate: Gate, qarg: int) -> bool:
