@@ -21,6 +21,7 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
 
+
 @contextmanager
 def cwd(path):
     """A context manager to run in a particular path"""
@@ -31,7 +32,8 @@ def cwd(path):
     finally:
         os.chdir(oldpwd)
 
-class VisualTestUtilities():
+
+class VisualTestUtilities:
     @staticmethod
     def _new_gray(size, color):
         img = Image.new("L", size)
@@ -89,6 +91,7 @@ class VisualTestUtilities():
     @staticmethod
     def save_data_wrap(func, testname, result_dir):
         """A wrapper to save the data a test"""
+
         def wrapper(*args, **kwargs):
             image_filename = kwargs["filename"]
             with cwd(result_dir):
