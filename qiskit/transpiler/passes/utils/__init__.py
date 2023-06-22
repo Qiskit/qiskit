@@ -29,6 +29,7 @@ from .gates_basis import GatesInBasis
 from .convert_conditions_to_if_ops import ConvertConditionsToIfOps
 from .unroll_forloops import UnrollForLoops
 from .minimum_point import MinimumPoint
+from .remove_labeled_ops import RemoveLabeledOps
 
 # Utility functions
 from . import control_flow

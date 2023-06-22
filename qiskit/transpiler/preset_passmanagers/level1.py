@@ -230,7 +230,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
             layout.append(_choose_layout_1, condition=_layout_not_perfect)
             layout.append(
-                [BarrierBeforeFinalMeasurements(), _improve_layout], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    _improve_layout,
+                ],
+                condition=_vf2_match_not_found,
             )
             embed = common.generate_embed_passmanager(coupling_map_layout)
             layout.append(

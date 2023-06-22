@@ -1657,6 +1657,15 @@ class TestTranspile(QiskitTestCase):
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
 
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure(range(2), range(2))
+        tqc = transpile(qc, initial_layout=[1, 4], coupling_map=[[1, 2], [2, 3], [3, 4]], optimization_level=opt_level)
+        self.assertNotIn("barrier", tqc.count_ops())
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
