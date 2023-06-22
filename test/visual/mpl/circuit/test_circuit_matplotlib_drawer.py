@@ -16,12 +16,13 @@ import unittest
 
 import json
 import os
-from contextlib import contextmanager
+from pathlib import Path
 import math
 import numpy as np
 from numpy import pi
 
 from PIL import Image, ImageChops, ImageDraw
+from test.visual import VisualTestUtilities
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife
@@ -50,38 +51,26 @@ if optionals.HAS_MATPLOTLIB:
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
-BASEDIR = os.path.dirname(os.path.abspath(__file__))
-RESULTDIR = os.path.join(BASEDIR, "circuit_results", "")
-TEST_REFERENCE_PATH = os.path.join(BASEDIR, "references")
-FAILURE_DIFF_DIR = os.path.join(os.path.dirname(BASEDIR), "visual_test_failures", "")
+BASE_DIR = Path(__file__).parent
+RESULT_DIR = Path(BASE_DIR) / "circuit_results"
+TEST_REFERENCE_DIR = Path(BASE_DIR) / "references"
+FAILURE_DIFF_DIR = Path(BASE_DIR).parent / "visual_test_failures"
 FAILURE_PREFIX = "circuit_failure_"
-
-
-@contextmanager
-def cwd(path):
-    """A context manager to run in a particular path"""
-    oldpwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(oldpwd)
-
 
 class TestCircuitMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
     def setUp(self):
         super().setUp()
-        self.circuit_drawer = TestCircuitMatplotlibDrawer.save_data_wrap(
-            _matplotlib_circuit_drawer, str(self)
+        self.circuit_drawer = VisualTestUtilities.save_data_wrap(
+            _matplotlib_circuit_drawer, str(self), RESULT_DIR
         )
 
         if not os.path.exists(FAILURE_DIFF_DIR):
             os.makedirs(FAILURE_DIFF_DIR)
 
-        if not os.path.exists(RESULTDIR):
-            os.makedirs(RESULTDIR)
+        if not os.path.exists(RESULT_DIR):
+            os.makedirs(RESULT_DIR)
 
     def tearDown(self):
         super().tearDown()
@@ -89,91 +78,11 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
     @staticmethod
     def _image_path(image_name):
-        return os.path.join(RESULTDIR, image_name)
+        return os.path.join(RESULT_DIR, image_name)
 
     @staticmethod
     def _reference_path(image_name):
-        return os.path.join(TEST_REFERENCE_PATH, image_name)
-
-    @staticmethod
-    def _new_gray(size, color):
-        img = Image.new("L", size)
-        drawing = ImageDraw.Draw(img)
-        drawing.rectangle((0, 0) + size, color)
-        return img
-
-    @staticmethod
-    def _black_or_b(diff_image, image, reference, opacity=0.85):
-        """Copied from https://stackoverflow.com/a/30307875"""
-        thresholded_diff = diff_image
-        for _ in range(3):
-            thresholded_diff = ImageChops.add(thresholded_diff, thresholded_diff)
-        size = diff_image.size
-        mask = TestCircuitMatplotlibDrawer._new_gray(size, int(255 * (opacity)))
-        shade = TestCircuitMatplotlibDrawer._new_gray(size, 0)
-        new = reference.copy()
-        new.paste(shade, mask=mask)
-        if image.size != new.size:
-            image = image.resize(new.size)
-        if image.size != thresholded_diff.size:
-            thresholded_diff = thresholded_diff.resize(image.size)
-        new.paste(image, mask=thresholded_diff)
-        return new
-
-    @staticmethod
-    def _get_black_pixels(image):
-        black_and_white_version = image.convert("1")
-        black_pixels = black_and_white_version.histogram()[0]
-        return black_pixels
-
-    @staticmethod
-    def _similarity_ratio(current, expected, image_name):
-        diff_name = current.split(".")
-        diff_name.insert(-1, "diff")
-        diff_name = ".".join(diff_name)
-
-        current = Image.open(current)
-        expected = Image.open(expected)
-
-        diff = ImageChops.difference(expected, current).convert("L")
-
-        black_pixels = TestCircuitMatplotlibDrawer._get_black_pixels(diff)
-        total_pixels = diff.size[0] * diff.size[1]
-        ratio = black_pixels / total_pixels
-
-        if ratio != 1:
-            TestCircuitMatplotlibDrawer._black_or_b(diff, current, expected).save(
-                FAILURE_DIFF_DIR + FAILURE_PREFIX + image_name, "PNG"
-            )
-        else:
-            TestCircuitMatplotlibDrawer._black_or_b(diff, current, expected).save(diff_name, "PNG")
-        return ratio
-
-    @staticmethod
-    def save_data_wrap(func, testname):
-        """A wrapper to save the data from a test"""
-
-        def wrapper(*args, **kwargs):
-            image_filename = kwargs["filename"]
-            with cwd(RESULTDIR):
-                results = func(*args, **kwargs)
-                TestCircuitMatplotlibDrawer.save_data(image_filename, testname)
-            return results
-
-        return wrapper
-
-    @staticmethod
-    def save_data(image_filename, testname):
-        """Saves result data of a test"""
-        datafilename = "result_test.json"
-        if os.path.exists(datafilename):
-            with open(datafilename) as datafile:
-                data = json.load(datafile)
-        else:
-            data = {}
-        data[image_filename] = {"testname": testname}
-        with open(datafilename, "w") as datafile:
-            json.dump(data, datafile)
+        return os.path.join(TEST_REFERENCE_DIR, image_name)
 
     def test_empty_circuit(self):
         """Test empty circuit"""
@@ -182,8 +91,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "empty_circut.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_calibrations(self):
         """Test calibrations annotations
@@ -205,8 +114,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_calibrations_with_control_gates(self):
         """Test calibrations annotations
@@ -236,8 +145,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations_with_control_gates.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_calibrations_with_swap_and_reset(self):
         """Test calibrations annotations
@@ -267,8 +176,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations_with_swap_and_reset.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_calibrations_with_rzz_and_rxx(self):
         """Test calibrations annotations
@@ -297,8 +206,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations_with_rzz_and_rxx.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_no_ops(self):
         """Test circuit with no ops.
@@ -308,8 +217,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "no_op_circut.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -330,8 +239,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "long_name.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_multi_underscore_reg_names(self):
         """Test that multi-underscores in register names display properly"""
@@ -344,17 +253,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "multi_underscore_true.png"
         self.circuit_drawer(circuit, cregbundle=True, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "multi_underscore_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname2)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
 
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
@@ -370,8 +278,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "reg_conditional.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_bit_conditional_with_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
@@ -388,8 +296,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "bit_conditional_bundle.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_bit_conditional_no_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
@@ -406,8 +314,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "bit_conditional_no_bundle.png"
         self.circuit_drawer(circuit, filename=fname, cregbundle=False)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
@@ -425,8 +333,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "plot_partial_barrier.png"
         self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
@@ -453,17 +361,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "plot_barriers_true.png"
         self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "plot_barriers_false.png"
         self.circuit_drawer(circuit, filename=fname2, plot_barriers=False)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
 
     def test_no_barriers_false(self):
         """Generate the same circuit as test_plot_barriers but without the barrier commands
@@ -477,8 +384,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "no_barriers.png"
         self.circuit_drawer(circuit, filename=fname, plot_barriers=False)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_fold_minus1(self):
         """Test to see that fold=-1 is no folding"""
@@ -492,8 +399,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "fold_minus1.png"
         self.circuit_drawer(circuit, fold=-1, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_fold_4(self):
         """Test to see that fold=4 is folding"""
@@ -507,8 +414,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "fold_4.png"
         self.circuit_drawer(circuit, fold=4, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_big_gates(self):
         """Test large gates with params"""
@@ -538,8 +445,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "big_gates.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
@@ -555,8 +462,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cnot.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_cz(self):
         """Test Z and Controlled-Z Gates"""
@@ -571,8 +478,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cz.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
@@ -595,8 +502,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "pauli_clifford.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
@@ -610,17 +517,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "creg_initial_true.png"
         self.circuit_drawer(circuit, filename=fname, cregbundle=True, initial_state=True)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "creg_initial_false.png"
         self.circuit_drawer(circuit, filename=fname2, cregbundle=False, initial_state=False)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
 
     def test_r_gates(self):
         """Test all R gates"""
@@ -638,8 +544,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "r_gates.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_ctrl_labels(self):
         """Test control labels"""
@@ -656,8 +562,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "ctrl_labels.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_cswap_rzz(self):
         """Test controlled swap and rzz gates"""
@@ -669,8 +575,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cswap_rzz.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_ghz_to_gate(self):
         """Test controlled GHZ to_gate circuit"""
@@ -687,8 +593,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "ghz_to_gate.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_scale(self):
         """Tests scale
@@ -699,25 +605,24 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "scale_default.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "scale_half.png"
         self.circuit_drawer(circuit, filename=fname2, scale=0.5)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
         fname3 = "scale_double.png"
         self.circuit_drawer(circuit, filename=fname3, scale=2)
 
-        ratio3 = self._similarity_ratio(
-            self._image_path(fname3), self._reference_path(fname3), fname3
+        ratio3 = VisualTestUtilities._save_diff(
+            self._image_path(fname3), self._reference_path(fname3), fname3, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
-        assert ratio3 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
+        self.assertEqual(ratio3, 1)
 
     def test_pi_param_expr(self):
         """Test pi in circuit with parameter expression."""
@@ -728,8 +633,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "pi_in_param_expr.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_partial_layout(self):
         """Tests partial_layout
@@ -748,8 +653,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "partial_layout.png"
         self.circuit_drawer(transpiled, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_init_reset(self):
         """Test reset and initialize with 1 and 2 qubits"""
@@ -761,8 +666,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "init_reset.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_with_global_phase(self):
         """Tests with global phase"""
@@ -772,8 +677,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "global_phase.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_alternative_colors(self):
         """Tests alternative color schemes"""
@@ -809,13 +714,13 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 fname = f"{style}_color.png"
                 self.circuit_drawer(circuit, style={"name": style}, filename=fname)
 
-                ratio = self._similarity_ratio(
-                    self._image_path(fname), self._reference_path(fname), fname
+                ratio = VisualTestUtilities._save_diff(
+                    self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX
                 )
                 ratios.append(ratio)
 
         for ratio in ratios:
-            assert ratio == 1
+            self.assertEqual(ratio, 1)
 
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
@@ -827,8 +732,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "reverse_bits.png"
         self.circuit_drawer(circuit, reverse_bits=True, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_bw(self):
         """Tests black and white style parameter"""
@@ -844,8 +749,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "bw.png"
         self.circuit_drawer(circuit, style={"name": "bw"}, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_user_style(self):
         """Tests loading a user style"""
@@ -887,8 +792,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
@@ -903,8 +808,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, style=style, filename=fname)
         self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
@@ -918,8 +823,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "meas_condition.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_reverse_bits_condition(self):
         """Tests reverse_bits with a condition and gate above"""
@@ -938,17 +843,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "reverse_bits_cond_true.png"
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "reverse_bits_cond_false.png"
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=False, filename=fname2)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
 
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
@@ -978,8 +882,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_6095(self):
         """Tests controlled-phase gate style
@@ -995,8 +899,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_instruction_1q_1c(self):
         """Tests q0-cr0 instruction on a circuit"""
@@ -1009,8 +913,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_1q_1c.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_instruction_3q_3c_circ1(self):
         """Tests q0-q1-q2-cr_20-cr0-cr1 instruction on a circuit"""
@@ -1024,8 +928,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_3q_3c_circ1.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_instruction_3q_3c_circ2(self):
         """Tests q3-q0-q2-cr0-cr1-cr_20 instruction on a circuit"""
@@ -1039,8 +943,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_3q_3c_circ2.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_instruction_3q_3c_circ3(self):
         """Tests q3-q1-q2-cr_31-cr1-cr_30 instruction on a circuit"""
@@ -1055,8 +959,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_3q_3c_circ3.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_overwide_gates(self):
         """Test gates don't exceed width of default fold"""
@@ -1068,8 +972,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "wide_params.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_one_bit_regs(self):
         """Test registers with only one bit display without number"""
@@ -1084,8 +988,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "one_bit_regs.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
@@ -1107,8 +1011,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "user_ax.png"
         self.circuit_drawer(circuit, ax=ax2, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_figwidth(self):
         """Test style dict 'figwidth'"""
@@ -1122,8 +1026,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "figwidth.png"
         self.circuit_drawer(circuit, style={"figwidth": 5}, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_registerless_one_bit(self):
         """Test circuit with one-bit registers and registerless bits."""
@@ -1135,8 +1039,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "registerless_one_bit.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_measures_with_conditions(self):
         """Test that a measure containing a condition displays"""
@@ -1153,17 +1057,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "measure_cond_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "measure_cond_true.png"
         self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
 
     def test_conditions_measures_with_bits(self):
         """Test that gates with conditions and measures work with bits"""
@@ -1177,17 +1080,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "measure_cond_bits_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
         fname2 = "measure_cond_bits_true.png"
         self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
 
-        ratio2 = self._similarity_ratio(
-            self._image_path(fname2), self._reference_path(fname2), fname2
+        ratio2 = VisualTestUtilities._save_diff(
+            self._image_path(fname2), self._reference_path(fname2), fname2, FAILURE_DIFF_DIR, FAILURE_PREFIX
         )
 
-        assert ratio == 1
-        assert ratio2 == 1
+        self.assertEqual(ratio, 1)
+        self.assertEqual(ratio2, 1)
 
     def test_conditional_gates_right_of_measures_with_bits(self):
         """Test that gates with conditions draw to right of measures when same bit"""
@@ -1202,8 +1104,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "measure_cond_bits_right.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_conditions_with_bits_reverse(self):
         """Test that gates with conditions work with bits reversed"""
@@ -1216,8 +1118,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cond_bits_reverse.png"
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_sidetext_with_condition(self):
         """Test that sidetext gates align properly with conditions"""
@@ -1229,8 +1131,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "sidetext_condition.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_fold_with_conditions(self):
         """Test that gates with conditions draw correctly when folding"""
@@ -1258,8 +1160,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "fold_with_conditions.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
@@ -1270,8 +1172,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "idle_wires_barrier.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_wire_order(self):
         """Test the wire_order option"""
@@ -1292,8 +1194,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
     def test_barrier_label(self):
         """Test the barrier label"""
@@ -1308,8 +1210,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "barrier_label.png"
         self.circuit_drawer(circuit, filename="barrier_label.png")
 
-        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
-        assert ratio == 1
+        ratio = VisualTestUtilities._save_diff(self._image_path(fname), self._reference_path(fname), fname, FAILURE_DIFF_DIR, FAILURE_PREFIX)
+        self.assertEqual(ratio, 1)
 
 
 if __name__ == "__main__":

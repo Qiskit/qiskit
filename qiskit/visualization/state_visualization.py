@@ -515,6 +515,9 @@ def plot_state_city(
     min_dzi = np.min(dzi)
     max_dzi = np.max(dzi)
 
+    # There seems to be a rounding error in which some zero bars are negative
+    dzr = np.clip(dzr, 0, None)
+
     if ax1 is not None:
         fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
         for idx, cur_zpos in enumerate(zpos):
@@ -1099,9 +1102,6 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         MissingOptionalLibraryError: If matplotlib is not installed
     """
     import matplotlib.colors as mcolors
-
-    # There seems to be a rounding error in which some zero bars are negative
-    dz += 1e-10
 
     cuboid = np.array(
         [
