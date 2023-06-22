@@ -19,13 +19,14 @@ import rustworkx
 
 from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit.transpiler.passes.routing.stochastic_swap import _dag_from_block
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
@@ -223,11 +224,6 @@ class SabreSwap(TransformationPass):
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
-        # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = None
-        if not self.fake_run:
-            mapped_dag = dag.copy_empty_like()
-
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
         self._qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
@@ -272,38 +268,75 @@ class SabreSwap(TransformationPass):
             self.seed,
         )
 
-        swap_map = sabre_result.map
-        gate_order = sabre_result.node_order
         layout_mapping = layout.layout_mapping()
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
-            for node_id in gate_order:
+            return self._apply_sabre_result(dag, canonical_register, original_layout, sabre_result)
+        return dag
+
+    def _apply_sabre_result(self, root_dag, canonical_register, initial_layout, sabre_result):
+        def apply_inner(dag, current_layout, result):
+            mapped_dag = dag.copy_empty_like()
+            for node_id in result.node_order:
                 node = dag._multi_graph[node_id]
-                process_swaps(
-                    swap_map,
-                    node,
-                    mapped_dag,
-                    original_layout,
-                    canonical_register,
-                    self.fake_run,
-                    self._qubit_indices,
-                )
+                if isinstance(node.op, ControlFlowOp):
+                    block_results = result.node_block_results[node_id]
+                    mapped_block_dags = []
+                    idle_qubits = set(dag.qubits)
+                    for block, block_result in zip(node.op.blocks, block_results, strict=True):
+                        block_dag = _dag_from_block(block, node, root_dag)
+                        mapped_block_layout = current_layout.copy()
+                        mapped_block_dag = apply_inner(block_dag, mapped_block_layout, block_result.result)
+
+                        # Apply swap epilogue to bring each block to the same
+                        # final layout.
+                        process_swaps(
+                            block_result.swap_epilogue,
+                            mapped_block_dag,
+                            mapped_block_layout,
+                            canonical_register,
+                            self.fake_run,
+                            self._qubit_indices
+                        )
+
+                        # TODO: validate here that current_layout == mapped_block_layout after swap epilogue!
+
+                        mapped_block_dags.append(mapped_block_dag)
+                        idle_qubits &= set(mapped_block_dag.idle_wires())
+
+                    mapped_blocks = []
+                    for mapped_block_dag in mapped_block_dags:
+                        # Remove wires that are idle in all blocks.
+                        mapped_block_dag.remove_qubits(*idle_qubits)
+                        mapped_blocks.append(dag_to_circuit(mapped_block_dag))
+
+                    # Replace the node.
+                    node = node.op.replace_blocks(mapped_blocks)
+                elif node_id in result.map:
+                    process_swaps(
+                        result.map[node_id],
+                        mapped_dag,
+                        current_layout,
+                        canonical_register,
+                        self.fake_run,
+                        self._qubit_indices,
+                    )
+
                 apply_gate(
                     mapped_dag,
                     node,
-                    original_layout,
+                    current_layout,
                     canonical_register,
                     self.fake_run,
                     self._qubit_indices,
                 )
             return mapped_dag
-        return dag
+        return apply_inner(root_dag, initial_layout, sabre_result)
 
 
 def process_swaps(
-    swap_map,
-    node,
+    swap_list,
     mapped_dag,
     current_layout,
     canonical_register,
@@ -311,30 +344,32 @@ def process_swaps(
     qubit_indices,
     swap_qubit_mapping=None,
 ):
-    """Process swaps from SwapMap."""
-    if node._node_id in swap_map:
-        for swap in swap_map[node._node_id]:
-            if swap_qubit_mapping:
-                swap_qargs = [
-                    canonical_register[swap_qubit_mapping[swap[0]]],
-                    canonical_register[swap_qubit_mapping[swap[1]]],
-                ]
-            else:
-                swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
-            apply_gate(
-                mapped_dag,
-                DAGOpNode(op=SwapGate(), qargs=swap_qargs),
-                current_layout,
-                canonical_register,
-                fake_run,
-                qubit_indices,
+    """
+    Applies each swap in ``swap_list`` sequentially and updates
+    ``current_layout`` accordingly.
+    """
+    for swap in swap_list:
+        if swap_qubit_mapping:
+            swap_qargs = [
+                canonical_register[swap_qubit_mapping[swap[0]]],
+                canonical_register[swap_qubit_mapping[swap[1]]],
+            ]
+        else:
+            swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
+        apply_gate(
+            mapped_dag,
+            DAGOpNode(op=SwapGate(), qargs=swap_qargs),
+            current_layout,
+            canonical_register,
+            fake_run,
+            qubit_indices,
+        )
+        if swap_qubit_mapping:
+            current_layout.swap_logical(
+                swap_qubit_mapping[swap[0]], swap_qubit_mapping[swap[1]]
             )
-            if swap_qubit_mapping:
-                current_layout.swap_logical(
-                    swap_qubit_mapping[swap[0]], swap_qubit_mapping[swap[1]]
-                )
-            else:
-                current_layout.swap_logical(*swap)
+        else:
+            current_layout.swap_logical(*swap)
 
 
 def apply_gate(mapped_dag, node, current_layout, canonical_register, fake_run, qubit_indices):

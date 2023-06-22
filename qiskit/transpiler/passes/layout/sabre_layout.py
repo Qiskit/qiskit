@@ -274,16 +274,16 @@ class SabreLayout(TransformationPass):
         ) in layout_components:
             for node_id in gate_order:
                 node = local_dag._multi_graph[node_id]
-                process_swaps(
-                    swap_map,
-                    node,
-                    mapped_dag,
-                    original_layout,
-                    canonical_register,
-                    False,
-                    qubit_indices,
-                    component_map,
-                )
+                if node_id in swap_map:
+                    process_swaps(
+                        swap_map[node_id],
+                        mapped_dag,
+                        original_layout,
+                        canonical_register,
+                        False,
+                        qubit_indices,
+                        component_map,
+                    )
                 apply_gate(
                     mapped_dag,
                     node,
