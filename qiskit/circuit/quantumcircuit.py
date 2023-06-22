@@ -2854,7 +2854,16 @@ class QuantumCircuit:
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
                     if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
+                        if new_param._symbol_expr.is_integer and new_param.is_real():
+                            val = int(new_param)
+                        elif new_param.is_real():
+                            val = float(new_param)
+                        else:
+                            # complex values may no longer be supported but we
+                            # defer raising an exception to validdate_parameter
+                            # below for now.
+                            val = complex(new_param)
+                        instr.params[param_index] = instr.validate_parameter(val)
                     else:
                         instr.params[param_index] = new_param
 
@@ -2911,7 +2920,10 @@ class QuantumCircuit:
                         if isinstance(p, ParameterExpression) and parameter in p.parameters:
                             new_param = p.assign(parameter, value)
                             if not new_param.parameters:
-                                new_param = float(new_param)
+                                if new_param._symbol_expr.is_integer:
+                                    new_param = int(new_param)
+                                else:
+                                    new_param = float(new_param)
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
@@ -5048,10 +5060,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     # Otherwise, if there's a naming clash, we need a unique name.
     if operation.name in gates_to_define:
-        new_name = f"{operation.name}_{id(operation)}"
-        operation = operation.copy(name=new_name)
-    else:
-        new_name = operation.name
+        operation = _rename_operation(operation)
+
+    new_name = operation.name
 
     if parameterized_operation.params:
         parameters_qasm = (
@@ -5076,9 +5087,22 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
             statements.append(f"{new_operation.qasm()} {bits_qasm};")
         body_qasm = " ".join(statements)
+
+        # if an inner operation has the same name as the actual operation, it needs to be renamed
+        if operation.name in gates_to_define:
+            operation = _rename_operation(operation)
+            new_name = operation.name
+
         definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
         gates_to_define[new_name] = (parameterized_operation, definition_qasm)
     return operation
+
+
+def _rename_operation(operation):
+    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
+    new_name = f"{operation.name}_{id(operation)}"
+    updated_operation = operation.copy(name=new_name)
+    return updated_operation
 
 
 def _qasm_escape_name(name: str, prefix: str) -> str:
