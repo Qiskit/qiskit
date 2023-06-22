@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.op_shape import OpShape
@@ -41,7 +42,6 @@ else:
 
 if TYPE_CHECKING:
     from qiskit.quantum_info import Statevector, DensityMatrix
-    from qiskit.circuit.instruction import Instruction
 
 
 class QuantumChannel(LinearOp):
