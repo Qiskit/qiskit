@@ -34,6 +34,8 @@ def cwd(path):
 
 
 class VisualTestUtilities:
+    """Utility methods for circuit and graph visual testing"""
+
     @staticmethod
     def _new_gray(size, color):
         img = Image.new("L", size)
