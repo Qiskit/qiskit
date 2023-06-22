@@ -16,9 +16,10 @@ Abstract base class for Quantum Channels.
 
 from __future__ import annotations
 import copy
+import sys
 from abc import abstractmethod
 from numbers import Number, Integral
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -32,6 +33,11 @@ from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 if TYPE_CHECKING:
     from qiskit.quantum_info import Statevector, DensityMatrix
