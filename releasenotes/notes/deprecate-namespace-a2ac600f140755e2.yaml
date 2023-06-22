@@ -1,13 +1,13 @@
 ---
 deprecations:
   - |
-    Extensions of the ``qiskit`` and ``qiskit.providers`` namepace by external
-    packages is now deprecated and the hook points enabling this will be
-    removed in a future release. In the past the Qiskit project was composed
+    Extensions of the ``qiskit`` and ``qiskit.providers`` namespaces by external
+    packages are now deprecated and the hook points enabling this will be
+    removed in a future release. In the past, the Qiskit project was composed
     of elements that extended a shared namespace and these hook points enabled
-    doing that. However, it was not inteneded for these interfaces to ever be
+    doing that. However, it was not intended for these interfaces to ever be
     used by other packages. Now that the overall Qiskit package is no longer
-    using that packaging model leaving the possiblity for these extensions
+    using that packaging model, leaving the possibility for these extensions
     carry more risk than benefits and is therefore being deprecated for
     future removal. If you're maintaining a package that extends the Qiskit
     namespace (i.e. your users import from ``qiskit.x`` or
