@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Using ``initial_layout`` in calls to :func:`.transpile` will no longer error if the
+    circuit contains qubits not in any registers, or qubits that exist in more than one
+    register.  See `#10125 <https://github.com/Qiskit/qiskit-terra/issues/10125>`__.

@@ -16,11 +16,10 @@ Deprecated.
 Style sheets for pulse visualization.
 """
 from __future__ import annotations
-import warnings
-
+import logging
 from collections import namedtuple
 
-import logging
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 ComplexColors = namedtuple("ComplexColors", ["real", "imaginary"])
@@ -30,6 +29,15 @@ SchedTableColors = namedtuple("SchedTableColors", ["time", "channel", "event"])
 class SchedStyle:
     """Style sheet for Qiskit-Pulse schedule drawer."""
 
+    @deprecate_func(
+        additional_msg=(
+            "In addition to this stylesheet being deprecated, the legacy pulse drawer is too. "
+            "Instead, use the new drawer ``qiskit.visualization.pulse_drawer`` "
+            "with new stylesheet classes provided by ``qiskit.visualization.pulse_v2``. "
+            "You can choose one of ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``."
+        ),
+        since="0.23.0",
+    )
     def __init__(
         self,
         figsize: tuple[float, float] | None = (10.0, 12.0),
@@ -127,15 +135,6 @@ class SchedStyle:
             If you want to show more events, increase figure height or
             reduce size of line height and table font size.
         """
-        warnings.warn(
-            "The legacy pulse drawer is deprecated along with this stylesheet. "
-            "Please use new drawer `qiskit.visualization.pulse_drawer` "
-            "with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. "
-            "You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
         self.figsize = figsize
         self.fig_unit_h_table = fig_unit_h_table
         self.use_table = use_table
@@ -175,6 +174,15 @@ class PulseStyle:
 
     Style sheet for Qiskit-Pulse sample pulse drawer."""
 
+    @deprecate_func(
+        additional_msg=(
+            "In addition to this stylesheet being deprecated, the legacy pulse drawer is too. "
+            "Instead, use the new drawer ``qiskit.visualization.pulse_drawer`` "
+            "with new stylesheet classes provided by ``qiskit.visualization.pulse_v2``. "
+            "You can choose one of ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``."
+        ),
+        since="0.23.0",
+    )
     def __init__(
         self,
         figsize: tuple[float, float] | None = (7.0, 5.0),
@@ -208,15 +216,6 @@ class PulseStyle:
                 If the output is ``matplotlib``, the default
                 parameter is ``rcParams['figure.dpi']``.
         """
-        warnings.warn(
-            "The legacy pulse drawer is deprecated along with this stylesheet. "
-            "Please use new drawer `qiskit.visualization.pulse_drawer` "
-            "with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. "
-            "You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
         self.figsize = figsize
         self.title_font_size = title_font_size
         self.wave_color = wave_color
