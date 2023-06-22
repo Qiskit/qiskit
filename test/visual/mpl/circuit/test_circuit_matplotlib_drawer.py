@@ -14,15 +14,13 @@
 
 import unittest
 
-import json
 import os
-from pathlib import Path
 import math
+from test.visual import VisualTestUtilities
+from pathlib import Path
 import numpy as np
 from numpy import pi
 
-from PIL import Image, ImageChops, ImageDraw
-from test.visual import VisualTestUtilities
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife

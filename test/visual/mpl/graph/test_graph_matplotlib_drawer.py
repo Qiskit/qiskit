@@ -13,14 +13,11 @@
 """Tests for graph MPL drawer"""
 
 import unittest
-
-import json
 import os
+from test.visual import VisualTestUtilities
 from contextlib import contextmanager
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw
-from test.visual import VisualTestUtilities
 from qiskit import BasicAer, execute
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
