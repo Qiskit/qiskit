@@ -214,6 +214,28 @@ class TestFullAncillaAllocation(QiskitTestCase):
             cm.exception.message,
         )
 
+    def test_target_without_cmap(self):
+        """Test that FullAncillaAllocation works when the target does not have a coupling map.
+
+        This situation occurs at the early stages of backend bring-up.
+        """
+        target_data = {"basis_gates": ["h"], "num_qubits": 3}
+        target = Target.from_configuration(**target_data)
+
+        circ = QuantumCircuit(1)
+        circ.h(0)
+
+        pass_ = FullAncillaAllocation(target)
+        pass_.property_set["layout"] = Layout.from_intlist([0], *circ.qregs)
+
+        # Pre pass check
+        self.assertEqual(len(pass_.property_set["layout"]), 1)
+
+        pass_.run(circuit_to_dag(circ))
+
+        # Post pass check
+        self.assertEqual(len(pass_.property_set["layout"]), target.num_qubits)
+
 
 if __name__ == "__main__":
     unittest.main()

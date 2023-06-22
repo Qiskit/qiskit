@@ -84,16 +84,19 @@ from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
+import typing
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..utils import init_observable
 from .base_primitive import BasePrimitive
+
+if typing.TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
 
 T = TypeVar("T", bound=Job)
 
