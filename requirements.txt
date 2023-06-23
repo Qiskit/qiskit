@@ -11,9 +11,3 @@ stevedore>=3.0.0
 # multiplication in version 0.10 wich breaks parameter assignment test
 # (can be removed once issue is fix)
 symengine>=0.9, <0.10; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
-
-# Hack around stevedore being broken by importlib_metadata 5.0; we need to pin
-# the requirements rather than the constraints if we need to cut a release
-# before stevedore is fixed.  `importlib_metadata` is not (currently) a direct
-# requirement of Terra.
-importlib_metadata<5.0; python_version<'3.8'
