@@ -1898,9 +1898,7 @@ class DAGCircuit:
                 op_dict[name] += 1
         return op_dict
 
-    def _get_qubit_input_output_node(
-        self, qubit: int | Qubit, in_or_out: bool = False
-    ) -> tuple[Qubit, DAGNode]:
+    def _get_qubit_input_output_node(self, qubit, in_or_out=False):
         """Returns qubit and input or output node from an index."""
         nodes = self.output_map if in_or_out else self.input_map
         # Check if index is passed
@@ -1912,15 +1910,15 @@ class DAGCircuit:
             raise DAGCircuitError("Qubit was not found in circuit")
         return (qubit, nodes.get(qubit, None))
 
-    def get_qubit_input_node(self, qubit: int | Qubit) -> tuple[Qubit, DAGNode]:
+    def get_qubit_input_node(self, qubit):
         """Returns qubit and input node from a qubit index."""
         return self._get_qubit_input_output_node(qubit)
 
-    def get_qubit_output_node(self, qubit: int | Qubit) -> tuple[Qubit, DAGNode]:
+    def get_qubit_output_node(self, qubit):
         """Returns qubit and input node from a qubit index."""
         return self._get_qubit_input_output_node(qubit, True)
 
-    def get_causal_cone(self, qubit_index: int) -> set[Qubit]:
+    def get_causal_cone(self, qubit_index):
         """Returns causal cone of a qubit."""
         # Check if the qubit index is in range, else throw an error.
         if qubit_index >= self.num_qubits():
@@ -1929,25 +1927,25 @@ class DAGCircuit:
         # Retrieve the output node and the qubit
         qubit, output_node = self.get_qubit_output_node(qubit_index)
         # Add the qubit to the causal cone.
-        qubits_to_check: set[Qubit] = set({qubit})
+        qubits_to_check = set({qubit})
         # Add predecessors of output node to the queue.
-        queue: list[DAGOpNode] = list(self.predecessors(output_node))
+        queue = list(self.predecessors(output_node))
 
         # While queue isn't empty
         while len(queue) > 0:
             # Pop first element.
-            node_to_check: DAGNode = queue.pop(0)
+            node_to_check = queue.pop(0)
             # Check whether element is input or output node.
             if not (isinstance(node_to_check, (DAGInNode, DAGOutNode))):
                 # Keep all the qubits in the operation inside a set.
-                qubit_set: set[Qubit] = set(node_to_check.qargs)
+                qubit_set = set(node_to_check.qargs)
                 # Check if there are any qubits in common and that the operation is not a barrier.
                 if (
                     len(qubit_set.intersection(qubits_to_check)) > 0
                     and not node_to_check.op.name == "barrier"
                 ):
                     # If so, add all the qubits to the causal cone.
-                    qubits_to_check: set[Qubit] = qubits_to_check.union(set(node_to_check.qargs))
+                    qubits_to_check = qubits_to_check.union(set(node_to_check.qargs))
             # For each predecessor of the current node, filter input/output nodes,
             # also make sure it has at least one qubit in common. Then append.
             for node in self.predecessors(node_to_check):
