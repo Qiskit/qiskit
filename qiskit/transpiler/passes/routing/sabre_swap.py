@@ -233,29 +233,7 @@ class SabreSwap(TransformationPass):
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
         original_layout = layout.copy()
 
-        def build_sabre_dag(d):
-            dag_list = []
-            node_blocks = {}
-            for node in d.topological_op_nodes():
-                cargs = {self._clbit_indices[x] for x in node.cargs}
-                if node.op.condition is not None:
-                    for clbit in d._bits_in_condition(node.op.condition):
-                        cargs.add(self._clbit_indices[clbit])
-                if isinstance(node.op, ControlFlowOp):
-                    node_blocks[node._node_id] = [
-                        build_sabre_dag(circuit_to_dag(block))
-                        for block in node.op.blocks
-                    ]
-                dag_list.append(
-                    (
-                        node._node_id,
-                        [self._qubit_indices[x] for x in node.qargs],
-                        cargs,
-                    )
-                )
-            return SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, node_blocks)
-
-        sabre_dag = build_sabre_dag(dag)
+        sabre_dag = _build_sabre_dag(dag, self._qubit_indices, self._clbit_indices)
         sabre_result = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -271,84 +249,108 @@ class SabreSwap(TransformationPass):
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
-            return self._apply_sabre_result(dag, canonical_register, original_layout, sabre_result)
+            return _apply_sabre_result(dag, self._qubit_indices, canonical_register, original_layout, sabre_result)
         return dag
 
-    def _apply_sabre_result(self, root_dag, canonical_register, initial_layout, sabre_result):
-        def empty_dag(node):
-            out = DAGCircuit()
-            for qreg in root_dag.qregs.values():
-                out.add_qreg(qreg)
-            out.add_clbits(node.cargs)
-            return out
 
-        def apply_inner(out_dag, current_layout, result, id_to_node):
-            for node_id in result.node_order:
-                node = id_to_node[node_id]
-                if isinstance(node.op, ControlFlowOp):
-                    # Handle control flow op and continue.
-                    block_results = result.node_block_results[node_id]
-                    mapped_block_dags = []
-                    idle_qubits = set(out_dag.qubits)
-                    for block, block_result in zip(node.op.blocks, block_results, strict=True):
-                        # TODO: cache DAGs using id(block) as key at instance level
-                        block_id_to_node = circuit_to_dag(block)._multi_graph
-                        mapped_block_dag = empty_dag(node)
-                        mapped_block_layout = current_layout.copy()
-                        apply_inner(mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node)
+def _apply_sabre_result(root_dag, qubit_indices, canonical_register, initial_layout, sabre_result):
+    def empty_dag(node):
+        out = DAGCircuit()
+        for qreg in root_dag.qregs.values():
+            out.add_qreg(qreg)
+        out.add_clbits(node.cargs)
+        return out
 
-                        # Apply swap epilogue to bring each block to the same
-                        # final layout.
-                        process_swaps(
-                            block_result.swap_epilogue,
-                            mapped_block_dag,
-                            mapped_block_layout,
-                            canonical_register,
-                            self.fake_run,
-                            self._qubit_indices
-                        )
+    def apply_inner(out_dag, current_layout, result, id_to_node):
+        for node_id in result.node_order:
+            node = id_to_node[node_id]
+            if isinstance(node.op, ControlFlowOp):
+                # Handle control flow op and continue.
+                block_results = result.node_block_results[node_id]
+                mapped_block_dags = []
+                idle_qubits = set(out_dag.qubits)
+                for block, block_result in zip(node.op.blocks, block_results, strict=True):
+                    # TODO: cache DAGs using id(block) as key at instance level
+                    block_id_to_node = circuit_to_dag(block)._multi_graph
+                    mapped_block_dag = empty_dag(node)
+                    mapped_block_layout = current_layout.copy()
+                    apply_inner(mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node)
 
-                        # TODO: remove. This is just to validate that the swap epilogue
-                        #  always gets us back to the initial layout!
-                        assert(mapped_block_layout.layout_mapping() == current_layout.layout_mapping())
-
-                        mapped_block_dags.append(mapped_block_dag)
-                        idle_qubits &= set(mapped_block_dag.idle_wires())
-
-                    mapped_blocks = []
-                    for mapped_block_dag in mapped_block_dags:
-                        # Remove wires that are idle in all blocks.
-                        mapped_block_dag.remove_qubits(*idle_qubits)
-                        mapped_blocks.append(dag_to_circuit(mapped_block_dag))
-
-                    # Apply the control flow gate to the dag.
-                    mapped_node = node.op.replace_blocks(mapped_blocks)
-                    mapped_node_qargs = mapped_blocks[0].qubits
-                    out_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
-                    continue
-
-                # If we get here, the node is just a normal non-control-flow gate.
-                if node_id in result.map:
+                    # Apply swap epilogue to bring each block to the same
+                    # final layout.
                     process_swaps(
-                        result.map[node_id],
-                        out_dag,
-                        current_layout,
+                        block_result.swap_epilogue,
+                        mapped_block_dag,
+                        mapped_block_layout,
                         canonical_register,
-                        self.fake_run,
-                        self._qubit_indices,
+                        False,
+                        qubit_indices
                     )
-                apply_gate(
+
+                    # TODO: remove. This is just to validate that the swap epilogue
+                    #  always gets us back to the initial layout!
+                    assert(mapped_block_layout.layout_mapping() == current_layout.layout_mapping())
+
+                    mapped_block_dags.append(mapped_block_dag)
+                    idle_qubits &= set(mapped_block_dag.idle_wires())
+
+                mapped_blocks = []
+                for mapped_block_dag in mapped_block_dags:
+                    # Remove wires that are idle in all blocks.
+                    mapped_block_dag.remove_qubits(*idle_qubits)
+                    mapped_blocks.append(dag_to_circuit(mapped_block_dag))
+
+                # Apply the control flow gate to the dag.
+                mapped_node = node.op.replace_blocks(mapped_blocks)
+                mapped_node_qargs = mapped_blocks[0].qubits
+                out_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
+                continue
+
+            # If we get here, the node is just a normal non-control-flow gate.
+            if node_id in result.map:
+                process_swaps(
+                    result.map[node_id],
                     out_dag,
-                    node,
                     current_layout,
                     canonical_register,
-                    self.fake_run,
-                    self._qubit_indices,
+                    False,
+                    qubit_indices,
                 )
+            apply_gate(
+                out_dag,
+                node,
+                current_layout,
+                canonical_register,
+                False,
+                qubit_indices,
+            )
 
-        mapped_dag = root_dag.copy_empty_like()
-        apply_inner(mapped_dag, initial_layout, sabre_result, root_dag._multi_graph)
-        return mapped_dag
+    mapped_dag = root_dag.copy_empty_like()
+    apply_inner(mapped_dag, initial_layout, sabre_result, root_dag._multi_graph)
+    return mapped_dag
+
+
+def _build_sabre_dag(dag, qubit_indices, clbit_indices):
+    dag_list = []
+    node_blocks = {}
+    for node in dag.topological_op_nodes():
+        cargs = {clbit_indices[x] for x in node.cargs}
+        if node.op.condition is not None:
+            for clbit in dag._bits_in_condition(node.op.condition):
+                cargs.add(clbit_indices[clbit])
+        if isinstance(node.op, ControlFlowOp):
+            node_blocks[node._node_id] = [
+                _build_sabre_dag(circuit_to_dag(block), qubit_indices, clbit_indices)
+                for block in node.op.blocks
+            ]
+        dag_list.append(
+            (
+                node._node_id,
+                [qubit_indices[x] for x in node.qargs],
+                cargs,
+            )
+        )
+    return SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, node_blocks)
 
 
 def process_swaps(
