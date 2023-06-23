@@ -63,6 +63,9 @@ class Kernel:
             return _assert_nested_dict_equal(self.__dict__, other.__dict__)
         return False
 
+    def __hash__(self):
+        return hash(repr(self))
+
 
 class Discriminator:
     """Setting for this Discriminator, which is responsible for classifying kerneled IQ points
@@ -90,6 +93,9 @@ class Discriminator:
         if isinstance(other, Discriminator):
             return _assert_nested_dict_equal(self.__dict__, other.__dict__)
         return False
+
+    def __hash__(self):
+        return hash(repr(self))
 
 
 class LoRange:
