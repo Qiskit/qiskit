@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -283,7 +283,7 @@ class Pauli(BasePauli):
         return np.all(self._z == other._z) and np.all(self._x == other._x)
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return settings."""
         return {"data": self.to_label()}
 
