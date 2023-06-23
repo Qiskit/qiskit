@@ -1197,10 +1197,6 @@ Pass Manager Construction
    StagedPassManager
    PassManager
    PassManagerConfig
-   PropertySet
-   FlowController
-   ConditionalController
-   DoWhileController
 
 Layout and Topology
 -------------------
@@ -1248,11 +1244,16 @@ Exceptions
    TranspilerAccessError
 """
 
-from .runningpassmanager import FlowController, ConditionalController, DoWhileController
-from .passmanager import PassManager
+# For backward compatibility
+from qiskit.passmanager import (
+    FlowController,
+    ConditionalController,
+    DoWhileController,
+)
+
+from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .passmanager import StagedPassManager
-from .propertyset import PropertySet
+from .propertyset import PropertySet  # pylint: disable=no-name-in-module
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
