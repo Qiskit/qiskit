@@ -737,6 +737,31 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(test)
         self.assertEqual(new_circuit, expected)
 
+    def test_cancellation_not_crossing_block_boundary(self):
+        """Test that the pass does cancel gates across control flow op block boundaries."""
+        test1 = QuantumCircuit(2, 2)
+        test1.x(1)
+        with test1.if_test((0, False)):
+            test1.cx(0, 1)
+            test1.x(1)
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test1)
+        self.assertEqual(new_circuit, test1)
+
+    def test_cancellation_not_crossing_between_blocks(self):
+        """Test that the pass does cancel gates in different control flow ops."""
+        test2 = QuantumCircuit(2, 2)
+        with test2.if_test((0, True)):
+            test2.x(1)
+        with test2.if_test((0, True)):
+            test2.cx(0, 1)
+            test2.x(1)
+
+        passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
+        new_circuit = passmanager.run(test2)
+        self.assertEqual(new_circuit, test2)
+
 
 if __name__ == "__main__":
     unittest.main()
