@@ -101,6 +101,6 @@ Exceptions
 from .passrunner import BasePassRunner
 from .passmanager import BasePassManager
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
-from .base_pass import BasePass
+from .base_pass import GenericPass
 from .propertyset import PropertySet
 from .exceptions import PassManagerError

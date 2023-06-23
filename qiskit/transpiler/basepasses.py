@@ -14,13 +14,13 @@
 
 from abc import abstractmethod
 
-from qiskit.passmanager.base_pass import BasePass as CommonBasePass
+from qiskit.passmanager.base_pass import GenericPass
 from qiskit.passmanager.propertyset import PropertySet
 
 from .layout import TranspileLayout
 
 
-class BasePass(CommonBasePass):
+class BasePass(GenericPass):
     """Base class for transpiler passes."""
 
     @abstractmethod

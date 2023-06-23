@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 
 """Pass flow controllers to provide pass iterator conditioned on the property set."""
-
+from __future__ import annotations
 from collections import OrderedDict
+from collections.abc import Sequence
 from typing import Union, List
 import logging
 
-from qiskit.transpiler.basepasses import BasePass
+from .base_pass import GenericPass
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)
@@ -78,14 +79,18 @@ class FlowController:
         del cls.registered_controllers[name]
 
     @classmethod
-    def controller_factory(cls, passes, options, **partial_controller):
+    def controller_factory(
+        cls,
+        passes: Sequence[GenericPass | "FlowController"],
+        options: dict,
+        **partial_controller,
+    ):
         """Constructs a flow controller based on the partially evaluated controller arguments.
 
         Args:
-            passes (list[BasePass]): passes to add to the flow controller.
-            options (dict): PassManager options.
-            **partial_controller (dict): Partially evaluated controller arguments in the form
-                `{name:partial}`
+            passes: passes to add to the flow controller.
+            options: PassManager options.
+            **partial_controller: Partially evaluated controller arguments in the form `{name:partial}`
 
         Raises:
             PassManagerError: When partial_controller is not well-formed.
@@ -146,7 +151,7 @@ class ConditionalController(FlowController):
 
 
 # Alias to a sequence of all kind of pass elements
-PassSequence = Union[Union[BasePass, FlowController], List[Union[BasePass, FlowController]]]
+PassSequence = Union[Union[GenericPass, FlowController], List[Union[GenericPass, FlowController]]]
 
 # Default controllers
 FlowController.add_flow_controller("condition", ConditionalController)

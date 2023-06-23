@@ -48,8 +48,8 @@ class MetaPass(type):
         return frozenset(arguments)
 
 
-class BasePass(metaclass=MetaPass):
-    """Base class for transpiler passes."""
+class GenericPass(metaclass=MetaPass):
+    """Generic pass class with IR-agnostic minimal functionality."""
 
     def __init__(self):
         self.requires = []  # List of passes that requires

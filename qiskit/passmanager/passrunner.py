@@ -19,7 +19,7 @@ from functools import partial
 from collections.abc import Callable
 from typing import Any
 
-from .base_pass import BasePass
+from .base_pass import GenericPass
 from .exceptions import PassManagerError
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
 from .propertyset import PropertySet
@@ -102,7 +102,7 @@ class BasePassRunner(ABC):
     @abstractmethod
     def _run_base_pass(
         self,
-        pass_: BasePass,
+        pass_: GenericPass,
         passmanager_ir: Any,
     ) -> Any:
         """Do a single base pass.
@@ -118,7 +118,7 @@ class BasePassRunner(ABC):
 
     def _run_pass_generic(
         self,
-        pass_sequence: BasePass | FlowController,
+        pass_sequence: GenericPass | FlowController,
         passmanager_ir: Any,
         options: dict[str, Any] | None = None,
     ) -> Any:
@@ -136,7 +136,7 @@ class BasePassRunner(ABC):
             PassManagerError: When pass_sequence is not a valid class.
             TypeError: When IR type changed during transformation.
         """
-        if isinstance(pass_sequence, BasePass):
+        if isinstance(pass_sequence, GenericPass):
             # First, do the requirements of this pass
             for required_pass in pass_sequence.requires:
                 passmanager_ir = self._run_pass_generic(

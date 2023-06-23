@@ -19,7 +19,7 @@ import logging
 import dill
 from qiskit.tools.parallel import parallel_map
 
-from .base_pass import BasePass
+from .base_pass import GenericPass
 from .passrunner import BasePassRunner
 from .exceptions import PassManagerError
 from .flow_controllers import FlowController, PassSequence
@@ -153,10 +153,10 @@ class BasePassManager(ABC):
     def _normalize_passes(
         self,
         passes: PassSequence,
-    ) -> Sequence[BasePass | FlowController] | FlowController:
+    ) -> Sequence[GenericPass | FlowController] | FlowController:
         if isinstance(passes, FlowController):
             return passes
-        if isinstance(passes, BasePass):
+        if isinstance(passes, GenericPass):
             passes = [passes]
         for pass_ in passes:
             if isinstance(pass_, FlowController):
@@ -166,9 +166,9 @@ class BasePassManager(ABC):
                 # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
                 # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
                 pass_.passes = self._normalize_passes(pass_.passes)
-            elif not isinstance(pass_, BasePass):
+            elif not isinstance(pass_, GenericPass):
                 raise PassManagerError(
-                    "%s is not a BasePass or FlowController instance " % pass_.__class__
+                    "%s is not a pass or FlowController instance " % pass_.__class__
                 )
         return passes
 
