@@ -16,9 +16,10 @@ import unittest
 
 import ddt
 
+from qiskit.circuit import IfElseOp
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
-from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import SabreSwap, TrivialLayout
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -375,6 +376,49 @@ class TestSabreSwap(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(3, "q"))
         with self.assertRaisesRegex(TranspilerError, "Fewer qubits in the circuit"):
             pass_(qc)
+
+
+class TestSabreSwapControlFlow(QiskitTestCase):
+    """Tests for control flow in sabre swap."""
+
+    def test_pre_if_else_route(self):
+        """test swap with if else controlflow construct"""
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap.from_line(num_qubits)
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.measure(2, 2)
+        true_body = QuantumCircuit(qreg, creg[[2]])
+        true_body.x(3)
+        false_body = QuantumCircuit(qreg, creg[[2]])
+        false_body.x(4)
+        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg[[2]])
+        qc.barrier(qreg)
+        qc.measure(qreg, creg)
+
+        dag = circuit_to_dag(qc)
+        cdag = SabreSwap(coupling, "lookahead", seed=82, trials=1).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(0)
+        expected.swap(1, 2)
+        expected.cx(0, 1)
+        expected.measure(1, 2)
+        etrue_body = QuantumCircuit(qreg[[3, 4]], creg[[2]])
+        etrue_body.x(0)
+        efalse_body = QuantumCircuit(qreg[[3, 4]], creg[[2]])
+        efalse_body.x(1)
+        new_order = [0, 2, 1, 3, 4]
+        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg[[2]])
+        expected.barrier(qreg)
+        expected.measure(qreg, creg[new_order])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
 
 if __name__ == "__main__":

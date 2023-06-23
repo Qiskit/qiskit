@@ -26,8 +26,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
-from qiskit.transpiler.passes.routing.stochastic_swap import _dag_from_block
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.tools.parallel import CPU_COUNT
 
 from qiskit._accelerate.sabre_swap import (
@@ -276,6 +275,13 @@ class SabreSwap(TransformationPass):
         return dag
 
     def _apply_sabre_result(self, root_dag, canonical_register, initial_layout, sabre_result):
+        def empty_dag(node):
+            out = DAGCircuit()
+            for qreg in root_dag.qregs.values():
+                out.add_qreg(qreg)
+            out.add_clbits(node.cargs)
+            return out
+
         def apply_inner(out_dag, current_layout, result, id_to_node):
             for node_id in result.node_order:
                 node = id_to_node[node_id]
@@ -287,7 +293,7 @@ class SabreSwap(TransformationPass):
                     for block, block_result in zip(node.op.blocks, block_results, strict=True):
                         # TODO: cache DAGs using id(block) as key at instance level
                         block_id_to_node = circuit_to_dag(block)._multi_graph
-                        mapped_block_dag = _dag_from_block(block, node, root_dag)
+                        mapped_block_dag = empty_dag(node)
                         mapped_block_layout = current_layout.copy()
                         apply_inner(mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node)
 
