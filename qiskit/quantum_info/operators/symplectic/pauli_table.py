@@ -15,7 +15,6 @@ Symplectic Pauli Table Class
 # pylint: disable=invalid-name
 
 from __future__ import annotations
-from typing import Dict
 
 import numpy as np
 
@@ -187,7 +186,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         return False
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return settings."""
         return {"data": self._array}
 
