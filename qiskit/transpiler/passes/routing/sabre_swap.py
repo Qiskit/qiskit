@@ -276,18 +276,20 @@ class SabreSwap(TransformationPass):
         return dag
 
     def _apply_sabre_result(self, root_dag, canonical_register, initial_layout, sabre_result):
-        def apply_inner(dag, current_layout, result):
-            mapped_dag = dag.copy_empty_like()
+        def apply_inner(out_dag, current_layout, result, id_to_node):
             for node_id in result.node_order:
-                node = dag._multi_graph[node_id]
+                node = id_to_node[node_id]
                 if isinstance(node.op, ControlFlowOp):
+                    # Handle control flow op and continue.
                     block_results = result.node_block_results[node_id]
                     mapped_block_dags = []
-                    idle_qubits = set(dag.qubits)
+                    idle_qubits = set(out_dag.qubits)
                     for block, block_result in zip(node.op.blocks, block_results, strict=True):
-                        block_dag = _dag_from_block(block, node, root_dag)
+                        # TODO: cache DAGs using id(block) as key at instance level
+                        block_id_to_node = circuit_to_dag(block)._multi_graph
+                        mapped_block_dag = _dag_from_block(block, node, root_dag)
                         mapped_block_layout = current_layout.copy()
-                        mapped_block_dag = apply_inner(block_dag, mapped_block_layout, block_result.result)
+                        apply_inner(mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node)
 
                         # Apply swap epilogue to bring each block to the same
                         # final layout.
@@ -300,7 +302,9 @@ class SabreSwap(TransformationPass):
                             self._qubit_indices
                         )
 
-                        # TODO: validate here that current_layout == mapped_block_layout after swap epilogue!
+                        # TODO: remove. This is just to validate that the swap epilogue
+                        #  always gets us back to the initial layout!
+                        assert(mapped_block_layout.layout_mapping() == current_layout.layout_mapping())
 
                         mapped_block_dags.append(mapped_block_dag)
                         idle_qubits &= set(mapped_block_dag.idle_wires())
@@ -311,28 +315,34 @@ class SabreSwap(TransformationPass):
                         mapped_block_dag.remove_qubits(*idle_qubits)
                         mapped_blocks.append(dag_to_circuit(mapped_block_dag))
 
-                    # Replace the node.
-                    node = node.op.replace_blocks(mapped_blocks)
-                elif node_id in result.map:
+                    # Apply the control flow gate to the dag.
+                    mapped_node = node.op.replace_blocks(mapped_blocks)
+                    mapped_node_qargs = mapped_blocks[0].qubits
+                    out_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
+                    continue
+
+                # If we get here, the node is just a normal non-control-flow gate.
+                if node_id in result.map:
                     process_swaps(
                         result.map[node_id],
-                        mapped_dag,
+                        out_dag,
                         current_layout,
                         canonical_register,
                         self.fake_run,
                         self._qubit_indices,
                     )
-
                 apply_gate(
-                    mapped_dag,
+                    out_dag,
                     node,
                     current_layout,
                     canonical_register,
                     self.fake_run,
                     self._qubit_indices,
                 )
-            return mapped_dag
-        return apply_inner(root_dag, initial_layout, sabre_result)
+
+        mapped_dag = root_dag.copy_empty_like()
+        apply_inner(mapped_dag, initial_layout, sabre_result, root_dag._multi_graph)
+        return mapped_dag
 
 
 def process_swaps(
