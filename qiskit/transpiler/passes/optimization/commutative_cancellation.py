@@ -197,10 +197,10 @@ class CommutativeCancellation(TransformationPass):
         """
         from qiskit.transpiler import PassManager
 
+        pass_manager = PassManager(self.__class__(self.basis))
         for node in dag.op_nodes(ControlFlowOp):
             mapped_blocks = []
             for block in node.op.blocks:
-                pass_manager = PassManager(self.__class__(self.basis))
                 new_circ = pass_manager.run(block)
                 mapped_blocks.append(new_circ)
             node.op = node.op.replace_blocks(mapped_blocks)
