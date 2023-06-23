@@ -16,14 +16,6 @@ upgrade:
     :class:`qiskit.passmanager.BasePassManager`. There is no functional modification
     due to this class hierarchy change.
   - |
-    :mod:`qiskit.transpiler.propertyset` is moved to :mod:`qiskit.passmanager.propertyset`.
-  - |
-    Pass flow controllers :class:`~qiskit.passmanager.FlowController`,
-    :class:`~qiskit.passmanager.ConditionalController` and
-    :class:`~qiskit.passmanager.DoWhileController` are moved
-    from :mod:`qiskit.transpiler.runningpassmanager`
-    to own module :mod:`qiskit.passmanager.flow_controllers`.
-  - |
     New error baseclass :class:`~qiskit.passmanager.PassManagerError` is introduced.
     This will replace :class:`~qiskit.transpiler.TranspilerError` raised in the
     pass handling machinery. The TranspilerError is now only used for the errors

@@ -52,12 +52,11 @@ The responsibilities of the pass runner are the following:
 
 A single pass runner always takes a single input object and returns a single output object.
 Parallelism for multiple input objects is supported by the :class:`BasePassManager` by
-broadcasting the pass runner via multiprocessing is available by internally
-leveraging the :mod:`qiskit.tools.parallel_map` function.
+broadcasting the pass runner via the :mod:`qiskit.tools.parallel_map` function.
 
 The base class :class:`BasePassRunner` doesn't define any associated type by itself,
 and a developer needs to implement a subclass for a particular object type to optimize.
-This `vail of ignorance` allows us to choose the most efficient data representation
+This `veil of ignorance` allows us to choose the most efficient data representation
 for a particular optimization task, while we can reuse the pass flow control machinery
 for different input and output types.
 
