@@ -64,6 +64,7 @@ from qiskit.pulse.transforms.alignments import (
     AlignEquispaced,
 )
 from qiskit.qpy import exceptions
+from qiskit.pulse.configuration import Kernel, Discriminator
 
 
 class TypeKeyBase(bytes, Enum):
@@ -110,6 +111,8 @@ class Value(TypeKeyBase):
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
     NULL = b"z"
+    LIST = b"l"
+    DICT = b"D"
 
     @classmethod
     def assign(cls, obj):
@@ -135,6 +138,10 @@ class Value(TypeKeyBase):
             return cls.NULL
         if obj is CASE_DEFAULT:
             return cls.CASE_DEFAULT
+        if isinstance(obj, list):
+            return cls.LIST
+        if isinstance(obj, dict):
+            return cls.DICT
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -322,6 +329,8 @@ class ScheduleOperand(TypeKeyBase):
     # Discriminator and Acquire instance are not serialzied.
     # Data format of these object is somewhat opaque and not defiend well.
     # It's rarely used in the Qiskit experiements. Of course these can be added later.
+    KERNEL = b"k"
+    DISCRIMINATOR = b"d"
 
     # We need to have own string type definition for operands of schedule instruction.
     # Note that string type is already defined in the Value namespace,
@@ -339,6 +348,10 @@ class ScheduleOperand(TypeKeyBase):
             return cls.CHANNEL
         if isinstance(obj, str):
             return cls.OPERAND_STR
+        if isinstance(obj, Kernel):
+            return cls.KERNEL
+        if isinstance(obj, Discriminator):
+            return cls.DISCRIMINATOR
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
