@@ -224,7 +224,7 @@ def load(filename: str):
 
     import qiskit_qasm3_import
 
-    with open(filename) as fptr:
+    with open(filename, "r") as fptr:
         program = fptr.read()
     try:
         return qiskit_qasm3_import.parse(program)

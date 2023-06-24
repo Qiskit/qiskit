@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Any
+from typing import List, Iterable, Any, Dict, Optional
 
 from qiskit.exceptions import QiskitError
 
@@ -34,7 +34,7 @@ def convert_to_target(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
-    custom_name_mapping: dict[str, Any] | None = None,
+    custom_name_mapping: Optional[Dict[str, Any]] = None,
     add_delay: bool = False,
     filter_faulty: bool = False,
 ):
@@ -72,7 +72,7 @@ def convert_to_target(
         qubit_properties = qubit_props_list_from_props(properties=properties)
         target = Target(num_qubits=configuration.n_qubits, qubit_properties=qubit_properties)
         # Parse instructions
-        gates: dict[str, Any] = {}
+        gates: Dict[str, Any] = {}
         for gate in properties.gates:
             name = gate.gate
             if name in name_mapping:
@@ -190,11 +190,11 @@ def convert_to_target(
 
 def qubit_props_list_from_props(
     properties: BackendProperties,
-) -> list[QubitProperties]:
+) -> List[QubitProperties]:
     """Uses BackendProperties to construct
     and return a list of QubitProperties.
     """
-    qubit_props: list[QubitProperties] = []
+    qubit_props: List[QubitProperties] = []
     for qubit, _ in enumerate(properties.qubits):
         try:
             t_1 = properties.t1(qubit)
@@ -246,7 +246,7 @@ class BackendV2Converter(BackendV2):
     def __init__(
         self,
         backend: BackendV1,
-        name_mapping: dict[str, Any] | None = None,
+        name_mapping: Optional[Dict[str, Any]] = None,
         add_delay: bool = False,
         filter_faulty: bool = False,
     ):
@@ -321,7 +321,7 @@ class BackendV2Converter(BackendV2):
         return self._config.dtm
 
     @property
-    def meas_map(self) -> list[list[int]]:
+    def meas_map(self) -> List[List[int]]:
         return self._config.meas_map
 
     def drive_channel(self, qubit: int):

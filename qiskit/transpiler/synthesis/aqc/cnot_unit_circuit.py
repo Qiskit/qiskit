@@ -14,6 +14,7 @@ This is the Parametric Circuit class: anything that you need for a circuit
 to be parametrized and used for approximate compiling optimization.
 """
 from __future__ import annotations
+from typing import Optional
 
 import numpy as np
 
@@ -27,8 +28,8 @@ class CNOTUnitCircuit(ApproximateCircuit):
         self,
         num_qubits: int,
         cnots: np.ndarray,
-        tol: float | None = 0.0,
-        name: str | None = None,
+        tol: Optional[float] = 0.0,
+        name: Optional[str] = None,
     ) -> None:
         """
         Args:

@@ -243,7 +243,7 @@ class Grover(AmplitudeAmplifier):
         """
         self._sampler = sampler
 
-    def amplify(self, amplification_problem: AmplificationProblem) -> GroverResult:
+    def amplify(self, amplification_problem: AmplificationProblem) -> "GroverResult":
         """Run the Grover algorithm.
 
         Args:

@@ -66,7 +66,7 @@ class GateSequence:
         # restore name
         self.name = " ".join(self.labels)
 
-    def __eq__(self, other: GateSequence) -> bool:
+    def __eq__(self, other: "GateSequence") -> bool:
         """Check if this GateSequence is the same as the other GateSequence.
 
         Args:
@@ -129,7 +129,7 @@ class GateSequence:
 
         return dag
 
-    def append(self, gate: Gate) -> GateSequence:
+    def append(self, gate: Gate) -> "GateSequence":
         """Append gate to the sequence of gates.
 
         Args:
@@ -163,7 +163,7 @@ class GateSequence:
 
         return self
 
-    def adjoint(self) -> GateSequence:
+    def adjoint(self) -> "GateSequence":
         """Get the complex conjugate."""
         # We're initializing an empty GateSequence and set the state manually, as we can
         # efficiently infer the adjoint values from the current value instead of recomputing them.
@@ -177,7 +177,7 @@ class GateSequence:
 
         return adjoint
 
-    def copy(self) -> GateSequence:
+    def copy(self) -> "GateSequence":
         """Create copy of the sequence of gates.
 
         Returns:
@@ -245,7 +245,7 @@ class GateSequence:
         return out
 
     @classmethod
-    def from_matrix(cls, matrix: np.ndarray) -> GateSequence:
+    def from_matrix(cls, matrix: np.ndarray) -> "GateSequence":
         """Initialize the gate sequence from a matrix, without a gate sequence.
 
         Args:
@@ -268,7 +268,7 @@ class GateSequence:
         instance.gates = []
         return instance
 
-    def dot(self, other: GateSequence) -> GateSequence:
+    def dot(self, other: "GateSequence") -> "GateSequence":
         """Compute the dot-product with another gate sequence.
 
         Args:

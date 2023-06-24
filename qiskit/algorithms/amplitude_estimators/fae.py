@@ -244,7 +244,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
-    def estimate(self, estimation_problem: EstimationProblem) -> FasterAmplitudeEstimationResult:
+    def estimate(self, estimation_problem: EstimationProblem) -> "FasterAmplitudeEstimationResult":
         """Run the amplitude estimation algorithm on provided estimation problem.
 
         Args:

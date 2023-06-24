@@ -147,9 +147,7 @@ class BasePassManager(ABC):
                 return new_passmanager
             except PassManagerError as ex:
                 raise TypeError(
-                    "unsupported operand type + for {} and {}".format(
-                        self.__class__, other.__class__
-                    )
+                    "unsupported operand type + for %s and %s" % (self.__class__, other.__class__)
                 ) from ex
 
     def _normalize_passes(

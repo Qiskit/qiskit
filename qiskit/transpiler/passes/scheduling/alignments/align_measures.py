@@ -16,6 +16,7 @@ import itertools
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
+from typing import Type
 
 from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
@@ -210,7 +211,7 @@ class AlignMeasures(TransformationPass):
 def _check_alignment_required(
     dag: DAGCircuit,
     alignment: int,
-    instructions: type | list[type],
+    instructions: Type | list[Type],
 ) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
 

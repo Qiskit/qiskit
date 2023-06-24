@@ -13,7 +13,7 @@
 """Module for common pulse programming macros."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Dict, List, Optional, Union, TYPE_CHECKING
 
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -26,11 +26,11 @@ if TYPE_CHECKING:
 
 
 def measure(
-    qubits: list[int],
+    qubits: List[int],
     backend=None,
-    inst_map: InstructionScheduleMap | None = None,
-    meas_map: list[list[int]] | dict[int, list[int]] | None = None,
-    qubit_mem_slots: dict[int, int] | None = None,
+    inst_map: Optional[InstructionScheduleMap] = None,
+    meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
+    qubit_mem_slots: Optional[Dict[int, int]] = None,
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -64,6 +64,7 @@ def measure(
 
     # backend is V2.
     if isinstance(backend, BackendV2):
+
         return _measure_v2(
             qubits=qubits,
             target=backend.target,
@@ -88,10 +89,10 @@ def measure(
 
 
 def _measure_v1(
-    qubits: list[int],
+    qubits: List[int],
     inst_map: InstructionScheduleMap,
-    meas_map: list[list[int]] | dict[int, list[int]],
-    qubit_mem_slots: dict[int, int] | None = None,
+    meas_map: Union[List[List[int]], Dict[int, List[int]]],
+    qubit_mem_slots: Optional[Dict[int, int]] = None,
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -149,10 +150,10 @@ def _measure_v1(
 
 
 def _measure_v2(
-    qubits: list[int],
+    qubits: List[int],
     target: Target,
-    meas_map: list[list[int]] | dict[int, list[int]],
-    qubit_mem_slots: dict[int, int],
+    meas_map: Union[List[List[int]], Dict[int, List[int]]],
+    qubit_mem_slots: Dict[int, int],
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -224,7 +225,7 @@ def measure_all(backend) -> Schedule:
 
 
 def _schedule_remapping_memory_slot(
-    schedule: Schedule, qubit_mem_slots: dict[int, int]
+    schedule: Schedule, qubit_mem_slots: Dict[int, int]
 ) -> Schedule:
     """
     A helper function to overwrite MemorySlot index of :class:`.Acquire` instruction.

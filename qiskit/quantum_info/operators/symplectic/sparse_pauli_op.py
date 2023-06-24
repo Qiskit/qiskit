@@ -18,6 +18,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from numbers import Number
+from typing import Dict, Optional
 from copy import deepcopy
 
 import numpy as np
@@ -184,7 +185,7 @@ class SparsePauliOp(LinearOp):
             )
         )
 
-    def equiv(self, other, atol: float | None = None):
+    def equiv(self, other, atol: Optional[float] = None):
         """Check if two SparsePauliOp operators are equivalent.
 
         Args:
@@ -201,7 +202,7 @@ class SparsePauliOp(LinearOp):
         return np.allclose((self - other).simplify().coeffs, 0.0, atol=atol)
 
     @property
-    def settings(self) -> dict:
+    def settings(self) -> Dict:
         """Return settings."""
         return {"data": self._pauli_list, "coeffs": self._coeffs}
 

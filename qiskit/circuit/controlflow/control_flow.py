@@ -32,7 +32,7 @@ class ControlFlowOp(Instruction, ABC):
         pass
 
     @abstractmethod
-    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> ControlFlowOp:
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "ControlFlowOp":
         """Replace blocks and return new instruction.
         Args:
             blocks: Tuple of QuantumCircuits to replace in instruction.

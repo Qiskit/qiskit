@@ -17,13 +17,13 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Optional, Type, Tuple, Union
 
 
 def deprecate_func(
     *,
     since: str,
-    additional_msg: str | None = None,
+    additional_msg: Optional[str] = None,
     pending: bool = False,
     package_name: str = "qiskit-terra",
     removal_timeline: str = "no earlier than 3 months after the release date",
@@ -104,12 +104,12 @@ def deprecate_arg(
     name: str,
     *,
     since: str,
-    additional_msg: str | None = None,
-    deprecation_description: str | None = None,
+    additional_msg: Optional[str] = None,
+    deprecation_description: Optional[str] = None,
     pending: bool = False,
     package_name: str = "qiskit-terra",
-    new_alias: str | None = None,
-    predicate: Callable[[Any], bool] | None = None,
+    new_alias: Optional[str] = None,
+    predicate: Optional[Callable[[Any], bool]] = None,
     removal_timeline: str = "no earlier than 3 months after the release date",
 ):
     """Decorator to indicate an argument has been deprecated in some way.
@@ -204,10 +204,10 @@ def deprecate_arg(
 
 
 def deprecate_arguments(
-    kwarg_map: dict[str, str | None],
-    category: type[Warning] = DeprecationWarning,
+    kwarg_map: Dict[str, Optional[str]],
+    category: Type[Warning] = DeprecationWarning,
     *,
-    since: str | None = None,
+    since: Optional[str] = None,
 ):
     """Deprecated. Instead, use `@deprecate_arg`.
 
@@ -278,9 +278,9 @@ def deprecate_arguments(
 def deprecate_function(
     msg: str,
     stacklevel: int = 2,
-    category: type[Warning] = DeprecationWarning,
+    category: Type[Warning] = DeprecationWarning,
     *,
-    since: str | None = None,
+    since: Optional[str] = None,
 ):
     """Deprecated. Instead, use `@deprecate_func`.
 
@@ -313,15 +313,15 @@ def deprecate_function(
 
 def _maybe_warn_and_rename_kwarg(
     args: tuple[Any, ...],
-    kwargs: dict[str, Any],
+    kwargs: Dict[str, Any],
     *,
     func_name: str,
     original_func_co_varnames: tuple[str, ...],
     old_arg_name: str,
-    new_alias: str | None,
+    new_alias: Optional[str],
     warning_msg: str,
-    category: type[Warning],
-    predicate: Callable[[Any], bool] | None,
+    category: Type[Warning],
+    predicate: Optional[Callable[[Any], bool]],
 ) -> None:
     # In Python 3.10+, we should set `zip(strict=False)` (the default). That is, we want to
     # stop iterating once `args` is done, since some args may have not been explicitly passed as
@@ -353,7 +353,7 @@ def _write_deprecation_msg(
     pending: bool,
     additional_msg: str,
     removal_timeline: str,
-) -> tuple[str, type[DeprecationWarning] | type[PendingDeprecationWarning]]:
+) -> Tuple[str, Union[Type[DeprecationWarning], Type[PendingDeprecationWarning]]]:
     if pending:
         category = PendingDeprecationWarning
         deprecation_status = "pending deprecation"
@@ -412,7 +412,7 @@ _NAPOLEON_META_LINES = frozenset(
 
 
 def add_deprecation_to_docstring(
-    func: Callable, msg: str, *, since: str | None, pending: bool
+    func: Callable, msg: str, *, since: Optional[str], pending: bool
 ) -> None:
     """Dynamically insert the deprecation message into ``func``'s docstring.
 

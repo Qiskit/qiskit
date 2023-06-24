@@ -32,7 +32,7 @@ class SamplingMinimumEigensolver(ABC):
         self,
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
-    ) -> SamplingMinimumEigensolverResult:
+    ) -> "SamplingMinimumEigensolverResult":
         """Compute the minimum eigenvalue of a diagonal operator.
 
         Args:

@@ -15,7 +15,7 @@
 # Needed to avoid type hints from erroring when `classicalfunction` might not be available.
 from __future__ import annotations
 
-from typing import Callable, TYPE_CHECKING
+from typing import Union, Callable, Optional, TYPE_CHECKING
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.utils import optionals as _optionals
@@ -50,8 +50,8 @@ class PhaseOracle(QuantumCircuit):
 
     def __init__(
         self,
-        expression: str | ClassicalElement,
-        synthesizer: Callable[[BooleanExpression], QuantumCircuit] | None = None,
+        expression: Union[str, ClassicalElement],
+        synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None,
         var_order: list = None,
     ) -> None:
         """Creates a PhaseOracle object

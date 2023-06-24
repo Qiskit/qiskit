@@ -196,7 +196,7 @@ class EstimationProblem:
         """
         self._grover_operator = grover_operator
 
-    def rescale(self, scaling_factor: float) -> EstimationProblem:
+    def rescale(self, scaling_factor: float) -> "EstimationProblem":
         """Rescale the good state amplitude in the estimation problem.
 
         Args:

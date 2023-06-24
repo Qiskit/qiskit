@@ -20,14 +20,16 @@ from typing import NamedTuple, List, Union, NewType, Tuple, Dict
 from qiskit import circuit
 
 
-class ScheduledGate(NamedTuple):
-    t0: int
-    operand: circuit.Gate
-    duration: int
-    bits: List[Union[circuit.Qubit, circuit.Clbit]]
-    bit_position: int
-
-
+ScheduledGate = NamedTuple(
+    "ScheduledGate",
+    [
+        ("t0", int),
+        ("operand", circuit.Gate),
+        ("duration", int),
+        ("bits", List[Union[circuit.Qubit, circuit.Clbit]]),
+        ("bit_position", int),
+    ],
+)
 ScheduledGate.__doc__ = "A gate instruction with embedded time."
 ScheduledGate.t0.__doc__ = "Time when the instruction is issued."
 ScheduledGate.operand.__doc__ = "Gate object associated with the gate."
@@ -36,36 +38,28 @@ ScheduledGate.bits.__doc__ = "List of bit associated with the gate."
 ScheduledGate.bit_position.__doc__ = "Position of bit associated with this drawing source."
 
 
-class GateLink(NamedTuple):
-    t0: int
-    opname: str
-    bits: List[Union[circuit.Qubit, circuit.Clbit]]
-
-
+GateLink = NamedTuple(
+    "GateLink", [("t0", int), ("opname", str), ("bits", List[Union[circuit.Qubit, circuit.Clbit]])]
+)
 GateLink.__doc__ = "Dedicated object to represent a relationship between instructions."
 GateLink.t0.__doc__ = "A position where the link is placed."
 GateLink.opname.__doc__ = "Name of gate associated with this link."
 GateLink.bits.__doc__ = "List of bit associated with the instruction."
 
 
-class Barrier(NamedTuple):
-    t0: int
-    bits: List[Union[circuit.Qubit, circuit.Clbit]]
-    bit_position: int
-
-
+Barrier = NamedTuple(
+    "Barrier",
+    [("t0", int), ("bits", List[Union[circuit.Qubit, circuit.Clbit]]), ("bit_position", int)],
+)
 Barrier.__doc__ = "Dedicated object to represent a barrier instruction."
 Barrier.t0.__doc__ = "A position where the barrier is placed."
 Barrier.bits.__doc__ = "List of bit associated with the instruction."
 Barrier.bit_position.__doc__ = "Position of bit associated with this drawing source."
 
 
-class HorizontalAxis(NamedTuple):
-    window: Tuple[int, int]
-    axis_map: Dict[int, int]
-    label: str
-
-
+HorizontalAxis = NamedTuple(
+    "HorizontalAxis", [("window", Tuple[int, int]), ("axis_map", Dict[int, int]), ("label", str)]
+)
 HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
 HorizontalAxis.window.__doc__ = "Left and right edge of graph."
 HorizontalAxis.axis_map.__doc__ = "Mapping of apparent coordinate system and actual location."

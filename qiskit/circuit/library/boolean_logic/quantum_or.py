@@ -13,6 +13,7 @@
 
 """Implementations of boolean logic quantum circuits."""
 from __future__ import annotations
+from typing import List, Optional
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
 from qiskit.circuit.library.standard_gates import MCXGate
@@ -52,7 +53,7 @@ class OR(QuantumCircuit):
     def __init__(
         self,
         num_variable_qubits: int,
-        flags: list[int] | None = None,
+        flags: Optional[List[int]] = None,
         mcx_mode: str = "noancilla",
     ) -> None:
         """Create a new logical OR circuit.

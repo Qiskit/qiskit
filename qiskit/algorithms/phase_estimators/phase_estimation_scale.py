@@ -117,7 +117,7 @@ class PhaseEstimationScale:
     @classmethod
     def from_pauli_sum(
         cls, pauli_sum: SummedOp | PauliSumOp | SparsePauliOp | Operator
-    ) -> PhaseEstimationScale | float:
+    ) -> "PhaseEstimationScale" | float:
         """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
 
         It is assumed that the ``pauli_sum`` is the sum of ``PauliOp`` objects. The bound on

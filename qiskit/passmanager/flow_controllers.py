@@ -81,7 +81,7 @@ class FlowController:
     @classmethod
     def controller_factory(
         cls,
-        passes: Sequence[GenericPass | FlowController],
+        passes: Sequence[GenericPass | "FlowController"],
         options: dict,
         **partial_controller,
     ):

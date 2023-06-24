@@ -13,7 +13,7 @@
 """The two-local gate circuit."""
 
 from __future__ import annotations
-from typing import Callable, Any, Sequence
+from typing import Union, Optional, List, Callable, Any, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
@@ -158,18 +158,20 @@ class TwoLocal(NLocal):
 
     def __init__(
         self,
-        num_qubits: int | None = None,
-        rotation_blocks: None
-        | (str | list[str] | type | list[type] | QuantumCircuit | list[QuantumCircuit]) = None,
-        entanglement_blocks: None
-        | (str | list[str] | type | list[type] | QuantumCircuit | list[QuantumCircuit]) = None,
-        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
+        num_qubits: Optional[int] = None,
+        rotation_blocks: Optional[
+            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
+        ] = None,
+        entanglement_blocks: Optional[
+            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
+        ] = None,
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Any | None = None,
+        initial_state: Optional[Any] = None,
         name: str = "TwoLocal",
     ) -> None:
         """Construct a new two-local circuit.
@@ -222,7 +224,7 @@ class TwoLocal(NLocal):
             name=name,
         )
 
-    def _convert_to_block(self, layer: str | type | Gate | QuantumCircuit) -> QuantumCircuit:
+    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
         """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
          returns the
          according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).

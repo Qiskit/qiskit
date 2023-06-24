@@ -12,7 +12,7 @@
 """Base classes for an approximate circuit definition."""
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import SupportsFloat
+from typing import Optional, SupportsFloat
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit
 class ApproximateCircuit(QuantumCircuit, ABC):
     """A base class that represents an approximate circuit."""
 
-    def __init__(self, num_qubits: int, name: str | None = None) -> None:
+    def __init__(self, num_qubits: int, name: Optional[str] = None) -> None:
         """
         Args:
             num_qubits: number of qubit this circuit will span.
