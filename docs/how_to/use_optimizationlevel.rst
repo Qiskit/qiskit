@@ -18,7 +18,7 @@ proccesor <https://quantum-computing.ibm.com/services/resources>`__ or a
 `fake
 model <https://qiskit.org/documentation/apidoc/providers_fake_provider.html>`__ as the backend. And
 you should take into account that your quantum circuit must be decomposed into one and two qubit gates. 
-For example, the `CSWAP <https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.cswap.html>`__` gate, which operates on three qubits.
+For example, the `CSWAP <https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.cswap.html>`__ gate, which operates on three qubits.
 
 .. testcode::
 
@@ -137,8 +137,8 @@ which can yield the same result as optimization level 1, depending on the circui
 
 Optimization level 3 performs a heavy optimization on the quantum circuit, 
 striving to find the optimal solution based on the basis gates. 
-This results in a reduction of one `CX <https://qiskit.org/documentation/stubs/qiskit.circuit.library.CXGate.html>`
- gate and the addition of eight one-qubit gates.
+This results in a reduction of one `CX <https://qiskit.org/documentation/stubs/qiskit.circuit.library.CXGate.html>`__
+gate and the addition of eight one-qubit gates.
 
 .. testcode::
 
@@ -225,8 +225,7 @@ qubits 0, 3, and 4, similar to the basis gates, but with qubits 1 and 2 acting a
 
 The default version  has the difference of one
 `Hadamard <https://qiskit.org/documentation/stubs/qiskit.circuit.library.HGate.html>`__
-gate less, and adding 
-`:math:`U_3(\pi/2,0,-3\pi/4)` <https://qiskit.org/documentation/stubs/qiskit.circuit.library.UGate.html>`__ gate.
+gate less, and adding :math:`U_3(\pi/2,0,-3\pi/4)` gate.
 
 .. testcode::
 
@@ -236,6 +235,7 @@ gate less, and adding
 
 
 .. testoutput::
+
                                                                     »
          q0_0 -> 0 ────────────────────────■─────────────────────■──»
                                            │                     │  »
@@ -258,6 +258,8 @@ gate less, and adding
     «               ┌──────┴───┴──────┐└─────┘└───┘└─┬─┘
     «     q0_2 -> 4 ┤ U3(π/2,0,-3π/4) ├──────────────■──
     «               └─────────────────┘                 
+
+
 
 
 Medium optimization in the quantum circuit can yield the same result as optimization level 1.
@@ -295,8 +297,7 @@ Medium optimization in the quantum circuit can yield the same result as optimiza
     «               └─────────────────┘                 
 
 Heavy optimization in the quantum circuit replaces two CX gates, a Hadamard gate, and a
-`T\ :math:`^\dagger` <https://qiskit.org/documentation/stubs/qiskit.circuit.library.TdgGate.html>`__
-gate with a single unitary gate. 
+:math:`T^\dagger` gate with a single unitary gate. 
 
 .. testcode::
 
@@ -451,11 +452,9 @@ and can yield the same result as optimization level 1.
     «                                                           
 
 
-
-
 With heavy optimization in the quantum circuit at optimization level 3 
 and using the specified connections **[[1, 3], [3, 1], [4, 3]]**,
- the same result can be achieved as when applying init_layout.
+the same result can be achieved as when applying init_layout.
 
 .. testcode::
 
@@ -494,8 +493,8 @@ Using backend’s information
 ===========================
 
 
-When using :meth:`~qiskit.transpile`, you can specify your backend, which have their own unique properties. 
-For example, when :attr:`~qiskit.transpile.optimization_level`l is set to 0, t
+When using :meth:`~qiskit.transpile`, you can specify your backend, which have their own unique properties.
+For example, when :attr:`~qiskit.transpile.optimization_level` is set to 0, t
 he coupling map is displayed as **[[0,1],[1,0],[1,2],[2,1]]**.
 
 .. testcode::
@@ -774,4 +773,3 @@ and number of CX gates for the quantum circuits.
 
 
 .. image:: ../source_images/num_cx_gates.png
-
