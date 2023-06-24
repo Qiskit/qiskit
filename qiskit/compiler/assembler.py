@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 def _log_assembly_time(start_time, end_time):
-    log_msg = "Total Assembly Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    log_msg = "Total Assembly Time - %.5f (ms)" % (
+        (end_time - start_time) * 1000)
     logger.info(log_msg)
 
 
@@ -154,8 +155,10 @@ def assemble(
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
     start_time = time()
-    experiments = experiments if isinstance(experiments, list) else [experiments]
-    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
+    experiments = experiments if isinstance(
+        experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction))
+                     for exp in experiments)
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
         backend,
         qobj_id,
@@ -173,15 +176,6 @@ def assemble(
         pulse_qobj=pulse_qobj,
         **run_config,
     )
-    # Verify that rep_time is chosen from the backend's rep_times
-    if backend is not None and hasattr(backend.configuration(), "rep_times"):
-        backend_rep_times = backend.configuration().rep_times
-
-        if rep_time is not None and rep_time not in backend_rep_times:
-            raise QiskitError(
-                "Invalid repetition time. Choose from the list provided by the backend: "
-                f"{backend_rep_times}"
-            )
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -226,7 +220,8 @@ def assemble(
         )
 
     else:
-        raise QiskitError("bad input to assemble() function; must be either circuits or schedules")
+        raise QiskitError(
+            "bad input to assemble() function; must be either circuits or schedules")
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
@@ -277,7 +272,8 @@ def _parse_common_args(
         n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
-            raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
+            raise QiskitError(
+                f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
         pulse_param_set = (
@@ -308,7 +304,8 @@ def _parse_common_args(
         "backend_version": backend_version,
         **qobj_header,
     }
-    qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
+    qobj_header = QobjHeader(
+        **{k: v for k, v in qobj_header.items() if v is not None})
 
     max_shots = getattr(backend_config, "max_shots", None)
     if shots is None:
@@ -324,11 +321,13 @@ def _parse_common_args(
             "backend: %s." % (shots, max_shots)
         )
 
-    dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
+    dynamic_reprate_enabled = getattr(
+        backend_config, "dynamic_reprate_enabled", False)
     if dynamic_reprate_enabled:
         default_rep_delay = getattr(backend_config, "default_rep_delay", None)
         rep_delay_range = getattr(backend_config, "rep_delay_range", None)
-        rep_delay = _parse_rep_delay(rep_delay, default_rep_delay, rep_delay_range)
+        rep_delay = _parse_rep_delay(
+            rep_delay, default_rep_delay, rep_delay_range)
     else:
         if rep_delay is not None:
             rep_delay = None
@@ -337,11 +336,15 @@ def _parse_common_args(
                 RuntimeWarning,
             )
 
-    qubit_lo_freq = qubit_lo_freq or getattr(backend_defaults, "qubit_freq_est", None)
-    meas_lo_freq = meas_lo_freq or getattr(backend_defaults, "meas_freq_est", None)
+    qubit_lo_freq = qubit_lo_freq or getattr(
+        backend_defaults, "qubit_freq_est", None)
+    meas_lo_freq = meas_lo_freq or getattr(
+        backend_defaults, "meas_freq_est", None)
 
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
-    meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
+    qubit_lo_range = qubit_lo_range or getattr(
+        backend_config, "qubit_lo_range", None)
+    meas_lo_range = meas_lo_range or getattr(
+        backend_config, "meas_lo_range", None)
 
     # check that LO frequencies are in the perscribed range
     _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit")
@@ -403,7 +406,8 @@ def _check_lo_freqs(
         for i, freq in enumerate(lo_freq):
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
-                raise QiskitError(f"Each element of {lo_type} LO range must be a 2d list.")
+                raise QiskitError(
+                    f"Each element of {lo_type} LO range must be a 2d list.")
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
                     "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(
@@ -444,7 +448,8 @@ def _parse_pulse_args(
             )
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
-    dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
+    dynamic_reprate_enabled = getattr(
+        backend_config, "dynamic_reprate_enabled", False)
 
     rep_time = rep_time or getattr(backend_config, "rep_times", None)
     if rep_time:
@@ -456,6 +461,15 @@ def _parse_pulse_args(
             )
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
+        elif isinstance(rep_time, int):
+            # check if rep_time is in backend list
+            backend_rep_times = backend.configuration().rep_times
+            if rep_time not in backend_rep_times:
+                raise QiskitError(
+                    (
+                        "Invalid repetition time. Choose from the list provided by the backend:{}"
+                    ).format(backend_rep_times)
+                )
         rep_time = int(rep_time * 1e6)  # convert sec to μs
     if parametric_pulses is None:
         parametric_pulses = getattr(backend_config, "parametric_pulses", [])
@@ -470,7 +484,8 @@ def _parse_pulse_args(
         parametric_pulses=parametric_pulses,
         **run_config,
     )
-    run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
+    run_config = RunConfig(
+        **{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
 
@@ -503,7 +518,8 @@ def _parse_circuit_args(
         if meas_level != MeasLevel.CLASSIFIED:
             run_config_dict["meas_return"] = meas_return
 
-    run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
+    run_config = RunConfig(
+        **{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
 
