@@ -239,7 +239,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Args:
             other (BasePauli or QuantumCircuit): The Clifford circuit to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg or ``'s'`` for Schrödinger framework.
 
         Returns:
             BasePauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
