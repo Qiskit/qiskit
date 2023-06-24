@@ -79,7 +79,7 @@ class InstructionSet:
             self._instructions[i] = instruction.replace(operation=instruction.operation.inverse())
         return self
 
-    def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
+    def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> InstructionSet:
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
 

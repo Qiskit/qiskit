@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import partial
-from typing import Type
 
 import numpy as np
 from scipy.integrate import OdeSolver, solve_ivp
@@ -31,7 +30,7 @@ class VarQTEOdeSolver:
         self,
         init_params: Sequence[float],
         ode_function: AbstractOdeFunction,
-        ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
+        ode_solver: type[OdeSolver] | str = ForwardEulerSolver,
         num_timesteps: int | None = None,
     ) -> None:
         """

@@ -13,7 +13,7 @@
 """This module contains common utils for disjoint coupling maps."""
 from __future__ import annotations
 from collections import defaultdict
-from typing import List, Callable, TypeVar, Dict, Union
+from typing import Callable, TypeVar
 import uuid
 
 import rustworkx as rx
@@ -32,9 +32,9 @@ T = TypeVar("T")
 
 def run_pass_over_connected_components(
     dag: DAGCircuit,
-    components_source: Union[Target, CouplingMap],
+    components_source: Target | CouplingMap,
     run_func: Callable[[DAGCircuit, CouplingMap], T],
-) -> List[T]:
+) -> list[T]:
     """Run a transpiler pass inner function over mapped components."""
     if isinstance(components_source, Target):
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
@@ -74,8 +74,8 @@ def run_pass_over_connected_components(
 
 
 def map_components(
-    dag_components: List[DAGCircuit], cmap_components: List[CouplingMap]
-) -> Dict[int, List[int]]:
+    dag_components: list[DAGCircuit], cmap_components: list[CouplingMap]
+) -> dict[int, list[int]]:
     """Returns a map where the key is the index of each connected component in cmap_components and
     the value is a list of indices from dag_components which should be placed onto it."""
     free_qubits = {index: len(cmap.graph) for index, cmap in enumerate(cmap_components)}
@@ -138,9 +138,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 node.op.label = None
 
 
-def require_layout_isolated_to_component(
-    dag: DAGCircuit, components_source: Union[Target, CouplingMap]
-):
+def require_layout_isolated_to_component(dag: DAGCircuit, components_source: Target | CouplingMap):
     """
     Check that the layout of the dag does not require connectivity across connected components
     in the CouplingMap
@@ -168,7 +166,7 @@ def require_layout_isolated_to_component(
             raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
 
 
-def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
+def separate_dag(dag: DAGCircuit) -> list[DAGCircuit]:
     """Separate a dag circuit into it's connected components."""
     # Split barriers into single qubit barriers before splitting connected components
     split_barriers(dag)
@@ -176,7 +174,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     connected_components = rx.weakly_connected_components(im_graph)
     component_qubits = []
     for component in connected_components:
-        component_qubits.append(set(qubit_map[x] for x in component))
+        component_qubits.append({qubit_map[x] for x in component})
 
     qubits = set(dag.qubits)
 

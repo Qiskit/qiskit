@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 import copy
-from typing import Optional, Union
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -33,11 +32,11 @@ class ControlledGate(Gate):
         name: str,
         num_qubits: int,
         params: list,
-        label: Optional[str] = None,
-        num_ctrl_qubits: Optional[int] = 1,
-        definition: Optional["QuantumCircuit"] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
-        base_gate: Optional[Gate] = None,
+        label: str | None = None,
+        num_ctrl_qubits: int | None = 1,
+        definition: QuantumCircuit | None = None,
+        ctrl_state: int | str | None = None,
+        base_gate: Gate | None = None,
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
@@ -128,7 +127,7 @@ class ControlledGate(Gate):
             return super().definition
 
     @definition.setter
-    def definition(self, excited_def: "QuantumCircuit"):
+    def definition(self, excited_def: QuantumCircuit):
         """Set controlled gate definition with closed controls.
 
         Args:
@@ -195,7 +194,7 @@ class ControlledGate(Gate):
         return self._ctrl_state
 
     @ctrl_state.setter
-    def ctrl_state(self, ctrl_state: Union[int, str, None]):
+    def ctrl_state(self, ctrl_state: int | str | None):
         """Set the control state of this gate.
 
         Args:
@@ -259,6 +258,6 @@ class ControlledGate(Gate):
             and self.definition == other.definition
         )
 
-    def inverse(self) -> "ControlledGate":
+    def inverse(self) -> ControlledGate:
         """Invert this gate by calling inverse on the base gate."""
         return self.base_gate.inverse().control(self.num_ctrl_qubits, ctrl_state=self.ctrl_state)

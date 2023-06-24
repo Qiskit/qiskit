@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Type, Callable
+from typing import Callable
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -78,7 +78,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
         initial_parameters: Mapping[Parameter, float] | Sequence[float],
         variational_principle: ImaginaryVariationalPrinciple | None = None,
         estimator: BaseEstimator | None = None,
-        ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
+        ode_solver: type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
         imag_part_tol: float = 1e-7,

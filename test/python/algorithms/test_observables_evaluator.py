@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 import unittest
-from typing import Tuple
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -66,7 +65,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
 
     def _run_test(
         self,
-        expected_result: ListOrDict[Tuple[complex, complex]],
+        expected_result: ListOrDict[tuple[complex, complex]],
         quantum_state: QuantumCircuit,
         decimal: int,
         observables: ListOrDict[BaseOperator | PauliSumOp],

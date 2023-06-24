@@ -48,7 +48,7 @@ class Eigensolver(ABC):
     @abstractmethod
     def compute_eigenvalues(
         self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
-    ) -> "EigensolverResult":
+    ) -> EigensolverResult:
         """
         Computes eigenvalues. Operator and aux_operators can be supplied here and
         if not None will override any already set into algorithm so it can be reused with

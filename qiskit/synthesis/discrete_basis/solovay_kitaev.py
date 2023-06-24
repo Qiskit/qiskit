@@ -13,6 +13,7 @@
 """Synthesize a single qubit gate to a discrete basis set."""
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -21,6 +22,10 @@ from qiskit.circuit.gate import Gate
 from .gate_sequence import GateSequence
 from .commutator_decompose import commutator_decompose
 from .generate_basis_approximations import generate_basic_approximations, _1q_gates, _1q_inverses
+
+if TYPE_CHECKING:
+    from qiskit import QuantumCircuit
+    from qiskit.dagcircuit import DAGCircuit
 
 
 class SolovayKitaevDecomposition:
@@ -91,7 +96,7 @@ class SolovayKitaevDecomposition:
         recursion_degree: int,
         return_dag: bool = False,
         check_input: bool = True,
-    ) -> "QuantumCircuit" | "DAGCircuit":
+    ) -> QuantumCircuit | DAGCircuit:
         r"""Run the algorithm.
 
         Args:

@@ -38,7 +38,7 @@ class Eigensolver(ABC):
         self,
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
-    ) -> "EigensolverResult":
+    ) -> EigensolverResult:
         """
         Computes the minimum eigenvalue. The ``operator`` and ``aux_operators`` are supplied here.
         While an ``operator`` is required by algorithms, ``aux_operators`` are optional.

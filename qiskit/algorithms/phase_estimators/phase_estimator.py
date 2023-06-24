@@ -34,7 +34,7 @@ class PhaseEstimator(ABC):
         self,
         unitary: QuantumCircuit,
         state_preparation: QuantumCircuit | None = None,
-    ) -> "PhaseEstimatorResult":
+    ) -> PhaseEstimatorResult:
         """Estimate the phase."""
         raise NotImplementedError
 

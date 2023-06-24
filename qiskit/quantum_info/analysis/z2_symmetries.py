@@ -17,7 +17,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Iterable
 from copy import deepcopy
-from typing import Union, cast
+from typing import cast
 
 import numpy as np
 
@@ -320,7 +320,7 @@ class Z2Symmetries:
 
         return operator
 
-    def taper_clifford(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+    def taper_clifford(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
         """Operate the second part of the tapering.
         This function assumes that the input operators have already been transformed using
         :meth:`convert_clifford`. The redundant qubits due to the symmetries are dropped and
@@ -334,7 +334,7 @@ class Z2Symmetries:
 
         """
 
-        tapered_ops: Union[SparsePauliOp, list[SparsePauliOp]]
+        tapered_ops: SparsePauliOp | list[SparsePauliOp]
         if self.is_empty():
             tapered_ops = operator
         else:
@@ -351,7 +351,7 @@ class Z2Symmetries:
 
         return tapered_ops
 
-    def taper(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+    def taper(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
         """
         Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
         Returns operator if the symmetry object is empty.

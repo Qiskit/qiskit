@@ -214,7 +214,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     @staticmethod
     def compute_confidence_interval(
-        result: "MaximumLikelihoodAmplitudeEstimationResult",
+        result: MaximumLikelihoodAmplitudeEstimationResult,
         alpha: float,
         kind: str = "fisher",
         apply_post_processing: bool = False,
@@ -306,7 +306,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def estimate(
         self, estimation_problem: EstimationProblem
-    ) -> "MaximumLikelihoodAmplitudeEstimationResult":
+    ) -> MaximumLikelihoodAmplitudeEstimationResult:
         """Run the amplitude estimation algorithm on provided estimation problem.
 
         Args:
@@ -481,7 +481,7 @@ def _safe_max(array, default=(np.pi / 2)):
 
 
 def _compute_fisher_information(
-    result: "MaximumLikelihoodAmplitudeEstimationResult",
+    result: MaximumLikelihoodAmplitudeEstimationResult,
     num_sum_terms: int | None = None,
     observed: bool = False,
 ) -> float:

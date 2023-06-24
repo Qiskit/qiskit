@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Union, Optional, Any, Sequence, Callable, Mapping
+from typing import Any, Sequence, Callable, Mapping
 from itertools import combinations
 
 import numpy
@@ -270,17 +270,17 @@ class NLocal(BlueprintCircuit):
     @property
     def entanglement(
         self,
-    ) -> Union[
-        str,
-        list[str],
-        list[list[str]],
-        list[int],
-        list[list[int]],
-        list[list[list[int]]],
-        list[list[list[list[int]]]],
-        Callable[[int], str],
-        Callable[[int], list[list[int]]],
-    ]:
+    ) -> (
+        str
+        | list[str]
+        | list[list[str]]
+        | list[int]
+        | list[list[int]]
+        | list[list[list[int]]]
+        | list[list[list[list[int]]]]
+        | Callable[[int], str]
+        | Callable[[int], list[list[int]]]
+    ):
         """Get the entanglement strategy.
 
         Returns:
@@ -292,19 +292,18 @@ class NLocal(BlueprintCircuit):
     @entanglement.setter
     def entanglement(
         self,
-        entanglement: Optional[
-            Union[
-                str,
-                list[str],
-                list[list[str]],
-                list[int],
-                list[list[int]],
-                list[list[list[int]]],
-                list[list[list[list[int]]]],
-                Callable[[int], str],
-                Callable[[int], list[list[int]]],
-            ]
-        ],
+        entanglement: None
+        | (
+            str
+            | list[str]
+            | list[list[str]]
+            | list[int]
+            | list[list[int]]
+            | list[list[list[int]]]
+            | list[list[list[list[int]]]]
+            | Callable[[int], str]
+            | Callable[[int], list[list[int]]]
+        ),
     ) -> None:
         """Set the entanglement strategy.
 
@@ -711,10 +710,10 @@ class NLocal(BlueprintCircuit):
 
     def add_layer(
         self,
-        other: Union["NLocal", qiskit.circuit.Instruction, QuantumCircuit],
+        other: NLocal | qiskit.circuit.Instruction | QuantumCircuit,
         entanglement: list[int] | str | list[list[int]] | None = None,
         front: bool = False,
-    ) -> "NLocal":
+    ) -> NLocal:
         """Append another layer to the NLocal.
 
         Args:

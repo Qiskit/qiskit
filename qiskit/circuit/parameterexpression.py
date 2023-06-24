@@ -64,7 +64,7 @@ class ParameterExpression:
             self._name_map = {p.name: p for p in self._parameters}
         return self._name_map
 
-    def conjugate(self) -> "ParameterExpression":
+    def conjugate(self) -> ParameterExpression:
         """Return the conjugate."""
         if _optionals.HAS_SYMENGINE:
             import symengine
@@ -76,7 +76,7 @@ class ParameterExpression:
             conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
         return conjugated
 
-    def assign(self, parameter, value: ParameterValueType) -> "ParameterExpression":
+    def assign(self, parameter, value: ParameterValueType) -> ParameterExpression:
         """
         Assign one parameter to a value, which can either be numeric or another parameter
         expression.
@@ -94,7 +94,7 @@ class ParameterExpression:
 
     def bind(
         self, parameter_values: dict, allow_unknown_parameters: bool = False
-    ) -> "ParameterExpression":
+    ) -> ParameterExpression:
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
@@ -150,7 +150,7 @@ class ParameterExpression:
 
     def subs(
         self, parameter_map: dict, allow_unknown_parameters: bool = False
-    ) -> "ParameterExpression":
+    ) -> ParameterExpression:
         """Returns a new Expression with replacement Parameters.
 
         Args:
@@ -243,7 +243,7 @@ class ParameterExpression:
 
     def _apply_operation(
         self, operation: Callable, other: ParameterValueType, reflected: bool = False
-    ) -> "ParameterExpression":
+    ) -> ParameterExpression:
         """Base method implementing math operations between Parameters and
         either a constant or a second ParameterExpression.
 
@@ -287,7 +287,7 @@ class ParameterExpression:
 
         return out_expr
 
-    def gradient(self, param) -> Union["ParameterExpression", complex]:
+    def gradient(self, param) -> ParameterExpression | complex:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:

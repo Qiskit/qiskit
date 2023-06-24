@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -28,9 +27,7 @@ import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
-    Optional,
-    Tuple,
-    Type,
+    Literal,
     TypeVar,
     Sequence,
     Callable,
@@ -71,11 +68,6 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -276,7 +268,7 @@ class QuantumCircuit:
         # like `break` and `continue`.  This is because these instructions need to "operate" on the
         # full width of bits, but the builder interface won't know what bits are used until the end.
         self._control_flow_scopes: list[
-            "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
+            qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock
         ] = []
 
         self.qregs: list[QuantumRegister] = []
@@ -323,7 +315,7 @@ class QuantumCircuit:
         name: str | None = None,
         global_phase: ParameterValueType = 0,
         metadata: dict | None = None,
-    ) -> "QuantumCircuit":
+    ) -> QuantumCircuit:
         """Construct a circuit from an iterable of CircuitInstructions.
 
         Args:
@@ -363,7 +355,7 @@ class QuantumCircuit:
         return circuit
 
     @property
-    def layout(self) -> Optional[TranspileLayout]:
+    def layout(self) -> TranspileLayout | None:
         r"""Return any associated layout information anout the circuit
 
         This attribute contains an optional :class:`~.TranspileLayout`
@@ -555,7 +547,7 @@ class QuantumCircuit:
             has_reg = True
         return has_reg
 
-    def reverse_ops(self) -> "QuantumCircuit":
+    def reverse_ops(self) -> QuantumCircuit:
         """Reverse the circuit by reversing the order of instructions.
 
         This is done by recursively reversing all instructions.
@@ -597,7 +589,7 @@ class QuantumCircuit:
         reverse_circ.unit = self.unit
         return reverse_circ
 
-    def reverse_bits(self) -> "QuantumCircuit":
+    def reverse_bits(self) -> QuantumCircuit:
         """Return a circuit with the opposite order of wires.
 
         The circuit is "vertically" flipped. If a circuit is
@@ -665,7 +657,7 @@ class QuantumCircuit:
             circ._append(instruction.replace(qubits=qubits, clbits=clbits))
         return circ
 
-    def inverse(self) -> "QuantumCircuit":
+    def inverse(self) -> QuantumCircuit:
         """Invert (take adjoint of) this circuit.
 
         This is done by recursively inverting all gates.
@@ -711,7 +703,7 @@ class QuantumCircuit:
             inverse_circ._append(instruction.replace(operation=instruction.operation.inverse()))
         return inverse_circ
 
-    def repeat(self, reps: int) -> "QuantumCircuit":
+    def repeat(self, reps: int) -> QuantumCircuit:
         """Repeat this circuit ``reps`` times.
 
         Args:
@@ -736,7 +728,7 @@ class QuantumCircuit:
 
         return repeated_circ
 
-    def power(self, power: float, matrix_power: bool = False) -> "QuantumCircuit":
+    def power(self, power: float, matrix_power: bool = False) -> QuantumCircuit:
         """Raise this circuit to the power of ``power``.
 
         If ``power`` is a positive integer and ``matrix_power`` is ``False``, this implementation
@@ -784,7 +776,7 @@ class QuantumCircuit:
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-    ) -> "QuantumCircuit":
+    ) -> QuantumCircuit:
         """Control this circuit on ``num_ctrl_qubits`` qubits.
 
         Args:
@@ -819,13 +811,13 @@ class QuantumCircuit:
 
     def compose(
         self,
-        other: Union["QuantumCircuit", Instruction],
+        other: QuantumCircuit | Instruction,
         qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
         clbits: ClbitSpecifier | Sequence[ClbitSpecifier] | None = None,
         front: bool = False,
         inplace: bool = False,
         wrap: bool = False,
-    ) -> Optional["QuantumCircuit"]:
+    ) -> QuantumCircuit | None:
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -1015,7 +1007,7 @@ class QuantumCircuit:
 
         return dest
 
-    def tensor(self, other: "QuantumCircuit", inplace: bool = False) -> Optional["QuantumCircuit"]:
+    def tensor(self, other: QuantumCircuit, inplace: bool = False) -> QuantumCircuit | None:
         """Tensor ``self`` with ``other``.
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
@@ -1126,20 +1118,20 @@ class QuantumCircuit:
         """
         return self._ancillas
 
-    def __and__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
+    def __and__(self, rhs: QuantumCircuit) -> QuantumCircuit:
         """Overload & to implement self.compose."""
         return self.compose(rhs)
 
-    def __iand__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
+    def __iand__(self, rhs: QuantumCircuit) -> QuantumCircuit:
         """Overload &= to implement self.compose in place."""
         self.compose(rhs, inplace=True)
         return self
 
-    def __xor__(self, top: "QuantumCircuit") -> "QuantumCircuit":
+    def __xor__(self, top: QuantumCircuit) -> QuantumCircuit:
         """Overload ^ to implement self.tensor."""
         return self.tensor(top)
 
-    def __ixor__(self, top: "QuantumCircuit") -> "QuantumCircuit":
+    def __ixor__(self, top: QuantumCircuit) -> QuantumCircuit:
         """Overload ^= to implement self.tensor in place."""
         self.tensor(top, inplace=True)
         return self
@@ -1161,7 +1153,7 @@ class QuantumCircuit:
         return self._data[item]
 
     @staticmethod
-    def cast(value: S, type_: Callable[..., T]) -> Union[S, T]:
+    def cast(value: S, type_: Callable[..., T]) -> S | T:
         """Best effort to cast value to type. Otherwise, returns the value."""
         try:
             return type_(value)
@@ -1589,9 +1581,9 @@ class QuantumCircuit:
 
     def decompose(
         self,
-        gates_to_decompose: Type[Gate] | Sequence[Type[Gate]] | Sequence[str] | str | None = None,
+        gates_to_decompose: type[Gate] | Sequence[type[Gate]] | Sequence[str] | str | None = None,
         reps: int = 1,
-    ) -> "QuantumCircuit":
+    ) -> QuantumCircuit:
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
 
@@ -2062,7 +2054,7 @@ class QuantumCircuit:
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
     # support is dropped.
-    def count_ops(self) -> "OrderedDict[Instruction, int]":
+    def count_ops(self) -> OrderedDict[Instruction, int]:
         """Count each operation kind in the circuit.
 
         Returns:
@@ -2187,7 +2179,7 @@ class QuantumCircuit:
         """
         return self.num_unitary_factors()
 
-    def copy(self, name: str | None = None) -> "QuantumCircuit":
+    def copy(self, name: str | None = None) -> QuantumCircuit:
         """Copy the circuit.
 
         Args:
@@ -2219,7 +2211,7 @@ class QuantumCircuit:
 
         return cpy
 
-    def copy_empty_like(self, name: str | None = None) -> "QuantumCircuit":
+    def copy_empty_like(self, name: str | None = None) -> QuantumCircuit:
         """Return a copy of self with the same structure but empty.
 
         That structure includes:
@@ -2369,7 +2361,7 @@ class QuantumCircuit:
         """
         return self.append(Measure(), [qubit], [cbit])
 
-    def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
+    def measure_active(self, inplace: bool = True) -> QuantumCircuit | None:
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
         a size equal to the number of non-idle qubits being measured.
 
@@ -2399,9 +2391,7 @@ class QuantumCircuit:
         else:
             return None
 
-    def measure_all(
-        self, inplace: bool = True, add_bits: bool = True
-    ) -> Optional["QuantumCircuit"]:
+    def measure_all(self, inplace: bool = True, add_bits: bool = True) -> QuantumCircuit | None:
         """Adds measurement to all qubits.
 
         By default, adds new classical bits in a :obj:`.ClassicalRegister` to store these
@@ -2444,7 +2434,7 @@ class QuantumCircuit:
         else:
             return None
 
-    def remove_final_measurements(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
+    def remove_final_measurements(self, inplace: bool = True) -> QuantumCircuit | None:
         """Removes final measurements and barriers on all qubits if they are present.
         Deletes the classical registers that were used to store the values from these measurements
         that become idle as a result of this operation, and deletes classical bits that are
@@ -2507,7 +2497,7 @@ class QuantumCircuit:
             return None
 
     @staticmethod
-    def from_qasm_file(path: str) -> "QuantumCircuit":
+    def from_qasm_file(path: str) -> QuantumCircuit:
         """Take in a QASM file and generate a QuantumCircuit object.
 
         Args:
@@ -2531,7 +2521,7 @@ class QuantumCircuit:
         )
 
     @staticmethod
-    def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
+    def from_qasm_str(qasm_str: str) -> QuantumCircuit:
         """Take in a QASM string and generate a QuantumCircuit object.
 
         Args:
@@ -2658,24 +2648,24 @@ class QuantumCircuit:
     @overload
     def assign_parameters(
         self,
-        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        parameters: Mapping[Parameter, ParameterValueType] | Sequence[ParameterValueType],
         inplace: Literal[False] = ...,
-    ) -> "QuantumCircuit":
+    ) -> QuantumCircuit:
         ...
 
     @overload
     def assign_parameters(
         self,
-        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        parameters: Mapping[Parameter, ParameterValueType] | Sequence[ParameterValueType],
         inplace: Literal[True] = ...,
     ) -> None:
         ...
 
     def assign_parameters(
         self,
-        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        parameters: Mapping[Parameter, ParameterValueType] | Sequence[ParameterValueType],
         inplace: bool = False,
-    ) -> Optional["QuantumCircuit"]:
+    ) -> QuantumCircuit | None:
         """Assign parameters to new parameters or values.
 
         If ``parameters`` is passed as a dictionary, the keys must be :class:`.Parameter`
@@ -2780,8 +2770,8 @@ class QuantumCircuit:
         return None if inplace else bound_circuit
 
     def bind_parameters(
-        self, values: Union[Mapping[Parameter, float], Sequence[float]]
-    ) -> "QuantumCircuit":
+        self, values: Mapping[Parameter, float] | Sequence[float]
+    ) -> QuantumCircuit:
         """Assign numeric parameters to values yielding a new circuit.
 
         If the values are given as list or array they are bound to the circuit in the order
@@ -2817,7 +2807,7 @@ class QuantumCircuit:
         self, value_dict: Mapping[Parameter, ParameterValueType]
     ) -> dict[Parameter, ParameterValueType]:
         unrolled_value_dict: dict[Parameter, ParameterValueType] = {}
-        for (param, value) in value_dict.items():
+        for param, value in value_dict.items():
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError(
@@ -4238,7 +4228,7 @@ class QuantumCircuit:
         clbits: Iterable[Clbit] = (),
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
-        forbidden_message: Optional[str] = None,
+        forbidden_message: str | None = None,
     ):
         """Add a scope for collecting instructions into this circuit.
 
@@ -4273,7 +4263,7 @@ class QuantumCircuit:
             )
         )
 
-    def _pop_scope(self) -> "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock":
+    def _pop_scope(self) -> qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock:
         """Finish a scope used in the control-flow builder interface, and return it to the caller.
 
         This should only be done by the control-flow context managers, since they naturally
@@ -4343,14 +4333,14 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> "qiskit.circuit.controlflow.while_loop.WhileLoopContext":
+    ) -> qiskit.circuit.controlflow.while_loop.WhileLoopContext:
         ...
 
     @typing.overload
     def while_loop(
         self,
         condition: tuple[ClassicalRegister | Clbit, int],
-        body: "QuantumCircuit",
+        body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
@@ -4430,15 +4420,15 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> "qiskit.circuit.controlflow.for_loop.ForLoopContext":
+    ) -> qiskit.circuit.controlflow.for_loop.ForLoopContext:
         ...
 
     @typing.overload
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Union[Parameter, None],
-        body: "QuantumCircuit",
+        loop_parameter: Parameter | None,
+        body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
@@ -4523,14 +4513,14 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> "qiskit.circuit.controlflow.if_else.IfContext":
+    ) -> qiskit.circuit.controlflow.if_else.IfContext:
         ...
 
     @typing.overload
     def if_test(
         self,
         condition: tuple[ClassicalRegister | Clbit, int],
-        true_body: "QuantumCircuit",
+        true_body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
@@ -4628,8 +4618,8 @@ class QuantumCircuit:
     def if_else(
         self,
         condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | tuple[Clbit, bool],
-        true_body: "QuantumCircuit",
-        false_body: "QuantumCircuit",
+        true_body: QuantumCircuit,
+        false_body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         label: str | None = None,
@@ -4681,24 +4671,24 @@ class QuantumCircuit:
     @typing.overload
     def switch(
         self,
-        target: Union[ClbitSpecifier, ClassicalRegister],
+        target: ClbitSpecifier | ClassicalRegister,
         cases: None,
         qubits: None,
         clbits: None,
         *,
-        label: Optional[str],
-    ) -> "qiskit.circuit.controlflow.switch_case.SwitchContext":
+        label: str | None,
+    ) -> qiskit.circuit.controlflow.switch_case.SwitchContext:
         ...
 
     @typing.overload
     def switch(
         self,
-        target: Union[ClbitSpecifier, ClassicalRegister],
-        cases: Iterable[Tuple[typing.Any, QuantumCircuit]],
+        target: ClbitSpecifier | ClassicalRegister,
+        cases: Iterable[tuple[typing.Any, QuantumCircuit]],
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
-        label: Optional[str],
+        label: str | None,
     ) -> InstructionSet:
         ...
 
@@ -4833,7 +4823,7 @@ class QuantumCircuit:
 
     def add_calibration(
         self,
-        gate: Union[Gate, str],
+        gate: Gate | str,
         qubits: Sequence[int],
         # Schedule has the type `qiskit.pulse.Schedule`, but `qiskit.pulse` cannot be imported
         # while this module is, and so Sphinx will not accept a forward reference to it.  Sphinx
@@ -4882,7 +4872,7 @@ class QuantumCircuit:
         self._calibrations[gate][(tuple(qubits), params)] = schedule
 
     # Functions only for scheduled circuits
-    def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
+    def qubit_duration(self, *qubits: Qubit | int) -> float:
         """Return the duration between the start and stop time of the first and last instructions,
         excluding delays, over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -4894,7 +4884,7 @@ class QuantumCircuit:
         """
         return self.qubit_stop_time(*qubits) - self.qubit_start_time(*qubits)
 
-    def qubit_start_time(self, *qubits: Union[Qubit, int]) -> float:
+    def qubit_start_time(self, *qubits: Qubit | int) -> float:
         """Return the start time of the first instruction, excluding delays,
         over the supplied qubits. Its time unit is ``self.unit``.
 
@@ -4936,7 +4926,7 @@ class QuantumCircuit:
 
         return 0  # If there are no instructions over bits
 
-    def qubit_stop_time(self, *qubits: Union[Qubit, int]) -> float:
+    def qubit_stop_time(self, *qubits: Qubit | int) -> float:
         """Return the stop time of the last instruction, excluding delays, over the supplied qubits.
         Its time unit is ``self.unit``.
 

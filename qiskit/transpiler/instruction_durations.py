@@ -24,7 +24,7 @@ from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
 
 
-def _is_deprecated_qubits_argument(qubits: Union[int, list[int], Qubit, list[Qubit]]) -> bool:
+def _is_deprecated_qubits_argument(qubits: int | list[int] | Qubit | list[Qubit]) -> bool:
     if isinstance(qubits, (int, Qubit)):
         qubits = [qubits]
     return isinstance(qubits[0], Qubit)
@@ -43,7 +43,7 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
+        self, instruction_durations: InstructionDurationsType | None = None, dt: float = None
     ):
         self.duration_by_name: dict[str, tuple[float, str]] = {}
         self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
@@ -103,7 +103,7 @@ class InstructionDurations:
 
         return InstructionDurations(instruction_durations, dt=dt)
 
-    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
+    def update(self, inst_durations: InstructionDurationsType | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:

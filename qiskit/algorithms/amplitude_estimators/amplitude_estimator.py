@@ -26,7 +26,7 @@ class AmplitudeEstimator(ABC):
     """The Amplitude Estimation interface."""
 
     @abstractmethod
-    def estimate(self, estimation_problem: EstimationProblem) -> "AmplitudeEstimatorResult":
+    def estimate(self, estimation_problem: EstimationProblem) -> AmplitudeEstimatorResult:
         """Run the amplitude estimation algorithm.
 
         Args:

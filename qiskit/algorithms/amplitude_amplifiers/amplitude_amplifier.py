@@ -26,7 +26,7 @@ class AmplitudeAmplifier(ABC):
     """The interface for amplification algorithms."""
 
     @abstractmethod
-    def amplify(self, amplification_problem: AmplificationProblem) -> "AmplitudeAmplifierResult":
+    def amplify(self, amplification_problem: AmplificationProblem) -> AmplitudeAmplifierResult:
         """Run the amplification algorithm.
 
         Args:

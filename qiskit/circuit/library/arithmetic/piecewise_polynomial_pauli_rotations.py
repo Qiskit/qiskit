@@ -13,7 +13,6 @@
 """Piecewise-polynomially-controlled Pauli rotations."""
 
 from __future__ import annotations
-from typing import List, Optional
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
@@ -89,9 +88,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
-        breakpoints: Optional[List[int]] = None,
-        coeffs: Optional[List[List[float]]] = None,
+        num_state_qubits: int | None = None,
+        breakpoints: list[int] | None = None,
+        coeffs: list[list[float]] | None = None,
         basis: str = "Y",
         name: str = "pw_poly",
     ) -> None:
@@ -120,7 +119,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
 
     @property
-    def breakpoints(self) -> List[int]:
+    def breakpoints(self) -> list[int]:
         """The breakpoints of the piecewise polynomial function.
 
         The function is polynomial in the intervals ``[point_i, point_{i+1}]`` where the last
@@ -139,7 +138,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return self._breakpoints
 
     @breakpoints.setter
-    def breakpoints(self, breakpoints: List[int]) -> None:
+    def breakpoints(self, breakpoints: list[int]) -> None:
         """Set the breakpoints.
 
         Args:
@@ -152,7 +151,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             self._reset_registers(self.num_state_qubits)
 
     @property
-    def coeffs(self) -> List[List[float]]:
+    def coeffs(self) -> list[list[float]]:
         """The coefficients of the polynomials.
 
         Returns:
@@ -161,7 +160,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return self._coeffs
 
     @coeffs.setter
-    def coeffs(self, coeffs: List[List[float]]) -> None:
+    def coeffs(self, coeffs: list[list[float]]) -> None:
         """Set the polynomials.
 
         Args:
@@ -180,7 +179,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             self._reset_registers(self.num_state_qubits)
 
     @property
-    def mapped_coeffs(self) -> List[List[float]]:
+    def mapped_coeffs(self) -> list[list[float]]:
         """The coefficients mapped to the internal representation, since we only compare
         x>=breakpoint.
 
@@ -247,7 +246,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         return valid
 
-    def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+    def _reset_registers(self, num_state_qubits: int | None) -> None:
         """Reset the registers."""
         self.qregs = []
 

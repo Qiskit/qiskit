@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Union, Optional
 import numpy as np
 
 from qiskit.circuit.gate import Gate
@@ -80,9 +79,9 @@ class PauliEvolutionGate(Gate):
     def __init__(
         self,
         operator,
-        time: Union[int, float, ParameterExpression] = 1.0,
-        label: Optional[str] = None,
-        synthesis: Optional[EvolutionSynthesis] = None,
+        time: int | float | ParameterExpression = 1.0,
+        label: str | None = None,
+        synthesis: EvolutionSynthesis | None = None,
     ) -> None:
         """
         Args:
@@ -115,7 +114,7 @@ class PauliEvolutionGate(Gate):
         self.synthesis = synthesis
 
     @property
-    def time(self) -> Union[float, ParameterExpression]:
+    def time(self) -> float | ParameterExpression:
         """Return the evolution time as stored in the gate parameters.
 
         Returns:
@@ -124,7 +123,7 @@ class PauliEvolutionGate(Gate):
         return self.params[0]
 
     @time.setter
-    def time(self, time: Union[float, ParameterExpression]) -> None:
+    def time(self, time: float | ParameterExpression) -> None:
         """Set the evolution time.
 
         Args:
@@ -137,8 +136,8 @@ class PauliEvolutionGate(Gate):
         self.definition = self.synthesis.synthesize(self)
 
     def validate_parameter(
-        self, parameter: Union[int, float, ParameterExpression]
-    ) -> Union[float, ParameterExpression]:
+        self, parameter: int | float | ParameterExpression
+    ) -> float | ParameterExpression:
         """Gate parameters should be int, float, or ParameterExpression"""
         if isinstance(parameter, int):
             parameter = float(parameter)
