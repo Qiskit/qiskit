@@ -904,7 +904,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         r"""Performs either Heisenberg (default) or Schrödinger picture
         evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
-        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``. This option yields a faster calculation.
+        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``.
+        This option yields a faster calculation.
 
         Heisenberg picture evolves the Pauli as :math:`P^\prime = C^\dagger.P.C`.
 
