@@ -237,7 +237,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         time = 1
         observable = SparsePauliOp(["I", "Z"], np.array([0, t_param]))
 
-        x, y, z = [Parameter(s) for s in "xyz"]
+        x, y, z = (Parameter(s) for s in "xyz")
         ansatz = QuantumCircuit(1)
         ansatz.rz(x, 0)
         ansatz.ry(y, 0)

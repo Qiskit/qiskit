@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -27,6 +26,7 @@ import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
+    Literal,
     Union,
     Optional,
     Tuple,
@@ -71,11 +71,6 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -2817,7 +2812,7 @@ class QuantumCircuit:
         self, value_dict: Mapping[Parameter, ParameterValueType]
     ) -> dict[Parameter, ParameterValueType]:
         unrolled_value_dict: dict[Parameter, ParameterValueType] = {}
-        for (param, value) in value_dict.items():
+        for param, value in value_dict.items():
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError(
