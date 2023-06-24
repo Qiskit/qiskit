@@ -33,8 +33,6 @@ _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 class PassManager(BasePassManager):
     """Manager for a set of Passes and their scheduling during transpilation."""
 
-    PASS_RUNNER = RunningPassManager
-
     def __init__(
         self,
         passes: PassSequence | None = None,
@@ -53,6 +51,10 @@ class PassManager(BasePassManager):
         # For backward compatibility.
         self._pass_sets = []
         super().__init__(passes, max_iteration)
+
+    @property
+    def _pass_runner(self):
+        return RunningPassManager
 
     def append(
         self,

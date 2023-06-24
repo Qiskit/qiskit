@@ -12,9 +12,9 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 from __future__ import annotations
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, Type
 import logging
 import dill
 from qiskit.tools.parallel import parallel_map
@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 
 class BasePassManager(ABC):
     """Pass manager base class."""
-
-    PASS_RUNNER = BasePassRunner
 
     def __init__(
         self,
@@ -48,6 +46,12 @@ class BasePassManager(ABC):
 
         if passes is not None:
             self.append(passes)
+
+    @property
+    @abstractmethod
+    def _pass_runner(self) -> Type[BasePassRunner]:
+        """Pass runner class that this pass manager is tied to."""
+        pass
 
     def append(
         self,
@@ -193,12 +197,12 @@ class BasePassManager(ABC):
 
         # Create pass runner from normalized flow controllers
         # pylint: disable=abstract-class-instantiated
-        pass_runner = self.PASS_RUNNER(self.max_iteration)
+        pass_runner = self._pass_runner(self.max_iteration)
         for controller in self._flow_controllers:
             pass_runner.append(controller)
 
         is_list = True
-        if isinstance(in_programs, self.PASS_RUNNER.IN_PROGRAM_TYPE):
+        if isinstance(in_programs, pass_runner.IN_PROGRAM_TYPE):
             in_programs = [in_programs]
             is_list = False
 
