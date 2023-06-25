@@ -36,6 +36,7 @@ select = [
   "F632",
   "F634",
   "F823",
+  "EXE",
 ]
 
 [tool.pylint.main]
