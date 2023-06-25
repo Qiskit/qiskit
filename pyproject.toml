@@ -36,6 +36,10 @@ select = [
   "F632",
   "F634",
   "F823",
+  "G",
+  "PYI",
+  "Q",
+  "T10",
 ]
 
 [tool.pylint.main]
