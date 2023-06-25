@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Union, TYPE_CHECKING
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
+from qiskit.providers.backend import BackendV2
 
 
 if TYPE_CHECKING:
@@ -62,7 +63,7 @@ def measure(
     """
 
     # backend is V2.
-    if hasattr(backend, "target"):
+    if isinstance(backend, BackendV2):
 
         return _measure_v2(
             qubits=qubits,
@@ -216,7 +217,7 @@ def measure_all(backend) -> Schedule:
         A schedule corresponding to the inputs provided.
     """
     # backend is V2.
-    if hasattr(backend, "target"):
+    if isinstance(backend, BackendV2):
         qubits = list(range(backend.num_qubits))
     else:
         qubits = list(range(backend.configuration().n_qubits))
