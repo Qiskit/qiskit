@@ -575,9 +575,9 @@ class C3SXGate(ControlledGate):
         # exporter code (low priority), or we would need to modify 'qelib1.inc' which would be
         # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
         # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
+        old_name = self.name
+        self.name = "c3sqrtx"
         try:
-            old_name = self.name
-            self.name = "c3sqrtx"
             return super().qasm()
         finally:
             self.name = old_name
