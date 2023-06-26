@@ -526,7 +526,7 @@ class MatplotlibDrawer:
                         wire_map.update(inner_wire_map)
 
                         # Get the layered node lists and instantiate a new drawer class for
-                        # the circuit inside the if, else, or while.
+                        # the circuit inside the ControlFlowOp.
                         qubits, clbits, nodes = _get_layered_instructions(
                             circuit, wire_map=wire_map
                         )
@@ -603,6 +603,7 @@ class MatplotlibDrawer:
 
             # if it's a creg, register is the key and just load the index
             if isinstance(wire, ClassicalRegister):
+                # If wire came from ControlFlowOp and not in clbits, don't draw it
                 if wire[0] not in self._clbits:
                     continue
                 register = wire
@@ -611,6 +612,7 @@ class MatplotlibDrawer:
             # otherwise, get the register from find_bit and use bit_index if
             # it's a bit, or the index of the bit in the register if it's a reg
             else:
+                # If wire came from ControlFlowOp and not in qubits or clbits, don't draw it
                 if wire not in self._qubits + self._clbits:
                     continue
                 register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
