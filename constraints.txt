@@ -10,3 +10,8 @@ qiskit-aer==0.12.0
 # tests to flake. See https://github.com/Qiskit/qiskit-terra/issues/10305,
 # remove pin when resolving that.
 numpy<1.25
+
+# Scipy 1.11 seems to have caused an instability in the Weyl coordinates
+# eigensystem code for one of the test cases.  See
+# https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
+scipy<1.11
