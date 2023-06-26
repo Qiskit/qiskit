@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Set the ``layout`` property to the given layout."""
-
-
+from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -27,7 +26,7 @@ class SetLayout(AnalysisPass):
         """SetLayout initializer.
 
         Args:
-            layout (Layout): the layout to set.
+            layout (Layout or List[int] or Dict[int, int]): the layout to set or a list to reorder qubits.
         """
         super().__init__()
         self.layout = layout
@@ -41,5 +40,15 @@ class SetLayout(AnalysisPass):
         Returns:
             DAGCircuit: the original DAG.
         """
-        self.property_set["layout"] = None if self.layout is None else self.layout.copy()
+        if isinstance(self.layout, list):
+            if len(self.layout) != len(dag.qubits):
+                raise Exception("TODO")
+            layout = Layout({phys: dag.qubits[i] for i, phys in enumerate(self.layout)})
+        elif isinstance(self.layout, Layout):
+            layout = self.layout.copy()
+        elif self.layout is None:
+            layout = None
+        else:
+            raise Exception("TODO")
+        self.property_set["layout"] = layout
         return dag
