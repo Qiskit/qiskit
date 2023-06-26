@@ -1,114 +1,75 @@
-.. raw:: html
-
-  <div style="width: 100%; align: center">
-
-.. raw:: html
-  :file: images/qiskit_main.svg
-
-.. raw:: html
-
-  </div>
-
 ##############################
 Qiskit |version| documentation
 ##############################
 
 Qiskit is open-source software for working with quantum computers
-at the level of circuits, pulses, and algorithms. Additionally, several
-domain specific application APIs exist on top of this core module.
+at the level of circuits, pulses, and algorithms.
 
 The central goal of Qiskit is to build a software stack
 that makes it easy for anyone to use quantum computers, regardless of their skill level or
 area of interest; Qiskit allows one to easily design experiments and applications and run
-them on real quantum computers and/or classical simulators. Qiskit is already in use
+them on real quantum computers or classical simulators. Qiskit is already in use
 around the world by beginners, hobbyists, educators, researchers, and commercial companies.
 
+
 .. raw:: html
 
-  <div class="tutorials-callout-container">
-     <div class="row">
+  <div class="tutorials-callout-container"><div class="row">
+
 
 .. qiskit-call-to-action-item::
-  :description: Find out which Qiskit providers support execution on real quantum services.
   :header: Access to quantum systems
+  :description: Find out which Qiskit providers support execution on real quantum services.
   :button_link:  https://qiskit.org/providers
-  :button_text: Qiskit providers
+  :button_text: Quantum providers
 
 
 .. qiskit-call-to-action-item::
-  :description: A programming model and execution framework to effectively execute workloads.
-  :header: Qiskit IBM Runtime
-  :button_link:  https://qiskit.org/ecosystem/ibm-runtime/
-  :button_text: Get started
+  :header: Qiskit ecosystem
+  :description: The Qiskit ecosystem consists of projects, tools, utilities, libraries and tutorials from a broad community of developers and researchers.
+  :button_link:  https://qiskit.org/ecosystem/
+  :button_text: Explore the Qiskit ecosystem
 
 .. raw:: html
 
-  </div>
+  </div></div>
 
-Interested in applications of quantum computing?
-################################################
 
-.. raw:: html
-
-  <div class="applications-callout-container">
-     <div class="row">
-
-.. qiskit-call-to-action-item::
-  :description: Qiskit Nature supports different applications, such as electronic/vibronic structure calculations for ground and excited states or protein folding. It provides all the components necessary to interface classical codes and automatically convert to different representations required by quantum computers.
-  :header: Qiskit Nature
-  :button_link: https://qiskit.org/ecosystem/nature/
-  :button_text: Qiskit Nature
-
-.. qiskit-call-to-action-item::
-  :description: Qiskit Finance provides a set of illustrative applications and tools, including Ising translators for portfolio optimization, data providers for real or random data, and implementations for pricing different financial options or for credit risk analysis.
-  :header: Qiskit Finance
-  :button_link: https://qiskit.org/ecosystem/finance/
-  :button_text: Qiskit Finance
-
-.. qiskit-call-to-action-item::
-  :description: Qiskit Machine Learning provides fundamental quantum kernels and quantum neural networks (QNNs) as building blocks and quantum machine learning algorithms that apply them to solve different tasks like regression and classification. Further, it allows to connect QNNs to PyTorch to enhance classical workflows with quantum components.
-  :header: Qiskit Machine Learning
-  :button_link: https://qiskit.org/ecosystem/machine-learning/
-  :button_text: Qiskit Machine Learning
-
-.. qiskit-call-to-action-item::
-  :description: Qiskit Optimization provides the whole range from high-level modeling of optimization problems, to automatic conversion of problems to different required representations, to a suite of easy-to-use quantum optimization algorithms.
-  :header: Qiskit Optimization
-  :button_link: https://qiskit.org/ecosystem/optimization/
-  :button_text: Qiskit Optimization
+Main Qiskit-related projects
+############################
 
 .. raw:: html
 
-  </div>
-
-Interested in running experiments on real qubits?
-#################################################
+  <div class="tutorials-callout-container"><div class="row">
 
 .. qiskit-call-to-action-item::
-  :description: Run characterization, calibration, and verification experiments
   :header: Qiskit Experiments
+  :description: Run characterization, calibration, and verification experiments
   :button_link: https://qiskit.org/ecosystem/experiments/
-  :button_text: Qiskit Experiments
+  :button_text: Qiskit Experiments documentation
 
-Interested in quantum hardware design?
-######################################
+.. qiskit-call-to-action-item::
+  :header: Qiskit Dynamics
+  :description: Tools for building and solving models of quantum systems in Qiskit
+  :button_link: https://qiskit.org/ecosystem/dynamics/
+  :button_text: Qiskit Dynamics documentation
 
-   .. grid:: 2
+.. qiskit-call-to-action-item::
+  :header: Qiskit IBM Runtime
+  :description: Qiskit Runtime is a cloud base implementation of the Qiskit primitives to effectively execute workloads on IBM Quantum systems.
+  :button_link:  https://qiskit.org/ecosystem/ibm-runtime/
+  :button_text: Qiskit Runtime documentation
 
-    .. grid-item-card::
-        :columns: auto
+.. qiskit-call-to-action-item::
+  :header: IBM Quantum Provider
+  :description: A Qiskit provider that allows accessing the IBM Quantum systems and cloud simulators.
+  :button_link:  https://qiskit.org/ecosystem/ibm-runtime/
+  :button_text: Qiskit IBM provider documentation
 
-        Qiskit Metal
-        ^^^^^^^^^^^^^^
+.. raw:: html
 
-        .. image:: images/metal.png
-          :scale: 35 %
-          :align: center
-          :target: https://qiskit.org/ecosystem/metal/
+  </div></div>
 
-        ++++++
-        :bdg-link-primary-line:`Website <https://qiskit.org/metal>`
-        :bdg-link-primary-line:`Documentation <https://qiskit.org/ecosystem/metal/>`
 
 .. toctree::
    :hidden:
