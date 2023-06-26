@@ -83,7 +83,6 @@ disable = [
     "consider-using-enumerate",
     "consider-using-f-string",
     "consider-using-from-import",
-    "modified-iterating-list",
     "nested-min-max",
     "no-member",
     "no-value-for-parameter",
