@@ -204,7 +204,6 @@ fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
 ///     node ids that represents the traversal order used by sabre.
 #[pyfunction]
 pub fn build_swap_map(
-    py: Python,
     num_qubits: usize,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,

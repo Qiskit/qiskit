@@ -22,8 +22,11 @@ use rustworkx_core::petgraph::prelude::*;
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
+    pub num_qubits: usize,
+    pub num_clbits: usize,
     pub dag: DiGraph<(usize, Vec<usize>), ()>,
     pub first_layer: Vec<NodeIndex>,
+    pub nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
     pub node_blocks: HashMap<usize, Vec<SabreDAG>>,
 }
 
@@ -65,6 +68,6 @@ impl SabreDAG {
                 first_layer.push(gate_index);
             }
         }
-        Ok(SabreDAG { dag, first_layer, node_blocks })
+        Ok(SabreDAG { num_qubits, num_clbits, dag, first_layer, nodes, node_blocks })
     }
 }

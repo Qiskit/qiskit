@@ -249,11 +249,13 @@ class SabreSwap(TransformationPass):
         output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
-            return _apply_sabre_result(dag, self._qubit_indices, canonical_register, original_layout, sabre_result)
+            mapped_dag = dag.copy_empty_like()
+            _apply_sabre_result(mapped_dag, dag, self._qubit_indices, canonical_register, original_layout, sabre_result)
+            return mapped_dag
         return dag
 
 
-def _apply_sabre_result(root_dag, qubit_indices, canonical_register, initial_layout, sabre_result):
+def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register, initial_layout, sabre_result, swap_qubit_mapping=None):
     def empty_dag(node):
         out = DAGCircuit()
         for qreg in root_dag.qregs.values():
@@ -284,7 +286,8 @@ def _apply_sabre_result(root_dag, qubit_indices, canonical_register, initial_lay
                         mapped_block_layout,
                         canonical_register,
                         False,
-                        qubit_indices
+                        qubit_indices,
+                        swap_qubit_mapping,
                     )
 
                     # TODO: remove. This is just to validate that the swap epilogue
@@ -315,6 +318,7 @@ def _apply_sabre_result(root_dag, qubit_indices, canonical_register, initial_lay
                     canonical_register,
                     False,
                     qubit_indices,
+                    swap_qubit_mapping,
                 )
             apply_gate(
                 out_dag,
@@ -325,9 +329,7 @@ def _apply_sabre_result(root_dag, qubit_indices, canonical_register, initial_lay
                 qubit_indices,
             )
 
-    mapped_dag = root_dag.copy_empty_like()
     apply_inner(mapped_dag, initial_layout, sabre_result, root_dag._multi_graph)
-    return mapped_dag
 
 
 def _build_sabre_dag(dag, qubit_indices, clbit_indices):
