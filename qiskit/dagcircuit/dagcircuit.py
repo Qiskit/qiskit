@@ -20,7 +20,7 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, deque
 import copy
 import itertools
 import math
@@ -1929,12 +1929,12 @@ class DAGCircuit:
         # Add the qubit to the causal cone.
         qubits_to_check = set({qubit})
         # Add predecessors of output node to the queue.
-        queue = list(self.predecessors(output_node))
+        queue = deque(self.predecessors(output_node))
 
         # While queue isn't empty
-        while len(queue) > 0:
+        while queue:
             # Pop first element.
-            node_to_check = queue.pop(0)
+            node_to_check = queue.popleft()
             # Check whether element is input or output node.
             if not (isinstance(node_to_check, (DAGInNode, DAGOutNode))):
                 # Keep all the qubits in the operation inside a set.
@@ -1945,7 +1945,7 @@ class DAGCircuit:
                     and not node_to_check.op.name == "barrier"
                 ):
                     # If so, add all the qubits to the causal cone.
-                    qubits_to_check = qubits_to_check.union(set(node_to_check.qargs))
+                    qubits_to_check = qubits_to_check.union(qubit_set)
             # For each predecessor of the current node, filter input/output nodes,
             # also make sure it has at least one qubit in common. Then append.
             for node in self.predecessors(node_to_check):
