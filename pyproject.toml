@@ -37,6 +37,7 @@ select = [
   "F634",
   "F823",
 ]
+target-version = "py38"  # PYVERBUMP
 
 [tool.pylint.main]
 extension-pkg-allow-list = [
