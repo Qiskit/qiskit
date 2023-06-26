@@ -79,7 +79,7 @@ def qreg_creg_ascending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError(f"Unknown bit {bit} is provided.")
+            raise VisualizationError(f"Unknown bit {bit} is provided.")
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -109,7 +109,7 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
         elif isinstance(bit, circuit.Clbit):
             cregs.append(bit)
         else:
-            VisualizationError(f"Unknown bit {bit} is provided.")
+            raise VisualizationError(f"Unknown bit {bit} is provided.")
 
     qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
     cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
