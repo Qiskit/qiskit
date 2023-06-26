@@ -29,7 +29,7 @@ features:
     :meth:`.DAGCircuit.get_qubit_output_node` to obtain the input/output node of a 
     qubit in the `DAGCircuit`. The following example shows its correct usage::
 
-        from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+        from qiskit import QuantumRegister, ClassicalRegister
         from qiskit.dagcircuit import DAGCircuit
 
         dag = DAGCircuit()

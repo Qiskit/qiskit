@@ -1915,7 +1915,7 @@ class DAGCircuit:
         return self._get_qubit_input_output_node(qubit)
 
     def get_qubit_output_node(self, qubit):
-        """Returns qubit and input node from a qubit index."""
+        """Returns qubit and output node from a qubit index."""
         return self._get_qubit_input_output_node(qubit, True)
 
     def get_causal_cone(self, qubit_index):
