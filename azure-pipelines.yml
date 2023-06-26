@@ -177,8 +177,7 @@ stages:
 
         - template: ".azure/test-macos.yml"
           parameters:
-            # Overridden to specific version to account for _bz2 missing on Azure images.
-            pythonVersion: "3.7.16"
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
 
         - template: ".azure/test-macos.yml"
           parameters:
