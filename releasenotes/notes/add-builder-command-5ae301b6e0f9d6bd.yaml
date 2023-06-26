@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added the new pulse builder command :func:`.pulse.builder.get_dt_from_backend`.
