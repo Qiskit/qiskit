@@ -289,8 +289,8 @@ class Target(Mapping):
                 matches the qubit number the properties are defined for. If some
                 qubits don't have properties available you can set that entry to
                 ``None``
-            meas_map(list, dict): Dict or List of sets of qubits that must be 
-                measured together. If the input of meas_map is List,the meas_map 
+            meas_map(list, dict): Dict or List of sets of qubits that must be
+                measured together. If the input of meas_map is List,the meas_map
                 is converted to Dict by format_meas_map.
         Raises:
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
@@ -1274,8 +1274,8 @@ class Target(Mapping):
             instruction_durations: Optional instruction durations for instructions. If specified
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
-            meas_map(list, dict): Dict or List of sets of qubits that must be 
-                measured together. If the input of meas_map is List,the meas_map 
+            meas_map(list, dict): Dict or List of sets of qubits that must be
+                measured together. If the input of meas_map is List,the meas_map
                 is converted to Dict by format_meas_map.
             dt: The system time resolution of input signals in seconds
             timing_constraints: Optional timing constraints to include in the
