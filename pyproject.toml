@@ -82,7 +82,6 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "consider-using-from-import",
     "modified-iterating-list",
     "nested-min-max",
     "no-member",
