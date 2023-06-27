@@ -687,7 +687,7 @@ class TestOperator(OperatorTestCase):
         op = Operator.from_circuit(qc1)
         with self.subTest(msg="str(operator)"):
             str(op)
-        for drawtype in ["repr", "text", "latex", "latex_source"]:
+        for drawtype in ["repr", "text", "latex_source"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 op.draw(drawtype)
         with self.subTest(msg=" draw('latex')"):
