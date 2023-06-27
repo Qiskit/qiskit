@@ -241,7 +241,9 @@ class SabreLayout(TransformationPass):
             _sabre_result,
             local_dag,
         ) in layout_components:
+            # Maps qubit instances to their logical qubit address in the full dag.
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
+
             final_layout_dict.update({component_map[k]: component_map[v] for k, v in final_dict})
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set
@@ -261,7 +263,6 @@ class SabreLayout(TransformationPass):
             {dag.qubits[k]: v for (k, v) in final_layout_dict.items()}
         )
         canonical_register = dag.qregs["q"]
-        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
         for (
             _layout_dict,
@@ -270,7 +271,7 @@ class SabreLayout(TransformationPass):
             sabre_result,
             local_dag,
         ) in layout_components:
-            _apply_sabre_result(mapped_dag, local_dag, qubit_indices, canonical_register, original_layout, sabre_result, component_map)
+            _apply_sabre_result(mapped_dag, local_dag, initial_layout_dict, canonical_register, original_layout, sabre_result, component_map)
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
         return mapped_dag
 
@@ -285,7 +286,8 @@ class SabreLayout(TransformationPass):
         dist_matrix = coupling_map.distance_matrix
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
-        sabre_dag = _build_sabre_dag(dag, original_qubit_indices, original_clbit_indices)
+        # TODO: is coupling_map.size() right here? dag.num_qubits is too small...
+        sabre_dag = _build_sabre_dag(dag, coupling_map.size(), len(dag.clbits), original_qubit_indices, original_clbit_indices)
         ((initial_layout, final_layout), sabre_result) = sabre_layout_and_routing(
             sabre_dag,
             neighbor_table,

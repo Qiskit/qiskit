@@ -233,7 +233,7 @@ class SabreSwap(TransformationPass):
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
         original_layout = layout.copy()
 
-        sabre_dag = _build_sabre_dag(dag, self._qubit_indices, self._clbit_indices)
+        sabre_dag = _build_sabre_dag(dag, dag.num_qubits(), dag.num_clbits(), self._qubit_indices, self._clbit_indices)
         sabre_result = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -255,7 +255,33 @@ class SabreSwap(TransformationPass):
         return dag
 
 
-def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register, initial_layout, sabre_result, swap_qubit_mapping=None):
+def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
+    dag_list = []
+    node_blocks = {}
+    for node in dag.topological_op_nodes():
+        cargs = {clbit_indices[x] for x in node.cargs}
+        if node.op.condition is not None:
+            for clbit in dag._bits_in_condition(node.op.condition):
+                cargs.add(clbit_indices[clbit])
+        if isinstance(node.op, ControlFlowOp):
+            node_blocks[node._node_id] = [
+                # TODO: does it make sense that all dags would have the same num bits?
+                _build_sabre_dag(circuit_to_dag(block), num_qubits, num_clbits, qubit_indices, clbit_indices)
+                for block in node.op.blocks
+            ]
+        dag_list.append(
+            (
+                node._node_id,
+                [qubit_indices[x] for x in node.qargs],
+                cargs,
+            )
+        )
+    return SabreDAG(num_qubits, num_clbits, dag_list, node_blocks)
+
+
+def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register, initial_layout, sabre_result, component_map=None):
+    bit_to_qreg_idx = {bit: idx for idx, bit in enumerate(canonical_register)}
+
     def empty_dag(node):
         out = DAGCircuit()
         for qreg in root_dag.qregs.values():
@@ -286,8 +312,8 @@ def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register,
                         mapped_block_layout,
                         canonical_register,
                         False,
-                        qubit_indices,
-                        swap_qubit_mapping,
+                        bit_to_qreg_idx,
+                        component_map,
                     )
 
                     # TODO: remove. This is just to validate that the swap epilogue
@@ -306,10 +332,11 @@ def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register,
                 # Apply the control flow gate to the dag.
                 mapped_node = node.op.replace_blocks(mapped_blocks)
                 mapped_node_qargs = mapped_blocks[0].qubits
+                # TODO: can we just apply here or do we need to use apply_gate to remap qargs?
                 out_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
                 continue
 
-            # If we get here, the node is just a normal non-control-flow gate.
+            # If we get here, the node isn't a control-flow gate.
             if node_id in result.map:
                 process_swaps(
                     result.map[node_id],
@@ -317,8 +344,8 @@ def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register,
                     current_layout,
                     canonical_register,
                     False,
-                    qubit_indices,
-                    swap_qubit_mapping,
+                    bit_to_qreg_idx,
+                    component_map,
                 )
             apply_gate(
                 out_dag,
@@ -332,29 +359,6 @@ def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register,
     apply_inner(mapped_dag, initial_layout, sabre_result, root_dag._multi_graph)
 
 
-def _build_sabre_dag(dag, qubit_indices, clbit_indices):
-    dag_list = []
-    node_blocks = {}
-    for node in dag.topological_op_nodes():
-        cargs = {clbit_indices[x] for x in node.cargs}
-        if node.op.condition is not None:
-            for clbit in dag._bits_in_condition(node.op.condition):
-                cargs.add(clbit_indices[clbit])
-        if isinstance(node.op, ControlFlowOp):
-            node_blocks[node._node_id] = [
-                _build_sabre_dag(circuit_to_dag(block), qubit_indices, clbit_indices)
-                for block in node.op.blocks
-            ]
-        dag_list.append(
-            (
-                node._node_id,
-                [qubit_indices[x] for x in node.qargs],
-                cargs,
-            )
-        )
-    return SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, node_blocks)
-
-
 def process_swaps(
     swap_list,
     mapped_dag,
@@ -362,17 +366,17 @@ def process_swaps(
     canonical_register,
     fake_run,
     qubit_indices,
-    swap_qubit_mapping=None,
+    component_map=None,
 ):
     """
     Applies each swap in ``swap_list`` sequentially and updates
     ``current_layout`` accordingly.
     """
     for swap in swap_list:
-        if swap_qubit_mapping:
+        if component_map:
             swap_qargs = [
-                canonical_register[swap_qubit_mapping[swap[0]]],
-                canonical_register[swap_qubit_mapping[swap[1]]],
+                canonical_register[component_map[swap[0]]],
+                canonical_register[component_map[swap[1]]],
             ]
         else:
             swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
@@ -384,9 +388,9 @@ def process_swaps(
             fake_run,
             qubit_indices,
         )
-        if swap_qubit_mapping:
+        if component_map:
             current_layout.swap_logical(
-                swap_qubit_mapping[swap[0]], swap_qubit_mapping[swap[1]]
+                component_map[swap[0]], component_map[swap[1]]
             )
         else:
             current_layout.swap_logical(*swap)
