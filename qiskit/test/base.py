@@ -227,7 +227,7 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
-            r"'Bit\.(register|index)' is deprecated.*",
+            r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
             # Caused by internal scikit-learn scipy usage

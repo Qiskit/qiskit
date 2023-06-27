@@ -37,7 +37,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
         else:
             routing_pass = BasicSwap(target)
 
-        vf2_call_limit = common.get_vf2_call_limit(
+        vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
             pass_manager_config.initial_layout,
@@ -56,6 +56,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 check_trivial=True,
@@ -67,6 +68,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
@@ -77,6 +79,7 @@ class BasicSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
@@ -96,7 +99,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
         if coupling_map_routing is None:
             coupling_map_routing = coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = common.get_vf2_call_limit(
+        vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
             pass_manager_config.initial_layout,
@@ -120,6 +123,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 check_trivial=True,
@@ -131,6 +135,7 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
@@ -150,7 +155,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
         if coupling_map_routing is None:
             coupling_map_routing = coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = common.get_vf2_call_limit(
+        vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
             pass_manager_config.initial_layout,
@@ -171,6 +176,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 check_trivial=True,
@@ -183,6 +189,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
@@ -194,6 +201,7 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
@@ -213,7 +221,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
         if coupling_map_routing is None:
             coupling_map_routing = coupling_map
         backend_properties = pass_manager_config.backend_properties
-        vf2_call_limit = common.get_vf2_call_limit(
+        vf2_call_limit, vf2_max_trials = common.get_vf2_limits(
             optimization_level,
             pass_manager_config.layout_method,
             pass_manager_config.initial_layout,
@@ -244,6 +252,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 check_trivial=True,
@@ -261,6 +270,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
@@ -277,6 +287,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
                 target,
                 coupling_map=coupling_map,
                 vf2_call_limit=vf2_call_limit,
+                vf2_max_trials=vf2_max_trials,
                 backend_properties=backend_properties,
                 seed_transpiler=seed_transpiler,
                 use_barrier_before_measurement=True,
