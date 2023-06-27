@@ -421,7 +421,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         QiskitError: QPY version is earlier than block support.
     """
     if version < 5:
-        QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+        raise QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
     data = formats.SCHEDULE_BLOCK_HEADER._make(
         struct.unpack(
