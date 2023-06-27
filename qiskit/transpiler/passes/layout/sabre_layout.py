@@ -271,7 +271,15 @@ class SabreLayout(TransformationPass):
             sabre_result,
             local_dag,
         ) in layout_components:
-            _apply_sabre_result(mapped_dag, local_dag, initial_layout_dict, canonical_register, original_layout, sabre_result, component_map)
+            _apply_sabre_result(
+                mapped_dag,
+                local_dag,
+                initial_layout_dict,
+                canonical_register,
+                original_layout,
+                sabre_result,
+                component_map,
+            )
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
         return mapped_dag
 
@@ -287,7 +295,13 @@ class SabreLayout(TransformationPass):
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         # TODO: is coupling_map.size() right here? dag.num_qubits is too small...
-        sabre_dag = _build_sabre_dag(dag, coupling_map.size(), len(dag.clbits), original_qubit_indices, original_clbit_indices)
+        sabre_dag = _build_sabre_dag(
+            dag,
+            coupling_map.size(),
+            len(dag.clbits),
+            original_qubit_indices,
+            original_clbit_indices,
+        )
         ((initial_layout, final_layout), sabre_result) = sabre_layout_and_routing(
             sabre_dag,
             neighbor_table,

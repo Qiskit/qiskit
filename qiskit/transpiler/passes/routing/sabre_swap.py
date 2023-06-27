@@ -233,7 +233,9 @@ class SabreSwap(TransformationPass):
         layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
         original_layout = layout.copy()
 
-        sabre_dag = _build_sabre_dag(dag, dag.num_qubits(), dag.num_clbits(), self._qubit_indices, self._clbit_indices)
+        sabre_dag = _build_sabre_dag(
+            dag, dag.num_qubits(), dag.num_clbits(), self._qubit_indices, self._clbit_indices
+        )
         sabre_result = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -250,7 +252,14 @@ class SabreSwap(TransformationPass):
         self.property_set["final_layout"] = output_layout
         if not self.fake_run:
             mapped_dag = dag.copy_empty_like()
-            _apply_sabre_result(mapped_dag, dag, self._qubit_indices, canonical_register, original_layout, sabre_result)
+            _apply_sabre_result(
+                mapped_dag,
+                dag,
+                self._qubit_indices,
+                canonical_register,
+                original_layout,
+                sabre_result,
+            )
             return mapped_dag
         return dag
 
@@ -266,7 +275,9 @@ def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
         if isinstance(node.op, ControlFlowOp):
             node_blocks[node._node_id] = [
                 # TODO: does it make sense that all dags would have the same num bits?
-                _build_sabre_dag(circuit_to_dag(block), num_qubits, num_clbits, qubit_indices, clbit_indices)
+                _build_sabre_dag(
+                    circuit_to_dag(block), num_qubits, num_clbits, qubit_indices, clbit_indices
+                )
                 for block in node.op.blocks
             ]
         dag_list.append(
@@ -279,7 +290,15 @@ def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
     return SabreDAG(num_qubits, num_clbits, dag_list, node_blocks)
 
 
-def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register, initial_layout, sabre_result, component_map=None):
+def _apply_sabre_result(
+    mapped_dag,
+    root_dag,
+    qubit_indices,
+    canonical_register,
+    initial_layout,
+    sabre_result,
+    component_map=None,
+):
     bit_to_qreg_idx = {bit: idx for idx, bit in enumerate(canonical_register)}
 
     def empty_dag(node):
@@ -302,7 +321,9 @@ def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register,
                     block_id_to_node = circuit_to_dag(block)._multi_graph
                     mapped_block_dag = empty_dag(node)
                     mapped_block_layout = current_layout.copy()
-                    apply_inner(mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node)
+                    apply_inner(
+                        mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node
+                    )
 
                     # Apply swap epilogue to bring each block to the same
                     # final layout.
@@ -318,7 +339,7 @@ def _apply_sabre_result(mapped_dag, root_dag, qubit_indices, canonical_register,
 
                     # TODO: remove. This is just to validate that the swap epilogue
                     #  always gets us back to the initial layout!
-                    assert(mapped_block_layout.layout_mapping() == current_layout.layout_mapping())
+                    assert mapped_block_layout.layout_mapping() == current_layout.layout_mapping()
 
                     mapped_block_dags.append(mapped_block_dag)
                     idle_qubits &= set(mapped_block_dag.idle_wires())
@@ -389,9 +410,7 @@ def process_swaps(
             qubit_indices,
         )
         if component_map:
-            current_layout.swap_logical(
-                component_map[swap[0]], component_map[swap[1]]
-            )
+            current_layout.swap_logical(component_map[swap[0]], component_map[swap[1]])
         else:
             current_layout.swap_logical(*swap)
 
