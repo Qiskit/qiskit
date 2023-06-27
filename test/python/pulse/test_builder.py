@@ -212,7 +212,8 @@ class TestContexts(TestBuilder):
         inst_map.add("x", (0,), test_x_sched)
 
         ref_sched = pulse.Schedule()
-        ref_sched += pulse.instructions.Call(test_x_sched)
+        with self.assertWarns(DeprecationWarning):
+            ref_sched += pulse.instructions.Call(test_x_sched)
 
         x_qc = circuit.QuantumCircuit(2)
         x_qc.x(0)
@@ -968,7 +969,8 @@ class TestSubroutineCall(TestBuilder):
         reference += instructions.Delay(20, d1)
 
         ref_sched = pulse.Schedule()
-        ref_sched += pulse.instructions.Call(reference)
+        with self.assertWarns(DeprecationWarning):
+            ref_sched += pulse.instructions.Call(reference)
 
         with pulse.build() as schedule:
             with pulse.align_right():
@@ -988,7 +990,8 @@ class TestSubroutineCall(TestBuilder):
         reference = inst_map.get("u1", (0,), 0.0)
 
         ref_sched = pulse.Schedule()
-        ref_sched += pulse.instructions.Call(reference)
+        with self.assertWarns(DeprecationWarning):
+            ref_sched += pulse.instructions.Call(reference)
 
         u1_qc = circuit.QuantumCircuit(2)
         u1_qc.append(circuit.library.U1Gate(0.0), [0])
@@ -1016,7 +1019,8 @@ class TestSubroutineCall(TestBuilder):
         reference = compiler.schedule(reference_qc, self.backend)
 
         ref_sched = pulse.Schedule()
-        ref_sched += pulse.instructions.Call(reference)
+        with self.assertWarns(DeprecationWarning):
+            ref_sched += pulse.instructions.Call(reference)
 
         self.assertScheduleEqual(schedule, ref_sched)
 
@@ -1048,7 +1052,8 @@ class TestSubroutineCall(TestBuilder):
         )
 
         reference = pulse.Schedule()
-        reference += pulse.instructions.Call(h_reference)
+        with self.assertWarns(DeprecationWarning):
+            reference += pulse.instructions.Call(h_reference)
         reference += cx_reference
         reference += measure_reference << reference.duration
 
