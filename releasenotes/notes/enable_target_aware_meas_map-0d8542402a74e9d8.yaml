@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added an argument ``meas_map`` to :class:`~.Target`.
