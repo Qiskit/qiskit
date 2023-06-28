@@ -23,6 +23,8 @@ from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit import ControlFlowOp
+
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
 
 
@@ -71,6 +73,9 @@ class ConsolidateBlocks(TransformationPass):
             )
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
+        self._basis_gates = basis_gates
+        self._kak_basis_gate = kak_basis_gate
+        self._approximation_degree = approximation_degree
 
     def run(self, dag):
         """Run the ConsolidateBlocks pass on `dag`.
@@ -159,11 +164,47 @@ class ConsolidateBlocks(TransformationPass):
                         dag.remove_op_node(node)
                 else:
                     dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+
+        dag = self._handle_control_flow_ops(dag)
+
         # Clear collected blocks and runs as they are no longer valid after consolidation
         if "run_list" in self.property_set:
             del self.property_set["run_list"]
         if "block_list" in self.property_set:
             del self.property_set["block_list"]
+
+        return dag
+
+    def _handle_control_flow_ops(self, dag):
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        collect blocks is redone for the control flow blocks.
+        """
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes import Collect2qBlocks
+        from qiskit.transpiler.passes import Collect1qRuns
+
+        pass_manager = PassManager()
+        if "run_list" in self.property_set:
+            pass_manager.append(Collect1qRuns())
+        if "block_list" in self.property_set:
+            pass_manager.append(Collect2qBlocks())
+
+        new_consolidate_blocks = self.__class__(
+            self._kak_basis_gate,
+            self.force_consolidate,
+            self._basis_gates,
+            self._approximation_degree,
+            self.target,
+        )
+
+        pass_manager.append(new_consolidate_blocks)
+        for node in dag.op_nodes(ControlFlowOp):
+            mapped_blocks = []
+            for block in node.op.blocks:
+                new_circ = pass_manager.run(block)
+                mapped_blocks.append(new_circ)
+            node.op = node.op.replace_blocks(mapped_blocks)
         return dag
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):
