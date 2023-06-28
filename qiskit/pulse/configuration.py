@@ -21,6 +21,8 @@ from .exceptions import PulseError
 
 
 def _assert_nested_dict_equal(a, b):
+    if len(a) != len(b):
+        return False
     for key in a:
         if key in b:
             if isinstance(a[key], dict):
