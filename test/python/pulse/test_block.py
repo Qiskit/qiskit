@@ -959,7 +959,7 @@ class TestBlockFilter(BaseTestBlock):
         excluded = sched_blk.exclude(*args, **kwargs)
 
         def list_instructions(blk: pulse.ScheduleBlock) -> List[pulse.Instruction]:
-            insts = list()
+            insts = []
             for element in blk.blocks:
                 if isinstance(element, pulse.ScheduleBlock):
                     inner_insts = list_instructions(element)
