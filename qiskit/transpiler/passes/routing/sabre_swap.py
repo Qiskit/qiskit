@@ -303,7 +303,7 @@ def _apply_sabre_result(
 
     def empty_dag(node):
         out = DAGCircuit()
-        for qreg in root_dag.qregs.values():
+        for qreg in mapped_dag.qregs.values():
             out.add_qreg(qreg)
         out.add_clbits(node.cargs)
         return out
