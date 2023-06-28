@@ -491,7 +491,14 @@ fn gen_swap_epilogue(coupling: &DiGraph<(), ()>, from_layout: &NLayout, to_layou
         .collect();
 
     let swaps = token_swapper(coupling, mapping, Some(SWAP_EPILOGUE_TRIALS), Some(seed), None);
-    swaps.into_iter().map(|(l, r)| [l.index(), r.index()]).collect()
+
+    // Convert physical swaps to virtual swaps
+    let mut layout = from_layout.clone();
+    swaps.into_iter().map(|(l, r)| {
+        let ret = [layout.phys_to_logic[l.index()], layout.phys_to_logic[r.index()]];
+        layout.swap_physical(l.index(), r.index());
+        ret
+    }).collect()
 }
 
 /// Search forwards in the `dag` from all the nodes in `to_visit`, adding them to the `gate_order`
