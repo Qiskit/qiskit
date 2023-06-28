@@ -24,7 +24,8 @@ def _assert_nested_dict_equal(a, b):
     for key in a:
         if key in b:
             if isinstance(a[key], dict):
-                _assert_nested_dict_equal(a[key], b[key])
+                if not _assert_nested_dict_equal(a[key], b[key]):
+                    return False
             elif isinstance(a[key], np.ndarray):
                 if not np.all(a[key] == b[key]):
                     return False
