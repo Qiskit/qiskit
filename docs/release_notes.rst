@@ -22,6 +22,210 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.43.2
+*************
+
+As a reminder, `Qiskit Aer <https://qiskit.org/ecosystem/aer/>`__'s inclusion in the ``qiskit``
+package is deprecated.  The next minor version of Qiskit Aer (0.13) will not be included in any
+release of the ``qiskit`` package, and you should immediately begin installing Aer separately by::
+
+   pip install qiskit-aer
+
+and importing it as::
+
+   import qiskit_aer
+
+Starting from Qiskit 0.45, the command ``pip install qiskit`` will no longer install Qiskit Aer, or
+the obsolete IBM Q Provider that has already been replaced by the new `IBM Provider
+<https://qiskit.org/ecosystem/ibm-provider/>__`.
+
+
+Terra 0.24.1
+============
+
+No change.
+
+
+.. _Release Notes_Aer_0.12.1:
+
+Aer 0.12.1
+==========
+
+.. _Release Notes_Aer_0.12.1_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/release_0121-eeda752822eb0ad3.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+Qiskit Aer 0.12.1 is the first patch release to 0.12.0. This fixes some bugs that have been discovered since the release of 0.12.0.
+
+
+.. _Release Notes_Aer_0.12.1_Known Issues:
+
+Known Issues
+------------
+
+.. releasenotes/notes/primitives-grouping-index-bug-56f69afbdc3e86a0.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Fix a bug that returns wrong expectation values in :class:`~Estimator` when
+  ``abelian_grouping=True``.
+
+
+.. _Release Notes_Aer_0.12.1_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+.. releasenotes/notes/estimator-performance-da83a59b9fd69086.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Improved performance when the same circuits and multiple parameters are passed to
+  :class:`~.Estimator` with ``approximation=True``.
+
+
+.. _Release Notes_Aer_0.12.1_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+.. releasenotes/notes/implicit_cast_for_arguments-a3c671db2fff6f17.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Options of meth:`~.AerSimulator.run` need to use correct types.
+
+
+.. _Release Notes_Aer_0.12.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/avoid_copy_of_config-7f7891864c1a1bd0.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Performance regression due to introduction of ``AER::Config`` is fixed.
+  This class has many fields but is frequently copied in ``AER::Transpile::CircuitOptimization``.
+  Originally ``json_t`` (former class for configuration) was also frequently copied but
+  it does have entries in most cases and then this copy overhead is not a problem.
+  With this fix, ``AER::Transpile::CircuitOptimization`` does not copy ``AER::Config``.
+
+.. releasenotes/notes/avoid_kernel_crash_in_mac_from_blas_error-bd5b836a23f2e3ee.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- When BLAS calls are failed, because omp threads do not handle exceptions,
+  Aer crashes without any error messages. This fix is for omp threads to catch
+  exceptions correctly and then rethrow them outside of omp loops.
+
+.. releasenotes/notes/check_param_length-eb69cd92825bbca4.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Previously, parameters for gates are not validate in C++. If parameters are shorter than
+  expected (due to custom gate), segmentaion faults are thrown. This commit adds checks
+  whether parameter lenght is expceted. This commit will fix issues reported in #1612.
+  https://github.com/Qiskit/qiskit-aer/issues/1612
+
+.. releasenotes/notes/check_parameter_binds_exist-9d52c665d5f94dde.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Since 0.12.0, parameter values in circuits are temporarily replaced with constant values
+  and parameter values are assigned in C++ library. Therefore, if `parameter_binds` is specified,
+  simulator returns results with the constnat values as paramter values. With this commit,
+  Aer raises an error if `parameter_binds` is not specified though circuits have parameters.
+
+.. releasenotes/notes/defer-backend-gathering-773d0ed8092c24d9.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Available devices and methods are no longer queried when importing Aer.
+
+.. releasenotes/notes/do_not_modify_metadata-60bb4b88707bd021.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Previously :class:`~.AerSimulator` modifies circuit metadata to maintain
+  consistency between input and output of simulation with side effect of
+  unexpected view of metadata from applicatiln in simiulation. This fix
+  avoids using circuit metadata to maintain consistency internaly and then
+  always provides consistent view of metadata to application.
+
+.. releasenotes/notes/estimator-variance-type-2b04ff7bcd305920.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Fixed a bug where the variance in metadata in EstimatorResult was complex and now returns float.
+
+.. releasenotes/notes/fix-cuStateVec_enable-0936f2269466e3be.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Fixed a build break to compile Qiskit Aer with cuQuautum support (`AER_ENABLE_CUQUANTUM=true`).
+  This change does not affect build for CPU and normal GPU binaries.
+
+.. releasenotes/notes/fix-none-handling-in-noise-model-34fcc9a3e3cbdf6f.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Fixed a bug in :meth:`~.NoiseModel.from_backend` that raised an error when
+  the backend has no T1 and T2 values (i.e. None) for a qubit in its qubit properties.
+  This commit updates :meth:`NoiseModel.from_backend` and :func:`basic_device_gate_errors`
+  so that they add an identity ``QuantumError`` (i.e. effectively no thermal relaxation error)
+  to a qubit with no T1 and T2 values for all gates acting on qubits including the qubit.
+  Fixed `#1779 <https://github.com/Qiskit/qiskit-aer/issues/1779>`__
+  and `#1815 <https://github.com/Qiskit/qiskit-aer/issues/1815>`__.
+
+.. releasenotes/notes/fix-number-qubits-a417ca6afa64264f.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Fix an issue even if the number of qubits is set by a coupling map
+  or device's configuration, when the simulation method is configured,
+  the number of qubits is overwritten in accordance with the method.
+  Fixed `#1769 <https://github.com/Qiskit/qiskit-aer/issues/1769>`__
+
+.. releasenotes/notes/fix_cuQuantum_libpath-90d24880cd9a9ea8.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- This is fix for library path setting in CMakeLists.txt for cuQuantum SDK.
+  Because the latest cuQuantum includes libraries for CUDA 11.x and 12.x,
+  this fix uses CUDA version returned from FindCUDA to the path of libraries
+  of cuQuantum and cuTENSOR.
+
+.. releasenotes/notes/fix_cuQuantum_static-ad132d742a64a3d5.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- This is fix for static link libraries of cuQuantum when building with
+  CUQUANTUM_STATIC=true.
+
+.. releasenotes/notes/fix_mpi_procs-68b76c11fe7a6b8e.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- MPI parallelization was not enabled since we have not used qobj.
+  This fix sets the number of processes and MPI rank correctly.
+
+.. releasenotes/notes/fix_param_binding_for_pram_circuit-50e64efbedaec8fd.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- :class:`~.AerCircuit` is created from a circuit by iterating its operations
+  while skipping barrier instructions. However, skipping barrier instructions
+  make wrong positionings of parameter bindings. This fix adds
+  :meth:`~.AerCircuit.barrier` and keeps parametr bindings correct.
+
+.. releasenotes/notes/fix_qobj_run-8ea657a93ce9acd2.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Aer still supports Qobj as an argument of :meth:`~.AerSimulator.run` though
+  it was deprecated. However, since 0.12.0, it always fails if no ``run_options``
+  is specified. This fix enables simulation of Qobj without ``run_options``.
+
+.. releasenotes/notes/implicit_cast_for_arguments-a3c671db2fff6f17.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Since 0.12.0, :class:`AerConfig` is used for simulation configuration while
+  performing strict type checking for arguments of meth:`~.AerSimulator.run`.
+  This commit adds casting if argument types are not expected.
+
+.. releasenotes/notes/support_int_initialize-8491979c4a003908.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- :meth:``QuantumCircuit.initialize()`` with `int` value was not processed
+  correctly as reported in `#1821 <https://github.com/Qiskit/qiskit-aer/issues/1821>`.
+  This commit enables such initialization by decomposing initialize instructions.
+
+.. releasenotes/notes/support_param_for_global_phase-704a97129e7bdbaa.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- :class:`~qiskit.circuit.QuantumCircuit` supports parameterization for its `global_phase`.
+  However, Aer has not allowed such parameterization and failed when transpiler generates
+  parameterized global phases. This commit supports parameterization of `global_phase` and
+  resolve issues related to https://github.com/Qiskit/qiskit-aer/issues/1795,
+  https://github.com/Qiskit/qiskit-aer/issues/1781, and https://github.com/Qiskit/qiskit-aer/issues/1798.
+
+.. releasenotes/notes/use_omp_set_max_active_levels-7e6c1d301c4434a6.yaml @ b'462bade1f131c55f25dbcbcad7f6173c91180c07'
+
+- Aer will now use ``omp_set_max_active_levels()`` instead of the deprecated ``omp_set_nested()`` when compiled against recent versions of OpenMP.
+
+
+IBM Q Provider 0.20.2
+=====================
+
+No change.
+
+
+*************
 Qiskit 0.43.1
 *************
 
