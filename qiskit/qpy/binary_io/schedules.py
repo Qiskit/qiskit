@@ -61,7 +61,7 @@ def _read_waveform(file_obj, version):
     )
 
 
-def _read_kernel_and_discriminator(file_obj, version, kernel_or_discriminator):
+def _read_kernel(file_obj, version):
     params = common.read_mapping(
         file_obj=file_obj,
         deserializer=value.loads_value,
@@ -69,12 +69,18 @@ def _read_kernel_and_discriminator(file_obj, version, kernel_or_discriminator):
         vectors={},
     )
     name = value.read_value(file_obj, version, {})
-    if kernel_or_discriminator == "kernel":
-        return Kernel(name=name, **params)
-    elif kernel_or_discriminator == "discriminator":
-        return Discriminator(name=name, **params)
-    else:
-        raise QiskitError("Unknown kernel_or_discriminator")
+    return Kernel(name=name, **params)
+
+
+def _read_discriminator(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=value.loads_value,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Discriminator(name=name, **params)
 
 
 def _loads_symbolic_expr(expr_bytes):
@@ -262,16 +268,14 @@ def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.KERNEL:
         return common.data_from_binary(
             data_bytes,
-            _read_kernel_and_discriminator,
+            _read_kernel,
             version=version,
-            kernel_or_discriminator="kernel",
         )
     if type_key == type_keys.ScheduleOperand.DISCRIMINATOR:
         return common.data_from_binary(
             data_bytes,
-            _read_kernel_and_discriminator,
+            _read_discriminator,
             version=version,
-            kernel_or_discriminator="discriminator",
         )
 
     return value.loads_value(type_key, data_bytes, version, {})
@@ -332,11 +336,15 @@ def _write_waveform(file_obj, data):
     value.write_value(file_obj, data.name)
 
 
-def _write_kernel_and_discriminator(file_obj, data):
+def _write_kernel(file_obj, data):
     name = data.name
     params = data.params
     common.write_mapping(file_obj=file_obj, mapping=params, serializer=value.dumps_value)
     value.write_value(file_obj, name)
+
+
+def _write_discriminator(file_obj, data):
+    _write_kernel(file_obj, data)
 
 
 def _dumps_symbolic_expr(expr):
@@ -405,10 +413,10 @@ def _dumps_operand(operand):
         data_bytes = operand.encode(common.ENCODE)
     elif isinstance(operand, Kernel):
         type_key = type_keys.ScheduleOperand.KERNEL
-        data_bytes = common.data_to_binary(operand, _write_kernel_and_discriminator)
+        data_bytes = common.data_to_binary(operand, _write_kernel)
     elif isinstance(operand, Discriminator):
         type_key = type_keys.ScheduleOperand.DISCRIMINATOR
-        data_bytes = common.data_to_binary(operand, _write_kernel_and_discriminator)
+        data_bytes = common.data_to_binary(operand, _write_discriminator)
     else:
         type_key, data_bytes = value.dumps_value(operand)
 
