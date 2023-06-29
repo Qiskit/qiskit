@@ -347,7 +347,8 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
+        with self.assertWarns(DeprecationWarning):
+            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
 
         self.assertEqual(assigned, ref_obj)
 
@@ -363,7 +364,8 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
+        with self.assertWarns(DeprecationWarning):
+            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
 
         self.assertEqual(assigned, ref_obj)
 

@@ -595,15 +595,15 @@ class ScalableSymbolicPulse(SymbolicPulse):
         additional_msg=(
             "Instead, use a float for ``amp`` (for the magnitude) and a float for ``angle``"
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.25.0",
+        pending=False,
         predicate=lambda amp: isinstance(amp, complex),
     )
     def __init__(
         self,
         pulse_type: str,
         duration: Union[ParameterExpression, int],
-        amp: Union[ParameterExpression, float, complex],
+        amp: Union[ParameterExpression, float],
         angle: Union[ParameterExpression, float],
         parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
         name: Optional[str] = None,
@@ -739,7 +739,7 @@ class Gaussian(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
+        amp: Union[float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
@@ -750,7 +750,7 @@ class Gaussian(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the Gaussian envelope.
-                    Complex amp support will be deprecated.
+                    Complex amp support is deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             angle: The angle of the complex amplitude of the Gaussian envelope. Default value 0.
@@ -835,7 +835,7 @@ class GaussianSquare(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
+        amp: Union[float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         width: Optional[Union[float, ParameterExpression]] = None,
         angle: Optional[Union[float, ParameterExpression]] = None,
@@ -848,7 +848,7 @@ class GaussianSquare(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the Gaussian and square pulse.
-                    Complex amp support will be deprecated.
+                    Complex amp support is deprecated.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
             width: The duration of the embedded square pulse.
@@ -1085,9 +1085,9 @@ def gaussian_square_echo(
     The Gaussian Square Echo pulse is composed of three pulses. First, a Gaussian Square pulse
     :math:`f_{echo}(x)` with amplitude ``amp`` and phase ``angle`` playing for half duration,
     followed by a second Gaussian Square pulse :math:`-f_{echo}(x)` with opposite amplitude
-    and same phase playing for the rest of the duration. Third a Gaussian Square pulse 
+    and same phase playing for the rest of the duration. Third a Gaussian Square pulse
     :math:`f_{active}(x)` with amplitude ``active_amp`` and phase ``active_angle``
-    playing for the entire duration. The Gaussian Square Echo pulse :math:`g_e()` 
+    playing for the entire duration. The Gaussian Square Echo pulse :math:`g_e()`
     can be written as:
 
     .. math::
@@ -1099,11 +1099,11 @@ def gaussian_square_echo(
                 & \\frac{\\text{duration}}{2} < x\
         \\end{cases}\\\\
 
-    One case where this pulse can be used is when implementing a direct CNOT gate with 
-    a cross-resonance superconducting qubit architecture. When applying this pulse to 
-    the target qubit, the active portion can be used to cancel IX terms from the 
+    One case where this pulse can be used is when implementing a direct CNOT gate with
+    a cross-resonance superconducting qubit architecture. When applying this pulse to
+    the target qubit, the active portion can be used to cancel IX terms from the
     cross-resonance drive while the echo portion can reduce the impact of a static ZZ coupling.
-    
+
     Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
 
     If ``risefall_sigma_ratio`` is not ``None`` and ``width`` is ``None``:
@@ -1122,10 +1122,10 @@ def gaussian_square_echo(
 
         .. _citation1: https://iopscience.iop.org/article/10.1088/2058-9565/abe519
 
-        .. |citation1| replace:: *Jurcevic, P., Javadi-Abhari, A., Bishop, L. S., 
-            Lauer, I., Bogorin, D. F., Brink, M., Capelluto, L., G{\"u}nl{\"u}k, O., 
+        .. |citation1| replace:: *Jurcevic, P., Javadi-Abhari, A., Bishop, L. S.,
+            Lauer, I., Bogorin, D. F., Brink, M., Capelluto, L., G{\"u}nl{\"u}k, O.,
             Itoko, T., Kanazawa, N. & others
-            Demonstration of quantum volume 64 on a superconducting quantum 
+            Demonstration of quantum volume 64 on a superconducting quantum
             computing system. (Section V)*
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
@@ -1312,7 +1312,7 @@ class Drag(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
+        amp: Union[float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         beta: Union[float, ParameterExpression],
         angle: Optional[Union[float, ParameterExpression]] = None,
@@ -1324,7 +1324,7 @@ class Drag(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the DRAG envelope.
-                    Complex amp support will be deprecated.
+                    Complex amp support is deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             beta: The correction amplitude.
@@ -1383,7 +1383,7 @@ class Constant(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, float, ParameterExpression],
+        amp: Union[float, ParameterExpression],
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
@@ -1393,7 +1393,7 @@ class Constant(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the square envelope.
-                    Complex amp support will be deprecated.
+                    Complex amp support is deprecated.
             angle: The angle of the complex amplitude of the square envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
