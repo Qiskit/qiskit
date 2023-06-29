@@ -23,6 +23,9 @@ from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.optimization import Collect2qBlocks
+from qiskit.transpiler.passes.optimization.collect_1q_runs import Collect1qRuns
+
 from qiskit.circuit import ControlFlowOp
 
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
@@ -181,8 +184,6 @@ class ConsolidateBlocks(TransformationPass):
         collect blocks is redone for the control flow blocks.
         """
         from qiskit.transpiler import PassManager
-        from qiskit.transpiler.passes import Collect2qBlocks
-        from qiskit.transpiler.passes import Collect1qRuns
 
         pass_manager = PassManager()
         if "run_list" in self.property_set:
