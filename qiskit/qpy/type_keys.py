@@ -43,6 +43,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
+from qiskit.pulse.configuration import Discriminator, Kernel
 from qiskit.pulse.instructions import (
     Acquire,
     Play,
@@ -64,7 +65,6 @@ from qiskit.pulse.transforms.alignments import (
     AlignEquispaced,
 )
 from qiskit.qpy import exceptions
-from qiskit.pulse.configuration import Kernel, Discriminator
 
 
 class TypeKeyBase(bytes, Enum):
@@ -325,10 +325,6 @@ class ScheduleOperand(TypeKeyBase):
     WAVEFORM = b"w"
     SYMBOLIC_PULSE = b"s"
     CHANNEL = b"c"
-
-    # Discriminator and Acquire instance are not serialzied.
-    # Data format of these object is somewhat opaque and not defiend well.
-    # It's rarely used in the Qiskit experiements. Of course these can be added later.
     KERNEL = b"k"
     DISCRIMINATOR = b"d"
 

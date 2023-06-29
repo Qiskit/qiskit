@@ -72,7 +72,7 @@ def read_mapping(file_obj, deserializer, **kwargs):
         This function must be used to make a binary data of mapping
         which include QPY serialized values.
         It's easier to use JSON serializer followed by encoding for standard data formats.
-        This only supports flat dictionary and key must be string.
+        This supports nested dictionary and key must be string.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
@@ -157,7 +157,7 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         This function must be used to make a binary data of mapping
         which include QPY serialized values.
         It's easier to use JSON serializer followed by encoding for standard data formats.
-        This only supports flat dictionary and key must be string.
+        This supports nested dictionary and key must be string.
 
     Args:
         file_obj (File): A file like object to write data.
