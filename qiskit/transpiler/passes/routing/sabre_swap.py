@@ -276,7 +276,11 @@ def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
             node_blocks[node._node_id] = [
                 # TODO: does it make sense that all dags would have the same num bits?
                 _build_sabre_dag(
-                    circuit_to_dag(block), num_qubits, num_clbits, qubit_indices, clbit_indices
+                    circuit_to_dag(block),
+                    num_qubits,
+                    num_clbits,
+                    {inner: qubit_indices[outer] for inner, outer in zip(block.qubits, node.qargs)},
+                    clbit_indices
                 )
                 for block in node.op.blocks
             ]
@@ -308,7 +312,7 @@ def _apply_sabre_result(
         out.add_clbits(node.cargs)
         return out
 
-    def apply_inner(out_dag, current_layout, result, id_to_node):
+    def apply_inner(out_dag, current_layout, qubit_indices_inner, result, id_to_node):
         for node_id in result.node_order:
             node = id_to_node[node_id]
             if isinstance(node.op, ControlFlowOp):
@@ -321,8 +325,12 @@ def _apply_sabre_result(
                     block_id_to_node = circuit_to_dag(block)._multi_graph
                     mapped_block_dag = empty_dag(node)
                     mapped_block_layout = current_layout.copy()
+                    block_qubit_indices = {
+                        inner: qubit_indices_inner[outer]
+                        for inner, outer in zip(block.qubits, node.qargs)
+                    }
                     apply_inner(
-                        mapped_block_dag, mapped_block_layout, block_result.result, block_id_to_node
+                        mapped_block_dag, mapped_block_layout, block_qubit_indices, block_result.result, block_id_to_node
                     )
 
                     # Apply swap epilogue to bring each block to the same
@@ -374,10 +382,10 @@ def _apply_sabre_result(
                 current_layout,
                 canonical_register,
                 False,
-                qubit_indices,
+                qubit_indices_inner,
             )
 
-    apply_inner(mapped_dag, initial_layout, sabre_result, root_dag._multi_graph)
+    apply_inner(mapped_dag, initial_layout, qubit_indices, sabre_result, root_dag._multi_graph)
 
 
 def process_swaps(
