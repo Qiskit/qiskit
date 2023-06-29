@@ -51,15 +51,20 @@ class ConsolidateBlocks(TransformationPass):
         basis_gates=None,
         approximation_degree=1.0,
         target=None,
+        decomposer=None,
     ):
         """ConsolidateBlocks initializer.
 
+        The decomoposer used is determined by the first of the following arguments
+        with a non-None value: decomposer, kak_basis_gate, basis_gates. If all are None,
+        then a default decomposer is used.
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation
+            force_consolidate (bool): Force block consolidation.
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
             approximation_degree (float): a float between [0.0, 1.0]. Lower approximates more.
-            target (Target): The target object for the compilation target backend
+            target (Target): The target object for the compilation target backend.
+            decomposer: A 2q gate decomposer.
         """
         super().__init__()
         self.basis_gates = None
@@ -68,6 +73,8 @@ class ConsolidateBlocks(TransformationPass):
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
 
+        if decomposer is not None:
+            self.decomposer = decomposer
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
@@ -76,8 +83,6 @@ class ConsolidateBlocks(TransformationPass):
             )
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
-        self._basis_gates = basis_gates
-        self._kak_basis_gate = kak_basis_gate
         self._approximation_degree = approximation_degree
 
     def run(self, dag):
@@ -192,11 +197,10 @@ class ConsolidateBlocks(TransformationPass):
             pass_manager.append(Collect2qBlocks())
 
         new_consolidate_blocks = self.__class__(
-            self._kak_basis_gate,
-            self.force_consolidate,
-            self._basis_gates,
-            self._approximation_degree,
-            self.target,
+            force_consolidate=self.force_consolidate,
+            approximation_degree=self._approximation_degree,
+            target=self.target,
+            decomposer=self.decomposer,
         )
 
         pass_manager.append(new_consolidate_blocks)
