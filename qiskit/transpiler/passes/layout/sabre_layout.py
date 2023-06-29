@@ -311,7 +311,7 @@ class SabreLayout(TransformationPass):
         for node in dag.topological_op_nodes():
             cargs = {original_clbit_indices[x] for x in node.cargs}
             if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
+                for clbit in dag._bits_in_operation(node.op):
                     cargs.add(original_clbit_indices[clbit])
 
             dag_list.append(
