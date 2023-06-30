@@ -153,6 +153,27 @@ class TestKernel(QiskitTestCase):
         )
         self.assertFalse(kernel_a == kernel_b)
 
+    def test_hash(self):
+        """Test if hash is implemented correctly."""
+        kernel_a = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        kernel_b = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        self.assertTrue(hash(kernel_a) == hash(kernel_b))
+
+        kernel_c = Kernel(
+            "kernel_test",
+            bias=[0, 0],
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+        )
+        self.assertFalse(hash(kernel_a) == hash(kernel_c))
+
 
 class TestDiscriminator(QiskitTestCase):
     """Test Discriminator."""
@@ -198,6 +219,27 @@ class TestDiscriminator(QiskitTestCase):
             params=[0, 0],
         )
         self.assertFalse(discriminator_a == discriminator_b)
+
+    def test_hash(self):
+        """Test if hash is implemented correctly."""
+        discriminator_a = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            neighborhoods=[{"qubits": 1, "channels": 1}],
+        )
+        discriminator_b = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            neighborhoods=[{"qubits": 1, "channels": 1}],
+        )
+        self.assertTrue(hash(discriminator_a) == hash(discriminator_b))
+
+        discriminator_c = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            neighborhoods=[{"channels": 1, "qubits": 1}],
+        )
+        self.assertFalse(hash(discriminator_a) == hash(discriminator_c))
 
 
 if __name__ == "__main__":

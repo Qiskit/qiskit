@@ -39,6 +39,26 @@ def _assert_nested_dict_equal(a, b):
     return True
 
 
+def _get_hash(obj: dict):
+    obj_ = obj.copy()
+    for k, v in obj.items():
+        if isinstance(v, dict):
+            obj_[k] = _get_hash(v)
+        elif isinstance(v, np.ndarray):
+            obj_[k] = v.tobytes()
+        elif isinstance(v, list):
+            v_ = []
+            for i in v:
+                if isinstance(i, dict):
+                    v_.append(_get_hash(i))
+                else:
+                    v_.append(i)
+            obj_[k] = tuple(v_)
+        else:
+            obj_[k] = v
+    return hash(tuple(obj_.items()))
+
+
 class Kernel:
     """Settings for this Kernel, which is responsible for integrating time series (raw) data
     into IQ points.
@@ -67,7 +87,7 @@ class Kernel:
         return False
 
     def __hash__(self):
-        return hash(repr(self))
+        return _get_hash(self.__dict__)
 
 
 class Discriminator:
@@ -98,7 +118,7 @@ class Discriminator:
         return False
 
     def __hash__(self):
-        return hash(repr(self))
+        return _get_hash(self.__dict__)
 
 
 class LoRange:
