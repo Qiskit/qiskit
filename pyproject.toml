@@ -32,6 +32,7 @@ repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict -
 
 [tool.ruff]
 select = [
+  "C4",  # category: flake8-comprehensions
   "F631",
   "F632",
   "F634",
@@ -82,7 +83,6 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "consider-using-from-import",
     "modified-iterating-list",
     "nested-min-max",
     "no-member",

@@ -361,14 +361,16 @@ class TestCall(QiskitTestCase):
 
     def test_call(self):
         """Test basic call instruction."""
-        call = instructions.Call(subroutine=self.subroutine)
+        with self.assertWarns(DeprecationWarning):
+            call = instructions.Call(subroutine=self.subroutine)
 
         self.assertEqual(call.duration, 10)
         self.assertEqual(call.subroutine, self.subroutine)
 
     def test_parameterized_call(self):
         """Test call instruction with parameterized subroutine."""
-        call = instructions.Call(subroutine=self.function)
+        with self.assertWarns(DeprecationWarning):
+            call = instructions.Call(subroutine=self.function)
 
         self.assertTrue(call.is_parameterized())
         self.assertEqual(len(call.parameters), 2)
@@ -393,7 +395,8 @@ class TestCall(QiskitTestCase):
     def test_call_initialize_with_parameter(self):
         """Test call instruction with parameterized subroutine with initial dict."""
         init_dict = {self.param1: 0.1, self.param2: 0.5}
-        call = instructions.Call(subroutine=self.function, value_dict=init_dict)
+        with self.assertWarns(DeprecationWarning):
+            call = instructions.Call(subroutine=self.function, value_dict=init_dict)
 
         with pulse.build() as ref_sched:
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))

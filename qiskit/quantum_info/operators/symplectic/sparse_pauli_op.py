@@ -366,8 +366,8 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _multiply(self, other):
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
+        if not isinstance(other, (Number, ParameterExpression)):
+            raise QiskitError("other is neither a Number nor a Parameter/ParameterExpression")
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
