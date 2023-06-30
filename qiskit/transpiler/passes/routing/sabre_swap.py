@@ -283,7 +283,7 @@ def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
                     num_qubits,
                     num_clbits,
                     {inner: qubit_indices[outer] for inner, outer in zip(block.qubits, node.qargs)},
-                    clbit_indices
+                    clbit_indices,
                 )
                 for block in node.op.blocks
             ]
@@ -333,7 +333,11 @@ def _apply_sabre_result(
                         for inner, outer in zip(block.qubits, node.qargs)
                     }
                     apply_inner(
-                        mapped_block_dag, mapped_block_layout, block_qubit_indices, block_result.result, block_id_to_node
+                        mapped_block_dag,
+                        mapped_block_layout,
+                        block_qubit_indices,
+                        block_result.result,
+                        block_id_to_node,
                     )
 
                     # Apply swap epilogue to bring each block to the same
