@@ -25,8 +25,7 @@ a three qubit gate which will be transpiled into one and two qubit gates.
 
     backend = FakeQuito() # For this example the quito fake backend is used
 
-    qr = QuantumRegister(3) #Initialize the Quantum Register 
-    qc = QuantumCircuit(qr) # Initialize the quantum circuit 
+    qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits
     
     qc.cswap(qr[0],qr[1],qr[2]) #add the cswap gate to the quantum circuit
     
@@ -49,8 +48,24 @@ and considering the physical connections specified in the :attr:`~qiskit.transpi
 Given the presence of noise in the backend, it is crucial to optimize your circuit by adjusting the :attr:`~qiskit.transpile.optimization_level` parameter. 
 This will help minimize the number of circuit operations and enhance the overall performance.
 
-If you set the optimization_level to 0, the coupling map for your backend will be **[[0,1],[1,0],[1,2],[2,1]]**, 
-indicating the physical qubits in the backend. In this configuration, the quantum circuit is transformed into a combination of one and two-qubit gates,
+
+When using a backend, you can access its properties through the instruction  :meth:`backend.configuration()`.
+These properties, such as basis gates, coupling map, and init layout, play a crucial role in shaping the behavior of the quantum circuit.
+
+.. testcode::
+
+    print("Basis gates of your Backend: ",backend.configuration().basis_gates)
+
+    print("Coupling map of your Backend: ",backend.configuration().coupling_map)
+
+.. testoutput::
+
+    Basis gates of your Backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
+    Coupling map of your Backend:  [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+
+When setting the optimization_level to 0, the resulting quantum circuit is not optimized and utilizes only three qubits. 
+The coupling map, represented by the subset **[[0,1],[1,0],[1,2],[2,1]]**, indicates the physical qubits available in the backend. 
+In this configuration, the quantum circuit is transformed into a combination of one and two-qubit gates,
 represented by the **['id', 'rz', 'sx', 'x', 'cx', 'reset']**.
 
 .. testcode::
@@ -97,10 +112,9 @@ represented by the **['id', 'rz', 'sx', 'x', 'cx', 'reset']**.
     «ancilla_1 -> 4 ─────────────────────────────────────────────
     «                                                            
 
-If you set the :attr:`~qiskit.transpile.optimization_level` to 1, the circuit undergoes a light optimization process. 
-This results in a reduction in `CX <https://qiskit.org/documentation/stubs/qiskit.circuit.library.CXGate.html>`__  gates 
-and changes in the positions of qubits, following the connections **[[0,1],[1,0],[2,1]]**.
-Specifically, gates such as :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single gate, :math:`RZ(3\pi/4)`. 
+When you set the :attr:`~qiskit.transpile.optimization_level` to 1,the circuit undergoes a light optimization process that focuses on collapsing adjacent gates, 
+improving the overall performance of the circuit. This results in a reduction in :class:`.CXGate` count and changes in the positions of qubits, 
+following the connections **[[0,1],[1,0],[2,1]]**. Specifically, gates such as :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single gate, :math:`RZ(3\pi/4)`. 
 
 .. note::
     This optimization level is the default setting.
@@ -150,9 +164,10 @@ Specifically, gates such as :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced
     «                                                         
 
 
+When you set the :attr:`~qiskit.transpile.optimization_level`` to 2, the circuit undergoes a medium optimization process. 
+This involves using a noise-adaptive layout and gate cancellation techniques based on commutation relationships. 
+Depending on the circuit, this level of optimization can occasionally yield the same results as light optimization.
 
-When you set the :attr:`~qiskit.transpile.optimization_level` to 2, which is suitable for small quantum circuits, 
-it can occasionally produce the same outcome as light optimization.
 
 .. testcode::
 
@@ -198,10 +213,10 @@ it can occasionally produce the same outcome as light optimization.
     «ancilla_1 -> 4 ──────────────────────────────────────────
     «                                                         
 
-When you set the :attr:`~qiskit.transpile.optimization_level` to 3, it combines various parameters to reduce gates
-and determine the optimal coupling map connection, such as **[[0,1],[1,0],[2,1]]**. 
-This heavy optimization approach, based on the basis gates, 
-results in one less `CX <https://qiskit.org/documentation/stubs/qiskit.circuit.library.CXGate.html>`__ gate and the addition of eight one-qubit gates.
+When you set the :attr:`~qiskit.transpile.optimization_level`` to 3, it enables heavy optimization. 
+This level of optimization considers previous considerations and involves the resynthesis of two qubit blocks of gates in the circuit. 
+The result is a reduction in the number of quantum gates and the determination of the optimal coupling map connection, such as **[[0,1],[1,0],[2,1]]**.
+Based on the basis gates, results in one less :class:`.CXGate` and the addition of eight one qubit gates.
 
 .. testcode::
 
