@@ -295,11 +295,6 @@ ou can visualize the results of your previous examples by generating plot that s
     ax.set_ylabel('Values')
     plt.legend(bbox_to_anchor =(0.75, 1.))
 
-    
-
-
-
-
 
 .. testoutput::
 
