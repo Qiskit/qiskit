@@ -172,8 +172,10 @@ fn populate_extended_set(
             *decremented.entry(successor_index).or_insert(0) += 1;
             required_predecessors[successor_index] -= 1;
             if required_predecessors[successor_index] == 0 {
-                if let [a, b] = dag.dag[successor_node].1[..] {
-                    extended_set.insert(successor_node, &[a, b]);
+                if !dag.node_blocks.contains_key(&successor_index) {
+                    if let [a, b] = dag.dag[successor_node].1[..] {
+                        extended_set.insert(successor_node, &[a, b]);
+                    }
                 }
                 to_visit.push(successor_node);
             }
