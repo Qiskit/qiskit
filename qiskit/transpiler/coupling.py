@@ -475,7 +475,7 @@ class CouplingMap:
         output_list = []
         for component in components:
             new_cmap = CouplingMap()
-            new_cmap.graph = self.graph.subgraph(list(sorted(component)))
+            new_cmap.graph = self.graph.subgraph(sorted(component))
             output_list.append(new_cmap)
         return output_list
 
