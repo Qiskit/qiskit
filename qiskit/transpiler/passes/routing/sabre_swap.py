@@ -274,7 +274,10 @@ def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
                 cargs.add(clbit_indices[clbit])
         if isinstance(node.op, ControlFlowOp):
             node_blocks[node._node_id] = [
-                # TODO: does it make sense that all dags would have the same num bits?
+                # TODO: what's the easiest way to get the smallest num_qubits we
+                #  can pass here? A block dag should have fewer qubits than the
+                #  parent, so we could just use that, but really we only need
+                #  max(qubits) + 1
                 _build_sabre_dag(
                     circuit_to_dag(block),
                     num_qubits,
@@ -321,7 +324,7 @@ def _apply_sabre_result(
                 mapped_block_dags = []
                 idle_qubits = set(out_dag.qubits)
                 for block, block_result in zip(node.op.blocks, block_results, strict=True):
-                    # TODO: cache DAGs using id(block) as key at instance level
+                    # TODO: cache DAGs using id(block) as key when building sabre dag?
                     block_id_to_node = circuit_to_dag(block)._multi_graph
                     mapped_block_dag = empty_dag(node)
                     mapped_block_layout = current_layout.copy()
@@ -345,8 +348,8 @@ def _apply_sabre_result(
                         component_map,
                     )
 
-                    # TODO: remove. This is just to validate that the swap epilogue
-                    #  always gets us back to the initial layout!
+                    # If the swap epilogue didn't return us to the initial layout,
+                    # there's a bug.
                     assert mapped_block_layout.layout_mapping() == current_layout.layout_mapping()
 
                     mapped_block_dags.append(mapped_block_dag)
@@ -361,7 +364,6 @@ def _apply_sabre_result(
                 # Apply the control flow gate to the dag.
                 mapped_node = node.op.replace_blocks(mapped_blocks)
                 mapped_node_qargs = mapped_blocks[0].qubits
-                # TODO: can we just apply here or do we need to use apply_gate to remap qargs?
                 out_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
                 continue
 

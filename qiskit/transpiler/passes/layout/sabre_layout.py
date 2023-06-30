@@ -294,7 +294,6 @@ class SabreLayout(TransformationPass):
         dist_matrix = coupling_map.distance_matrix
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
-        # TODO: is coupling_map.size() right here? dag.num_qubits is too small...
         sabre_dag = _build_sabre_dag(
             dag,
             coupling_map.size(),
