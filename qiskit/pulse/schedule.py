@@ -274,6 +274,21 @@ class Schedule:
         """Parameters which determine the schedule behavior."""
         return self._parameter_manager.parameters
 
+    @property
+    def pulses(self):
+        """Get a list of all of the pulses used in this schedule."""
+        pulses = []
+        for instruction in self.instructions:
+            pulses.append(instruction[1].pulse)
+        return pulses
+
+    def get_pulse_by_name(self, name):
+        """Get the pulse with the given name."""
+        for instruction in self.instructions:
+            if instruction[1].pulse.name == name:
+                return instruction[1].pulse
+        return None
+
     def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
 
@@ -1224,6 +1239,21 @@ class ScheduleBlock:
             out_params |= subroutine.parameters
 
         return out_params
+
+    @property
+    def pulses(self):
+        """Get a list of all of the pulses used in this scheduleBlock."""
+        pulses = []
+        for instruction in self.instructions:
+            pulses.append(instruction[1].pulse)
+        return pulses
+
+    def get_pulse_by_name(self, name):
+        """Get the pulse with the given name."""
+        for instruction in self.instructions:
+            if instruction[1].pulse.name == name:
+                return instruction[1].pulse
+        return None
 
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
