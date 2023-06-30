@@ -16,7 +16,7 @@ import copy
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
-def circuit_to_dag(circuit, copy_operations=True):
+def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
     """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
     Args:
@@ -28,6 +28,10 @@ def circuit_to_dag(circuit, copy_operations=True):
             :class:`~.DAGCircuit` will be shared instances and modifications to
             operations in the :class:`~.DAGCircuit` will be reflected in the
             :class:`~.QuantumCircuit` (and vice versa).
+        qubit_order (Iterable[Qubit] or None): the ordered that the qubits should be indexed in the
+            output DAG.  Defaults to the same order as in the circuit.
+        clbit_order (Iterable[Clbit] or None): the ordered that the clbits should be indexed in the
+            output DAG.  Defaults to the same order as in the circuit.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
@@ -54,8 +58,8 @@ def circuit_to_dag(circuit, copy_operations=True):
     dagcircuit.calibrations = circuit.calibrations
     dagcircuit.metadata = circuit.metadata
 
-    dagcircuit.add_qubits(circuit.qubits)
-    dagcircuit.add_clbits(circuit.clbits)
+    dagcircuit.add_qubits(circuit.qubits if qubit_order is None else qubit_order)
+    dagcircuit.add_clbits(circuit.clbits if clbit_order is None else clbit_order)
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)

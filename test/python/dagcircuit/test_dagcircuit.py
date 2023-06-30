@@ -1611,6 +1611,39 @@ class TestDagEquivalence(QiskitTestCase):
         qc2.x(0).c_if(qc2.clbits[-1], False)
         self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
+    def test_semantic_expr(self):
+        """Test that the semantic equality is applied to the bits in `Expr` components as well."""
+        cr = ClassicalRegister(3, "c1")
+        clbit1 = Clbit()
+        clbit2 = Clbit()
+
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc1.if_test(expr.logic_not(clbit1), body, [0], [])
+        qc2 = QuantumCircuit(cr, [Qubit(), clbit2])
+        qc2.if_test(expr.logic_not(clbit2), body, [0], [])
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc2 = QuantumCircuit(cr, [Qubit(), clbit2])
+        qc1.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        qc2.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Order of bits not the same.
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc1.if_test(expr.logic_not(clbit1), body, [0], [])
+        qc2 = QuantumCircuit([Qubit(), clbit2], cr)
+        qc2.if_test(expr.logic_not(clbit2), body, [0], [])
+
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc1.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        qc2 = QuantumCircuit([Qubit(), clbit2], cr)
+        qc2.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
 
 class TestDagSubstitute(QiskitTestCase):
     """Test substituting a dag node with a sub-dag"""
