@@ -172,7 +172,7 @@ class ConsolidateBlocks(TransformationPass):
     def _block_to_matrix(self, block, block_index_map):
         """Converts any block of 2 qubit gates into a matrix"""
 
-        matrix = np.identity(2**len(block_index_map), dtype=complex)
+        matrix = np.identity(2 ** len(block_index_map), dtype=complex)
         identity = np.identity(2, dtype=complex)
         swap = SwapGate().to_matrix()
         for node in block:
