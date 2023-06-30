@@ -281,7 +281,9 @@ ou can visualize the results of your previous examples by generating plot that s
 
 .. testcode::
 
-    import matplotlib.pyplot as plt
+    
+    import matplotlib.pyplot as plt # import matplotlib to plot your result
+    
     
     fig, ax = plt.subplots()
     my_xticks = [str(i) for i in range(4)]
@@ -299,8 +301,6 @@ ou can visualize the results of your previous examples by generating plot that s
 .. testoutput::
 
     Text(0, 0.5, 'Number of cx gates')
-
-
 
 
 .. image:: ../source_images/optimization_level_backend.png
