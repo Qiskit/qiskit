@@ -422,25 +422,34 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ## Style and lint
 
-Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
+Qiskit Terra uses three tools for verify code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
-potential bugs and other common issues in Python.
+potential bugs and other common issues in Python. The third tool is the linter
+[ruff](https://github.com/charliermarsh/ruff), which has been recently
+introduced into Qiskit Terra on an experimental basis. Only a very small number
+of rules are enabled.
 
-You can check that your local modifications conform to the style rules
-by running `tox -elint` which will run `black` and `pylint` to check the local
-code formatting and lint. If black returns a code formatting error you can
-run `tox -eblack` to automatically update the code formatting to conform to
-the style. However, if `pylint` returns any error you will have to fix these
-issues by manually updating your code.
+You can check that your local modifications conform to the style rules by
+running `tox -elint` which will run `black`, `ruff`, and `pylint` to check the
+local code formatting and lint. If black returns a code formatting error you can
+run `tox -eblack` to automatically update the code formatting to conform to the
+style. However, if `ruff` or `pylint` return any error you will have to fix
+these issues by manually updating your code.
 
-Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target, which only applies
-`pylint` to files which have changed from the source github. On rare occasions this will miss some
-issues that would have been caught by checking the complete source tree, but makes up for this by
-being much faster (and those rare oversights will still be caught by the CI after you open a pull
-request).
+Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target,
+which runs `black` and `ruff` just as `tox -elint` does, but only applies
+`pylint` to files which have changed from the source github. On rare occasions
+this will miss some issues that would have been caught by checking the complete
+source tree, but makes up for this by being much faster (and those rare
+oversights will still be caught by the CI after you open a pull request).
+
+Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
+rather than via `tox`. If you have installed the development packages in your python environment via
+`pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
+the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ## Development Cycle
 

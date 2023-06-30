@@ -26,7 +26,7 @@ operations on quantum data, such as qubits. It is an ordered sequence of quantum
 gates, measurements and resets, which may be conditioned on real-time classical
 computation. A set of quantum gates is said to be universal if any unitary
 transformation of the quantum data can be efficiently approximated arbitrarily well
-as as sequence of gates in the set. Any quantum program can be represented by a
+as a sequence of gates in the set. Any quantum program can be represented by a
 sequence of quantum circuits and classical near-time computation.
 
 In Qiskit, this core element is represented by the :class:`QuantumCircuit` class.
@@ -307,9 +307,9 @@ Parametric Quantum Circuits
 .. autosummary::
    :toctree: ../stubs/
 
-    Parameter
-    ParameterVector
-    ParameterExpression
+   Parameter
+   ParameterVector
+   ParameterExpression
 
 Random Circuits
 ---------------

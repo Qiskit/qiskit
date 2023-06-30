@@ -24,6 +24,7 @@ from qiskit.pulse.library import (
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    gaussian_square_echo,
     Drag,
     Sin,
     Cos,
@@ -288,6 +289,65 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             GaussianSquareDrag(duration=50, width=0, sigma=4, amp=0.8, beta=-20)
 
+    def test_gaussian_square_echo_pulse(self):
+        """Test that gaussian_square_echo sample pulse matches expectations.
+
+        Test that the real part of the envelop matches GaussianSquare with
+        given amplitude and phase active for half duration with another
+        GaussianSquare active for the other half duration with opposite
+        amplitude and a GaussianSquare active on the entire duration with
+        its own amplitude and phase
+        """
+        risefall = 32
+        sigma = 4
+        amp = 0.5
+        width = 100
+        duration = width + 2 * risefall
+        active_amp = 0.1
+        width_echo = (duration - 2 * (duration - width)) / 2
+
+        gse = gaussian_square_echo(
+            duration=duration, sigma=sigma, amp=amp, width=width, active_amp=active_amp
+        )
+        gse_samples = gse.get_waveform().samples
+
+        gs_echo_pulse_pos = GaussianSquare(
+            duration=duration / 2, sigma=sigma, amp=amp, width=width_echo
+        )
+        gs_echo_pulse_neg = GaussianSquare(
+            duration=duration / 2, sigma=sigma, amp=-amp, width=width_echo
+        )
+        gs_active_pulse = GaussianSquare(
+            duration=duration, sigma=sigma, amp=active_amp, width=width
+        )
+        gs_echo_pulse_pos_samples = np.array(
+            gs_echo_pulse_pos.get_waveform().samples.tolist() + [0] * int(duration / 2)
+        )
+        gs_echo_pulse_neg_samples = np.array(
+            [0] * int(duration / 2) + gs_echo_pulse_neg.get_waveform().samples.tolist()
+        )
+        gs_active_pulse_samples = gs_active_pulse.get_waveform().samples
+
+        np.testing.assert_almost_equal(
+            gse_samples,
+            gs_echo_pulse_pos_samples + gs_echo_pulse_neg_samples + gs_active_pulse_samples,
+        )
+
+    def test_gaussian_square_echo_active_amp_validation(self):
+        """Test gaussian square echo active amp parameter validation."""
+
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=0.1, active_amp=0.2)
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=0.1, active_amp=0.4)
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=0.5, active_amp=0.3)
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=-0.1, active_amp=0.2)
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=0.1, active_amp=-0.2)
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=0.1, active_amp=0.6)
+        gaussian_square_echo(duration=50, width=0, sigma=16, amp=-0.5, angle=1.5, active_amp=0.25)
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(duration=50, width=0, sigma=16, amp=0.1, active_amp=1.1)
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(duration=50, width=0, sigma=4, amp=-0.8, active_amp=-0.3)
+
     def test_drag_pulse(self):
         """Test that the Drag sample pulse matches the pulse library."""
         drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)
@@ -451,6 +511,22 @@ class TestParametricPulses(QiskitTestCase):
             repr(gsd),
             "GaussianSquareDrag(duration=20, sigma=30, width=14.0, beta=1, amp=1.0, angle=0.0)",
         )
+        gse = gaussian_square_echo(duration=20, sigma=30, amp=1.0, width=3)
+        self.assertEqual(
+            repr(gse),
+            (
+                "gaussian_square_echo(duration=20, amp=1.0, angle=0.0, sigma=30, width=3,"
+                " active_amp=0.0, active_angle=0.0)"
+            ),
+        )
+        gse = gaussian_square_echo(duration=20, sigma=30, amp=1.0, risefall_sigma_ratio=0.1)
+        self.assertEqual(
+            repr(gse),
+            (
+                "gaussian_square_echo(duration=20, amp=1.0, angle=0.0, sigma=30, width=14.0,"
+                " active_amp=0.0, active_angle=0.0)"
+            ),
+        )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
         self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0)")
         const = Constant(duration=150, amp=0.1, angle=0.3)
@@ -475,6 +551,17 @@ class TestParametricPulses(QiskitTestCase):
             GaussianSquareDrag(duration=150, amp=0.2, sigma=8, width=160, beta=1)
         with self.assertRaises(PulseError):
             GaussianSquareDrag(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=10, beta=1)
+
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(
+                duration=150,
+                amp=0.2,
+                sigma=8,
+            )
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(duration=150, amp=0.2, sigma=8, width=160)
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=10)
 
         with self.assertRaises(PulseError):
             Constant(duration=150, amp=0.9 + 0.8j)
@@ -533,6 +620,25 @@ class TestParametricPulses(QiskitTestCase):
 
         waveform = GaussianSquareDrag(
             duration=100, sigma=1.0, amp=1.1, beta=0.1, width=10, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_gaussian_square_echo_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(duration=1000, sigma=4.0, amp=1.01, width=100)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = gaussian_square_echo(duration=100, sigma=1.0, amp=1.1, width=10)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_gaussian_square_echo_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            gaussian_square_echo(duration=1000, sigma=4.0, amp=1.01, width=100)
+
+        waveform = gaussian_square_echo(
+            duration=1000, sigma=4.0, amp=1.01, width=100, limit_amplitude=False
         )
         self.assertGreater(np.abs(waveform.amp), 1.0)
 
