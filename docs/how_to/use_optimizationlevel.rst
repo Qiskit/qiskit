@@ -277,7 +277,7 @@ Based on the basis gates, results in one less :class:`.CXGate` and the addition 
 Plotting the Results
 ====================
 
-ou can visualize the results of your previous examples by generating plot that show the depth, number of gates, and number of CX gates of your quantum circuits.
+You can visualize the results of your previous examples by generating plot that show the depth, number of gates, and number of CX gates of your quantum circuits.
 
 .. testcode::
 
