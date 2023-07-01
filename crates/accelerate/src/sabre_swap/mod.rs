@@ -498,7 +498,7 @@ fn update_route<F>(
 
 fn gen_swap_epilogue(
     coupling: &DiGraph<(), ()>,
-    from_layout: &NLayout,
+    mut from_layout: NLayout,
     to_layout: &NLayout,
     seed: u64,
 ) -> Vec<[usize; 2]> {
@@ -524,15 +524,14 @@ fn gen_swap_epilogue(
     );
 
     // Convert physical swaps to virtual swaps
-    let mut layout = from_layout.clone();
     swaps
         .into_iter()
         .map(|(l, r)| {
             let ret = [
-                layout.phys_to_logic[l.index()],
-                layout.phys_to_logic[r.index()],
+                from_layout.phys_to_logic[l.index()],
+                from_layout.phys_to_logic[r.index()],
             ];
-            layout.swap_physical(l.index(), r.index());
+            from_layout.swap_physical(l.index(), r.index());
             ret
         })
         .collect()
@@ -576,7 +575,7 @@ fn route_reachable_nodes<F>(
                     // For now, we always append a swap circuit that gets the inner block
                     // back to the parent's layout.
                     let swap_epilogue =
-                        gen_swap_epilogue(coupling, &inner_final_layout, layout, seed);
+                        gen_swap_epilogue(coupling, inner_final_layout, layout, seed);
                     let block_result = BlockResult {
                         result: inner_dag_routed,
                         swap_epilogue,
