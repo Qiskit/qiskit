@@ -274,20 +274,29 @@ class Schedule:
         """Parameters which determine the schedule behavior."""
         return self._parameter_manager.parameters
 
-    @property
-    def pulses(self):
-        """Get a list of all of the pulses used in this schedule."""
-        pulses = []
-        for instruction in self.instructions:
-            pulses.append(instruction[1].pulse)
-        return pulses
+    def get_pulses(self, name: Optional[str] = None) -> List:
+        """
+        Get a list of pulses used in the schedule.
 
-    def get_pulse_by_name(self, name):
-        """Get the pulse with the given name."""
+        Args:
+            name: Name of the pulse to filter by. If provided, only pulses with a matching name
+                  will be returned. Defaults to None, which returns all pulses.
+
+        Returns:
+            List of pulse objects used in the schedule, filtered by name if specified.
+        """
+        if not name:
+            pulses = []
+            for instruction in self.instructions:
+                if hasattr(instruction[1], "pulse"):
+                    pulses.append(instruction[1].pulse)
+            return pulses
+
+        matching_pulses = []
         for instruction in self.instructions:
-            if instruction[1].pulse.name == name:
-                return instruction[1].pulse
-        return None
+            if hasattr(instruction[1], "pulse") and instruction[1].pulse.name == name:
+                matching_pulses.append(instruction[1].pulse)
+        return matching_pulses
 
     def ch_duration(self, *channels: Channel) -> int:
         """Return the time of the end of the last instruction over the supplied channels.
@@ -1240,7 +1249,32 @@ class ScheduleBlock:
 
         return out_params
 
-    @property
+    def get_pulses(self, name: Optional[str] = None) -> List:
+        """
+        Get a list of pulses used in the ScheduleBlock.
+
+        Args:
+            name: Name of the pulse to filter by. If provided, only pulses with a matching name
+                  will be returned. Defaults to None, which returns all pulses.
+
+        Returns:
+            List of pulse objects used in the ScheduleBlock, filtered by name if specified.
+        """
+        if not name:
+            pulses = []
+            for block in self.blocks:
+                for instruction in block.instructions:
+                    if hasattr(instruction[1], "pulse"):
+                        pulses.append(instruction[1].pulse)
+            return pulses
+
+        matching_pulses = []
+        for block in self.blocks:
+            for instruction in block.instructions:
+                if hasattr(instruction[1], "pulse") and instruction[1].pulse.name == name:
+                    matching_pulses.append(instruction[1].pulse)
+        return matching_pulses
+
     def pulses(self):
         """Get a list of all of the pulses used in this scheduleBlock."""
         pulses = []
