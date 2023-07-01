@@ -884,12 +884,10 @@ class TestSabreSwapControlFlow(QiskitTestCase):
 
     def test_nested_inner_cnot(self):
         """test swap in nested if else controlflow construct; swap in inner"""
-        seed = 1
         num_qubits = 3
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(num_qubits)
         coupling = CouplingMap.from_line(num_qubits)
-        check_map_pass = CheckMap(coupling)
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.x(1)
@@ -939,7 +937,6 @@ class TestSabreSwapControlFlow(QiskitTestCase):
 
     def test_nested_outer_cnot(self):
         """test swap with nested if else controlflow construct; swap in outer"""
-        seed = 200
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(num_qubits)
