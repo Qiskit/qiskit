@@ -37,7 +37,7 @@ class FakeGeneric(BackendV2):
     """
     Generate a generic fake backend, this backend will have properties and configuration according to the settings passed in the argument.
 
-    Argumets:
+    Arguments:
         num_qubits:
                     Pass in the integer which is the number of qubits of the backend.
                     Example: num_qubits = 19
