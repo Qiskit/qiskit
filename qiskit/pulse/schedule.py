@@ -1275,20 +1275,6 @@ class ScheduleBlock:
                     matching_pulses.append(instruction[1].pulse)
         return matching_pulses
 
-    def pulses(self):
-        """Get a list of all of the pulses used in this scheduleBlock."""
-        pulses = []
-        for instruction in self.instructions:
-            pulses.append(instruction[1].pulse)
-        return pulses
-
-    def get_pulse_by_name(self, name):
-        """Get the pulse with the given name."""
-        for instruction in self.instructions:
-            if instruction[1].pulse.name == name:
-                return instruction[1].pulse
-        return None
-
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
 
