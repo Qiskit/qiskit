@@ -16,11 +16,10 @@ import unittest
 
 import ddt
 
-from qiskit.circuit import IfElseOp
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
-from qiskit.transpiler import CouplingMap, PassManager, Target, TranspilerError
+from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
@@ -377,6 +376,7 @@ class TestSabreSwap(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(3, "q"))
         with self.assertRaisesRegex(TranspilerError, "Fewer qubits in the circuit"):
             pass_(qc)
+
 
 @ddt.ddt
 class TestSabreSwapControlFlow(QiskitTestCase):
@@ -931,6 +931,164 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.measure(qreg, creg)
 
         self.assertEqual(dag_to_circuit(cdag), expected)
+
+    def test_nested_outer_cnot(self):
+        """test swap with nested if else controlflow construct; swap in outer"""
+        seed = 200
+        num_qubits = 5
+        qreg = QuantumRegister(num_qubits, "q")
+        creg = ClassicalRegister(num_qubits)
+        coupling = CouplingMap.from_line(num_qubits)
+        qc = QuantumCircuit(qreg, creg)
+        qc.h(0)
+        qc.x(1)
+        qc.measure(0, 0)
+        true_body = QuantumCircuit(qreg, creg[[0]])
+        true_body.cx(0, 2)
+        true_body.x(0)
+
+        for_body = QuantumCircuit(qreg)
+        for_body.delay(10, 0)
+        for_body.barrier(qreg)
+        for_body.cx(1, 3)
+        loop_parameter = None
+        true_body.for_loop(range(3), loop_parameter, for_body, qreg, [])
+
+        false_body = QuantumCircuit(qreg, creg[[0]])
+        false_body.y(0)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
+        qc.measure(qreg, creg)
+
+        dag = circuit_to_dag(qc)
+        cdag = SabreSwap(coupling, "lookahead", seed=82, trials=1).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(0)
+        expected.x(1)
+        expected.measure(0, 0)
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
+        etrue_body.swap(1, 2)
+        etrue_body.cx(0, 1)
+        etrue_body.x(0)
+
+        efor_body = QuantumCircuit(qreg)
+        efor_body.delay(10, 0)
+        efor_body.barrier(qreg)
+        efor_body.cx(2, 3)
+
+        etrue_body.for_loop(range(3), loop_parameter, efor_body, qreg[[0, 1, 2, 3, 4]], [])
+        etrue_body.swap(1, 2)
+
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
+        efalse_body.y(0)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
+        expected.measure(qreg, creg[[0, 1, 2, 3, 4]])
+        self.assertEqual(dag_to_circuit(cdag), expected)
+
+    def test_disjoint_looping(self):
+        """Test looping controlflow on different qubit register"""
+        num_qubits = 4
+        cm = CouplingMap.from_line(num_qubits)
+        qr = QuantumRegister(num_qubits, "q")
+        qc = QuantumCircuit(qr)
+        loop_body = QuantumCircuit(2)
+        loop_body.cx(0, 1)
+        qc.for_loop((0,), None, loop_body, [0, 2], [])
+        cqc = SabreSwap(cm, "lookahead", seed=82, trials=1)(qc)
+
+        expected = QuantumCircuit(qr)
+        efor_body = QuantumCircuit(qr[[0, 1, 2]])
+        efor_body.swap(1, 2)
+        efor_body.cx(0, 1)
+        efor_body.swap(1, 2)
+        expected.for_loop((0,), None, efor_body, [0, 1, 2], [])
+        self.assertEqual(cqc, expected)
+
+    def test_disjoint_multiblock(self):
+        """Test looping controlflow on different qubit register"""
+        num_qubits = 4
+        cm = CouplingMap.from_line(num_qubits)
+        qr = QuantumRegister(num_qubits, "q")
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(3, 1)
+        true_body.cx(0, 1)
+        false_body = QuantumCircuit(3, 1)
+        false_body.cx(0, 2)
+        qc.if_else((cr[0], 1), true_body, false_body, [0, 1, 2], [0])
+        cqc = SabreSwap(cm, "lookahead", seed=82, trials=1)(qc)
+
+        expected = QuantumCircuit(qr, cr)
+        etrue_body = QuantumCircuit(qr[[0, 1, 2]], cr[[0]])
+        etrue_body.cx(0, 1)
+        efalse_body = QuantumCircuit(qr[[0, 1, 2]], cr[[0]])
+        efalse_body.swap(1, 2)
+        efalse_body.cx(0, 1)
+        efalse_body.swap(1, 2)
+        expected.if_else((cr[0], 1), etrue_body, efalse_body, [0, 1, 2], cr[[0]])
+        self.assertEqual(cqc, expected)
+
+    def test_multiple_ops_per_layer(self):
+        """Test circuits with multiple operations per layer"""
+        num_qubits = 6
+        coupling = CouplingMap.from_line(num_qubits)
+        check_map_pass = CheckMap(coupling)
+        qr = QuantumRegister(num_qubits, "q")
+        qc = QuantumCircuit(qr)
+        # This cx and the for_loop are in the same layer.
+        qc.cx(0, 2)
+        with qc.for_loop((0,)):
+            qc.cx(3, 5)
+        cqc = SabreSwap(coupling, "lookahead", seed=82, trials=1)(qc)
+        check_map_pass(cqc)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qr)
+        expected.swap(1, 2)
+        expected.cx(0, 1)
+        efor_body = QuantumCircuit(qr[[3, 4, 5]])
+        efor_body.swap(1, 2)
+        efor_body.cx(0, 1)
+        efor_body.swap(2, 1)
+        expected.for_loop((0,), None, efor_body, [3, 4, 5], [])
+        self.assertEqual(cqc, expected)
+
+    def test_if_no_else_restores_layout(self):
+        """Test that an if block with no else branch restores the initial layout."""
+        qc = QuantumCircuit(8, 1)
+        with qc.if_test((qc.clbits[0], False)):
+            # Just some arbitrary gates with no perfect layout.
+            qc.cx(3, 5)
+            qc.cx(4, 6)
+            qc.cx(1, 4)
+            qc.cx(7, 4)
+            qc.cx(0, 5)
+            qc.cx(7, 3)
+            qc.cx(1, 3)
+            qc.cx(5, 2)
+            qc.cx(6, 7)
+            qc.cx(3, 2)
+            qc.cx(6, 2)
+            qc.cx(2, 0)
+            qc.cx(7, 6)
+        coupling = CouplingMap.from_line(8)
+        pass_ = SabreSwap(coupling, "lookahead", seed=82, trials=1)
+        transpiled = pass_(qc)
+
+        # Check the pass claims to have done things right.
+        initial_layout = Layout.generate_trivial_layout(*qc.qubits)
+        self.assertEqual(initial_layout, pass_.property_set["final_layout"])
+
+        # Check that pass really did do it right.
+        inner_block = transpiled.data[0].operation.blocks[0]
+        running_layout = initial_layout.copy()
+        for instruction in inner_block:
+            if instruction.operation.name == "swap":
+                running_layout.swap(*instruction.qubits)
+        self.assertEqual(initial_layout, running_layout)
 
 
 if __name__ == "__main__":
