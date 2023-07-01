@@ -15,9 +15,14 @@
 import unittest
 
 import ddt
+import numpy.random
 
+from qiskit.circuit import Clbit, ControlFlowOp
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
+from qiskit.circuit.random import random_circuit
+from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -1089,6 +1094,130 @@ class TestSabreSwapControlFlow(QiskitTestCase):
             if instruction.operation.name == "swap":
                 running_layout.swap(*instruction.qubits)
         self.assertEqual(initial_layout, running_layout)
+
+
+@ddt.ddt
+class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
+    """Assert the output of a transpilation with stochastic swap is a physical circuit."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend = FakeMumbai()
+        cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
+        cls.basis_gates = set(cls.backend.configuration().basis_gates)
+        cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
+
+    def assert_valid_circuit(self, transpiled):
+        """Assert circuit complies with constraints of backend."""
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        self.assertIsNotNone(getattr(transpiled, "_layout", None))
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name in {"barrier", "measure"}:
+                    continue
+                self.assertIn(instruction.operation.name, self.basis_gates)
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                if not isinstance(instruction.operation, ControlFlowOp):
+                    if len(qargs) > 2 or len(qargs) < 0:
+                        raise Exception("Invalid number of qargs for instruction")
+                    if len(qargs) == 2:
+                        self.assertIn(qargs, self.coupling_edge_set)
+                    else:
+                        self.assertLessEqual(qargs[0], 26)
+                else:
+                    for block in instruction.operation.blocks:
+                        self.assertEqual(block.num_qubits, len(instruction.qubits))
+                        self.assertEqual(block.num_clbits, len(instruction.clbits))
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        # Assert routing ran.
+        _visit_block(
+            transpiled,
+            qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
+        )
+
+    @ddt.data(*range(1, 27))
+    def test_random_circuit_no_control_flow(self, size):
+        """Test that transpiled random circuits without control flow are physical circuits."""
+        circuit = random_circuit(size, 3, measure=True, seed=12342)
+        tqc = transpile(
+            circuit,
+            self.backend,
+            routing_method="sabre",
+            layout_method="sabre",
+            seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
+
+    @ddt.data(*range(1, 27))
+    def test_random_circuit_no_control_flow_target(self, size):
+        """Test that transpiled random circuits without control flow are physical circuits."""
+        circuit = random_circuit(size, 3, measure=True, seed=12342)
+        tqc = transpile(
+            circuit,
+            routing_method="sabre",
+            layout_method="sabre",
+            seed_transpiler=12342,
+            target=FakeMumbaiV2().target,
+        )
+        self.assert_valid_circuit(tqc)
+
+    @ddt.data(*range(4, 27))
+    def test_random_circuit_for_loop(self, size):
+        """Test that transpiled random circuits with nested for loops are physical circuits."""
+        circuit = random_circuit(size, 3, measure=False, seed=12342)
+        for_block = random_circuit(3, 2, measure=False, seed=12342)
+        inner_for_block = random_circuit(2, 1, measure=False, seed=12342)
+        with circuit.for_loop((1,)):
+            with circuit.for_loop((1,)):
+                circuit.append(inner_for_block, [0, 3])
+            circuit.append(for_block, [1, 0, 2])
+        circuit.measure_all()
+
+        tqc = transpile(
+            circuit,
+            self.backend,
+            basis_gates=list(self.basis_gates),
+            routing_method="sabre",
+            layout_method="sabre",
+            seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
+
+    @ddt.data(*range(6, 27))
+    def test_random_circuit_if_else(self, size):
+        """Test that transpiled random circuits with if else blocks are physical circuits."""
+        circuit = random_circuit(size, 3, measure=True, seed=12342)
+        if_block = random_circuit(3, 2, measure=True, seed=12342)
+        else_block = random_circuit(2, 1, measure=True, seed=12342)
+
+        rng = numpy.random.default_rng(seed=12342)
+        inner_clbit_count = max((if_block.num_clbits, else_block.num_clbits))
+        if inner_clbit_count > circuit.num_clbits:
+            circuit.add_bits([Clbit() for _ in [None] * (inner_clbit_count - circuit.num_clbits)])
+        clbit_indices = list(range(circuit.num_clbits))
+        rng.shuffle(clbit_indices)
+
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            circuit.append(if_block, [0, 2, 1], clbit_indices[: if_block.num_clbits])
+        with else_:
+            circuit.append(else_block, [2, 5], clbit_indices[: else_block.num_clbits])
+
+        tqc = transpile(
+            circuit,
+            self.backend,
+            basis_gates=list(self.basis_gates),
+            routing_method="sabre",
+            layout_method="sabre",
+            seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
 
 
 if __name__ == "__main__":
