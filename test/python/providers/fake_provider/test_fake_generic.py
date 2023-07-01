@@ -61,7 +61,7 @@ class TestFakeGeneric(QiskitTestCase):
         )
 
     def test_basis_gates(self):
-        """Test if the backend has a default basis gates, that includes dealy and measure"""
+        """Test if the backend has a default basis gates, that includes delay and measure"""
         self.assertEqual(
             FakeGeneric(num_qubits=8).operation_names,
             ["ecr", "id", "rz", "sx", "x", "delay", "measure", "reset"],
