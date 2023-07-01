@@ -71,7 +71,7 @@ class FakeGeneric(BackendV2):
                              True: Enable
                              False: Disable (Default)
         replace_cx_with_ecr:
-                    True: (Default) Replace every occurance of 'cx' with 'ecr'
+                    True: (Default) Replace every occurrence of 'cx' with 'ecr'
                     False: Do not replace 'cx' with 'ecr'
 
         enable_reset:
