@@ -68,7 +68,7 @@ class TestFakeGeneric(QiskitTestCase):
         )
 
     def test_if_cx_replaced_with_ecr(self):
-        """Test if cx is not reaplced with ecr"""
+        """Test if cx is not replaced with ecr"""
         self.assertEqual(
             FakeGeneric(num_qubits=8, replace_cx_with_ecr=False).operation_names,
             ["cx", "id", "rz", "sx", "x", "delay", "measure", "reset"],
