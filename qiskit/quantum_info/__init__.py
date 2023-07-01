@@ -22,7 +22,7 @@ Overview
 **Quantum information science** combines quantum mechanics and information theory to represent, 
 process, and transmit information using quantum states. 
 
-In Qiskit, quantum information representations and manipulations are perfomed 
+In Qiskit, quantum information representations and manipulations are performed 
 using the :class:`quantum_info` class. 
 
 .. _quantum_info_operators:
