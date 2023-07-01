@@ -152,7 +152,7 @@ fn layout_trial(
             std::mem::swap(&mut dag_forward, &mut dag_reverse);
         }
     }
-    let layout_dag = apply_layout(&dag, &initial_layout);
+    let layout_dag = apply_layout(dag, &initial_layout);
     let mut final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
     let sabre_result = build_swap_map_inner(
         num_physical_qubits,

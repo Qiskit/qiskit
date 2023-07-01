@@ -241,9 +241,7 @@ class SabreLayout(TransformationPass):
             _sabre_result,
             local_dag,
         ) in layout_components:
-            # Maps qubit instances to their logical qubit address in the full dag.
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
-
             final_layout_dict.update({component_map[k]: component_map[v] for k, v in final_dict})
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set

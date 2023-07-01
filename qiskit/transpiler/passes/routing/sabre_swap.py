@@ -323,7 +323,7 @@ def _apply_sabre_result(
                 block_results = result.node_block_results[node_id]
                 mapped_block_dags = []
                 idle_qubits = set(out_dag.qubits)
-                for block, block_result in zip(node.op.blocks, block_results, strict=True):
+                for block, block_result in zip(node.op.blocks, block_results):
                     # TODO: cache DAGs using id(block) as key when building sabre dag?
                     block_id_to_node = circuit_to_dag(block)._multi_graph
                     mapped_block_dag = empty_dag(node)
