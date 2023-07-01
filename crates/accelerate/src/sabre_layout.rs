@@ -116,12 +116,17 @@ fn layout_trial(
         // recurse into blocks. We remove them here, but still map control
         // flow node IDs to an empty block list so Sabre treats these ops
         // as control flow nodes, but doesn't route their blocks.
-        let node_blocks_empty = dag.node_blocks
+        let node_blocks_empty = dag
+            .node_blocks
             .iter()
-            .map(|(node_index, _)| {
-                (*node_index, Vec::with_capacity(0))
-            });
-        SabreDAG::new(dag.num_qubits, dag.num_clbits, nodes, node_blocks_empty.collect()).unwrap()
+            .map(|(node_index, _)| (*node_index, Vec::with_capacity(0)));
+        SabreDAG::new(
+            dag.num_qubits,
+            dag.num_clbits,
+            nodes,
+            node_blocks_empty.collect(),
+        )
+        .unwrap()
     };
 
     let mut dag_forward: SabreDAG = new_dag_fn(dag.nodes.clone());
@@ -163,22 +168,24 @@ fn layout_trial(
     ([initial_layout, final_layout], sabre_result)
 }
 
-fn apply_layout(
-    dag: &SabreDAG,
-    layout: &NLayout,
-) -> SabreDAG {
-    let layout_nodes = dag.nodes
-        .iter()
-        .map(|(node_index, qargs, cargs)| {
-            let new_qargs: Vec<usize> = qargs.iter().map(|n| layout.logic_to_phys[*n]).collect();
-            (*node_index, new_qargs, cargs.clone())
-        });
-    let node_blocks = dag.node_blocks
-        .iter()
-        .map(|(node_index, blocks)| {
-            (*node_index, blocks.iter().map(|d| apply_layout(d, layout)).collect())
-        });
-    SabreDAG::new(dag.num_qubits, dag.num_clbits, layout_nodes.collect(), node_blocks.collect()).unwrap()
+fn apply_layout(dag: &SabreDAG, layout: &NLayout) -> SabreDAG {
+    let layout_nodes = dag.nodes.iter().map(|(node_index, qargs, cargs)| {
+        let new_qargs: Vec<usize> = qargs.iter().map(|n| layout.logic_to_phys[*n]).collect();
+        (*node_index, new_qargs, cargs.clone())
+    });
+    let node_blocks = dag.node_blocks.iter().map(|(node_index, blocks)| {
+        (
+            *node_index,
+            blocks.iter().map(|d| apply_layout(d, layout)).collect(),
+        )
+    });
+    SabreDAG::new(
+        dag.num_qubits,
+        dag.num_clbits,
+        layout_nodes.collect(),
+        node_blocks.collect(),
+    )
+    .unwrap()
 }
 
 fn compose_layout(initial_layout: &NLayout, final_layout: &NLayout) -> NLayout {

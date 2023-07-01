@@ -21,8 +21,8 @@ use std::cmp::Ordering;
 
 use hashbrown::HashMap;
 use ndarray::prelude::*;
-use numpy::{IntoPyArray, ToPyArray};
 use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -98,9 +98,12 @@ impl NodeBlockResults {
 
     pub fn __getitem__(&self, py: Python, object: usize) -> PyResult<PyObject> {
         match self.results.get(&object) {
-            Some(val) => Ok(
-                val.iter().map(|x| x.clone().into_py(py)).collect::<Vec<_>>().into_pyarray(py).into()
-            ),
+            Some(val) => Ok(val
+                .iter()
+                .map(|x| x.clone().into_py(py))
+                .collect::<Vec<_>>()
+                .into_pyarray(py)
+                .into()),
             None => Err(PyIndexError::new_err(format!(
                 "Node index {object} has no block results",
             ))),
@@ -124,7 +127,12 @@ pub struct BlockResult {
 impl BlockResult {
     #[getter]
     fn swap_epilogue(&self, py: Python) -> PyObject {
-        self.swap_epilogue.iter().map(|x| x.into_py(py)).collect::<Vec<_>>().into_pyarray(py).into()
+        self.swap_epilogue
+            .iter()
+            .map(|x| x.into_py(py))
+            .collect::<Vec<_>>()
+            .into_pyarray(py)
+            .into()
     }
 }
 
@@ -322,7 +330,8 @@ fn swap_map_trial(
     let mut num_search_steps: u8 = 0;
     let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
-    let mut node_block_results: HashMap<usize, Vec<BlockResult>> = HashMap::with_capacity(dag.node_blocks.len());
+    let mut node_block_results: HashMap<usize, Vec<BlockResult>> =
+        HashMap::with_capacity(dag.node_blocks.len());
 
     for node in dag.dag.node_indices() {
         for edge in dag.dag.edges(node) {
@@ -342,7 +351,8 @@ fn swap_map_trial(
             coupling_graph,
             heuristic,
             seed,
-            current_layout)
+            current_layout,
+        )
     };
 
     route_reachable_nodes(
@@ -427,15 +437,16 @@ fn swap_map_trial(
         qubits_decay.fill(1.);
         routable_nodes.clear();
     }
-    (SabreResult {
-        map: SwapMap {
-            map: out_map,
+    (
+        SabreResult {
+            map: SwapMap { map: out_map },
+            node_order: gate_order,
+            node_block_results: NodeBlockResults {
+                results: node_block_results,
+            },
         },
-        node_order: gate_order,
-        node_block_results: NodeBlockResults {
-            results: node_block_results
-        },
-    }, layout)
+        layout,
+    )
 }
 
 /// Update the system state as the given `nodes` are added to the routing order, preceded by the
@@ -456,7 +467,9 @@ fn update_route<F>(
     required_predecessors: &mut [u32],
     node_block_results: &mut HashMap<usize, Vec<BlockResult>>,
     route_block_dag: &F,
-) where F: Fn(&SabreDAG, NLayout) -> (SabreResult, NLayout) {
+) where
+    F: Fn(&SabreDAG, NLayout) -> (SabreResult, NLayout),
+{
     // First node gets the swaps attached.  We don't add to the `gate_order` here because
     // `route_reachable_nodes` is responsible for that part.
     let py_node = dag.dag[nodes[0]].0;
@@ -483,24 +496,46 @@ fn update_route<F>(
     populate_extended_set(extended_set, dag, front_layer, required_predecessors);
 }
 
-fn gen_swap_epilogue(coupling: &DiGraph<(), ()>, from_layout: &NLayout, to_layout: &NLayout, seed: u64) -> Vec<[usize; 2]> {
+fn gen_swap_epilogue(
+    coupling: &DiGraph<(), ()>,
+    from_layout: &NLayout,
+    to_layout: &NLayout,
+    seed: u64,
+) -> Vec<[usize; 2]> {
     // Map physical location in from_layout to physical location in to_layout
     let mapping: HashMap<NodeIndex, NodeIndex> = from_layout
         .logic_to_phys
         .iter()
         .enumerate()
-        .map(|(v, p)| (NodeIndex::new(*p), NodeIndex::new(to_layout.logic_to_phys[v])))
+        .map(|(v, p)| {
+            (
+                NodeIndex::new(*p),
+                NodeIndex::new(to_layout.logic_to_phys[v]),
+            )
+        })
         .collect();
 
-    let swaps = token_swapper(coupling, mapping, Some(SWAP_EPILOGUE_TRIALS), Some(seed), None);
+    let swaps = token_swapper(
+        coupling,
+        mapping,
+        Some(SWAP_EPILOGUE_TRIALS),
+        Some(seed),
+        None,
+    );
 
     // Convert physical swaps to virtual swaps
     let mut layout = from_layout.clone();
-    swaps.into_iter().map(|(l, r)| {
-        let ret = [layout.phys_to_logic[l.index()], layout.phys_to_logic[r.index()]];
-        layout.swap_physical(l.index(), r.index());
-        ret
-    }).collect()
+    swaps
+        .into_iter()
+        .map(|(l, r)| {
+            let ret = [
+                layout.phys_to_logic[l.index()],
+                layout.phys_to_logic[r.index()],
+            ];
+            layout.swap_physical(l.index(), r.index());
+            ret
+        })
+        .collect()
 }
 
 /// Search forwards in the `dag` from all the nodes in `to_visit`, adding them to the `gate_order`
@@ -519,7 +554,9 @@ fn route_reachable_nodes<F>(
     required_predecessors: &mut [u32],
     node_block_results: &mut HashMap<usize, Vec<BlockResult>>,
     route_block_dag: &F,
-) where F: Fn(&SabreDAG, NLayout) -> (SabreResult, NLayout), {
+) where
+    F: Fn(&SabreDAG, NLayout) -> (SabreResult, NLayout),
+{
     let mut to_visit = to_visit.to_vec();
     let mut i = 0;
     // Iterate through `to_visit`, except we often push new nodes onto the end of it.
@@ -533,11 +570,13 @@ fn route_reachable_nodes<F>(
                 // Control flow op. Route all blocks for current layout.
                 let mut block_results: Vec<BlockResult> = Vec::with_capacity(blocks.len());
                 for inner_dag in blocks {
-                    let (inner_dag_routed, inner_final_layout) = route_block_dag(inner_dag, layout.copy());
+                    let (inner_dag_routed, inner_final_layout) =
+                        route_block_dag(inner_dag, layout.copy());
 
                     // For now, we always append a swap circuit that gets the inner block
                     // back to the parent's layout.
-                    let swap_epilogue = gen_swap_epilogue(coupling, &inner_final_layout, layout, seed);
+                    let swap_epilogue =
+                        gen_swap_epilogue(coupling, &inner_final_layout, layout, seed);
                     let block_result = BlockResult {
                         result: inner_dag_routed,
                         swap_epilogue,
@@ -545,21 +584,19 @@ fn route_reachable_nodes<F>(
                     block_results.push(block_result);
                 }
                 node_block_results.insert_unique_unchecked(*py_node, block_results);
-            },
-            None => {
-                match qubits[..] {
-                    [a, b]
+            }
+            None => match qubits[..] {
+                [a, b]
                     if !coupling.contains_edge(
                         NodeIndex::new(layout.logic_to_phys[a]),
                         NodeIndex::new(layout.logic_to_phys[b]),
                     ) =>
-                        {
-                            front_layer.insert(node, [a, b]);
-                            continue;
-                        }
-                    _ => {}
+                {
+                    front_layer.insert(node, [a, b]);
+                    continue;
                 }
-            }
+                _ => {}
+            },
         }
 
         gate_order.push(*py_node);
