@@ -28,8 +28,8 @@ from .bind import bind
 from .derive_circuit import derive_circuit
 from .split_circuits import split
 
-from ..base_estimator_gradient import BaseEstimatorGradient
-from ..estimator_gradient_result import EstimatorGradientResult
+from ..base.base_estimator_gradient import BaseEstimatorGradient
+from ..base.estimator_gradient_result import EstimatorGradientResult
 from ..utils import DerivativeType
 
 logger = logging.getLogger(__name__)

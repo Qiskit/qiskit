@@ -26,11 +26,11 @@ from qiskit.primitives.utils import init_observable, _circuit_key
 from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .base_estimator_gradient import BaseEstimatorGradient
-from .estimator_gradient_result import EstimatorGradientResult
-from .utils import DerivativeType, _make_lin_comb_gradient_circuit, _make_lin_comb_observables
+from ..base.base_estimator_gradient import BaseEstimatorGradient
+from ..base.estimator_gradient_result import EstimatorGradientResult
+from ..utils import DerivativeType, _make_lin_comb_gradient_circuit, _make_lin_comb_observables
 
-from ..exceptions import AlgorithmError
+from ...exceptions import AlgorithmError
 
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
