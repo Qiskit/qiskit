@@ -244,7 +244,7 @@ Measures
 
 Different quantum information measures are included in Qiskit, including
 measures of state and gate fidelity, useful for noisy calculations, 
-purity, and mutual information of bipartite states, to name a few. A for a full list
+purity, and mutual information of bipartite states, to name a few. A full list
 of quantum information measures implemented in Qiskit is included below.
 
 For example,
