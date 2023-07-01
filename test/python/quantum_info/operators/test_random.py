@@ -59,8 +59,8 @@ class TestRandomUnitary(QiskitTestCase):
         value = random_unitary(dim)
         self.assertIsInstance(value, Operator)
         self.assertTrue(value.is_unitary())
-        self.assertEqual(np.product(value.input_dims()), dim)
-        self.assertEqual(np.product(value.output_dims()), dim)
+        self.assertEqual(np.prod(value.input_dims()), dim)
+        self.assertEqual(np.prod(value.output_dims()), dim)
 
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
@@ -99,8 +99,8 @@ class TestRandomHermitian(QiskitTestCase):
         value = random_hermitian(dim)
         self.assertIsInstance(value, Operator)
         self.assertTrue(is_hermitian_matrix(value.data))
-        self.assertEqual(np.product(value.input_dims()), dim)
-        self.assertEqual(np.product(value.output_dims()), dim)
+        self.assertEqual(np.prod(value.input_dims()), dim)
+        self.assertEqual(np.prod(value.output_dims()), dim)
 
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
@@ -139,8 +139,8 @@ class TestRandomQuantumChannel(QiskitTestCase):
         value = random_quantum_channel(dim)
         self.assertIsInstance(value, Stinespring)
         self.assertTrue(value.is_cptp())
-        self.assertEqual(np.product(value.input_dims()), dim)
-        self.assertEqual(np.product(value.output_dims()), dim)
+        self.assertEqual(np.prod(value.input_dims()), dim)
+        self.assertEqual(np.prod(value.output_dims()), dim)
 
     @combine(rank=[1, 2, 3, 4])
     def test_rank(self, rank):
