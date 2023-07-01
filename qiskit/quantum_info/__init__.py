@@ -199,7 +199,7 @@ Channels
 
 Quantum channels are communication channels which can transmit quantum and
 classical information. In Qiskit, different channel representations are implemented
-by different classes. Similarly to operators, these channels also contain  matrix methods 
+by different classes. Similarly to operators, these channels also contain matrix methods 
 such as :meth:`adjoint`, :meth:`compose`, and :meth:`conjugate`, among others. 
 
 For example, one can obtain the Kraus representation of the quantum
