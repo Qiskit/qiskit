@@ -13,4 +13,4 @@ deprecations:
 
     Instead, one should use two floats for the `amp` and `angle` parameters, where `amp` represents the
     magnitude of the complex amplitude, and `angle` represents the angle of the complex amplitude. i.e. the
-    complex amplitude is given by `amp * exp(1j * angle)`.
+    complex amplitude is given by `amp` * exp(1j * `angle`).
