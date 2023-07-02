@@ -24,7 +24,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
@@ -739,9 +739,9 @@ class Gaussian(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[float, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        angle: Optional[Union[float, ParameterExpression]] = None,
+        amp: ParameterValueType,
+        sigma: ParameterValueType,
+        angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ) -> ScalableSymbolicPulse:
@@ -835,11 +835,11 @@ class GaussianSquare(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[float, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        width: Optional[Union[float, ParameterExpression]] = None,
-        angle: Optional[Union[float, ParameterExpression]] = None,
-        risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
+        amp: ParameterValueType,
+        sigma: ParameterValueType,
+        width: Optional[ParameterValueType] = None,
+        angle: Optional[ParameterValueType] = None,
+        risefall_sigma_ratio: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ) -> ScalableSymbolicPulse:
@@ -1312,10 +1312,10 @@ class Drag(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[float, ParameterExpression],
-        sigma: Union[float, ParameterExpression],
-        beta: Union[float, ParameterExpression],
-        angle: Optional[Union[float, ParameterExpression]] = None,
+        amp: ParameterValueType,
+        sigma: ParameterValueType,
+        beta: ParameterValueType,
+        angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ) -> ScalableSymbolicPulse:
@@ -1383,8 +1383,8 @@ class Constant(metaclass=_PulseType):
     def __new__(
         cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[float, ParameterExpression],
-        angle: Optional[Union[float, ParameterExpression]] = None,
+        amp: ParameterValueType,
+        angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
     ) -> ScalableSymbolicPulse:
