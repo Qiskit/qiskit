@@ -82,14 +82,12 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "consider-using-from-import",
     "modified-iterating-list",
     "nested-min-max",
     "no-member",
     "no-value-for-parameter",
     "non-ascii-name",
     "not-context-manager",
-    "pointless-exception-statement",
     "superfluous-parens",
     "unknown-option-value",
     "unexpected-keyword-arg",
@@ -105,7 +103,6 @@ disable = [
     "use-list-literal",
     "use-implicit-booleaness-not-comparison",
     "use-maxsplit-arg",
-    "used-before-assignment",
 ]
 
 enable = [
