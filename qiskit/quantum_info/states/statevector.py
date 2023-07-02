@@ -476,6 +476,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         x_max = qubits[pauli.x][-1]
         y_phase = (-1j) ** pauli._count_y()
+        y_phase = y_phase[0]
 
         return pauli_phase * expval_pauli_with_x(
             self.data, self.num_qubits, z_mask, x_mask, y_phase, x_max
@@ -722,7 +723,7 @@ class Statevector(QuantumState, TolerancesMixin):
               as an N-qubit state. If it is not a power of  two the state
               will have a single d-dimensional subsystem.
         """
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros(size, dtype=complex)
         state[i] = 1.0
         return Statevector(state, dims=dims)

@@ -29,7 +29,7 @@ from qiskit.providers import Options
 from qiskit.transpiler.passes import TranslateParameterizedGates
 
 from .qgt_result import QGTResult
-from .utils import (
+from ..utils import (
     DerivativeType,
     GradientCircuit,
     _assign_unique_parameters,
@@ -37,7 +37,7 @@ from .utils import (
     _make_gradient_parameter_values,
 )
 
-from ..algorithm_job import AlgorithmJob
+from ...algorithm_job import AlgorithmJob
 
 
 class BaseQGT(ABC):
