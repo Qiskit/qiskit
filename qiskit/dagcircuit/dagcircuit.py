@@ -29,7 +29,14 @@ from typing import Generator, Any, List
 import numpy as np
 import rustworkx as rx
 
-from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
+from qiskit.circuit import (
+    ControlFlowOp,
+    ForLoopOp,
+    IfElseOp,
+    WhileLoopOp,
+    SwitchCaseOp,
+    _classical_resource_map,
+)
 from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -627,101 +634,6 @@ class DAGCircuit:
         )
         return self._multi_graph[node_index]
 
-    @staticmethod
-    def _map_condition(wire_map, condition, target_cregs):
-        """Use the wire_map dict to change the condition tuple's creg name.
-
-        Args:
-            wire_map (dict): a map from source wires to destination wires
-            condition (tuple or None): (ClassicalRegister,int)
-            target_cregs (list[ClassicalRegister]): List of all cregs in the
-              target circuit onto which the condition might possibly be mapped.
-        Returns:
-            tuple(ClassicalRegister,int): new condition
-        Raises:
-            DAGCircuitError: if condition register not in wire_map, or if
-                wire_map maps condition onto more than one creg, or if the
-                specified condition is not present in a classical register.
-        """
-
-        if condition is None:
-            new_condition = None
-        else:
-            # if there is a condition, map the condition bits to the
-            # composed cregs based on the wire_map
-            is_reg = False
-            if isinstance(condition[0], Clbit):
-                cond_creg = [condition[0]]
-            else:
-                cond_creg = condition[0]
-                is_reg = True
-            cond_val = condition[1]
-            new_cond_val = 0
-            new_creg = None
-            bits_in_condcreg = [bit for bit in wire_map if bit in cond_creg]
-            for bit in bits_in_condcreg:
-                if is_reg:
-                    try:
-                        candidate_creg = next(
-                            creg for creg in target_cregs if wire_map[bit] in creg
-                        )
-                    except StopIteration as ex:
-                        raise DAGCircuitError(
-                            "Did not find creg containing mapped clbit in conditional."
-                        ) from ex
-                else:
-                    # If cond is on a single Clbit then the candidate_creg is
-                    # the target Clbit to which 'bit' is mapped to.
-                    candidate_creg = wire_map[bit]
-                if new_creg is None:
-                    new_creg = candidate_creg
-                elif new_creg != candidate_creg:
-                    # Raise if wire_map maps condition creg on to more than one
-                    # creg in target DAG.
-                    raise DAGCircuitError(
-                        "wire_map maps conditional register onto more than one creg."
-                    )
-
-                if not is_reg:
-                    # If the cond is on a single Clbit then the new_cond_val is the
-                    # same as the cond_val since the new_creg is also a single Clbit.
-                    new_cond_val = cond_val
-                elif 2 ** (cond_creg[:].index(bit)) & cond_val:
-                    # If the conditional values of the Clbit 'bit' is 1 then the new_cond_val
-                    # is updated such that the conditional value of the Clbit to which 'bit'
-                    # is mapped to in new_creg is 1.
-                    new_cond_val += 2 ** (new_creg[:].index(wire_map[bit]))
-            if new_creg is None:
-                raise DAGCircuitError("Condition registers not found in wire_map.")
-            new_condition = (new_creg, new_cond_val)
-        return new_condition
-
-    def _map_classical_resource_with_import(self, resource, wire_map, creg_map):
-        """Map the classical ``resource`` (a bit or register) in its counterpart in ``self`` using
-        ``wire_map`` and ``creg_map`` as lookup caches.  All single-bit conditions should have a
-        cache hit in the ``wire_map``, but registers may involve a full linear search the first time
-        they are encountered.  ``creg_map`` is mutated by this function.  ``wire_map`` is not; it is
-        an error if a wire is not in the map.
-
-        This is different to the logic in ``_map_condition`` because it always succeeds; since the
-        mapping for all wires in the condition is assumed to exist, there can be no fragmented
-        registers.  If there is no matching register (has the same bits in the same order) in
-        ``self``, a new register alias is added to represent the condition.  This does not change
-        the bits available to ``self``, it just adds a new aliased grouping of them."""
-        if isinstance(resource, Clbit):
-            return wire_map[resource]
-        if resource.name not in creg_map:
-            mapped_bits = [wire_map[bit] for bit in resource]
-            for our_creg in self.cregs.values():
-                if mapped_bits == list(our_creg):
-                    new_resource = our_creg
-                    break
-            else:
-                new_resource = ClassicalRegister(bits=[wire_map[bit] for bit in resource])
-                self.add_creg(new_resource)
-            creg_map[resource.name] = new_resource
-        return creg_map[resource.name]
-
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=True):
         """Compose the ``other`` circuit onto the output of this circuit.
 
@@ -798,6 +710,9 @@ class DAGCircuit:
         for gate, cals in other.calibrations.items():
             dag._calibrations[gate].update(cals)
 
+        variable_mapper = _classical_resource_map.VariableMapper(
+            dag.cregs.values(), edge_map, exc_type=DAGCircuitError
+        )
         for nd in other.topological_nodes():
             if isinstance(nd, DAGInNode):
                 # if in edge_map, get new name, else use existing name
@@ -816,16 +731,13 @@ class DAGCircuit:
                 # ignore output nodes
                 pass
             elif isinstance(nd, DAGOpNode):
-                condition = dag._map_condition(
-                    edge_map, getattr(nd.op, "condition", None), dag.cregs.values()
-                )
-                dag._check_condition(nd.op.name, condition)
                 m_qargs = [edge_map.get(x, x) for x in nd.qargs]
                 m_cargs = [edge_map.get(x, x) for x in nd.cargs]
                 op = nd.op.copy()
-                if condition and not isinstance(op, Instruction):
-                    raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-                op.condition = condition
+                if (condition := getattr(op, "condition", None)) is not None:
+                    op.condition = variable_mapper.map_condition(condition, allow_reorder=True)
+                elif isinstance(op, SwitchCaseOp):
+                    op.target = variable_mapper.map_target(op.target)
                 dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
                 raise DAGCircuitError("bad node type %s" % type(nd))
@@ -1210,10 +1122,16 @@ class DAGCircuit:
                 )
 
         reverse_wire_map = {b: a for a, b in wire_map.items()}
-        creg_map = {}
         op_condition = getattr(node.op, "condition", None)
         if propagate_condition and op_condition is not None:
             in_dag = input_dag.copy_empty_like()
+            # The remapping of `condition` below is still using the old code that assumes a 2-tuple.
+            # This is because this remapping code only makes sense in the case of non-control-flow
+            # operations being replaced.  These can only have the 2-tuple conditions, and the
+            # ability to set a condition at an individual node level will be deprecated and removed
+            # in favour of the new-style conditional blocks.  The extra logic in here to add
+            # additional wires into the map as necessary would hugely complicate matters if we tried
+            # to abstract it out into the `VariableMapper` used elsewhere.
             target, value = op_condition
             if isinstance(target, Clbit):
                 new_target = reverse_wire_map.get(target, Clbit())
@@ -1227,7 +1145,6 @@ class DAGCircuit:
                     # Update to any new dummy bits we just created to the wire maps.
                     wire_map[theirs], reverse_wire_map[ours] = ours, theirs
                 new_target = ClassicalRegister(bits=mapped_bits)
-                creg_map[new_target.name] = target
                 in_dag.add_creg(new_target)
                 target_cargs = set(new_target)
             new_condition = (new_target, value)
@@ -1315,6 +1232,9 @@ class DAGCircuit:
         )
         self._decrement_op(node.op)
 
+        variable_mapper = _classical_resource_map.VariableMapper(
+            self.cregs.values(), wire_map, self.add_creg
+        )
         # Iterate over nodes of input_circuit and update wires in node objects migrated
         # from in_dag
         for old_node_index, new_node_index in node_map.items():
@@ -1322,19 +1242,13 @@ class DAGCircuit:
             old_node = in_dag._multi_graph[old_node_index]
             if isinstance(old_node.op, SwitchCaseOp):
                 m_op = SwitchCaseOp(
-                    self._map_classical_resource_with_import(
-                        old_node.op.target, wire_map, creg_map
-                    ),
+                    variable_mapper.map_target(old_node.op.target),
                     old_node.op.cases_specifier(),
                     label=old_node.op.label,
                 )
             elif getattr(old_node.op, "condition", None) is not None:
-                cond_target, cond_value = old_node.op.condition
                 m_op = copy.copy(old_node.op)
-                m_op.condition = (
-                    self._map_classical_resource_with_import(cond_target, wire_map, creg_map),
-                    cond_value,
-                )
+                m_op.condition = variable_mapper.map_condition(m_op.condition)
             else:
                 m_op = old_node.op
             m_qargs = [wire_map[x] for x in old_node.qargs]
