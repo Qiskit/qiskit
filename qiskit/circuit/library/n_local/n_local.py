@@ -69,15 +69,15 @@ class NLocal(BlueprintCircuit):
 
     Examples:
 
-        .. jupyter-execute::
+        Example 1:
+            * "Blocks" are defined by ``QuantumCircuit`` objects.
+            * The "basic rotation block" consists of a 1-depth 2-qubits ``QuantumCircuit`` object.
+            * The "basic entanglement block" consists of a 3-depth 4-qubits ``QuantumCircuit`` object.
+            * Every "rotation layer" consists of a vertical repetition over the basic rotation block.
+            * Every "entanglement layer" consists of a ``linear`` repetition over
+            the basic entanglement block.
 
-            # Example 1:
-            #   "Blocks" are defined by `QuantumCircuit` objects.
-            #   The "basic rotation block" consists of a 1-depth 2-qubits `QuantumCircuit` object.
-            #   The "basic entanglement block" consists of a 3-depth 4-qubits `QuantumCircuit` object.
-            #   Every "rotation layer" consists of a vertical repetition over the basic rotation block.
-            #   Every "entanglement layer" consists of a `linear` repetition over
-            #   the basic entanglement block.
+        .. jupyter-execute::
 
             from qiskit import QuantumCircuit
             from qiskit.circuit import ParameterVector
@@ -87,7 +87,7 @@ class NLocal(BlueprintCircuit):
 
             # Basic rotation block pre-setting
             num_qubits_rot_block = 2
-            theta = ParameterVector(name='theta', length=num_qubits_rot_block)
+            theta = ParameterVector(name="theta", length=num_qubits_rot_block)
             rot_block = QuantumCircuit(num_qubits_rot_block)
             rot_block.ry(theta[0], 0)
             rot_block.rx(theta[1], 1)
@@ -99,36 +99,43 @@ class NLocal(BlueprintCircuit):
                 ent_block.cx(i, i + 1)
 
             # Assembling the pre-defined blocks into layers that form an `NLocal` circuit
-            nloc = NLocal(num_qubits, rotation_blocks=rot_block, entanglement_blocks=ent_block,
-                        entanglement='linear', insert_barriers=True)
+            nloc = NLocal(
+                num_qubits,
+                rotation_blocks=rot_block,
+                entanglement_blocks=ent_block,
+                entanglement="linear",
+                insert_barriers=True
+            )
 
-            display(nloc.decompose().draw(output='mpl'))
+            display(nloc.decompose().draw(output="mpl"))
+
+        Example 2:
+            * "Blocks" are defined directly by lists of (inherited) ``Gate`` objects.
+            * The "basic rotation block" consists of an $R_y$ gate followed by an $R_x$.
+            * The "basic entanglement block" consists of a single $CZ$ gate.
+            * Every "rotation layer" consists of a vertical repetition over the basic rotation block.
+            * Every "entanglement layer" consists of a ``circular`` repetition over
+            the basic entanglement block.
 
         .. jupyter-execute::
-
-            # Example 2:
-            #   "Blocks" are defined directly by lists of (inherited) `Gate` objects.
-            #   The "basic rotation block" consists of an RY gate followed by an RX.
-            #   The "basic entanglement block" consists of a single CZ gate.
-            #   Every "rotation layer" consists of a vertical repetition over the basic rotation block.
-            #   Every "entanglement layer" consists of a `circular` repetition over
-            #   the basic entanglement block.
-
 
             from qiskit.circuit import Parameter, ParameterVector
             from qiskit.circuit.library import NLocal, RYGate, RXGate, CZGate
 
             num_qubits = 4
-            theta = Parameter('theta')
+            theta = Parameter("theta")
 
-            # In the following `***_blocks` arguments is necessary to specify the actual gate objects,
-            # rather than some abbreviations that are used in other classes,
-            # e.g `CZGate()` = right, `cz` = wrong.
-            nloc = NLocal(num_qubits, rotation_blocks=[RYGate(theta), RXGate(theta)],
-                        entanglement_blocks=[CZGate()], entanglement='circular',
-                        insert_barriers=True, reps=2, skip_final_rotation_layer=True)
+            nloc = NLocal(
+                num_qubits,
+                rotation_blocks=[RYGate(theta), RXGate(theta)],
+                entanglement_blocks=[CZGate()],
+                entanglement="circular",
+                insert_barriers=True,
+                reps=2,
+                skip_final_rotation_layer=True
+            )
 
-            display(nloc.decompose().draw(output='mpl'))
+            display(nloc.decompose().draw(output="mpl"))
 
     """
 
@@ -155,7 +162,7 @@ class NLocal(BlueprintCircuit):
         initial_state: QuantumCircuit | None = None,
         name: str | None = "nlocal",
     ) -> None:
-        """Create a new n-local circuit.
+        """
 
         Args:
             num_qubits: The number of qubits of the circuit.
