@@ -73,8 +73,10 @@ class EigensolverResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalues = None
-        self._aux_operators_evaluated = None
+        self._eigenvalues: np.ndarray | None = None
+        self._aux_operators_evaluated: list[
+            ListOrDict[tuple[complex, dict[str, Any]]]
+        ] | None = None
 
     @property
     def eigenvalues(self) -> np.ndarray | None:

@@ -128,8 +128,8 @@ class SpecialPolynomial:
         """
         if len(xval) != self.n_vars:
             raise QiskitError("Evaluate on wrong number of variables.")
-        check_int = list(map(lambda x: isinstance(x, int), xval))
-        check_poly = list(map(lambda x: isinstance(x, SpecialPolynomial), xval))
+        check_int = [isinstance(x, int) for x in xval]
+        check_poly = [isinstance(x, SpecialPolynomial) for x in xval]
         if False in check_int and False in check_poly:
             raise QiskitError("Evaluate on a wrong type.")
         is_int = False not in check_int

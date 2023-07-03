@@ -16,6 +16,7 @@ Expectation value class
 from __future__ import annotations
 
 import copy
+import typing
 from collections.abc import Sequence
 from itertools import accumulate
 
@@ -23,7 +24,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -34,12 +34,15 @@ from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
+if typing.TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
+
 
 def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
     backend: BackendV1 | BackendV2,
     **run_options,
-) -> tuple[Result, list[dict]]:
+) -> tuple[list[Result], list[dict]]:
     """Remove metadata of circuits and run the circuits on a backend.
     Args:
         circuits: The circuits
@@ -70,7 +73,7 @@ def _run_circuits(
     return result, metadata
 
 
-def _prepare_counts(results):
+def _prepare_counts(results: list[Result]):
     counts = []
     for res in results:
         count = res.get_counts()
@@ -80,7 +83,7 @@ def _prepare_counts(results):
     return counts
 
 
-class BackendEstimator(BaseEstimator):
+class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
@@ -97,7 +100,6 @@ class BackendEstimator(BaseEstimator):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    # pylint: disable=missing-raises-doc
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -119,12 +121,7 @@ class BackendEstimator(BaseEstimator):
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
         """
-        super().__init__(
-            circuits=None,
-            observables=None,
-            parameters=None,
-            options=options,
-        )
+        super().__init__(options=options)
 
         self._abelian_grouping = abelian_grouping
 
@@ -139,16 +136,8 @@ class BackendEstimator(BaseEstimator):
         self._grouping = list(zip(range(len(self._circuits)), range(len(self._observables))))
         self._skip_transpilation = skip_transpilation
 
-    def __new__(  # pylint: disable=signature-differs
-        cls,
-        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
-    ):
-        self = super().__new__(cls)
-        return self
-
-    def __getnewargs__(self):
-        return (self._backend,)
+        self._circuit_ids = {}
+        self._observable_ids = {}
 
     @property
     def transpile_options(self) -> Options:
@@ -200,30 +189,39 @@ class BackendEstimator(BaseEstimator):
         self._transpiled_circuits = []
         for common_circuit, diff_circuits in self.preprocessed_circuits:
             # 1. transpile a common circuit
-            common_circuit = common_circuit.copy()
-            num_qubits = common_circuit.num_qubits
-            common_circuit.measure_all()
-            if not self._skip_transpilation:
-                common_circuit = transpile(
+            if self._skip_transpilation:
+                transpiled_circuit = common_circuit.copy()
+                perm_pattern = list(range(common_circuit.num_qubits))
+            else:
+                transpiled_circuit = transpile(
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
-            bit_map = {bit: index for index, bit in enumerate(common_circuit.qubits)}
-            layout = [bit_map[qr[0]] for _, qr, _ in common_circuit[-num_qubits:]]
-            common_circuit.remove_final_measurements()
+                if transpiled_circuit.layout is not None:
+                    layout = transpiled_circuit.layout
+                    virtual_bit_map = layout.initial_layout.get_virtual_bits()
+                    perm_pattern = [virtual_bit_map[v] for v in common_circuit.qubits]
+                    if layout.final_layout is not None:
+                        final_mapping = dict(
+                            enumerate(layout.final_layout.get_virtual_bits().values())
+                        )
+                        perm_pattern = [final_mapping[i] for i in perm_pattern]
+                else:
+                    perm_pattern = list(range(transpiled_circuit.num_qubits))
+
             # 2. transpile diff circuits
             transpile_opts = copy.copy(self.transpile_options)
-            transpile_opts.update_options(initial_layout=layout)
+            transpile_opts.update_options(initial_layout=perm_pattern)
             diff_circuits = transpile(diff_circuits, self.backend, **transpile_opts.__dict__)
             # 3. combine
             transpiled_circuits = []
             for diff_circuit in diff_circuits:
-                transpiled_circuit = common_circuit.copy()
+                transpiled_circuit_copy = transpiled_circuit.copy()
                 for creg in diff_circuit.cregs:
-                    if creg not in transpiled_circuit.cregs:
-                        transpiled_circuit.add_register(creg)
-                transpiled_circuit.compose(diff_circuit, inplace=True)
-                transpiled_circuit.metadata = diff_circuit.metadata
-                transpiled_circuits.append(transpiled_circuit)
+                    if creg not in transpiled_circuit_copy.cregs:
+                        transpiled_circuit_copy.add_register(creg)
+                transpiled_circuit_copy.compose(diff_circuit, inplace=True)
+                transpiled_circuit_copy.metadata = diff_circuit.metadata
+                transpiled_circuits.append(transpiled_circuit_copy)
             self._transpiled_circuits += transpiled_circuits
 
     def _call(
@@ -264,7 +262,7 @@ class BackendEstimator(BaseEstimator):
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))
@@ -352,7 +350,7 @@ class BackendEstimator(BaseEstimator):
         return preprocessed_circuits
 
     def _postprocessing(
-        self, result: Result, accum: list[int], metadata: list[dict]
+        self, result: list[Result], accum: list[int], metadata: list[dict]
     ) -> EstimatorResult:
         """
         Postprocessing for evaluation of expectation value using pauli rotation gates.
@@ -392,7 +390,10 @@ class BackendEstimator(BaseEstimator):
         if self._bound_pass_manager is None:
             return circuits
         else:
-            return self._bound_pass_manager.run(circuits)
+            output = self._bound_pass_manager.run(circuits)
+            if not isinstance(output, list):
+                output = [output]
+            return output
 
 
 def _paulis2inds(paulis: PauliList) -> list[int]:

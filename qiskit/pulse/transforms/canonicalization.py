@@ -264,10 +264,7 @@ def align_measures(
     correspond to the same qubit and the acquire/play instructions
     should be shifted together on these channels.
 
-    .. jupyter-kernel:: python3
-        :id: align_measures
-
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import pulse
         from qiskit.pulse import transforms
@@ -291,7 +288,7 @@ def align_measures(
     If it is desired to only shift acquisition and measurement stimulus instructions
     set the flag ``align_all=False``:
 
-    .. jupyter-execute::
+    .. code-block::
 
         aligned_sched, aligned_sched_shifted = transforms.align_measures(
             [sched, sched_shifted],

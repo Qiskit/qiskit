@@ -15,12 +15,12 @@ Sampler class
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
@@ -35,7 +35,7 @@ from .utils import (
 )
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """
     Sampler class.
 
@@ -52,35 +52,17 @@ class Sampler(BaseSampler):
           option is ignored.
     """
 
-    def __init__(
-        self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
-        parameters: Iterable[Iterable[Parameter]] | None = None,
-        options: dict | None = None,
-    ):
+    def __init__(self, *, options: dict | None = None):
         """
         Args:
-            circuits: circuits to be executed
-            parameters: Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
         """
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
+        super().__init__(options=options)
         self._qargs_list = []
-        if circuits is not None:
-            preprocessed_circuits = []
-            for circuit in circuits:
-                circuit, qargs = self._preprocess_circuit(circuit)
-                self._qargs_list.append(qargs)
-                preprocessed_circuits.append(circuit)
-        else:
-            preprocessed_circuits = None
-        super().__init__(preprocessed_circuits, parameters, options)
-        self._is_closed = False
+        self._circuit_ids = {}
 
     def _call(
         self,
@@ -88,9 +70,6 @@ class Sampler(BaseSampler):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
-        if self._is_closed:
-            raise QiskitError("The primitive has been closed.")
-
         shots = run_options.pop("shots", None)
         seed = run_options.pop("seed", None)
         if seed is None:
@@ -118,28 +97,29 @@ class Sampler(BaseSampler):
             )
             qargs_list.append(self._qargs_list[i])
         probabilities = [
-            Statevector(bound_circuit_to_instruction(circ)).probabilities(qargs=qargs)
+            Statevector(bound_circuit_to_instruction(circ)).probabilities_dict(
+                qargs=qargs, decimals=16
+            )
             for circ, qargs in zip(bound_circuits, qargs_list)
         ]
         if shots is not None:
-            probabilities = [
-                rng.multinomial(shots, probability) / shots for probability in probabilities
-            ]
+            for i, prob_dict in enumerate(probabilities):
+                counts = rng.multinomial(shots, np.fromiter(prob_dict.values(), dtype=float))
+                probabilities[i] = {
+                    key: count / shots for key, count in zip(prob_dict.keys(), counts) if count > 0
+                }
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p)), shots=shots) for p in probabilities]
+        quasis = [QuasiDistribution(p, shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
-
-    def close(self):
-        self._is_closed = True
 
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)

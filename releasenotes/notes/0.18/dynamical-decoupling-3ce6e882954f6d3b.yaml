@@ -8,7 +8,7 @@ features:
     scheduling). The pass allows control over the sequence of DD gates, the
     spacing between them, and the qubits to apply on. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import XGate

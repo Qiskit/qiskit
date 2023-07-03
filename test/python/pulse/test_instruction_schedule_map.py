@@ -30,7 +30,7 @@ from qiskit.pulse import (
     ShiftPhase,
     Constant,
 )
-from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
+from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -551,6 +551,31 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         self.assertEqual(instmap, deser_instmap)
 
+    def test_instmap_picklable_with_arguments(self):
+        """Test instmap pickling with an edge case.
+
+        This test attempts to pickle instmap with custom entry,
+        in which arguments are provided by users in the form of
+        python dict key object that is not picklable.
+        """
+        instmap = FakeAthens().defaults().instruction_schedule_map
+
+        param1 = Parameter("P1")
+        param2 = Parameter("P2")
+        sched = Schedule()
+        sched.insert(0, Play(Constant(100, param1), DriveChannel(0)), inplace=True)
+        sched.insert(0, Play(Constant(100, param2), DriveChannel(1)), inplace=True)
+        to_assign = {"P1": 0.1, "P2": 0.2}
+
+        # Note that dict keys is not picklable
+        # Instmap should typecast it into list to pickle itself.
+        instmap.add("custom", (0, 1), sched, arguments=to_assign.keys())
+
+        ser_obj = pickle.dumps(instmap)
+        deser_instmap = pickle.loads(ser_obj)
+
+        self.assertEqual(instmap, deser_instmap)
+
     def test_check_backend_provider_cals(self):
         """Test if schedules provided by backend provider is distinguishable."""
         instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
@@ -577,8 +602,12 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         self.assertFalse(instmap.has_custom_gate())
 
-        # add something
+        # add custom schedule
         some_sched = Schedule()
         instmap.add("u3", (0,), some_sched)
 
         self.assertTrue(instmap.has_custom_gate())
+
+        # delete custom schedule
+        instmap.remove("u3", (0,))
+        self.assertFalse(instmap.has_custom_gate())

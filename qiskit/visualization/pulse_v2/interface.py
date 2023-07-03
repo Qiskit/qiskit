@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Qiskit pulse drawer.
 
 This module provides a common user interface for the pulse drawer.
@@ -308,7 +306,8 @@ def draw(
 
         Drawing with the default stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw
@@ -325,7 +324,8 @@ def draw(
 
         Drawing with the stylesheet suited for publication.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXSimple
@@ -342,7 +342,8 @@ def draw(
 
         Drawing with the stylesheet suited for program debugging.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXDebugging

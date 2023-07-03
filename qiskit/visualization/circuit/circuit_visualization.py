@@ -28,6 +28,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import shutil
 from warnings import warn
 
 from qiskit import user_config
@@ -51,7 +52,7 @@ def circuit_drawer(
     output=None,
     interactive=False,
     plot_barriers=True,
-    reverse_bits=False,
+    reverse_bits=None,
     justify=None,
     vertical_compression="medium",
     idle_wires=True,
@@ -111,7 +112,9 @@ def circuit_drawer(
             `latex_source` output type this has no effect and will be silently
             ignored. Defaults to False.
         reverse_bits (bool): when set to True, reverse the bit order inside
-            registers for the output visualization. Defaults to False.
+            registers for the output visualization. Defaults to False unless the
+            user config file (usually ``~/.qiskit/settings.conf``) has an
+            alternative value set. For example, ``circuit_reverse_bits = True``.
         plot_barriers (bool): enable/disable drawing barriers in the output
             circuit. Defaults to True.
         justify (string): options are ``left``, ``right`` or ``none``. If
@@ -166,7 +169,8 @@ def circuit_drawer(
         MissingOptionalLibraryError: when the output methods requires non-installed libraries.
 
     Example:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.tools.visualization import circuit_drawer
@@ -181,6 +185,7 @@ def circuit_drawer(
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
+    default_reverse_bits = False
     if config:
         default_output = config.get("circuit_drawer", "text")
         if default_output == "auto":
@@ -188,8 +193,13 @@ def circuit_drawer(
                 default_output = "mpl"
             else:
                 default_output = "text"
+        if wire_order is None:
+            default_reverse_bits = config.get("circuit_reverse_bits", False)
     if output is None:
         output = default_output
+
+    if reverse_bits is None:
+        reverse_bits = default_reverse_bits
 
     if wire_order is not None and reverse_bits:
         raise VisualizationError(
@@ -354,16 +364,12 @@ def _text_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=reverse_bits,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
         encoding=encoding,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -490,7 +496,7 @@ def _latex_circuit_drawer(
         image = trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
-                os.rename(base + ".pdf", filename)
+                shutil.move(base + ".pdf", filename)
             else:
                 try:
                     image.save(filename)
@@ -556,12 +562,8 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
         circuit=circuit,
     )
@@ -594,7 +596,6 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
 ):
-
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -645,20 +646,15 @@ def _matplotlib_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        calibrations=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     return qcd.draw(filename)

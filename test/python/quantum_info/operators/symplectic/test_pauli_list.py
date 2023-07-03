@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -198,6 +198,10 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
 
+        with self.subTest(msg="str init prevent broadcasting"):
+            with self.assertRaises(ValueError):
+                PauliList(["XYZ", "I"])
+
     def test_list_init(self):
         """Test list initialization."""
         with self.subTest(msg="PauliList"):
@@ -227,12 +231,14 @@ class TestPauliListInit(QiskitTestCase):
     def test_stabilizer_table_init(self):
         """Test table initialization."""
         with self.subTest(msg="PauliTable"):
-            target = StabilizerTable.from_labels(["+II", "-XZ"])
+            with self.assertWarns(DeprecationWarning):
+                target = StabilizerTable.from_labels(["+II", "-XZ"])
             value = PauliList(target)
             self.assertEqual(value, target)
 
         with self.subTest(msg="PauliTable no copy"):
-            target = StabilizerTable.from_labels(["+YY", "-XZ", "XI"])
+            with self.assertWarns(DeprecationWarning):
+                target = StabilizerTable.from_labels(["+YY", "-XZ", "XI"])
             value = PauliList(target)
             value[0] = "II"
             self.assertEqual(value, target)
@@ -2100,8 +2106,8 @@ class TestPauliListMethods(QiskitTestCase):
 
         # checking that every input Pauli in pauli_list is in a group in the ouput
         output_labels = [pauli.to_label() for group in groups for pauli in group]
-        #     assert sorted(output_labels) == sorted(input_labels)
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
+
         # Within each group, every operator qubit-wise commutes with every other operator.
         for group in groups:
             self.assertTrue(

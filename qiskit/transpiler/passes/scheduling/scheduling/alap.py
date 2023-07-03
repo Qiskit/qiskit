@@ -20,8 +20,9 @@ from qiskit.transpiler.passes.scheduling.scheduling.base_scheduler import BaseSc
 class ALAPScheduleAnalysis(BaseScheduler):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-    See the Scheduling section in :ref:`transpiler_supplemental` for
-    the detailed behavior of the control flow operation, i.e. ``c_if``.
+    See the :ref:`scheduling_stage` section in the :mod:`qiskit.transpiler`
+    module documentation for the detailed behavior of the control flow
+    operation, i.e. ``c_if``.
     """
 
     def run(self, dag):
@@ -43,7 +44,7 @@ class ALAPScheduleAnalysis(BaseScheduler):
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
-        node_start_time = dict()
+        node_start_time = {}
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):

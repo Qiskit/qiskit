@@ -12,9 +12,9 @@
 
 """Y and CY gates."""
 
+from math import pi
 from typing import Optional, Union
 import numpy
-from qiskit.qasm import pi
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
@@ -111,7 +111,7 @@ class YGate(Gate):
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
     def inverse(self):
-        r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
+        r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
     def __array__(self, dtype=complex):

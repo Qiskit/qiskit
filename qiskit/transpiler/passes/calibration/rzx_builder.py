@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 
 """RZX calibration builders."""
+from __future__ import annotations
 
 import enum
 import warnings
-from math import pi, erf  # pylint: disable=no-name-in-module
-from typing import List, Tuple, Union
+from collections.abc import Sequence
+from math import pi, erf
 
 import numpy as np
 from qiskit.circuit import Instruction as CircuitInst
@@ -33,16 +34,22 @@ from qiskit.pulse import (
 from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.transpiler.target import Target
+from qiskit.utils.deprecation import deprecate_arg
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
 
 
-class CXCalType(enum.Enum):
-    """Estimated calibration type of backend CX gate."""
+class CRCalType(enum.Enum):
+    """Estimated calibration type of backend cross resonance operations."""
 
-    ECR = "Echoed Cross Resonance"
-    DIRECT_CX = "Direct CX"
+    ECR_FORWARD = "Echoed Cross Resonance corresponding to native operation"
+    ECR_REVERSE = "Echoed Cross Resonance reverse of native operation"
+    ECR_CX_FORWARD = "Echoed Cross Resonance CX corresponding to native operation"
+    ECR_CX_REVERSE = "Echoed Cross Resonance CX reverse of native operation"
+    DIRECT_CX_FORWARD = "Direct CX corresponding to native operation"
+    DIRECT_CX_REVERSE = "Direct CX reverse of native operation"
 
 
 class RZXCalibrationBuilder(CalibrationBuilder):
@@ -58,11 +65,13 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
+    @deprecate_arg("qubit_channel_mapping", since="0.22.0")
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,
-        qubit_channel_mapping: List[List[str]] = None,
+        qubit_channel_mapping: list[list[str]] = None,
         verbose: bool = True,
+        target: Target = None,
     ):
         """
         Initializes a RZXGate calibration builder.
@@ -73,25 +82,23 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             qubit_channel_mapping: The list mapping qubit indices to the list of
                 channel names that apply on that qubit.
             verbose: Set True to raise a user warning when RZX schedule cannot be built.
+            target: The :class:`~.Target` representing the target backend, if both
+                 ``instruction_schedule_map`` and this are specified then this argument will take
+                 precedence and ``instruction_schedule_map`` will be ignored.
 
         Raises:
             QiskitError: Instruction schedule map is not provided.
         """
+        del qubit_channel_mapping
         super().__init__()
-
-        if instruction_schedule_map is None:
-            raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
-
-        if qubit_channel_mapping:
-            warnings.warn(
-                "'qubit_channel_mapping' is no longer used. This value is ignored.",
-                DeprecationWarning,
-            )
-
         self._inst_map = instruction_schedule_map
         self._verbose = verbose
+        if target:
+            self._inst_map = target.instruction_schedule_map()
+        if self._inst_map is None:
+            raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
-    def supported(self, node_op: CircuitInst, qubits: List) -> bool:
+    def supported(self, node_op: CircuitInst, qubits: list) -> bool:
         """Determine if a given node supports the calibration.
 
         Args:
@@ -101,7 +108,9 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return isinstance(node_op, RZXGate) and self._inst_map.has("cx", qubits)
+        return isinstance(node_op, RZXGate) and (
+            "cx" in self._inst_map.instructions or "ecr" in self._inst_map.instructions
+        )
 
     @staticmethod
     @builder.macro
@@ -158,7 +167,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         return round_duration
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Builds the calibration schedule for the RZXGate(theta) with echos.
 
         Args:
@@ -184,28 +193,20 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         if np.isclose(theta, 0.0):
             return ScheduleBlock(name="rzx(0.000)")
 
-        cx_sched = self._inst_map.get("cx", qubits=qubits)
-        cal_type, cr_tones, comp_tones = _check_calibration_type(cx_sched)
+        cal_type, cr_tones, comp_tones = _check_calibration_type(self._inst_map, qubits)
 
-        if cal_type != CXCalType.ECR:
+        if cal_type in [CRCalType.DIRECT_CX_FORWARD, CRCalType.DIRECT_CX_REVERSE]:
             if self._verbose:
                 warnings.warn(
-                    f"CX instruction for qubits {qubits} is likely {cal_type.value} sequence. "
+                    f"CR instruction for qubits {qubits} is likely {cal_type.value} sequence. "
                     "Pulse stretch for this calibration is not currently implemented. "
                     "RZX schedule is not generated for this qubit pair.",
                     UserWarning,
                 )
             raise CalibrationNotAvailable
 
-        if len(comp_tones) == 0:
-            raise QiskitError(
-                f"{repr(cx_sched)} has no target compensation tones. "
-                "Native CR direction cannot be determined."
-            )
-
-        # Determine native direction, assuming only single drive channel per qubit.
-        # This guarantees channel and qubit index equality.
-        if comp_tones[0].channel.index == qubits[1]:
+        # The CR instruction is in the forward (native) direction
+        if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
             xgate = self._inst_map.get("x", qubits[0])
             with builder.build(
                 default_alignment="sequential", name="rzx(%.3f)" % theta
@@ -260,7 +261,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     of the CX gate.
     """
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Builds the calibration schedule for the RZXGate(theta) without echos.
 
         Args:
@@ -287,28 +288,20 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         if np.isclose(theta, 0.0):
             return ScheduleBlock(name="rzx(0.000)")
 
-        cx_sched = self._inst_map.get("cx", qubits=qubits)
-        cal_type, cr_tones, comp_tones = _check_calibration_type(cx_sched)
+        cal_type, cr_tones, comp_tones = _check_calibration_type(self._inst_map, qubits)
 
-        if cal_type != CXCalType.ECR:
+        if cal_type in [CRCalType.DIRECT_CX_FORWARD, CRCalType.DIRECT_CX_REVERSE]:
             if self._verbose:
                 warnings.warn(
-                    f"CX instruction for qubits {qubits} is likely {cal_type.value} sequence. "
+                    f"CR instruction for qubits {qubits} is likely {cal_type.value} sequence. "
                     "Pulse stretch for this calibration is not currently implemented. "
                     "RZX schedule is not generated for this qubit pair.",
                     UserWarning,
                 )
             raise CalibrationNotAvailable
 
-        if len(comp_tones) == 0:
-            raise QiskitError(
-                f"{repr(cx_sched)} has no target compensation tones. "
-                "Native CR direction cannot be determined."
-            )
-
-        # Determine native direction, assuming only single drive channel per qubit.
-        # This guarantees channel and qubit index equality.
-        if comp_tones[0].channel.index == qubits[1]:
+        # RZXCalibrationNoEcho only good for forward CR direction
+        if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
             with builder.build(default_alignment="left", name="rzx(%.3f)" % theta) as rzx_theta:
                 stretched_dur = self.rescale_cr_inst(cr_tones[0], 2 * theta)
                 self.rescale_cr_inst(comp_tones[0], 2 * theta)
@@ -343,11 +336,14 @@ def _filter_comp_tone(time_inst_tup):
     return False
 
 
-def _check_calibration_type(cx_sched) -> Tuple[CXCalType, List[Play], List[Play]]:
+def _check_calibration_type(
+    inst_sched_map: InstructionScheduleMap, qubits: Sequence[int]
+) -> tuple[CRCalType, list[Play], list[Play]]:
     """A helper function to check type of CR calibration.
 
     Args:
-        cx_sched: A target schedule to stretch.
+        inst_sched_map: instruction schedule map of the backends
+        qubits: ordered tuple of qubits for cross resonance (q_control, q_target)
 
     Returns:
         Filtered instructions and most-likely type of calibration.
@@ -355,24 +351,50 @@ def _check_calibration_type(cx_sched) -> Tuple[CXCalType, List[Play], List[Play]
     Raises:
         QiskitError: Unknown calibration type is detected.
     """
-    cr_tones = list(
-        map(lambda t: t[1], filter_instructions(cx_sched, [_filter_cr_tone]).instructions)
-    )
-    comp_tones = list(
-        map(lambda t: t[1], filter_instructions(cx_sched, [_filter_comp_tone]).instructions)
-    )
+    cal_type = None
+    if inst_sched_map.has("cx", qubits):
+        cr_sched = inst_sched_map.get("cx", qubits=qubits)
+    elif inst_sched_map.has("ecr", qubits):
+        cr_sched = inst_sched_map.get("ecr", qubits=qubits)
+        cal_type = CRCalType.ECR_FORWARD
+    elif inst_sched_map.has("ecr", tuple(reversed(qubits))):
+        cr_sched = inst_sched_map.get("ecr", tuple(reversed(qubits)))
+        cal_type = CRCalType.ECR_REVERSE
+    else:
+        raise QiskitError(
+            f"Native direction cannot be determined: operation on qubits {qubits} "
+            f"for the following instruction schedule map:\n{inst_sched_map}"
+        )
+
+    cr_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_cr_tone]).instructions]
+    comp_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_comp_tone]).instructions]
+
+    if cal_type is None:
+        if len(comp_tones) == 0:
+            raise QiskitError(
+                f"{repr(cr_sched)} has no target compensation tones. "
+                "Native ECR direction cannot be determined."
+            )
+        # Determine native direction, assuming only single drive channel per qubit.
+        # This guarantees channel and qubit index equality.
+        if comp_tones[0].channel.index == qubits[1]:
+            cal_type = CRCalType.ECR_CX_FORWARD
+        else:
+            cal_type = CRCalType.ECR_CX_REVERSE
 
     if len(cr_tones) == 2 and len(comp_tones) in (0, 2):
         # ECR can be implemented without compensation tone at price of lower fidelity.
         # Remarkable noisy terms are usually eliminated by echo.
-        return CXCalType.ECR, cr_tones, comp_tones
+        return cal_type, cr_tones, comp_tones
 
     if len(cr_tones) == 1 and len(comp_tones) == 1:
         # Direct CX must have compensation tone on target qubit.
         # Otherwise, it cannot eliminate IX interaction.
-        return CXCalType.DIRECT_CX, cr_tones, comp_tones
-
+        if comp_tones[0].channel.index == qubits[1]:
+            return CRCalType.DIRECT_CX_FORWARD, cr_tones, comp_tones
+        else:
+            return CRCalType.DIRECT_CX_REVERSE, cr_tones, comp_tones
     raise QiskitError(
-        f"{repr(cx_sched)} is undefined pulse sequence. "
-        "Check if this is a calibration for CX gate."
+        f"{repr(cr_sched)} is undefined pulse sequence. "
+        "Check if this is a calibration for cross resonance operation."
     )

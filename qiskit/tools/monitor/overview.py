@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" A module for viewing the details of all available devices.
+"""A module for viewing the details of all available devices.
 """
 
 import math
@@ -62,7 +62,7 @@ def backend_monitor(backend):
     Examples:
     .. code-block:: python
 
-       from qiskit import IBMQ
+       from qiskit.providers.ibmq import IBMQ
        from qiskit.tools.monitor import backend_monitor
        provider = IBMQ.get_provider(hub='ibm-q')
        backend_monitor(provider.backends.ibmq_lima)
@@ -175,7 +175,7 @@ def backend_overview():
 
         .. code-block:: python
 
-            from qiskit import IBMQ
+            from qiskit.providers.ibmq import IBMQ
             from qiskit.tools.monitor import backend_overview
             provider = IBMQ.get_provider(hub='ibm-q')
             backend_overview()

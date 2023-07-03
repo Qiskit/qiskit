@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,20 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Utility functions for gradients
 """
 
 from __future__ import annotations
-from enum import Enum
+
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
 
-from qiskit import transpile
 from qiskit.circuit import (
     ClassicalRegister,
     Gate,
@@ -46,6 +45,8 @@ from qiskit.circuit.library.standard_gates import (
     RZZGate,
     XGate,
 )
+from qiskit.quantum_info import SparsePauliOp
+
 
 ################################################################################
 ## Gradient circuits and Enum
@@ -87,21 +88,20 @@ class LinearCombGradientCircuit:
 ################################################################################
 def _make_param_shift_parameter_values(
     circuit: QuantumCircuit,
-    parameter_values: np.ndarray,
-    parameter_set: set[Parameter],
+    parameter_values: np.ndarray | list[float],
+    parameters: Sequence[Parameter],
 ) -> list[np.ndarray]:
     """Returns a list of parameter values with offsets for parameter shift rule.
 
     Args:
         circuit: The original quantum circuit
         parameter_values: parameter values to be added to the base parameter values.
-        param_set: set of parameters to be differentiated
+        parameters: The parameters to be shifted.
 
     Returns:
         A list of parameter values with offsets for parameter shift rule.
     """
-    plus_offsets, minus_offsets = [], []
-    indices = [idx for idx, param in enumerate(circuit.parameters) if param in parameter_set]
+    indices = [circuit.parameters.data.index(p) for p in parameters]
     offset = np.identity(circuit.num_parameters)[indices, :]
     plus_offsets = parameter_values + offset * np.pi / 2
     minus_offsets = parameter_values - offset * np.pi / 2
@@ -109,9 +109,11 @@ def _make_param_shift_parameter_values(
 
 
 ################################################################################
-## Linear combination gradient and Linear combination QFI
+## Linear combination gradient and Linear combination QGT
 ################################################################################
-def _make_lin_comb_gradient_circuit(circuit: QuantumCircuit, add_measurement: bool = False):
+def _make_lin_comb_gradient_circuit(
+    circuit: QuantumCircuit, add_measurement: bool = False
+) -> dict[Parameter, QuantumCircuit]:
     """Makes a circuit that computes the linear combination of the gradient circuits."""
     circuit_temp = circuit.copy()
     qr_aux = QuantumRegister(1, "qr_aux")
@@ -176,104 +178,97 @@ def _gate_gradient(gate: Gate) -> Instruction:
     raise TypeError(f"Unrecognized parameterized gate, {gate}")
 
 
-def _make_lin_comb_qfi_circuit(
+def _make_lin_comb_qgt_circuit(
     circuit: QuantumCircuit, add_measurement: bool = False
-) -> dict[Parameter, list[LinearCombGradientCircuit]]:
-    """Makes gradient circuits for the linear combination of unitaries method.
-
-    Args:
-        circuit: The original quantum circuit.
-        add_measurement: If True, add measurements to the gradient circuit. Defaults to False.
-            ``LinCombSamplerGradient`` calls this method with `add_measurement` is True.
-
-    Returns:
-        A dictionary mapping a parameter to the corresponding list of ``LinearCombGradientCircuit``
-    """
-    supported_gates = [
-        "rx",
-        "ry",
-        "rz",
-        "rzx",
-        "rzz",
-        "ryy",
-        "rxx",
-        "cx",
-        "cy",
-        "cz",
-        "ccx",
-        "swap",
-        "iswap",
-        "h",
-        "t",
-        "s",
-        "sdg",
-        "x",
-        "y",
-        "z",
-    ]
-
-    circuit2 = transpile(circuit, basis_gates=supported_gates, optimization_level=0)
-
+) -> dict[tuple[Parameter, Parameter], QuantumCircuit]:
+    """Makes a circuit that computes the linear combination of the QGT circuits."""
+    circuit_temp = circuit.copy()
     qr_aux = QuantumRegister(1, "aux")
-    cr_aux = ClassicalRegister(1, "aux")
-    circuit2.add_register(qr_aux)
-    circuit2.add_bits(cr_aux)
-    circuit2.h(qr_aux)
-    circuit2.data.insert(0, circuit2.data.pop())
+    circuit_temp.add_register(qr_aux)
+    if add_measurement:
+        cr_aux = ClassicalRegister(1, "aux")
+        circuit_temp.add_bits(cr_aux)
+    circuit_temp.h(qr_aux)
+    circuit_temp.data.insert(0, circuit_temp.data.pop())
 
-    grad_dict = defaultdict(list)
-    for i, (inst_i, qregs_i, _) in enumerate(circuit2.data):
+    lin_comb_qgt_circuits = {}
+    for i, (inst_i, qregs_i, _) in enumerate(circuit_temp.data):
         if not inst_i.is_parameterized():
             continue
-        for j, (inst_j, qregs_j, _) in enumerate(circuit2.data):
-            if inst_j.is_parameterized():
-                param_i = inst_i.params[0]
-                param_j = inst_j.params[0]
+        for j, (inst_j, qregs_j, _) in enumerate(circuit_temp.data):
+            if not inst_j.is_parameterized():
+                continue
+            # Calculate the QGT of the i-th gate with respect to the j-th gate.
+            param_i = inst_i.params[0]
+            param_j = inst_j.params[0]
 
-                for p_i in param_i.parameters:
-                    for p_j in param_j.parameters:
-                        if circuit2.parameters.data.index(p_i) > circuit2.parameters.data.index(
-                            p_j
-                        ):
-                            continue
-                        gate_i = _gate_gradient(inst_i)
-                        gate_j = _gate_gradient(inst_j)
-                        circuit3 = circuit2.copy()
-                        if i < j:
-                            # insert gate_j to j-th position
-                            circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
-                            circuit3.data.insert(j, circuit3.data.pop())
-                            # insert gate_i to i-th position with two X gates at its sides
-                            circuit3.append(XGate(), [qr_aux[0]], [])
-                            circuit3.data.insert(i, circuit3.data.pop())
-                            circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
-                            circuit3.data.insert(i, circuit3.data.pop())
-                            circuit3.append(XGate(), [qr_aux[0]], [])
-                            circuit3.data.insert(i, circuit3.data.pop())
-                        else:
-                            # insert gate_i to i-th position
-                            circuit3.append(gate_i, [qr_aux[0]] + qregs_i, [])
-                            circuit3.data.insert(i, circuit3.data.pop())
-                            # insert gate_j to j-th position with two X gates at its sides
-                            circuit3.append(XGate(), [qr_aux[0]], [])
-                            circuit3.data.insert(j, circuit3.data.pop())
-                            circuit3.append(gate_j, [qr_aux[0]] + qregs_j, [])
-                            circuit3.data.insert(j, circuit3.data.pop())
-                            circuit3.append(XGate(), [qr_aux[0]], [])
-                            circuit3.data.insert(j, circuit3.data.pop())
+            for p_i in param_i.parameters:
+                for p_j in param_j.parameters:
+                    if circuit_temp.parameters.data.index(p_i) > circuit_temp.parameters.data.index(
+                        p_j
+                    ):
+                        continue
+                    gate_i = _gate_gradient(inst_i)
+                    gate_j = _gate_gradient(inst_j)
+                    lin_comb_qgt_circuit = circuit_temp.copy()
+                    if i < j:
+                        # insert gate_j to j-th position
+                        lin_comb_qgt_circuit.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                        lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
+                        # insert gate_i to i-th position with two X gates at its sides
+                        lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
+                        lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
+                        lin_comb_qgt_circuit.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                        lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
+                        lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
+                        lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
+                    else:
+                        # insert gate_i to i-th position
+                        lin_comb_qgt_circuit.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                        lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
+                        # insert gate_j to j-th position with two X gates at its sides
+                        lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
+                        lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
+                        lin_comb_qgt_circuit.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                        lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
+                        lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
+                        lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
 
-                        circuit3.h(qr_aux)
-                        if add_measurement:
-                            circuit3.measure(qr_aux, cr_aux)
-                        grad_dict[
-                            circuit2.parameters.data.index(p_i), circuit2.parameters.data.index(p_j)
-                        ].append(
-                            LinearCombGradientCircuit(
-                                circuit3, param_i.gradient(p_i) * param_j.gradient(p_j)
-                            )
-                        )
+                    lin_comb_qgt_circuit.h(qr_aux)
+                    if add_measurement:
+                        lin_comb_qgt_circuit.measure(qr_aux, cr_aux)
+                    lin_comb_qgt_circuits[(p_i, p_j)] = lin_comb_qgt_circuit
 
-    return grad_dict
+    return lin_comb_qgt_circuits
+
+
+def _make_lin_comb_observables(
+    observable: SparsePauliOp,
+    derivative_type: DerivativeType,
+) -> tuple[SparsePauliOp, SparsePauliOp | None]:
+    """Make the observable with an ancillary operator for the linear combination gradient.
+
+    Args:
+        observable: The observable.
+        derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+            ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``.
+
+    Returns:
+        The observable with an ancillary operator for the linear combination gradient.
+
+    Raises:
+        ValueError: If the derivative type is not supported.
+    """
+    if derivative_type == DerivativeType.REAL:
+        return observable.expand(SparsePauliOp.from_list([("Z", 1)])), None
+    elif derivative_type == DerivativeType.IMAG:
+        return observable.expand(SparsePauliOp.from_list([("Y", -1)])), None
+    elif derivative_type == DerivativeType.COMPLEX:
+        return observable.expand(SparsePauliOp.from_list([("Z", 1)])), observable.expand(
+            SparsePauliOp.from_list([("Y", -1)])
+        )
+    else:
+        raise ValueError(f"Derivative type {derivative_type} is not supported.")
 
 
 ################################################################################
@@ -317,10 +312,9 @@ def _assign_unique_parameters(
             else:
                 new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
                 substitution_map[parameter] = new_parameter
-                parameter_map[parameter].append(new_parameter, 1)
+                parameter_map[parameter].append((new_parameter, 1))
                 num_gradient_parameters += 1
         gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
-
     return GradientCircuit(gradient_circuit, parameter_map, gradient_parameter_map)
 
 
@@ -351,21 +345,23 @@ def _make_gradient_parameter_values(
     return g_parameter_values
 
 
-def _make_gradient_parameter_set(
+def _make_gradient_parameters(
     gradient_circuit: GradientCircuit,
-    parameter_set: set[Parameter],
-) -> set[Parameter]:
+    parameters: Sequence[Parameter],
+) -> Sequence[Parameter]:
     """Makes parameter set for the gradient circuit.
 
     Args:
         gradient_circuit: The gradient circuit
-        parameters: The parameters for the original circuit
+        parameters: The parameters in the original circuit to calculate gradients
 
     Returns:
-        The parameters for the gradient circuit.
+        The parameters in the gradient circuit to calculate gradients.
     """
-    return set(
+    g_parameters = [
         g_parameter
-        for parameter in parameter_set
+        for parameter in parameters
         for g_parameter, _ in gradient_circuit.parameter_map[parameter]
-    )
+    ]
+    # make g_parameters unique and return it.
+    return list(dict.fromkeys(g_parameters))

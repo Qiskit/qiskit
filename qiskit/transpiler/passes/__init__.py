@@ -59,6 +59,7 @@ Basis Change
    Decompose
    UnrollCustomDefinitions
    BasisTranslator
+   TranslateParameterizedGates
 
 Optimizations
 =============
@@ -171,9 +172,11 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
+   UnrollForLoops
 """
 
 # layout selection (placement)
@@ -205,6 +208,7 @@ from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import TranslateParameterizedGates
 
 # optimization
 from .optimization import Optimize1qGates
@@ -281,8 +285,10 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
+from .utils import UnrollForLoops

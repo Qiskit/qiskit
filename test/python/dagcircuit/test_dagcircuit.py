@@ -36,6 +36,7 @@ from qiskit.circuit.library.standard_gates.z import CZGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
+from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
@@ -288,7 +289,8 @@ class TestDagWireRemoval(QiskitTestCase):
         Args:
             cregs (Iterable(ClassicalRegister)): the classical registers to expect
             excluding (Set(ClassicalRegister)): classical registers to remove from
-            ``cregs`` before the comparison."""
+            ``cregs`` before the comparison.
+        """
         if excluding is None:
             excluding = set()
         self.assertEqual(
@@ -301,10 +303,11 @@ class TestDagWireRemoval(QiskitTestCase):
         Args:
             clbits (Iterable(Clbit)): the classical bits to expect
             excluding (Set(ClassicalRegister)): classical bits to remove from
-            ``clbits`` before the comparison."""
+            ``clbits`` before the comparison.
+        """
         if excluding is None:
             excluding = set()
-        self.assertEqual(self.dag.clbits, list(b for b in clbits if b not in excluding))
+        self.assertEqual(self.dag.clbits, [b for b in clbits if b not in excluding])
 
     def test_remove_idle_creg(self):
         """Removing an idle classical register removes just the register."""
@@ -736,6 +739,73 @@ class TestDagNodeSelection(QiskitTestCase):
             (isinstance(predecessor1, DAGInNode) and isinstance(predecessor2.op, Reset))
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
+
+    def test_classical_predecessors(self):
+        """The method dag.classical_predecessors() returns predecessors connected by classical edges"""
+
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        predecessor_measure = self.dag.classical_predecessors(self.dag.named_nodes("measure").pop())
+
+        predecessor1 = next(predecessor_measure)
+
+        with self.assertRaises(StopIteration):
+            next(predecessor_measure)
+
+        self.assertIsInstance(predecessor1, DAGInNode)
+        self.assertIsInstance(predecessor1.wire, Clbit)
+
+    def test_classical_successors(self):
+        """The method dag.classical_successors() returns successors connected by classical edges"""
+
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        successors_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
+
+        successors1 = next(successors_measure)
+        with self.assertRaises(StopIteration):
+            next(successors_measure)
+
+        self.assertIsInstance(successors1, DAGOutNode)
+        self.assertIsInstance(successors1.wire, Clbit)
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
@@ -1222,6 +1292,12 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_factors(self):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
+
+    def test_default_metadata_value(self):
+        """Test that the default DAGCircuit metadata is valid QuantumCircuit metadata."""
+        qc = QuantumCircuit(1)
+        qc.metadata = self.dag.metadata
+        self.assertEqual(qc.metadata, {})
 
 
 class TestCircuitControlFlowProperties(QiskitTestCase):
@@ -2129,6 +2205,121 @@ class TestConditional(QiskitTestCase):
                 ]
             ),
         )
+
+
+class TestSwapNodes(QiskitTestCase):
+    """Test Swapping connected nodes."""
+
+    def test_1q_swap_fully_connected(self):
+        """Test swapping single qubit gates"""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(1)
+        dag.add_qreg(qreg)
+        op_node0 = dag.apply_operation_back(RXGate(pi / 2), [qreg[0]], [])
+        op_node1 = dag.apply_operation_back(RXGate(pi), [qreg[0]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(RXGate(pi), [qreg[0]], [])
+        expected.apply_operation_back(RXGate(pi / 2), [qreg[0]], [])
+
+        self.assertEqual(dag, expected)
+
+    def test_2q_swap_fully_connected(self):
+        """test swaping full connected 2q gates"""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(2)
+        dag.add_qreg(qreg)
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[0, 1]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 0]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(CZGate(), qreg[[1, 0]], [])
+        expected.apply_operation_back(CXGate(), qreg[[0, 1]], [])
+
+        self.assertEqual(dag, expected)
+
+    def test_2q_swap_partially_connected(self):
+        """test swapping 2q partially connected gates"""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(3)
+        dag.add_qreg(qreg)
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        expected.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        self.assertEqual(dag, expected)
+
+    def test_4q_swap_partially_connected(self):
+        """test swapping 4q partially connected gates"""
+        from qiskit.circuit.library.standard_gates import C3XGate
+
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        dag.add_qreg(qreg)
+        op_node0 = dag.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 3]], [])
+        op_node1 = dag.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 4]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 4]], [])
+        expected.apply_operation_back(C3XGate(), qreg[[0, 1, 2, 3]], [])
+        self.assertEqual(dag, expected)
+
+    def test_2q_swap_non_connected_raises(self):
+        """test swapping 2q non-connected gates raises an exception"""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(4)
+        dag.add_qreg(qreg)
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[0, 2]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 3]], [])
+        self.assertRaises(DAGCircuitError, dag.swap_nodes, op_node0, op_node1)
+
+    def test_2q_swap_partially_connected_pre_spectators(self):
+        """test swapping 2q partially connected gates when in the presence of pre
+        spectator ops."""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(XGate(), qreg[[0]])
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(XGate(), qreg[[0]])
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        expected.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        self.assertEqual(dag, expected)
+
+    def test_2q_swap_partially_connected_prepost_spectators(self):
+        """test swapping 2q partially connected gates when in the presence of pre
+        and post spectator ops."""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        dag.add_qreg(qreg)
+        dag.apply_operation_back(XGate(), qreg[[0]])
+        op_node0 = dag.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        op_node1 = dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        dag.swap_nodes(op_node0, op_node1)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qreg)
+        expected.apply_operation_back(XGate(), qreg[[0]])
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        expected.apply_operation_back(CXGate(), qreg[[1, 0]], [])
+        expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
+        self.assertEqual(dag, expected)
 
 
 if __name__ == "__main__":

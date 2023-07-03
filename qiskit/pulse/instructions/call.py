@@ -18,6 +18,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Call(instruction.Instruction):
@@ -30,6 +31,11 @@ class Call(instruction.Instruction):
     # Prefix to use for auto naming.
     prefix = "call"
 
+    @deprecate_func(
+        since="0.25.0",
+        additional_msg="Instead, use the pulse builder function "
+        "qiskit.pulse.builder.call(subroutine) within an active building context.",
+    )
     def __init__(
         self,
         subroutine,
@@ -67,7 +73,7 @@ class Call(instruction.Instruction):
             assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine
-        self._assigned_cache = tuple((self._get_arg_hash(), assigned_subroutine))
+        self._assigned_cache = (self._get_arg_hash(), assigned_subroutine)
 
         super().__init__(operands=(subroutine,), name=name or f"{self.prefix}_{subroutine.name}")
 
@@ -81,7 +87,6 @@ class Call(instruction.Instruction):
         """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
 
-    # pylint: disable=missing-return-type-doc
     @property
     def subroutine(self):
         """Return attached subroutine.
@@ -106,7 +111,7 @@ class Call(instruction.Instruction):
         if self._get_arg_hash() != self._assigned_cache[0]:
             subroutine = self.subroutine.assign_parameters(value_dict=self.arguments, inplace=False)
             # update cache data
-            self._assigned_cache = tuple((self._get_arg_hash(), subroutine))
+            self._assigned_cache = (self._get_arg_hash(), subroutine)
         else:
             subroutine = self._assigned_cache[1]
 

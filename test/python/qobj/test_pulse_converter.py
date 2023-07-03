@@ -48,6 +48,7 @@ from qiskit.qobj.converters import (
     LoConfigConverter,
 )
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
@@ -399,6 +400,30 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertEqual(converted_instruction.start_time, shifted.start_time)
         self.assertEqual(converted_instruction.duration, shifted.duration)
         self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+
+    def test_instruction_name_collision(self):
+        """Avoid command name collision of pulse library items."""
+        pulse_library_from_backend_x = [
+            PulseLibraryItem(name="pulse123", samples=[0.1, 0.1, 0.1]),
+            PulseLibraryItem(name="pulse456", samples=[0.3, 0.3, 0.3]),
+        ]
+        converter_of_backend_x = QobjToInstructionConverter(pulse_library_from_backend_x, buffer=0)
+
+        pulse_library_from_backend_y = [PulseLibraryItem(name="pulse123", samples=[0.2, 0.2, 0.2])]
+        converter_of_backend_y = QobjToInstructionConverter(pulse_library_from_backend_y, buffer=0)
+
+        qobj1 = PulseQobjInstruction(name="pulse123", qubits=[0], t0=0, ch="d0")
+        qobj2 = PulseQobjInstruction(name="pulse456", qubits=[0], t0=0, ch="d0")
+
+        sched_out_x = converter_of_backend_x(qobj1)
+        sched_out_y = converter_of_backend_y(qobj1)
+
+        # pulse123 have different definition on backend-x and backend-y
+        self.assertNotEqual(sched_out_x, sched_out_y)
+
+        with self.assertRaises(QiskitError):
+            # This should not exist in backend-y command namespace.
+            converter_of_backend_y(qobj2)
 
 
 class TestLoConverter(QiskitTestCase):

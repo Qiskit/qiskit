@@ -18,7 +18,7 @@ from typing import List, Union
 from qiskit.circuit import Instruction as CircuitInst
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.pulse import Schedule, ScheduleBlock
-from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
+from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.transpiler.basepasses import TransformationPass
 
 from .exceptions import CalibrationNotAvailable
