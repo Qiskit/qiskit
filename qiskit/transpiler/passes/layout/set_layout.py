@@ -26,7 +26,8 @@ class SetLayout(AnalysisPass):
         """SetLayout initializer.
 
         Args:
-            layout (Layout or List[int] or Dict[int, int]): the layout to set or a list to reorder qubits.
+            layout (Layout or List[int] or Dict[int, int]): the layout to set or a list to
+            reorder qubits.
         """
         super().__init__()
         self.layout = layout
