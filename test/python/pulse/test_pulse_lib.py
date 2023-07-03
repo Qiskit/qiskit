@@ -446,13 +446,9 @@ class TestParametricPulses(QiskitTestCase):
         duration = 100
         amp = 0.5
         freq = 0.1
-        phase = 0
+        phase = 0.3
         square_pulse = Square(duration=duration, amp=amp, freq=freq, phase=phase)
-        square_waveform = square(duration=duration, amp=amp, freq=freq, phase=phase)
-        # According to square() documentation, the sign function used there differs
-        # than that of the symengine.There sign(0)=1 while for sympy\symengine sign(0)=0.
-        # Therefore, this test might fail for parameter choices where the trig function
-        # in Square() takes exactly the value of 0.
+        square_waveform = square(duration=duration, amp=amp, freq=freq, phase=phase / 2)
 
         np.testing.assert_almost_equal(square_pulse.get_waveform().samples, square_waveform.samples)
 

@@ -1797,13 +1797,13 @@ def Square(
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
     and :math:`\\text{sign}`
-    is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=0`.
+    is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=1`.
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
         amp: The magnitude of the amplitude of the square wave. Wave range is [-`amp`,`amp`].
         phase: The phase of the square wave (note that this is not equivalent to the angle of
-            the complex amplitude)
+            the complex amplitude).
         freq: The frequency of the square wave, in terms of 1 over sampling period.
             If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
             The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
@@ -1822,9 +1822,10 @@ def Square(
 
     # Prepare symbolic expressions
     _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    _x = _freq * _t + _phase / (2 * sym.pi)
 
     envelope_expr = (
-        _amp * sym.exp(sym.I * _angle) * sym.sign(sym.sin(2 * sym.pi * _freq * _t + _phase))
+        _amp * sym.exp(sym.I * _angle) * (2 * (2 * sym.floor(_x) - sym.floor(2 * _x)) + 1)
     )
 
     consts_expr = sym.And(_freq > 0, _freq < 0.5)

@@ -88,11 +88,8 @@ _sampled_square_pulse = samplers.midpoint(continuous.square)
     additional_msg="The discrete pulses library, including square() is pending deprecation."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Square(...).get_waveform()."
-    " Note that pulse.Square() does not support complex values for `amp`."
-    " Instead, use two float values for (`amp`, `angle`)."
-    " Also note that the underlying `sign` function used to"
-    " create the square wave is defined differently with sign(0)=1 in square()"
-    " and sign(0)=0 in Square().",
+    " Note that pulse.Square() does not support complex values for `amp`,"
+    " and that the phase is defined differently. See documentation.",
     pending=True,
 )
 def square(
