@@ -41,7 +41,7 @@ class TestRandomStatevector(QiskitTestCase):
         value = random_statevector(dim)
         self.assertIsInstance(value, Statevector)
         self.assertTrue(value.is_valid())
-        self.assertEqual(np.product(value.dims()), dim)
+        self.assertEqual(np.prod(value.dims()), dim)
 
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
@@ -79,7 +79,7 @@ class TestRandomDensityMatrix(QiskitTestCase):
         value = random_density_matrix(dim, method=method)
         self.assertIsInstance(value, DensityMatrix)
         self.assertTrue(value.is_valid())
-        self.assertEqual(np.product(value.dims()), dim)
+        self.assertEqual(np.prod(value.dims()), dim)
 
     @combine(method=["Hilbert-Schmidt", "Bures"])
     def test_fixed_seed(self, method):

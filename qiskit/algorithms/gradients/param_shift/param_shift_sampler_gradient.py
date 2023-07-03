@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Gradient of probabilities with linear combination of unitaries (LCU)
+Gradient of probabilities with parameter shift
 """
 
 from __future__ import annotations
@@ -19,60 +19,40 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.primitives import BaseSampler
-from qiskit.primitives.utils import _circuit_key
-from qiskit.providers import Options
 
-from .base_sampler_gradient import BaseSamplerGradient
-from .sampler_gradient_result import SamplerGradientResult
-from .utils import _make_lin_comb_gradient_circuit
+from ..base.base_sampler_gradient import BaseSamplerGradient
+from ..base.sampler_gradient_result import SamplerGradientResult
+from ..utils import _make_param_shift_parameter_values
 
-from ..exceptions import AlgorithmError
+from ...exceptions import AlgorithmError
 
 
-class LinCombSamplerGradient(BaseSamplerGradient):
-    """Compute the gradients of the sampling probability.
-    This method employs a linear combination of unitaries [1].
+class ParamShiftSamplerGradient(BaseSamplerGradient):
+    """
+    Compute the gradients of the sampling probability by the parameter shift rule [1].
 
     **Reference:**
-    [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
-    `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
+    [1] Schuld, M., Bergholm, V., Gogolin, C., Izaac, J., and Killoran, N. Evaluating analytic
+    gradients on quantum hardware, `DOI <https://doi.org/10.1103/PhysRevA.99.032331>`_
     """
 
     SUPPORTED_GATES = [
-        "rx",
-        "ry",
-        "rz",
-        "rzx",
-        "rzz",
-        "ryy",
-        "rxx",
-        "cx",
-        "cy",
-        "cz",
-        "ccx",
-        "swap",
-        "iswap",
-        "h",
-        "t",
-        "s",
-        "sdg",
         "x",
         "y",
         "z",
+        "h",
+        "rx",
+        "ry",
+        "rz",
+        "p",
+        "cx",
+        "cy",
+        "cz",
+        "ryy",
+        "rxx",
+        "rzz",
+        "rzx",
     ]
-
-    def __init__(self, sampler: BaseSampler, options: Options | None = None):
-        """
-        Args:
-            sampler: The sampler used to compute the gradients.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
-        """
-        self._lin_comb_cache: dict[tuple, dict[Parameter, QuantumCircuit]] = {}
-        super().__init__(sampler, options)
 
     def _run(
         self,
@@ -99,23 +79,15 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         job_circuits, job_param_values, metadata = [], [], []
         all_n = []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            # Prepare circuits for the gradient of the specified parameters.
             metadata.append({"parameters": parameters_})
-            circuit_key = _circuit_key(circuit)
-            if circuit_key not in self._lin_comb_cache:
-                # Cache the circuits for the linear combination of unitaries.
-                # We only cache the circuits for the specified parameters in the future.
-                self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(
-                    circuit, add_measurement=True
-                )
-            lin_comb_circuits = self._lin_comb_cache[circuit_key]
-            gradient_circuits = []
-            for param in parameters_:
-                gradient_circuits.append(lin_comb_circuits[param])
+            # Make parameter values for the parameter shift rule.
+            param_shift_parameter_values = _make_param_shift_parameter_values(
+                circuit, parameter_values_, parameters_
+            )
             # Combine inputs into a single job to reduce overhead.
-            n = len(gradient_circuits)
-            job_circuits.extend(gradient_circuits)
-            job_param_values.extend([parameter_values_] * n)
+            n = len(param_shift_parameter_values)
+            job_circuits.extend([circuit] * n)
+            job_param_values.extend(param_shift_parameter_values)
             all_n.append(n)
 
         # Run the single job with all circuits.
@@ -123,22 +95,20 @@ class LinCombSamplerGradient(BaseSamplerGradient):
         try:
             results = job.result()
         except Exception as exc:
-            raise AlgorithmError("Sampler job failed.") from exc
+            raise AlgorithmError("Estimator job failed.") from exc
 
         # Compute the gradients.
         gradients = []
         partial_sum_n = 0
-        for i, n in enumerate(all_n):
+        for n in all_n:
             gradient = []
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
-            m = 2 ** circuits[i].num_qubits
-            for dist in result:
+            for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
                 grad_dist: dict[int, float] = defaultdict(float)
-                for key, value in dist.items():
-                    if key < m:
-                        grad_dist[key] += value
-                    else:
-                        grad_dist[key - m] -= value
+                for key, val in dist_plus.items():
+                    grad_dist[key] += val / 2
+                for key, val in dist_minus.items():
+                    grad_dist[key] -= val / 2
                 gradient.append(dict(grad_dist))
             gradients.append(gradient)
             partial_sum_n += n
