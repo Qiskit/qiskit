@@ -18,7 +18,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import SetLayout, ApplyLayout, FullAncillaAllocation
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, TranspilerError
 
 
 class TestSetLayout(QiskitTestCase):
@@ -94,6 +94,20 @@ class TestSetLayout(QiskitTestCase):
         result = pass_manager.run(circuit)
 
         self.assertEqualToReference(result)
+
+    def test_raise_when_layout_len_does_not_match(self):
+        """Test error is raised if layout defined as list does not match the circuit size."""
+
+        qr = QuantumRegister(42, "q")
+        circuit = QuantumCircuit(qr)
+
+        pass_manager = PassManager()
+        pass_manager.append(SetLayout([0, 1, 3, 5, 2, 6]))
+        pass_manager.append(FullAncillaAllocation(CouplingMap.from_line(7)))
+        pass_manager.append(ApplyLayout())
+
+        with self.assertRaises(TranspilerError):
+            pass_manager.run(circuit)
 
 
 if __name__ == "__main__":
