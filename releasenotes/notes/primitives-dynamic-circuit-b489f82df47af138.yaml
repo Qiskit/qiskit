@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    :class:`.BackendEstimator` supports dynamic circuits if the backend supports it.
