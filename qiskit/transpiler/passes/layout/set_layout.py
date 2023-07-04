@@ -30,7 +30,7 @@ class SetLayout(AnalysisPass):
 
                 * a :class:`Layout` instance: sets that layout.
                 * a list of integers: takes the index in the list as the physical position in which the
-                                      virtual qubit is going to be mapped.
+                virtual qubit is going to be mapped.
 
         """
         super().__init__()
