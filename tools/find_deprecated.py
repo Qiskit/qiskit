@@ -147,12 +147,14 @@ if __name__ == "__main__":
     DATA_JSON = LAST_TIME_MINOR = DETAILS = None
     try:
         DATA_JSON = requests.get("https://pypi.org/pypi/qiskit-terra/json", timeout=5).json()
+    except requests.exceptions.ConnectionError:
+        print("https://pypi.org/pypi/qiskit-terra/json timeout...", file=sys.stderr)
+
+    if DATA_JSON:
         LAST_MINOR = ".".join(DATA_JSON["info"]["version"].split(".")[:2])
         LAST_TIME_MINOR = datetime.fromisoformat(
             DATA_JSON["releases"][f"{LAST_MINOR}.0"][0]["upload_time"]
         )
-    except requests.exceptions.ConnectionError:
-        print("https://pypi.org/pypi/qiskit-terra/json timeout...", file=sys.stderr)
 
     for since_version, deprecations in collection.grouped.items():
         if DATA_JSON and LAST_TIME_MINOR:
