@@ -133,8 +133,7 @@ class DeprecationCollection:
     @staticmethod
     def find_deprecations(file_name: Path) -> list[Deprecation]:
         """Runs the deprecation finder on file_name"""
-        with open(file_name, encoding="utf-8") as fp:
-            code = fp.read()
+        code = Path(file_name).read_text()
         mod = ast.parse(code, file_name)
         decorator_visitor = DecoratorVisitor(file_name)
         decorator_visitor.visit(mod)
