@@ -372,7 +372,7 @@ class TestBackendEstimator(QiskitTestCase):
             qc.measure(1, 0)
             qc.break_loop().c_if(0, True)
 
-        observable = SparsePauliOp("Z")
+        observable = SparsePauliOp("IZ")
 
         backend = Aer.get_backend("aer_simulator")
         backend.set_options(seed_simulator=15)
