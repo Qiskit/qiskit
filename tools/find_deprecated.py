@@ -143,7 +143,6 @@ class DeprecationCollection:
 
 if __name__ == "__main__":
     collection = DeprecationCollection(Path(__file__).joinpath("..", "..", "qiskit").resolve())
-    # collection.collect_deprecations()
     collection.group_by("since")
 
     DATA_JSON = LAST_TIME_MINOR = DETAILS = None
