@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes initiation of ``DiagonalGate``. Refer to
+    `#10364 <https://github.com/Qiskit/qiskit-terra/issues/10364>` for more
+    details.
