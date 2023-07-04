@@ -18,6 +18,7 @@ from pathlib import Path
 from collections import OrderedDict, defaultdict
 import ast
 from datetime import datetime
+import sys
 import requests
 
 
@@ -153,7 +154,7 @@ if __name__ == "__main__":
             DATA_JSON["releases"][f"{LAST_MINOR}.0"][0]["upload_time"]
         )
     except requests.exceptions.ConnectionError:
-        print("https://pypi.org/pypi/qiskit-terra/json timeout...")
+        print("https://pypi.org/pypi/qiskit-terra/json timeout...", file=sys.stderr)
 
     for since_version, deprecations in collection.grouped.items():
         if DATA_JSON and LAST_TIME_MINOR:
