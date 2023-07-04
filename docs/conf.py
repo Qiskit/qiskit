@@ -68,7 +68,7 @@ intersphinx_mapping = {
     "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
     "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None)
+    "numpy": ("https://numpy.org/doc/stable/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -112,6 +112,8 @@ autosummary_filename_map = {
     "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
     "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
     "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
+    "qiskit.pulse.library.Square": "qiskit.pulse.library.Square_fun.rst",
+    "qiskit.pulse.library.Sech": "qiskit.pulse.library.Sech_fun.rst",
 }
 
 autoclass_content = "both"
@@ -119,7 +121,12 @@ autoclass_content = "both"
 
 # -- Options for Doctest --------------------------------------------------------
 
-doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1
+doctest_default_flags = (
+    doctest.ELLIPSIS
+    | doctest.NORMALIZE_WHITESPACE
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.DONT_ACCEPT_TRUE_FOR_1
+)
 
 # Leaving this string empty disables testing of doctest blocks from docstrings.
 # Doctest blocks are structures like this one:
