@@ -27,9 +27,11 @@ class SetLayout(AnalysisPass):
 
         Args:
             layout (Layout or List[int] or Dict[int, int]): the layout to set. It can be:
-                * a :class:`Layout` instance: sets that layout
+
+                * a :class:`Layout` instance: sets that layout.
                 * a list of integers: takes the index in the list as the physical position in which the
-                                      virtual qubit is going to be mapped
+                                      virtual qubit is going to be mapped.
+
         """
         super().__init__()
         self.layout = layout
