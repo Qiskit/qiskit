@@ -17,6 +17,8 @@ Circuit Synthesis (:mod:`qiskit.synthesis`)
 
 .. currentmodule:: qiskit.synthesis
 
+.. _evolution_synthesis:
+
 Evolution Synthesis
 ===================
 
@@ -78,6 +80,15 @@ CNOTDihedral Synthesis
    synth_cnotdihedral_two_qubits
    synth_cnotdihedral_general
 
+Stabilizer State Synthesis
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_stabilizer_layers
+   synth_stabilizer_depth_lnn
+
 Discrete Basis Synthesis
 ========================
 
@@ -107,7 +118,7 @@ from .linear import (
     synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
 )
-from .linear_phase import synth_cz_depth_line_mr
+from .linear_phase import synth_cz_depth_line_mr, synth_cnot_phase_aam
 from .clifford import (
     synth_clifford_full,
     synth_clifford_ag,
@@ -121,4 +132,5 @@ from .cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
+from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations

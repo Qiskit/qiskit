@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,13 +27,18 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.utils import commutator
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
 class TaperedPauliSumOp(PauliSumOp):
-    """Class for PauliSumOp after tapering"""
+    """Deprecated: Class for PauliSumOp after tapering"""
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: SparsePauliOp,
@@ -81,8 +86,12 @@ class TaperedPauliSumOp(PauliSumOp):
 
 
 class Z2Symmetries:
-    """Z2 Symmetries"""
+    """Deprecated: Z2 Symmetries"""
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         symmetries: List[Pauli],

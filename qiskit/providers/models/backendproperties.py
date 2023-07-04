@@ -298,7 +298,7 @@ class BackendProperties:
             result = self._gates[gate]
             if qubits is not None:
                 if isinstance(qubits, int):
-                    qubits = tuple([qubits])
+                    qubits = (qubits,)
                 result = result[tuple(qubits)]
                 if name:
                     result = result[name]

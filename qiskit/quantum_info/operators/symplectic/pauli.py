@@ -12,7 +12,6 @@
 """
 N-qubit Pauli Operator Class
 """
-# pylint: disable=invalid-name
 
 import re
 import warnings
@@ -148,7 +147,8 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
-    _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
+    _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
+    _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
@@ -491,7 +491,6 @@ class Pauli(BasePauli):
             other = Pauli(other)
         return Pauli(super().compose(other, qargs=qargs, front=front, inplace=inplace))
 
-    # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
         """Return the right multiplied operator self * other.
 
@@ -568,20 +567,25 @@ class Pauli(BasePauli):
         return np.logical_not(self.commutes(other, qargs=qargs))
 
     def evolve(self, other, qargs=None, frame="h"):
-        r"""Heisenberg picture evolution of a Pauli by a Clifford.
+        r"""Performs either Heisenberg (default) or Schrödinger picture
+        evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
-        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
+        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``.
+        This option yields a faster calculation.
 
-        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
-        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+        Heisenberg picture evolves the Pauli as :math:`P^\prime = C^\dagger.P.C`.
+
+        Schrödinger picture evolves the Pauli as :math:`P^\prime = C.P.C^\dagger`.
 
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for
+            Schrödinger framework.
 
         Returns:
-            Pauli: the Pauli :math:`C^\dagger.P.C`.
+            Pauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
+            or the Pauli :math:`C.P.C^\dagger` (Schrödinger picture).
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
@@ -615,17 +619,15 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: if Pauli string is not valid.
         """
-        if Pauli._VALID_LABEL_PATTERN.match(label) is None:
+        match_ = Pauli._VALID_LABEL_PATTERN.fullmatch(label)
+        if match_ is None:
             raise QiskitError(f'Pauli string label "{label}" is not valid.')
-
-        # Split string into coefficient and Pauli
-        pauli, coeff = _split_pauli_label(label)
-
-        # Convert coefficient to phase
-        phase = 0 if not coeff else _phase_from_label(coeff)
+        phase = Pauli._CANONICAL_PHASE_LABEL[
+            (match_["coeff"] or "").replace("1", "").replace("+", "").replace("j", "i")
+        ]
 
         # Convert to Symplectic representation
-        pauli_bytes = np.frombuffer(pauli.encode("ascii"), dtype=np.uint8)[::-1]
+        pauli_bytes = np.frombuffer(match_["pauli"].encode("ascii"), dtype=np.uint8)[::-1]
         ys = pauli_bytes == ord("Y")
         base_x = np.logical_or(pauli_bytes == ord("X"), ys).reshape(1, -1)
         base_z = np.logical_or(pauli_bytes == ord("Z"), ys).reshape(1, -1)
@@ -698,34 +700,6 @@ class Pauli(BasePauli):
                     qargs = [tup.index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
-
-
-# ---------------------------------------------------------------------
-# Label parsing helper functions
-# ---------------------------------------------------------------------
-
-
-def _split_pauli_label(label):
-    """Split Pauli label into unsigned group label and coefficient label"""
-    span = re.search(r"[IXYZ]+", label).span()
-    pauli = label[span[0] :]
-    coeff = label[: span[0]]
-    if span[1] != len(label):
-        invalid = set(re.sub(r"[IXYZ]+", "", label[span[0] :]))
-        raise QiskitError(
-            f"Pauli string contains invalid characters {invalid} ∉ ['I', 'X', 'Y', 'Z']"
-        )
-    return pauli, coeff
-
-
-def _phase_from_label(label):
-    """Return the phase from a label"""
-    # Returns None if label is invalid
-    label = label.replace("+", "", 1).replace("1", "", 1).replace("j", "i", 1)
-    phases = {"": 0, "-i": 1, "-": 2, "i": 3}
-    if label not in phases:
-        raise QiskitError(f"Invalid Pauli phase label '{label}'")
-    return phases[label]
 
 
 # Update docstrings for API docs

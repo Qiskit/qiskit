@@ -77,7 +77,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
 )
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
-import qiskit.quantum_info.synthesis.qsd as qsd
+from qiskit.quantum_info.synthesis import qsd
 from qiskit.test import QiskitTestCase
 
 
@@ -590,6 +590,44 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsxx).data))
+
+    def test_float_input_angles_and_phase(self):
+        """Test angles and phase with float input."""
+        decomposer = OneQubitEulerDecomposer("PSX")
+        input_matrix = np.array(
+            [
+                [0.70710678, 0.70710678],
+                [0.70710678, -0.70710678],
+            ],
+            dtype=np.float64,
+        )
+        (theta, phi, lam, gamma) = decomposer.angles_and_phase(input_matrix)
+        expected_theta = 1.5707963267948966
+        expected_phi = 0.0
+        expected_lam = 3.141592653589793
+        expected_gamma = -0.7853981633974483
+        self.assertAlmostEqual(theta, expected_theta)
+        self.assertAlmostEqual(phi, expected_phi)
+        self.assertAlmostEqual(lam, expected_lam)
+        self.assertAlmostEqual(gamma, expected_gamma)
+
+    def test_float_input_angles(self):
+        """Test angles with float input."""
+        decomposer = OneQubitEulerDecomposer("PSX")
+        input_matrix = np.array(
+            [
+                [0.70710678, 0.70710678],
+                [0.70710678, -0.70710678],
+            ],
+            dtype=np.float64,
+        )
+        (theta, phi, lam) = decomposer.angles(input_matrix)
+        expected_theta = 1.5707963267948966
+        expected_phi = 0.0
+        expected_lam = 3.141592653589793
+        self.assertAlmostEqual(theta, expected_theta)
+        self.assertAlmostEqual(phi, expected_phi)
+        self.assertAlmostEqual(lam, expected_lam)
 
 
 # FIXME: streamline the set of test cases

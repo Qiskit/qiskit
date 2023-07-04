@@ -5,12 +5,15 @@ on:
     branches: ['main', 'stable/*']
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
-  cancel-in-progress: true
+  # Only cancel in PR mode.  In push mode, don't cancel so we don't see spurious test "failures".
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   neko:
+    if: github.repository_owner == 'Qiskit'
     name: Qiskit Neko Integration Tests
     runs-on: ubuntu-latest
     steps:
       - uses: Qiskit/qiskit-neko@main
         with:
           test_selection: terra
+          repo_install_command: "pip install -c constraints.txt ."

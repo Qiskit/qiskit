@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed :meth:`~.QuantumCircuit.qasm` so that it appends ``;`` after ``reset`` instruction.

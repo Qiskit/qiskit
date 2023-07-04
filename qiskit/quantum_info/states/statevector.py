@@ -360,7 +360,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """Evolve a quantum state by the operator.
 
         Args:
-            other (Operator): The operator to evolve by.
+            other (Operator | QuantumCircuit | circuit.Instruction): The operator to evolve by.
             qargs (list): a list of Statevector subsystem positions to apply
                            the operator on.
 
@@ -476,6 +476,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         x_max = qubits[pauli.x][-1]
         y_phase = (-1j) ** pauli._count_y()
+        y_phase = y_phase[0]
 
         return pauli_phase * expval_pauli_with_x(
             self.data, self.num_qubits, z_mask, x_mask, y_phase, x_max
@@ -575,8 +576,13 @@ class Statevector(QuantumState, TolerancesMixin):
         probs = self._subsystem_probabilities(
             np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs
         )
+
+        # to account for roundoff errors, we clip
+        probs = np.clip(probs, a_min=0, a_max=1)
+
         if decimals is not None:
             probs = probs.round(decimals=decimals)
+
         return probs
 
     def reset(self, qargs=None):
@@ -717,7 +723,7 @@ class Statevector(QuantumState, TolerancesMixin):
               as an N-qubit state. If it is not a power of  two the state
               will have a single d-dimensional subsystem.
         """
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros(size, dtype=complex)
         state[i] = 1.0
         return Statevector(state, dims=dims)

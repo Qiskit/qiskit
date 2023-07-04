@@ -23,7 +23,6 @@ from qiskit.transpiler.passes import CommutativeInverseCancellation
 
 
 class TestCommutativeInverseCancellation(QiskitTestCase):
-
     """Test the CommutativeInverseCancellation pass."""
 
     # The first suite of tests is adapted from CommutativeCancellation,

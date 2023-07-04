@@ -17,74 +17,94 @@ Gradients (:mod:`qiskit.algorithms.gradients`)
 
 .. currentmodule:: qiskit.algorithms.gradients
 
-
-Estimator Gradients
-===================
+Base Classes
+============
 
 .. autosummary::
    :toctree: ../stubs/
 
    BaseEstimatorGradient
-   DerivativeType
-   FiniteDiffEstimatorGradient
-   LinCombEstimatorGradient
-   ParamShiftEstimatorGradient
-   SPSAEstimatorGradient
-   ReverseEstimatorGradient
+   BaseQGT
+   BaseSamplerGradient
+   EstimatorGradientResult
+   SamplerGradientResult
+   QGTResult
 
-Sampler Gradients
+Finite Differences
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FiniteDiffEstimatorGradient
+   FiniteDiffSamplerGradient
+
+Linear Combination of Unitaries
+===============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinCombEstimatorGradient
+   LinCombSamplerGradient
+   LinCombQGT
+
+Parameter Shift Rules
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ParamShiftEstimatorGradient
+   ParamShiftSamplerGradient
+
+Quantum Fisher Information
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFIResult
+   QFI
+
+Classical Methods
 =================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseSamplerGradient
-   FiniteDiffSamplerGradient
-   LinCombSamplerGradient
-   ParamShiftSamplerGradient
-   SPSASamplerGradient
-
-Quantum Geometric Tensor
-========================
-.. autosummary::
-   :toctree: ../stubs/
-
-   BaseQGT
-   LinCombQGT
-   QFI
+   ReverseEstimatorGradient
    ReverseQGT
 
-Results
-=======
+Simultaneous Perturbation Stochastic Approximation
+==================================================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   EstimatorGradientResult
-   QFIResult
-   QGTResult
-   SamplerGradientResult
+   SPSAEstimatorGradient
+   SPSASamplerGradient
 """
 
-from .base_estimator_gradient import BaseEstimatorGradient
-from .base_qgt import BaseQGT
-from .base_sampler_gradient import BaseSamplerGradient
-from .estimator_gradient_result import EstimatorGradientResult
-from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
-from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
-from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .lin_comb_qgt import LinCombQGT
-from .lin_comb_sampler_gradient import LinCombSamplerGradient
-from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
-from .param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .base.base_estimator_gradient import BaseEstimatorGradient
+from .base.base_qgt import BaseQGT
+from .base.base_sampler_gradient import BaseSamplerGradient
+from .base.estimator_gradient_result import EstimatorGradientResult
+from .finite_diff.finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
+from .finite_diff.finite_diff_sampler_gradient import FiniteDiffSamplerGradient
+from .lin_comb.lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
+from .lin_comb.lin_comb_qgt import LinCombQGT
+from .lin_comb.lin_comb_sampler_gradient import LinCombSamplerGradient
+from .param_shift.param_shift_estimator_gradient import ParamShiftEstimatorGradient
+from .param_shift.param_shift_sampler_gradient import ParamShiftSamplerGradient
 from .qfi import QFI
 from .qfi_result import QFIResult
-from .qgt_result import QGTResult
-from .sampler_gradient_result import SamplerGradientResult
-from .spsa_estimator_gradient import SPSAEstimatorGradient
-from .spsa_sampler_gradient import SPSASamplerGradient
-from .reverse_gradient.reverse_gradient import ReverseEstimatorGradient
-from .reverse_gradient.reverse_qgt import ReverseQGT
+from .base.qgt_result import QGTResult
+from .base.sampler_gradient_result import SamplerGradientResult
+from .spsa.spsa_estimator_gradient import SPSAEstimatorGradient
+from .spsa.spsa_sampler_gradient import SPSASamplerGradient
+from .reverse.reverse_gradient import ReverseEstimatorGradient
+from .reverse.reverse_qgt import ReverseQGT
 
 __all__ = [
     "BaseEstimatorGradient",

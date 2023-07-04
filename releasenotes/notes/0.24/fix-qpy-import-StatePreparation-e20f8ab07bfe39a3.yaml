@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    QPY (using :func:`.qpy.load`) will now correctly deserialize :class:`~.StatePreparation`
+    instructions. Previously, QPY would error when attempting to load a file containing one.
+    Fixed `#8297 <https://github.com/Qiskit/qiskit-terra/issues/8297>`__.
