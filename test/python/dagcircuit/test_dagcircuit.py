@@ -1872,6 +1872,103 @@ class TestDagSubstitute(QiskitTestCase):
 
         self.assertEqual(self.dag, expected)
 
+    def test_substitute_dag_if_else_expr(self):
+        """Test that an `IfElseOp` with an `Expr` condition can be substituted for a DAG that
+        contains an `IfElseOp` with an `Expr` condition."""
+
+        body_rep = QuantumCircuit(1)
+        body_rep.z(0)
+
+        q_rep = QuantumRegister(1)
+        c_rep = ClassicalRegister(2)
+        replacement = DAGCircuit()
+        replacement.add_qreg(q_rep)
+        replacement.add_creg(c_rep)
+        replacement.apply_operation_back(XGate(), [q_rep[0]], [])
+        replacement.apply_operation_back(
+            IfElseOp(expr.logic_not(expr.bit_and(c_rep, 1)), body_rep, None), [q_rep[0]], []
+        )
+
+        true_src = QuantumCircuit(1)
+        true_src.x(0)
+        true_src.z(0)
+        false_src = QuantumCircuit(1)
+        false_src.x(0)
+        q_src = QuantumRegister(4)
+        c1_src = ClassicalRegister(2)
+        c2_src = ClassicalRegister(2)
+        src = DAGCircuit()
+        src.add_qreg(q_src)
+        src.add_creg(c1_src)
+        src.add_creg(c2_src)
+        node = src.apply_operation_back(
+            IfElseOp(expr.logic_not(expr.bit_and(c1_src, 1)), true_src, false_src), [q_src[2]], []
+        )
+
+        wires = {q_rep[0]: q_src[2], c_rep[0]: c1_src[0], c_rep[1]: c1_src[1]}
+        src.substitute_node_with_dag(node, replacement, wires=wires)
+
+        expected = DAGCircuit()
+        expected.add_qreg(q_src)
+        expected.add_creg(c1_src)
+        expected.add_creg(c2_src)
+        expected.apply_operation_back(XGate(), [q_src[2]], [])
+        expected.apply_operation_back(
+            IfElseOp(expr.logic_not(expr.bit_and(c1_src, 1)), body_rep, None), [q_src[2]], []
+        )
+
+        self.assertEqual(src, expected)
+
+    def test_substitute_dag_switch_expr(self):
+        """Test that a `SwitchCaseOp` with an `Expr` target can be substituted for a DAG that
+        contains another `SwitchCaseOp` with an `Expr` target."""
+
+        case_rep = QuantumCircuit(1)
+        case_rep.z(0)
+
+        q_rep = QuantumRegister(1)
+        c_rep = ClassicalRegister(2)
+        replacement = DAGCircuit()
+        replacement.add_qreg(q_rep)
+        replacement.add_creg(c_rep)
+        replacement.apply_operation_back(XGate(), [q_rep[0]], [])
+        # This could logically be an `IfElseOp`, but the point is just to test the `target`.
+        replacement.apply_operation_back(
+            SwitchCaseOp(expr.equal(c_rep[0], c_rep[1]), [(True, case_rep)]), [q_rep[0]], []
+        )
+
+        same_src = QuantumCircuit(1)
+        same_src.x(0)
+        same_src.z(0)
+        diff_src = QuantumCircuit(1)
+        diff_src.x(0)
+        q_src = QuantumRegister(4)
+        c1_src = ClassicalRegister(2)
+        c2_src = ClassicalRegister(2)
+        src = DAGCircuit()
+        src.add_qreg(q_src)
+        src.add_creg(c1_src)
+        src.add_creg(c2_src)
+        node = src.apply_operation_back(
+            SwitchCaseOp(expr.lift(c1_src), [((1, 2), diff_src), ((0, 3), same_src)]),
+            [q_src[2]],
+            [],
+        )
+
+        wires = {q_rep[0]: q_src[2], c_rep[0]: c1_src[0], c_rep[1]: c1_src[1]}
+        src.substitute_node_with_dag(node, replacement, wires=wires)
+
+        expected = DAGCircuit()
+        expected.add_qreg(q_src)
+        expected.add_creg(c1_src)
+        expected.add_creg(c2_src)
+        expected.apply_operation_back(XGate(), [q_src[2]], [])
+        node = expected.apply_operation_back(
+            SwitchCaseOp(expr.equal(c1_src[0], c1_src[1]), [(True, case_rep)]), [q_src[2]], []
+        )
+
+        self.assertEqual(src, expected)
+
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
