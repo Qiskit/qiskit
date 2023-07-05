@@ -1070,12 +1070,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         cr = ClassicalRegister(3, "cr")
         circuit = QuantumCircuit(qr, cr)
 
+        a = Parameter("a")
         circuit.h(0)
         circuit.measure(0, 2)
-        with circuit.for_loop((2, 4, 8, 16)) as i:
+        with circuit.for_loop((2, 4, 8, 16), loop_parameter=a):
             circuit.h(0)
             circuit.cx(0, 1)
-            circuit.rx(pi / i, 1)
+            circuit.rx(pi / a, 1)
             circuit.measure(0, 0)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
