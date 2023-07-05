@@ -1269,6 +1269,72 @@ def gaussian_square_echo(
     return instance
 
 
+def GaussianDeriv(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    sigma: Union[float, ParameterExpression],
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """An unnormalized Gaussian derivative pulse.
+
+    The Gaussian function is centered around the halfway point of the pulse,
+    and the envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) = -\\text{A}\\frac{x-\\mu}{\\text{sigma}^{2}}\\exp
+            \\left[-\\left(\\frac{x-\\mu}{2\\text{sigma}}\\right)^{2}\\right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\mu=\\text{duration}/2`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the pulse
+            (the value of the corresponding Gaussian at the midpoint `duration`/2).
+        sigma: A measure of how wide or narrow the corresponding Gaussian peak is in terms of `dt`;
+            described mathematically in the class docstring.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    parameters = {"sigma": sigma}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _sigma = sym.symbols("t, duration, amp, angle, sigma")
+    envelope_expr = (
+        -_amp
+        * sym.exp(sym.I * _angle)
+        * ((_t - (_duration / 2)) / _sigma**2)
+        * sym.exp(-(1 / 2) * ((_t - (_duration / 2)) / _sigma) ** 2)
+    )
+    consts_expr = _sigma > 0
+    valid_amp_conditions_expr = sym.Abs(_amp / _sigma) <= sym.exp(1 / 2)
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="GaussianDeriv",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
 class Drag(metaclass=_PulseType):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
@@ -1649,7 +1715,7 @@ def Triangle(
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
 ) -> ScalableSymbolicPulse:
-    """A triangle pulse.
+    """A triangle wave pulse.
 
     The envelope of the pulse is given by:
 
@@ -1696,6 +1762,224 @@ def Triangle(
 
     instance = ScalableSymbolicPulse(
         pulse_type="Triangle",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Square(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A square wave pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) = \\text{A}\\text{sign}\\left[\\sin
+            \\left(2\\pi x\\times\\text{freq}+\\text{phase}\\right)\\right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\text{sign}`
+    is the sign function with the convention :math:`\\text{sign}\\left(0\\right)=1`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the square wave. Wave range is [-`amp`,`amp`].
+        phase: The phase of the square wave (note that this is not equivalent to the angle of
+            the complex amplitude).
+        freq: The frequency of the square wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1 / duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    _x = _freq * _t + _phase / (2 * sym.pi)
+
+    envelope_expr = (
+        _amp * sym.exp(sym.I * _angle) * (2 * (2 * sym.floor(_x) - sym.floor(2 * _x)) + 1)
+    )
+
+    consts_expr = sym.And(_freq > 0, _freq < 0.5)
+
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Square",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Sech(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    sigma: Union[float, ParameterExpression],
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    zero_ends: Optional[bool] = True,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """An unnormalized sech pulse.
+
+    The sech function is centered around the halfway point of the pulse,
+    and the envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) = \\text{A}\\text{sech}\\left(
+            \\frac{x-\\mu}{\\text{sigma}}\\right)  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\mu=\\text{duration}/2`.
+
+    If `zero_ends` is set to `True`, the output `y` is modified:
+    .. math::
+
+        y\\left(x\\right) \\mapsto \\text{A}\\frac{y-y^{*}}{\\text{A}-y^{*}},
+
+    where :math:`y^{*}` is the value of :math:`y` at the endpoints (at :math:`x=-1
+    and :math:`x=\\text{duration}+1`). This shifts the endpoints value to zero, while also
+    rescaling to preserve the amplitude at `:math:`\\text{duration}/2``.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the pulse (the value at the midpoint `duration`/2).
+        sigma: A measure of how wide or narrow the sech peak is in terms of `dt`;
+            described mathematically in the class docstring.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        zero_ends: If True, zeros the ends at x = -1, x = `duration` + 1,
+            but rescales to preserve `amp`. Default value True.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    parameters = {"sigma": sigma}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _sigma = sym.symbols("t, duration, amp, angle, sigma")
+    complex_amp = _amp * sym.exp(sym.I * _angle)
+    envelope_expr = complex_amp * sym.sech((_t - (_duration / 2)) / _sigma)
+
+    if zero_ends:
+        shift_val = complex_amp * sym.sech((-1 - (_duration / 2)) / _sigma)
+        envelope_expr = complex_amp * (envelope_expr - shift_val) / (complex_amp - shift_val)
+
+    consts_expr = _sigma > 0
+
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Sech",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def SechDeriv(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    sigma: Union[float, ParameterExpression],
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """An unnormalized sech derivative pulse.
+
+    The sech function is centered around the halfway point of the pulse, and the envelope of the
+    pulse is given by:
+
+    .. math::
+
+        f(x) = \\text{A}\\frac{d}{dx}\\left[\\text{sech}
+            \\left(\\frac{x-\\mu}{\\text{sigma}}\\right)\\right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    :math:`\\mu=\\text{duration}/2`, and :math:`d/dx` is a derivative with respect to `x`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the pulse (the value of the corresponding sech
+            function at the midpoint `duration`/2).
+        sigma: A measure of how wide or narrow the corresponding sech peak is, in terms of `dt`;
+            described mathematically in the class docstring.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    parameters = {"sigma": sigma}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _sigma = sym.symbols("t, duration, amp, angle, sigma")
+    time_argument = (_t - (_duration / 2)) / _sigma
+    sech_deriv = -sym.tanh(time_argument) * sym.sech(time_argument) / _sigma
+
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * sech_deriv
+
+    consts_expr = _sigma > 0
+
+    valid_amp_conditions_expr = sym.Abs(_amp) / _sigma <= 2.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="SechDeriv",
         duration=duration,
         amp=amp,
         angle=angle,
