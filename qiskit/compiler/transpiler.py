@@ -211,10 +211,10 @@ def transpile(
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
 
-                * 0: no optimization
-                * 1: light optimization
-                * 2: heavy optimization
-                * 3: even heavier optimization
+            * 0: no optimization
+            * 1: light optimization
+            * 2: heavy optimization
+            * 3: even heavier optimization
 
             If ``None``, level 1 will be chosen as default.
         callback: A callback function that will be called after each

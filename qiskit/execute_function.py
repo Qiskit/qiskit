@@ -149,10 +149,10 @@ def execute(
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
 
-                * No optimization
-                * Light optimization
-                * Heavy optimization
-                * Highest optimization
+            * 0: no optimization
+            * 1: light optimization
+            * 2: heavy optimization
+            * 3: even heavier optimization
 
             If None, level 1 will be chosen as default.
 
