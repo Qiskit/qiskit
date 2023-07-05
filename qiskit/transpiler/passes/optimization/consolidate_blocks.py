@@ -19,7 +19,7 @@ import numpy as np
 # from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 
-# from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
@@ -169,7 +169,10 @@ class ConsolidateBlocks(TransformationPass):
                 basis_count += 1
             if self._check_not_in_basis(node.op.name, node.qargs, global_index_map):
                 outside_basis = True
-            current = node.op.to_matrix()
+            try:
+                current = node.op.to_matrix()
+            except:
+                current = Operator(node.op).data
             q_list = [block_index_map[qubit] for qubit in node.qargs]
             basis_change = False
             if len(q_list) < 2:
