@@ -456,7 +456,6 @@ how the program is built.
     qubit_channels
     samples_to_seconds
     seconds_to_samples
-    get_dt_from_backend
 """
 import collections
 import contextvars
@@ -958,6 +957,12 @@ class _PulseBuilder:
 
         return target_block
 
+    def get_dt(self):
+        """Retrieve dt differently based on the type of Backend"""
+        if isinstance(self.backend, BackendV2):
+            return self.backend.dt
+        return self.backend.configuration().dt
+
 
 def build(
     backend=None,
@@ -1127,7 +1132,7 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
-    dt = get_dt_from_backend()
+    dt = _active_builder().get_dt()
     if isinstance(seconds, np.ndarray):
         return (seconds / dt).astype(int)
     return int(seconds / dt)
@@ -1143,7 +1148,7 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
     Returns:
         The time that elapses in ``samples``.
     """
-    return samples * get_dt_from_backend()
+    return samples * _active_builder().get_dt()
 
 
 def qubit_channels(qubit: int) -> Set[chans.Channel]:
@@ -1265,13 +1270,6 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:
 
     """
     return dict(_active_builder().circuit_scheduler_settings)
-
-
-def get_dt_from_backend() -> float:
-    """Retrieve dt differently based on the type of Backend"""
-    if isinstance(active_backend(), BackendV2):
-        return active_backend().dt
-    return active_backend().configuration().dt
 
 
 # Contexts
@@ -1689,7 +1687,7 @@ def frequency_offset(
         if compensate_phase:
             duration = builder.get_context().duration - t0
 
-            accumulated_phase = 2 * np.pi * ((duration * get_dt_from_backend() * frequency) % 1)
+            accumulated_phase = 2 * np.pi * ((duration * builder.get_dt() * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 
