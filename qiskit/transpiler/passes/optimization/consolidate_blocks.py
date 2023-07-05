@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
