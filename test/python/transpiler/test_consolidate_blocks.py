@@ -428,6 +428,36 @@ class TestConsolidateBlocks(QiskitTestCase):
         pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
+    def test_descent_into_control_flow(self):
+        """Test consolidation in blocks of control flow op is the same as at top level."""
+        qc = QuantumCircuit(2)
+        u2gate1 = U2Gate(-1.2, np.pi)
+        u2gate2 = U2Gate(-3.4, np.pi)
+        qc.append(u2gate1, [0])
+        qc.append(u2gate2, [1])
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        result_top = pass_manager.run(qc)
+
+        qc_control_flow = QuantumCircuit(2, 1)
+        with qc_control_flow.if_test((0, False)):
+            qc_control_flow.append(u2gate1, [0])
+            qc_control_flow.append(u2gate2, [1])
+            qc_control_flow.cx(0, 1)
+            qc_control_flow.cx(1, 0)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        result_block = pass_manager.run(qc_control_flow)
+        gate_top = result_top[0].operation
+        gate_block = result_block[0].operation.blocks[0][0].operation
+        self.assertEqual(gate_top, gate_block)
+
 
 if __name__ == "__main__":
     unittest.main()

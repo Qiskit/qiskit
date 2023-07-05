@@ -23,6 +23,11 @@ from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.optimization import Collect2qBlocks
+from qiskit.transpiler.passes.optimization.collect_1q_runs import Collect1qRuns
+
+from qiskit.circuit import ControlFlowOp
+
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
 
 
@@ -46,15 +51,20 @@ class ConsolidateBlocks(TransformationPass):
         basis_gates=None,
         approximation_degree=1.0,
         target=None,
+        decomposer=None,
     ):
         """ConsolidateBlocks initializer.
 
+        The decomoposer used is determined by the first of the following arguments
+        with a non-None value: decomposer, kak_basis_gate, basis_gates. If all are None,
+        then a default decomposer is used.
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation
+            force_consolidate (bool): Force block consolidation.
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
             approximation_degree (float): a float between [0.0, 1.0]. Lower approximates more.
-            target (Target): The target object for the compilation target backend
+            target (Target): The target object for the compilation target backend.
+            decomposer: A 2q gate decomposer.
         """
         super().__init__()
         self.basis_gates = None
@@ -63,6 +73,8 @@ class ConsolidateBlocks(TransformationPass):
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
 
+        if decomposer is not None:
+            self.decomposer = decomposer
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
@@ -71,6 +83,7 @@ class ConsolidateBlocks(TransformationPass):
             )
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
+        self._approximation_degree = approximation_degree
 
     def run(self, dag):
         """Run the ConsolidateBlocks pass on `dag`.
@@ -159,11 +172,44 @@ class ConsolidateBlocks(TransformationPass):
                         dag.remove_op_node(node)
                 else:
                     dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+
+        dag = self._handle_control_flow_ops(dag)
+
         # Clear collected blocks and runs as they are no longer valid after consolidation
         if "run_list" in self.property_set:
             del self.property_set["run_list"]
         if "block_list" in self.property_set:
             del self.property_set["block_list"]
+
+        return dag
+
+    def _handle_control_flow_ops(self, dag):
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        collect blocks is redone for the control flow blocks.
+        """
+        from qiskit.transpiler import PassManager
+
+        pass_manager = PassManager()
+        if "run_list" in self.property_set:
+            pass_manager.append(Collect1qRuns())
+        if "block_list" in self.property_set:
+            pass_manager.append(Collect2qBlocks())
+
+        new_consolidate_blocks = self.__class__(
+            force_consolidate=self.force_consolidate,
+            approximation_degree=self._approximation_degree,
+            target=self.target,
+            decomposer=self.decomposer,
+        )
+
+        pass_manager.append(new_consolidate_blocks)
+        for node in dag.op_nodes(ControlFlowOp):
+            mapped_blocks = []
+            for block in node.op.blocks:
+                new_circ = pass_manager.run(block)
+                mapped_blocks.append(new_circ)
+            node.op = node.op.replace_blocks(mapped_blocks)
         return dag
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):
