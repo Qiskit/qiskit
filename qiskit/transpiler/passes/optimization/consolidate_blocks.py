@@ -14,11 +14,11 @@
 
 import numpy as np
 
-# from qiskit.circuit.classicalregister import ClassicalRegister
-# from qiskit.circuit.quantumregister import QuantumRegister
-# from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit import QiskitError
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
-
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
@@ -94,6 +94,8 @@ class ConsolidateBlocks(TransformationPass):
                 all_block_gates.add(block[0])
                 dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
             else:
+                basis_count = 0
+                outside_basis = False
                 block_qargs = set()
                 block_cargs = set()
                 for nd in block:
@@ -102,10 +104,25 @@ class ConsolidateBlocks(TransformationPass):
                         block_cargs |= set(getattr(nd.op, "condition", None)[0])
                     all_block_gates.add(nd)
                 block_index_map = self._block_qargs_to_indices(block_qargs, global_index_map)
-                basis_count, outside_basis, matrix = self._block_to_matrix(
-                    block, block_index_map, global_index_map, basis_gate_name
-                )
-                unitary = UnitaryGate(matrix)
+                if len(block_qargs) > 2:
+                    q = QuantumRegister(len(block_qargs))
+                    qc = QuantumCircuit(q)
+                    if block_cargs:
+                        c = ClassicalRegister(len(block_cargs))
+                        qc.add_register(c)
+                    block_index_map = self._block_qargs_to_indices(block_qargs, global_index_map)
+                    for nd in block:
+                        if nd.op.name == basis_gate_name:
+                            basis_count += 1
+                        if self._check_not_in_basis(nd.op.name, nd.qargs, global_index_map):
+                            outside_basis = True
+                        qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
+                    unitary = UnitaryGate(Operator(qc))
+                else:
+                    basis_count, outside_basis, matrix = self._block_to_matrix(
+                        block, block_index_map, global_index_map, basis_gate_name
+                    )
+                    unitary = UnitaryGate(matrix)
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
                 if (  # pylint: disable=too-many-boolean-expressions
@@ -171,7 +188,7 @@ class ConsolidateBlocks(TransformationPass):
                 outside_basis = True
             try:
                 current = node.op.to_matrix()
-            except:
+            except QiskitError:
                 current = Operator(node.op).data
             q_list = [block_index_map[qubit] for qubit in node.qargs]
             basis_change = False
