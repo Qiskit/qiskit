@@ -42,15 +42,23 @@ a three qubit gate which will be transpiled into one and two qubit gates.
 Using backend’s information
 ===========================
 
-To apply :meth:`~qiskit.providers.fake_provider.FakeQuito` to your quantum circuit, you should adhere to its specific configurations 
-when you utilize the :meth:`~qiskit.transpile` method. This process entails breaking down your circuit into :attr:`~qiskit.transpile.basis_gates`, 
-and considering the physical connections specified in the :attr:`~qiskit.transpile.coupling_map`` for two qubit gates. 
+
+You should adhere to the specific configuration of your backend when utilizing :meth:`~qiskit.transpile`. 
+This process entails breaking down your circuit into :attr:`~qiskit.transpile.basis_gates`` and considering the physical connections specified in the 
+:attr:`~qiskit.transpile.coupling_map` for two qubit gates.
 Given the presence of noise in the backend, it is crucial to optimize your circuit by adjusting the :attr:`~qiskit.transpile.optimization_level` parameter. 
 This will help minimize the number of circuit operations and enhance the overall performance.
 
 
+
+What each optimization level does
+---------------------------------
+
+
 When using a backend, you can access its properties through the instruction  :meth:`backend.configuration()`.
 These properties, such as basis gates, coupling map, and init layout, play a crucial role in shaping the behavior of the quantum circuit.
+
+For example, with :meth:`~qiskit.providers.fake_provider.FakeQuito`, you can learn about its qubit connections and the gates it uses to generate your quantum circuits.
 
 .. testcode::
 
