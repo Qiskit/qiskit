@@ -19,7 +19,7 @@ Tests for singleton gate behavior
 
 import copy
 
-from qiskit.circuit.library import HGate
+from qiskit.circuit.library import HGate, SXGate
 from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 
@@ -236,3 +236,12 @@ class TestSingletonGate(QiskitTestCase):
         self.assertEqual(mutable_copy.label, gate.label)
         mutable_copy.label = "not foo"
         self.assertNotEqual(mutable_copy.label, gate.label)
+
+    def test_set_custom_attr(self):
+        gate = SXGate()
+        with self.assertRaises(NotImplementedError):
+            gate.custom_foo = 12345
+        mutable_gate = gate.to_mutable()
+        self.assertTrue(mutable_gate.mutable)
+        mutable_gate.custom_foo = 12345
+        self.assertEqual(12345, mutable_gate.custom_foo)

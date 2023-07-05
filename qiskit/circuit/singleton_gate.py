@@ -159,6 +159,32 @@ class SingletonGate(Gate):
                 label=self.label, _condition=self.condition, duration=self.duration, unit=self.unit
             )
 
+    def __setattr__(self, name, value):
+        if self.mutable:
+            super().__setattr__(name, value)
+        else:
+            if name not in {
+                "definition",
+                "unit",
+                "duration",
+                "condition",
+                "label",
+                "_label",
+                "_condition",
+                "_duration",
+                "_unit",
+                "_definition",
+                "_name",
+                "_num_qubits",
+                "_num_clbits",
+                "_params",
+                "params",
+            }:
+                raise NotImplementedError(
+                    "Setting custom attributes is not allowed on a singleton gate"
+                )
+            super().__setattr__(name, value)
+
     def copy(self, name=None):
         if name is not None and self.condition is None and self.label is None:
             raise QiskitError("A custom name can not be set on a copy of a singleton gate")
