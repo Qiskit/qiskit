@@ -823,7 +823,8 @@ def plot_state_qsphere(
             radians or degrees for the phase values in the plot.
 
     Returns:
-        :class:`matplotlib:matplotlib.figure.Figure` : A matplotlib figure instance if the ``ax`` kwarg is not set
+        :class:`matplotlib:matplotlib.figure.Figure` :
+            A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
