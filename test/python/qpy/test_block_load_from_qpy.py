@@ -174,7 +174,6 @@ class TestLoadFromQPY(QpyScheduleTestCase):
     @unpack
     def test_parameterized(self, channel, *params):
         """Test playing parameterized pulse."""
-        # pylint: disable=no-value-for-parameter
         with builder.build() as test_sched:
             builder.play(Gaussian(*params), DriveChannel(channel))
         self.assert_roundtrip_equal(test_sched)
@@ -208,6 +207,50 @@ class TestLoadFromQPY(QpyScheduleTestCase):
             builder.call(refsched, name="test_ref")
         self.assert_roundtrip_equal(test_sched)
 
+    def test_unassigned_reference(self):
+        """Test schedule with unassigned reference."""
+        with builder.build() as test_sched:
+            builder.reference("custom1", "q0")
+            builder.reference("custom1", "q1")
+
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_partly_assigned_reference(self):
+        """Test schedule with partly assigned reference."""
+        with builder.build() as test_sched:
+            builder.reference("custom1", "q0")
+            builder.reference("custom1", "q1")
+
+        with builder.build() as sub_q0:
+            builder.delay(Parameter("duration"), DriveChannel(0))
+
+        test_sched.assign_references(
+            {("custom1", "q0"): sub_q0},
+            inplace=True,
+        )
+
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_nested_assigned_reference(self):
+        """Test schedule with assigned reference for nested schedule."""
+        with builder.build() as test_sched:
+            with builder.align_left():
+                builder.reference("custom1", "q0")
+            builder.reference("custom1", "q1")
+
+        with builder.build() as sub_q0:
+            builder.delay(Parameter("duration"), DriveChannel(0))
+
+        with builder.build() as sub_q1:
+            builder.delay(Parameter("duration"), DriveChannel(1))
+
+        test_sched.assign_references(
+            {("custom1", "q0"): sub_q0, ("custom1", "q1"): sub_q1},
+            inplace=True,
+        )
+
+        self.assert_roundtrip_equal(test_sched)
+
     def test_bell_schedule(self):
         """Test complex schedule to create a Bell state."""
         with builder.build() as test_sched:
@@ -219,11 +262,11 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                 # ECR
                 with builder.align_left():
                     builder.play(GaussianSquare(800, 0.05, 64, 544), DriveChannel(1))
-                    builder.play(GaussianSquare(800, 0.1 - 0.2j, 64, 544), ControlChannel(0))
+                    builder.play(GaussianSquare(800, 0.22, 64, 544, 2), ControlChannel(0))
                 builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
                 with builder.align_left():
                     builder.play(GaussianSquare(800, -0.05, 64, 544), DriveChannel(1))
-                    builder.play(GaussianSquare(800, -0.1 + 0.2j, 64, 544), ControlChannel(0))
+                    builder.play(GaussianSquare(800, -0.22, 64, 544, 2), ControlChannel(0))
                 builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
                 # Measure
                 with builder.align_left():

@@ -14,7 +14,8 @@
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
 
-from qiskit.circuit import QuantumCircuit, CircuitInstruction
+from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
+from qiskit.circuit.controlflow.condition import condition_bits
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
 
@@ -70,7 +71,7 @@ class BlockCollector:
         ``_in_degree`` is 0.
         """
         self._pending_nodes = []
-        self._in_degree = dict()
+        self._in_degree = {}
         for node in self._op_nodes():
             deg = len(self._direct_preds(node))
             self._in_degree[node] = deg
@@ -254,22 +255,46 @@ class BlockCollapser:
         then uses collapse_fn to collapse this circuit into a single operation.
         """
         global_index_map = {wire: idx for idx, wire in enumerate(self.dag.qubits)}
+        global_index_map.update({wire: idx for idx, wire in enumerate(self.dag.clbits)})
+
         for block in blocks:
-            # Find the set of qubits used in this block (which might be much smaller than
-            # the set of all qubits).
+            # Find the sets of qubits/clbits used in this block (which might be much smaller
+            # than the set of all qubits/clbits).
             cur_qubits = set()
+            cur_clbits = set()
+
+            # Additionally, find the set of classical registers used in conditions over full registers
+            # (in such a case, we need to add that register to the block circuit, not just its clbits).
+            cur_clregs = []
+
             for node in block:
                 cur_qubits.update(node.qargs)
+                cur_clbits.update(node.cargs)
+                cond = getattr(node.op, "condition", None)
+                if cond is not None:
+                    cur_clbits.update(condition_bits(cond))
+                    if isinstance(cond[0], ClassicalRegister):
+                        cur_clregs.append(cond[0])
 
-            # For reproducibility, order these qubits compatibly with the global order.
+            # For reproducibility, order these qubits/clbits compatibly with the global order.
             sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
+            sorted_clbits = sorted(cur_clbits, key=lambda x: global_index_map[x])
+
+            qc = QuantumCircuit(sorted_qubits, sorted_clbits)
+
+            # Add classical registers used in conditions over registers
+            for reg in cur_clregs:
+                qc.add_register(reg)
 
             # Construct a quantum circuit from the nodes in the block, remapping the qubits.
-            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(sorted_qubits))
-            qc = QuantumCircuit(len(cur_qubits))
+            wire_pos_map = {qb: ix for ix, qb in enumerate(sorted_qubits)}
+            wire_pos_map.update({qb: ix for ix, qb in enumerate(sorted_clbits)})
+
             for node in block:
-                remapped_qubits = [wire_pos_map[qarg] for qarg in node.qargs]
-                qc.append(CircuitInstruction(node.op, remapped_qubits, node.cargs))
+                instructions = qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
+                cond = getattr(node.op, "condition", None)
+                if cond is not None:
+                    instructions.c_if(*cond)
 
             # Collapse this quantum circuit into an operation.
             op = collapse_fn(qc)

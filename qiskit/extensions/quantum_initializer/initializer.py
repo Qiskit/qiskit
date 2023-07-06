@@ -33,7 +33,7 @@ class Initialize(Instruction):
     which is not unitary.
     """
 
-    def __init__(self, params, num_qubits=None):
+    def __init__(self, params, num_qubits=None, normalize=False):
         r"""Create new initialize composite.
 
         Args:
@@ -53,8 +53,9 @@ class Initialize(Instruction):
                 number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
+            normalize (bool): Whether to normalize an input array to a unit vector.
         """
-        self._stateprep = StatePreparation(params, num_qubits)
+        self._stateprep = StatePreparation(params, num_qubits, normalize=normalize)
 
         super().__init__("initialize", self._stateprep.num_qubits, 0, self._stateprep.params)
 
@@ -87,7 +88,7 @@ class Initialize(Instruction):
         return self._stateprep.broadcast_arguments(qargs, cargs)
 
 
-def initialize(self, params, qubits=None):
+def initialize(self, params, qubits=None, normalize=False):
     r"""Initialize qubits in a specific state.
 
     Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
@@ -113,13 +114,15 @@ def initialize(self, params, qubits=None):
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
 
+        normalize (bool): whether to normalize an input array to a unit vector.
+
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
 
     Examples:
         Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -142,7 +145,7 @@ def initialize(self, params, qubits=None):
         More information about labels for basis states are in
         :meth:`.Statevector.from_label`.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -163,7 +166,7 @@ def initialize(self, params, qubits=None):
 
         Initialize two qubits from an array of complex amplitudes.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -188,7 +191,7 @@ def initialize(self, params, qubits=None):
         qubits = [qubits]
     num_qubits = len(qubits) if isinstance(params, int) else None
 
-    return self.append(Initialize(params, num_qubits), qubits)
+    return self.append(Initialize(params, num_qubits, normalize), qubits)
 
 
 QuantumCircuit.initialize = initialize

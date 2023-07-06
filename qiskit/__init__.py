@@ -21,22 +21,14 @@ import warnings
 import qiskit._accelerate
 
 
-if sys.version_info < (3, 8):
-    warnings.warn(
-        "Using Qiskit with Python 3.7 is deprecated as of the 0.23.0 release. "
-        "Support for running Qiskit with Python 3.7 will be removed in the "
-        "0.25.0 release",
-        DeprecationWarning,
-    )
-
-
-# Globally define compiled modules. The normal import mechanism will not
-# find compiled submodules in _accelerate because it relies on file paths
-# manually define them on import so people can directly import
-# qiskit._accelerate.* submodules and not have to rely on attribute access
+# Globally define compiled submodules. The normal import mechanism will not find compiled submodules
+# in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
+# We manually define them on import so people can directly import qiskit._accelerate.* submodules
+# and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
+sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
 sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
@@ -45,6 +37,9 @@ sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimiz
 sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
 sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
+sys.modules[
+    "qiskit._accelerate.euler_one_qubit_decomposer"
+] = qiskit._accelerate.euler_one_qubit_decomposer
 
 
 # Extend namespace for backwards compat
@@ -78,8 +73,8 @@ import qiskit.circuit.reset
 # to be placed *before* the wrapper imports or any non-import code AND *before*
 # importing the package you want to allow extensions for (in this case `backends`).
 
-# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
-# qiskit-ibmq-provider package is retired/archived.
+# Support for the deprecated extending this namespace.
+# Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
@@ -154,6 +149,16 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
+                warnings.warn(
+                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                    "in a future release. Instead you should use the qiskit-ibm-provider package "
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
             except ImportError:
                 return False
         return True
@@ -164,6 +169,16 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
+                warnings.warn(
+                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                    "in a future release. Instead you should use the qiskit-ibm-provider package "
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                    "'qiskit_ibm_provider.IBMProvider'",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"

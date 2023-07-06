@@ -13,9 +13,9 @@
 """
 Layer classes for the fast gradient implementation.
 """
-
+from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Tuple, Optional
+from typing import Optional
 import numpy as np
 from .fast_grad_utils import (
     bit_permutation_1q,
@@ -46,7 +46,7 @@ class LayerBase(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_attr(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_attr(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Returns gate matrix, direct and inverse permutations.
 
@@ -91,7 +91,7 @@ class Layer1Q(LayerBase):
         """See base class description."""
         np.copyto(self._gmat, mat)
 
-    def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
+    def get_attr(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """See base class description."""
         return self._gmat, self._perm, self._inv_perm
 
@@ -132,7 +132,7 @@ class Layer2Q(LayerBase):
         """See base class description."""
         np.copyto(self._gmat, mat)
 
-    def get_attr(self) -> (np.ndarray, np.ndarray, np.ndarray):
+    def get_attr(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """See base class description."""
         return self._gmat, self._perm, self._inv_perm
 

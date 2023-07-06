@@ -12,11 +12,14 @@
 
 """The S, Sdg, CS and CSdg gates."""
 
+from math import pi
 from typing import Optional, Union
+
 import numpy
-from qiskit.qasm import pi
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
@@ -60,6 +63,7 @@ class SGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -77,6 +81,10 @@ class SGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0], [0, 1j]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(0.5 * numpy.pi * exponent)
 
 
 class SdgGate(Gate):
@@ -119,6 +127,7 @@ class SdgGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -136,6 +145,10 @@ class SdgGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(-0.5 * numpy.pi * exponent)
 
 
 class CSGate(ControlledGate):
@@ -194,9 +207,6 @@ class CSGate(ControlledGate):
         """
         gate cs a,b { h b; cp(pi/2) a,b; h b; }
         """
-        # pylint: disable=cyclic-import
-        from .p import CPhaseGate
-
         self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self):
@@ -209,6 +219,10 @@ class CSGate(ControlledGate):
         if dtype is not None:
             return numpy.asarray(mat, dtype=dtype)
         return mat
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return CPhaseGate(0.5 * numpy.pi * exponent)
 
 
 class CSdgGate(ControlledGate):
@@ -273,9 +287,6 @@ class CSdgGate(ControlledGate):
         """
         gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
         """
-        # pylint: disable=cyclic-import
-        from .p import CPhaseGate
-
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self):
@@ -288,3 +299,7 @@ class CSdgGate(ControlledGate):
         if dtype is not None:
             return numpy.asarray(mat, dtype=dtype)
         return mat
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return CPhaseGate(-0.5 * numpy.pi * exponent)

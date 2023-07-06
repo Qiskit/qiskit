@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixed an issue with the approximate quantum compiler (:class:`~qiskit.transpiler.synthesis.aqc.AQC`) that caused
+    it to return a wrong circuit when the unitary has a determinant −1.
+    

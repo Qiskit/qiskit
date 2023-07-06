@@ -12,21 +12,20 @@
 
 """Tests for DensityMatrix quantum state class."""
 
-import unittest
 import logging
-from ddt import ddt, data
+import unittest
+
 import numpy as np
+from ddt import data, ddt
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, QFT
-
-from qiskit.quantum_info.random import random_unitary, random_density_matrix, random_pauli
-from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QFT, HGate
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
+from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit.test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -678,6 +677,67 @@ class TestDensityMatrix(QiskitTestCase):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
+    def test_probabilities_dict_unequal_dims(self):
+        """Test probabilities_dict for a state with unequal subsystem dimensions."""
+
+        vec = np.zeros(60, dtype=float)
+        vec[15:20] = np.ones(5)
+        vec[40:46] = np.ones(6)
+        state = DensityMatrix(vec / np.sqrt(11.0), dims=[3, 4, 5])
+
+        p = 1.0 / 11.0
+
+        self.assertDictEqual(
+            state.probabilities_dict(),
+            {
+                s: p
+                for s in [
+                    "110",
+                    "111",
+                    "112",
+                    "120",
+                    "121",
+                    "311",
+                    "312",
+                    "320",
+                    "321",
+                    "322",
+                    "330",
+                ]
+            },
+        )
+
+        # differences due to rounding
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0]), {"0": 4 * p, "1": 4 * p, "2": 3 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1]), {"1": 5 * p, "2": 5 * p, "3": p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[2]), {"1": 5 * p, "3": 6 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 1]),
+            {"10": p, "11": 2 * p, "12": 2 * p, "20": 2 * p, "21": 2 * p, "22": p, "30": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1, 0]),
+            {"01": p, "11": 2 * p, "21": 2 * p, "02": 2 * p, "12": 2 * p, "22": p, "03": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 2]),
+            {"10": 2 * p, "11": 2 * p, "12": p, "31": 2 * p, "32": 2 * p, "30": 2 * p},
+            delta=1e-10,
+        )
+
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
         p = 0.3
@@ -1140,6 +1200,54 @@ class TestDensityMatrix(QiskitTestCase):
         for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 dm.draw(drawtype)
+
+    def test_density_matrix_partial_transpose(self):
+        """Test partial_transpose function on density matrices"""
+        with self.subTest(msg="separable"):
+            rho = DensityMatrix.from_label("10+")
+            rho1 = np.zeros((8, 8), complex)
+            rho1[4, 4] = 0.5
+            rho1[4, 5] = 0.5
+            rho1[5, 4] = 0.5
+            rho1[5, 5] = 0.5
+            self.assertEqual(rho.partial_transpose([0, 1]), DensityMatrix(rho1))
+            self.assertEqual(rho.partial_transpose([0, 2]), DensityMatrix(rho1))
+
+        with self.subTest(msg="entangled"):
+            rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
+            rho1 = DensityMatrix([[0, 0, 0, -0.5], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [-0.5, 0, 0, 0]])
+            self.assertEqual(rho.partial_transpose([0]), DensityMatrix(rho1))
+            self.assertEqual(rho.partial_transpose([1]), DensityMatrix(rho1))
+
+        with self.subTest(msg="dims(3,3)"):
+            mat = np.zeros((9, 9))
+            mat1 = np.zeros((9, 9))
+            mat[8, 0] = 1
+            mat1[0, 8] = 1
+            rho = DensityMatrix(mat, dims=(3, 3))
+            rho1 = DensityMatrix(mat1, dims=(3, 3))
+            self.assertEqual(rho.partial_transpose([0, 1]), rho1)
+
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        dm = DensityMatrix([[1.1, 0], [0, 0]])
+
+        self.assertEqual(list(dm.probabilities()), [1.0, 0.0])
+        # The "1" key should be exactly zero and therefore omitted.
+        self.assertEqual(dm.probabilities_dict(), {"0": 1.0})
+
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        amplitudes = [p, p, p, 0]
+        dm = DensityMatrix(np.outer(amplitudes, amplitudes))
+        expected = [0.33, 0.33, 0.33, 0]
+
+        # Exact floating-point check because fixing the rounding should ensure this is exact.
+        self.assertEqual(list(dm.probabilities(decimals=2)), expected)
 
 
 if __name__ == "__main__":

@@ -29,8 +29,10 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.utils import optionals as _optionals
 
+from qiskit.utils.deprecation import deprecate_func
 
-# pylint: disable=missing-return-doc
+
+# pylint: disable=bad-docstring-quotes
 
 
 class Instruction(ABC):
@@ -221,6 +223,14 @@ class Instruction(ABC):
         """Return True iff the instruction is parameterized."""
         return any(self.parameters)
 
+    @deprecate_func(
+        additional_msg=(
+            "No direct alternative is being provided to drawing individual pulses. But, "
+            "instructions can be visualized as part of a complete schedule using "
+            "``qiskit.visualization.pulse_drawer``."
+        ),
+        since="0.23.0",
+    )
     @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
         self,

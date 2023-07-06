@@ -554,11 +554,11 @@ class TestSubroutineWithCXGate(QiskitTestCase):
 
         # Parameters in the current scope are Parameter("cr") which is used in phase_offset
         # References are not assigned yet.
-        params = set(p.name for p in sched.parameters)
+        params = {p.name for p in sched.parameters}
         self.assertSetEqual(params, {"cr"})
 
         # Parameter names are scoepd
-        scoped_params = set(p.name for p in sched.scoped_parameters())
+        scoped_params = {p.name for p in sched.scoped_parameters()}
         self.assertSetEqual(scoped_params, {"root::cr"})
 
         # Assign CR and XP schedule to the empty reference
@@ -571,7 +571,7 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(assigned_refs[("xp", "q0")], self.xp_sched)
 
         # Parameter added from subroutines
-        scoped_params = set(p.name for p in sched.scoped_parameters())
+        scoped_params = {p.name for p in sched.scoped_parameters()}
         ref_params = {
             # This is the cr parameter that belongs to phase_offset instruction in the root scope
             "root::cr",

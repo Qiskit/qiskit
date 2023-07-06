@@ -29,8 +29,7 @@ def check_invertible_binary_matrix(mat: np.ndarray):
     if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
         return False
 
-    mat = _gauss_elimination(mat)
-    rank = _compute_rank_after_gauss_elim(mat)
+    rank = _compute_rank(mat)
     return rank == mat.shape[0]
 
 
@@ -54,24 +53,34 @@ def random_invertible_binary_matrix(
     rank = 0
     while rank != num_qubits:
         mat = rng.integers(2, size=(num_qubits, num_qubits))
-        mat_gauss = mat.copy()
-        mat_gauss = _gauss_elimination(mat_gauss)
-        rank = _compute_rank_after_gauss_elim(mat_gauss)
+        rank = _compute_rank(mat)
     return mat
 
 
 def _gauss_elimination(mat, ncols=None, full_elim=False):
     """Gauss elimination of a matrix mat with m rows and n columns.
     If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-    Mutates and returns the matrix mat."""
+    Returns the matrix mat."""
+
+    mat, _ = _gauss_elimination_with_perm(mat, ncols, full_elim)
+    return mat
+
+
+def _gauss_elimination_with_perm(mat, ncols=None, full_elim=False):
+    """Gauss elimination of a matrix mat with m rows and n columns.
+    If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
+    Returns the matrix mat, and the permutation perm that was done on the rows during the process.
+    perm[0 : rank] represents the indices of linearly independent rows in the original matrix."""
 
     # Treat the matrix A as containing integer values
-    mat = np.array(mat, dtype=int, copy=False)
+    mat = np.array(mat, dtype=int, copy=True)
 
     m = mat.shape[0]  # no. of rows
     n = mat.shape[1]  # no. of columns
     if ncols is not None:
         n = min(n, ncols)  # no. of active columns
+
+    perm = np.array(range(m))  # permutation on the rows
 
     r = 0  # current rank
     k = 0  # current pivot column
@@ -88,10 +97,11 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
             if is_non_zero:
                 break
         if not is_non_zero:
-            return mat  # A is in the canonical form
+            return mat, perm  # A is in the canonical form
 
         if new_r != r:
             mat[[r, new_r]] = mat[[new_r, r]]
+            perm[r], perm[new_r] = perm[new_r], perm[r]
 
         if full_elim:
             for i in range(0, r):
@@ -103,7 +113,7 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
                 mat[i] = mat[i] ^ mat[r]
         r += 1
 
-    return mat
+    return mat, perm
 
 
 def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
@@ -147,3 +157,19 @@ def _compute_rank_after_gauss_elim(mat):
     """Given a matrix A after Gaussian elimination, computes its rank
     (i.e. simply the number of nonzero rows)"""
     return np.sum(mat.any(axis=1))
+
+
+def _compute_rank(mat):
+    """Given a matrix A computes its rank"""
+    mat = _gauss_elimination(mat)
+    return np.sum(mat.any(axis=1))
+
+
+def _row_op(mat, ctrl, trgt):
+    # Perform ROW operation on a matrix mat
+    mat[trgt] = mat[trgt] ^ mat[ctrl]
+
+
+def _col_op(mat, ctrl, trgt):
+    # Perform COL operation on a matrix mat
+    mat[:, ctrl] = mat[:, trgt] ^ mat[:, ctrl]

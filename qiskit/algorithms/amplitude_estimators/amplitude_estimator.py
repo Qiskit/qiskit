@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Callable
+from collections.abc import Callable
+
 import numpy as np
 
 from .estimation_problem import EstimationProblem
@@ -40,14 +41,14 @@ class AmplitudeEstimatorResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._circuit_results = None
-        self._shots = None
-        self._estimation = None
-        self._estimation_processed = None
-        self._num_oracle_queries = None
-        self._post_processing = None
-        self._confidence_interval = None
-        self._confidence_interval_processed = None
+        self._circuit_results: np.ndarray | dict[str, int] | None = None
+        self._shots: int | None = None
+        self._estimation: float | None = None
+        self._estimation_processed: float | None = None
+        self._num_oracle_queries: int | None = None
+        self._post_processing: Callable[[float], float] | None = None
+        self._confidence_interval: tuple[float, float] | None = None
+        self._confidence_interval_processed: tuple[float, float] | None = None
 
     @property
     def circuit_results(self) -> np.ndarray | dict[str, int] | None:

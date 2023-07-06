@@ -17,14 +17,29 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
+QPY is a binary serialization format for :class:`~.QuantumCircuit` and
+:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
+Python version agnostic, and backwards compatible moving forward. QPY should
+be used if you need a mechanism to save or copy between systems a
+:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
+Qiskit object structure (except for custom attributes defined outside of
+Qiskit code). This differs from other serialization formats like
+`OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
+different abstraction model and can result in a loss of information contained
+in the original circuit (or is unable to represent some aspects of the
+Qiskit objects) or Python's `pickle <https://docs.python.org/3/library/pickle.html>`__
+which will preserve the Qiskit object exactly but will only work for a single Qiskit
+version (it is also
+`potentially insecure <https://docs.python.org/3/library/pickle.html#module-pickle>`__).
+
 *********
 Using QPY
 *********
 
 Using QPY is defined to be straightforward and mirror the user API of the
 serializers in Python's standard library, ``pickle`` and ``json``. There are
-2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
-:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+2 user facing functions: :func:`qiskit.qpy.dump` and
+:func:`qiskit.qpy.load` which are used to dump QPY data
 to a file object and load circuits from QPY data in a file object respectively.
 For example::
 
@@ -41,6 +56,17 @@ For example::
 
     with open('bell.qpy', 'rb') as fd:
         new_qc = qpy.load(fd)[0]
+
+The :func:`qiskit.qpy.dump` function also lets you
+include multiple circuits in a single QPY file::
+
+    with open('twenty_bells.qpy', 'wb') as fd:
+        qpy.dump([qc] * 20, fd)
+
+and then loading that file will return a list with all the circuits
+
+    with open('twenty_bells.qpy', 'rb') as fd:
+        twenty_new_bells = qpy.load(fd)
 
 API documentation
 =================
@@ -99,6 +125,79 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_7:
+
+Version 7
+=========
+
+Version 7 adds support for :class:`.~Reference` instruction and serialization of
+a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
+
+    from qiskit import pulse
+    from qiskit import qpy
+
+    with pulse.build() as schedule:
+        pulse.reference("cr45p", "q0", "q1")
+        pulse.reference("x", "q0")
+        pulse.reference("cr45p", "q0", "q1")
+
+    with open('template_ecr.qpy', 'wb') as fd:
+        qpy.dump(schedule, fd)
+
+The conventional :ref:`qpy_schedule_block` data model is preserved, but in
+version 7 it is immediately followed by an extra :ref:`qpy_mapping` utf8 bytes block
+representing the data of the referenced subroutines.
+
+New type key character is added to the :ref:`qpy_schedule_instructions` group
+for the :class:`.~Reference` instruction.
+
+- ``y``: :class:`~qiskit.pulse.instructions.Reference` instruction
+
+New type key character is added to the :ref:`qpy_schedule_operands` group
+for the operands of :class:`.~Reference` instruction,
+which is a tuple of strings, e.g. ("cr45p", "q0", "q1").
+
+- ``o``: string (operand string)
+
+Note that this is the same encoding with the built-in Python string, however,
+the standard value encoding in QPY uses ``s`` type character for string data,
+which conflicts with the :class:`~qiskit.pulse.library.SymbolicPulse` in the scope of
+pulse instruction operands. A special type character ``o`` is reserved for
+the string data that appears in the pulse instruction operands.
+
+In addition, version 7 adds two new type keys to the INSTRUCTION_PARM struct.  ``"d"`` is followed
+by no data and represents the literal value :data:`.CASE_DEFAULT` for switch-statement support.
+``"R"`` represents a :class:`.ClassicalRegister` or :class:`.Clbit`, and is followed by the same
+format as the description of register or classical bit as used in the first element of :ref:`the
+condition of an INSTRUCTION field <qpy_instructions>`.
+
+.. _qpy_version_6:
+
+Version 6
+=========
+
+Version 6 adds support for :class:`.~ScalableSymbolicPulse`. These objects are saved and read
+like `SymbolicPulse` objects, and the class name is added to the data to correctly handle
+the class selection.
+
+`SymbolicPulse` block now starts with SYMBOLIC_PULSE_V2 header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t class_name_size;
+        uint16_t type_size;
+        uint16_t envelope_size;
+        uint16_t constraints_size;
+        uint16_t valid_amp_conditions_size;
+        _bool amp_limited;
+    }
+
+The only change compared to :ref:`qpy_version_5` is the addition of `class_name_size`. The header
+is then immediately followed by ``class_name_size`` utf8 bytes with the name of the class. Currently,
+either `SymbolicPulse` or `ScalableSymbolicPulse` are supported. The rest of the data is then
+identical to :ref:`qpy_version_5`.
 
 .. _qpy_version_5:
 
@@ -160,6 +259,8 @@ Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and
 no extra option is required to save the schedule block.
 
+.. _qpy_schedule_block_header:
+
 SCHEDULE_BLOCK_HEADER
 ---------------------
 
@@ -177,6 +278,11 @@ which is immediately followed by ``name_size`` utf8 bytes of schedule name and
 ``metadata_size`` utf8 bytes of the JSON serialized metadata dictionary
 attached to the schedule.
 
+.. _qpy_schedule_alignments:
+
+SCHEDULE_BLOCK_ALIGNMENTS
+-------------------------
+
 Then, alignment context of the schedule block starts with ``char``
 representing the supported context type followed by the :ref:`qpy_sequence` block representing
 the parameters associated with the alignment context :attr:`AlignmentKind._context_params`.
@@ -189,6 +295,11 @@ The context type char is mapped to each alignment subclass as follows:
 
 Note that :class:`~.AlignFunc` context is not supported becasue of the callback function
 stored in the context parameters.
+
+.. _qpy_schedule_instructions:
+
+SCHEDULE_BLOCK_INSTRUCTIONS
+---------------------------
 
 This alignment block is further followed by ``num_element`` length of block elements which may
 consist of nested schedule blocks and schedule instructions.
@@ -208,6 +319,12 @@ The mapping of type char to the instruction subclass is defined as follows:
 - ``r``: :class:`~qiskit.pulse.instructions.ShiftPhase` instruction
 - ``b``: :class:`~qiskit.pulse.instructions.RelativeBarrier` instruction
 - ``t``: :class:`~qiskit.pulse.instructions.TimeBlockade` instruction
+- ``y``: :class:`~qiskit.pulse.instructions.Reference` instruction (new in version 0.7)
+
+.. _qpy_schedule_operands:
+
+SCHEDULE_BLOCK_OPERANDS
+-----------------------
 
 The operands of these instances can be serialized through the standard QPY value serialization
 mechanism, however there are special object types that only appear in the schedule operands.
@@ -219,6 +336,7 @@ Special objects start with the following type key:
 - ``c``: :class:`~qiskit.pulse.channels.Channel`
 - ``w``: :class:`~qiskit.pulse.library.Waveform`
 - ``s``: :class:`~qiskit.pulse.library.SymbolicPulse`
+- ``o``: string (operand string, new in version 0.7)
 
 .. _qpy_schedule_channel:
 
@@ -743,10 +861,10 @@ as part of it, for example::
 the register ``qr`` would be a standalone register. While something like::
 
     bits = [Qubit(), Qubit()]
-    qr = QuantumRegister(bits=bits)
-    qc = QuantumCircuit(bits=bits)
+    qr2 = QuantumRegister(bits=bits)
+    qc = QuantumCircuit(qr2)
 
-``qr`` would have ``standalone`` set to ``False``.
+``qr2`` would have ``standalone`` set to ``False``.
 
 
 .. _qpy_custom_definition:

@@ -12,6 +12,8 @@
 
 """Test the VF2Layout pass"""
 
+import io
+import pickle
 import unittest
 from math import pi
 
@@ -34,7 +36,8 @@ from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeGuadalupeV2,
 )
-from qiskit.circuit.library import GraphState, CXGate, XGate
+from qiskit.circuit import Measure
+from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
@@ -81,6 +84,45 @@ class LayoutTestCase(QiskitTestCase):
 @ddt.ddt
 class TestVF2LayoutSimple(LayoutTestCase):
     """Tests the VF2Layout pass"""
+
+    def test_1q_component_influence(self):
+        """Assert that the 1q component of a connected interaction graph is scored correctly."""
+        target = Target()
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(error=0.0),
+                (1, 2): InstructionProperties(error=0.0),
+                (2, 3): InstructionProperties(error=0.0),
+            },
+        )
+        target.add_instruction(
+            HGate(),
+            {
+                (0,): InstructionProperties(error=0.0),
+                (1,): InstructionProperties(error=0.0),
+                (2,): InstructionProperties(error=0.0),
+            },
+        )
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(error=0.1),
+                (1,): InstructionProperties(error=0.1),
+                (2,): InstructionProperties(error=0.9),
+            },
+        )
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        vf2_pass = VF2Layout(target=target, seed=self.seed)
+        vf2_pass(qc)
+        layout = vf2_pass.property_set["layout"]
+        self.assertEqual([1, 0], list(layout._p2v.keys()))
 
     def test_2q_circuit_2q_coupling(self):
         """A simple example, without considering the direction
@@ -452,6 +494,17 @@ class TestVF2LayoutBackend(LayoutTestCase):
         self.assertNotEqual(property_set["layout"], pm.property_set["layout"])
         self.assertLayout(circuit_to_dag(circuit), backend.coupling_map, pm.property_set)
 
+    def test_error_map_pickle(self):
+        """Test that the `ErrorMap` Rust structure correctly pickles and depickles."""
+        errors = {(0, 1): 0.2, (1, 0): 0.2, (0, 0): 0.05, (1, 1): 0.02}
+        error_map = ErrorMap.from_dict(errors)
+        with io.BytesIO() as fptr:
+            pickle.dump(error_map, fptr)
+            fptr.seek(0)
+            loaded = pickle.load(fptr)
+        self.assertEqual(len(loaded), len(errors))
+        self.assertEqual({k: loaded[k] for k in errors}, errors)
+
     def test_perfect_fit_Manhattan(self):
         """A circuit that fits perfectly in Manhattan (65 qubits)
         See https://github.com/Qiskit/qiskit-terra/issues/5694"""
@@ -580,6 +633,7 @@ class TestMultipleTrials(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
+        qc.cx(0, 1)
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -599,6 +653,7 @@ class TestMultipleTrials(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
+        qc.cx(0, 1)
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -620,7 +675,7 @@ class TestMultipleTrials(QiskitTestCase):
         """Test that the default trials is set to a reasonable number."""
         backend = FakeManhattan()
         qc = QuantumCircuit(5)
-        qc.h(2)
+        qc.cx(2, 3)
         qc.cx(0, 1)
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -633,7 +688,7 @@ class TestMultipleTrials(QiskitTestCase):
             "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 0, 1})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 33, 0, 34})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""

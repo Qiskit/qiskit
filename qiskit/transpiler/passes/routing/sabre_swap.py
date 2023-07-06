@@ -19,8 +19,11 @@ import rustworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
@@ -62,7 +65,7 @@ class SabreSwap(TransformationPass):
 
     This transpiler pass adds onto the SABRE algorithm in that it will run
     multiple trials of the algorithm with different seeds. The best output,
-    deteremined by the trial with the least amount of SWAPed inserted, will
+    determined by the trial with the least amount of SWAPed inserted, will
     be selected from the random trials.
 
     **References:**
@@ -76,7 +79,7 @@ class SabreSwap(TransformationPass):
         r"""SabreSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): CouplingMap of the target backend.
+            coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
             seed (int): random seed used to tie-break among candidate swaps.
@@ -139,13 +142,21 @@ class SabreSwap(TransformationPass):
         super().__init__()
 
         # Assume bidirectional couplings, fixing gate direction is easy later.
-        if coupling_map is None or coupling_map.is_symmetric:
-            self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
         else:
-            self.coupling_map = deepcopy(coupling_map)
+            self.coupling_map = coupling_map
+            self.target = None
+        if self.coupling_map is not None and not self.coupling_map.is_symmetric:
+            # A deepcopy is needed here if we don't own the coupling map (i.e. we were given it,
+            # rather than calculated it from the Target), to avoid modifications updating shared
+            # references in passes which require directional constraints.
+            if isinstance(coupling_map, CouplingMap):
+                self.coupling_map = deepcopy(self.coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
-        if coupling_map is not None:
+        if self.coupling_map is not None:
             self._neighbor_table = NeighborTable(
                 rustworkx.adjacency_matrix(self.coupling_map.graph)
             )
@@ -171,13 +182,30 @@ class SabreSwap(TransformationPass):
             DAGCircuit: A dag mapped to be compatible with the coupling_map.
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            compatible with the DAG, or if the coupling_map=None
         """
+
+        if self.coupling_map is None:
+            raise TranspilerError("SabreSwap cannot run with coupling_map=None")
+
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Sabre swap runs on physical circuits only.")
 
-        if len(dag.qubits) > self.coupling_map.size():
-            raise TranspilerError("More virtual qubits exist than physical.")
+        num_dag_qubits = len(dag.qubits)
+        num_coupling_qubits = self.coupling_map.size()
+        if num_dag_qubits < num_coupling_qubits:
+            raise TranspilerError(
+                f"Fewer qubits in the circuit ({num_dag_qubits}) than the coupling map"
+                f" ({num_coupling_qubits})."
+                " Have you run a layout pass and then expanded your DAG with ancillas?"
+                " See `FullAncillaAllocation`, `EnlargeWithAncilla` and `ApplyLayout`."
+            )
+        if num_dag_qubits > num_coupling_qubits:
+            raise TranspilerError(
+                f"More qubits in the circuit ({num_dag_qubits}) than available in the coupling map"
+                f" ({num_coupling_qubits})."
+                " This circuit cannot be routed to this device."
+            )
 
         if self.heuristic == "basic":
             heuristic = Heuristic.Basic
@@ -187,6 +215,9 @@ class SabreSwap(TransformationPass):
             heuristic = Heuristic.Decay
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
@@ -226,9 +257,9 @@ class SabreSwap(TransformationPass):
             self._neighbor_table,
             self.dist_matrix,
             heuristic,
-            self.seed,
             layout,
             self.trials,
+            self.seed,
         )
 
         layout_mapping = layout.layout_mapping()
@@ -237,33 +268,75 @@ class SabreSwap(TransformationPass):
         if not self.fake_run:
             for node_id in gate_order:
                 node = dag._multi_graph[node_id]
-                self._process_swaps(swap_map, node, mapped_dag, original_layout, canonical_register)
-                self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+                process_swaps(
+                    swap_map,
+                    node,
+                    mapped_dag,
+                    original_layout,
+                    canonical_register,
+                    self.fake_run,
+                    self._qubit_indices,
+                )
+                apply_gate(
+                    mapped_dag,
+                    node,
+                    original_layout,
+                    canonical_register,
+                    self.fake_run,
+                    self._qubit_indices,
+                )
             return mapped_dag
         return dag
 
-    def _process_swaps(self, swap_map, node, mapped_dag, current_layout, canonical_register):
-        if node._node_id in swap_map:
-            for swap in swap_map[node._node_id]:
+
+def process_swaps(
+    swap_map,
+    node,
+    mapped_dag,
+    current_layout,
+    canonical_register,
+    fake_run,
+    qubit_indices,
+    swap_qubit_mapping=None,
+):
+    """Process swaps from SwapMap."""
+    if node._node_id in swap_map:
+        for swap in swap_map[node._node_id]:
+            if swap_qubit_mapping:
+                swap_qargs = [
+                    canonical_register[swap_qubit_mapping[swap[0]]],
+                    canonical_register[swap_qubit_mapping[swap[1]]],
+                ]
+            else:
                 swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
-                self._apply_gate(
-                    mapped_dag,
-                    DAGOpNode(op=SwapGate(), qargs=swap_qargs),
-                    current_layout,
-                    canonical_register,
+            apply_gate(
+                mapped_dag,
+                DAGOpNode(op=SwapGate(), qargs=swap_qargs),
+                current_layout,
+                canonical_register,
+                fake_run,
+                qubit_indices,
+            )
+            if swap_qubit_mapping:
+                current_layout.swap_logical(
+                    swap_qubit_mapping[swap[0]], swap_qubit_mapping[swap[1]]
                 )
+            else:
                 current_layout.swap_logical(*swap)
 
-    def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
-        new_node = self._transform_gate_for_layout(node, current_layout, canonical_register)
-        if self.fake_run:
-            return new_node
-        return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
 
-    def _transform_gate_for_layout(self, op_node, layout, device_qreg):
-        """Return node implementing a virtual op on given layout."""
-        mapped_op_node = copy(op_node)
-        mapped_op_node.qargs = tuple(
-            device_qreg[layout.logical_to_physical(self._qubit_indices[x])] for x in op_node.qargs
-        )
-        return mapped_op_node
+def apply_gate(mapped_dag, node, current_layout, canonical_register, fake_run, qubit_indices):
+    """Apply gate given the current layout."""
+    new_node = transform_gate_for_layout(node, current_layout, canonical_register, qubit_indices)
+    if fake_run:
+        return new_node
+    return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
+
+
+def transform_gate_for_layout(op_node, layout, device_qreg, qubit_indices):
+    """Return node implementing a virtual op on given layout."""
+    mapped_op_node = copy(op_node)
+    mapped_op_node.qargs = tuple(
+        device_qreg[layout.logical_to_physical(qubit_indices[x])] for x in op_node.qargs
+    )
+    return mapped_op_node

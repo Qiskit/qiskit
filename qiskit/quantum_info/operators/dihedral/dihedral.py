@@ -45,7 +45,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. jupyter-execute::
+     .. code-block::
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -60,6 +60,14 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
          # Print the CNOTDihedral element
          print(elem)
+
+    .. parsed-literal::
+
+        phase polynomial =
+        0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
+        affine function =
+         (x_0,x_0 + x_1,x_2 + 1)
+
 
     **Circuit Conversion**
 
@@ -314,9 +322,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
+        from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
-        return decompose_cnotdihedral(self)
+        return synth_cnotdihedral_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the CNOTDihedral object."""

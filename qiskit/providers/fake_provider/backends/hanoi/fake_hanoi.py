@@ -25,7 +25,7 @@ class FakeHanoiV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_hanoi.json"
     props_filename = "props_hanoi.json"
     defs_filename = "defs_hanoi.json"
-    backend_name = "fake_hanoi_v2"
+    backend_name = "fake_hanoi"
 
 
 class FakeHanoi(fake_pulse_backend.FakePulseBackend):

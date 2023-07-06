@@ -75,7 +75,8 @@ class PassManagerConfig:
             timing_constraints (TimingConstraints): Hardware time alignment restrictions.
             unitary_synthesis_method (str): The string method to use for the
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
-                search installed plugins for a valid method.
+                search installed plugins for a valid method. You can see a list of
+                installed plugins with :func:`.unitary_synthesis_plugin_names`.
             target (Target): The backend target
             hls_config (HLSConfig): An optional configuration class to use for
                 :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
@@ -136,12 +137,16 @@ class PassManagerConfig:
         if res.inst_map is None:
             if backend_version < 2:
                 if hasattr(backend, "defaults"):
-                    res.inst_map = backend.defaults().instruction_schedule_map
+                    defaults = backend.defaults()
+                    if defaults is not None:
+                        res.inst_map = defaults.instruction_schedule_map
             else:
                 res.inst_map = backend.instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
-                res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+                cmap_edge_list = getattr(config, "coupling_map", None)
+                if cmap_edge_list is not None:
+                    res.coupling_map = CouplingMap(cmap_edge_list)
             else:
                 res.coupling_map = backend.coupling_map
         if res.instruction_durations is None:

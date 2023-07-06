@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,82 +17,114 @@ Gradients (:mod:`qiskit.algorithms.gradients`)
 
 .. currentmodule:: qiskit.algorithms.gradients
 
-
-Estimator Gradients
-===================
+Base Classes
+============
 
 .. autosummary::
    :toctree: ../stubs/
 
    BaseEstimatorGradient
-   DerivativeType
-   FiniteDiffEstimatorGradient
-   LinCombEstimatorGradient
-   ParamShiftEstimatorGradient
-   SPSAEstimatorGradient
+   BaseQGT
+   BaseSamplerGradient
+   EstimatorGradientResult
+   SamplerGradientResult
+   QGTResult
 
-Sampler Gradients
+Finite Differences
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   FiniteDiffEstimatorGradient
+   FiniteDiffSamplerGradient
+
+Linear Combination of Unitaries
+===============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinCombEstimatorGradient
+   LinCombSamplerGradient
+   LinCombQGT
+
+Parameter Shift Rules
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ParamShiftEstimatorGradient
+   ParamShiftSamplerGradient
+
+Quantum Fisher Information
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFIResult
+   QFI
+
+Classical Methods
 =================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseSamplerGradient
-   FiniteDiffSamplerGradient
-   LinCombSamplerGradient
-   ParamShiftSamplerGradient
+   ReverseEstimatorGradient
+   ReverseQGT
+
+Simultaneous Perturbation Stochastic Approximation
+==================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SPSAEstimatorGradient
    SPSASamplerGradient
-
-QFI
-===
-.. autosummary::
-   :toctree: ../stubs/
-
-   BaseQFI
-   LinCombQFI
-
-Results
-=======
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   EstimatorGradientResult
-   QFIResult
-   SamplerGradientResult
 """
 
-from .base_estimator_gradient import BaseEstimatorGradient
-from .base_qfi import BaseQFI
-from .base_sampler_gradient import BaseSamplerGradient
-from .estimator_gradient_result import EstimatorGradientResult
-from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
-from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
-from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .lin_comb_qfi import LinCombQFI
-from .lin_comb_sampler_gradient import LinCombSamplerGradient
-from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
-from .param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .base.base_estimator_gradient import BaseEstimatorGradient
+from .base.base_qgt import BaseQGT
+from .base.base_sampler_gradient import BaseSamplerGradient
+from .base.estimator_gradient_result import EstimatorGradientResult
+from .finite_diff.finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
+from .finite_diff.finite_diff_sampler_gradient import FiniteDiffSamplerGradient
+from .lin_comb.lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
+from .lin_comb.lin_comb_qgt import LinCombQGT
+from .lin_comb.lin_comb_sampler_gradient import LinCombSamplerGradient
+from .param_shift.param_shift_estimator_gradient import ParamShiftEstimatorGradient
+from .param_shift.param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .qfi import QFI
 from .qfi_result import QFIResult
-from .sampler_gradient_result import SamplerGradientResult
-from .spsa_estimator_gradient import SPSAEstimatorGradient
-from .spsa_sampler_gradient import SPSASamplerGradient
+from .base.qgt_result import QGTResult
+from .base.sampler_gradient_result import SamplerGradientResult
+from .spsa.spsa_estimator_gradient import SPSAEstimatorGradient
+from .spsa.spsa_sampler_gradient import SPSASamplerGradient
+from .reverse.reverse_gradient import ReverseEstimatorGradient
+from .reverse.reverse_qgt import ReverseQGT
 
 __all__ = [
     "BaseEstimatorGradient",
-    "BaseQFI",
+    "BaseQGT",
     "BaseSamplerGradient",
     "DerivativeType",
     "EstimatorGradientResult",
     "FiniteDiffEstimatorGradient",
     "FiniteDiffSamplerGradient",
     "LinCombEstimatorGradient",
-    "LinCombQFI",
+    "LinCombQGT",
     "LinCombSamplerGradient",
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
+    "QFI",
     "QFIResult",
+    "QGTResult",
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",
+    "ReverseEstimatorGradient",
+    "ReverseQGT",
 ]

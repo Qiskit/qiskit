@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds the :attr:`.AdaptVQEResult.eigenvalue_history` attribute. This tracks the lowest
+    achieved energy per iteration of the AdaptVQE.
+  - |
+    Improves the logging done during the execution of an :class:`.AdaptVQE`.

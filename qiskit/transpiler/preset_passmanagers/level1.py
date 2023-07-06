@@ -14,12 +14,13 @@
 
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
-
+from __future__ import annotations
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler import ConditionalController
+from qiskit.transpiler import ConditionalController, FlowController
 
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import SetLayout
@@ -34,6 +35,7 @@ from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
@@ -112,13 +114,18 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return True
         return False
 
-    _choose_layout_0 = (
+    if target is None:
+        coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
+
+    _choose_layout_0: list[BasePass] = (
         []
         if pass_manager_config.layout_method
-        else [TrivialLayout(coupling_map), CheckMap(coupling_map)]
+        else [TrivialLayout(coupling_map_layout), CheckMap(coupling_map_layout)]
     )
 
-    _choose_layout_1 = (
+    _choose_layout_1: list[BasePass] | BasePass = (
         []
         if pass_manager_config.layout_method
         else VF2Layout(
@@ -127,23 +134,41 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
+            max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
         )
     )
 
     if layout_method == "trivial":
-        _improve_layout = TrivialLayout(coupling_map)
+        _improve_layout: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _improve_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _improve_layout = NoiseAdaptiveLayout(backend_properties)
+        if target is None:
+            _improve_layout = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _improve_layout = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
         _improve_layout = SabreLayout(
-            coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5
+            coupling_map_layout,
+            max_iterations=2,
+            seed=seed_transpiler,
+            swap_trials=5,
+            layout_trials=5,
+            skip_routing=pass_manager_config.routing_method is not None
+            and routing_method != "sabre",
         )
     elif layout_method is None:
         _improve_layout = common.if_has_control_flow_else(
             DenseLayout(coupling_map, backend_properties, target=target),
-            SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler, swap_trials=5),
+            SabreLayout(
+                coupling_map_layout,
+                max_iterations=2,
+                seed=seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and routing_method != "sabre",
+            ),
         ).to_flow_controller()
 
     # Choose routing pass
@@ -196,12 +221,21 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 "layout", layout_method, pass_manager_config, optimization_level=1
             )
         else:
+
+            def _swap_mapped(property_set):
+                return property_set["final_layout"] is None
+
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
             layout.append(_choose_layout_1, condition=_layout_not_perfect)
-            layout.append(_improve_layout, condition=_vf2_match_not_found)
-            layout += common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), _improve_layout], condition=_vf2_match_not_found
+            )
+            embed = common.generate_embed_passmanager(coupling_map_layout)
+            layout.append(
+                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+            )
 
         routing = routing_pm
 
@@ -242,7 +276,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return not property_set["all_gates_in_basis"]
 
         # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis = [
+        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
             GatesInBasis(basis_gates, target=target),
             ConditionalController(unroll, condition=_unroll_condition),
         ]
@@ -256,7 +290,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map
+            instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
         )
     else:
         sched = plugin_manager.get_passmanager_stage(
@@ -268,6 +302,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         translation_method=translation_method,
         optimization_method=optimization_method,
         scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(

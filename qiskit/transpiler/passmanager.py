@@ -11,24 +11,35 @@
 # that they have been altered from the originals.
 
 """Manager for a set of Passes and their scheduling during transpilation."""
-
+from __future__ import annotations
+import inspect
 import io
 import re
-from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
+from functools import wraps
+from collections.abc import Iterator, Iterable, Callable, Sequence
+from typing import Union, List, Any
 
-import dill
-
-from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
+from qiskit.passmanager import BasePassManager
+from qiskit.passmanager.flow_controllers import PassSequence, FlowController
+from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .runningpassmanager import RunningPassManager, FlowController
+from .runningpassmanager import RunningPassManager
+
+_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 
 
-class PassManager:
+class PassManager(BasePassManager):
     """Manager for a set of Passes and their scheduling during transpilation."""
 
-    def __init__(self, passes: Union[BasePass, List[BasePass]] = None, max_iteration: int = 1000):
+    PASS_RUNNER = RunningPassManager
+
+    def __init__(
+        self,
+        passes: PassSequence | None = None,
+        max_iteration: int = 1000,
+    ):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
         Args:
@@ -37,18 +48,12 @@ class PassManager:
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        # the pass manager's schedule of passes, including any control-flow.
-        # Populated via PassManager.append().
-
-        self._pass_sets = []
-        if passes is not None:
-            self.append(passes)
-        self.max_iteration = max_iteration
+        super().__init__(passes, max_iteration)
         self.property_set = None
 
     def append(
         self,
-        passes: Union[BasePass, List[BasePass]],
+        passes: PassSequence,
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -62,26 +67,28 @@ class PassManager:
                     :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
                     rest of the parameter will be ignored.
             max_iteration: max number of iterations of passes.
-            flow_controller_conditions: control flow plugins.
+            flow_controller_conditions: Dictionary of control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
-
-        See Also:
-            ``RunningPassManager.add_flow_controller()`` for more information about the control
-            flow plugins.
         """
         if max_iteration:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
-
-        passes = PassManager._normalize_passes(passes)
-        self._pass_sets.append({"passes": passes, "flow_controllers": flow_controller_conditions})
+        super().append(passes, **flow_controller_conditions)
 
     def replace(
         self,
         index: int,
-        passes: Union[BasePass, List[BasePass]],
+        passes: PassSequence,
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -96,97 +103,19 @@ class PassManager:
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass or index not found.
-
-        See Also:
-            ``RunningPassManager.add_flow_controller()`` for more information about the control
-            flow plugins.
         """
         if max_iteration:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
+        super().replace(index, passes, **flow_controller_conditions)
 
-        passes = PassManager._normalize_passes(passes)
-
-        try:
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        except IndexError as ex:
-            raise TranspilerError(f"Index to replace {index} does not exists") from ex
-
-    def remove(self, index: int) -> None:
-        """Removes a particular pass in the scheduler.
-
-        Args:
-            index: Pass index to replace, based on the position in passes().
-
-        Raises:
-            TranspilerError: if the index is not found.
-        """
-        try:
-            del self._pass_sets[index]
-        except IndexError as ex:
-            raise TranspilerError(f"Index to replace {index} does not exists") from ex
-
-    def __setitem__(self, index, item):
-        self.replace(index, item)
-
-    def __len__(self):
-        return len(self._pass_sets)
-
-    def __getitem__(self, index):
-        new_passmanager = PassManager(max_iteration=self.max_iteration)
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
-        return new_passmanager
-
-    def __add__(self, other):
-        if isinstance(other, PassManager):
-            new_passmanager = PassManager(max_iteration=self.max_iteration)
-            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
-            return new_passmanager
-        else:
-            try:
-                new_passmanager = PassManager(max_iteration=self.max_iteration)
-                new_passmanager._pass_sets += self._pass_sets
-                new_passmanager.append(other)
-                return new_passmanager
-            except TranspilerError as ex:
-                raise TypeError(
-                    f"unsupported operand type + for {self.__class__} and {other.__class__}"
-                ) from ex
-
-    @staticmethod
-    def _normalize_passes(
-        passes: Union[BasePass, List[BasePass], FlowController]
-    ) -> List[BasePass]:
-        if isinstance(passes, FlowController):
-            return passes
-        if isinstance(passes, BasePass):
-            passes = [passes]
-        for pass_ in passes:
-            if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController.
-                # TODO: Internal renormalisation should be the responsibility of the
-                # `FlowController`, but the separation between `FlowController`,
-                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
-                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
-                pass_.passes = PassManager._normalize_passes(pass_.passes)
-            elif not isinstance(pass_, BasePass):
-                raise TranspilerError(
-                    "%s is not a BasePass or FlowController instance " % pass_.__class__
-                )
-        return passes
-
+    # pylint: disable=arguments-differ
     def run(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        output_name: str = None,
-        callback: Callable = None,
-    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        circuits: _CircuitsT,
+        output_name: str | None = None,
+        callback: Callable | None = None,
+    ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
         Args:
@@ -222,67 +151,30 @@ class PassManager:
         Returns:
             The transformed circuit(s).
         """
-        if not self._pass_sets and output_name is None and callback is None:
-            return circuits
-        if isinstance(circuits, QuantumCircuit):
-            return self._run_single_circuit(circuits, output_name, callback)
-        if len(circuits) == 1:
-            return self._run_single_circuit(circuits[0], output_name, callback)
-        return self._run_several_circuits(circuits, output_name, callback)
+        return super().run(
+            in_programs=circuits,
+            callback=callback,
+            output_name=output_name,
+        )
 
     def _create_running_passmanager(self) -> RunningPassManager:
-        running_passmanager = RunningPassManager(self.max_iteration)
+        running_passmanager = self.PASS_RUNNER(self.max_iteration)
         for pass_set in self._pass_sets:
             running_passmanager.append(pass_set["passes"], **pass_set["flow_controllers"])
         return running_passmanager
 
-    @staticmethod
-    def _in_parallel(circuit, pm_dill=None) -> QuantumCircuit:
-        """Task used by the parallel map tools from ``_run_several_circuits``."""
-        running_passmanager = dill.loads(pm_dill)._create_running_passmanager()
-        result = running_passmanager.run(circuit)
-        return result
-
-    def _run_several_circuits(
-        self, circuits: List[QuantumCircuit], output_name: str = None, callback: Callable = None
-    ) -> List[QuantumCircuit]:
-        """Run all the passes on the specified ``circuits``.
-
-        Args:
-            circuits: Circuits to transform via all the registered passes.
-            output_name: The output circuit name. If ``None``, it will be set to the same as the
-                input circuit name.
-            callback: A callback function that will be called after each pass execution.
-
-        Returns:
-            The transformed circuits.
-        """
-        # TODO support for List(output_name) and List(callback)
-        del output_name
-        del callback
-
-        return parallel_map(
-            PassManager._in_parallel, circuits, task_kwargs={"pm_dill": dill.dumps(self)}
-        )
-
     def _run_single_circuit(
-        self, circuit: QuantumCircuit, output_name: str = None, callback: Callable = None
+        self,
+        input_program: QuantumCircuit,
+        callback: Callable | None = None,
+        **metadata,
     ) -> QuantumCircuit:
-        """Run all the passes on a ``circuit``.
+        pass_runner = self._create_running_passmanager()
+        out_program = pass_runner.run(input_program, callback=callback, **metadata)
+        # Store property set of pass runner for backward compatibility
+        self.property_set = pass_runner.property_set
 
-        Args:
-            circuit: Circuit to transform via all the registered passes.
-            output_name: The output circuit name. If ``None``, it will be set to the same as the
-                input circuit name.
-            callback: A callback function that will be called after each pass execution.
-
-        Returns:
-            The transformed circuit.
-        """
-        running_passmanager = self._create_running_passmanager()
-        result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
-        self.property_set = running_passmanager.property_set
-        return result
+        return out_program
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the pass manager.
@@ -310,7 +202,7 @@ class PassManager:
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
-    def passes(self) -> List[Dict[str, BasePass]]:
+    def passes(self) -> list[dict[str, BasePass]]:
         """Return a list structure of the appended passes and its options.
 
         Returns:
@@ -348,11 +240,11 @@ class StagedPassManager(PassManager):
     a fixed order, and each stage is defined as a standalone :class:`~.PassManager`
     instance. There are also ``pre_`` and ``post_`` stages for each defined stage.
     This enables easily composing and replacing different stages and also adding
-    hook points to enable programmtic modifications to a pipeline. When using a staged
+    hook points to enable programmatic modifications to a pipeline. When using a staged
     pass manager you are not able to modify the individual passes and are only able
     to modify stages.
 
-    By default instances of StagedPassManager define a typical full compilation
+    By default instances of ``StagedPassManager`` define a typical full compilation
     pipeline from an abstract virtual circuit to one that is optimized and
     capable of running on the specified backend. The default pre-defined stages are:
 
@@ -361,11 +253,11 @@ class StagedPassManager(PassManager):
        circuit to the physical qubits on a backend
     #. ``routing`` - This stage runs after a layout has been run and will insert any
        necessary gates to move the qubit states around until it can be run on
-       backend's compuling map.
+       backend's coupling map.
     #. ``translation`` - Perform the basis gate translation, in other words translate the gates
        in the circuit to the target backend's basis set
     #. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
-       optimize the circuit until a condtion (such as fixed depth) is reached.
+       optimize the circuit until a condition (such as fixed depth) is reached.
     #. ``scheduling`` - Any hardware aware scheduling passes
 
     .. note::
@@ -391,7 +283,7 @@ class StagedPassManager(PassManager):
         r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
     )
 
-    def __init__(self, stages: Optional[Iterable[str]] = None, **kwargs) -> None:
+    def __init__(self, stages: Iterable[str] | None = None, **kwargs) -> None:
         """Initialize a new StagedPassManager object
 
         Args:
@@ -439,19 +331,19 @@ class StagedPassManager(PassManager):
                     msg.write(f", {invalid_stage}")
                 raise ValueError(msg.getvalue())
 
-    def _validate_init_kwargs(self, kwargs: Dict[str, Any]) -> None:
+    def _validate_init_kwargs(self, kwargs: dict[str, Any]) -> None:
         expanded_stages = set(self.expanded_stages)
         for stage in kwargs.keys():
             if stage not in expanded_stages:
                 raise AttributeError(f"{stage} is not a valid stage.")
 
     @property
-    def stages(self) -> Tuple[str, ...]:
+    def stages(self) -> tuple[str, ...]:
         """Pass manager stages"""
         return self._stages  # pylint: disable=no-member
 
     @property
-    def expanded_stages(self) -> Tuple[str, ...]:
+    def expanded_stages(self) -> tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
         return self._expanded_stages  # pylint: disable=no-member
 
@@ -477,7 +369,7 @@ class StagedPassManager(PassManager):
 
     def append(
         self,
-        passes: Union[BasePass, List[BasePass]],
+        passes: BasePass | Sequence[BasePass | FlowController],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -486,7 +378,7 @@ class StagedPassManager(PassManager):
     def replace(
         self,
         index: int,
-        passes: Union[BasePass, List[BasePass]],
+        passes: BasePass | list[BasePass],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -498,7 +390,15 @@ class StagedPassManager(PassManager):
 
     def __getitem__(self, index):
         self._update_passmanager()
-        return super().__getitem__(index)
+
+        # Do not inherit from the PassManager, i.e. super()
+        # It returns instance of self.__class__ which is StagedPassManager.
+        new_passmanager = PassManager(max_iteration=self.max_iteration)
+        _pass_sets = self._pass_sets[index]
+        if isinstance(_pass_sets, dict):
+            _pass_sets = [_pass_sets]
+        new_passmanager._pass_sets = _pass_sets
+        return new_passmanager
 
     def __len__(self):
         self._update_passmanager()
@@ -514,15 +414,47 @@ class StagedPassManager(PassManager):
         self._update_passmanager()
         return super()._create_running_passmanager()
 
-    def passes(self) -> List[Dict[str, BasePass]]:
+    def passes(self) -> list[dict[str, BasePass]]:
         self._update_passmanager()
         return super().passes()
 
     def run(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        output_name: str = None,
-        callback: Callable = None,
-    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        circuits: _CircuitsT,
+        output_name: str | None = None,
+        callback: Callable | None = None,
+    ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback)
+
+    def draw(self, filename=None, style=None, raw=False):
+        """Draw the staged pass manager."""
+        from qiskit.visualization import staged_pass_manager_drawer
+
+        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)
+
+
+# A temporary error handling with slight overhead at class loading.
+# This method wraps all class methods to replace PassManagerError with TranspilerError.
+# The pass flow controller mechanics raises PassManagerError, as it has been moved to base class.
+# PassManagerError is not caught by TranspilerError due to the hierarchy.
+
+
+def _replace_error(meth):
+    @wraps(meth)
+    def wrapper(*meth_args, **meth_kwargs):
+        try:
+            return meth(*meth_args, **meth_kwargs)
+        except PassManagerError as ex:
+            raise TranspilerError(ex.message) from ex
+
+    return wrapper
+
+
+for _name, _method in inspect.getmembers(PassManager, predicate=inspect.isfunction):
+    if _name.startswith("_"):
+        # Ignore protected and private.
+        # User usually doesn't directly execute and catch error from these methods.
+        continue
+    _wrapped = _replace_error(_method)
+    setattr(PassManager, _name, _wrapped)

@@ -2,7 +2,16 @@
 # 4.0+. The pin can be removed after nbformat is updated.
 jsonschema==3.2.0
 
-# jupyter-core 5.0.0 started emitting deprecation warnings with ipywidgets via
-# a seaborn import. This pin can be removed when compatibility with those
-# packages is fixed
-jupyter-core==4.11.2
+# Aer 0.12.1 has a bad value in the results output that prevents pickling.
+# Remove pin once https://github.com/Qiskit/qiskit-aer/pull/1845 is released.
+qiskit-aer==0.12.0
+
+# Numpy 1.25 deprecated some behaviours that we used, and caused the isometry
+# tests to flake. See https://github.com/Qiskit/qiskit-terra/issues/10305,
+# remove pin when resolving that.
+numpy<1.25
+
+# Scipy 1.11 seems to have caused an instability in the Weyl coordinates
+# eigensystem code for one of the test cases.  See
+# https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
+scipy<1.11

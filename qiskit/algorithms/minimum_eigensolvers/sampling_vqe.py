@@ -98,10 +98,12 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
             can either be a Qiskit :class:`.Optimizer` or a callable implementing the
             :class:`.Minimizer` protocol.
-        aggregation (float | Callable[[list[float]], float] | None): A float or callable to specify
-            how the objective function evaluated on the basis states should be aggregated. If a
-            float, this specifies the :math:`\alpha \in [0,1]` parameter for a CVaR expectation
-            value [1].
+        aggregation (float | Callable[[list[tuple[float, complex]], float] | None):
+            A float or callable to specify how the objective function evaluated on the basis states
+            should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]` parameter
+            for a CVaR expectation value [1]. If a callable, it takes a list of basis state
+            measurements specified as  ``[(probability, objective_value)]`` and return an objective
+            value as float. If None, all an ordinary expectation value is calculated.
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback that
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
@@ -208,7 +210,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         start_time = time()
 
         if callable(self.optimizer):
-            # pylint: disable=not-callable
             optimizer_result = self.optimizer(fun=evaluate_energy, x0=initial_point, bounds=bounds)
         else:
             # we always want to submit as many estimations per job as possible for minimal
@@ -257,7 +258,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         operator: BaseOperator | PauliSumOp,
         ansatz: QuantumCircuit,
         return_best_measurement: bool = False,
-    ) -> tuple[Callable[[np.ndarray], np.ndarray | float], dict]:
+    ) -> Callable[[np.ndarray], np.ndarray | float] | tuple[
+        Callable[[np.ndarray], np.ndarray | float], dict[str, Any]
+    ]:
         """Returns a function handle to evaluate the energy at given parameters.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
@@ -292,9 +295,11 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 ):
                     best_measurement["best"] = best_i
 
-        estimator = _DiagonalEstimator(sampler=self.sampler, callback=store_best_measurement)
+        estimator = _DiagonalEstimator(
+            sampler=self.sampler, callback=store_best_measurement, aggregation=self.aggregation
+        )
 
-        def evaluate_energy(parameters):
+        def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
             nonlocal eval_count
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
@@ -348,7 +353,7 @@ class SamplingVQEResult(VariationalResult, SamplingMinimumEigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cost_function_evals = None
+        self._cost_function_evals: int | None = None
 
     @property
     def cost_function_evals(self) -> int | None:

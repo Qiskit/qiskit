@@ -407,6 +407,27 @@ class TestConsolidateBlocks(QiskitTestCase):
         expected.swap(0, 1)
         self.assertEqual(expected, pass_manager.run(qc))
 
+    def test_identity_unitary_is_removed(self):
+        """Test that a 2q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
+    def test_identity_1q_unitary_is_removed(self):
+        """Test that a 1q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
 
 if __name__ == "__main__":
     unittest.main()

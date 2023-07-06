@@ -382,6 +382,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         x_max = qubits[pauli.x][-1]
         y_phase = (-1j) ** pauli._count_y()
+        y_phase = y_phase[0]
         return pauli_phase * density_expval_pauli_with_x(
             data, self.num_qubits, z_mask, x_mask, y_phase, x_max
         )
@@ -430,7 +431,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             with :math:`\\rho_1=|+\\rangle\\!\\langle+|`,
             :math:`\\rho_0=|0\\rangle\\!\\langle0|`.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -448,10 +449,16 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_qubit_1 = rho.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Qubit-0 probs: [1. 0.]
+                Qubit-1 probs: [0.5 0.5]
+
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -465,12 +472,22 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 # but swapping qubits 0 and 1 in output
                 probs_swapped = rho.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
+
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Swapped probs: [0.5 0.5 0.  0. ]
         """
         probs = self._subsystem_probabilities(
             np.abs(self.data.diagonal()), self._op_shape.dims_l(), qargs=qargs
         )
+
+        # to account for roundoff errors, we clip
+        probs = np.clip(probs, a_min=0, a_max=1)
+
         if decimals is not None:
             probs = probs.round(decimals=decimals)
+
         return probs
 
     def reset(self, qargs=None):
@@ -564,7 +581,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
               as an N-qubit state. If it is not a power of  two the state
               will have a single d-dimensional subsystem.
         """
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros((size, size), dtype=complex)
         state[i, i] = 1.0
         return DensityMatrix(state, dims=dims)
@@ -619,17 +636,26 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit density matrix
             :math:`rho = |-\rangle\!\langle -|\otimes |0\rangle\!\langle 0|`
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import DensityMatrix
 
                 rho = DensityMatrix.from_label('-0')
                 print(rho.to_dict())
 
+            .. parsed-literal::
+
+               {
+                   '00|00': (0.4999999999999999+0j),
+                   '10|00': (-0.4999999999999999-0j),
+                   '00|10': (-0.4999999999999999+0j),
+                   '10|10': (0.4999999999999999+0j)
+               }
+
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -642,11 +668,15 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
+            .. parsed-literal::
+
+                {'00|00': (0.25+0j), '10|10': (0.25+0j), '20|20': (0.25+0j), '22|22': (0.25+0j)}
+
             For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -656,6 +686,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 mat[-1, -1] = 0.5
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
+
+            .. parsed-literal::
+
+                {'00|00': (0.5+0j), '91|91': (0.5+0j)}
         """
         return self._matrix_to_dict(
             self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
@@ -781,3 +815,22 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
+
+    def partial_transpose(self, qargs):
+        """Return partially transposed density matrix.
+
+        Args:
+            qargs (list): The subsystems to be transposed.
+
+        Returns:
+            DensityMatrix: The partially transposed density matrix.
+        """
+        arr = self._data.reshape(self._op_shape.tensor_shape)
+        qargs = len(self._op_shape.dims_l()) - 1 - np.array(qargs)
+        n = len(self.dims())
+        lst = list(range(2 * n))
+        for i in qargs:
+            lst[i], lst[i + n] = lst[i + n], lst[i]
+        rho = np.transpose(arr, lst)
+        rho = np.reshape(rho, self._op_shape.shape)
+        return DensityMatrix(rho, dims=self.dims())

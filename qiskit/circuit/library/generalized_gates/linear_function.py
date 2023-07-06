@@ -12,7 +12,7 @@
 
 """Linear Function."""
 
-from typing import Union, List, Optional
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
@@ -63,8 +63,8 @@ class LinearFunction(Gate):
 
     def __init__(
         self,
-        linear: Union[List[List[int]], np.ndarray, QuantumCircuit],
-        validate_input: Optional[bool] = False,
+        linear: list[list[int]] | np.ndarray | QuantumCircuit,
+        validate_input: bool | None = False,
     ) -> None:
         """Create a new linear function.
 

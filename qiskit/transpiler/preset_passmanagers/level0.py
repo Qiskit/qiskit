@@ -14,6 +14,7 @@
 
 Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
+from qiskit.transpiler.basepasses import BasePass
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -77,15 +78,29 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
+    if target is None:
+        coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
+
     if layout_method == "trivial":
-        _choose_layout = TrivialLayout(coupling_map)
+        _choose_layout: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
+        if target is None:
+            _choose_layout = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _choose_layout = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
+        skip_routing = pass_manager_config.routing_method is not None and routing_method != "sabre"
         _choose_layout = SabreLayout(
-            coupling_map, max_iterations=1, seed=seed_transpiler, swap_trials=5
+            coupling_map_layout,
+            max_iterations=1,
+            seed=seed_transpiler,
+            swap_trials=5,
+            layout_trials=5,
+            skip_routing=skip_routing,
         )
 
     # Choose routing pass
@@ -109,10 +124,17 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 "layout", layout_method, pass_manager_config, optimization_level=0
             )
         else:
+
+            def _swap_mapped(property_set):
+                return property_set["final_layout"] is None
+
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout, condition=_choose_layout_condition)
-            layout += common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map_layout)
+            layout.append(
+                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+            )
         routing = routing_pm
     else:
         layout = None
@@ -143,7 +165,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         pre_opt = None
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map
+            instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
         )
     else:
         sched = plugin_manager.get_passmanager_stage(
@@ -155,6 +177,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         translation_method=translation_method,
         optimization_method=optimization_method,
         scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(

@@ -15,9 +15,10 @@
 """
 Special data types.
 """
+from __future__ import annotations
 
 from enum import Enum
-from typing import NamedTuple, Union, List, Optional, NewType, Dict, Any, Tuple
+from typing import NamedTuple, Union, Optional, NewType, Any, List
 
 import numpy as np
 from qiskit import pulse
@@ -37,7 +38,7 @@ PulseInstruction = NamedTuple(
     "InstructionTuple",
     [
         ("t0", int),
-        ("dt", Optional[float]),
+        ("dt", Union[float, None]),
         ("frame", PhaseFreqTuple),
         ("inst", Union[pulse.Instruction, List[pulse.Instruction]]),
         ("is_opaque", bool),
@@ -71,7 +72,7 @@ SnapshotInstruction.inst.__doc__ = "Snapshot instruction."
 
 class ChartAxis(NamedTuple):
     name: str
-    channels: List[pulse.channels.Channel]
+    channels: list[pulse.channels.Channel]
 
 
 ChartAxis.__doc__ = "Data to represent an axis information of chart."
@@ -82,7 +83,7 @@ ChartAxis.channels.__doc__ = "Channels associated with chart."
 class ParsedInstruction(NamedTuple):
     xvals: np.ndarray
     yvals: np.ndarray
-    meta: Dict[str, Any]
+    meta: dict[str, Any]
 
 
 ParsedInstruction.__doc__ = "Data to represent a parsed pulse instruction for object generation."
@@ -93,7 +94,7 @@ ParsedInstruction.meta.__doc__ = "Dictionary containing instruction details."
 
 class OpaqueShape(NamedTuple):
     duration: np.ndarray
-    meta: Dict[str, Any]
+    meta: dict[str, Any]
 
 
 OpaqueShape.__doc__ = "Data to represent a pulse instruction with parameterized shape."
@@ -102,9 +103,9 @@ OpaqueShape.meta.__doc__ = "Dictionary containing instruction details."
 
 
 class HorizontalAxis(NamedTuple):
-    window: Tuple[int, int]
-    axis_map: Dict[float, Union[float, str]]
-    axis_break_pos: List[int]
+    window: tuple[int, int]
+    axis_map: dict[float, float | str]
+    axis_break_pos: list[int]
     label: str
 
 
@@ -230,6 +231,11 @@ class TimeUnits(str, Enum):
 
 
 # convenient type to represent union of drawing data
+# TODO: https://github.com/Qiskit/qiskit-terra/issues/9591
+#  NewType means that a value of type Original cannot be used in places
+#  where a value of type Derived is expected
+#  (see https://docs.python.org/3/library/typing.html#newtype)
+#  This breaks a lot of type checking.
 DataTypes = NewType("DataType", Union[WaveformType, LabelType, LineType, SymbolType])
 
 # convenient type to represent union of values to represent a coordinate

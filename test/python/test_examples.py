@@ -32,7 +32,7 @@ class TestPythonExamples(QiskitTestCase):
     """Test example scripts"""
 
     @unittest.skipIf(
-        sys.platform == "darwin" and sys.version_info[1] >= 8,
+        sys.platform == "darwin",
         "Multiprocess spawn fails on macOS python >=3.8 without __name__ == '__main__' guard",
     )
     def test_all_examples(self):
@@ -59,7 +59,7 @@ class TestPythonExamples(QiskitTestCase):
                     self.assertEqual(run_example.returncode, 0, error_string)
 
     @unittest.skipIf(
-        sys.platform == "darwin" and sys.version_info[1] >= 8,
+        sys.platform == "darwin",
         "Multiprocess spawn fails on macOS python >=3.8 without __name__ == '__main__' guard",
     )
     @online_test

@@ -764,7 +764,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.z(q[3:])
         result = qc.count_ops()
 
-        expected = dict([("h", 6), ("z", 3), ("y", 2), ("x", 1)])
+        expected = {"h": 6, "z": 3, "y": 2, "x": 1}
 
         self.assertIsInstance(result, dict)
         self.assertEqual(expected, result)
@@ -1266,6 +1266,25 @@ class TestCircuitProperties(QiskitTestCase):
         qc2.metadata["a"] = 1000
 
         self.assertEqual(qc1.metadata["a"], 0)
+
+    def test_metadata_is_dict(self):
+        """Verify setting metadata to None in the constructor results in an empty dict."""
+        qc = QuantumCircuit(1)
+        metadata1 = qc.metadata
+        self.assertEqual(metadata1, {})
+
+    def test_metadata_raises(self):
+        """Test that we must set metadata to a dict."""
+        qc = QuantumCircuit(1)
+        with self.assertRaises(TypeError):
+            qc.metadata = 1
+
+    def test_metdata_deprectation(self):
+        """Test that setting metadata to None emits a deprecation warning."""
+        qc = QuantumCircuit(1)
+        with self.assertWarns(DeprecationWarning):
+            qc.metadata = None
+        self.assertEqual(qc.metadata, {})
 
     def test_scheduling(self):
         """Test cannot return schedule information without scheduling."""

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,11 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ComposedOp Class """
+"""ComposedOp Class"""
 
 from functools import partial, reduce
 from typing import List, Optional, Union, cast, Dict
 
+from numbers import Number
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -23,15 +24,20 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ComposedOp(ListOp):
-    """A class for lazily representing compositions of Operators. Often Operators cannot be
+    """Deprecated: A class for lazily representing compositions of Operators. Often Operators cannot be
     efficiently composed with one another, but may be manipulated further so that they can be
     composed later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be composed, and therefore if they reach a point in which they can be, such as after
     conversion to QuantumCircuits or matrices, they can be reduced by composition."""
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         oplist: List[OperatorBase],
@@ -63,6 +69,20 @@ class ComposedOp(ListOp):
     # def tensorpower(self, other):
     #     """ Tensor product with Self Multiple Times """
     #     raise NotImplementedError
+
+    def to_matrix(self, massive: bool = False) -> np.ndarray:
+        OperatorBase._check_massive("to_matrix", True, self.num_qubits, massive)
+
+        mat = self.coeff * reduce(
+            np.dot, [np.asarray(op.to_matrix(massive=massive)) for op in self.oplist]
+        )
+
+        # Note: As ComposedOp has a combo function of inner product we can end up here not with
+        # a matrix (array) but a scalar. In which case we make a single element array of it.
+        if isinstance(mat, Number):
+            mat = [mat]
+
+        return np.asarray(mat, dtype=complex)
 
     def to_circuit(self) -> QuantumCircuit:
         """Returns the quantum circuit, representing the composed operator.

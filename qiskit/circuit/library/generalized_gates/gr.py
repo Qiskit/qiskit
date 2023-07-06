@@ -44,14 +44,13 @@ class GR(QuantumCircuit):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GR
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GR
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
@@ -99,14 +98,13 @@ class GRX(GR):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
         from qiskit.circuit.library import GRX
-        import qiskit.tools.jupyter
+        from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
         import numpy as np
         circuit = GRX(num_qubits=3, theta=np.pi/4)
-        %circuit_library_info circuit
+        _generate_circuit_library_visualization(circuit)
 
     """
 
@@ -148,14 +146,13 @@ class GRY(GR):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GRY
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GRY(num_qubits=3, theta=np.pi/4)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GRY
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GRY(num_qubits=3, theta=np.pi/4)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
@@ -197,14 +194,13 @@ class GRZ(QuantumCircuit):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GRZ
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GRZ(num_qubits=3, phi=np.pi/2)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GRZ
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GRZ(num_qubits=3, phi=np.pi/2)
+       _generate_circuit_library_visualization(circuit)
 
     """
 

@@ -17,8 +17,8 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Delay
-from qiskit.circuit.library import XGate, YGate, RXGate, UGate
+from qiskit.circuit import QuantumCircuit, Delay, Measure, Reset, Parameter
+from qiskit.circuit.library import XGate, YGate, RXGate, UGate, CXGate, HGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
@@ -28,8 +28,8 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-
-import qiskit.pulse as pulse
+from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit import pulse
 
 from qiskit.test import QiskitTestCase
 
@@ -119,6 +119,88 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             [
                 ALAPScheduleAnalysis(self.durations),
                 PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        ghz4_dd = pm.run(self.ghz4)
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        expected = expected.compose(Delay(100), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(200), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(100), [0])
+
+        expected = expected.compose(Delay(50), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(100), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(50), [1])
+
+        self.assertEqual(ghz4_dd, expected)
+
+    def test_insert_dd_ghz_with_target(self):
+        """Test DD gates are inserted in correct spots.
+
+                   ┌───┐            ┌────────────────┐      ┌───┐      »
+        q_0: ──────┤ H ├─────────■──┤ Delay(100[dt]) ├──────┤ X ├──────»
+             ┌─────┴───┴─────┐ ┌─┴─┐└────────────────┘┌─────┴───┴─────┐»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■─────────┤ Delay(50[dt]) ├»
+             ├───────────────┴┐└───┘      ┌─┴─┐       └───────────────┘»
+        q_2: ┤ Delay(750[dt]) ├───────────┤ X ├───────────────■────────»
+             ├────────────────┤           └───┘             ┌─┴─┐      »
+        q_3: ┤ Delay(950[dt]) ├─────────────────────────────┤ X ├──────»
+             └────────────────┘                             └───┘      »
+        «     ┌────────────────┐      ┌───┐       ┌────────────────┐
+        «q_0: ┤ Delay(200[dt]) ├──────┤ X ├───────┤ Delay(100[dt]) ├─────────────────
+        «     └─────┬───┬──────┘┌─────┴───┴──────┐└─────┬───┬──────┘┌───────────────┐
+        «q_1: ──────┤ X ├───────┤ Delay(100[dt]) ├──────┤ X ├───────┤ Delay(50[dt]) ├
+        «           └───┘       └────────────────┘      └───┘       └───────────────┘
+        «q_2: ───────────────────────────────────────────────────────────────────────
+        «
+        «q_3: ───────────────────────────────────────────────────────────────────────
+        «
+        """
+        target = Target(num_qubits=4, dt=1)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(duration=50)})
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(duration=700),
+                (1, 2): InstructionProperties(duration=200),
+                (2, 3): InstructionProperties(duration=300),
+            },
+        )
+        target.add_instruction(
+            XGate(), {(x,): InstructionProperties(duration=50) for x in range(4)}
+        )
+        target.add_instruction(
+            YGate(), {(x,): InstructionProperties(duration=50) for x in range(4)}
+        )
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lambda")),
+            {(x,): InstructionProperties(duration=100) for x in range(4)},
+        )
+        target.add_instruction(
+            RXGate(Parameter("theta")),
+            {(x,): InstructionProperties(duration=100) for x in range(4)},
+        )
+        target.add_instruction(
+            Measure(), {(x,): InstructionProperties(duration=1000) for x in range(4)}
+        )
+        target.add_instruction(
+            Reset(), {(x,): InstructionProperties(duration=1500) for x in range(4)}
+        )
+        target.add_instruction(Delay(Parameter("t")), {(x,): None for x in range(4)})
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(target=target, dd_sequence=dd_sequence),
             ]
         )
 
@@ -740,6 +822,66 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         circ2 = pm2.run(self.ghz4)
 
         self.assertEqual(circ1, circ2)
+
+    def test_respect_target_instruction_constraints(self):
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions
+        and does not insert DD gates for qubits that do not support necessary gates.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        target = Target(dt=1)
+        # Y is partially supported (not supported on qubit 2)
+        target.add_instruction(
+            XGate(), {(q,): InstructionProperties(duration=100) for q in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(duration=1000),
+                (1, 2): InstructionProperties(duration=1000),
+            },
+        )
+        # delays are not supported
+
+        # No DD instructions nor delays are padded due to no delay support in the target
+        pm_xx = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(dd_sequence=[XGate(), XGate()], target=target),
+            ]
+        )
+        scheduled = pm_xx.run(qc)
+        self.assertEqual(qc, scheduled)
+
+        # Fails since Y is not supported in the target
+        with self.assertRaises(TranspilerError):
+            PassManager(
+                [
+                    ALAPScheduleAnalysis(target=target),
+                    PadDynamicalDecoupling(
+                        dd_sequence=[XGate(), YGate(), XGate(), YGate()], target=target
+                    ),
+                ]
+            )
+
+        # Add delay support to the target
+        target.add_instruction(Delay(Parameter("t")), {(q,): None for q in range(3)})
+        # No error but no DD on qubit 2 (just delay is padded) since X is not supported on it
+        scheduled = pm_xx.run(qc)
+
+        expected = QuantumCircuit(3)
+        expected.delay(1000, [2])
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+        expected.delay(200, [0])
+        expected.x([0])
+        expected.delay(400, [0])
+        expected.x([0])
+        expected.delay(200, [0])
+        self.assertEqual(expected, scheduled)
 
 
 if __name__ == "__main__":

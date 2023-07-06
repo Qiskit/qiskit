@@ -73,7 +73,7 @@ def hellinger_fidelity(dist_p, dist_q):
 
     Example:
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
             from qiskit.quantum_info.analysis import hellinger_fidelity

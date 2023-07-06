@@ -13,9 +13,9 @@
 """Rotation around the Y axis."""
 
 import math
+from math import pi
 from typing import Optional, Union
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -44,8 +44,8 @@ class RYGate(Gate):
 
         RY(\theta) = \exp\left(-i \th Y\right) =
             \begin{pmatrix}
-                \cos{\th} & -\sin{\th} \\
-                \sin{\th} & \cos{\th}
+                \cos\left(\th\right) & -\sin\left(\th\right) \\
+                \sin\left(\th\right) & \cos\left(\th\right)
             \end{pmatrix}
     """
 
@@ -95,7 +95,7 @@ class RYGate(Gate):
     def inverse(self):
         r"""Return inverted RY gate.
 
-        :math:`RY(\lambda){\dagger} = RY(-\lambda)`
+        :math:`RY(\lambda)^{\dagger} = RY(-\lambda)`
         """
         return RYGate(-self.params[0])
 
@@ -104,6 +104,11 @@ class RYGate(Gate):
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RYGate(exponent * theta)
 
 
 class CRYGate(ControlledGate):
@@ -131,9 +136,9 @@ class CRYGate(ControlledGate):
             I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0         & 0 & 0 \\
-                0 & \cos{\th} & 0 & -\sin{\th} \\
+                0 & \cos\left(\th\right) & 0 & -\sin\left(\th\right) \\
                 0 & 0         & 1 & 0 \\
-                0 & \sin{\th} & 0 & \cos{\th}
+                0 & \sin\left(\th\right) & 0 & \cos\left(\th\right)
             \end{pmatrix}
 
     .. note::
@@ -159,8 +164,8 @@ class CRYGate(ControlledGate):
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos{\th} & -\sin{\th} \\
-                    0 & 0 & \sin{\th} & \cos{\th}
+                    0 & 0 & \cos\left(\th\right) & -\sin\left(\th\right) \\
+                    0 & 0 & \sin\left(\th\right) & \cos\left(\th\right)
                 \end{pmatrix}
     """
 

@@ -15,6 +15,7 @@ Tests for CNOTDihedral functions.
 """
 
 import unittest
+from test import combine
 from ddt import ddt
 
 import numpy as np
@@ -39,6 +40,11 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators import random
 from qiskit.quantum_info.operators.dihedral import CNOTDihedral
 from qiskit.quantum_info.random import random_cnotdihedral
+from qiskit.synthesis.cnotdihedral import (
+    synth_cnotdihedral_general,
+    synth_cnotdihedral_full,
+    synth_cnotdihedral_two_qubits,
+)
 
 
 def random_cnotdihedral_circuit(num_qubits, num_gates, gates="all", seed=None):
@@ -689,6 +695,39 @@ class TestCNOTDihedral(unittest.TestCase):
                     test_elem1,
                     "Error: decomposed gates are not equal to the original gates",
                 )
+
+    @combine(num_qubits=[1, 2])
+    def test_synth_two_qubits(self, num_qubits):
+        """Test synthesis for set of {num_qubits}-qubit CNOTDihedral"""
+        rng = np.random.default_rng(1234)
+        samples = 10
+        for _ in range(samples):
+            circ = random_cnotdihedral_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = CNOTDihedral(circ)
+            value = CNOTDihedral(synth_cnotdihedral_two_qubits(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_synth_general(self, num_qubits):
+        """Test synthesis for set of {num_qubits}-qubit CNOTDihedral"""
+        rng = np.random.default_rng(1234)
+        samples = 10
+        for _ in range(samples):
+            circ = random_cnotdihedral_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = CNOTDihedral(circ)
+            value = CNOTDihedral(synth_cnotdihedral_general(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_synth_full(self, num_qubits):
+        """Test synthesis for set of {num_qubits}-qubit CNOTDihedral"""
+        rng = np.random.default_rng(1234)
+        samples = 10
+        for _ in range(samples):
+            circ = random_cnotdihedral_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = CNOTDihedral(circ)
+            value = CNOTDihedral(synth_cnotdihedral_full(target))
+            self.assertEqual(value, target)
 
     def test_init_circuit_decompose(self):
         """
