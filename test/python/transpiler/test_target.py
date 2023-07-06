@@ -1925,8 +1925,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
             basis_gates=config.basis_gates,
             meas_map=config.meas_map,
         )
-        meas_map = format_meas_map(config.meas_map)
-        self.assertEqual(meas_map, target.meas_map)
+        self.assertEqual(target.meas_map, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
