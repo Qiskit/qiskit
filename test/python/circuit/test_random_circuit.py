@@ -69,7 +69,6 @@ class TestCircuitRandom(QiskitTestCase):
             # any of Numpy's fixed-width types, for example.
             self.assertIsInstance(value, int)
 
-
     def test_random_mid_circuit_measure_conditional(self):
         """Test random circuit with mid-circuit measurements for conditionals."""
         num_qubits = depth = 2
