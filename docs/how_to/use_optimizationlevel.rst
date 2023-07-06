@@ -4,18 +4,19 @@ Setting transpiler optimization level
 
 This guide shows you how to use the :attr:`~qiskit.transpile.optimization_level` 
 parameter with :meth:`~qiskit.compiler.transpile`.
+
 :attr:`~qiskit.transpile.optimization_level` helps you to optimize your quantum circuit.
 This parameter takes an integer which can be a value between 0 and 3,
-where the higher the number the more optimized the result.
+where the higher the number, the more optimized the result.
 You can find more information about this parameter
-`here <https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html#Preset-Pass-Managers>`__.
+`here <https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html#Preset-Pass-Managers>`_.
 
 Initialize the quantum circuit
 ==============================
 
 The effect of setting the :attr:`~qiskit.transpile.optimization_level` will differ depending on the backend you are using.
-For this example you will exploring the `CSWAP <https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.cswap.html>`__ gate,
-a three qubit gate which will be transpiled into one and two qubit gates.
+For this example, you will explore the `CSWAP <https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.cswap.html>`_ gate,
+which is a three qubit gate which will be transpiled into one and two qubit gates.
 
 .. testcode::
 
@@ -285,25 +286,48 @@ Based on the basis gates, results in one less :class:`.CXGate` and the addition 
 Plotting the Results
 ====================
 
-You can visualize the results of your previous examples by generating plot that show the depth, number of gates, and number of CX gates of your quantum circuits.
+You can visualize the results of your previous examples by generating a plot that show the depth, number of gates, and number of CX gates of your quantum circuits.
 
 .. testcode::
 
     
-    import matplotlib.pyplot as plt # import matplotlib to plot your result
+    import matplotlib.pyplot as plt
     
     
     fig, ax = plt.subplots()
     my_xticks = [str(i) for i in range(4)]
     plt.xticks(range(4), my_xticks)
-    ax.plot(range(4), [qc_b0.depth(),qc_b1.depth(),qc_b2.depth(),qc_b3.depth()],label = "Number of depth", marker='o',color ='#6929C4')
-    ax.plot(range(4), [qc_b0.size(),qc_B1.size(),qc_b2.size(),qc_b3.size()],label = "Number of gates", marker='o',color ='blue')
-    ax.plot(range(4), [qc_b0.num_nonlocal_gates(),qc_b1.num_nonlocal_gates(),qc_b2.num_nonlocal_gates(),qc_b3.num_nonlocal_gates()],label = "Number of non local gates", marker='o',color ='green')
+    ax.plot(
+        range(4),
+        [qc_b0.depth(), qc1.depth(), qc2.depth(), qc3.depth()],
+        label="Number of depth",
+        marker="o",
+        color="#6929C4",
+    )
+    ax.plot(
+        range(4),
+        [qc_b0.size(), qc1.size(), qc2.size(), qc3.size()],
+        label="Number of gates",
+        marker="o",
+        color="blue",
+    )
+    ax.plot(
+        range(4),
+        [
+            qc_b0.num_nonlocal_gates(),
+            qc1.num_nonlocal_gates(),
+            qc2.num_nonlocal_gates(),
+            qc3.num_nonlocal_gates(),
+        ],
+        label="Number of non local gates",
+        marker="o",
+        color="green",
+    )
 
-    ax.set_title('Results of the optimization level using as backend ibmq_quito')
-    ax.set_xlabel('Optimization Level')
-    ax.set_ylabel('Values')
-    plt.legend(bbox_to_anchor =(0.75, 1.))
+    ax.set_title("Results of the optimization level using as backend ibmq_quito")
+    ax.set_xlabel("Optimization Level")
+    ax.set_ylabel("Values")
+    plt.legend(bbox_to_anchor=(0.75, 1.0))
 
 
 .. testoutput::
