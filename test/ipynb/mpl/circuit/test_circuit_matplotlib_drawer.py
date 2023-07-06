@@ -956,6 +956,29 @@ class TestMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
         self.circuit_drawer(circuit, filename="if_else_op.png")
 
+    def test_if_else_with_body(self):
+        """Test the IfElseOp with adding a body manually"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, 1)
+        circuit.measure(1, 2)
+        circuit.x(2)
+        circuit.x(2, label="XLabel").c_if(cr, 2)
+
+        qr2 = QuantumRegister(3, "qr2")
+        qc2 = QuantumCircuit(qr2, cr)
+        qc2.x(1)
+        qc2.y(1)
+        qc2.z(0)
+        qc2.x(0, label="X1i").c_if(cr, 4)
+
+        circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
+        circuit.x(0, label="X1i")
+        self.circuit_drawer(circuit, filename="if_else_body.png")
+
     def test_if_else_op_nested(self):
         """Test the IfElseOp with complex nested if/else"""
         qr = QuantumRegister(4, "q")
