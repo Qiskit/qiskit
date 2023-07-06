@@ -36,7 +36,6 @@ from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.calibration_entries import CalibrationPublisher, ScheduleDef
-from qiskit.pulse.utils import format_meas_map
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
