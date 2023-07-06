@@ -44,6 +44,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
+import qiskit.circuit.instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.exceptions import QasmError
@@ -61,6 +62,7 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
+from .tools import pi_check
 
 try:
     import pygments
@@ -1737,16 +1739,24 @@ class QuantumCircuit:
             elif operation.name == "barrier":
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
+            elif hasattr(operation, "has_qasm2") and not operation.has_qasm2():
+                raise CircuitError(
+                    f"No OpenQASM 2 representation is defined for operation {operation.name}"
+                )
             else:
                 operation = _qasm2_define_custom_operation(
                     operation, existing_gate_names, gates_to_define
                 )
-
                 # Insert qasm representation of the original instruction
+                if operation.name == "c3sx":
+                    operation.name = "c3sqrtx"
+                name_param = _instruction_qasm2(operation)
+                if operation.name == "c3sqrtx":
+                    operation.name = "c3sx"
                 bits_qasm = ",".join(
                     bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
                 )
-                instruction_qasm = f"{operation.qasm()} {bits_qasm};"
+                instruction_qasm = f"{name_param} {bits_qasm};"
             instruction_calls.append(instruction_qasm)
         instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
         gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
@@ -2817,7 +2827,7 @@ class QuantumCircuit:
         self, value_dict: Mapping[Parameter, ParameterValueType]
     ) -> dict[Parameter, ParameterValueType]:
         unrolled_value_dict: dict[Parameter, ParameterValueType] = {}
-        for (param, value) in value_dict.items():
+        for param, value in value_dict.items():
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
                     raise CircuitError(
@@ -5085,7 +5095,8 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
                 instruction.operation, existing_gate_names, gates_to_define
             )
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
-            statements.append(f"{new_operation.qasm()} {bits_qasm};")
+            name_param = _instruction_qasm2(new_operation)
+            statements.append(f"{name_param} {bits_qasm};")
         body_qasm = " ".join(statements)
 
         # if an inner operation has the same name as the actual operation, it needs to be renamed
@@ -5199,3 +5210,22 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+def _instruction_qasm2(operation):
+    """Return an OpenQASM 2 string for the instruction."""
+    name_param = operation.name
+    if operation.params:
+        name_param = "{}({})".format(
+            name_param,
+            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
+        )
+    if operation.condition is not None:
+        if not isinstance(operation.condition[0], ClassicalRegister):
+            raise QasmError(
+                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
+            )
+        name_param = (
+            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + name_param
+        )
+    return name_param

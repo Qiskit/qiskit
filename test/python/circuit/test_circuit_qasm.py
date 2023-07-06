@@ -266,6 +266,10 @@ c3sqrtx q[0],q[1],q[2],q[3];
         parsed = QuantumCircuit.from_qasm_str(qasm)
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
 
+    def test_c3sxgate_qasm_deprecation_warning(self):
+        with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
+            C3SXGate().qasm()
+
     def test_cczgate_qasm(self):
         """Test that CCZ dumps definition as a non-qelib1 gate."""
         qc = QuantumCircuit(3)

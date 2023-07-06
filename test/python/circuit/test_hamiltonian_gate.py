@@ -20,6 +20,7 @@ from numpy.testing import assert_allclose
 import qiskit
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
 from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
@@ -89,16 +90,16 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(dnode.qargs, tuple(qc.qubits))
         assert_allclose(dnode.op.to_matrix(), np.eye(2))
 
-    def test_error_on_qasm(self):
+    def test_error_and_deprecation_warning_on_qasm(self):
         """test that an error is thrown if qc.qasm() is called."""
         qr = QuantumRegister(1, "q0")
         cr = ClassicalRegister(1, "c0")
         qc = QuantumCircuit(qr, cr)
         matrix = np.zeros((2, 2))
         qc.hamiltonian(operator=matrix, time=1, qubits=qr[0])
-
-        with self.assertRaises(ExtensionError):
-            qc.qasm()
+        with self.assertRaises(CircuitError):
+            with self.assertWarnsRegex(DeprecationWarning, r"Stating that one in particular"):
+                qc.qasm()
 
     def test_2q_hamiltonian(self):
         """test 2 qubit hamiltonian"""

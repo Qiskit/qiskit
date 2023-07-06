@@ -15,6 +15,8 @@ from __future__ import annotations
 from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
+from qiskit.utils.deprecation import deprecate_func
+import qiskit.circuit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -568,6 +570,14 @@ class C3SXGate(ControlledGate):
 
         self.definition = qc
 
+    @deprecate_func(
+        additional_msg=(
+            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
+            "safely be done on an object-by-object basis without context. No replacement will be "
+            "provided, because the premise is wrong."
+        ),
+        since="0.25.0",
+    )
     def qasm(self):
         # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
         # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
@@ -578,7 +588,7 @@ class C3SXGate(ControlledGate):
         old_name = self.name
         self.name = "c3sqrtx"
         try:
-            return super().qasm()
+            return qiskit.circuit.quantumcircuit._instruction_qasm2(self)
         finally:
             self.name = old_name
 

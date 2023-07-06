@@ -628,6 +628,14 @@ class TestInstructions(QiskitTestCase):
                 instruction = HGate()
                 instruction.label = 0
 
+    def test_deprecation_warnings_qasm_methods(self):
+        with self.subTest("built in gates"):
+            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
+                HGate().qasm()
+        with self.subTest("User constructed Instruction"):
+            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
+                Instruction("v", 1, 0, [0.4, 0.5, 0.5]).qasm()
+
 
 if __name__ == "__main__":
     unittest.main()
