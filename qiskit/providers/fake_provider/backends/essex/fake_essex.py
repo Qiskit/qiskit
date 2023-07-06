@@ -33,7 +33,7 @@ class FakeEssexV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_essex.json"
     props_filename = "props_essex.json"
-    backend_name = "fake_essex_v2"
+    backend_name = "fake_essex"
 
 
 class FakeEssex(fake_qasm_backend.FakeQasmBackend):

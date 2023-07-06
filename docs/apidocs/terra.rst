@@ -17,6 +17,7 @@ Qiskit Terra API Reference
    assembler
    dagcircuit
    extensions
+   passmanager
    providers_basicaer
    providers
    providers_fake_provider
@@ -25,6 +26,7 @@ Qiskit Terra API Reference
    scheduler
    synthesis
    primitives
+   qasm2
    qasm3
    qasm
    qobj

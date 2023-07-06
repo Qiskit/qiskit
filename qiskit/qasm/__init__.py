@@ -30,12 +30,14 @@ QASM Routines
 Pygments
 ========
 
-.. autosummary::
-   :toctree: ../stubs/
+.. autoclass:: OpenQASMLexer
+    :class-doc-from: class
 
-   ~qiskit.qasm.pygments.OpenQASMLexer
-   ~qiskit.qasm.pygments.QasmHTMLStyle
-   ~qiskit.qasm.pygments.QasmTerminalStyle
+.. autoclass:: QasmHTMLStyle
+    :class-doc-from: class
+
+.. autoclass:: QasmTerminalStyle
+    :class-doc-from: class
 """
 
 from numpy import pi

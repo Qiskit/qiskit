@@ -23,7 +23,6 @@ import numpy
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
-from qiskit.utils.deprecation import deprecate_arg
 
 
 class QobjMeasurementOption:
@@ -283,14 +282,6 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
-    @deprecate_arg(
-        "max_credits",
-        since="0.20.0",
-        additional_msg=(
-            "This argument has no effect on modern IBM Quantum systems, and no alternative is"
-            "necessary."
-        ),
-    )
     def __init__(
         self,
         meas_level,
@@ -302,7 +293,6 @@ class PulseQobjConfig(QobjDictField):
         rep_time=None,
         rep_delay=None,
         shots=None,
-        max_credits=None,
         seed_simulator=None,
         memory_slots=None,
         **kwargs,
@@ -329,9 +319,6 @@ class PulseQobjConfig(QobjDictField):
                 supplied by the backend (``backend.configuration().rep_delay_range``). Default is
                 ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
-            max_credits (int): DEPRECATED This parameter is deprecated as of
-                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
-                no effect on modern IBM Quantum systems, and no alternative is necessary.
             seed_simulator (int): the seed to use in the simulator
             memory_slots (list): The number of memory slots on the device
             kwargs: Additional free form key value fields to add to the
@@ -350,9 +337,6 @@ class PulseQobjConfig(QobjDictField):
             self.rep_delay = rep_delay
         if shots is not None:
             self.shots = int(shots)
-
-        if max_credits is not None:
-            self.max_credits = int(max_credits)
 
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)

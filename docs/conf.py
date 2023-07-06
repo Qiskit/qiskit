@@ -23,9 +23,9 @@ copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pyl
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.24"
+version = "0.25"
 # The full version, including alpha/beta/rc tags
-release = "0.24.0"
+release = "0.25.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -65,10 +65,10 @@ add_module_names = False
 modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
-    "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
-    "qiskit-ibm-runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/documentation/aer/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None)
+    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -112,18 +112,21 @@ autosummary_filename_map = {
     "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
     "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
     "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
+    "qiskit.pulse.library.Square": "qiskit.pulse.library.Square_fun.rst",
+    "qiskit.pulse.library.Sech": "qiskit.pulse.library.Sech_fun.rst",
 }
 
 autoclass_content = "both"
 
+
 # -- Options for Doctest --------------------------------------------------------
 
-import sphinx.ext.doctest
-
-# This option will make doctest ignore whitespace when testing code.
-# It's specially important for circuit representation as it gives an
-# error otherwise
-doctest_default_flags = sphinx.ext.doctest.doctest.NORMALIZE_WHITESPACE
+doctest_default_flags = (
+    doctest.ELLIPSIS
+    | doctest.NORMALIZE_WHITESPACE
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.DONT_ACCEPT_TRUE_FOR_1
+)
 
 # Leaving this string empty disables testing of doctest blocks from docstrings.
 # Doctest blocks are structures like this one:

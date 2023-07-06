@@ -28,6 +28,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import shutil
 from warnings import warn
 
 from qiskit import user_config
@@ -495,7 +496,7 @@ def _latex_circuit_drawer(
         image = trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
-                os.rename(base + ".pdf", filename)
+                shutil.move(base + ".pdf", filename)
             else:
                 try:
                     image.save(filename)
@@ -561,12 +562,8 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
         circuit=circuit,
     )
@@ -649,20 +646,15 @@ def _matplotlib_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        calibrations=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     return qcd.draw(filename)

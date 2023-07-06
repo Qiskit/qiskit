@@ -176,6 +176,7 @@ Additional Passes
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
+   UnrollForLoops
 """
 
 # layout selection (placement)
@@ -290,3 +291,4 @@ from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
+from .utils import UnrollForLoops

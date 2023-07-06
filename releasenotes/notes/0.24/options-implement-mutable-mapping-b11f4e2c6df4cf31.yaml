@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The :class:`qiskit.providers.options.Options` class now implements the
+    :class`Mapping` and `__setitem__`. :class:`Options` instances therefore
+    now offer the same interface as standard dictionaries, except for the
+    deletion methods (`__delitem__`, `pop`, `clear`).
+    Key assignments are validated by the registered validators, if any.
+    See `#9686 <https://github.com/Qiskit/qiskit-terra/issues/9686>`.
+upgrade:
+  - |
+    Instances of `options.__dict__.items()` and related calls can be replaced
+    by the same call without the `__dict__` proxy (e.g. `options.items()`).

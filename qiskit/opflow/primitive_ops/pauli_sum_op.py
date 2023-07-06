@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,6 @@
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
-
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -27,13 +26,18 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliSumOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``SparsePauliOp`` class."""
+    """Deprecated: Class for Operators backed by Terra's ``SparsePauliOp`` class."""
 
     primitive: SparsePauliOp
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: SparsePauliOp,
@@ -330,8 +334,8 @@ class PauliSumOp(PrimitiveOp):
                     bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
                     new_str = ["".join([str(b) for b in bs]) for bs in new_b_str.astype(int)]
-                    z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits), axis=1)
-                    y_factor = np.product(
+                    z_factor = np.prod(1 - 2 * np.logical_and(bitstr, corrected_z_bits), axis=1)
+                    y_factor = np.prod(
                         np.sqrt(1 - 2 * np.logical_and(corrected_x_bits, corrected_z_bits) + 0j),
                         axis=1,
                     )

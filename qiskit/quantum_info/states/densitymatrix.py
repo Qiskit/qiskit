@@ -382,6 +382,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         x_max = qubits[pauli.x][-1]
         y_phase = (-1j) ** pauli._count_y()
+        y_phase = y_phase[0]
         return pauli_phase * density_expval_pauli_with_x(
             data, self.num_qubits, z_mask, x_mask, y_phase, x_max
         )
@@ -580,7 +581,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
               as an N-qubit state. If it is not a power of  two the state
               will have a single d-dimensional subsystem.
         """
-        size = np.product(dims)
+        size = np.prod(dims)
         state = np.zeros((size, size), dtype=complex)
         state[i, i] = 1.0
         return DensityMatrix(state, dims=dims)
@@ -814,3 +815,22 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
+
+    def partial_transpose(self, qargs):
+        """Return partially transposed density matrix.
+
+        Args:
+            qargs (list): The subsystems to be transposed.
+
+        Returns:
+            DensityMatrix: The partially transposed density matrix.
+        """
+        arr = self._data.reshape(self._op_shape.tensor_shape)
+        qargs = len(self._op_shape.dims_l()) - 1 - np.array(qargs)
+        n = len(self.dims())
+        lst = list(range(2 * n))
+        for i in qargs:
+            lst[i], lst[i + n] = lst[i + n], lst[i]
+        rho = np.transpose(arr, lst)
+        rho = np.reshape(rho, self._op_shape.shape)
+        return DensityMatrix(rho, dims=self.dims())

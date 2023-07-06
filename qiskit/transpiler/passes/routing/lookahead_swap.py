@@ -23,6 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,9 @@ class LookaheadSwap(TransformationPass):
                 f"The number of DAG qubits ({len(dag.qubits)}) is greater than the number of "
                 f"available device qubits ({number_of_available_qubits})."
             )
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
 
         register = dag.qregs["q"]
         current_state = _SystemState(

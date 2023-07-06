@@ -289,6 +289,8 @@ a :class:`~qiskit.transpiler.Target` object from the :attr:`~qiskit.providers.Ba
 attribute which the :func:`~qiskit.compiler.transpile` function will use as
 its model of a backend target for compilation.
 
+.. _custom_basis_gates:
+
 Custom Basis Gates
 ^^^^^^^^^^^^^^^^^^
 
@@ -775,7 +777,6 @@ from qiskit.providers.exceptions import (
 from qiskit.providers.jobstatus import JobStatus
 
 
-# Allow extending this namespace.
-# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
-# qiskit-ibmq-provider package is retired/archived.
+# Support for the deprecated extending this namespace.
+# Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)

@@ -121,7 +121,7 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
+def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registers, circuit):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
     elif type_key == type_keys.Container.RANGE:
@@ -134,6 +134,8 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
                 _loads_instruction_parameter,
                 version=version,
                 vectors=vectors,
+                registers=registers,
+                circuit=circuit,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -142,10 +144,20 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
     elif type_key == type_keys.Value.FLOAT:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", data_bytes)[0]
+    elif type_key == type_keys.Value.REGISTER:
+        param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
         param = value.loads_value(type_key, data_bytes, version, vectors)
 
     return param
+
+
+def _loads_register_param(data_bytes, circuit, registers):
+    # If register name prefixed with null character it's a clbit index for single bit condition.
+    if data_bytes[0] == "\x00":
+        conditional_bit = int(data_bytes[1:])
+        return circuit.clbits[conditional_bit]
+    return registers["c"][data_bytes]
 
 
 def _read_instruction(file_obj, circuit, registers, custom_operations, version, vectors):
@@ -171,12 +183,10 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     params = []
     condition_tuple = None
     if instruction.has_condition:
-        # If register name prefixed with null character it's a clbit index for single bit condition.
-        if condition_register[0] == "\x00":
-            conditional_bit = int(condition_register[1:])
-            condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
-        else:
-            condition_tuple = (registers["c"][condition_register], instruction.condition_value)
+        condition_tuple = (
+            _loads_register_param(condition_register, circuit, registers),
+            instruction.condition_value,
+        )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
         clbit_indices = dict(enumerate(circuit.clbits))
@@ -210,7 +220,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     # Load Parameters
     for _param in range(instruction.num_parameters):
         type_key, data_bytes = common.read_generic_typed_data(file_obj)
-        param = _loads_instruction_parameter(type_key, data_bytes, version, vectors)
+        param = _loads_instruction_parameter(
+            type_key, data_bytes, version, vectors, registers, circuit
+        )
         params.append(param)
 
     # Load Gate object
@@ -460,7 +472,14 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
     return calibrations
 
 
-def _dumps_instruction_parameter(param):
+def _dumps_register(register, index_map):
+    if isinstance(register, ClassicalRegister):
+        return register.name.encode(common.ENCODE)
+    # Clbit.
+    return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
+
+
+def _dumps_instruction_parameter(param, index_map):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
@@ -469,7 +488,9 @@ def _dumps_instruction_parameter(param):
         data_bytes = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
     elif isinstance(param, tuple):
         type_key = type_keys.Container.TUPLE
-        data_bytes = common.sequence_to_binary(param, _dumps_instruction_parameter)
+        data_bytes = common.sequence_to_binary(
+            param, _dumps_instruction_parameter, index_map=index_map
+        )
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.INTEGER
@@ -478,6 +499,9 @@ def _dumps_instruction_parameter(param):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.FLOAT
         data_bytes = struct.pack("<d", param)
+    elif isinstance(param, (Clbit, ClassicalRegister)):
+        type_key = type_keys.Value.REGISTER
+        data_bytes = _dumps_register(param, index_map)
     else:
         type_key, data_bytes = value.dumps_value(param)
 
@@ -516,13 +540,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     condition_value = 0
     if getattr(instruction.operation, "condition", None):
         has_condition = True
-        if isinstance(instruction.operation.condition[0], Clbit):
-            bit_index = index_map["c"][instruction.operation.condition[0]]
-            condition_register = b"\x00" + str(bit_index).encode(common.ENCODE)
-            condition_value = int(instruction.operation.condition[1])
-        else:
-            condition_register = instruction.operation.condition[0].name.encode(common.ENCODE)
-            condition_value = instruction.operation.condition[1]
+        condition_register = _dumps_register(instruction.operation.condition[0], index_map)
+        condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label")
@@ -531,13 +550,23 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     else:
         label_raw = b""
 
+    # The instruction params we store are about being able to reconstruct the objects; they don't
+    # necessarily need to match one-to-one to the `params` field.
+    if isinstance(instruction.operation, controlflow.SwitchCaseOp):
+        instruction_params = [
+            instruction.operation.target,
+            tuple(instruction.operation.cases_specifier()),
+        ]
+    else:
+        instruction_params = instruction.operation.params
+
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
     instruction_raw = struct.pack(
         formats.CIRCUIT_INSTRUCTION_V2_PACK,
         len(gate_class_name),
         len(label_raw),
-        len(instruction.operation.params),
+        len(instruction_params),
         instruction.operation.num_qubits,
         instruction.operation.num_clbits,
         has_condition,
@@ -562,8 +591,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         )
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
-    for param in instruction.operation.params:
-        type_key, data_bytes = _dumps_instruction_parameter(param)
+    for param in instruction_params:
+        type_key, data_bytes = _dumps_instruction_parameter(param, index_map)
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
 
