@@ -6,3 +6,4 @@ fixes:
     and passing it to an :class:`.Operator`. The speedup will only be applicable when 
     consolidating two-qubit blocks. Anything higher than that will still be handled by the 
     :class:`.Operator` class.
+    Check `#8779 <https://github.com/Qiskit/qiskit-terra/issues/8779>`__ for details.
