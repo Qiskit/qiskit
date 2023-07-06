@@ -22,8 +22,8 @@ from copy import copy
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.providers import Options
 
-from .base_qgt import BaseQGT
-from .lin_comb_estimator_gradient import DerivativeType
+from .base.base_qgt import BaseQGT
+from .lin_comb.lin_comb_estimator_gradient import DerivativeType
 from .qfi_result import QFIResult
 
 from ..algorithm_job import AlgorithmJob
