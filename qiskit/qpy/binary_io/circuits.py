@@ -26,6 +26,7 @@ import numpy as np
 from qiskit import circuit as circuit_mod
 from qiskit import extensions
 from qiskit.circuit import library, controlflow, CircuitInstruction
+from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
@@ -149,7 +150,9 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
-        param = value.loads_value(type_key, data_bytes, version, vectors)
+        param = value.loads_value(
+            type_key, data_bytes, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+        )
 
     return param
 
@@ -183,11 +186,17 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     qargs = []
     cargs = []
     params = []
-    condition_tuple = None
-    if instruction.has_condition:
-        condition_tuple = (
+    condition = None
+    if (version < 5 and instruction.has_condition) or (
+        version >= 5 and instruction.conditional_key == type_keys.Condition.TWO_TUPLE
+    ):
+        condition = (
             _loads_register_param(condition_register, circuit, registers),
             instruction.condition_value,
+        )
+    elif version >= 5 and instruction.conditional_key == type_keys.Condition.EXPRESSION:
+        condition = value.read_value(
+            file_obj, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
         )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
@@ -232,7 +241,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         inst_obj = _parse_custom_operation(
             custom_operations, gate_name, params, version, vectors, registers
         )
-        inst_obj.condition = condition_tuple
+        inst_obj.condition = condition
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -243,7 +252,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         inst_obj = _parse_custom_operation(
             custom_operations, gate_name, params, version, vectors, registers
         )
-        inst_obj.condition = condition_tuple
+        inst_obj.condition = condition
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -264,7 +273,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
-        gate = gate_class(condition_tuple, *params)
+        gate = gate_class(condition, *params)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -279,7 +288,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             gate = gate_class(*params)
             gate.num_ctrl_qubits = instruction.num_ctrl_qubits
             gate.ctrl_state = instruction.ctrl_state
-        gate.condition = condition_tuple
+        gate.condition = condition
     else:
         if gate_name in {
             "Initialize",
@@ -296,7 +305,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             elif gate_name in {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
             gate = gate_class(*params)
-        gate.condition = condition_tuple
+        gate.condition = condition
     if instruction.label_size > 0:
         gate.label = label
     if circuit is None:
@@ -512,7 +521,7 @@ def _dumps_instruction_parameter(param, index_map):
         type_key = type_keys.Value.REGISTER
         data_bytes = _dumps_register(param, index_map)
     else:
-        type_key, data_bytes = value.dumps_value(param)
+        type_key, data_bytes = value.dumps_value(param, index_map=index_map)
 
     return type_key, data_bytes
 
@@ -544,13 +553,16 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
-    has_condition = False
+    condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
-    if getattr(instruction.operation, "condition", None):
-        has_condition = True
-        condition_register = _dumps_register(instruction.operation.condition[0], index_map)
-        condition_value = int(instruction.operation.condition[1])
+    if (op_condition := getattr(instruction.operation, "condition", None)) is not None:
+        if isinstance(op_condition, expr.Expr):
+            condition_type = type_keys.Condition.EXPRESSION
+        else:
+            condition_type = type_keys.Condition.TWO_TUPLE
+            condition_register = _dumps_register(instruction.operation.condition[0], index_map)
+            condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label")
@@ -578,7 +590,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         len(instruction_params),
         instruction.operation.num_qubits,
         instruction.operation.num_clbits,
-        has_condition,
+        condition_type.value,
         len(condition_register),
         condition_value,
         num_ctrl_qubits,
@@ -587,7 +599,10 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
     file_obj.write(label_raw)
-    file_obj.write(condition_register)
+    if condition_type is type_keys.Condition.EXPRESSION:
+        value.write_value(file_obj, op_condition, index_map=index_map)
+    else:
+        file_obj.write(condition_register)
     # Encode instruciton args
     for qbit in instruction.qubits:
         instruction_arg_raw = struct.pack(
