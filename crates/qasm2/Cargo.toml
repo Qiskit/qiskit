@@ -13,4 +13,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 hashbrown = "0.13.2"
+<<<<<<< HEAD
 pyo3 = { version = "0.18.3", features = ["extension-module"] }
+=======
+pyo3 = { version = "0.19.1", features = ["extension-module", "abi3-py38"] }
+>>>>>>> 9bfee5612 (Bump pyo3 from 0.19.0 to 0.19.1 (#10378))
