@@ -579,12 +579,13 @@ def generate_layout_circuits():
 
     from qiskit.transpiler.layout import TranspileLayout, Layout
 
-    qc = QuantumCircuit(3, name="GHZ with layout")
+    qr = QuantumRegister(3, "foo")
+    qc = QuantumCircuit(qr, name="GHZ with layout")
     qc.h(0)
     qc.cx(0, 1)
     qc.swap(0, 1)
     qc.cx(0, 2)
-    input_layout = {Qubit(): index for index in range(len(qc.qubits))}
+    input_layout = {qr[index]: index for index in range(len(qc.qubits))}
     qc._layout = TranspileLayout(
         Layout(input_layout),
         input_qubit_mapping=input_layout,
