@@ -65,18 +65,11 @@ add_module_names = False
 modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
-<<<<<<< HEAD
-    "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
-    "qiskit-ibm-runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/documentation/aer/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None)
-=======
     "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
     "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
->>>>>>> a94550269 (Add intersphinx links for matplotlib Figure to visualization docs (#10389))
 }
 
 # -- Options for HTML output -------------------------------------------------
