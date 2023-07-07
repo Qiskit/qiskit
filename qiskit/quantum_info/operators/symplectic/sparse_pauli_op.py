@@ -221,7 +221,7 @@ class SparsePauliOp(LinearOp):
 
     @property
     def paulis(self):
-        """Return the the PauliList."""
+        """Return the PauliList."""
         return self._pauli_list
 
     @paulis.setter
