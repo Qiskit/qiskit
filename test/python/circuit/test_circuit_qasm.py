@@ -267,7 +267,7 @@ c3sqrtx q[0],q[1],q[2],q[3];
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
 
     def test_c3sxgate_qasm_deprecation_warning(self):
-        "Test deprecation warning for C3SXGate."
+        """Test deprecation warning for C3SXGate."""
         with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
             C3SXGate().qasm()
 

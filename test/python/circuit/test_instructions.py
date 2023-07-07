@@ -629,7 +629,7 @@ class TestInstructions(QiskitTestCase):
                 instruction.label = 0
 
     def test_deprecation_warnings_qasm_methods(self):
-        "Test deprecation warnings for qasm methods."
+        """Test deprecation warnings for qasm methods."""
         with self.subTest("built in gates"):
             with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
                 HGate().qasm()

@@ -16,7 +16,6 @@ from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
 from qiskit.utils.deprecation import deprecate_func
-import qiskit.circuit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -589,7 +588,9 @@ class C3SXGate(ControlledGate):
         self.name = "c3sqrtx"
         try:
             # pylint: disable=cyclic-import
-            return qiskit.circuit.quantumcircuit._instruction_qasm2(self)
+            from qiskit.circuit.quantumcircuit import _instruction_qasm2
+
+            return _instruction_qasm2(self)
         finally:
             self.name = old_name
 
