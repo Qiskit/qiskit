@@ -1648,6 +1648,7 @@ class QuantumCircuit:
             MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
             QasmError: If circuit has free parameters.
+            CircuitError: If an operation that has no OpenQASM 2 representation is encountered.
         """
 
         if self.num_parameters > 0:
