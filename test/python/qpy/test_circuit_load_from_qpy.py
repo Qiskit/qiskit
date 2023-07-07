@@ -36,8 +36,7 @@ class QpyCircuitTestCase(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
 
         self.assertEqual(circuit, new_circuit)
-        if circuit.layout is not None:
-            self.assertEqual(circuit.layout, new_circuit.layout)
+        self.assertEqual(circuit.layout, new_circuit.layout)
 
 
 @ddt
