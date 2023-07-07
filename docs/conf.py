@@ -58,6 +58,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "qiskit_sphinx_theme",
     "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
 ]
 
 nbsphinx_timeout = 300
@@ -134,6 +135,14 @@ extlinks = {
         "https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s",
         "qiskit-ibmq-provider #%s",
     ),
+}
+
+intersphinx_mapping = {
+    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
