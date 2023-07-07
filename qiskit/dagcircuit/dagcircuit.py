@@ -1903,7 +1903,7 @@ class DAGCircuit:
         nodes = self.output_map if in_or_out else self.input_map
         # Check if index is passed
         if isinstance(qubit, int):
-            if qubit > self.num_qubits():
+            if qubit >= self.num_qubits():
                 raise DAGCircuitError(f"Qubit index {qubit} is out of range")
             qubit = list(nodes.keys())[qubit]
         if qubit not in self.qubits:
