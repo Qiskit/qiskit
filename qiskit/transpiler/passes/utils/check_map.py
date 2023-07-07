@@ -15,6 +15,7 @@
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.target import Target
 from qiskit.circuit.controlflow import ControlFlowOp
+from qiskit.converters import circuit_to_dag
 
 
 class CheckMap(AnalysisPass):
@@ -64,13 +65,13 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
-        from qiskit.converters import circuit_to_dag
-
-        self.property_set[self.property_set_field] = True
-
         if not self.qargs:
+            self.property_set[self.property_set_field] = True
             return
+        wire_map = {bit: index for index, bit in enumerate(dag.qubits)}
+        self.property_set[self.property_set_field] = self._recurse(dag, wire_map)
 
+<<<<<<< HEAD
         for node in dag.op_nodes(include_directives=False):
             is_controlflow_op = isinstance(node.op, ControlFlowOp)
             if len(node.qargs) == 2 and not is_controlflow_op:
@@ -88,10 +89,26 @@ class CheckMap(AnalysisPass):
                     return
             elif is_controlflow_op:
                 order = [dag.find_bit(bit).index for bit in node.qargs]
+=======
+    def _recurse(self, dag, wire_map) -> bool:
+        for node in dag.op_nodes(include_directives=False):
+            if isinstance(node.op, ControlFlowOp):
+>>>>>>> a94550269536b3bcfd09eefd758e9b9b0018f653
                 for block in node.op.blocks:
-                    dag_block = circuit_to_dag(block)
-                    mapped_dag = dag.copy_empty_like()
-                    mapped_dag.compose(dag_block, qubits=order)
-                    self.run(mapped_dag)
-                    if not self.property_set[self.property_set_field]:
-                        return
+                    inner_wire_map = {
+                        inner: wire_map[outer] for inner, outer in zip(block.qubits, node.qargs)
+                    }
+                    if not self._recurse(circuit_to_dag(block), inner_wire_map):
+                        return False
+            elif (
+                len(node.qargs) == 2
+                and not dag.has_calibration_for(node)
+                and (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in self.qargs
+            ):
+                self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
+                    node.name,
+                    wire_map[node.qargs[0]],
+                    wire_map[node.qargs[1]],
+                )
+                return False
+        return True

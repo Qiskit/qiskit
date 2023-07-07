@@ -567,20 +567,25 @@ class Pauli(BasePauli):
         return np.logical_not(self.commutes(other, qargs=qargs))
 
     def evolve(self, other, qargs=None, frame="h"):
-        r"""Heisenberg picture evolution of a Pauli by a Clifford.
+        r"""Performs either Heisenberg (default) or Schrödinger picture
+        evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
-        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
+        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``.
+        This option yields a faster calculation.
 
-        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
-        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+        Heisenberg picture evolves the Pauli as :math:`P^\prime = C^\dagger.P.C`.
+
+        Schrödinger picture evolves the Pauli as :math:`P^\prime = C.P.C^\dagger`.
 
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for
+            Schrödinger framework.
 
         Returns:
-            Pauli: the Pauli :math:`C^\dagger.P.C`.
+            Pauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
+            or the Pauli :math:`C.P.C^\dagger` (Schrödinger picture).
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
