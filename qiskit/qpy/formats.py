@@ -261,3 +261,14 @@ SEQUENCE_SIZE = struct.calcsize(SEQUENCE_PACK)
 MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
 MAP_ITEM_PACK = "!H1cH"
 MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
+
+LAYOUT = namedtuple(
+    "LAYOUT",
+    ["exists", "initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"],
+)
+LAYOUT_PACK = "!?iiiI"
+LAYOUT_SIZE = struct.calcsize(LAYOUT_PACK)
+
+INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"])
+INITIAL_LAYOUT_BIT_PACK = "!ii"
+INITIAL_LAYOUT_BIT_SIZE = struct.calcsize(INITIAL_LAYOUT_BIT_PACK)

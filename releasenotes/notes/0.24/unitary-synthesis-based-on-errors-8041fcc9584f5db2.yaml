@@ -9,11 +9,17 @@ features:
     (e.g. RZ-RX-RZ or RZ-RY-RZ), generic unitary basis (e.g. U), and a
     few others.
     For a two-qubit decomposition, it can target any supercontrolled basis
-    (e.g. CNOT, iSWAP, B) or multiple controlled basis 
+    (e.g. CNOT, iSWAP, B) or multiple controlled basis
     (e.g. CZ, CH, ZZ^.5, ZX^.2, etc.).
-upgrade:
   - |
-    The interface for :class:`~.UnitarySynthesisPlugin` has been changed so
-    now `gate_lengths` and `gate_errors` have the form
-    ``{(qubits,): [Gate, length]}``. This allows gates that have the same
-    name but different parameters to be represented separately.
+    The interface for :class:`~.UnitarySynthesisPlugin` has two new
+    optional properties ``supports_gate_lengths_by_qubit`` and
+    ``supports_gate_errors_by_qubit`` which when set will add the
+    fields ``gate_lengths_by_qubit`` and ``gate_errors_by_qubit``
+    respectively to the input options to the plugin's ``run()`` method.
+    These new fields are an alternative view of the data provided by
+    ``gate_lengths`` and ``gate_errors`` but instead have the form:
+    ``{(qubits,): [Gate, length]}`` (where ``Gate`` is the instance
+    of :class:`~.Gate` for that definition). This allows plugins to
+    reason about working with gates of the same type but but that
+    have different parameters set.

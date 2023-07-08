@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed an issue in tranpiler passes for padding delays, which did not respect target's constraints
+    and inserted delays even for qubits not supporting :class:`~.circuit.Delay` instruction.
+    :class:`~.PadDelay` and :class:`~.PadDynamicalDecoupling` are fixed
+    so that they do not pad any idle time of qubits such that the target does not support
+    ``Delay`` instructions for the qubits.
+    Also legacy scheduling passes ``ASAPSchedule`` and ``ALAPSchedule``,
+    which pad delays internally, are fixed in the same way.
+    In addition, :func:`transpile` is fixed to call ``PadDelay`` with a ``target`` object
+    so that it works correctly when called with ``scheduling_method`` option.
+    Fixed `#9993 <https://github.com/Qiskit/qiskit-terra/issues/9993>`__

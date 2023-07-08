@@ -304,7 +304,7 @@ def _generate_gray_code(num_bits):
 
 
 def _gray_code_chain(q, num_ctrl_qubits, gate):
-    """Apply the gate to the the last qubit in the register ``q``, controlled on all
+    """Apply the gate to the last qubit in the register ``q``, controlled on all
     preceding qubits. This function uses the gray code to propagate down to the last qubit.
 
     Ported and adapted from Aqua (github.com/Qiskit/qiskit-aqua),

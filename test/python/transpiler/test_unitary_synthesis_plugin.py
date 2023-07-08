@@ -226,8 +226,8 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
-            "gate_errors",
-            "gate_lengths",
+            "gate_errors_by_qubit",
+            "gate_lengths_by_qubit",
             "natural_direction",
             "pulse_optimize",
         ]
@@ -294,8 +294,8 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
-            "gate_errors",
-            "gate_lengths",
+            "gate_errors_by_qubit",
+            "gate_lengths_by_qubit",
             "natural_direction",
             "pulse_optimize",
         ]

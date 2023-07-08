@@ -20,7 +20,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
@@ -588,14 +588,28 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(value, target)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
-    @combine(num_qubits=[1, 2, 3], value=[0, 1, 1j, -3 + 4.4j, np.int64(2)], param=[None, "a"])
+    @combine(
+        num_qubits=[1, 2, 3],
+        value=[
+            0,
+            1,
+            1j,
+            -3 + 4.4j,
+            np.int64(2),
+            Parameter("x"),
+            0 * Parameter("x"),
+            (-2 + 1.7j) * Parameter("x"),
+        ],
+        param=[None, "a"],
+    )
     def test_mul(self, num_qubits, value, param):
         """Test * method for {num_qubits} qubits and value {value}."""
         spp_op = self.random_spp_op(num_qubits, 2**num_qubits, param)
         target = value * spp_op.to_matrix()
         op = value * spp_op
         value_mat = op.to_matrix()
-        if value != 0 and param is not None:
+        has_parameters = isinstance(value, ParameterExpression) or param is not None
+        if value != 0 and has_parameters:
             value_mat = bind_parameters_to_one(value_mat)
             target = bind_parameters_to_one(target)
         if value == 0:
@@ -606,7 +620,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         target = spp_op.to_matrix() * value
         op = spp_op * value
         value_mat = op.to_matrix()
-        if value != 0 and param is not None:
+        if value != 0 and has_parameters:
             value_mat = bind_parameters_to_one(value_mat)
             target = bind_parameters_to_one(target)
         if value == 0:

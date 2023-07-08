@@ -15,6 +15,7 @@
 from qiskit.circuit import Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGOutNode
+from qiskit.transpiler.target import Target
 
 from .base_padding import BasePadding
 
@@ -50,13 +51,16 @@ class PadDelay(BasePadding):
     See :class:`BasePadding` pass for details.
     """
 
-    def __init__(self, fill_very_end: bool = True):
+    def __init__(self, fill_very_end: bool = True, target: Target = None):
         """Create new padding delay pass.
 
         Args:
             fill_very_end: Set ``True`` to fill the end of circuit with delay.
+            target: The :class:`~.Target` representing the target backend.
+                If it supplied and it does not support delay instruction on a qubit,
+                padding passes do not pad any idle time of the qubit.
         """
-        super().__init__()
+        super().__init__(target=target)
         self.fill_very_end = fill_very_end
 
     def _pad(

@@ -21,15 +21,6 @@ import warnings
 import qiskit._accelerate
 
 
-if sys.version_info < (3, 8):
-    warnings.warn(
-        "Using Qiskit with Python 3.7 is deprecated as of the 0.23.0 release. "
-        "Support for running Qiskit with Python 3.7 will be removed in the "
-        "0.25.0 release",
-        DeprecationWarning,
-    )
-
-
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
@@ -82,8 +73,8 @@ import qiskit.circuit.reset
 # to be placed *before* the wrapper imports or any non-import code AND *before*
 # importing the package you want to allow extensions for (in this case `backends`).
 
-# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
-# qiskit-ibmq-provider package is retired/archived.
+# Support for the deprecated extending this namespace.
+# Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
