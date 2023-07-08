@@ -1595,6 +1595,15 @@ class DAGCircuit:
             )
         )
 
+    def classical_predecessors(self, node):
+        """Returns iterator of the predecessors of a node that are
+        connected by a classical edge as DAGOpNodes and DAGInNodes."""
+        return iter(
+            self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )
+        )
+
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGOpNodes and DAGInNodes."""
         return {self._multi_graph[x] for x in rx.ancestors(self._multi_graph, node._node_id)}
@@ -1616,6 +1625,15 @@ class DAGCircuit:
         return iter(
             self._multi_graph.find_successors_by_edge(
                 node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
+            )
+        )
+
+    def classical_successors(self, node):
+        """Returns iterator of the successors of a node that are
+        connected by a classical edge as DAGOpNodes and DAGInNodes."""
+        return iter(
+            self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )
         )
 

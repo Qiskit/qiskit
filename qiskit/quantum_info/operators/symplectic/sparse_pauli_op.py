@@ -221,7 +221,7 @@ class SparsePauliOp(LinearOp):
 
     @property
     def paulis(self):
-        """Return the the PauliList."""
+        """Return the PauliList."""
         return self._pauli_list
 
     @paulis.setter
@@ -366,8 +366,8 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _multiply(self, other):
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
+        if not isinstance(other, (Number, ParameterExpression)):
+            raise QiskitError("other is neither a Number nor a Parameter/ParameterExpression")
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
