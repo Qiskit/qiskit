@@ -719,7 +719,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         self.dag = dag
 
-        self.qubit_indices = {bit: dag.find_bit(bit).index for bit in dag.qubits}
+        self.qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
         # process input program
         self.assign_gate_id(self.dag)
         self.extract_dag_overlap_sets(self.dag)

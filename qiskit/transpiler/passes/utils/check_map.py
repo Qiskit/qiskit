@@ -71,29 +71,9 @@ class CheckMap(AnalysisPass):
         wire_map = {bit: index for index, bit in enumerate(dag.qubits)}
         self.property_set[self.property_set_field] = self._recurse(dag, wire_map)
 
-<<<<<<< HEAD
-        for node in dag.op_nodes(include_directives=False):
-            is_controlflow_op = isinstance(node.op, ControlFlowOp)
-            if len(node.qargs) == 2 and not is_controlflow_op:
-                if dag.has_calibration_for(node):
-                    continue
-                physical_q0 = dag.find_bit(node.qargs[0]).index
-                physical_q1 = dag.find_bit(node.qargs[1]).index
-                if (physical_q0, physical_q1) not in self.qargs:
-                    self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
-                        node.name,
-                        physical_q0,
-                        physical_q1,
-                    )
-                    self.property_set[self.property_set_field] = False
-                    return
-            elif is_controlflow_op:
-                order = [dag.find_bit(bit).index for bit in node.qargs]
-=======
     def _recurse(self, dag, wire_map) -> bool:
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
->>>>>>> a94550269536b3bcfd09eefd758e9b9b0018f653
                 for block in node.op.blocks:
                     inner_wire_map = {
                         inner: wire_map[outer] for inner, outer in zip(block.qubits, node.qargs)

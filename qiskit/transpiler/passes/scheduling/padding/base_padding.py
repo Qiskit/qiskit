@@ -124,8 +124,7 @@ class BasePadding(TransformationPass):
 
                 for bit in node.qargs:
                     # Fill idle time with some sequence
-                    bit_object = dag.find_bit(bit).index
-                    if t0 - idle_after[bit] > 0 and self.__delay_supported(bit_object):
+                    if t0 - idle_after[bit] > 0 and self.__delay_supported(dag.find_bit(bit).index):
                         # Find previous node on the wire, i.e. always the latest node on the wire
                         prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
                         self._pad(
@@ -148,8 +147,9 @@ class BasePadding(TransformationPass):
 
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
-            bit_object = dag.find_bit(bit).index
-            if circuit_duration - idle_after[bit] > 0 and self.__delay_supported(bit_object):
+            if circuit_duration - idle_after[bit] > 0 and self.__delay_supported(
+                dag.find_bit(bit).index
+            ):
                 node = new_dag.output_map[bit]
                 prev_node = next(new_dag.predecessors(node))
                 self._pad(

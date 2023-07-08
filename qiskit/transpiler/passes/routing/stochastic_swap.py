@@ -88,7 +88,6 @@ class StochasticSwap(TransformationPass):
         self.fake_run = fake_run
         self.qregs = None
         self.initial_layout = initial_layout
-        self._qubit_to_int = None
         self._int_to_qubit = None
 
     def run(self, dag):
@@ -129,7 +128,7 @@ class StochasticSwap(TransformationPass):
         self.qregs = dag.qregs
         logger.debug("StochasticSwap rng seeded with seed=%s", self.seed)
         self.coupling_map.compute_distance_matrix()
-        new_dag = self._mapper(dag, dag, self.coupling_map, trials=self.trials)
+        new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag
 
     def _layer_permutation(self, dag, layer_partition, layout, qubit_subset, coupling, trials):
@@ -272,7 +271,7 @@ class StochasticSwap(TransformationPass):
         # Output this layer
         dag.compose(layer["graph"], qubits=best_layout.reorder_bits(dag.qubits))
 
-    def _mapper(self, dag, circuit_graph, coupling_graph, trials=20):
+    def _mapper(self, circuit_graph, coupling_graph, trials=20):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
 
         Args:
@@ -312,7 +311,7 @@ class StochasticSwap(TransformationPass):
             # First try and compute a route for the entire layer in one go.
             if not layer["graph"].op_nodes(op=ControlFlowOp):
                 success_flag, best_circuit, best_depth, best_layout = self._layer_permutation(
-                    dag, layer["partition"], layout, qubit_subset, coupling_graph, trials
+                    circuit_graph, layer["partition"], layout, qubit_subset, coupling_graph, trials
                 )
 
                 logger.debug("mapper: layer %d", i)
@@ -340,7 +339,12 @@ class StochasticSwap(TransformationPass):
                     )
                 else:
                     (success_flag, best_circuit, best_depth, best_layout) = self._layer_permutation(
-                        dag, serial_layer["partition"], layout, qubit_subset, coupling_graph, trials
+                        circuit_graph,
+                        serial_layer["partition"],
+                        layout,
+                        qubit_subset,
+                        coupling_graph,
+                        trials,
                     )
                     logger.debug("mapper: layer %d, sublayer %d", i, j)
                     logger.debug(
