@@ -106,10 +106,10 @@ class StabilizerState(QuantumState):
         """Return True if a valid StabilizerState."""
         return self._data.is_unitary()
 
-    def _add(self, other: QuantumState) -> QuantumState:
+    def _add(self, other):
         raise NotImplementedError(f"{type(self)} does not support addition")
 
-    def _multiply(self, other: complex) -> QuantumState:
+    def _multiply(self, other):
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     def trace(self) -> float:

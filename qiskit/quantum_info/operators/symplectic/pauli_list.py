@@ -754,7 +754,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         return self.compose(other, qargs=qargs, front=True, inplace=inplace)
 
-    def _add(self, other: PauliList, qargs: None | list = None) -> PauliList:
+    def _add(self, other, qargs=None):
         """Append two PauliLists.
 
         If ``qargs`` are specified the other operator will be added
@@ -794,7 +794,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         return PauliList(BasePauli(base_z, base_x, base_phase))
 
-    def _multiply(self, other: complex | np.ndarray) -> PauliList:
+    def _multiply(self, other):
         """Multiply each Pauli in the list by a phase.
 
         Args:
@@ -886,7 +886,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         return self._commutes_with_all(other, anti=True)
 
-    def _commutes_with_all(self, other: PauliList, anti: bool = False) -> np.ndarray:
+    def _commutes_with_all(self, other, anti=False):
         """Return row indexes that commute with all rows in another PauliList.
 
         Args:
@@ -1151,7 +1151,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # results from one triangle to avoid symmetric duplications.
         return list(zip(*np.where(np.triu(adjacency_mat, k=1))))
 
-    def _create_graph(self, qubit_wise: bool) -> rx.PyGraph:
+    def _create_graph(self, qubit_wise):
         """Transform measurement operator grouping problem into graph coloring problem
 
         Args:

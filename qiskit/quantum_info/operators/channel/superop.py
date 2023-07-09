@@ -237,9 +237,7 @@ class SuperOp(QuantumChannel):
     # Additional methods
     # ---------------------------------------------------------------------
 
-    def _evolve(
-        self, state: DensityMatrix | Statevector, qargs: list | None = None
-    ) -> DensityMatrix:
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the quantum channel.
 
         Args:

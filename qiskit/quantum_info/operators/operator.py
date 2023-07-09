@@ -480,7 +480,7 @@ class Operator(LinearOp):
         ret._data = np.kron(a.data, b.data)
         return ret
 
-    def _add(self, other: Operator, qargs: None | list = None) -> Operator:
+    def _add(self, other, qargs=None):
         """Return the operator self + other.
 
         If ``qargs`` are specified the other operator will be added
@@ -514,7 +514,7 @@ class Operator(LinearOp):
         ret._data = self.data + other.data
         return ret
 
-    def _multiply(self, other: complex) -> Operator:
+    def _multiply(self, other):
         """Return the operator self * other.
 
         Args:
@@ -583,14 +583,7 @@ class Operator(LinearOp):
         return self.data
 
     @classmethod
-    def _einsum_matmul(
-        cls,
-        tensor: np.ndarray,
-        mat: np.ndarray,
-        indices: list,
-        shift: int = 0,
-        right_mul: bool = False,
-    ) -> np.ndarray:
+    def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
         """Perform a contraction using Numpy.einsum
 
         Args:

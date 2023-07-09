@@ -700,7 +700,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         z1, z2 = a._block_stack(a.Z, b.Z)
         return PauliTable(np.hstack([x2, x1, z2, z1]))
 
-    def _add(self, other: PauliTable, qargs: None | list = None) -> PauliTable:
+    def _add(self, other, qargs=None):
         """Append with another PauliTable.
 
         If ``qargs`` are specified the other operator will be added
@@ -799,7 +799,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """
         return self._commutes_with_all(other, anti=True)
 
-    def _commutes_with_all(self, other: PauliTable, anti: bool = False) -> np.ndarray:
+    def _commutes_with_all(self, other, anti=False):
         """Return row indexes that commute with all rows in another PauliTable.
 
         Args:
@@ -824,7 +824,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         return inds
 
     @staticmethod
-    def _commutes(pauli_table: PauliTable, pauli: PauliTable) -> np.ndarray:
+    def _commutes(pauli_table, pauli):
         """Return row indexes of pauli_table that commute with pauli
 
         Args:

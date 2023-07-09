@@ -861,7 +861,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return np.array_equal(np.mod(arr.T.dot(seye).dot(arr), 2), seye)
 
     @staticmethod
-    def _conjugate_transpose(clifford: Clifford, method: str) -> Clifford:
+    def _conjugate_transpose(clifford, method):
         """Return the adjoint, conjugate, or transpose of the Clifford.
 
         Args:

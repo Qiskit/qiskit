@@ -336,7 +336,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Return a Gate instruction implementing the CNOTDihedral object."""
         return self.to_circuit().to_gate()
 
-    def _from_circuit(self, circuit: QuantumCircuit | Instruction) -> CNOTDihedral:
+    def _from_circuit(self, circuit):
         """Initialize from a QuantumCircuit or Instruction.
 
         Args:

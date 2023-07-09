@@ -27,8 +27,6 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class PTM(QuantumChannel):
@@ -144,9 +142,7 @@ class PTM(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._output_dim, self._output_dim, self._input_dim, self._input_dim)
 
-    def _evolve(
-        self, state: DensityMatrix | Statevector, qargs: list | None = None
-    ) -> DensityMatrix:
+    def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------

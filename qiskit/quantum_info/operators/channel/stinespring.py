@@ -30,8 +30,6 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_stinespring
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class Stinespring(QuantumChannel):
@@ -165,9 +163,7 @@ class Stinespring(QuantumChannel):
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
         return is_identity_matrix(check, rtol=self.rtol, atol=self.atol)
 
-    def _evolve(
-        self, state: DensityMatrix | Statevector, qargs: list | None = None
-    ) -> DensityMatrix:
+    def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -266,12 +262,12 @@ class Stinespring(QuantumChannel):
             other = Choi(other)
         return self._add(-other, qargs=qargs)
 
-    def _add(self, other: SuperOp, qargs: None | list = None) -> SuperOp:
+    def _add(self, other, qargs=None):
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
         return Stinespring(Choi(self)._add(other, qargs=qargs))
 
-    def _multiply(self, other: complex) -> SuperOp:
+    def _multiply(self, other):
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
 
