@@ -69,6 +69,7 @@ intersphinx_mapping = {
     "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
