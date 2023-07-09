@@ -525,7 +525,7 @@ class Pauli(BasePauli):
             other = Pauli(other)
         return Pauli(super().expand(other))
 
-    def _multiply(self, other: complex) -> Pauli:
+    def _multiply(self, other):
         return Pauli(super()._multiply(other))
 
     def conjugate(self):
@@ -619,7 +619,7 @@ class Pauli(BasePauli):
     # ---------------------------------------------------------------------
 
     @staticmethod
-    def _from_label(label: str) -> BasePauli:
+    def _from_label(label):
         """Return the symplectic representation of Pauli string.
 
         Args:

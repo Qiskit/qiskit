@@ -167,7 +167,7 @@ class ScalarOp(LinearOp):
 
         return other.tensor(self)
 
-    def _add(self, other: BaseOperator, qargs: None | list = None) -> ScalarOp:
+    def _add(self, other, qargs=None):
         """Return the operator self + other.
 
         If ``qargs`` are specified the other operator will be added
@@ -214,7 +214,7 @@ class ScalarOp(LinearOp):
         # final dimensions.
         return other.reshape(self.input_dims(), self.output_dims())._add(self)
 
-    def _multiply(self, other: Number) -> ScalarOp:
+    def _multiply(self, other):
         """Return the ScalarOp other * self.
 
         Args:
@@ -233,9 +233,7 @@ class ScalarOp(LinearOp):
         return ret
 
     @staticmethod
-    def _pad_with_identity(
-        current: BaseOperator, other: BaseOperator, qargs: None | list = None
-    ) -> BaseOperator:
+    def _pad_with_identity(current, other, qargs=None):
         """Pad another operator with identities.
 
         Args:

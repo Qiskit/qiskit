@@ -322,7 +322,7 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._data = np.kron(other._data, self._data)
         return ret
 
-    def _add(self, other: Statevector) -> Statevector:
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
@@ -342,7 +342,7 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._data = self.data + other.data
         return ret
 
-    def _multiply(self, other: complex) -> Statevector:
+    def _multiply(self, other):
         """Return the scalar multiplied state self * other.
 
         Args:

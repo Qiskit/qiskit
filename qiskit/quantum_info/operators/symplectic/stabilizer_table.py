@@ -700,7 +700,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         phase = np.logical_xor(phase1, phase2)
         return StabilizerTable(pauli, phase)
 
-    def _add(self, other: StabilizerTable, qargs: None | list = None) -> StabilizerTable:
+    def _add(self, other, qargs=None):
         """Append with another StabilizerTable.
 
         If ``qargs`` are specified the other operator will be added
@@ -735,7 +735,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             np.vstack((self._array, padded._array)), np.hstack((self._phase, padded._phase))
         )
 
-    def _multiply(self, other: bool | int) -> StabilizerTable:
+    def _multiply(self, other):
         """Multiply (XOR) phase vector of the StabilizerTable.
 
         This updates the phase vector of the table. Allowed values for
@@ -1023,7 +1023,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         return "+" + label
 
     @staticmethod
-    def _to_matrix(pauli: np.ndarray, phase: bool, sparse: bool = False) -> np.ndarray:
+    def _to_matrix(pauli, phase, sparse=False):
         """Return the Pauli stabilizer matrix from symplectic representation.
 
         Args:

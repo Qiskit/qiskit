@@ -144,9 +144,7 @@ class PTM(QuantumChannel):
         """Return the shape for bipartite matrix"""
         return (self._output_dim, self._output_dim, self._input_dim, self._input_dim)
 
-    def _evolve(
-        self, state: DensityMatrix | Statevector, qargs: list | None = None
-    ) -> DensityMatrix:
+    def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------

@@ -265,7 +265,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.expand(other._op_shape)
         return ret
 
-    def _add(self, other: DensityMatrix) -> DensityMatrix:
+    def _add(self, other):
         """Return the linear combination self + other.
 
         Args:
@@ -285,7 +285,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         ret._data = self.data + other.data
         return ret
 
-    def _multiply(self, other: complex) -> DensityMatrix:
+    def _multiply(self, other):
         """Return the scalar multiplied state other * self.
 
         Args:

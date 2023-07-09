@@ -361,7 +361,7 @@ class SparsePauliOp(LinearOp):
         coeffs = np.kron(a.coeffs, b.coeffs)
         return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
-    def _add(self, other: SparsePauliOp, qargs: None | list = None) -> SparsePauliOp:
+    def _add(self, other, qargs=None):
         if qargs is None:
             qargs = getattr(other, "qargs", None)
 
@@ -374,7 +374,7 @@ class SparsePauliOp(LinearOp):
         coeffs = np.hstack((self.coeffs, other.coeffs))
         return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
-    def _multiply(self, other: complex) -> SparsePauliOp:
+    def _multiply(self, other):
         if not isinstance(other, (Number, ParameterExpression)):
             raise QiskitError("other is neither a Number nor a Parameter/ParameterExpression")
         if other == 0:
@@ -980,7 +980,7 @@ class SparsePauliOp(LinearOp):
 
         return MatrixIterator(self)
 
-    def _create_graph(self, qubit_wise: bool) -> rx.PyGraph:
+    def _create_graph(self, qubit_wise):
         """Transform measurement operator grouping problem into graph coloring problem
 
         Args:

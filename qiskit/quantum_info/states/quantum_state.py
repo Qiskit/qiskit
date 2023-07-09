@@ -374,9 +374,7 @@ class QuantumState:
         return kets.T
 
     @staticmethod
-    def _vector_to_dict(
-        vec: np.ndarray, dims: tuple, decimals: None | int = None, string_labels: bool = False
-    ) -> dict:
+    def _vector_to_dict(vec, dims, decimals=None, string_labels=False):
         """Convert a vector to a ket dictionary.
 
         This representation will not show zero values in the output dict.
@@ -407,9 +405,7 @@ class QuantumState:
         return {tuple(ket): val for ket, val in zip(kets, vals[inds])}
 
     @staticmethod
-    def _matrix_to_dict(
-        mat: np.ndarray, dims: tuple, decimals: None | int = None, string_labels: bool = False
-    ) -> dict:
+    def _matrix_to_dict(mat, dims, decimals=None, string_labels=False):
         """Convert a matrix to a ket dictionary.
 
         This representation will not show zero values in the output dict.

@@ -160,7 +160,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._phase = np.mod(phase, 4)
         return ret
 
-    def _multiply(self, other: complex):
+    def _multiply(self, other):
         """Return the {cls} other * self.
 
         Args:
@@ -403,13 +403,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return base_z, base_x, base_phase
 
     @staticmethod
-    def _to_matrix(
-        z: np.ndarray,
-        x: np.ndarray,
-        phase: int = 0,
-        group_phase: bool = False,
-        sparse: bool = False,
-    ) -> np.ndarray:
+    def _to_matrix(z, x, phase=0, group_phase=False, sparse=False):
         """Return the matrix from symplectic representation.
 
         The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
@@ -473,14 +467,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return mat
 
     @staticmethod
-    def _to_label(
-        z: np.ndarray,
-        x: np.ndarray,
-        phase: int,
-        group_phase: bool = False,
-        full_group: bool = True,
-        return_phase: bool = False,
-    ) -> str:
+    def _to_label(z, x, phase, group_phase=False, full_group=True, return_phase=False):
         """Return the label string for a Pauli.
 
         Args:
@@ -529,9 +516,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return label, phase
         return label
 
-    def _append_circuit(
-        self, circuit: QuantumCircuit | Instruction, qargs: list | None = None
-    ) -> BasePauli:
+    def _append_circuit(self, circuit, qargs=None):
         """Update BasePauli inplace by applying a Clifford circuit.
 
         Args:

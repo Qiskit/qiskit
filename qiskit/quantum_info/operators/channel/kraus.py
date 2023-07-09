@@ -193,9 +193,7 @@ class Kraus(QuantumChannel):
             accum += np.dot(np.transpose(np.conj(op)), op)
         return is_identity_matrix(accum, rtol=rtol, atol=atol)
 
-    def _evolve(
-        self, state: DensityMatrix | Statevector, qargs: list | None = None
-    ) -> DensityMatrix:
+    def _evolve(self, state, qargs=None):
         return SuperOp(self)._evolve(state, qargs)
 
     # ---------------------------------------------------------------------
@@ -305,13 +303,13 @@ class Kraus(QuantumChannel):
             other = Choi(other)
         return self._add(-other, qargs=qargs)
 
-    def _add(self, other: SuperOp, qargs: None | list = None) -> SuperOp:
+    def _add(self, other, qargs=None):
         # Since we cannot directly add two channels in the Kraus
         # representation we try and use the other channels method
         # or convert to the Choi representation
         return Kraus(Choi(self)._add(other, qargs=qargs))
 
-    def _multiply(self, other: complex) -> SuperOp:
+    def _multiply(self, other):
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
 
