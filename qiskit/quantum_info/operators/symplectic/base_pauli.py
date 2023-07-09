@@ -25,7 +25,6 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
-from qiskit.circuit.instruction import Instruction
 
 
 # utility for _to_matrix

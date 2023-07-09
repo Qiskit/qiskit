@@ -30,8 +30,6 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.states.statevector import Statevector
-from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
 
 class Kraus(QuantumChannel):
