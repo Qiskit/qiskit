@@ -22,15 +22,15 @@ which is a three qubit gate which will be transpiled into one and two qubit gate
 
     from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito #fake backend ibmq_quito
+    from qiskit.providers.fake_provider import FakeQuito
 
-    backend = FakeQuito() # For this example the quito fake backend is used
+    backend = FakeQuito()
 
-    qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits
+    qc = QuantumCircuit(3)
     
-    qc.cswap(qr[0],qr[1],qr[2]) #add the cswap gate to the quantum circuit
+    qc.cswap(qr[0],qr[1],qr[2])
     
-    print(qc) #print the quantum circuit
+    print(qc)
 
 .. testoutput::
 
@@ -63,16 +63,16 @@ For example, with :meth:`~qiskit.providers.fake_provider.FakeQuito`, you can lea
 
 .. testcode::
 
-    print("Basis gates of your Backend: ",backend.configuration().basis_gates)
+    print(f"Basis gates of your backend: {backend.configuration().basis_gates}")
 
-    print("Coupling map of your Backend: ",backend.configuration().coupling_map)
+    print(f"Coupling map of your Backend: ",{backend.configuration().coupling_map}")
 
 .. testoutput::
 
     Basis gates of your Backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
     Coupling map of your Backend:  [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
-When setting the optimization_level to 0, the resulting quantum circuit is not optimized and utilizes only three qubits. 
+When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and utilizes only three qubits. 
 The coupling map, represented by the subset **[[0,1],[1,0],[1,2],[2,1]]**, indicates the physical qubits available in the backend. 
 In this configuration, the quantum circuit is transformed into a combination of one and two-qubit gates,
 represented by the **['id', 'rz', 'sx', 'x', 'cx', 'reset']**.
