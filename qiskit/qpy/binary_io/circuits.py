@@ -287,7 +287,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             "UCRXGate",
             "UCRYGate",
             "UCRZGate",
-            "diagonal",
+            "DiagonalGate",
         }:
             gate = gate_class(params)
         else:
