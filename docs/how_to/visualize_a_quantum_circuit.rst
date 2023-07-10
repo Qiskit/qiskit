@@ -79,9 +79,6 @@ You can also change the output style using the ``output`` argument. These are th
 
 Because this optional keyword argument is the first of this method, you can type ``qc.draw(option)`` instead of ``qc.draw(output=option)``
 
-.. note::
-    By default, the :meth:`~.QuantumCircuit.draw` method returns the rendered image as an object and does not output anything. The exact class returned depends on the output specified: ``'text'`` (the default) returns a ``TextDrawer`` object, ``'mpl'`` returns a `matplotlib.figure.Figure <https://matplotlib.org/stable/api/figure_api.html?highlight=figure#matplotlib.figure.Figure>`_ object, and ``'latex'`` returns a ``PIL.Image`` object. Having the return types enables modifying or directly interacting with the rendered output from the drawers. Jupyter notebooks understand these return types and render them for us in this guide, but when running outside of Jupyter, you do not have this feature automatically. However, the :meth:`~.QuantumCircuit.draw` method has optional arguments to display or save the output. When specified, the ``filename`` kwarg takes a path to which it saves the rendered output. Alternatively, if you're using the ``'mpl'`` or ``'latex'`` outputs, you can leverage the ``interactive`` kwarg to open the image in a new window (this will not always work from within a notebook).
-
 
 ``'mpl'`` ouptut
 ^^^^^^^^^^^^^^^^
