@@ -205,21 +205,23 @@ def circuit_drawer(
         raise VisualizationError(
             "The wire_order option cannot be set when the reverse_bits option is True."
         )
+
     complete_wire_order = wire_order
     if wire_order is not None:
         wire_order_len = len(wire_order)
-        if wire_order_len not in [circuit.num_qubits, circuit.num_qubits + circuit.num_clbits]:
+        total_wire_len = circuit.num_qubits + circuit.num_clbits
+        if wire_order_len not in [circuit.num_qubits, total_wire_len]:
             raise VisualizationError(
                 f"The wire_order list (length {wire_order_len}) should as long as "
                 f"the number of qubits ({circuit.num_qubits}) or the "
-                f"total numbers of qubits and classical bits {circuit.num_qubits + circuit.num_clbits}."
+                f"total numbers of qubits and classical bits {total_wire_len}."
             )
 
         if len(set(wire_order)) != len(wire_order):
             raise VisualizationError("The wire_order list should not have repeated elements.")
 
         if wire_order_len == circuit.num_qubits:
-            complete_wire_order = wire_order + list(range(circuit.num_qubits, circuit.num_clbits))
+            complete_wire_order = wire_order + list(range(circuit.num_qubits, total_wire_len))
 
     if (
         circuit.clbits
