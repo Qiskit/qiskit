@@ -205,7 +205,7 @@ def circuit_drawer(
         raise VisualizationError(
             "The wire_order option cannot be set when the reverse_bits option is True."
         )
-    complete_wire_order = None
+    complete_wire_order = wire_order
     if wire_order is not None:
         wire_order_len = len(wire_order)
         if wire_order_len not in [circuit.num_qubits, circuit.num_qubits + circuit.num_clbits]:
