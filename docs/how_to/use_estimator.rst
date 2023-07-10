@@ -101,7 +101,8 @@ Get the expected value
 
 From these results you can extract the expected values with the attribute :attr:`~qiskit.primitives.EstimatorResult.values`.
 
-:attr:`~qiskit.primitives.EstimatorResult.values` returns a :class:`numpy.ndarray` whose ``i``-th element is the expectation value corresponding to the ``i``-th circuit and ``i``-th observable.
+:attr:`~qiskit.primitives.EstimatorResult.values` returns a :class:`numpy.ndarray`
+whose ``i``-th element is the expectation value corresponding to the ``i``-th circuit and ``i``-th observable.
 
 .. testcode::
 
@@ -124,13 +125,12 @@ of the previous example.
     from qiskit.circuit import Parameter
 
     theta = Parameter('θ')
-    qc = QuantumCircuit(2)
-    qc.ry(theta, 0)
-    qc.cx(0,1)
-    print(qc.draw())
+    param_qc = QuantumCircuit(2)
+    param_qc.ry(theta, 0)
+    param_qc.cx(0,1)
+    print(param_qc.draw())
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
          ┌───────┐     
     q_0: ┤ Ry(θ) ├──■──
@@ -149,14 +149,13 @@ that corresponds to the ``i``-th circuit and observable.
     
     parameter_values = [[0], [np.pi/6], [np.pi/2]]
 
-    job = estimator.run([qc]*3, [obs]*3, parameter_values=parameter_values)
+    job = estimator.run([param_qc]*3, [observable]*3, parameter_values=parameter_values)
     values = job.result().values
 
     for i in range(3):
         print(f"Parameter: {parameter_values[i][0]:.5f}\t Expectation value: {values[i]}")
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
     Parameter: 0.00000	 Expectation value: 2.0
     Parameter: 0.52360	 Expectation value: 3.0
