@@ -9,7 +9,7 @@ Initialize observable
 =====================
 
 The first step is to define the observable whose expected value you want to compute. This observable can be any ``BaseOperator``, like the operators from :mod:`qiskit.quantum_info`.
-Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
+Out of the available options it is recommended to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 .. testcode::
 
@@ -17,10 +17,10 @@ Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     obs = SparsePauliOp(["II", "XX", "YY", "ZZ"], [1, 1, -1, 1])
 
-Initialize quantum circuits
+Initialize the quantum circuit
 ===========================
 
-Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which you want to obtain the expected value.
+Next you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which you want to obtain the expected value.
 For more details about this part check out :doc:`this guide <create_a_quantum_circuit>`.
 
 .. plot::
@@ -44,7 +44,7 @@ For more details about this part check out :doc:`this guide <create_a_quantum_ci
 Initialize the ``Estimator``
 ============================
 
-Then, you need to create an :class:`~qiskit.primitives.Estimator` object.
+Next, you need to create an :class:`~qiskit.primitives.Estimator` object.
 
 .. testcode::
 
@@ -56,7 +56,7 @@ Run and get results
 ===================
 
 Now that you have defined ``estimator``, you can create a :class:`~.PrimitiveJob` (subclass of :class:`~qiskit.providers.JobV1`) with the
-:meth:`~qiskit.primitives.Estimator.run` method and, then, you can get the results (as a :class:`~qiskit.primitives.EstimatorResult` object) with
+:meth:`~qiskit.primitives.Estimator.run` method and then you can get the results (as a :class:`~qiskit.primitives.EstimatorResult` object) with
 the results with the :meth:`~qiskit.providers.JobV1.result` method.
 
 .. testcode::
@@ -72,10 +72,10 @@ the results with the :meth:`~qiskit.providers.JobV1.result` method.
 Get the expected value
 ----------------------
 
-From these results you can take the expected values with the attribute :attr:`~qiskit.primitives.EstimatorResult.values`.
+From these results you can get the expected values with the attribute :attr:`~qiskit.primitives.EstimatorResult.values`.
 
 Generally, :attr:`~qiskit.primitives.EstimatorResult.values` returns a `numpy.ndarray <https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html>`_
-whose ``i``-th element would be the expectation value corresponding to the ``i``-th circuit and ``i``-th observable.
+whose ``i``-th element is the expectation value corresponding to the ``i``-th circuit and ``i``-th observable.
 
 .. testcode::
 
@@ -113,7 +113,7 @@ of the previous example.
     q_1: ─────────┤ X ├
                   └───┘
 
-The main difference from the previous case is that now you need to include the parameter values
+The main difference between this example and the previous one is that now you need to include the parameter values
 for which you want to evaluate the expectation value as a ``list`` of ``list``\ s of ``float``\ s.
 The idea is that the ``i``-th element of the bigger ``list`` is the set of parameter values
 that corresponds to the ``i``-th circuit and observable.

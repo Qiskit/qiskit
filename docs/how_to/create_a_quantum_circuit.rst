@@ -7,7 +7,7 @@ This guide shows you how to create a quantum circuit.
 
 There are two ways to create a :class:`~.QuantumCircuit` object:
 
-1. Specifying the number of qubits and classical bits.
+1. Initialize :class:`~.QuantumCircuit` by directly specifying the number of qubits and classical bits you want.
 2. Creating :class:`~.QuantumRegister`\ s and :class:`~.ClassicalRegister`\ s and use the registers to initialize a :class:`~.QuantumCircuit`
 
 Specifying the number of qubits and classical bits
@@ -60,7 +60,7 @@ You can also create a :class:`~.QuantumCircuit` with only qubits and no classica
 Create from quantum and classical registers
 ===========================================
 
-Create quantum registers
+Creating quantum registers
 ------------------------
 
 You can create a :class:`~.QuantumRegister` object by passing the desired number of qubits as an argument:
@@ -75,7 +75,7 @@ You can create a :class:`~.QuantumRegister` object by passing the desired number
     # Create a quantum register with 3 qubits
     qr2 = QuantumRegister(3)
 
-Create classical registers
+Creating classical registers
 --------------------------
 
 Similar to the quantum registers, you can create a :class:`~.ClassicalRegister` object by passing the desired number of classical bits as an argument:

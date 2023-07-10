@@ -7,7 +7,7 @@ This guide shows you how to combine different :class:`~.QuantumCircuit` objects.
 Create the circuits
 ===================
 
-Let's first create two circuits, which will be joint together.
+Let's first create two circuits, which will be joined together.
 
 .. testcode::
 
@@ -59,9 +59,9 @@ You can join the circuits together using these two methods:
 
 .. warning::
 
-     The ``combine`` and ``extend`` methods have been deprecated in Qiskit Terra 0.17 and removed in 0.23. These methods are replaced by :meth:`~.QuantumCircuit.compose` method which is more powerful. The removal of ``extend`` also means that the ``+`` and ``+=`` operators are no longer defined for :class:`~.QuantumCircuit`. Instead, you can use the ``&`` and ``&=`` operators respectively, which use :meth:`~.QuantumCircuit.compose`.
+     The ``combine`` and ``extend`` methods have been deprecated in Qiskit Terra 0.17 and removed in 0.23. These methods are replaced by the :meth:`~.QuantumCircuit.compose` method which is more powerful. The removal of ``extend`` also means that the ``+`` and ``+=`` operators are no longer defined for :class:`~.QuantumCircuit`. Instead, you can use the ``&`` and ``&=`` operators respectively, which use :meth:`~.QuantumCircuit.compose`.
 
-For both methods, if the two circuits being joint have different sizes, the method needs to be called in the circuit that is bigger (more qubits and more classical bits). 
+For both methods, if the two circuits being combined have different sizes, the method needs to be called in the circuit that is bigger (more qubits and more classical bits). 
 
 Using the :meth:`~.QuantumCircuit.compose` method
 -------------------------------------------------
@@ -137,9 +137,9 @@ You can also join the smaller circuit in front of the bigger circuit by setting 
 Using the :meth:`~.QuantumCircuit.append` method
 ------------------------------------------------
 
-In order to join two circuits with :meth:`~.QuantumCircuit.append`, you need to specify the circuit you want to add and the qubits and classical bits (if there are any) into which you want the circuit to be inserted.
+In order to join two circuits with :meth:`~.QuantumCircuit.append`, you need to specify the circuit you want to add, as well as the qubits and classical bits (if there are any) onto which you want the circuit to be applied.
 
-Different from :meth:`~.QuantumCircuit.compose`, this method modifies the circuit to which it is applied instead of returning a new circuit.
+Different from :meth:`~.QuantumCircuit.compose`, this method modifies the circuit it is applied to, instead of returning a new circuit.
 
 .. testcode::
 

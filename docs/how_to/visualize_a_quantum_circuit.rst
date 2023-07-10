@@ -52,7 +52,7 @@ If you call the ``print()`` function on a :class:`~.QuantumCircuit` object, you 
 Using the :meth:`~.QuantumCircuit.draw` method
 ----------------------------------------------
 
-You can also use the :meth:`.QuantumCircuit.draw` method to visualize it. The default output style is 'text', which will output a ASCII art version, the same as using the ``print()`` function.
+You can also use the :meth:`.QuantumCircuit.draw` method to visualize it. The default output style is 'text', which will output an ASCII art version, the same as using the ``print()`` function.
 
 .. code-block:: python
 

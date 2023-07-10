@@ -4,7 +4,7 @@
 How to
 ######
 
-Create quantum circuits
+Create a quantum circuit
 -----------------------
 
 .. toctree::

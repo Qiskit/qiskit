@@ -4,7 +4,7 @@ Use the Sampler primitive
 
 This guide shows how to get the probability distribution of a quantum circuit with the :class:`~qiskit.primitives.Sampler` primitive.
 
-Initialize quantum circuits
+Initialize the quantum circuit
 ===========================
 
 The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from which you want to obtain the probability distribution.
@@ -33,7 +33,7 @@ For more details about this part check out :doc:`this guide <create_a_quantum_ci
 Initialize the ``Sampler``
 ==========================
 
-Then, you need to create a :class:`~qiskit.primitives.Sampler` object.
+Next, you need to create a :class:`~qiskit.primitives.Sampler` object.
 
 .. testcode::
 
@@ -41,12 +41,12 @@ Then, you need to create a :class:`~qiskit.primitives.Sampler` object.
 
     sampler = Sampler()
 
-Run and get results
+Run job and get results
 ===================
 
 Now that you have defined ``sampler``, you can create a :class:`~.PrimitiveJob` (subclass of :class:`~qiskit.providers.JobV1`) with the
-:meth:`~qiskit.primitives.Sampler.run` method and, then, you can get the results (as a :class:`~qiskit.primitives.SamplerResult` object) with
-the results with the :meth:`~qiskit.providers.JobV1.result` method.
+:meth:`~qiskit.primitives.Sampler.run` method and then you can get the results (as a :class:`~qiskit.primitives.SamplerResult` object) with
+ the :meth:`~qiskit.providers.JobV1.result` method.
 
 .. testcode::
 
@@ -61,10 +61,10 @@ the results with the :meth:`~qiskit.providers.JobV1.result` method.
 Get the probability distribution
 --------------------------------
 
-From these results you can take the probability distributions with the attribute :attr:`~qiskit.primitives.SamplerResult.quasi_dists`.
+From these results you can get the probability distributions with the attribute :attr:`~qiskit.primitives.SamplerResult.quasi_dists`.
 
 Even though there is only one circuit in this example, :attr:`~qiskit.primitives.SamplerResult.quasi_dists` returns a list of :class:`~qiskit.result.QuasiDistribution`\ s.
-Generally ``result.quasi_dists[i]`` would be the quasi-probability distribution of the ``i``-th circuit.
+Generally ``result.quasi_dists[i]`` is the quasi-probability distribution of the ``i``-th circuit.
 
 .. testcode::
 
@@ -79,7 +79,7 @@ Generally ``result.quasi_dists[i]`` would be the quasi-probability distribution 
 Probability distribution with binary outputs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you prefer to see the outputs as binary strings instead of decimal, you can use the
+If you prefer to see the outputs as binary strings instead of decimals, you can use the
 :meth:`~qiskit.result.QuasiDistribution.binary_probabilities` method.
 
 .. testcode::
