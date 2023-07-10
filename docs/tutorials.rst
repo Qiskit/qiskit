@@ -71,14 +71,6 @@ Operators
 
    tutorials/operators/*
 
-Sample algorithms in Qiskit
-===========================
-
-.. nbgallery::
-   :glob:
-
-   tutorials/textbook/*
-
 .. Hiding - Indices and tables
    :ref:`genindex`
    :ref:`modindex`
