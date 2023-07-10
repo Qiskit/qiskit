@@ -1408,6 +1408,21 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_diagonal_gate(self):
+        """Test that a `DiagonalGate` successfully roundtrips."""
+        qc = QuantumCircuit(2)
+        qc.diagonal([1, -1, -1, 1], [0, 1])
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        # DiagonalGate (and a bunch of the qiskit.extensions gates) have non-deterministic
+        # definitions with regard to internal instruction names, so cannot be directly compared for
+        # equality.
+        self.assertIs(type(qc.data[0].operation), type(new_circuit.data[0].operation))
+        self.assertEqual(qc.data[0].operation.params, new_circuit.data[0].operation.params)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
     def test_qpy_deprecation(self):
         """Test the old import path's deprecations fire."""
         with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):

@@ -281,7 +281,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             gate.ctrl_state = instruction.ctrl_state
         gate.condition = condition_tuple
     else:
-        if gate_name in {"Initialize", "StatePreparation", "UCRXGate", "UCRYGate", "UCRZGate"}:
+        if gate_name in {
+            "Initialize",
+            "StatePreparation",
+            "UCRXGate",
+            "UCRYGate",
+            "UCRZGate",
+            "DiagonalGate",
+        }:
             gate = gate_class(params)
         else:
             if gate_name == "Barrier":
