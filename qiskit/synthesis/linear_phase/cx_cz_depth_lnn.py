@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -218,7 +218,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
 def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
     """
     Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
-    with 2-qubit depth at most 5n, based on Maslov and Yang [2].
+    with 2-qubit depth at most 5n, based on Maslov and Yang.
     This method computes the CZ circuit inside the CX circuit via phase gate insertions.
 
     Args:

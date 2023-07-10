@@ -3,8 +3,13 @@ features:
   - |
     Add a new synthesis algorithm `.synth_cx_cz_depth_line_my` of a CX circuit 
     accompanied by a CZ circuit for linear nearest neighbor (LNN) connectivity in 
-    2-qubit depth of 5n using CX and phase gates (S, Sdg or Z). The synthesis algorithm 
-    is based on the paper of Maslov and Yang (https://arxiv.org/abs/2210.16195).
+    2-qubit depth of 5n using CX and phase gates (S, Sdg or Z). For example, let
+    mat_x be an invertable binary matrix representing a CX circuit, and let mat_z 
+    be a binary symmetric matrix representing a CZ circuit. Calling
+    synth_cx_cz_depth_line_my(mat_x, mat_z) returns a quantum circuit object with 
+    two-qubit-depth at most 5n computing the composition of the CX and CZ circuits. 
+    The synthesis algorithm is based on the paper of Maslov and Yang 
+    (https://arxiv.org/abs/2210.16195).
     For LNN connectivity in 2-qubit depth of 7n+2 (which is still not optimal),
     using the layered Clifford synthesis (`.synth_clifford_layers`),
     `.synth_cx_cz_depth_line_my` to synthesize the CX layer and the first CZ layer in 
