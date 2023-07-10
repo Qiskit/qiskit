@@ -90,7 +90,7 @@ By default, :meth:`~.QuantumCircuit.compose` does not modify the original circui
     c: 2/════════════╩════════╩═
                      1        0 
 
-If you want to insert the qubits and bits into specific positions in the bigger circuit, you can use the ``qubits`` and ``bits`` arguments.
+If you want to insert the qubits and bits into specific positions in the bigger circuit, you can use the ``qubits`` and ``bits`` arguments. The following example joins the two circuits by connecting `q_0` and `q_1` qubits of `qc1` circuit to `q_3` and `q_1` qubits of `qc2` circuit.
 
 .. testcode::
 
