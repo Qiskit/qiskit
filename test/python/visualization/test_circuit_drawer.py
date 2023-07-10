@@ -109,7 +109,7 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit = QuantumCircuit(3, 3)
         circuit.x(1)
 
-        with self.assertRaisesRegex(VisualizationError, "one and only one entry"):
+        with self.assertRaisesRegex(VisualizationError, "should not have repeated elements"):
             visualization.circuit_drawer(circuit, wire_order=[2, 1, 0, 3, 1, 5])
 
         with self.assertRaisesRegex(VisualizationError, "cannot be set when the reverse_bits"):

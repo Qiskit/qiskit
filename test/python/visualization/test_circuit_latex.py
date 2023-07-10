@@ -681,7 +681,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
     def test_wire_order(self):
         """Test the wire_order option to latex drawer"""
-        filename = self._get_resource_path("test_latex_wire_order.tex")
+        filename = self._get_resource_path("test_latex_wire_order_only.tex")
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(4, "c")
         cr2 = ClassicalRegister(2, "ca")
@@ -699,9 +699,9 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         )
         self.assertEqualToReference(filename)
 
-    def test_wire_order_partial(self):
-        """Test the wire_order partial list to latex drawer"""
-        filename = self._get_resource_path("test_latex_wire_order_partial.tex")
+    def test_wire_order_only_qubits(self):
+        """Test the wire_order list with qubits only to latex drawer"""
+        filename = self._get_resource_path("test_wire_order_only_qubits.tex")
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(4, "c")
         cr2 = ClassicalRegister(2, "ca")
@@ -713,7 +713,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(
             circuit,
             cregbundle=False,
-            wire_order=[2, 1],
+            wire_order=[2, 1, 0, 3],
             filename=filename,
             output="latex_source",
         )
