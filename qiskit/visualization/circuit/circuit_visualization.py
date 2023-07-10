@@ -101,7 +101,7 @@ def circuit_drawer(
             information on the contents.
         output (str): select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-            By default the `text` drawer is used unless the user config file
+            By default, the `text` drawer is used unless the user config file
             (usually ``~/.qiskit/settings.conf``) has an alternative backend set
             as the default. For example, ``circuit_drawer = latex``. If the output
             kwarg is set, that backend will always be used over the default in
@@ -207,25 +207,19 @@ def circuit_drawer(
         )
     complete_wire_order = None
     if wire_order is not None:
-        if set(wire_order) > set(range(circuit.num_qubits + circuit.num_clbits)):
+        wire_order_len = len(wire_order)
+        if wire_order_len not in [circuit.num_qubits, circuit.num_qubits + circuit.num_clbits]:
             raise VisualizationError(
-                "The wire_order list should be a subset of the index for each qubit "
-                "and each clbit in the circuit."
-            )
-
-        if len(set(wire_order)) != len(wire_order):
-            raise VisualizationError(
-                "There must be one and only one entry in the "
-                "wire_order list for the index of each qubit and each clbit in the circuit."
+                f"The wire_order list (length {wire_order_len}) should as long as "
+                f"the number of qubits ({circuit.num_qubits}) or the "
+                f"total numbers of qubits and classical bits {circuit.num_qubits + circuit.num_clbits}."
             )
 
         if len(set(wire_order)) != len(wire_order):
             raise VisualizationError("The wire_order list should not have repeated elements.")
 
-        rest_of_wires = list(range(circuit.num_qubits + circuit.num_clbits))
-        for wire in set(wire_order):
-            rest_of_wires.remove(wire)
-        complete_wire_order = wire_order + rest_of_wires
+        if wire_order_len == circuit.num_qubits:
+            complete_wire_order = wire_order + list(range(circuit.num_qubits, circuit.num_clbits))
 
     if (
         circuit.clbits
@@ -366,7 +360,7 @@ def _text_circuit_drawer(
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
 
     Raises:
-        VisualizationError: When the filename extenstion is not .txt.
+        VisualizationError: When the filename extension is not .txt.
     """
     qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,

@@ -2,8 +2,8 @@
 features:
   - |
     Some restrictions when using ``wire_order`` in the circuit drawers had been relaxed.
-    Now, ``wire_order`` does not need to be a complete list and it can be used
-    with ``cregbundle=True`` when the order is not affecting the classical bits.
+    Now, ``wire_order`` can list just qubits and, in that case, it can be used
+    with ``cregbundle=True``, since it will not affect the classical bits.
 
     .. code-block::
 
