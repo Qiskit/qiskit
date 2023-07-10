@@ -26,9 +26,9 @@ which is a three qubit gate which will be transpiled into one and two qubit gate
 
     backend = FakeQuito()
 
-    qc = QuantumCircuit(3)
+    qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
-    qc.cswap(qr[0],qr[1],qr[2])
+    qc.cswap(qr[0],qr[1],qr[2]) # Add the cswap gate to the quantum circuit.
     
     print(qc)
 
@@ -64,13 +64,12 @@ For example, with :meth:`~qiskit.providers.fake_provider.FakeQuito`, you can lea
 .. testcode::
 
     print(f"Basis gates of your backend: {backend.configuration().basis_gates}")
-
-    print(f"Coupling map of your Backend: ",{backend.configuration().coupling_map}")
+    print(f"Coupling map of your backend: ",{backend.configuration().coupling_map}")
 
 .. testoutput::
 
-    Basis gates of your Backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
-    Coupling map of your Backend:  [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+    Basis gates of your backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
+    Coupling map of your backend:  [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
 When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and utilizes only three qubits. 
 The coupling map, represented by the subset **[[0,1],[1,0],[1,2],[2,1]]**, indicates the physical qubits available in the backend. 
@@ -80,7 +79,6 @@ represented by the **['id', 'rz', 'sx', 'x', 'cx', 'reset']**.
 .. testcode::
 
     qc_b0 = transpile(qc,backend = backend,optimization_level = 0)
-    
     print(qc_b0)
 
 
@@ -131,7 +129,6 @@ following the connections **[[0,1],[1,0],[2,1]]**. Specifically, gates such as :
 .. testcode::
 
     qc_b1 = transpile(qc,backend = backend,optimization_level = 1)
-    
     print(qc_b1)
 
 
@@ -181,7 +178,6 @@ Depending on the circuit, this level of optimization can occasionally yield the 
 .. testcode::
 
     qc_b2 = transpile(qc,backend = backend,optimization_level = 2)
-    
     print(qc_b2)
 
 
@@ -230,7 +226,6 @@ Based on the basis gates, results in one less :class:`.CXGate` and the addition 
 .. testcode::
 
     qc_b3 = transpile(qc,backend = backend,optimization_level = 3)
-    
     print(qc_b3)
 
 
