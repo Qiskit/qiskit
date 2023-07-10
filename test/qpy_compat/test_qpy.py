@@ -593,12 +593,6 @@ def generate_layout_circuits():
     )
     return [qc]
 
-def generate_diagonal_gate_circuit():
-    """Generate diagonal gate circuit."""
-    diagonal_circuit = QuantumCircuit(2, name="diagonal_circuit")
-    diagonal_circuit.diagonal([1, -1, -1, 1], [0, 1])
-    return diagonal_circuit
-
 
 def generate_circuits(version_parts):
     """Generate reference circuits."""
