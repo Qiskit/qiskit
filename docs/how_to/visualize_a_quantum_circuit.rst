@@ -115,10 +115,6 @@ Using the :func:`~.circuit_drawer` function
 
 If you prefer to use a self-contained function instead of a :class:`~.QuantumCircuit` method to draw your circuit, you can do it with :func:`~.circuit_drawer` from :mod:`qiskit.visualization`. It has the exact same behavior as the :meth:`~.QuantumCircuit.draw` method above, except that it requires the circuit to be included as an argument.
 
-.. note::
-    In Qiskit Terra :math:`\leq 0.7`, the default behavior for the :func:`~.circuit_drawer` function is to use the ``'latex'`` output backend, and in :math:`0.6.x` that includes a fallback to ``'mpl'`` if ``'latex'`` fails for any reason. Starting with release :math:`> 0.7`, the default changes to the ``'text'`` output.
-
-
 .. code-block:: python
 
     from qiskit.visualization import circuit_drawer
