@@ -22,6 +22,8 @@ This guide shows how to get the probability distribution of a quantum circuit wi
 Initialize quantum circuits
 ===========================
 
+The first step is to create the :class:`~qiskit.circuit.QuantumCircuit`\ s from which you want to obtain the probability distribution.
+
 .. plot::
     :include-source:
 
@@ -132,14 +134,13 @@ of the previous example.
     from qiskit.circuit import Parameter
 
     theta = Parameter('θ')
-    qc = QuantumCircuit(2)
-    qc.ry(theta, 0)
-    qc.cx(0,1)
-    qc.measure_all()
-    print(qc.draw())
+    param_qc = QuantumCircuit(2)
+    param_qc.ry(theta, 0)
+    param_qc.cx(0,1)
+    param_qc.measure_all()
+    print(param_qc.draw())
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
             ┌───────┐      ░ ┌─┐   
        q_0: ┤ Ry(θ) ├──■───░─┤M├───
@@ -159,14 +160,13 @@ The idea is that the ``i``-th element of the bigger ``list`` is the set of param
 
     parameter_values = [[0], [np.pi/6], [np.pi/2]]
 
-    job = sampler.run([qc]*3, parameter_values=parameter_values)
+    job = sampler.run([param_qc]*3, parameter_values=parameter_values)
     dists = job.result().quasi_dists
 
     for i in range(3):
         print(f"Parameter: {parameter_values[i][0]:.5f}\t Probabilities: {dists[i]}")
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
     Parameter: 0.00000	 Probabilities: {0: 1.0}
     Parameter: 0.52360	 Probabilities: {0: 0.9330127018922194, 3: 0.0669872981077807}
