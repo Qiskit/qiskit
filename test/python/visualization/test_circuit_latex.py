@@ -713,7 +713,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(
             circuit,
             cregbundle=False,
-            wire_order=[2, 1, 0, 3],
+            wire_order=[2, 1, 3, 0, 4, 5, 6, 7, 8, 9],
             filename=filename,
             output="latex_source",
         )

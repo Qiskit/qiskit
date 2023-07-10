@@ -341,8 +341,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
             str(_text_circuit_drawer(circuit, wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7])), expected
         )
 
-    def test_wire_order_partial(self):
-        """Test the wire_order option with a smaller list"""
+    def test_wire_order_only_qubits(self):
+        """Test the wire_order option with only qubits"""
         expected = "\n".join(
             [
                 "                    ",
@@ -356,6 +356,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "        └───┘┌──╨──┐",
                 " c: 0 4/═════╡ 0xa ╞",
                 "             └─────┘",
+                "ca: 0 2/════════════",
+                "                    ",
             ]
         )
         qr = QuantumRegister(4, "q")
@@ -366,7 +368,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(3)
         circuit.x(1)
         circuit.x(3).c_if(cr, 10)
-        self.assertEqual(str(_text_circuit_drawer(circuit, wire_order=[2, 1, 3, 0, 6])), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, wire_order=[2, 1, 3, 0, 4, 5, 6, 7, 8, 9])), expected
+        )
 
     def test_text_swap(self):
         """Swap drawing."""
