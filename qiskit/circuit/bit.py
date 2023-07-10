@@ -120,3 +120,10 @@ class Bit:
             return self._repr == other._repr
         except AttributeError:
             return False
+
+    def __copy__(self):
+        # Bits are immutable.
+        return self
+
+    def __deepcopy__(self, _memo):
+        return self
