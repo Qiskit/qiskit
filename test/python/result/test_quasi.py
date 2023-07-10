@@ -191,9 +191,10 @@ class TestQuasi(QiskitTestCase):
         ans = {0: 9 / 20, 1: 7 / 20, 2: 1 / 5}
         # Check probs are correct
         for key, val in closest.items():
-            assert abs(ans[key] - val) < 1e-14
+            self.assertAlmostEqual(ans[key], val, places=14)
+
         # Check if distance calculation is correct
-        assert abs(dist - sqrt(0.38)) < 1e-14
+        self.assertAlmostEqual(dist, sqrt(0.38), places=14)
 
     def test_marginal_distribution(self):
         """Test marginal_distribution with float value."""

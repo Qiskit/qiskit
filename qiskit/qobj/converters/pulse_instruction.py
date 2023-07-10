@@ -43,6 +43,7 @@ class ParametricPulseShapes(Enum):
     gaussian = "Gaussian"
     gaussian_square = "GaussianSquare"
     gaussian_square_drag = "GaussianSquareDrag"
+    gaussian_square_echo = "gaussian_square_echo"
     drag = "Drag"
     constant = "Constant"
 
@@ -897,7 +898,7 @@ class QobjToInstructionConverter:
         try:
             pulse_name = instruction.label
         except AttributeError:
-            sorted_params = sorted(tuple(instruction.parameters.items()), key=lambda x: x[0])
+            sorted_params = sorted(instruction.parameters.items(), key=lambda x: x[0])
             base_str = "{pulse}_{params}".format(
                 pulse=instruction.pulse_shape, params=str(sorted_params)
             )

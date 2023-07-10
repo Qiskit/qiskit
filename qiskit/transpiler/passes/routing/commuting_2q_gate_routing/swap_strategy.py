@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Defines a swap strategy class."""
-
-from typing import Any, List, Optional, Set, Tuple
+from __future__ import annotations
+from typing import Any
 import copy
 import numpy as np
 
@@ -48,7 +48,7 @@ class SwapStrategy:
     """
 
     def __init__(
-        self, coupling_map: CouplingMap, swap_layers: Tuple[Tuple[Tuple[int, int], ...], ...]
+        self, coupling_map: CouplingMap, swap_layers: tuple[tuple[tuple[int, int], ...], ...]
     ) -> None:
         """
         Args:
@@ -66,9 +66,9 @@ class SwapStrategy:
         self._coupling_map = coupling_map
         self._num_vertices = coupling_map.size()
         self._swap_layers = swap_layers
-        self._distance_matrix = None
-        self._possible_edges = None
-        self._missing_couplings = None
+        self._distance_matrix: np.ndarray | None = None
+        self._possible_edges: set[tuple[int, int]] | None = None
+        self._missing_couplings: set[tuple[int, int]] | None = None
         self._inverse_composed_permutation = {0: list(range(self._num_vertices))}
 
         edge_set = set(self._coupling_map.get_edges())
@@ -86,7 +86,7 @@ class SwapStrategy:
                 raise QiskitError(f"The {i}th swap layer contains a qubit with multiple swaps.")
 
     @classmethod
-    def from_line(cls, line: List[int], num_swap_layers: Optional[int] = None) -> "SwapStrategy":
+    def from_line(cls, line: list[int], num_swap_layers: int | None = None) -> "SwapStrategy":
         """Creates a swap strategy for a line graph with the specified number of SWAP layers.
 
         This SWAP strategy will use the full line if instructed to do so (i.e. num_variables
@@ -151,7 +151,7 @@ class SwapStrategy:
 
         return description
 
-    def swap_layer(self, idx: int) -> List[Tuple[int, int]]:
+    def swap_layer(self, idx: int) -> list[tuple[int, int]]:
         """Return the layer of swaps at the given index.
 
         Args:
@@ -164,7 +164,7 @@ class SwapStrategy:
         return list(self._swap_layers[idx])
 
     @property
-    def distance_matrix(self) -> np.array:
+    def distance_matrix(self) -> np.ndarray:
         """A matrix describing when qubits become adjacent in the swap strategy.
 
         Returns:
@@ -190,7 +190,7 @@ class SwapStrategy:
 
         return self._distance_matrix
 
-    def new_connections(self, idx: int) -> List[Set[int]]:
+    def new_connections(self, idx: int) -> list[set[int]]:
         """
         Returns the new connections obtained after applying the SWAP layer specified by idx, i.e.
         a list of qubit pairs that are adjacent to one another after idx steps of the SWAP strategy.
@@ -209,7 +209,7 @@ class SwapStrategy:
                     connections.append({i, j})
         return connections
 
-    def _build_edges(self) -> Set[Tuple[int, int]]:
+    def _build_edges(self) -> set[tuple[int, int]]:
         """Build the possible edges that the swap strategy accommodates."""
 
         possible_edges = set()
@@ -221,7 +221,7 @@ class SwapStrategy:
         return possible_edges
 
     @property
-    def possible_edges(self) -> Set[Tuple[int, int]]:
+    def possible_edges(self) -> set[tuple[int, int]]:
         """Return the qubit connections that can be generated.
 
         Returns:
@@ -233,7 +233,7 @@ class SwapStrategy:
         return self._possible_edges
 
     @property
-    def missing_couplings(self) -> Set[Tuple[int, int]]:
+    def missing_couplings(self) -> set[tuple[int, int]]:
         """Return the set of couplings that cannot be reached.
 
         Returns:
@@ -262,8 +262,8 @@ class SwapStrategy:
         return CouplingMap(couplinglist=edges)
 
     def apply_swap_layer(
-        self, list_to_swap: List[Any], idx: int, inplace: bool = False
-    ) -> List[Any]:
+        self, list_to_swap: list[Any], idx: int, inplace: bool = False
+    ) -> list[Any]:
         """Permute the elements of ``list_to_swap`` based on layer indexed by ``idx``.
 
         Args:
@@ -285,7 +285,7 @@ class SwapStrategy:
 
         return x
 
-    def inverse_composed_permutation(self, idx: int) -> List[int]:
+    def inverse_composed_permutation(self, idx: int) -> list[int]:
         """
         Returns the inversed composed permutation of all swap layers applied up to layer
         ``idx``. Permutations are represented by list of integers where the ith element

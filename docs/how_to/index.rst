@@ -1,11 +1,11 @@
 .. _how_to:
 
-######
-How to
-######
+#############
+How-to Guides
+#############
 
 Create a quantum circuit
------------------------
+========================
 
 .. toctree::
   :maxdepth: 1
@@ -16,7 +16,7 @@ Create a quantum circuit
   create_a_parameterized_circuit
 
 Use the primitives
-------------------
+==================
 
 .. toctree::
   :maxdepth: 1

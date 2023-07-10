@@ -144,7 +144,9 @@ class PassManagerConfig:
                 res.inst_map = backend.instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
-                res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+                cmap_edge_list = getattr(config, "coupling_map", None)
+                if cmap_edge_list is not None:
+                    res.coupling_map = CouplingMap(cmap_edge_list)
             else:
                 res.coupling_map = backend.coupling_map
         if res.instruction_durations is None:

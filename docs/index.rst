@@ -6,8 +6,9 @@ Qiskit Terra documentation
   :maxdepth: 2
   :hidden:
 
-  How to <how_to/index>
+  How-to Guides <how_to/index>
   API References <apidocs/terra>
+  Explanation <explanation/index>
   Migration Guides <migration_guides/index>
   Release Notes <release_notes>
 
