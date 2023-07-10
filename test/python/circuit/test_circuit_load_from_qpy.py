@@ -1419,8 +1419,8 @@ class TestLoadFromQPY(QiskitTestCase):
         # DiagonalGate (and a bunch of the qiskit.extensions gates) have non-deterministic
         # definitions with regard to internal instruction names, so cannot be directly compared for
         # equality.
-        self.assertIs(type(qc.data[0].operation), type(new.data[0].operation))
-        self.assertEqual(qc.data[0].operation.params, new.data[0].operation.params)
+        self.assertIs(type(qc.data[0].operation), type(new_circuit.data[0].operation))
+        self.assertEqual(qc.data[0].operation.params, new_circuit.data[0].operation.params)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_deprecation(self):
