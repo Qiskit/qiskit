@@ -46,17 +46,19 @@ from qiskit.pulse import (
     SetPhase,
 )
 from qiskit.pulse.schedule import ScheduleComponent
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 
 class EventsOutputChannels:
     """Pulse dataset for channel."""
 
-    @deprecate_function(
-        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
-        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
-        " In no less than 6 months the old objects will be completely removed.",
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
+            "pulse visualization."
+        ),
         since="0.23.0",
+        removal_timeline="no earlier than 6 months after the release date",
     )
     def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
@@ -287,11 +289,13 @@ class EventsOutputChannels:
 class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
-    @deprecate_function(
-        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
-        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
-        " In no less than 6 months the old objects will be completely removed.",
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
+            "pulse visualization."
+        ),
         since="0.23.0",
+        removal_timeline="no earlier than 6 months after the release date",
     )
     def __init__(self, style: PulseStyle):
         """Create new figure.
@@ -388,12 +392,13 @@ class WaveformDrawer:
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
-    @deprecate_function(
-        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
-        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
-        " In no less than 6 months the old objects will be completely removed.",
-        stacklevel=3,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
+            "pulse visualization."
+        ),
         since="0.23.0",
+        removal_timeline="no earlier than 6 months after the release date",
     )
     def __init__(self, style: SchedStyle):
         """Create new figure.

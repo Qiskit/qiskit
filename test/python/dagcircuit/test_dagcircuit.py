@@ -740,6 +740,73 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
 
+    def test_classical_predecessors(self):
+        """The method dag.classical_predecessors() returns predecessors connected by classical edges"""
+
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        predecessor_measure = self.dag.classical_predecessors(self.dag.named_nodes("measure").pop())
+
+        predecessor1 = next(predecessor_measure)
+
+        with self.assertRaises(StopIteration):
+            next(predecessor_measure)
+
+        self.assertIsInstance(predecessor1, DAGInNode)
+        self.assertIsInstance(predecessor1.wire, Clbit)
+
+    def test_classical_successors(self):
+        """The method dag.classical_successors() returns successors connected by classical edges"""
+
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        successors_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
+
+        successors1 = next(successors_measure)
+        with self.assertRaises(StopIteration):
+            next(successors_measure)
+
+        self.assertIsInstance(successors1, DAGOutNode)
+        self.assertIsInstance(successors1.wire, Clbit)
+
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
 

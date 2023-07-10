@@ -48,13 +48,6 @@ class TestGetPlatformParallelDefault(QiskitTestCase):
             parallel_default = get_platform_parallel_default()
             self.assertEqual(parallel_default, False)
 
-    def test_mac_os_supported_version_parallel_default(self):
-        """Verifies the parallel default for macOS."""
-        with patch("sys.platform", "darwin"):
-            with patch("sys.version_info", (10, 11, 0, "final", 0)):
-                parallel_default = get_platform_parallel_default()
-                self.assertEqual(parallel_default, True)
-
     def test_mac_os_unsupported_version_parallel_default(self):
         """Verifies the parallel default for macOS."""
         with patch("sys.platform", "darwin"):

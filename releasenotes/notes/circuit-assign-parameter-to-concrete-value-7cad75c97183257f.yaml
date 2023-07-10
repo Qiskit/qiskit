@@ -1,0 +1,29 @@
+---
+fixes:
+  - |
+    Changed the binding of numeric values with
+    :meth:`.QuantumCircuit.assign_parameters` to avoid a mismatch between the
+    values of circuit instruction parameters and corresponding parameter keys
+    in the circuit's calibration dictionary. Fixed `#9764
+    <https://github.com/Qiskit/qiskit-terra/issues/9764>`_ and `#10166
+    <https://github.com/Qiskit/qiskit-terra/issues/10166>`_. See also the
+    related upgrade note regarding :meth:`.QuantumCircuit.assign_parameters`.
+upgrade:
+  - |
+    Changed :meth:`.QuantumCircuit.assign_parameters` to bind
+    assigned integer and float values directly into the parameters of
+    :class:`~qiskit.circuit.Instruction` instances in the circuit rather than
+    binding the values wrapped within a
+    :class:`~qiskit.circuit.ParameterExpression`. This change should have
+    little user impact as ``float(QuantumCircuit.data[i].operation.params[j])``
+    still produces a ``float`` (and is the only way to access the value of a
+    :class:`~qiskit.circuit.ParameterExpression`). Also,
+    :meth:`~qiskit.circuit.Instruction` parameters could already be ``float``
+    as well as a :class:`~qiskit.circuit.ParameterExpression`, so code dealing
+    with instruction parameters should already handle both cases. The most
+    likely chance for user impact is in code that uses ``isinstance`` to check
+    for :class:`~qiskit.circuit.ParameterExpression` and behaves differently
+    depending on the result. Additionally, qpy serializes the numeric value in
+    a bound :class:`~qiskit.circuit.ParameterExpression` at a different
+    precision than a ``float`` (see also the related bug fix note about
+    :meth:`.QuantumCircuit.assign_parameters`).

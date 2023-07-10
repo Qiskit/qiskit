@@ -16,7 +16,6 @@ from __future__ import annotations
 import logging
 import multiprocessing
 import platform
-import sys
 from collections.abc import Callable
 from typing import SupportsFloat
 
@@ -109,12 +108,11 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             # default. The fork start method should be considered unsafe as it can
             # lead to crashes.
             # However P_BFGS doesn't support spawn, so we revert to single process.
-            if sys.version_info >= (3, 8):
-                num_procs = 0
-                logger.warning(
-                    "For MacOS, python >= 3.8, using only current process. "
-                    "Multiple core use not supported."
-                )
+            num_procs = 0
+            logger.warning(
+                "For MacOS, python >= 3.8, using only current process. "
+                "Multiple core use not supported."
+            )
         elif platform.system() == "Windows":
             num_procs = 0
             logger.warning(

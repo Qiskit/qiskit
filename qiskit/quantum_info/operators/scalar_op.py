@@ -47,7 +47,7 @@ class ScalarOp(LinearOp):
             QiskitError: If the optional coefficient is invalid.
         """
         if not isinstance(coeff, Number):
-            QiskitError(f"coeff {coeff} must be a number.")
+            raise QiskitError(f"coeff {coeff} must be a number.")
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
