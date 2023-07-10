@@ -73,6 +73,12 @@ class Type:
     def __deepcopy__(self, _memo):
         return self
 
+    def __setstate__(self, state):
+        _dict, slots = state
+        for slot, value in slots.items():
+            # We need to overcome the type's enforcement of immutability post initialisation.
+            super().__setattr__(slot, value)
+
 
 @typing.final
 class Bool(Type, metaclass=_Singleton):
