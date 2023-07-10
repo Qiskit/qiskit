@@ -60,6 +60,10 @@ For more details about this part check out :doc:`this guide <create_a_quantum_ci
     qc.h(0)
     qc.cx(0,1)
 
+.. note::
+
+    The :class:`~qiskit.circuit.QuantumCircuit` you pass to :class:`~qiskit.primitives.Estimator` must not include any measurements.
+
 Initialize the ``Estimator``
 ============================
 

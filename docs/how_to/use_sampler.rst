@@ -46,6 +46,9 @@ Initialize quantum circuits
     qc.cx(0,1)
     qc.measure_all()
 
+.. note::
+
+    The :class:`~qiskit.circuit.QuantumCircuit` you pass to :class:`~qiskit.primitives.Sampler` must include measurements.
 
 Initialize the ``Sampler``
 ==========================
