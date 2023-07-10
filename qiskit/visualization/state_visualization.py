@@ -20,13 +20,13 @@ Visualization functions for quantum states.
 from typing import Optional, List, Union
 from functools import reduce
 import colorsys
-import warnings
+
 import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -35,7 +35,7 @@ from .utils import matplotlib_close_if_inline
 from .exceptions import VisualizationError
 
 
-@deprecate_arguments({"rho": "state"}, since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_hinton(
     state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
@@ -66,7 +66,7 @@ def plot_state_hinton(
             it is redundant.
 
     Returns:
-         matplotlib.Figure:
+        :class:`matplotlib:matplotlib.figure.Figure` :
             The matplotlib.Figure of the visualization if
             neither ax_real or ax_imag is set.
 
@@ -209,7 +209,7 @@ def plot_bloch_vector(
         font_size (float): Font size.
 
     Returns:
-        Figure: A matplotlib figure instance if ``ax = None``.
+        :class:`matplotlib:matplotlib.figure.Figure` : A matplotlib figure instance if ``ax = None``.
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
@@ -253,7 +253,7 @@ def plot_bloch_vector(
     return None
 
 
-@deprecate_arguments({"rho": "state"}, since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
     state,
@@ -285,7 +285,7 @@ def plot_bloch_multivector(
         title_pad (float): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
 
     Returns:
-        matplotlib.Figure:
+        :class:`matplotlib:matplotlib.figure.Figure` :
             A matplotlib figure instance.
 
     Raises:
@@ -361,7 +361,7 @@ def plot_bloch_multivector(
         return fig.savefig(filename)
 
 
-@deprecate_arguments({"rho": "state"}, since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_city(
     state,
@@ -401,7 +401,7 @@ def plot_state_city(
             it is redundant.
 
     Returns:
-         matplotlib.Figure:
+        :class:`matplotlib:matplotlib.figure.Figure` :
             The matplotlib.Figure of the visualization if the
             ``ax_real`` and ``ax_imag`` kwargs are not set
 
@@ -618,7 +618,7 @@ def plot_state_city(
         return fig.savefig(filename)
 
 
-@deprecate_arguments({"rho": "state"}, since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
@@ -643,7 +643,7 @@ def plot_state_paulivec(
             will be no returned Figure since it is redundant.
 
     Returns:
-         matplotlib.Figure:
+         :class:`matplotlib:matplotlib.figure.Figure` :
             The matplotlib.Figure of the visualization if the
             ``ax`` kwarg is not set
 
@@ -789,7 +789,7 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-@deprecate_arguments({"rho": "state"}, since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_state_qsphere(
@@ -823,7 +823,8 @@ def plot_state_qsphere(
             radians or degrees for the phase values in the plot.
 
     Returns:
-        Figure: A matplotlib figure instance if the ``ax`` kwarg is not set
+        :class:`matplotlib:matplotlib.figure.Figure` :
+            A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
@@ -1291,6 +1292,10 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
+@deprecate_func(
+    additional_msg="For similar functionality, see sympy's ``nsimplify`` and ``latex`` functions.",
+    since="0.23.0",
+)
 def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
 
@@ -1301,19 +1306,15 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -
     Returns:
         String with latex code or None if no term is required
     """
-    warnings.warn(
-        "qiskit.visualization.state_visualization.num_to_latex_ket is "
-        "deprecated as of 0.23.0 and will be removed no earlier than 3 months "
-        "after the release. For similar functionality, see sympy's `nsimplify` "
-        "and `latex` functions.",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
     if np.around(np.abs(raw_value), decimals=decimals) == 0:
         return None
     return _num_to_latex(raw_value, first_term=first_term, decimals=decimals, coefficient=True)
 
 
+@deprecate_func(
+    additional_msg="For similar functionality, see sympy's ``nsimplify`` and ``latex`` functions.",
+    since="0.23.0",
+)
 def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms
     The first non-zero term is treated differently. For this term a leading + is suppressed.
@@ -1323,14 +1324,6 @@ def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[s
     Returns:
         List of formatted terms
     """
-    warnings.warn(
-        "qiskit.visualization.state_visualization.num_to_latex_terms is "
-        "deprecated as of 0.23.0 and will be removed no earlier than 3 months "
-        "after the release. For similar functionality, see sympy's `nsimplify` "
-        "and `latex` functions.",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
     first_term = True
     terms = []
     for number in numbers:

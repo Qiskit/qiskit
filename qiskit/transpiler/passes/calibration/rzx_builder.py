@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 
 """RZX calibration builders."""
+from __future__ import annotations
 
 import enum
 import warnings
+from collections.abc import Sequence
 from math import pi, erf
-from typing import List, Tuple, Union
 
 import numpy as np
 from qiskit.circuit import Instruction as CircuitInst
@@ -34,6 +35,7 @@ from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
+from qiskit.utils.deprecation import deprecate_arg
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -63,10 +65,11 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
+    @deprecate_arg("qubit_channel_mapping", since="0.22.0")
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,
-        qubit_channel_mapping: List[List[str]] = None,
+        qubit_channel_mapping: list[list[str]] = None,
         verbose: bool = True,
         target: Target = None,
     ):
@@ -86,14 +89,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Raises:
             QiskitError: Instruction schedule map is not provided.
         """
+        del qubit_channel_mapping
         super().__init__()
-
-        if qubit_channel_mapping:
-            warnings.warn(
-                "'qubit_channel_mapping' is no longer used. This value is ignored.",
-                DeprecationWarning,
-            )
-
         self._inst_map = instruction_schedule_map
         self._verbose = verbose
         if target:
@@ -101,7 +98,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         if self._inst_map is None:
             raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
-    def supported(self, node_op: CircuitInst, qubits: List) -> bool:
+    def supported(self, node_op: CircuitInst, qubits: list) -> bool:
         """Determine if a given node supports the calibration.
 
         Args:
@@ -170,7 +167,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         return round_duration
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Builds the calibration schedule for the RZXGate(theta) with echos.
 
         Args:
@@ -264,7 +261,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     of the CX gate.
     """
 
-    def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
+    def get_calibration(self, node_op: CircuitInst, qubits: list) -> Schedule | ScheduleBlock:
         """Builds the calibration schedule for the RZXGate(theta) without echos.
 
         Args:
@@ -340,8 +337,8 @@ def _filter_comp_tone(time_inst_tup):
 
 
 def _check_calibration_type(
-    inst_sched_map: InstructionScheduleMap, qubits: List[int]
-) -> Tuple[CRCalType, List[Play], List[Play]]:
+    inst_sched_map: InstructionScheduleMap, qubits: Sequence[int]
+) -> tuple[CRCalType, list[Play], list[Play]]:
     """A helper function to check type of CR calibration.
 
     Args:
@@ -364,7 +361,10 @@ def _check_calibration_type(
         cr_sched = inst_sched_map.get("ecr", tuple(reversed(qubits)))
         cal_type = CRCalType.ECR_REVERSE
     else:
-        raise QiskitError(f"{repr(cr_sched)} native direction cannot be determined.")
+        raise QiskitError(
+            f"Native direction cannot be determined: operation on qubits {qubits} "
+            f"for the following instruction schedule map:\n{inst_sched_map}"
+        )
 
     cr_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_cr_tone]).instructions]
     comp_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_comp_tone]).instructions]
