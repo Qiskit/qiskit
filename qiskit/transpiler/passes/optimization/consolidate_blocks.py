@@ -26,7 +26,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.optimization import Collect2qBlocks
 from qiskit.transpiler.passes.optimization.collect_1q_runs import Collect1qRuns
 
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit.controlflow import ControlFlowOp
 
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
 
