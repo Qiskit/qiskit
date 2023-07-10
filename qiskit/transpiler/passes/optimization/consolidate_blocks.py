@@ -23,12 +23,10 @@ from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.optimization import Collect2qBlocks
-from qiskit.transpiler.passes.optimization.collect_1q_runs import Collect1qRuns
-
 from qiskit.circuit.controlflow import ControlFlowOp
-
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
+from .collect_1q_runs import Collect1qRuns
+from .collect_2q_blocks import Collect2qBlocks
 
 
 class ConsolidateBlocks(TransformationPass):
