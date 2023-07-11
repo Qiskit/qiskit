@@ -29,7 +29,7 @@ from qiskit.circuit.annotated_operation import (
     InverseModifier,
     ControlModifier,
     PowerModifier,
-
+)
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -38,10 +38,7 @@ from qiskit.synthesis.clifford import (
     synth_clifford_ag,
     synth_clifford_bm,
 )
-from qiskit.synthesis.linear import (
-    synth_cnot_count_full_pmh, 
-    synth_cnot_depth_line_kms
-)
+from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
 from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
