@@ -15,9 +15,10 @@ Tests for the ConsolidateBlocks transpiler pass.
 """
 
 import unittest
+import copy
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
 from qiskit.circuit.library import U2Gate, SwapGate, CXGate
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
@@ -430,7 +431,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     def test_descent_into_control_flow(self):
         """Test consolidation in blocks of control flow op is the same as at top level."""
-        qc = QuantumCircuit(2)
+        qc = QuantumCircuit(2, 1)
         u2gate1 = U2Gate(-1.2, np.pi)
         u2gate2 = U2Gate(-3.4, np.pi)
         qc.append(u2gate1, [0])
@@ -444,11 +445,16 @@ class TestConsolidateBlocks(QiskitTestCase):
         result_top = pass_manager.run(qc)
 
         qc_control_flow = QuantumCircuit(2, 1)
-        with qc_control_flow.if_test((0, False)):
-            qc_control_flow.append(u2gate1, [0])
-            qc_control_flow.append(u2gate2, [1])
-            qc_control_flow.cx(0, 1)
-            qc_control_flow.cx(1, 0)
+        qc_block = copy.deepcopy(qc)
+
+        qc_block = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_block.append(u2gate1, [0])
+        qc_block.append(u2gate2, [1])
+        qc_block.cx(0, 1)
+        qc_block.cx(1, 0)
+
+        ifop = IfElseOp((qc.clbits[0], False), qc_block, None)
+        qc_control_flow.append(ifop, qc.qubits, qc.clbits)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
