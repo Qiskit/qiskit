@@ -1259,6 +1259,7 @@ class TextDrawing:
         return layers
 
     def add_control_flow(self, node, layers):
+        """Add control flow ops to the circuit drawing."""
 
         # Draw a left box such as If, While, For, and Switch
         flow_layer = self.draw_flow_box(node, CF_LEFT)
@@ -1329,6 +1330,7 @@ class TextDrawing:
 
     def draw_flow_box(self, node, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
+
         conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
