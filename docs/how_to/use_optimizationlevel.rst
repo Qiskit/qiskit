@@ -125,6 +125,7 @@ following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adja
 are replaced with a single :math:`RZ(3\pi/4)` operation. 
 
 .. note::
+    
     This optimization level is the default setting.
 
 .. testcode::
