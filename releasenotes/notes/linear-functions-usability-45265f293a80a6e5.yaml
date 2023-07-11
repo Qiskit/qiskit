@@ -20,4 +20,9 @@ features:
     a linear function over ``k`` qubits to a linear function over ``n >= k`` qubits,
     specifying the new positions of the original qubits and padding with identities on the
     remaining qubits.
-
+  - |
+    Added two methods for pretty-printing :class:`.LinearFunction` objects:
+    :meth:`.LinearFunction.mat_str`, which returns the string representation of the linear
+    function viewed as a matrix with 0/1 entries, and
+    :meth:`.LinearFunction.function_str`, which returns the string representation of the
+    linear function viewed as a linear transformation.
