@@ -173,6 +173,7 @@ from .states import (
     purity,
     shannon_entropy,
     state_fidelity,
+    negativity,
 )
 from .synthesis import (
     OneQubitEulerDecomposer,
