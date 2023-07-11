@@ -15,7 +15,6 @@ Tests for the ConsolidateBlocks transpiler pass.
 """
 
 import unittest
-import copy
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
