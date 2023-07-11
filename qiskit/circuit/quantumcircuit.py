@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -38,16 +37,18 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    Literal,
     overload,
 )
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -61,21 +62,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -877,6 +863,9 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+
         if inplace and front and self._control_flow_scopes:
             # If we're composing onto ourselves while in a stateful control-flow builder context,
             # there's no clear meaning to composition to the "front" of the circuit.
@@ -955,30 +944,42 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
+        # Cache for `map_register_to_dest`.
+        _map_register_cache = {}
+
+        def map_register_to_dest(theirs):
+            """Map the target's registers to suitable equivalents in the destination, adding an
+            extra one if there's no exact match."""
+            if theirs.name in _map_register_cache:
+                return _map_register_cache[theirs.name]
+            mapped_bits = [edge_map[bit] for bit in theirs]
+            for ours in dest.cregs:
+                if mapped_bits == list(ours):
+                    mapped_theirs = ours
+                    break
+            else:
+                mapped_theirs = ClassicalRegister(bits=mapped_bits)
+                dest.add_register(mapped_theirs)
+            _map_register_cache[theirs.name] = mapped_theirs
+            return mapped_theirs
+
         mapped_instrs: list[CircuitInstruction] = []
-        condition_register_map = {}
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
 
-            # Map their registers over to ours, adding an extra one if there's no exact match.
             if getattr(n_op, "condition", None) is not None:
                 target, value = n_op.condition
                 if isinstance(target, Clbit):
                     n_op.condition = (edge_map[target], value)
                 else:
-                    if target.name not in condition_register_map:
-                        mapped_bits = [edge_map[bit] for bit in target]
-                        for our_creg in dest.cregs:
-                            if mapped_bits == list(our_creg):
-                                new_target = our_creg
-                                break
-                        else:
-                            new_target = ClassicalRegister(bits=[edge_map[bit] for bit in target])
-                            dest.add_register(new_target)
-                        condition_register_map[target.name] = new_target
-                    n_op.condition = (condition_register_map[target.name], value)
+                    n_op.condition = (map_register_to_dest(target), value)
+            elif isinstance(n_op, SwitchCaseOp):
+                if isinstance(n_op.target, Clbit):
+                    n_op.target = edge_map[n_op.target]
+                else:
+                    n_op.target = map_register_to_dest(n_op.target)
 
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
@@ -1753,12 +1754,15 @@ class QuantumCircuit:
                 file.write(out)
 
         if formatted:
-            if not HAS_PYGMENTS:
-                raise MissingOptionalLibraryError(
-                    libname="pygments>2.4",
-                    name="formatted QASM output",
-                    pip_install="pip install pygments",
-                )
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+
+            import pygments
+            from pygments.formatters import (  # pylint: disable=no-name-in-module
+                Terminal256Formatter,
+            )
+            from qiskit.qasm.pygments import OpenQASMLexer
+            from qiskit.qasm.pygments import QasmTerminalStyle
+
             code = pygments.highlight(
                 out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
@@ -2839,7 +2843,16 @@ class QuantumCircuit:
                     new_param = assignee.assign(parameter, value)
                     # if fully bound, validate
                     if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
+                        if new_param._symbol_expr.is_integer and new_param.is_real():
+                            val = int(new_param)
+                        elif new_param.is_real():
+                            val = float(new_param)
+                        else:
+                            # complex values may no longer be supported but we
+                            # defer raising an exception to validdate_parameter
+                            # below for now.
+                            val = complex(new_param)
+                        instr.params[param_index] = instr.validate_parameter(val)
                     else:
                         instr.params[param_index] = new_param
 
@@ -2896,7 +2909,10 @@ class QuantumCircuit:
                         if isinstance(p, ParameterExpression) and parameter in p.parameters:
                             new_param = p.assign(parameter, value)
                             if not new_param.parameters:
-                                new_param = float(new_param)
+                                if new_param._symbol_expr.is_integer:
+                                    new_param = int(new_param)
+                                else:
+                                    new_param = float(new_param)
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
@@ -5033,10 +5049,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     # Otherwise, if there's a naming clash, we need a unique name.
     if operation.name in gates_to_define:
-        new_name = f"{operation.name}_{id(operation)}"
-        operation = operation.copy(name=new_name)
-    else:
-        new_name = operation.name
+        operation = _rename_operation(operation)
+
+    new_name = operation.name
 
     if parameterized_operation.params:
         parameters_qasm = (
@@ -5061,9 +5076,22 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
             statements.append(f"{new_operation.qasm()} {bits_qasm};")
         body_qasm = " ".join(statements)
+
+        # if an inner operation has the same name as the actual operation, it needs to be renamed
+        if operation.name in gates_to_define:
+            operation = _rename_operation(operation)
+            new_name = operation.name
+
         definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
         gates_to_define[new_name] = (parameterized_operation, definition_qasm)
     return operation
+
+
+def _rename_operation(operation):
+    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
+    new_name = f"{operation.name}_{id(operation)}"
+    updated_operation = operation.copy(name=new_name)
+    return updated_operation
 
 
 def _qasm_escape_name(name: str, prefix: str) -> str:

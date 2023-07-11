@@ -43,7 +43,7 @@ def random_statevector(dims, seed=None):
     else:
         rng = default_rng(seed)
 
-    dim = np.product(dims)
+    dim = np.prod(dims)
 
     # Random array over interval (0, 1]
     x = rng.random(dim)
@@ -74,7 +74,7 @@ def random_density_matrix(dims, rank=None, method="Hilbert-Schmidt", seed=None):
         QiskitError: if the method is not valid.
     """
     # Flatten dimensions
-    dim = np.product(dims)
+    dim = np.prod(dims)
     if rank is None:
         rank = dim  # Use full rank
 

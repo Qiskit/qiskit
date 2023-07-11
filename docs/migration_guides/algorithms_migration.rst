@@ -74,15 +74,17 @@ How to choose a primitive configuration for your algorithm
 
 *Back to* `TL;DR`_
 
-The classes in :mod:`qiskit.algorithms` state the base class primitive type (``Sampler``/``Estimator``)
-they require for their initialization. Once the primitive type is known, you can choose between
-four different primitive implementations, depending on how you want to configure your execution:
+The classes in
+:mod:`qiskit.algorithms` are initialized with any implementation of :class:`qiskit.primitive.BaseSampler` or class:`qiskit.primitive.BaseEstimator`.
 
-    a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
-    b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
-    c. Accessing backends using the **Qiskit Runtime Service**: **Runtime Primitives** in :mod:`qiskit_ibm_runtime`
-    d. Accessing backends using a **non-Runtime-enabled provider**: **Backend Primitives** in :mod:`qiskit.primitives`
+Once the kind of primitive is known, you can choose between the primitive implementations that better adjust to your case. For example:
 
+    a. For quick prototyping, you can use the **reference implementations of primitives** included in Qiskit: :class:`qiskit.primitives.Sampler` and :class:`qiskit.primitives.Estimator`.
+    b. For finer algorithm tuning, a local simulator such as the **primitive implementation in Aer**: :class:`qiskit_aer.primitives.Sampler` and :class:`qiskit_aer.primitives.Estimator`.
+    c. For executing in quantum hardware you can:
+
+       * access services with native primitive implementations, such as **IBM's Qiskit Runtime service** via :class:`qiskit_ibm_runtime.Sampler` and :class:`qiskit_ibm_runtime.Estimator`
+       * Wrap any backend with **Backend Primitives** (:class:`~qiskit.primitives.BackendSampler` and :class:`~qiskit.primitives.BackendEstimator`). These wrappers implement a primitive interface on top of a backend that only supports ``Backend.run()``.
 
 For more detailed information and examples, particularly on the use of the **Backend Primitives**, please refer to
 the `Quantum Instance migration guide <https://qisk.it/qi_migration>`_.
@@ -133,7 +135,7 @@ In this guide, we will cover 3 different common configurations for algorithms th
 
             from qiskit_aer.primitives import Sampler, Estimator
 
-        - Runtime Primitives with default configuration (see `VQD`_ example):
+        - IBM's Qiskit Runtime Primitives with default configuration (see `VQD`_ example):
 
         .. code-block:: python
 
@@ -249,7 +251,7 @@ The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now be
 
     .. testcode::
 
-        from qiskit.algorithms.minimum_eigensolvers import VQE # new import!!!
+        from qiskit.algorithms.minimum_eigensolvers import VQE  # new import!!!
         from qiskit.algorithms.optimizers import SPSA
         from qiskit.circuit.library import TwoLocal
         from qiskit.quantum_info import SparsePauliOp

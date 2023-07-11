@@ -30,6 +30,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
+from qiskit.circuit.controlflow.condition import condition_bits
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -1129,8 +1130,10 @@ class DAGCircuit:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_bits(cond))
 
         # Create replacement node
         new_node = DAGOpNode(
@@ -1562,6 +1565,15 @@ class DAGCircuit:
             )
         )
 
+    def classical_predecessors(self, node):
+        """Returns iterator of the predecessors of a node that are
+        connected by a classical edge as DAGOpNodes and DAGInNodes."""
+        return iter(
+            self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )
+        )
+
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGOpNodes and DAGInNodes."""
         return {self._multi_graph[x] for x in rx.ancestors(self._multi_graph, node._node_id)}
@@ -1583,6 +1595,15 @@ class DAGCircuit:
         return iter(
             self._multi_graph.find_successors_by_edge(
                 node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
+            )
+        )
+
+    def classical_successors(self, node):
+        """Returns iterator of the successors of a node that are
+        connected by a classical edge as DAGOpNodes and DAGInNodes."""
+        return iter(
+            self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )
         )
 
