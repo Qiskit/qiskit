@@ -337,8 +337,8 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_parametric_commands_in_sched(self):
         """Test that schedules can be built with parametric commands."""
         sched = Schedule(name="test_parametric")
-        sched += Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
-        sched += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), DriveChannel(1))
+        sched += Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), DriveChannel(0))
+        sched += Play(Drag(duration=25, amp=0.4, angle=0.5, sigma=7.8, beta=4), DriveChannel(1))
         sched += Play(Constant(duration=25, amp=1), DriveChannel(2))
         sched_duration = sched.duration
         sched += (
