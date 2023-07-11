@@ -18,10 +18,6 @@ from typing import List
 import numpy as np
 from rustworkx.visualization import graphviz_draw
 
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib import gridspec, ticker
-
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
 from qiskit.providers.exceptions import BackendPropertyError
@@ -1015,6 +1011,8 @@ def plot_coupling_map(
             coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
             plot_coupling_map(num_qubits, qubit_coordinates, coupling_map)
     """
+    import matplotlib.pyplot as plt
+
     input_axes = False
     if ax:
         input_axes = True
@@ -1256,6 +1254,10 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
             backend = FakeVigoV2()
             plot_error_map(backend)
     """
+    import matplotlib
+    import matplotlib.pyplot as plt
+    from matplotlib import gridspec, ticker
+
     import seaborn as sns
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
