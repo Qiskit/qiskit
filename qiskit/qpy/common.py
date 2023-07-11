@@ -18,7 +18,7 @@ Common functions across several serialization and deserialization modules.
 import io
 import struct
 
-from qiskit.qpy import formats, type_keys
+from qiskit.qpy import formats
 
 QPY_VERSION = 8
 ENCODE = "utf8"
@@ -94,12 +94,15 @@ def read_mapping(file_obj, deserializer, **kwargs):
         )
         key = file_obj.read(map_header.key_size).decode(ENCODE)
 
-        if map_header.type == type_keys.Value.DICT:
+        if map_header.type == b"D":
             nested_mapping = read_mapping(file_obj, deserializer, **kwargs)
             mapping[key] = nested_mapping
             continue
 
-        datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
+        if map_header.type == b"l":
+            datum = read_sequence(file_obj, deserializer, **kwargs)
+        else:
+            datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
         mapping[key] = datum
 
     return mapping
@@ -173,14 +176,17 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         key_bytes = key.encode(ENCODE)
 
         if isinstance(datum, dict):
-            type_key = type_keys.Value.DICT
+            type_key = b"D"
             item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, 0)
             file_obj.write(item_header)
             file_obj.write(key_bytes)
             write_mapping(file_obj, datum, serializer, **kwargs)
             continue
 
-        type_key, datum_bytes = serializer(datum, **kwargs)
+        if isinstance(datum, list):
+            type_key, datum_bytes = b"l", sequence_to_binary(datum, serializer, **kwargs)
+        else:
+            type_key, datum_bytes = serializer(datum, **kwargs)
         item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, len(datum_bytes))
         file_obj.write(item_header)
         file_obj.write(key_bytes)

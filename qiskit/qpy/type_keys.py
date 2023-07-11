@@ -111,8 +111,6 @@ class Value(TypeKeyBase):
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
     NULL = b"z"
-    LIST = b"l"
-    DICT = b"D"
 
     @classmethod
     def assign(cls, obj):
@@ -138,10 +136,6 @@ class Value(TypeKeyBase):
             return cls.NULL
         if obj is CASE_DEFAULT:
             return cls.CASE_DEFAULT
-        if isinstance(obj, list):
-            return cls.LIST
-        if isinstance(obj, dict):
-            return cls.DICT
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."

@@ -14,7 +14,6 @@
 
 import struct
 import uuid
-import json
 
 import numpy as np
 
@@ -238,8 +237,6 @@ def dumps_value(obj):
         binary_data = common.data_to_binary(obj, _write_parameter)
     elif type_key == type_keys.Value.PARAMETER_EXPRESSION:
         binary_data = common.data_to_binary(obj, _write_parameter_expression)
-    elif type_key == type_keys.Value.LIST:
-        binary_data = json.dumps(obj, separators=(",", ":")).encode(common.ENCODE)
     else:
         raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
@@ -302,8 +299,6 @@ def loads_value(type_key, binary_data, version, vectors):
             return common.data_from_binary(
                 binary_data, _read_parameter_expression_v3, vectors=vectors
             )
-    if type_key == type_keys.Value.LIST:
-        return json.loads(binary_data.decode(common.ENCODE))
 
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
