@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,18 +22,24 @@ from qiskit.opflow.expectations.matrix_expectation import MatrixExpectation
 from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.providers import Backend
-from qiskit.utils.backend_utils import has_aer, is_aer_qasm, is_statevector_backend
-from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.backend_utils import is_aer_qasm, is_statevector_backend
+from qiskit.utils import QuantumInstance, optionals
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
 class ExpectationFactory:
-    """A factory class for convenient automatic selection of an Expectation based on the
+
+    """Deprecated:  factory class for convenient automatic selection of an Expectation based on the
     Operator to be converted and backend used to sample the expectation value.
     """
 
     @staticmethod
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def build(
         operator: OperatorBase,
         backend: Optional[Union[Backend, QuantumInstance]] = None,
@@ -68,10 +74,10 @@ class ExpectationFactory:
 
             if backend_to_check is None:
                 # If user has Aer but didn't specify a backend, use the Aer fast expectation
-                if has_aer():
-                    from qiskit import Aer
+                if optionals.HAS_AER:
+                    from qiskit_aer import AerSimulator
 
-                    backend_to_check = Aer.get_backend("qasm_simulator")
+                    backend_to_check = AerSimulator()
                 # If user doesn't have Aer, use statevector_simulator
                 # for < 16 qubits, and qasm with warning for more.
                 else:

@@ -282,6 +282,7 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         job = sampler.run(circuits=[bell])
+        _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
     def test_primitive_job_size_limit_backend_v2(self):
@@ -385,19 +386,25 @@ class TestBackendSampler(QiskitTestCase):
     def test_bound_pass_manager(self):
         """Test bound pass manager."""
 
-        dummy_pass = DummyTP()
+        with self.subTest("Test single circuit"):
 
-        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-            bound_pass = PassManager(dummy_pass)
-            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
-            _ = sampler.run(self._circuit[0]).result()
-            self.assertTrue(mock_pass.call_count == 1)
+            dummy_pass = DummyTP()
 
-        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-            bound_pass = PassManager(dummy_pass)
-            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
-            _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-            self.assertTrue(mock_pass.call_count == 2)
+            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+                bound_pass = PassManager(dummy_pass)
+                sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                _ = sampler.run(self._circuit[0]).result()
+                self.assertEqual(mock_pass.call_count, 1)
+
+        with self.subTest("Test circuit batch"):
+
+            dummy_pass = DummyTP()
+
+            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+                bound_pass = PassManager(dummy_pass)
+                sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
+                self.assertEqual(mock_pass.call_count, 2)
 
 
 if __name__ == "__main__":

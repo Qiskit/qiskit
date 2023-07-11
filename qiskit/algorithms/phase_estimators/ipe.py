@@ -41,9 +41,11 @@ class IterativePhaseEstimation(PhaseEstimator):
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -54,7 +56,7 @@ class IterativePhaseEstimation(PhaseEstimator):
         r"""
         Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
-            quantum_instance: Pending deprecation\: The quantum instance on which the
+            quantum_instance: Deprecated: The quantum instance on which the
                 circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
 
@@ -118,7 +120,7 @@ class IterativePhaseEstimation(PhaseEstimator):
         # For example, it may be desirable to compute the power via Trotterization, if
         # we are doing Trotterization anyway.
         unitary_power = unitary.power(2 ** (k - 1)).control()
-        qc = qc.compose(unitary_power, list(range(1, unitary.num_qubits + 1)) + [0])
+        qc = qc.compose(unitary_power, [unitary.num_qubits] + list(range(0, unitary.num_qubits)))
         qc.p(omega, phase_register[0])
         # hadamard on phase_register[0]
         qc.h(phase_register[0])

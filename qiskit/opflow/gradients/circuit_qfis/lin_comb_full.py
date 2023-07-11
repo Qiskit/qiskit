@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ from typing import List, Union
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
-
+from qiskit.utils.deprecation import deprecate_func
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
@@ -29,12 +29,17 @@ from .circuit_qfi import CircuitQFI
 
 
 class LinCombFull(CircuitQFI):
-    r"""Compute the full Quantum Fisher Information (QFI).
+    r"""Deprecated: Compute the full Quantum Fisher Information (QFI).
 
     Given a pure, parameterized quantum state this class uses the linear combination of unitaries
     See also :class:`~qiskit.opflow.QFI`.
     """
 
+    # pylint: disable=signature-differs, arguments-differ
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         aux_meas_op: OperatorBase = Z,

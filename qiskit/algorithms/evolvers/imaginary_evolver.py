@@ -20,7 +20,7 @@ from .evolution_result import EvolutionResult
 
 
 class ImaginaryEvolver(ABC):
-    """Pending deprecation: Interface for Quantum Imaginary Time Evolution.
+    """Deprecated: Interface for Quantum Imaginary Time Evolution.
 
     The ImaginaryEvolver interface has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver` interface.
@@ -31,10 +31,10 @@ class ImaginaryEvolver(ABC):
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the interface ``qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver``."
+            "Instead, use the interface ``qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver``. "
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(self) -> None:
         pass
