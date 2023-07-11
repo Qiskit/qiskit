@@ -19,7 +19,7 @@ import copy
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
-from qiskit.circuit.library import U2Gate, SwapGate, CXGate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -430,7 +430,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
     def test_descent_into_control_flow(self):
-        """Test consolidation in blocks of control flow op is the same as at top level."""
+        """Test consolidation in blocks when control flow op is the same as at top level."""
         qc = QuantumCircuit(2, 1)
         u2gate1 = U2Gate(-1.2, np.pi)
         u2gate2 = U2Gate(-3.4, np.pi)
@@ -463,6 +463,56 @@ class TestConsolidateBlocks(QiskitTestCase):
         gate_top = result_top[0].operation
         gate_block = result_block[0].operation.blocks[0][0].operation
         self.assertEqual(gate_top, gate_block)
+
+    def test_not_crossing_between_control_flow_block_and_parent(self):
+        """Test that consolidation does not occur across the boundary between control flow
+        blocks and the parent circuit."""
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1)
+        qc_true = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_false = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_true.cx(0, 1)
+        qc_false.cz(0, 1)
+        ifop = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
+        qc.append(ifop, qc.qubits, qc.clbits)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        qc_out = pass_manager.run(qc)
+
+        self.assertIsInstance(qc_out[0].operation, UnitaryGate)
+        self.assertTrue(np.alltrue(CXGate().to_matrix() == qc_out[0].operation.to_matrix()))
+        op_true = qc_out[1].operation.blocks[0][0].operation
+        op_false = qc_out[1].operation.blocks[1][0].operation
+        self.assertTrue(np.alltrue(CXGate().to_matrix() == op_true.to_matrix()))
+        self.assertTrue(np.alltrue(CZGate().to_matrix() == op_false.to_matrix()))
+
+    def test_not_crossing_between_control_flow_ops(self):
+        """Test that consolidation does not occur between control flow ops."""
+        qc = QuantumCircuit(2, 1)
+        qc_true = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_false = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_true.cx(0, 1)
+        qc_false.cz(0, 1)
+        ifop1 = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
+        qc.append(ifop1, qc.qubits, qc.clbits)
+        ifop2 = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
+        qc.append(ifop2, qc.qubits, qc.clbits)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        qc_out = pass_manager.run(qc)
+
+        op_true1 = qc_out[0].operation.blocks[0][0].operation
+        op_false1 = qc_out[0].operation.blocks[1][0].operation
+        op_true2 = qc_out[1].operation.blocks[0][0].operation
+        op_false2 = qc_out[1].operation.blocks[1][0].operation
+        self.assertTrue(np.alltrue(CXGate().to_matrix() == op_true1.to_matrix()))
+        self.assertTrue(np.alltrue(CZGate().to_matrix() == op_false1.to_matrix()))
+        self.assertTrue(np.alltrue(CXGate().to_matrix() == op_true2.to_matrix()))
+        self.assertTrue(np.alltrue(CZGate().to_matrix() == op_false2.to_matrix()))
 
 
 if __name__ == "__main__":

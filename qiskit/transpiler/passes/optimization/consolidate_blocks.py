@@ -53,7 +53,7 @@ class ConsolidateBlocks(TransformationPass):
     ):
         """ConsolidateBlocks initializer.
 
-        The decomoposer used is determined by the first of the following arguments
+        The decomposer used is determined by the first of the following arguments
         with a non-None value: decomposer, kak_basis_gate, basis_gates. If all are None,
         then a default decomposer is used.
         Args:
@@ -194,14 +194,7 @@ class ConsolidateBlocks(TransformationPass):
         if "block_list" in self.property_set:
             pass_manager.append(Collect2qBlocks())
 
-        new_consolidate_blocks = self.__class__(
-            force_consolidate=self.force_consolidate,
-            approximation_degree=self._approximation_degree,
-            target=self.target,
-            decomposer=self.decomposer,
-        )
-
-        pass_manager.append(new_consolidate_blocks)
+        pass_manager.append(self)
         for node in dag.op_nodes(ControlFlowOp):
             mapped_blocks = []
             for block in node.op.blocks:
