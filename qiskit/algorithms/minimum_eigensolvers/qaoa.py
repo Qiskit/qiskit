@@ -116,7 +116,7 @@ class QAOA(SamplingVQE):
                 [0,1]` parameter for a CVaR expectation value.
             callback: A callback that can access the intermediate data at each optimization step.
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
-                evaluated value, the the metadata dictionary.
+                evaluated value, the metadata dictionary.
         """
         validate_min("reps", reps, 1)
 
