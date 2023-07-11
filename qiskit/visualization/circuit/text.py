@@ -751,8 +751,8 @@ class TextDrawing:
             else:
                 self.encoding = "utf8"
 
-        self._nest_depth = 0    # nesting depth for control flow ops
-        self._indexset = []     # for loop indices
+        self._nest_depth = 0  # nesting depth for control flow ops
+        self._indexset = []  # for loop indices
         self._jump_values = []  # jump values for switch/case
 
     def __str__(self):
