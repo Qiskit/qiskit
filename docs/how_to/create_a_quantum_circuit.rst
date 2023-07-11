@@ -10,6 +10,8 @@ There are two ways to create a :class:`~.QuantumCircuit` object:
 1. Initialize :class:`~.QuantumCircuit` by directly specifying the number of qubits and classical bits you want.
 2. Creating :class:`~.QuantumRegister`\ s and :class:`~.ClassicalRegister`\ s and use the registers to initialize a :class:`~.QuantumCircuit`
 
+.. _create circuit with qubit numbers:
+
 Create by specifying the number of qubits and classical bits
 ============================================================
 
