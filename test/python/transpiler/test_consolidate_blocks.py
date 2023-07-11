@@ -445,7 +445,6 @@ class TestConsolidateBlocks(QiskitTestCase):
         result_top = pass_manager.run(qc)
 
         qc_control_flow = QuantumCircuit(2, 1)
-        qc_block = copy.deepcopy(qc)
 
         qc_block = QuantumCircuit(qc.qubits, qc.clbits)
         qc_block.append(u2gate1, [0])

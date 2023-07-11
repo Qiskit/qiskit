@@ -78,7 +78,6 @@ class ConsolidateBlocks(TransformationPass):
             )
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
-        self._approximation_degree = approximation_degree
 
     def run(self, dag):
         """Run the ConsolidateBlocks pass on `dag`.
