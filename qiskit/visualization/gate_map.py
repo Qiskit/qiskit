@@ -23,7 +23,6 @@ from qiskit.utils import optionals as _optionals
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.coupling import CouplingMap
 from .exceptions import VisualizationError
-from .utils import matplotlib_close_if_inline
 
 
 def _get_backend_interface_version(backend):
@@ -1012,6 +1011,7 @@ def plot_coupling_map(
             plot_coupling_map(num_qubits, qubit_coordinates, coupling_map)
     """
     import matplotlib.pyplot as plt
+    from .utils import matplotlib_close_if_inline
 
     input_axes = False
     if ax:
@@ -1256,8 +1256,8 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker
-
     import seaborn as sns
+    from .utils import matplotlib_close_if_inline
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 
