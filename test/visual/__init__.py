@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Image comparison tests. You can generate the image references with Binder
-in https://mybinder.org/v2/gh/<user>/<repo>/<branch>?urlpath=apps/test/ipynb/<nb_name>.ipynb
-"""
+"""Image comparison tests."""
 
 import json
 import os
