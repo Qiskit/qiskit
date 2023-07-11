@@ -77,7 +77,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
 )
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
-import qiskit.quantum_info.synthesis.qsd as qsd
+from qiskit.quantum_info.synthesis import qsd
 from qiskit.test import QiskitTestCase
 
 

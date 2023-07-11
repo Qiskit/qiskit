@@ -23,8 +23,8 @@ from qiskit.quantum_info import Statevector
 from qiskit.providers import Options
 from qiskit.primitives import Estimator
 
-from ..base_qgt import BaseQGT
-from ..qgt_result import QGTResult
+from ..base.base_qgt import BaseQGT
+from ..base.qgt_result import QGTResult
 from ..utils import DerivativeType
 
 from .split_circuits import split

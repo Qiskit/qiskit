@@ -113,7 +113,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         Args:
             data: Counts object
             diagonal: Optional, the vector of diagonal values for summing the
-                      expectation value. If ``None`` the the default value is
+                      expectation value. If ``None`` the default value is
                       :math:`[1, -1]^\otimes n`.
             qubits: Optional, the measured physical qubits the count
                     bitstrings correspond to. If None qubits are assumed to be
