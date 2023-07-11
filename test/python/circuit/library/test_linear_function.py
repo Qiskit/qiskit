@@ -116,7 +116,7 @@ class TestLinearFunctions(QiskitTestCase):
     def test_patel_markov_hayes(self):
         """Checks the explicit example from Patel-Markov-Hayes's paper."""
 
-        # This code is adapted from test_gray_synthesis.py
+        # This code is adapted from test_cnot_phase_synthesis.py
         binary_matrix = [
             [1, 1, 0, 0, 0, 0],
             [1, 0, 0, 1, 1, 0],

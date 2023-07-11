@@ -26,7 +26,7 @@ operations on quantum data, such as qubits. It is an ordered sequence of quantum
 gates, measurements and resets, which may be conditioned on real-time classical
 computation. A set of quantum gates is said to be universal if any unitary
 transformation of the quantum data can be efficiently approximated arbitrarily well
-as as sequence of gates in the set. Any quantum program can be represented by a
+as a sequence of gates in the set. Any quantum program can be represented by a
 sequence of quantum circuits and classical near-time computation.
 
 In Qiskit, this core element is represented by the :class:`QuantumCircuit` class.
@@ -290,8 +290,15 @@ Control Flow Operations
    IfElseOp
    WhileLoopOp
    ForLoopOp
+   SwitchCaseOp
    BreakLoopOp
    ContinueLoopOp
+
+The :class:`.SwitchCaseOp` also understands a special value:
+
+.. py:data: CASE_DEFAULT
+    Used as a possible "label" in a :class:`.SwitchCaseOp` to represent the default case.  This will
+    always match, if it is tried.
 
 Parametric Quantum Circuits
 ---------------------------
@@ -299,9 +306,9 @@ Parametric Quantum Circuits
 .. autosummary::
    :toctree: ../stubs/
 
-    Parameter
-    ParameterVector
-    ParameterExpression
+   Parameter
+   ParameterVector
+   ParameterExpression
 
 Random Circuits
 ---------------
@@ -340,6 +347,8 @@ from .controlflow import (
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,
+    SwitchCaseOp,
+    CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
 )

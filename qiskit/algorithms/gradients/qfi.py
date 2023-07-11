@@ -22,8 +22,8 @@ from copy import copy
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.providers import Options
 
-from .base_qgt import BaseQGT
-from .lin_comb_estimator_gradient import DerivativeType
+from .base.base_qgt import BaseQGT
+from .lin_comb.lin_comb_estimator_gradient import DerivativeType
 from .qfi_result import QFIResult
 
 from ..algorithm_job import AlgorithmJob
@@ -120,12 +120,13 @@ class QFI(ABC):
             DerivativeType.REAL,
         )
         job = self._qgt.run(circuits, parameter_values, parameters, **options)
-        self._qgt.derivative_type = temp_derivative_type
 
         try:
             result = job.result()
         except AlgorithmError as exc:
             raise AlgorithmError("Estimator job or gradient job failed.") from exc
+
+        self._qgt.derivative_type = temp_derivative_type
 
         return QFIResult(
             qfis=[4 * qgt.real for qgt in result.qgts],

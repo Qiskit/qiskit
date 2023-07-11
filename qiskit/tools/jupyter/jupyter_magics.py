@@ -20,6 +20,7 @@ from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
 
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 import qiskit
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
@@ -174,6 +175,10 @@ class ProgressBarMagic(Magics):
 if _optionals.HAS_MATPLOTLIB and get_ipython():
 
     @register_line_magic
+    @deprecate_func(
+        since="0.25.0",
+        additional_msg="This was originally only for internal documentation and is no longer used.",
+    )
     def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:
         """Displays library information for a quantum circuit.
 

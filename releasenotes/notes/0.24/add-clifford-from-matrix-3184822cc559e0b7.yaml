@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added :meth:`.Clifford.from_matrix` and :meth:`.Clifford.from_operator` method that
+    creates a ``Clifford`` object from its unitary matrix and operator representation respectively.
+  - |
+    The constructor of :class:`.Clifford` now can take any Clifford gate object up to 3 qubits
+    as long it supports :meth:`to_matrix` method,
+    including parameterized gates such as ``Rz(pi/2)``, which were not convertible before.

@@ -389,6 +389,38 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_control_flow_switch_circuits():
+    """Generate circuits with switch-statement instructions."""
+    from qiskit.circuit.controlflow import CASE_DEFAULT
+
+    circuits = []
+
+    qc = QuantumCircuit(2, 1, name="switch_clbit")
+    case_t = qc.copy_empty_like()
+    case_t.x(0)
+    case_f = qc.copy_empty_like()
+    case_f.z(1)
+    qc.switch(qc.clbits[0], [(True, case_t), (False, case_f)], qc.qubits, qc.clbits)
+    circuits.append(qc)
+
+    qreg = QuantumRegister(2, "q")
+    creg = ClassicalRegister(3, "c")
+    qc = QuantumCircuit(qreg, creg, name="switch_creg")
+
+    case_0 = QuantumCircuit(qreg, creg)
+    case_0.x(0)
+    case_1 = QuantumCircuit(qreg, creg)
+    case_1.z(1)
+    case_2 = QuantumCircuit(qreg, creg)
+    case_2.x(1)
+    qc.switch(
+        creg, [(0, case_0), ((1, 2), case_1), ((3, 4, CASE_DEFAULT), case_2)], qc.qubits, qc.clbits
+    )
+    circuits.append(qc)
+
+    return circuits
+
+
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
@@ -438,6 +470,31 @@ def generate_schedule_blocks():
     my_waveform = 0.1 * np.sin(2 * np.pi * np.linspace(0, 1, 100))
     with builder.build() as block:
         builder.play(my_waveform, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
+def generate_referenced_schedule():
+    """Test for QPY serialization of unassigned reference schedules."""
+    from qiskit.pulse import builder, channels, library
+
+    schedule_blocks = []
+
+    # Completely unassigned schedule
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.reference("x", "q0")
+        builder.reference("cr45m", "q0", "q1")
+    schedule_blocks.append(block)
+
+    # Partly assigned schedule
+    with builder.build() as x_q0:
+        builder.play(library.Constant(100, 0.1), channels.DriveChannel(0))
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.call(x_q0)
+        builder.reference("cr45m", "q0", "q1")
     schedule_blocks.append(block)
 
     return schedule_blocks
@@ -517,6 +574,26 @@ def generate_open_controlled_gates():
     return circuits
 
 
+def generate_layout_circuits():
+    """Test qpy circuits with layout set."""
+
+    from qiskit.transpiler.layout import TranspileLayout, Layout
+
+    qr = QuantumRegister(3, "foo")
+    qc = QuantumCircuit(qr, name="GHZ with layout")
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.swap(0, 1)
+    qc.cx(0, 2)
+    input_layout = {qr[index]: index for index in range(len(qc.qubits))}
+    qc._layout = TranspileLayout(
+        Layout(input_layout),
+        input_qubit_mapping=input_layout,
+        final_layout=Layout.from_qubit_list([qc.qubits[1], qc.qubits[0], qc.qubits[2]]),
+    )
+    return [qc]
+
+
 def generate_circuits(version_parts):
     """Generate reference circuits."""
     output_circuits = {
@@ -546,12 +623,16 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
-        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
-    if version_parts >= (0, 21, 2):
+    if version_parts >= (0, 24, 0):
+        output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
+        output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
+    if version_parts >= (0, 24, 1):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
-
+        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+    if version_parts > (0, 24, 2):
+        output_circuits["layout.qpy"] = generate_layout_circuits()
     return output_circuits
 
 
@@ -591,6 +672,15 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
                 )
                 sys.stderr.write(msg)
                 sys.exit(1)
+
+    if (
+        version_parts >= (0, 24, 2)
+        and isinstance(reference, QuantumCircuit)
+        and reference.layout != qpy.layout
+    ):
+        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        sys.stderr.write(msg)
+        sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:

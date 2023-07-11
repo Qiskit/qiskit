@@ -14,6 +14,7 @@
 
 """Binary IO for circuit objects."""
 
+from collections import defaultdict
 import io
 import json
 import struct
@@ -36,6 +37,7 @@ from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
+from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
 def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
@@ -121,7 +123,7 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
+def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registers, circuit):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
     elif type_key == type_keys.Container.RANGE:
@@ -134,6 +136,8 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
                 _loads_instruction_parameter,
                 version=version,
                 vectors=vectors,
+                registers=registers,
+                circuit=circuit,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -142,10 +146,20 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
     elif type_key == type_keys.Value.FLOAT:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", data_bytes)[0]
+    elif type_key == type_keys.Value.REGISTER:
+        param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
         param = value.loads_value(type_key, data_bytes, version, vectors)
 
     return param
+
+
+def _loads_register_param(data_bytes, circuit, registers):
+    # If register name prefixed with null character it's a clbit index for single bit condition.
+    if data_bytes[0] == "\x00":
+        conditional_bit = int(data_bytes[1:])
+        return circuit.clbits[conditional_bit]
+    return registers["c"][data_bytes]
 
 
 def _read_instruction(file_obj, circuit, registers, custom_operations, version, vectors):
@@ -171,12 +185,10 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     params = []
     condition_tuple = None
     if instruction.has_condition:
-        # If register name prefixed with null character it's a clbit index for single bit condition.
-        if condition_register[0] == "\x00":
-            conditional_bit = int(condition_register[1:])
-            condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
-        else:
-            condition_tuple = (registers["c"][condition_register], instruction.condition_value)
+        condition_tuple = (
+            _loads_register_param(condition_register, circuit, registers),
+            instruction.condition_value,
+        )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
         clbit_indices = dict(enumerate(circuit.clbits))
@@ -210,7 +222,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     # Load Parameters
     for _param in range(instruction.num_parameters):
         type_key, data_bytes = common.read_generic_typed_data(file_obj)
-        param = _loads_instruction_parameter(type_key, data_bytes, version, vectors)
+        param = _loads_instruction_parameter(
+            type_key, data_bytes, version, vectors, registers, circuit
+        )
         params.append(param)
 
     # Load Gate object
@@ -267,7 +281,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             gate.ctrl_state = instruction.ctrl_state
         gate.condition = condition_tuple
     else:
-        if gate_name in {"Initialize", "StatePreparation", "UCRXGate", "UCRYGate", "UCRZGate"}:
+        if gate_name in {
+            "Initialize",
+            "StatePreparation",
+            "UCRXGate",
+            "UCRYGate",
+            "UCRZGate",
+            "DiagonalGate",
+        }:
             gate = gate_class(params)
         else:
             if gate_name == "Barrier":
@@ -460,7 +481,14 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
     return calibrations
 
 
-def _dumps_instruction_parameter(param):
+def _dumps_register(register, index_map):
+    if isinstance(register, ClassicalRegister):
+        return register.name.encode(common.ENCODE)
+    # Clbit.
+    return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
+
+
+def _dumps_instruction_parameter(param, index_map):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
@@ -469,7 +497,9 @@ def _dumps_instruction_parameter(param):
         data_bytes = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
     elif isinstance(param, tuple):
         type_key = type_keys.Container.TUPLE
-        data_bytes = common.sequence_to_binary(param, _dumps_instruction_parameter)
+        data_bytes = common.sequence_to_binary(
+            param, _dumps_instruction_parameter, index_map=index_map
+        )
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.INTEGER
@@ -478,6 +508,9 @@ def _dumps_instruction_parameter(param):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.FLOAT
         data_bytes = struct.pack("<d", param)
+    elif isinstance(param, (Clbit, ClassicalRegister)):
+        type_key = type_keys.Value.REGISTER
+        data_bytes = _dumps_register(param, index_map)
     else:
         type_key, data_bytes = value.dumps_value(param)
 
@@ -516,13 +549,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     condition_value = 0
     if getattr(instruction.operation, "condition", None):
         has_condition = True
-        if isinstance(instruction.operation.condition[0], Clbit):
-            bit_index = index_map["c"][instruction.operation.condition[0]]
-            condition_register = b"\x00" + str(bit_index).encode(common.ENCODE)
-            condition_value = int(instruction.operation.condition[1])
-        else:
-            condition_register = instruction.operation.condition[0].name.encode(common.ENCODE)
-            condition_value = instruction.operation.condition[1]
+        condition_register = _dumps_register(instruction.operation.condition[0], index_map)
+        condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label")
@@ -531,13 +559,23 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     else:
         label_raw = b""
 
+    # The instruction params we store are about being able to reconstruct the objects; they don't
+    # necessarily need to match one-to-one to the `params` field.
+    if isinstance(instruction.operation, controlflow.SwitchCaseOp):
+        instruction_params = [
+            instruction.operation.target,
+            tuple(instruction.operation.cases_specifier()),
+        ]
+    else:
+        instruction_params = instruction.operation.params
+
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
     instruction_raw = struct.pack(
         formats.CIRCUIT_INSTRUCTION_V2_PACK,
         len(gate_class_name),
         len(label_raw),
-        len(instruction.operation.params),
+        len(instruction_params),
         instruction.operation.num_qubits,
         instruction.operation.num_clbits,
         has_condition,
@@ -562,8 +600,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         )
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
-    for param in instruction.operation.params:
-        type_key, data_bytes = _dumps_instruction_parameter(param)
+    for param in instruction_params:
+        type_key, data_bytes = _dumps_instruction_parameter(param, index_map)
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
 
@@ -732,6 +770,136 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
     return len(in_circ_regs) + len(out_circ_regs)
 
 
+def _write_layout(file_obj, circuit):
+    if circuit.layout is None:
+        # Write a null header if there is no layout present
+        file_obj.write(struct.pack(formats.LAYOUT_PACK, False, -1, -1, -1, 0))
+        return
+    initial_size = -1
+    input_qubit_mapping = {}
+    initial_layout_array = []
+    extra_registers = defaultdict(list)
+    if circuit.layout.initial_layout is not None:
+        initial_size = len(circuit.layout.initial_layout)
+        layout_mapping = circuit.layout.initial_layout.get_physical_bits()
+        for i in range(circuit.num_qubits):
+            qubit = layout_mapping[i]
+            input_qubit_mapping[qubit] = i
+            if qubit._register is not None or qubit._index is not None:
+                if qubit._register not in circuit.qregs:
+                    extra_registers[qubit._register].append(qubit)
+                initial_layout_array.append((qubit._index, qubit._register))
+            else:
+                initial_layout_array.append((None, None))
+    input_qubit_size = -1
+    input_qubit_mapping_array = []
+    if circuit.layout.input_qubit_mapping is not None:
+        input_qubit_size = len(circuit.layout.input_qubit_mapping)
+        input_qubit_mapping_array = [None] * input_qubit_size
+        layout_mapping = circuit.layout.initial_layout.get_virtual_bits()
+        for qubit, index in circuit.layout.input_qubit_mapping.items():
+            if (
+                getattr(qubit, "_register", None) is not None
+                and getattr(qubit, "_index", None) is not None
+            ):
+                if qubit._register not in circuit.qregs:
+                    extra_registers[qubit._register].append(qubit)
+                input_qubit_mapping_array[index] = layout_mapping[qubit]
+            else:
+                input_qubit_mapping_array[index] = layout_mapping[qubit]
+    final_layout_size = -1
+    final_layout_array = []
+    if circuit.layout.final_layout is not None:
+        final_layout_size = len(circuit.layout.final_layout)
+        final_layout_physical = circuit.layout.final_layout.get_physical_bits()
+        for i in range(circuit.num_qubits):
+            virtual_bit = final_layout_physical[i]
+            final_layout_array.append(circuit.find_bit(virtual_bit).index)
+
+    file_obj.write(
+        struct.pack(
+            formats.LAYOUT_PACK,
+            True,
+            initial_size,
+            input_qubit_size,
+            final_layout_size,
+            len(extra_registers),
+        )
+    )
+    _write_registers(
+        file_obj, list(extra_registers), [x for bits in extra_registers.values() for x in bits]
+    )
+    for index, register in initial_layout_array:
+        reg_name_bytes = None if register is None else register.name.encode(common.ENCODE)
+        file_obj.write(
+            struct.pack(
+                formats.INITIAL_LAYOUT_BIT_PACK,
+                -1 if index is None else index,
+                -1 if reg_name_bytes is None else len(reg_name_bytes),
+            )
+        )
+        if reg_name_bytes is not None:
+            file_obj.write(reg_name_bytes)
+    for i in input_qubit_mapping_array:
+        file_obj.write(struct.pack("!I", i))
+    for i in final_layout_array:
+        file_obj.write(struct.pack("!I", i))
+
+
+def _read_layout(file_obj, circuit):
+    header = formats.LAYOUT._make(
+        struct.unpack(formats.LAYOUT_PACK, file_obj.read(formats.LAYOUT_SIZE))
+    )
+    if not header.exists:
+        return
+    registers = {
+        name: QuantumRegister(len(v[1]), name)
+        for name, v in _read_registers_v4(file_obj, header.extra_registers)["q"].items()
+    }
+    initial_layout = None
+    initial_layout_virtual_bits = []
+    for _ in range(header.initial_layout_size):
+        virtual_bit = formats.INITIAL_LAYOUT_BIT._make(
+            struct.unpack(
+                formats.INITIAL_LAYOUT_BIT_PACK,
+                file_obj.read(formats.INITIAL_LAYOUT_BIT_SIZE),
+            )
+        )
+        if virtual_bit.index == -1 and virtual_bit.register_size == -1:
+            qubit = Qubit()
+        else:
+            register_name = file_obj.read(virtual_bit.register_size).decode(common.ENCODE)
+            if register_name in registers:
+                qubit = registers[register_name][virtual_bit.index]
+            else:
+                register = next(filter(lambda x, name=register_name: x.name == name, circuit.qregs))
+                qubit = register[virtual_bit.index]
+        initial_layout_virtual_bits.append(qubit)
+    if initial_layout_virtual_bits:
+        initial_layout = Layout.from_qubit_list(initial_layout_virtual_bits)
+    input_qubit_mapping = None
+    input_qubit_mapping_array = []
+    for _ in range(header.input_mapping_size):
+        input_qubit_mapping_array.append(
+            struct.unpack("!I", file_obj.read(struct.calcsize("!I")))[0]
+        )
+    if input_qubit_mapping_array:
+        input_qubit_mapping = {}
+        physical_bits = initial_layout.get_physical_bits()
+        for index, bit in enumerate(input_qubit_mapping_array):
+            input_qubit_mapping[physical_bits[bit]] = index
+    final_layout = None
+    final_layout_array = []
+    for _ in range(header.final_layout_size):
+        final_layout_array.append(struct.unpack("!I", file_obj.read(struct.calcsize("!I")))[0])
+
+    if final_layout_array:
+        layout_dict = {circuit.qubits[bit]: index for index, bit in enumerate(final_layout_array)}
+        final_layout = Layout(layout_dict)
+
+    circuit._layout = TranspileLayout(initial_layout, input_qubit_mapping, final_layout)
+
+
 def write_circuit(file_obj, circuit, metadata_serializer=None):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -801,6 +969,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
 
     # Write calibrations
     _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
+    _write_layout(file_obj, circuit)
 
 
 def read_circuit(file_obj, version, metadata_deserializer=None):
@@ -918,5 +1087,6 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
                 f"as they weren't used in the circuit: {circ.name}",
                 UserWarning,
             )
-
+    if version >= 8:
+        _read_layout(file_obj, circ)
     return circ

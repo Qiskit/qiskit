@@ -12,18 +12,16 @@
 
 """Rearrange the direction of the cx nodes to match the directed coupling map."""
 
-import warnings
 from qiskit.transpiler.passes.utils.gate_direction import GateDirection
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CXDirection(GateDirection):
     """Deprecated: use :class:`qiskit.transpiler.passes.GateDirection` pass instead."""
 
+    @deprecate_func(
+        additional_msg="Instead, use the more generic :class:`~.GateDirection` pass.",
+        since="0.21.0",
+    )
     def __init__(self, coupling_map):
         super().__init__(coupling_map)
-        warnings.warn(
-            "The CXDirection pass has been deprecated "
-            "and replaced by a more generic GateDirection pass.",
-            DeprecationWarning,
-            stacklevel=2,
-        )

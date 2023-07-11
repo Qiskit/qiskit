@@ -151,6 +151,13 @@ class XXDecomposer:
         canonical_coordinate = np.array(canonical_coordinate)
 
         while True:
+            if len(priority_queue) == 0:
+                if len(available_strengths) == 0:
+                    raise QiskitError(
+                        "Attempting to synthesize entangling gate with no controlled gates in basis set."
+                    )
+                raise QiskitError("Unable to synthesize a 2q unitary with the supplied basis set.")
+
             sequence_cost, sequence = heapq.heappop(priority_queue)
 
             strength_polytope = XXPolytope.from_strengths(*[x / 2 for x in sequence])

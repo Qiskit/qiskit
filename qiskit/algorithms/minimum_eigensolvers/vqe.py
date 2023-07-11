@@ -344,7 +344,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cost_function_evals = None
+        self._cost_function_evals: int | None = None
 
     @property
     def cost_function_evals(self) -> int | None:

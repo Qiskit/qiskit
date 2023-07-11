@@ -47,7 +47,13 @@ from qiskit.transpiler.passes import (
     TrivialLayout,
 )
 from qiskit.circuit.library import (
+    IGate,
     CXGate,
+    RZGate,
+    RXGate,
+    SXGate,
+    XGate,
+    iSwapGate,
     ECRGate,
     UGate,
     ZGate,
@@ -55,6 +61,7 @@ from qiskit.circuit.library import (
     RZZGate,
     RXXGate,
 )
+from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
 
@@ -775,7 +782,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_true_body.unitary(qc_uni_mat, [0, 1])
 
         qc = QuantumCircuit(qr, cr)
-        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
         dag = circuit_to_dag(qc)
         cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
         cqc = dag_to_circuit(cdag)
@@ -855,13 +862,73 @@ class TestUnitarySynthesis(QiskitTestCase):
         unitary_synth_pass = UnitarySynthesis(target=target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
-        self.assertEqual(result_qc, QuantumCircuit(2))
+        self.assertEqual(result_qc, qc)
 
     def test_default_does_not_fail_on_no_syntheses(self):
         qc = QuantumCircuit(1)
         qc.unitary(np.eye(2), [0])
         pass_ = UnitarySynthesis(["unknown", "gates"])
         self.assertEqual(qc, pass_(qc))
+
+    def test_iswap_no_cx_synthesis_succeeds(self):
+        """Test basis set with iswap but no cx can synthesize a circuit"""
+        target = Target()
+        theta = Parameter("theta")
+
+        i_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        target.add_instruction(IGate(), i_props)
+        rz_props = {
+            (0,): InstructionProperties(duration=0, error=0),
+            (1,): InstructionProperties(duration=0, error=0),
+        }
+        target.add_instruction(RZGate(theta), rz_props)
+        sx_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        target.add_instruction(SXGate(), sx_props)
+        x_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        target.add_instruction(XGate(), x_props)
+        iswap_props = {
+            (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
+            (1, 0): InstructionProperties(duration=554.66e-9, error=0.01201),
+        }
+        target.add_instruction(iSwapGate(), iswap_props)
+        measure_props = {
+            (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
+            (1,): InstructionProperties(duration=5.813e-6, error=0.0225),
+        }
+        target.add_instruction(Measure(), measure_props)
+
+        qc = QuantumCircuit(2)
+        cxmat = Operator(CXGate()).to_matrix()
+        qc.unitary(cxmat, [0, 1])
+        unitary_synth_pass = UnitarySynthesis(target=target)
+        dag = circuit_to_dag(qc)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
+
+    def test_parameterized_basis_gate_in_target(self):
+        """Test synthesis with parameterized RXX gate."""
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(RZGate(lam))
+        target.add_instruction(RXGate(theta))
+        target.add_instruction(RXXGate(theta))
+        qc = QuantumCircuit(2)
+        qc.cp(np.pi / 2, 0, 1)
+        qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
 
 if __name__ == "__main__":

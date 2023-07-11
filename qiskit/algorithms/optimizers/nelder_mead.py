@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Nelder-Mead optimizer."""
+from __future__ import annotations
 
-from typing import Optional
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -43,13 +43,13 @@ class NELDER_MEAD(SciPyOptimizer):  # pylint: disable=invalid-name
     # pylint: disable=unused-argument
     def __init__(
         self,
-        maxiter: Optional[int] = None,
+        maxiter: int | None = None,
         maxfev: int = 1000,
         disp: bool = False,
         xatol: float = 0.0001,
-        tol: Optional[float] = None,
+        tol: float | None = None,
         adaptive: bool = False,
-        options: Optional[dict] = None,
+        options: dict | None = None,
         **kwargs,
     ) -> None:
         """
