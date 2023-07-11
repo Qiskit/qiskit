@@ -1081,7 +1081,6 @@ def plot_coupling_map(
         out_dict["fontcolor"] = f'"{font_color}"'
         out_dict["fontsize"] = str(font_size)
         out_dict["height"] = str(qubit_size * px)
-        out_dict["pin"] = "True"
         out_dict["fixedsize"] = "True"
         return out_dict
 
