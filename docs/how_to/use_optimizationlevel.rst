@@ -121,11 +121,9 @@ represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
 
 When you set the :attr:`~qiskit.transpile.optimization_level` to 1,the circuit undergoes a light optimization process that focuses on collapsing adjacent gates, 
 improving the overall performance of the circuit. This results in a reduction in :class:`.CXGate` count and changes in the positions of qubits, 
-following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adjacent gates :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` 
-are replaced with a single :math:`RZ(3\pi/4)` operation. 
+following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adjacent gates :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single :math:`RZ(3\pi/4)` operation. 
 
 .. note::
-    
     This optimization level is the default setting.
 
 .. testcode::
