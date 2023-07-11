@@ -28,7 +28,7 @@ which is a three qubit gate which will be transpiled into one and two qubit gate
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
-    qc.cswap(qr[0],qr[1],qr[2]) # Add the cswap gate to the quantum circuit.
+    qc.cswap(0,1,2) # Add the cswap gate to the quantum circuit.
     
     print(qc)
 
@@ -45,7 +45,7 @@ Using backend’s information
 
 
 You should adhere to the specific configuration of your backend when utilizing :meth:`~qiskit.transpile`. 
-This process entails breaking down your circuit into :attr:`~qiskit.transpile.basis_gates`` and considering the physical connections specified in the 
+This process entails breaking down your circuit into :attr:`~qiskit.transpile.basis_gates` and considering the physical connections specified in the 
 :attr:`~qiskit.transpile.coupling_map` for two qubit gates.
 Given the presence of noise in the backend, it is crucial to optimize your circuit by adjusting the :attr:`~qiskit.transpile.optimization_level` parameter. 
 This will help minimize the number of circuit operations and enhance the overall performance.
@@ -71,14 +71,14 @@ For example, with :meth:`~qiskit.providers.fake_provider.FakeQuito`, you can lea
     Basis gates of your backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
     Coupling map of your backend:  [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
-When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and utilizes only three qubits. 
-The coupling map, represented by the subset **[[0,1],[1,0],[1,2],[2,1]]**, indicates the physical qubits available in the backend. 
+When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and simply mapped to the device. 
+The coupling map, represented by the subset ``[[0,1],[1,0],[1,2],[2,1]]``, indicates the physical qubits available in the backend. 
 In this configuration, the quantum circuit is transformed into a combination of one and two-qubit gates,
-represented by the **['id', 'rz', 'sx', 'x', 'cx', 'reset']**.
+represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
 
 .. testcode::
 
-    qc_b0 = transpile(qc,backend = backend,optimization_level = 0)
+    qc_b0 = transpile(qc,backend=backend,optimization_level=0)
     print(qc_b0)
 
 
@@ -121,14 +121,14 @@ represented by the **['id', 'rz', 'sx', 'x', 'cx', 'reset']**.
 
 When you set the :attr:`~qiskit.transpile.optimization_level` to 1,the circuit undergoes a light optimization process that focuses on collapsing adjacent gates, 
 improving the overall performance of the circuit. This results in a reduction in :class:`.CXGate` count and changes in the positions of qubits, 
-following the connections **[[0,1],[1,0],[2,1]]**. Specifically, gates such as :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single gate, :math:`RZ(3\pi/4)`. 
-
+following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adjacent gates :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` 
+are replaced with a single :math:`RZ(3\pi/4)` operation. 
 .. note::
     This optimization level is the default setting.
 
 .. testcode::
 
-    qc_b1 = transpile(qc,backend = backend,optimization_level = 1)
+    qc_b1 = transpile(qc,backend=backend,optimization_level=1)
     print(qc_b1)
 
 
@@ -177,7 +177,7 @@ Depending on the circuit, this level of optimization can occasionally yield the 
 
 .. testcode::
 
-    qc_b2 = transpile(qc,backend = backend,optimization_level = 2)
+    qc_b2 = transpile(qc,backend=backend,optimization_level=2)
     print(qc_b2)
 
 
@@ -225,7 +225,7 @@ Based on the basis gates, results in one less :class:`.CXGate` and the addition 
 
 .. testcode::
 
-    qc_b3 = transpile(qc,backend = backend,optimization_level = 3)
+    qc_b3 = transpile(qc,backend=backend,optimization_level=3)
     print(qc_b3)
 
 
@@ -281,7 +281,10 @@ Based on the basis gates, results in one less :class:`.CXGate` and the addition 
 Plotting the Results
 ====================
 
-You can visualize the results of your previous examples by generating a plot that show the depth, number of gates, and number of CX gates of your quantum circuits.
+You can visualize the results of your previous examples by generating a plot that show the depth, number of gates, and number of CX gates of your quantum circuits. 
+Now, here's something important to keep in mind. When you set the ``optimization_level`` to 3, even if the number of gates used increases, 
+it's mostly because of the addition of one qubit gates. At the same time, you'll notice that the number of two-qubit gates (:class:`.CXGate` gates) 
+is actually reduced compared to other optimization levels.
 
 .. testcode::
 
@@ -295,7 +298,7 @@ You can visualize the results of your previous examples by generating a plot tha
     ax.plot(
         range(4),
         [qc_b0.depth(), qc1.depth(), qc2.depth(), qc3.depth()],
-        label="Number of depth",
+        label="Depth",
         marker="o",
         color="#6929C4",
     )
@@ -319,9 +322,9 @@ You can visualize the results of your previous examples by generating a plot tha
         color="green",
     )
 
-    ax.set_title("Results of the optimization level using as backend ibmq_quito")
+    ax.set_title("Impact of the optimization level on backend ibmq_quito")
     ax.set_xlabel("Optimization Level")
-    ax.set_ylabel("Values")
+    ax.set_ylabel("Count")
     plt.legend(bbox_to_anchor=(0.75, 1.0))
 
 
