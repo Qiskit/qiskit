@@ -16,40 +16,119 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.circuit.library import PermutationGate
-from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford
 
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
-from qiskit.circuit.library.generalized_gates import LinearFunction
+from qiskit.circuit.library.generalized_gates import LinearFunction, PermutationGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 
 from qiskit.quantum_info.operators import Operator
 
 
-def random_linear_circuit(num_qubits, num_gates, seed=None):
+def random_linear_circuit(
+    num_qubits,
+    num_gates,
+    seed=None,
+    barrier=False,
+    delay=False,
+    permutation=False,
+    linear=False,
+    clifford=False,
+    recursion_depth=0,
+):
+
     """Generate a pseudo random linear circuit."""
 
-    instructions = {
-        "cx": (CXGate(), 2),
-        "swap": (SwapGate(), 2),
-    }
+    if num_qubits == 0:
+        raise CircuitError("Cannot construct a random linear circuit with 0 qubits.")
+
+    circ = QuantumCircuit(num_qubits)
+
+    instructions = ["cx", "swap"] if num_qubits >= 2 else []
+    if barrier:
+        instructions.append("barrier")
+    if delay:
+        instructions.append("delay")
+    if permutation:
+        instructions.append("permutation")
+    if linear:
+        instructions.append("linear")
+    if clifford:
+        instructions.append("clifford")
+    if recursion_depth > 0:
+        instructions.append("nested")
+
+    if not instructions:
+        # Return the empty circuit if there are no instructions to choose from.
+        return circ
 
     if isinstance(seed, np.random.Generator):
         rng = seed
     else:
         rng = np.random.default_rng(seed)
 
-    name_samples = rng.choice(tuple(instructions), num_gates)
-
-    circ = QuantumCircuit(num_qubits)
+    name_samples = rng.choice(instructions, num_gates)
 
     for name in name_samples:
-        gate, nqargs = instructions[name]
-        qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
-        circ.append(gate, qargs)
+        if name == "cx":
+            qargs = rng.choice(range(num_qubits), 2, replace=False).tolist()
+            circ.cx(*qargs)
+        elif name == "swap":
+            qargs = rng.choice(range(num_qubits), 2, replace=False).tolist()
+            circ.swap(*qargs)
+        elif name == "barrier":
+            nqargs = rng.choice(range(1, num_qubits + 1))
+            qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+            circ.barrier(qargs)
+        elif name == "delay":
+            qarg = rng.choice(range(num_qubits))
+            circ.delay(100, qarg)
+        elif name == "linear":
+            nqargs = rng.choice(range(1, num_qubits + 1))
+            qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+            mat = random_invertible_binary_matrix(nqargs, seed=rng)
+            circ.append(LinearFunction(mat), qargs)
+        elif name == "permutation":
+            nqargs = rng.choice(range(1, num_qubits + 1))
+            pattern = list(np.random.permutation(range(nqargs)))
+            qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+            circ.append(PermutationGate(pattern), qargs)
+        elif name == "clifford":
+            # In order to construct a Clifford that corresponds to a linear function,
+            # we construct a small random linear circuit, and convert it to Clifford.
+            nqargs = rng.choice(range(1, num_qubits + 1))
+            qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+            subcirc = random_linear_circuit(
+                nqargs,
+                num_gates=5,
+                seed=rng,
+                barrier=False,
+                delay=False,
+                permutation=False,
+                linear=False,
+                clifford=False,
+                recursion_depth=0,
+            )
+            cliff = Clifford(subcirc)
+            circ.append(cliff, qargs)
+        elif name == "nested":
+            nqargs = rng.choice(range(1, num_qubits + 1))
+            qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+            subcirc = random_linear_circuit(
+                nqargs,
+                num_gates=5,
+                seed=rng,
+                barrier=False,
+                delay=False,
+                permutation=False,
+                linear=False,
+                clifford=False,
+                recursion_depth=recursion_depth - 1,
+            )
+            circ.append(subcirc, qargs)
 
     return circ
 
@@ -386,7 +465,6 @@ class TestLinearFunctions(QiskitTestCase):
         qc1 = QuantumCircuit(3)
         qc1.swap(1, 2)
         linear1 = LinearFunction(qc1)
-        print(linear1)
 
         qc2 = QuantumCircuit(2)
         qc2.swap(0, 1)
@@ -400,6 +478,30 @@ class TestLinearFunctions(QiskitTestCase):
 
         expected = LinearFunction([[1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0]])
         self.assertEqual(linear3, expected)
+
+    @data(2, 3, 4, 5, 6, 7, 8)
+    def test_clifford_linear_function_equivalence(self, num_qubits):
+        """Pseudo-random tests for constructing a random linear circuit,
+        converting this circuit both to a linear function and to a clifford,
+        and checking that the two are equivalent as Cliffords and as LinearFunctions.
+        """
+
+        # Note: Cliffords cannot be yet constructed from PermutationGate objects
+        qc = random_linear_circuit(
+            num_qubits,
+            100,
+            seed=0,
+            barrier=True,
+            delay=True,
+            permutation=False,
+            linear=True,
+            clifford=True,
+            recursion_depth=2,
+        )
+        qc_to_linear_function = LinearFunction(qc)
+        qc_to_clifford = Clifford(qc)
+        self.assertEqual(Clifford(qc_to_linear_function), qc_to_clifford)
+        self.assertEqual(qc_to_linear_function, LinearFunction(qc_to_clifford))
 
 
 if __name__ == "__main__":
