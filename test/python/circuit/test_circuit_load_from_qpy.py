@@ -1251,7 +1251,7 @@ class TestLoadFromQPY(QiskitTestCase):
             fd.seek(0)
             new_circ = load(fd)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual(qc.data[0][0].ctrl_state, new_circ.data[0][0].ctrl_state)
+        self.assertEqual(qc.data[0].operation.ctrl_state, new_circ.data[0].operation.ctrl_state)
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_standard_control_gates(self):
