@@ -20,8 +20,24 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.methods import as_soon_as_possible, as_late_as_possible
+from qiskit.utils.deprecation import deprecate_arg
 
+def convert_to_target(func):
+    @deprecate_arg(
+        "schedule_config",
+        deprecation_description="Using target instead of schedule_config.",
+        since="0.25.0",
+        pending=True,
+        predicate=lambda schedule_config: schedule_config is not None,
+    )
+    def _wrapped(circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target):
+        if schedule_config is not None:
+            target = Target(schedule_config.meas_map)
+            target.update_from_instruction_schedule_map(schedule_config.inst_map)
+        return func(circuit, target=target)
+    return _wrapped
 
+@convert_to_target
 def schedule_circuit(
     circuit: QuantumCircuit,
     schedule_config: ScheduleConfig = None,

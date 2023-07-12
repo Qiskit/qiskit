@@ -22,9 +22,9 @@ from qiskit.pulse.schedule import Schedule
 
 from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.lowering import lower_gates
+from qiskit.scheduler.lowering import lower_gates, convert_to_target
 
-
+@convert_to_target
 def as_soon_as_possible(
     circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
 ) -> Schedule:
@@ -74,7 +74,7 @@ def as_soon_as_possible(
         schedule.insert(time, inst, inplace=True)
     return schedule
 
-
+@convert_to_target
 def as_late_as_possible(
     circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
 ) -> Schedule:

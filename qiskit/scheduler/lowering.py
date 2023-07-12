@@ -29,13 +29,14 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
+from qiskit.scheduler.schedule_circuit import convert_to_target
 
 CircuitPulseDef = namedtuple(
     "CircuitPulseDef",
     ["schedule", "qubits"],  # The schedule which implements the quantum circuit command
 )  # The labels of the qubits involved in the command according to the circuit
 
-
+@convert_to_target
 def lower_gates(
     circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
 ) -> List[CircuitPulseDef]:
@@ -61,11 +62,10 @@ def lower_gates(
     """
     from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
-    if (schedule_config and target) or (schedule_config is None and target is None):
+    if schedule_config is None and target is None:
         raise QiskitError("Only one of schedule_config or target must be specified.")
-    inst_map = target.instruction_schedule_map() if target else schedule_config.inst_map
-    meas_map = target.meas_map if target else schedule_config.meas_map
-    dt = target.dt if target else schedule_config.dt
+    meas_map = target.meas_map
+    dt = target.dt
     circ_pulse_defs = []
 
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
@@ -169,9 +169,7 @@ def lower_gates(
                 pass  # Calibration not defined for this operation
 
             try:
-                schedule = inst_map.get(
-                    instruction.operation, inst_qubits, *instruction.operation.params
-                )
+                schedule = target.get_calibration(instruction.operation, inst_qubits, *instruction.operation.params)
                 schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
             except PulseError as ex:
