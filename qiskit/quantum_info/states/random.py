@@ -15,6 +15,8 @@ Random state generation.
 """
 
 from __future__ import annotations
+from typing import Literal
+
 import numpy as np
 from numpy.random import default_rng
 
@@ -58,7 +60,7 @@ def random_statevector(dims: int | tuple, seed: int | np.random.Generator | None
 def random_density_matrix(
     dims: int | tuple,
     rank: int | None = None,
-    method: str = "Hilbert-Schmidt",
+    method: Literal["Hilbert-Schmidt", "Bures"] = "Hilbert-Schmidt",
     seed: int | np.random.Generator | None = None,
 ):
     """Generator a random DensityMatrix.
