@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 def measure(
     qubits: List[int],
     backend=None,
-    target: Target = None,
+    target: Optional[Target] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
     qubit_mem_slots: Optional[Dict[int, int]] = None,
