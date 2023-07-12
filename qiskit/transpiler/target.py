@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import itertools
 
-from typing import Union, Optional, Dict, List, Any
+from typing import Optional, List, Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -290,8 +290,8 @@ class Target(Mapping):
                 qubits don't have properties available you can set that entry to
                 ``None``
             concurrent_measurements(list): A list of sets of qubits that must be
-                measured together. The qubits which should be measured concurrently
-                is provided as the nested list like [[0, 1], [2, 3, 4]].
+                measured together. This must be provided
+                as a nested list like [[0, 1], [2, 3, 4]].
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
             defined and the value of ``num_qubits`` differs from the length of
             ``qubit_properties``.
@@ -481,7 +481,6 @@ class Target(Mapping):
             ``None`` will be used.
         """
         get_calibration = getattr(inst_map, "_get_calibration_entry")
-
         # Expand name mapping with custom gate name provided by user.
         qiskit_inst_name_map = get_standard_gate_name_mapping()
         if inst_name_map is not None:
@@ -499,28 +498,27 @@ class Target(Mapping):
                     props = self._gate_map[inst_name][qargs]
                 except (KeyError, TypeError):
                     props = None
-
                 entry = get_calibration(inst_name, qargs)
-                if entry.user_provided and getattr(props, "_calibration", None) != entry:
-                    # It only copies user-provided calibration from the inst map.
-                    # Backend defined entry must already exist in Target.
-                    if self.dt is not None:
-                        try:
-                            duration = entry.get_schedule().duration * self.dt
-                        except UnassignedDurationError:
-                            # duration of schedule is parameterized
-                            duration = None
-                    else:
+                # if entry.user_provided and getattr(props, "_calibration", None) != entry:
+                # It only copies user-provided calibration from the inst map.
+                # Backend defined entry must already exist in Target.
+                if self.dt is not None:
+                    try:
+                        duration = entry.get_schedule().duration * self.dt
+                    except UnassignedDurationError:
+                        # duration of schedule is parameterized
                         duration = None
-                    props = InstructionProperties(
-                        duration=duration,
-                        calibration=entry,
-                    )
                 else:
-                    if props is None:
-                        # Edge case. Calibration is backend defined, but this is not
-                        # registered in the backend target. Ignore this entry.
-                        continue
+                    duration = None
+                props = InstructionProperties(
+                    duration=duration,
+                    calibration=entry,
+                )
+                # else:
+                #     if props is None:
+                #         # Edge case. Calibration is backend defined, but this is not
+                #         # registered in the backend target. Ignore this entry.
+                #         continue
                 try:
                     # Update gate error if provided.
                     props.error = error_dict[inst_name][qargs]
@@ -1274,8 +1272,8 @@ class Target(Mapping):
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
             concurrent_measurements(list): A list of sets of qubits that must be
-                measured together. The qubits which should be measured concurrently
-                is provided as the nested list like [[0, 1], [2, 3, 4]].
+                measured together. This must be provided
+                as a nested list like [[0, 1], [2, 3, 4]].
             dt: The system time resolution of input signals in seconds
             timing_constraints: Optional timing constraints to include in the
                 :class:`~.Target`

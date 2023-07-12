@@ -90,7 +90,7 @@ def lower_gates(
 
     if schedule_config is None and target is None:
         raise QiskitError("Only one of schedule_config or target must be specified.")
-    meas_map = target.meas_map
+    meas_map = target.concurrent_measurements
     dt = target.dt
     circ_pulse_defs = []
 

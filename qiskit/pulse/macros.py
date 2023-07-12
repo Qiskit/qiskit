@@ -66,11 +66,13 @@ def measure(
 
     # backend is V2.
     if isinstance(backend, BackendV2) or target:
+        if hasattr(backend, "meas_map"):
+            meas_map = meas_map or backend.meas_map
 
         return _measure_v2(
             qubits=qubits,
             target=target or backend.target,
-            meas_map=meas_map or backend.meas_map,
+            meas_map=meas_map or target.concurrent_measurements,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )

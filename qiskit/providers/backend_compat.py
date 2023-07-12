@@ -73,7 +73,7 @@ def convert_to_target(
         target = Target(
             num_qubits=configuration.n_qubits,
             qubit_properties=qubit_properties,
-            concurrent_measurements=configuration.meas_map,
+            concurrent_measurements=getattr(configuration, "meas_map", None),
         )
         # Parse instructions
         gates: Dict[str, Any] = {}
@@ -127,7 +127,8 @@ def convert_to_target(
     # Parse from configuration because properties doesn't exist
     else:
         target = Target(
-            num_qubits=configuration.n_qubits, concurrent_measurements=configuration.meas_map
+            num_qubits=configuration.n_qubits,
+            concurrent_measurements=getattr(configuration, "meas_map", None),
         )
         for gate in configuration.gates:
             name = gate.name
