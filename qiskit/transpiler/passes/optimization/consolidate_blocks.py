@@ -53,9 +53,9 @@ class ConsolidateBlocks(TransformationPass):
     ):
         """ConsolidateBlocks initializer.
 
-        The decomposer used is kak_basis_gate if it has non-None value. Otherwise
-        the decomposer is basis_gates if it has non-None value. If both are None,
-        then a default decomposer is used.
+        If `kak_basis_gate` is not `None` it will be used as the basis gate for KAK decomposition.
+        Otherwise, if `basis_gates` is not `None` a basis gate will be chosen from this list.
+        Otherwise the basis gate will be `CXGate`.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
