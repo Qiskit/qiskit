@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import itertools
 
-from typing import Union, Optional, Dict, List, Any
+from typing import Optional, List, Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
