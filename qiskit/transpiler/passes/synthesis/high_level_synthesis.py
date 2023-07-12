@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +16,7 @@
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.target import Target
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -119,7 +120,16 @@ class HighLevelSynthesis(TransformationPass):
     ``default`` methods for all other high-level objects, including ``op_a``-objects.
     """
 
-    def __init__(self, hls_config=None):
+    def __init__(self, hls_config=None, coupling_map=None, target=None):
+        """
+        HighLevelSynthesis initializer.
+        Args:
+            hls_config (HLSConfig): the high-level-synthesis config file
+                specifying synthesis methods and parameters.
+            coupling_map (CouplingMap): the coupling map of the backend
+                in case synthesis is done on a physical circuit.
+            target (Target): A target representing the target backend.
+        """
         super().__init__()
 
         if hls_config is not None:
@@ -129,6 +139,10 @@ class HighLevelSynthesis(TransformationPass):
             # to synthesize Operations (when available).
             self.hls_config = HLSConfig(True)
         self.hls_plugin_manager = HighLevelSynthesisPluginManager()
+        self._coupling_map = coupling_map
+        self._target = target
+        if target is not None:
+            self._coupling_map = self._target.build_coupling_map()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -141,6 +155,7 @@ class HighLevelSynthesis(TransformationPass):
         Raises:
             TranspilerError: when the specified synthesis method is not available.
         """
+        dag_bit_indices = {bit: i for i, bit in enumerate(dag.qubits)}
 
         for node in dag.op_nodes():
             if node.name in self.hls_config.methods.keys():
@@ -187,9 +202,13 @@ class HighLevelSynthesis(TransformationPass):
                 else:
                     plugin_method = plugin_specifier
 
-                # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
-                #       e.g. coupling_map to the synthesis algorithm.
-                decomposition = plugin_method.run(node.op, **plugin_args)
+                decomposition = plugin_method.run(
+                    node.op,
+                    coupling_map=self._coupling_map,
+                    target=self._target,
+                    qubits=[dag_bit_indices[x] for x in node.qargs],
+                    **plugin_args,
+                )
 
                 # The synthesis methods that are not suited for the given higher-level-object
                 # will return None, in which case the next method in the list will be used.

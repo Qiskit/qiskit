@@ -219,7 +219,7 @@ def generate_unroll_3q(
             target=target,
         )
     )
-    unroll_3q.append(HighLevelSynthesis(hls_config=hls_config))
+    unroll_3q.append(HighLevelSynthesis(hls_config=hls_config, coupling_map=None, target=target))
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
@@ -424,7 +424,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(hls_config=hls_config, coupling_map=coupling_map, target=target),
             UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -442,7 +442,7 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(hls_config=hls_config, coupling_map=coupling_map, target=target),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
@@ -458,7 +458,7 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(hls_config=hls_config, coupling_map=coupling_map, target=target),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)
