@@ -252,3 +252,34 @@ def entanglement_of_formation(state):
     conc = concurrence(state)
     val = (1 + np.sqrt(1 - (conc**2))) / 2
     return shannon_entropy([val, 1 - val])
+
+
+def negativity(state, qargs):
+    r"""Calculates the negativity
+
+    The mathematical expression for negativity is given by:
+    .. math::
+        {\cal{N}}(\rho) = \frac{|| \rho^{T_A}|| - 1 }{2}
+
+    Args:
+        state (Statevector or DensityMatrix): a quantum state.
+        qargs (list): The subsystems to be transposed.
+
+    Returns:
+        negv (float): Negativity value of the quantum state
+
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+    """
+
+    if isinstance(state, Statevector):
+        # If input is statevector then converting it into density matrix
+        state = DensityMatrix(state)
+    # Generating partially transposed state
+    state = state.partial_transpose(qargs)
+    # Calculating SVD
+    singular_values = np.linalg.svd(state.data, compute_uv=False)
+    eigvals = np.sum(singular_values)
+    # Calculating negativity
+    negv = (eigvals - 1) / 2
+    return negv

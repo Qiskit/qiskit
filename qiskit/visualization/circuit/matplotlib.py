@@ -62,11 +62,11 @@ from ..utils import matplotlib_close_if_inline
 WID = 0.65
 HIG = 0.65
 
-PORDER_GATE = 5
+PORDER_GATE = 6
 PORDER_LINE = 4
 PORDER_REGLINE = 1
 PORDER_BARRIER = 4
-PORDER_TEXT = 6
+PORDER_TEXT = 7
 PORDER_FLOW = 2
 PORDER_MASK = 3
 
@@ -914,7 +914,7 @@ class MatplotlibDrawer:
             # Mask off any lines or boxes in the bit label area to clean up
             # from folding for ControlFlow and other wrapping gates
             box = glob_data["patches_mod"].Rectangle(
-                xy=(glob_data["x_offset"] - 0.1, -fold_num * (glob_data["n_lines"] + 1) + 1.0),
+                xy=(glob_data["x_offset"] - 0.1, -fold_num * (glob_data["n_lines"] + 1) + 0.5),
                 width=-25.0,
                 height=-(fold_num + 1) * (glob_data["n_lines"] + 1),
                 fc=self._style["bg"],

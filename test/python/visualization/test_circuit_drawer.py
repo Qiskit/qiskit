@@ -136,7 +136,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "          ",
             ]
         )
-        result = visualization.circuit_drawer(circuit, reverse_bits=True)
+        result = visualization.circuit_drawer(circuit, output="text", reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
 
     def test_no_explict_cregbundle(self):
