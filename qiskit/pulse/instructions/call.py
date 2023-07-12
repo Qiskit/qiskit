@@ -18,6 +18,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Call(instruction.Instruction):
@@ -30,6 +31,11 @@ class Call(instruction.Instruction):
     # Prefix to use for auto naming.
     prefix = "call"
 
+    @deprecate_func(
+        since="0.25.0",
+        additional_msg="Instead, use the pulse builder function "
+        "qiskit.pulse.builder.call(subroutine) within an active building context.",
+    )
     def __init__(
         self,
         subroutine,
