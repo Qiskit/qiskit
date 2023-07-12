@@ -507,10 +507,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         op_false1 = qc_out[0].operation.blocks[1][0].operation
         op_true2 = qc_out[1].operation.blocks[0][0].operation
         op_false2 = qc_out[1].operation.blocks[1][0].operation
-        self.assertTrue(np.alltrue(CXGate().to_matrix() == op_true1.to_matrix()))
-        self.assertTrue(np.alltrue(CZGate().to_matrix() == op_false1.to_matrix()))
-        self.assertTrue(np.alltrue(CXGate().to_matrix() == op_true2.to_matrix()))
-        self.assertTrue(np.alltrue(CZGate().to_matrix() == op_false2.to_matrix()))
+        np.testing.assert_allclose(CXGate().to_matrix(), op_true1.to_matrix())
+        np.testing.assert_allclose(CZGate().to_matrix(), op_false1.to_matrix())
+        np.testing.assert_allclose(CXGate().to_matrix(), op_true2.to_matrix())
+        np.testing.assert_allclose(CZGate().to_matrix(), op_false2.to_matrix())
 
 
 if __name__ == "__main__":
