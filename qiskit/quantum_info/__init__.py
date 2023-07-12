@@ -83,6 +83,7 @@ Utility Functions
    :toctree: ../stubs/
 
    partial_trace
+   schmidt_decomposition
    shannon_entropy
    commutator
    anti_commutator
@@ -171,8 +172,10 @@ from .states import (
     mutual_information,
     partial_trace,
     purity,
+    schmidt_decomposition,
     shannon_entropy,
     state_fidelity,
+    negativity,
 )
 from .synthesis import (
     OneQubitEulerDecomposer,
