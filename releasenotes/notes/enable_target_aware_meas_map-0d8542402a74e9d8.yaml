@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added :attr:`~.Target.meas_map` which represents a hardware constraint of qubits
+    Added :attr:`~.Target.concurrent_measurements` which represents a hardware constraint of qubits
     measured concurrently. This constraint is provided in the nested list form,
     in which each element represents qubit group to be measured together. 
     In an example below,
