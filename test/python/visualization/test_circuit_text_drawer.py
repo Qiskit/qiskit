@@ -329,6 +329,27 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                 "                    ",
             ]
         )
+                  
+        # q_2: |0>──────────
+        #         ┌───┐     
+        # q_1: |0>┤ X ├─────
+        #         ├───┤┌───┐
+        # q_3: |0>┤ H ├┤ X ├
+        #         ├───┤└─╥─┘
+        # q_0: |0>┤ H ├──╫──
+        #         └───┘  ║  
+        #  c_2: 0 ═══════o══
+        #                ║  
+        # ca_0: 0 ═══════╬══
+        #                ║  
+        # ca_1: 0 ═══════╬══
+        #                ║  
+        #  c_1: 0 ═══════■══
+        #                ║  
+        #  c_0: 0 ═══════o══
+        #                ║  
+        #  c_3: 0 ═══════■══
+        #               0xa 
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(4, "c")
         cr2 = ClassicalRegister(2, "ca")
@@ -337,6 +358,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(3)
         circuit.x(1)
         circuit.x(3).c_if(cr, 10)
+        print()
+        print(str(_text_circuit_drawer(circuit, cregbundle=True, wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7])))
+        print(expected)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7])), expected
         )
@@ -5231,6 +5255,245 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
 
+class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
+    """Test ControlFlowOps."""
+
+    def test_if_op(self):
+        """Test an IfElseOp with if only"""
+        expected = "\n".join(
+            [
+                "      ┌─────  ┌───┐       ──────┐ ",
+                " q_0: ┤       ┤ H ├──■──        ├─",
+                "      │ If-0  └───┘┌─┴─┐  End-0 │ ",
+                " q_1: ┤       ─────┤ X ├        ├─",
+                "      └──╥──       └───┘  ──────┘ ",
+                " q_2: ───╫────────────────────────",
+                "         ║                        ",
+                " q_3: ───╫────────────────────────",
+                "         ║                        ",
+                "cr_0: ═══╬════════════════════════",
+                "         ║                        ",
+                "cr_1: ═══■════════════════════════",
+                "                                  ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+        print()
+        print(circuit)
+        print(expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit), initial_state=False), expected)
+
+
+        # qr = QuantumRegister(4, "q")
+        # cr = ClassicalRegister(2, "cr")
+        # qc = QuantumCircuit(qr, cr)
+
+        # with qc.if_test((cr[1], 1)) as _else:
+        #     qc.h(0)
+        #     qc.cx(0, 1)
+        # with _else:
+        #     qc.cx(0, 1)
+        # print("If with else")
+        # display(qc.draw("mpl", filename="if_else_op.png"))
+
+    def test_if_else_with_body_specified(self):
+        """Test an IfElseOp where the body is directly specified."""
+
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐             ┌─────  ┌───┐     ┌─────┐  ──────┐ ┌─────┐",
+                " q_0: ┤ H ├┤M├─────────────┤       ┤ Z ├─────┤ X1i ├        ├─┤ X1i ├",
+                "      ├───┤└╥┘┌─┐          │       ├───┤┌───┐└──╥──┘        │ └─────┘",
+                " q_1: ┤ H ├─╫─┤M├──────────┤ If-0  ┤ X ├┤ Y ├───╫───  End-0 ├────────",
+                "      ├───┤ ║ └╥┘┌────────┐│       └───┘└───┘   ║           │        ",
+                " q_2: ┤ X ├─╫──╫─┤ XLabel ├┤       ─────────────╫───        ├────────",
+                "      └───┘ ║  ║ └───╥────┘└──╥──               ║     ──────┘        ",
+                " q_3: ──────╫──╫─────╫────────╫─────────────────╫────────────────────",
+                "            ║  ║     ║        ║                 ║                    ",
+                "cr_0: ══════╬══╬═════o════════╬═════════════════o════════════════════",
+                "            ║  ║     ║        ║                 ║                    ",
+                "cr_1: ══════╩══╬═════■════════■═════════════════o════════════════════",
+                "               ║     ║                          ║                    ",
+                "cr_2: ═════════╩═════o══════════════════════════■════════════════════",
+                "                    0x2                        0x4                   ",
+
+            ]
+        )
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, 1)
+        circuit.measure(1, 2)
+        circuit.x(2)
+        circuit.x(2, label="XLabel").c_if(cr, 2)
+
+        qr2 = QuantumRegister(3, "qr2")
+        circuit2 = QuantumCircuit(qr2, cr)
+        circuit2.x(1)
+        circuit2.y(1)
+        circuit2.z(0)
+        circuit2.x(0, label="X1i").c_if(cr, 4)
+
+        circuit.if_else((cr[1], 1), circuit2, None, [0, 1, 2], [0, 1, 2])
+        circuit.x(0, label="X1i")
+        print()
+        print(circuit)
+        print(expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+
+        # qr = QuantumRegister(4, "q")
+        # cr = ClassicalRegister(3, "cr")
+        # qc = QuantumCircuit(qr, cr)
+
+        # qc.h(0)
+        # with qc.if_test((cr[1], 1)) as _else:
+        #     qc.x(0, label="X c_if").c_if(cr, 4)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.z(0)
+        #         qc.y(1)
+        #         with qc.if_test((cr[1], 1)):
+        #             qc.y(1)
+        #             qc.z(2)
+        #             with qc.if_test((cr[2], 1)):
+        #                 qc.cx(0, 1)
+        #                 with qc.if_test((cr[1], 1)):
+        #                     qc.h(0)
+        #                     qc.x(1)
+        # with _else:
+        #     qc.y(1)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.x(0)
+        #         qc.x(1)
+        #     inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+        #     qc.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        # qc.x(0)
+        # print("IfElseOps nested")
+        # display(qc.draw("mpl", filename="if_else_op_nested.png"))
+
+
+        # qr = QuantumRegister(4, "q")
+        # cr = ClassicalRegister(3, "cr")
+        # qc = QuantumCircuit(qr, cr)
+
+        # qc.h(0)
+        # with qc.if_test((cr[1], 1)) as _else:
+        #     qc.x(0, label="X c_if").c_if(cr, 4)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.z(0)
+        #         qc.y(1)
+        #         with qc.if_test((cr[1], 1)):
+        #             qc.y(1)
+        #             qc.z(2)
+        #             with qc.if_test((cr[2], 1)):
+        #                 qc.cx(0, 1)
+        #                 with qc.if_test((cr[1], 1)):
+        #                     qc.h(0)
+        #                     qc.x(1)
+        # with _else:
+        #     qc.y(1)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.x(0)
+        #         qc.x(1)
+        #     inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+        #     qc.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        # qc.x(0)
+        # print("IfElseOp nested with wire order")
+        # display(qc.draw("mpl", wire_order=[2, 0, 3, 1, 4, 5, 6], filename="if_else_op_wire_order.png"))
+
+
+        # qr = QuantumRegister(4, "q")
+        # cr = ClassicalRegister(3, "cr")
+        # qc = QuantumCircuit(qr, cr)
+
+        # qc.h(0)
+        # with qc.if_test((cr[1], 1)) as _else:
+        #     qc.x(0, label="X c_if").c_if(cr, 4)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.z(0)
+        #         qc.y(1)
+        #         with qc.if_test((cr[1], 1)):
+        #             qc.y(1)
+        #             qc.z(2)
+        #             with qc.if_test((cr[2], 1)):
+        #                 qc.cx(0, 1)
+        #                 with qc.if_test((cr[1], 1)):
+        #                     qc.h(0)
+        #                     qc.x(1)
+        # with _else:
+        #     qc.y(1)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.x(0)
+        #         qc.x(1)
+        #     inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+        #     qc.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        # qc.x(0)
+        # print("IfElseOp nested and folded")
+        # display(qc.draw("mpl", fold=7, filename="if_else_op_fold.png"))
+
+
+        # qr = QuantumRegister(4, "q")
+        # cr = ClassicalRegister(3, "cr")
+        # qc = QuantumCircuit(qr, cr)
+
+        # qc.h(0)
+        # qc.measure(0, 2)
+        # with qc.while_loop((cr[0], 0)):
+        #     qc.h(0)
+        #     qc.cx(0, 1)
+        #     qc.measure(0, 0)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.x(0)
+        # print("While loop")
+        # display(qc.draw("mpl", filename="while_loop.png"))
+
+
+        # qr = QuantumRegister(4, "q")
+        # cr = ClassicalRegister(3, "cr")
+        # qc = QuantumCircuit(qr, cr)
+
+        # a = Parameter("a")
+        # qc.h(0)
+        # qc.measure(0, 2)
+        # with qc.for_loop((2, 4, 8, 16), loop_parameter=a):
+        #     qc.h(0)
+        #     qc.cx(0, 1)
+        #     qc.rx(pi / a, 1)
+        #     qc.measure(0, 0)
+        #     with qc.if_test((cr[2], 1)):
+        #         qc.z(0)
+        # print("For loop")
+        # display(qc.draw("mpl", filename="for_loop.png"))
+
+
+        # qreg = QuantumRegister(3, "q")
+        # creg = ClassicalRegister(3, "cr")
+        # qc = QuantumCircuit(qreg, creg)
+
+        # qc.h([0, 1, 2])
+        # qc.measure([0, 1, 2], [0, 1, 2])
+
+        # with qc.switch(creg) as case:
+        #     with case(0, 1, 2):
+        #         qc.x(0)
+        #     with case(3, 4, 5):
+        #         qc.y(1)
+        #         qc.y(0)
+        #         qc.y(0)
+        #     with case(case.DEFAULT):
+        #         qc.cx(0, 1)
+        # qc.h(0)
+        # print("Switch case")
+        # display(qc.draw("mpl", filename="switch_case.png"))
 
 if __name__ == "__main__":
     unittest.main()

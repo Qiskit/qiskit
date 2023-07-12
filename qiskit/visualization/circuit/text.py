@@ -1241,7 +1241,7 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit)
+            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, self._wire_map)
             for node in node_layer:
                 if isinstance(node.op, ControlFlowOp):
                     self._nest_depth = 0
@@ -1250,7 +1250,6 @@ class TextDrawing:
                     layer, current_cons, current_cons_cond, connection_label = self._node_to_gate(
                         node, layer
                     )
-
                     layer.connections.append((connection_label, current_cons))
                     layer.connections.append((None, current_cons_cond))
             layer.connect_with("│")
@@ -1299,13 +1298,13 @@ class TextDrawing:
             # Update the wire_map with the qubits from the inner circuit
             inner_wire_map = {
                 inner: self._wire_map[outer]
-                for outer, inner in zip(self.clbits, circuit.clbits)
+                for outer, inner in zip(self.qubits, circuit.qubits)
                 if inner not in self._wire_map
             }
             self._wire_map.update(inner_wire_map)
             qubits, clbits, if_nodes = _get_layered_instructions(circuit, wire_map=self._wire_map)
             for if_layer in if_nodes:
-                if_layer2 = Layer(qubits, clbits, self.cregbundle, self._circuit)
+                if_layer2 = Layer(qubits[:len(self.qubits)], self.clbits, self.cregbundle, self._circuit, self._wire_map)
                 for if_node in if_layer:
                     if isinstance(if_node.op, ControlFlowOp):
                         # Recurse on this function if nested ControlFlowOps
@@ -1319,8 +1318,8 @@ class TextDrawing:
                             current_cons_cond,
                             connection_label,
                         ) = self._node_to_gate(if_node, if_layer2)
-                    if_layer2.connections.append((connection_label, current_cons))
-                    if_layer2.connections.append((None, current_cons_cond))
+                        if_layer2.connections.append((connection_label, current_cons))
+                        if_layer2.connections.append((None, current_cons_cond))
 
                 if_layer2.connect_with("│")
                 layers.append(if_layer2.full_layer)
@@ -1360,7 +1359,7 @@ class TextDrawing:
         else:
             label = "End-" + depth
 
-        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit)
+        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, self._wire_map)
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
             flow_layer.set_qubit(
@@ -1414,7 +1413,7 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle, circuit):
+    def __init__(self, qubits, clbits, cregbundle, circuit, wire_map):
         self.qubits = qubits
         self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
@@ -1437,6 +1436,7 @@ class Layer:
         self.connections = []
         self.clbit_layer = [None] * len(clbits)
         self.cregbundle = cregbundle
+        self._wire_map = wire_map
 
     @property
     def full_layer(self):
@@ -1454,7 +1454,7 @@ class Layer:
             qubit (qbit): Element of self.qubits.
             element (DrawElement): Element to set in the qubit
         """
-        self.qubit_layer[self.qubits.index(qubit)] = element
+        self.qubit_layer[self._wire_map[qubit]] = element
 
     def set_clbit(self, clbit, element):
         """Sets the clbit to the element.
@@ -1465,9 +1465,9 @@ class Layer:
         """
         register = get_bit_register(self._circuit, clbit)
         if self.cregbundle and register is not None:
-            self.clbit_layer[self.clbits.index(register)] = element
+            self.clbit_layer[self._wire_map[register] - len(self.qubits)] = element
         else:
-            self.clbit_layer[self.clbits.index(clbit)] = element
+            self.clbit_layer[self._wire_map[clbit] - len(self.qubits)] = element
 
     def _set_multibox(
         self,
@@ -1668,16 +1668,16 @@ class Layer:
             if bit == clbits[-1]:
                 bot_connect = label
             if val_bits[i] == "1":
-                self.clbit_layer[self.clbits.index(bit)] = ClBullet(
+                self.clbit_layer[self._wire_map[bit] - len(self.qubits)] = ClBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
             elif val_bits[i] == "0":
-                self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
+                self.clbit_layer[self._wire_map[bit] - len(self.qubits)]  = ClOpenBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
-            actual_index = self.clbits.index(bit) + len(self.qubits)
+            actual_index = self._wire_map[bit]# - len(self.qubits) + len(self.qubits)
             if actual_index not in [i for i, j in current_cons]:
-                current_cons.append((actual_index, self.clbit_layer[self.clbits.index(bit)]))
+                current_cons.append((actual_index, self.clbit_layer[self._wire_map[bit] - len(self.qubits)]))
         return current_cons
 
     def set_qu_multibox(
