@@ -197,7 +197,7 @@ class CommutativeCancellation(TransformationPass):
         commutation analysis is redone for the control flow blocks.
         """
 
-        pass_manager = PassManager([CommutationAnalysis(), self])
+        pass_manager = PassManager([CommutationAnalysis(), self.__class__(self.basis)])
         for node in dag.op_nodes(ControlFlowOp):
             mapped_blocks = []
             for block in node.op.blocks:
