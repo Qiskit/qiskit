@@ -197,7 +197,7 @@ class CommutativeCancellation(TransformationPass):
         """
         from qiskit.transpiler import PassManager
 
-        pass_manager = PassManager([CommutationAnalysis(), self.__class__(self.basis)])
+        pass_manager = PassManager([CommutationAnalysis(), self])
         for node in dag.op_nodes(ControlFlowOp):
             mapped_blocks = []
             for block in node.op.blocks:
