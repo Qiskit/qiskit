@@ -192,11 +192,7 @@ class ConsolidateBlocks(TransformationPass):
 
         pass_manager.append(self)
         for node in dag.op_nodes(ControlFlowOp):
-            mapped_blocks = []
-            for block in node.op.blocks:
-                new_circ = pass_manager.run(block)
-                mapped_blocks.append(new_circ)
-            node.op = node.op.replace_blocks(mapped_blocks)
+            node.op = node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks)
         return dag
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):
