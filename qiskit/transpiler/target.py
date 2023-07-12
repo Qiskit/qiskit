@@ -44,7 +44,6 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import format_meas_map
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
@@ -240,7 +239,7 @@ class Target(Mapping):
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
-        "meas_map",
+        "concurrent_measurements",
     )
 
     @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
@@ -254,7 +253,7 @@ class Target(Mapping):
         pulse_alignment=1,
         acquire_alignment=1,
         qubit_properties=None,
-        meas_map=None,
+        concurrent_measurements=None,
     ):
         """
         Create a new Target object
@@ -290,7 +289,7 @@ class Target(Mapping):
                 matches the qubit number the properties are defined for. If some
                 qubits don't have properties available you can set that entry to
                 ``None``
-            meas_map(list): A list of sets of qubits that must be
+            concurrent_measurements(list): A list of sets of qubits that must be
                 measured together. The qubits which should be measured concurrently
                 is provided as the nested list like [[0, 1], [2, 3, 4]].
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
@@ -327,7 +326,7 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
-        self.meas_map = meas_map
+        self.concurrent_measurements = concurrent_measurements
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -1221,7 +1220,7 @@ class Target(Mapping):
         inst_map: InstructionScheduleMap | None = None,
         backend_properties: BackendProperties | None = None,
         instruction_durations: InstructionDurations | None = None,
-        meas_map: Optional[List[List[int]]] = None,
+        concurrent_measurements: Optional[List[List[int]]] = None,
         dt: float | None = None,
         timing_constraints: TimingConstraints | None = None,
         custom_name_mapping: dict[str, Any] | None = None,
@@ -1270,7 +1269,7 @@ class Target(Mapping):
             instruction_durations: Optional instruction durations for instructions. If specified
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
-            meas_map(list): A list of sets of qubits that must be
+            concurrent_measurements(list): A list of sets of qubits that must be
                 measured together. The qubits which should be measured concurrently
                 is provided as the nested list like [[0, 1], [2, 3, 4]].
             dt: The system time resolution of input signals in seconds
@@ -1316,7 +1315,7 @@ class Target(Mapping):
             pulse_alignment=pulse_alignment,
             acquire_alignment=acquire_alignment,
             qubit_properties=qubit_properties,
-            meas_map=meas_map,
+            concurrent_measurements=concurrent_measurements,
         )
         name_mapping = get_standard_gate_name_mapping()
         if custom_name_mapping is not None:

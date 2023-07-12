@@ -1903,14 +1903,14 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
         self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
 
-    def test_meas_map(self):
+    def test_concurrent_measurements(self):
         fake_backend = FakeVigo()
         config = fake_backend.configuration()
         target = Target.from_configuration(
             basis_gates=config.basis_gates,
-            meas_map=config.meas_map,
+            concurrent_measurements=config.meas_map,
         )
-        self.assertEqual(target.meas_map, config.meas_map)
+        self.assertEqual(target.concurrent_measurements, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
