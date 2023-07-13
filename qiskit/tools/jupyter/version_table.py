@@ -36,7 +36,7 @@ class VersionTable(Magics):
         html += "<table>"
         html += "<tr><th>Software</th><th>Version</th></tr>"
 
-        packages = dict()
+        packages = {}
 
         from importlib.metadata import metadata, PackageNotFoundError
 
