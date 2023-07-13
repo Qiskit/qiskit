@@ -72,7 +72,7 @@ def read_mapping(file_obj, deserializer, **kwargs):
         This function must be used to make a binary data of mapping
         which include QPY serialized values.
         It's easier to use JSON serializer followed by encoding for standard data formats.
-        This supports nested dictionary and key must be string.
+        This only supports flat dictionary and key must be string.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
@@ -93,16 +93,7 @@ def read_mapping(file_obj, deserializer, **kwargs):
             struct.unpack(formats.MAP_ITEM_PACK, file_obj.read(formats.MAP_ITEM_SIZE))
         )
         key = file_obj.read(map_header.key_size).decode(ENCODE)
-
-        if map_header.type == b"D":
-            nested_mapping = read_mapping(file_obj, deserializer, **kwargs)
-            mapping[key] = nested_mapping
-            continue
-
-        if map_header.type == b"l":
-            datum = read_sequence(file_obj, deserializer, **kwargs)
-        else:
-            datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
+        datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
         mapping[key] = datum
 
     return mapping
@@ -160,7 +151,7 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         This function must be used to make a binary data of mapping
         which include QPY serialized values.
         It's easier to use JSON serializer followed by encoding for standard data formats.
-        This supports nested dictionary and key must be string.
+        This only supports flat dictionary and key must be string.
 
     Args:
         file_obj (File): A file like object to write data.
@@ -174,19 +165,7 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
     file_obj.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
     for key, datum in mapping.items():
         key_bytes = key.encode(ENCODE)
-
-        if isinstance(datum, dict):
-            type_key = b"D"
-            item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, 0)
-            file_obj.write(item_header)
-            file_obj.write(key_bytes)
-            write_mapping(file_obj, datum, serializer, **kwargs)
-            continue
-
-        if isinstance(datum, list):
-            type_key, datum_bytes = b"l", sequence_to_binary(datum, serializer, **kwargs)
-        else:
-            type_key, datum_bytes = serializer(datum, **kwargs)
+        type_key, datum_bytes = serializer(datum, **kwargs)
         item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, len(datum_bytes))
         file_obj.write(item_header)
         file_obj.write(key_bytes)

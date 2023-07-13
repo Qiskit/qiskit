@@ -16,6 +16,8 @@ import struct
 import zlib
 import warnings
 
+from io import BytesIO
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -61,10 +63,28 @@ def _read_waveform(file_obj, version):
     )
 
 
+def _loads_obj(type_key, binary_data, version, vectors):
+    """Wraps `value.loads_value` to deserialize binary data to dictionary
+    or list objects which are not supported by `value.loads_value`.
+    """
+    if type_key == b"D":
+        with BytesIO(binary_data) as container:
+            return common.read_mapping(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    elif type_key == b"l":
+        with BytesIO(binary_data) as container:
+            return common.read_sequence(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    else:
+        return value.loads_value(type_key, binary_data, version, vectors)
+
+
 def _read_kernel(file_obj, version):
     params = common.read_mapping(
         file_obj=file_obj,
-        deserializer=value.loads_value,
+        deserializer=_loads_obj,
         version=version,
         vectors={},
     )
@@ -75,7 +95,7 @@ def _read_kernel(file_obj, version):
 def _read_discriminator(file_obj, version):
     params = common.read_mapping(
         file_obj=file_obj,
-        deserializer=value.loads_value,
+        deserializer=_loads_obj,
         version=version,
         vectors={},
     )
@@ -336,15 +356,36 @@ def _write_waveform(file_obj, data):
     value.write_value(file_obj, data.name)
 
 
+def _dumps_obj(obj):
+    """Wraps `value.dumps_value` to serialize dictionary and list objects
+    which are not supported by `value.dumps_value`.
+    """
+    if isinstance(obj, dict):
+        with BytesIO() as container:
+            common.write_mapping(file_obj=container, mapping=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"D", binary_data
+    elif isinstance(obj, list):
+        with BytesIO() as container:
+            common.write_sequence(file_obj=container, sequence=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"l", binary_data
+    else:
+        return value.dumps_value(obj)
+
+
 def _write_kernel(file_obj, data):
     name = data.name
     params = data.params
-    common.write_mapping(file_obj=file_obj, mapping=params, serializer=value.dumps_value)
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
     value.write_value(file_obj, name)
 
 
 def _write_discriminator(file_obj, data):
-    _write_kernel(file_obj, data)
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
 
 
 def _dumps_symbolic_expr(expr):
