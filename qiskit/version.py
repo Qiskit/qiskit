@@ -12,7 +12,7 @@
 
 # pylint: disable=no-name-in-module,broad-except,cyclic-import
 
-"""Contains the terra version."""
+"""Contains Qiskit (terra) version."""
 
 import os
 import subprocess
@@ -96,7 +96,9 @@ class QiskitVersion(Mapping):
         warnings.warn(
             "qiskit.__qiskit_version__ is deprecated since "
             "Qiskit Terra 0.25.0, and will be removed 3 months or more later. "
-            "Instead, you should use qiskit.__version__.",
+            "Instead, you should use qiskit.__version__. The other packages listed in "
+            "former qiskit.__qiskit_version__ have their own __version__ module level dunder, "
+            "as standard in PEP 8.",
             category=DeprecationWarning,
         )
         self._version_dict = {
