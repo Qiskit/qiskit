@@ -392,7 +392,6 @@ def _get_layered_instructions(
 
     if wire_map is not None:
         qubits = [bit for bit in list(wire_map.keys()).copy() if isinstance(bit, Qubit)]
-        #clbits = [bit for bit in list(wire_map.keys()).copy() if isinstance(bit, Clbit)]
     else:
         qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()

@@ -752,8 +752,6 @@ class TextDrawing:
                 self.encoding = "utf8"
 
         self._nest_depth = 0  # nesting depth for control flow ops
-        self._indexset = []  # for loop indices
-        self._jump_values = []  # jump values for switch/case
 
     def __str__(self):
         return self.single_string()
@@ -1275,16 +1273,12 @@ class TextDrawing:
         elif isinstance(op, WhileLoopOp):
             circuit_list.append(op.params[0])
         elif isinstance(op, ForLoopOp):
-            self._indexset, _, circ = op.params
-            circuit_list.append(circ)
+            circuit_list.append(op.params[2])
         elif isinstance(op, SwitchCaseOp):
-            self._jump_values = []
             cases = list(op.cases_specifier())
-
             # Create an empty circuit for the Switch box
             circuit_list.append(cases[0][1].copy_empty_like())
-            for jump_values, circ in cases:
-                self._jump_values.append(jump_values)
+            for _, circ in cases:
                 circuit_list.append(circ)
 
         for circ_num, circuit in enumerate(circuit_list):
@@ -1302,9 +1296,16 @@ class TextDrawing:
                 if inner not in self._wire_map
             }
             self._wire_map.update(inner_wire_map)
-            qubits, clbits, if_nodes = _get_layered_instructions(circuit, wire_map=self._wire_map)
+            qubits, _, if_nodes = _get_layered_instructions(circuit, wire_map=self._wire_map)
             for if_layer in if_nodes:
-                if_layer2 = Layer(qubits[:len(self.qubits)], self.clbits, self.cregbundle, self._circuit, self._wire_map)
+                # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
+                if_layer2 = Layer(
+                    qubits[: len(self.qubits)],
+                    self.clbits,
+                    self.cregbundle,
+                    self._circuit,
+                    self._wire_map,
+                )
                 for if_node in if_layer:
                     if isinstance(if_node.op, ControlFlowOp):
                         # Recurse on this function if nested ControlFlowOps
@@ -1338,12 +1339,13 @@ class TextDrawing:
             elif isinstance(node.op, WhileLoopOp):
                 label = "While-" + depth
             elif isinstance(node.op, ForLoopOp):
+                indexset = node.op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
-                if "range" not in str(self._indexset) and len(self._indexset) > 4:
-                    index_str = str(self._indexset[:4])
+                if "range" not in str(indexset) and len(indexset) > 4:
+                    index_str = str(indexset[:4])
                     index_str = index_str[:-1] + ", ...)"
                 else:
-                    index_str = str(self._indexset)
+                    index_str = str(indexset)
                 label = "For-" + depth + " " + index_str
             else:
                 label = "Switch-" + depth
@@ -1351,10 +1353,14 @@ class TextDrawing:
             if isinstance(node.op, IfElseOp):
                 label = "Else-" + depth
             elif isinstance(node.op, SwitchCaseOp):
-                if "default" in str(self._jump_values[circ_num][0]):
+                jump_list = []
+                for jump_values, _ in list(node.op.cases_specifier()):
+                    jump_list.append(jump_values)
+
+                if "default" in str(jump_list[circ_num][0]):
                     jump_str = "default"
                 else:
-                    jump_str = str(self._jump_values[circ_num])
+                    jump_str = str(jump_list[circ_num])
                 label = "Case-" + depth + " " + jump_str
         else:
             label = "End-" + depth
@@ -1672,12 +1678,14 @@ class Layer:
                     top_connect="║", bot_connect=bot_connect
                 )
             elif val_bits[i] == "0":
-                self.clbit_layer[self._wire_map[bit] - len(self.qubits)]  = ClOpenBullet(
+                self.clbit_layer[self._wire_map[bit] - len(self.qubits)] = ClOpenBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
-            actual_index = self._wire_map[bit]# - len(self.qubits) + len(self.qubits)
+            actual_index = self._wire_map[bit]
             if actual_index not in [i for i, j in current_cons]:
-                current_cons.append((actual_index, self.clbit_layer[self._wire_map[bit] - len(self.qubits)]))
+                current_cons.append(
+                    (actual_index, self.clbit_layer[self._wire_map[bit] - len(self.qubits)])
+                )
         return current_cons
 
     def set_qu_multibox(
