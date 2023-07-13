@@ -10,17 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
+from collections import defaultdict
 import numpy as np
 import statistics
 from typing import Optional, List, Tuple
 
-from qiskit.transpiler import CouplingMap
-from qiskit.providers.basicaer import BasicAer
-from qiskit.transpiler import Target, InstructionProperties, QubitProperties
-from qiskit.providers.backend import BackendV2
-from qiskit.providers.options import Options
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate
 from qiskit.circuit import Measure, Parameter, Delay, Reset
 from qiskit.circuit.controlflow import (
@@ -31,7 +25,13 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
-
+from qiskit.exceptions import QiskitError
+from qiskit.pulse import AcquireChannel, DriveChannel, MeasureChannel, ControlChannel
+from qiskit.providers.basicaer import BasicAer
+from qiskit.providers.backend import BackendV2
+from qiskit.providers.options import Options
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import Target, InstructionProperties, QubitProperties
 
 class FakeGeneric(BackendV2):
     """
@@ -114,6 +114,7 @@ class FakeGeneric(BackendV2):
         )
 
         self.basis_gates = basis_gates
+        self._max_circuits=None
         self.__rng = np.random.default_rng(seed=123456789123456)
         self.__coupling_map_type = coupling_map_type
         if replace_cx_with_ecr:
@@ -174,14 +175,76 @@ class FakeGeneric(BackendV2):
             self._target.add_instruction(
                 Reset(), {(qubit_idx,): None for qubit_idx in range(num_qubits)}
             )
+            
+            self._set_channels_map()
+            setattr(self, "conf_filename", None)
+            setattr(self, "defs_filename", None)
+            setattr(self, "props_filename", None)
+            setattr(self, "dirname", None)
 
+
+    def _set_channels_map(self):
+        channel_types={'acquire': AcquireChannel,
+                       'drive': DriveChannel,
+                       'measure': MeasureChannel,
+                       'control': ControlChannel
+                       }
+        channels_map={}
+        for channel_type in channel_types.keys():
+            channel_obj=defaultdict(list)
+            for qubit in range(self.num_qubits):
+                channel_obj[(qubit,)].append(channel_types[channel_type](qubit))
+                channels_map.update({channel_type: channel_obj})
+        setattr(self, "channels_map", channels_map)        
+
+    
     @property
     def target(self):
         return self._target
 
+    def acquire_channel(self, qubit:int):
+        qubit=(qubit,)
+        acquire_ch=self.channels_map['acquire']
+        if qubit in acquire_ch.keys():
+            return acquire_ch[qubit][0]
+        else:
+            return None
+
+    def drive_channel(self, qubit:int):
+        qubit=(qubit,)
+        drive_ch=self.channels_map['drive']
+        if qubit in drive_ch.keys():
+            return drive_ch[qubit][0]
+        else:
+            return None
+
+    def control_channel(self, qubit:int):
+        qubit=(qubit,)
+        control_ch=self.channels_map['control']
+        if qubit in control_ch.keys():
+            return control_ch[qubit][0]
+        else:
+            return None
+
+    def measure_channel(self, qubit:int):
+        qubit=(qubit,)
+        measure_ch=self.channels_map['measure']
+        if qubit in measure_ch.keys():
+            return measure_ch[qubit][0]
+        else:
+            return None
+
+    @property
+    def meas_map(self):
+        return [list(range(0, self.num_qubits))]
+
+    @property
+    def dtm(self):
+        return self.dt
+
     @property
     def max_circuits(self):
-        return None
+        return self._max_circuits
 
     def _get_cmap_args(self, num_qubits):
         if self.__coupling_map_type == "heavy_hex":
