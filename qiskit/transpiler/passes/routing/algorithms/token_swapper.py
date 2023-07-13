@@ -101,5 +101,5 @@ class ApproximateTokenSwapper:
         """
         # Since integer seed is used in rustworkx, take random integer from np.random.randint
         # and use that for the seed.
-        seed = np.random.randint(1, 10000, size=1)[0]
+        seed = self.seed.integers(1, 10000)
         return rx.graph_token_swapper(self.graph, mapping, trials, seed, parallel_threshold)
