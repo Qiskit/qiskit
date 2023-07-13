@@ -26,7 +26,7 @@ class SetLayout(AnalysisPass):
         """SetLayout initializer.
 
         Args:
-            layout (Layout or List[int] or Dict[int, int]): the layout to set. It can be:
+            layout (Layout or List[int]): the layout to set. It can be:
 
                 * a :class:`Layout` instance: sets that layout.
                 * a list of integers: takes the index in the list as the physical position in which the
