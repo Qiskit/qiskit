@@ -33,6 +33,7 @@ from qiskit.providers.options import Options
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler import Target, InstructionProperties, QubitProperties
 
+
 class FakeGeneric(BackendV2):
     """
     Generate a generic fake backend, this backend will have properties and configuration according to the settings passed in the argument.
@@ -114,7 +115,7 @@ class FakeGeneric(BackendV2):
         )
 
         self.basis_gates = basis_gates
-        self._max_circuits=None
+        self._max_circuits = None
         self.__rng = np.random.default_rng(seed=123456789123456)
         self.__coupling_map_type = coupling_map_type
         if replace_cx_with_ecr:
@@ -175,60 +176,59 @@ class FakeGeneric(BackendV2):
             self._target.add_instruction(
                 Reset(), {(qubit_idx,): None for qubit_idx in range(num_qubits)}
             )
-            
+
             self._set_channels_map()
             setattr(self, "conf_filename", None)
             setattr(self, "defs_filename", None)
             setattr(self, "props_filename", None)
             setattr(self, "dirname", None)
 
-
     def _set_channels_map(self):
-        channel_types={'acquire': AcquireChannel,
-                       'drive': DriveChannel,
-                       'measure': MeasureChannel,
-                       'control': ControlChannel
-                       }
-        channels_map={}
+        channel_types = {
+            "acquire": AcquireChannel,
+            "drive": DriveChannel,
+            "measure": MeasureChannel,
+            "control": ControlChannel,
+        }
+        channels_map = {}
         for channel_type in channel_types.keys():
-            channel_obj=defaultdict(list)
+            channel_obj = defaultdict(list)
             for qubit in range(self.num_qubits):
                 channel_obj[(qubit,)].append(channel_types[channel_type](qubit))
                 channels_map.update({channel_type: channel_obj})
-        setattr(self, "channels_map", channels_map)        
+        setattr(self, "channels_map", channels_map)
 
-    
     @property
     def target(self):
         return self._target
 
-    def acquire_channel(self, qubit:int):
-        qubit=(qubit,)
-        acquire_ch=self.channels_map['acquire']
+    def acquire_channel(self, qubit: int):
+        qubit = (qubit,)
+        acquire_ch = self.channels_map["acquire"]
         if qubit in acquire_ch.keys():
             return acquire_ch[qubit][0]
         else:
             return None
 
-    def drive_channel(self, qubit:int):
-        qubit=(qubit,)
-        drive_ch=self.channels_map['drive']
+    def drive_channel(self, qubit: int):
+        qubit = (qubit,)
+        drive_ch = self.channels_map["drive"]
         if qubit in drive_ch.keys():
             return drive_ch[qubit][0]
         else:
             return None
 
-    def control_channel(self, qubit:int):
-        qubit=(qubit,)
-        control_ch=self.channels_map['control']
+    def control_channel(self, qubit: int):
+        qubit = (qubit,)
+        control_ch = self.channels_map["control"]
         if qubit in control_ch.keys():
             return control_ch[qubit][0]
         else:
             return None
 
-    def measure_channel(self, qubit:int):
-        qubit=(qubit,)
-        measure_ch=self.channels_map['measure']
+    def measure_channel(self, qubit: int):
+        qubit = (qubit,)
+        measure_ch = self.channels_map["measure"]
         if qubit in measure_ch.keys():
             return measure_ch[qubit][0]
         else:
