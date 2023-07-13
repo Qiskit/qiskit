@@ -176,7 +176,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     connected_components = rx.weakly_connected_components(im_graph)
     component_qubits = []
     for component in connected_components:
-        component_qubits.append(set(qubit_map[x] for x in component))
+        component_qubits.append({qubit_map[x] for x in component})
 
     qubits = set(dag.qubits)
 

@@ -80,7 +80,7 @@ class ParametricPulse(Pulse):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                              waveform to 1. The default is ``True`` and the
@@ -151,7 +151,7 @@ class Gaussian(ParametricPulse):
         """Initialize the gaussian pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the Gaussian envelope.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
@@ -265,7 +265,7 @@ class GaussianSquare(ParametricPulse):
         """Initialize the gaussian square pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the Gaussian and of the square pulse.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
@@ -434,7 +434,7 @@ class Drag(ParametricPulse):
         """Initialize the drag pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the Drag envelope.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
@@ -556,7 +556,7 @@ class Constant(ParametricPulse):
         Initialize the constant-valued pulse.
 
         Args:
-            duration: Pulse length in terms of the the sampling period `dt`.
+            duration: Pulse length in terms of the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
