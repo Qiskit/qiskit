@@ -223,7 +223,8 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 for creg in transpiled_circuit_copy.cregs:
                     if clbits.name == creg.name:
                         raise QiskitError(
-                            f"Classical register for measurements conflict with those of the input circuit: {clbits}. "
+                            "Classical register for measurements conflict with those of the input "
+                            f"circuit: {clbits}. "
                             "Recommended to avoid register names starting with '__'."
                         )
                 transpiled_circuit_copy.add_register(clbits)
