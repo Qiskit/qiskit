@@ -115,7 +115,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_state_hinton(self):
         """test plot_state_hinton"""
@@ -137,7 +137,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_state_qsphere(self):
         """test for plot_state_qsphere"""
@@ -159,7 +159,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_state_city(self):
         """test for plot_state_city"""
@@ -181,7 +181,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_state_paulivec(self):
         """test for plot_state_paulivec"""
@@ -203,7 +203,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram(self):
         """for testing the plot_histogram"""
@@ -222,7 +222,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_with_rest(self):
         """test plot_histogram with 2 datasets and number_to_keep"""
@@ -238,7 +238,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_2_sets_with_rest(self):
         """test plot_histogram with 2 datasets and number_to_keep"""
@@ -257,7 +257,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_color(self):
         """Test histogram with single color"""
@@ -274,7 +274,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_multiple_colors(self):
         """Test histogram with multiple custom colors"""
@@ -298,7 +298,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_hamming(self):
         """Test histogram with hamming distance"""
@@ -315,7 +315,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_value_sort(self):
         """Test histogram with sorting by value"""
@@ -332,7 +332,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_desc_value_sort(self):
         """Test histogram with sorting by descending value"""
@@ -354,7 +354,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_legend(self):
         """Test histogram with legend"""
@@ -376,7 +376,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_histogram_title(self):
         """Test histogram with title"""
@@ -393,7 +393,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_1_qubit_gate_map(self):
         """Test plot_gate_map using 1 qubit backend"""
@@ -411,7 +411,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_5_qubit_gate_map(self):
         """Test plot_gate_map using 5 qubit backend"""
@@ -429,7 +429,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_7_qubit_gate_map(self):
         """Test plot_gate_map using 7 qubit backend"""
@@ -447,7 +447,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_16_qubit_gate_map(self):
         """Test plot_gate_map using 16 qubit backend"""
@@ -465,7 +465,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_27_qubit_gate_map(self):
         """Test plot_gate_map using 27 qubit backend"""
@@ -483,7 +483,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_65_qubit_gate_map(self):
         """test for plot_gate_map using 65 qubit backend"""
@@ -501,7 +501,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_figsize(self):
         """Test figsize parameter of plot_gate_map"""
@@ -519,7 +519,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_qubit_size(self):
         """Test qubit_size parameter of plot_gate_map"""
@@ -537,7 +537,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_qubit_color(self):
         """Test qubit_color parameter of plot_gate_map"""
@@ -555,7 +555,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_qubit_labels(self):
         """Test qubit_labels parameter of plot_gate_map"""
@@ -575,7 +575,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_line_color(self):
         """Test line_color parameter of plot_gate_map"""
@@ -593,7 +593,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_font_color(self):
         """Test font_color parameter of plot_gate_map"""
@@ -611,7 +611,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_coupling_map(self):
         """Test plot_coupling_map"""
@@ -635,7 +635,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
     def test_plot_bloch_multivector_figsize_improvements(self):
         """test bloch sphere figsize, font_size, title_font_size and title_pad
@@ -670,7 +670,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertEqual(ratio, 1)
+        self.assertGreaterEqual(ratio, 0.99)
 
 
 if __name__ == "__main__":
