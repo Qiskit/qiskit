@@ -130,6 +130,24 @@ def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
         clifford.tableau = composed_clifford.tableau
         return clifford
 
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.library import LinearFunction
+
+    if isinstance(gate, LinearFunction):
+        gate_as_clifford = Clifford.from_linear_function(gate)
+        composed_clifford = clifford.compose(gate_as_clifford, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
+
+    # pylint: disable=cyclic-import
+    from qiskit.circuit.library import PermutationGate
+
+    if isinstance(gate, PermutationGate):
+        gate_as_clifford = Clifford.from_permutation(gate)
+        composed_clifford = clifford.compose(gate_as_clifford, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
+
     # If the gate is not directly appendable, we try to unroll the gate with its definition.
     # This succeeds only if the gate has all-Clifford definition (decomposition).
     # If fails, we need to restore the clifford that was before attempting to unroll and append.
