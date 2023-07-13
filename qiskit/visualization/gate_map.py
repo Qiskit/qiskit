@@ -1045,7 +1045,7 @@ def plot_coupling_map(
     graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
-        graph = graph.to_undirected()
+        graph = graph.to_undirected(multigraph=False)
 
     for node in graph.node_indices():
         graph[node] = node
