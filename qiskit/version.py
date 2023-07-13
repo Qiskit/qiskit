@@ -12,7 +12,7 @@
 
 # pylint: disable=no-name-in-module,broad-except,cyclic-import
 
-"""Contains Qiskit (terra) version."""
+"""Contains Qiskit version."""
 
 import os
 import subprocess
@@ -102,8 +102,7 @@ class QiskitVersion(Mapping):
             category=DeprecationWarning,
         )
         self._version_dict = {
-            "qiskit-terra": __version__,
-            "qiskit": None,
+            "qiskit": __version__,
         }
         self._loaded = False
 
