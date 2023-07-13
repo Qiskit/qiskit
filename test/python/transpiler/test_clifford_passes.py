@@ -84,14 +84,14 @@ class TestCliffordPasses(QiskitTestCase):
 
         # Check that there are indeed two Clifford objects in the circuit,
         # and that these are not gates.
-        cliffords = [inst for inst, _, _ in qc.data if isinstance(inst, Clifford)]
-        gates = [inst for inst, _, _ in qc.data if isinstance(inst, Gate)]
+        cliffords = [inst.operation for inst in qc.data if isinstance(inst.operation, Clifford)]
+        gates = [inst.operation for inst in qc.data if isinstance(inst.operation, Gate)]
         self.assertEqual(len(cliffords), 2)
         self.assertEqual(len(gates), 4)
 
         # Check that calling QuantumCircuit's decompose(), no Clifford objects remain
         qc2 = qc.decompose()
-        cliffords2 = [inst for inst, _, _ in qc2.data if isinstance(inst, Clifford)]
+        cliffords2 = [inst.operation for inst in qc2.data if isinstance(inst.operation, Clifford)]
         self.assertEqual(len(cliffords2), 0)
 
     def test_can_construct_operator(self):
@@ -167,8 +167,10 @@ class TestCliffordPasses(QiskitTestCase):
         # Add this Clifford to a Quantum Circuit, and check that it remains a Clifford
         circ0 = QuantumCircuit(4)
         circ0.append(cliff, [0, 1, 2])
-        circ0_cliffords = [inst for inst, _, _ in circ0.data if isinstance(inst, Clifford)]
-        circ0_gates = [inst for inst, _, _ in circ0.data if isinstance(inst, Gate)]
+        circ0_cliffords = [
+            inst.operation for inst in circ0.data if isinstance(inst.operation, Clifford)
+        ]
+        circ0_gates = [inst.operation for inst in circ0.data if isinstance(inst.operation, Gate)]
         self.assertEqual(len(circ0_cliffords), 1)
         self.assertEqual(len(circ0_gates), 0)
 
@@ -183,8 +185,10 @@ class TestCliffordPasses(QiskitTestCase):
 
         # Check that converted DAG to a circuit also preserves Clifford.
         circ1 = dag_to_circuit(dag0)
-        circ1_cliffords = [inst for inst, _, _ in circ1.data if isinstance(inst, Clifford)]
-        circ1_gates = [inst for inst, _, _ in circ1.data if isinstance(inst, Gate)]
+        circ1_cliffords = [
+            inst.operation for inst in circ1.data if isinstance(inst.operation, Clifford)
+        ]
+        circ1_gates = [inst.operation for inst in circ1.data if isinstance(inst.operation, Gate)]
         self.assertEqual(len(circ1_cliffords), 1)
         self.assertEqual(len(circ1_gates), 0)
 
