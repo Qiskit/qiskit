@@ -15,7 +15,6 @@
 
 import time
 from sys import modules
-from collections import OrderedDict
 from IPython.display import HTML, display
 from IPython.core.magic import line_magic, Magics, magics_class
 import qiskit
@@ -37,7 +36,7 @@ class VersionTable(Magics):
         html += "<table>"
         html += "<tr><th>Software</th><th>Version</th></tr>"
 
-        packages = OrderedDict()
+        packages = dict()
 
         from importlib.metadata import metadata, PackageNotFoundError
 
