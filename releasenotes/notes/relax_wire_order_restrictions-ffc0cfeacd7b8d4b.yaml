@@ -17,7 +17,7 @@ features:
       circuit.h(3)
       circuit.x(1)
       circuit.x(3).c_if(cr, 10)
-      circuit.draw('text', wire_order=[2, 3], cregbundle=True)
+      circuit.draw('text', wire_order=[2, 3, 0, 1], cregbundle=True)
 
     .. parsed-literal::
 
