@@ -99,6 +99,13 @@ Discrete Basis Synthesis
    SolovayKitaevDecomposition
    generate_basic_approximations
 
+SU(4) (2-qubit unitary) Synthesis
+=================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SiSwapDecomposer
 """
 
 from .evolution import (
@@ -135,3 +142,4 @@ from .cnotdihedral import (
 )
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+from .su4 import SiSwapDecomposer

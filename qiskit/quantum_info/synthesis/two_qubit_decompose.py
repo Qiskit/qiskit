@@ -1092,17 +1092,17 @@ class TwoQubitBasisDecomposer:
         basis_fidelity: Optional[float] = None,
         approximate: bool = True,
         *,
-        _num_basis_uses: int = None,
+        _num_basis_uses: Optional[int] = None,
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite `basis_fidelity`.
 
         Args:
-            unitary (Operator or ndarray): 4x4 unitary to synthesize.
-            basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
+            unitary: 4x4 unitary to synthesize.
+            basis_fidelity: Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides basis_fidelity given at init.
-            approximate (bool): Approximates if basis fidelities are less than 1.0.
-            _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+            approximate: Approximates if basis fidelities are less than 1.0.
+            _num_basis_uses: force a particular approximation by passing a number in [0, 3].
         Returns:
             QuantumCircuit: Synthesized circuit.
         Raises:

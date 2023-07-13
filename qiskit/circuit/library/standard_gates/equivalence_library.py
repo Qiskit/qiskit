@@ -51,6 +51,7 @@ from . import (
     SwapGate,
     CSwapGate,
     iSwapGate,
+    SiSwapGate,
     SXGate,
     SXdgGate,
     CSXGate,
@@ -817,6 +818,23 @@ for inst, qargs, cargs in [
 ]:
     def_iswap.append(inst, qargs, cargs)
 _sel.add_equivalence(iSwapGate(), def_iswap)
+
+# SiSwapGate
+#
+#      ┌──────────┐           ┌────────────┐┌────────────┐
+# q_0: ┤0         ├      q_0: ┤0           ├┤0           ├
+#      │  Siswap  │  ≡        │  Rxx(-π/4) ││  Ryy(-π/4) │
+# q_1: ┤1         ├      q_1: ┤1           ├┤1           ├
+#      └──────────┘           └────────────┘└────────────┘
+
+q = QuantumRegister(2, "q")
+def_siswap = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (RXXGate(-pi / 4), [q[0], q[1]], []),
+    (RYYGate(-pi / 4), [q[0], q[1]], []),
+]:
+    def_siswap.append(inst, qargs, cargs)
+_sel.add_equivalence(SiSwapGate(), def_siswap)
 
 # SXGate
 #               global phase: π/4

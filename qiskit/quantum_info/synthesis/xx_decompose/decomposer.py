@@ -15,7 +15,6 @@ Driver for a synthesis routine which emits optimal XX-based circuits.
 """
 from __future__ import annotations
 import heapq
-import math
 from operator import itemgetter
 from typing import Callable
 
@@ -27,29 +26,11 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
+from qiskit.synthesis.su4.utils import average_infidelity
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
 from .utilities import EPSILON
 from .polytopes import XXPolytope
-
-
-def _average_infidelity(p, q):
-    """
-    Computes the infidelity distance between two points p, q expressed in positive canonical
-    coordinates.
-    """
-
-    a0, b0, c0 = p
-    a1, b1, c1 = q
-
-    return 1 - 1 / 20 * (
-        4
-        + 16
-        * (
-            math.cos(a0 - a1) ** 2 * math.cos(b0 - b1) ** 2 * math.cos(c0 - c1) ** 2
-            + math.sin(a0 - a1) ** 2 * math.sin(b0 - b1) ** 2 * math.sin(c0 - c1) ** 2
-        )
-    )
 
 
 class XXDecomposer:
@@ -162,7 +143,7 @@ class XXDecomposer:
 
             strength_polytope = XXPolytope.from_strengths(*[x / 2 for x in sequence])
             candidate_point = strength_polytope.nearest(canonical_coordinate)
-            candidate_cost = sequence_cost + _average_infidelity(
+            candidate_cost = sequence_cost + average_infidelity(
                 canonical_coordinate, candidate_point
             )
 

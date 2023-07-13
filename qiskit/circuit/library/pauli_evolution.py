@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.synthesis import EvolutionSynthesis, LieTrotter
+from qiskit.synthesis.evolution import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
 

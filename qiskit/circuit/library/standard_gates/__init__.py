@@ -11,7 +11,67 @@
 # that they have been altered from the originals.
 
 """
-Standard gates
+=============================================================
+Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
+=============================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   C3XGate
+   C3SXGate
+   C4XGate
+   CCXGate
+   DCXGate
+   CHGate
+   CPhaseGate
+   CRXGate
+   CRYGate
+   CRZGate
+   CSwapGate
+   CSXGate
+   CUGate
+   CU1Gate
+   CU3Gate
+   CXGate
+   CYGate
+   CZGate
+   CCZGate
+   HGate
+   IGate
+   MCPhaseGate
+   PhaseGate
+   RCCXGate
+   RC3XGate
+   RXGate
+   RXXGate
+   RYGate
+   RYYGate
+   RZGate
+   RZZGate
+   RZXGate
+   XXMinusYYGate
+   XXPlusYYGate
+   ECRGate
+   SGate
+   SdgGate
+   CSGate
+   CSdgGate
+   SwapGate
+   iSwapGate
+   SiSwapGate
+   SXGate
+   SXdgGate
+   TGate
+   TdgGate
+   UGate
+   U1Gate
+   U2Gate
+   U3Gate
+   XGate
+   YGate
+   ZGate
+
 """
 
 from .h import HGate, CHGate
@@ -31,6 +91,7 @@ from .ecr import ECRGate
 from .s import SGate, SdgGate, CSGate, CSdgGate
 from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
+from .siswap import SiSwapGate
 from .sx import SXGate, SXdgGate, CSXGate
 from .dcx import DCXGate
 from .t import TGate, TdgGate
@@ -100,6 +161,7 @@ def get_standard_gate_name_mapping():
         CSdgGate(),
         SwapGate(),
         iSwapGate(),
+        SiSwapGate(),
         SXdgGate(),
         TGate(),
         TdgGate(),
