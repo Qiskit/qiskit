@@ -91,7 +91,7 @@ objects, and will resolve any required implicit casts on your behalf.
 .. autofunction:: lift
 
 You can manually specify casts in cases where the cast is allowed in explicit form, but may be
-losslses (such as the cast of a higher precision :class:`~.types.Uint` to a lower precision one).
+lossy (such as the cast of a higher precision :class:`~.types.Uint` to a lower precision one).
 
 .. autofunction:: cast
 
