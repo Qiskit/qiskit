@@ -20,15 +20,16 @@ use numpy::ndarray::linalg::kron;
 use numpy::ndarray::{array, Array, Dim, OwnedRepr};
 use numpy::{PyArray, PyReadonlyArray, ToPyArray};
 
-
 #[pyfunction]
 #[pyo3(text_signature = "(matrix, q_list, /)")]
 pub fn block_to_matrix_2q_rust(
     py: Python,
     matrix: PyReadonlyArray<Complex64, Dim<[usize; 2]>>,
     q_list: Vec<usize>,
+    end_matrix: PyReadonlyArray<Complex64, Dim<[usize; 2]>>,
 ) -> PyResult<Py<PyArray<Complex64, Dim<[usize; 2]>>>> {
     let matrix_arr = matrix.as_array().to_owned();
+    let end_matrix = end_matrix.as_array().to_owned();
     let swap_gate = array![
         [
             Complex64::new(1., 0.),
@@ -73,9 +74,13 @@ pub fn block_to_matrix_2q_rust(
     }
 
     if basis_change {
-        Ok((swap_gate.dot(&current)).dot(&swap_gate).to_pyarray(py).to_owned())
+        Ok((swap_gate.dot(&current))
+            .dot(&swap_gate)
+            .dot(&end_matrix)
+            .to_pyarray(py)
+            .to_owned())
     } else {
-        Ok(current.to_pyarray(py).to_owned())
+        Ok(current.dot(&end_matrix).to_pyarray(py).to_owned())
     }
 }
 

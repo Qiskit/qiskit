@@ -193,9 +193,7 @@ class ConsolidateBlocks(TransformationPass):
             except QiskitError:
                 current = Operator(node.op).data
             q_list = [block_index_map[qubit] for qubit in node.qargs]
-            matrix = block_to_matrix_2q_rust(current, q_list) @ matrix
-
-
+            matrix = block_to_matrix_2q_rust(current, q_list, matrix)
         return basis_count, outside_basis, matrix
     
     # def _block_to_matrix(self, block, block_index_map, global_index_map, basis_gate_name):
