@@ -103,6 +103,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             )
             np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
 
+        with self.subTest(msg="assert returned values are eigenvalues"):
+            np.testing.assert_array_almost_equal(
+                result.optimal_values, self.h2_energy_excited[:2], decimal=3
+            )
+
     def test_full_spectrum(self):
         """Test obtaining all eigenvalues."""
         vqd = VQD(self.estimator, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B(), k=4)

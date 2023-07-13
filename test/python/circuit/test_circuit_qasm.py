@@ -768,6 +768,38 @@ custom q[0];
 """
         self.assertEqual(qasm, expected)
 
+    def test_sequencial_inner_gates_with_same_name(self):
+        """Test if inner gates sequentially added with the same name result in the correct qasm"""
+        qubits_range = range(3)
+
+        gate_a = QuantumCircuit(3, name="a")
+        gate_a.h(qubits_range)
+        gate_a = gate_a.to_instruction()
+
+        gate_b = QuantumCircuit(3, name="a")
+        gate_b.append(gate_a, qubits_range)
+        gate_b.x(qubits_range)
+        gate_b = gate_b.to_instruction()
+
+        qc = QuantumCircuit(3)
+        qc.append(gate_b, qubits_range)
+        qc.z(qubits_range)
+
+        gate_a_id = id(qc.data[0].operation)
+
+        expected_output = f"""OPENQASM 2.0;
+include "qelib1.inc";
+gate a q0,q1,q2 {{ h q0; h q1; h q2; }}
+gate a_{gate_a_id} q0,q1,q2 {{ a q0,q1,q2; x q0; x q1; x q2; }}
+qreg q[3];
+a_{gate_a_id} q[0],q[1],q[2];
+z q[0];
+z q[1];
+z q[2];
+"""
+
+        self.assertEqual(qc.qasm(), expected_output)
+
 
 if __name__ == "__main__":
     unittest.main()

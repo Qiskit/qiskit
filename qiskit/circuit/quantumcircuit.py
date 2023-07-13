@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -38,16 +37,18 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    Literal,
     overload,
 )
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -61,21 +62,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -455,22 +441,21 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
-    def has_calibration_for(self, instr_context: tuple):
+    def has_calibration_for(self, instruction: CircuitInstruction):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
-        instr, qargs, _ = instr_context
-        if not self.calibrations or instr.name not in self.calibrations:
+        if not self.calibrations or instruction.operation.name not in self.calibrations:
             return False
-        qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
+        qubits = tuple(self.qubits.index(qubit) for qubit in instruction.qubits)
         params = []
-        for p in instr.params:
+        for p in instruction.operation.params:
             if isinstance(p, ParameterExpression) and not p.parameters:
                 params.append(float(p))
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[instr.name]
+        return (qubits, params) in self.calibrations[instruction.operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -1768,12 +1753,15 @@ class QuantumCircuit:
                 file.write(out)
 
         if formatted:
-            if not HAS_PYGMENTS:
-                raise MissingOptionalLibraryError(
-                    libname="pygments>2.4",
-                    name="formatted QASM output",
-                    pip_install="pip install pygments",
-                )
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+
+            import pygments
+            from pygments.formatters import (  # pylint: disable=no-name-in-module
+                Terminal256Formatter,
+            )
+            from qiskit.qasm.pygments import OpenQASMLexer
+            from qiskit.qasm.pygments import QasmTerminalStyle
+
             code = pygments.highlight(
                 out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
@@ -2857,8 +2845,7 @@ class QuantumCircuit:
                         if new_param._symbol_expr.is_integer and new_param.is_real():
                             val = int(new_param)
                         elif new_param.is_real():
-                            # Workaround symengine not supporting float(<ComplexDouble>)
-                            val = complex(new_param).real
+                            val = float(new_param)
                         else:
                             # complex values may no longer be supported but we
                             # defer raising an exception to validdate_parameter
@@ -2924,8 +2911,7 @@ class QuantumCircuit:
                                 if new_param._symbol_expr.is_integer:
                                     new_param = int(new_param)
                                 else:
-                                    # Workaround symengine not supporting float(<ComplexDouble>)
-                                    new_param = complex(new_param).real
+                                    new_param = float(new_param)
                             new_cal_params.append(new_param)
                         else:
                             new_cal_params.append(p)
@@ -5062,10 +5048,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     # Otherwise, if there's a naming clash, we need a unique name.
     if operation.name in gates_to_define:
-        new_name = f"{operation.name}_{id(operation)}"
-        operation = operation.copy(name=new_name)
-    else:
-        new_name = operation.name
+        operation = _rename_operation(operation)
+
+    new_name = operation.name
 
     if parameterized_operation.params:
         parameters_qasm = (
@@ -5090,9 +5075,22 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
             statements.append(f"{new_operation.qasm()} {bits_qasm};")
         body_qasm = " ".join(statements)
+
+        # if an inner operation has the same name as the actual operation, it needs to be renamed
+        if operation.name in gates_to_define:
+            operation = _rename_operation(operation)
+            new_name = operation.name
+
         definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
         gates_to_define[new_name] = (parameterized_operation, definition_qasm)
     return operation
+
+
+def _rename_operation(operation):
+    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
+    new_name = f"{operation.name}_{id(operation)}"
+    updated_operation = operation.copy(name=new_name)
+    return updated_operation
 
 
 def _qasm_escape_name(name: str, prefix: str) -> str:

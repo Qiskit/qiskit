@@ -25,8 +25,8 @@ rustworkx-core = "0.13"
 # The base version of PyO3 and setting a minimum feature set (e.g. probably just 'extension-module')
 # can be done in the workspace and inherited once we hit Rust 1.64.
 [dependencies.pyo3]
-version = "0.19.0"
-features = ["extension-module", "hashbrown", "indexmap", "num-complex", "num-bigint"]
+version = "0.19.1"
+features = ["extension-module", "hashbrown", "indexmap", "num-complex", "num-bigint", "abi3-py38"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
