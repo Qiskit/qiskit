@@ -16,7 +16,7 @@ import unittest
 import os
 from unittest.mock import patch
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
 from qiskit import visualization
@@ -102,6 +102,70 @@ class TestCircuitDrawer(QiskitTestCase):
                 else:
                     self.assertIn(im.format.lower(), filename.split(".")[-1])
             os.remove(filename)
+
+    def test_wire_order(self):
+        """Test wire_order
+        See: https://github.com/Qiskit/qiskit-terra/pull/9893"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 10)
+
+        expected = "\n".join(
+            [
+                "                  ",
+                " q_2: ────────────",
+                "      ┌───┐ ┌───┐ ",
+                " q_3: ┤ H ├─┤ X ├─",
+                "      ├───┤ └─╥─┘ ",
+                " q_0: ┤ H ├───╫───",
+                "      ├───┤   ║   ",
+                " q_1: ┤ X ├───╫───",
+                "      └───┘┌──╨──┐",
+                " c: 4/═════╡ 0xa ╞",
+                "           └─────┘",
+                "ca: 2/════════════",
+                "                  ",
+            ]
+        )
+        result = visualization.circuit_drawer(circuit, wire_order=[2, 3, 0, 1])
+        self.assertEqual(result.__str__(), expected)
+
+    def test_wire_order_cregbundle(self):
+        """Test wire_order with cregbundle=True
+        See: https://github.com/Qiskit/qiskit-terra/pull/9893"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 10)
+
+        expected = "\n".join(
+            [
+                "                  ",
+                " q_2: ────────────",
+                "      ┌───┐ ┌───┐ ",
+                " q_3: ┤ H ├─┤ X ├─",
+                "      ├───┤ └─╥─┘ ",
+                " q_0: ┤ H ├───╫───",
+                "      ├───┤   ║   ",
+                " q_1: ┤ X ├───╫───",
+                "      └───┘┌──╨──┐",
+                " c: 4/═════╡ 0xa ╞",
+                "           └─────┘",
+                "ca: 2/════════════",
+                "                  ",
+            ]
+        )
+        result = visualization.circuit_drawer(circuit, wire_order=[2, 3, 0, 1], cregbundle=True)
+        self.assertEqual(result.__str__(), expected)
 
     def test_wire_order_raises(self):
         """Verify we raise if using wire order incorrectly."""
