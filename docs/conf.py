@@ -88,6 +88,8 @@ panels_css_variables = {
     "tabs-color-label-active": "rgb(138, 63, 252)",
     "tabs-color-label-inactive": "rgb(221, 225, 230)",
 }
+
+html_static_path = ["_static"]
 templates_path = ["_templates"]
 
 source_suffix = ".rst"

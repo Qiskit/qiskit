@@ -75,33 +75,17 @@ going to run and install the packages.  There are three main ways to do this:
 
         The following cloud vendors have Qiskit pre-installed in their environments:
 
-       .. raw:: html
-
-          <div id="tutorial-cards-container">
-          <hr class="tutorials-hr">
-          <div class="row">
-          <div id="tutorial-cards">
-          <div class="list">
-
-       .. qiskit-card-item::
+       .. qiskit-card::
           :header: IBM Quantum Lab
           :card_description: Build quantum applications and experiments with Qiskit in a cloud programming environment.
-          :image: images/ibm_qlab.png
+          :image: _static/images/ibm_qlab.png
           :link: https://quantum-computing.ibm.com/
 
-       .. qiskit-card-item::
+       .. qiskit-card::
           :header: Strangeworks
           :card_description: A platform that enables users and organizations to easily apply quantum computing to their most pressing problems and research.
-          :image: images/strangeworks.png
+          :image: _static/images/strangeworks.png
           :link: https://strangeworks.com/
-
-       .. raw:: html
-
-          </div>
-          <div class="pagination d-flex justify-content-center"></div>
-          </div>
-          </div>
-          </div>
 
     .. tab-item:: Install from source
 
@@ -507,27 +491,20 @@ Tier 3 platforms are currently:
 Ready to get going?...
 ======================
 
-.. raw:: html
+.. qiskit-call-to-action-grid::
 
-   <div class="tutorials-callout-container">
-      <div class="row">
+   .. qiskit-call-to-action-item::
+      :description: Learn how to build, execute, and post-process quantum circuits with Qiskit.
+      :header: Qiskit from the ground up
+      :button_link:  intro_tutorial1.html
+      :button_text: Start learning Qiskit
 
-.. qiskit-call-to-action-item::
-   :description: Learn how to build, execute, and post-process quantum circuits with Qiskit.
-   :header: Qiskit from the ground up
-   :button_link:  intro_tutorial1.html
-   :button_text: Start learning Qiskit
+   .. qiskit-call-to-action-item::
+      :description: Find out how to leverage Qiskit for everything from single-circuits to full quantum application development.
+      :header: Dive into the tutorials
+      :button_link:  tutorials.html
+      :button_text: Qiskit tutorials
 
-
-.. qiskit-call-to-action-item::
-   :description: Find out how to leverage Qiskit for everything from single-circuits to full quantum application development.
-   :header: Dive into the tutorials
-   :button_link:  tutorials.html
-   :button_text: Qiskit tutorials
-
-.. raw:: html
-
-   </div>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
