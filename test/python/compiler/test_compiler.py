@@ -22,7 +22,7 @@ from qiskit import execute
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
+from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.qobj import QasmQobj
 
 
@@ -188,7 +188,7 @@ class TestCompiler(QiskitTestCase):
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile."""
-        backend = FakeRueschlikon()
+        backend = FakeGeneric(num_qubits=16)
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -498,7 +498,7 @@ class TestCompiler(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
-        backend = FakeTenerife()
+        backend = FakeGeneric(num_qubits=2)
         qr = QuantumRegister(2)
         circ1 = QuantumCircuit(qr)
         circ1.cx(qr[0], qr[1])
