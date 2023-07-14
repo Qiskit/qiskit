@@ -13,7 +13,6 @@
 """Set the ``layout`` property to the given layout."""
 from qiskit.transpiler import Layout, TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.layout import Layout
 
 
 class SetLayout(AnalysisPass):
