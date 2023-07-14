@@ -129,6 +129,9 @@ fn layout_trial(
         .unwrap()
     };
 
+    // Create forward and reverse dags (without node blocks).
+    // Once we've settled on a layout, we recursively apply it to the original
+    // DAG and its node blocks.
     let mut dag_forward: SabreDAG = new_dag_fn(dag.nodes.clone());
     let mut dag_reverse: SabreDAG = new_dag_fn(dag.nodes.iter().rev().cloned().collect());
     for _iter in 0..max_iterations {
@@ -152,7 +155,10 @@ fn layout_trial(
             std::mem::swap(&mut dag_forward, &mut dag_reverse);
         }
     }
+
+    // Apply the layout to the original DAG.
     let layout_dag = apply_layout(dag, &initial_layout);
+
     let mut final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
     let sabre_result = build_swap_map_inner(
         num_physical_qubits,
