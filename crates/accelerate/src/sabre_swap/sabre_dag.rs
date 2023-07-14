@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashMap;
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
-use std::collections::HashMap;
 
 /// A DAG object used to represent the data interactions from a DAGCircuit
 /// to run the the sabre algorithm. This is structurally identical to the input
