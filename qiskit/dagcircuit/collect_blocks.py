@@ -15,7 +15,7 @@
 into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
-from qiskit.circuit.controlflow.condition import condition_bits
+from qiskit.circuit.controlflow import condition_resources
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
 
@@ -272,7 +272,7 @@ class BlockCollapser:
                 cur_clbits.update(node.cargs)
                 cond = getattr(node.op, "condition", None)
                 if cond is not None:
-                    cur_clbits.update(condition_bits(cond))
+                    cur_clbits.update(condition_resources(cond).clbits)
                     if isinstance(cond[0], ClassicalRegister):
                         cur_clregs.append(cond[0])
 
