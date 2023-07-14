@@ -214,6 +214,19 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         mpl.pyplot.close(figure_ref)
         mpl.pyplot.close(figure_truncated)
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_number_of_items_in_legend_with_data_starting_with_zero(self):
+        """Test legend if there's a 0 value at the first item of the dataset"""
+        dist_1 = {"0": 0.369, "1": 0.13975}
+        dist_2 = {"0": 0, "1": 0.48784}
+        legend = ["lengend_1", "lengend_2"]
+        plot = plot_histogram([dist_1, dist_2], legend=legend)
+        self.assertEqual(
+            len(plot._localaxes[0].legend_.texts),
+            2,
+            "Plot should have the same number of legend items as defined",
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

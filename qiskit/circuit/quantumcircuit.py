@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -38,16 +37,18 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    Literal,
     overload,
 )
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -61,21 +62,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -458,22 +444,26 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
-    def has_calibration_for(self, instr_context: tuple):
+    def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
-        instr, qargs, _ = instr_context
-        if not self.calibrations or instr.name not in self.calibrations:
+        if isinstance(instruction, CircuitInstruction):
+            operation = instruction.operation
+            qubits = instruction.qubits
+        else:
+            operation, qubits, _ = instruction
+        if not self.calibrations or operation.name not in self.calibrations:
             return False
-        qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
+        qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
         params = []
-        for p in instr.params:
+        for p in operation.params:
             if isinstance(p, ParameterExpression) and not p.parameters:
                 params.append(float(p))
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[instr.name]
+        return (qubits, params) in self.calibrations[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -1799,12 +1789,15 @@ class QuantumCircuit:
                 file.write(out)
 
         if formatted:
-            if not HAS_PYGMENTS:
-                raise MissingOptionalLibraryError(
-                    libname="pygments>2.4",
-                    name="formatted QASM output",
-                    pip_install="pip install pygments",
-                )
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+
+            import pygments
+            from pygments.formatters import (  # pylint: disable=no-name-in-module
+                Terminal256Formatter,
+            )
+            from qiskit.qasm.pygments import OpenQASMLexer
+            from qiskit.qasm.pygments import QasmTerminalStyle
+
             code = pygments.highlight(
                 out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
