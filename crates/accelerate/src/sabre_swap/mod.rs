@@ -339,9 +339,9 @@ fn swap_map_trial(
         }
     }
 
-    // This lambda is used to curry parameters so we can avoid
-    // passing everything and the kitchen sink to update_routes
-    // and route_reachable_nodes.
+    // This closure is used to curry parameters so we can avoid passing
+    // everything and the kitchen sink to update_routes and
+    // route_reachable_nodes.
     let route_block_dag = |block_dag: &SabreDAG, current_layout: NLayout| {
         swap_map_trial(
             num_qubits,
