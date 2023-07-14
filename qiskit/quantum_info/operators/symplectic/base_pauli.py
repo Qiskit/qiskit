@@ -16,6 +16,7 @@ Optimized list of Pauli operators
 
 from __future__ import annotations
 import copy
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
@@ -25,6 +26,9 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+
+if TYPE_CHECKING:
+    from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 # utility for _to_matrix
@@ -228,7 +232,10 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return a_dot_b == b_dot_a
 
     def evolve(
-        self, other: BasePauli | QuantumCircuit, qargs: list | None = None, frame: str = "h"
+        self,
+        other: BasePauli | QuantumCircuit | Clifford,
+        qargs: list | None = None,
+        frame: Literal["h", "s"] = "h",
     ) -> BasePauli:
         r"""Performs either Heisenberg (default) or Schrödinger picture
         evolution of the Pauli by a Clifford and returns the evolved Pauli.
@@ -275,9 +282,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 ret = self.compose(other.adjoint(), qargs=qargs)
                 ret = ret.compose(other, front=True, qargs=qargs)
             return ret
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
         # Convert Clifford to quantum circuits
         if isinstance(other, Clifford):
