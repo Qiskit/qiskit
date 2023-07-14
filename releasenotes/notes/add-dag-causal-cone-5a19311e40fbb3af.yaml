@@ -21,22 +21,5 @@ features:
         dag.apply_operation_back(CZGate(), qreg[[2, 4]], [])
         dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
 
-        # Get the causal node of qubit at index 0
-        result = dag.get_causal_cone(0)
-
-  - |
-    Added :meth:`.DAGCircuit.get_qubit_input_node` and 
-    :meth:`.DAGCircuit.get_qubit_output_node` to obtain the input/output node of a 
-    qubit in the `DAGCircuit`. The following example shows its correct usage::
-
-        from qiskit import QuantumRegister, ClassicalRegister
-        from qiskit.dagcircuit import DAGCircuit
-
-        dag = DAGCircuit()
-        qreg = QuantumRegister(5)
-        creg = ClassicalRegister(5)
-        dag.add_qreg(qreg)
-        dag.add_creg(creg)
-
-        # Get the output node of qubit at index 3
-        result = dag.get_qubit_output_node(3)
+        # Get the causal cone of qubit at index 0
+        result = dag.get_causal_cone(qreg[0])
