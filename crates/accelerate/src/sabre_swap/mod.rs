@@ -79,7 +79,7 @@ impl SabreResult {
     }
 }
 
-#[pyclass(module = "qiskit._accelerate.sabre_swap")]
+#[pyclass(mapping, module = "qiskit._accelerate.sabre_swap")]
 #[derive(Clone, Debug)]
 pub struct NodeBlockResults {
     pub results: HashMap<usize, Vec<BlockResult>>,
