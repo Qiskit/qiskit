@@ -585,12 +585,16 @@ fn route_reachable_nodes<F>(
                 node_block_results.insert_unique_unchecked(*py_node, block_results);
             }
             None => match qubits[..] {
+                // A gate op whose connectivity must match the device to be
+                // placed in the gate order.
                 [a, b]
                     if !coupling.contains_edge(
                         NodeIndex::new(layout.logic_to_phys[a]),
                         NodeIndex::new(layout.logic_to_phys[b]),
                     ) =>
                 {
+                    // 2Q op that cannot be placed. Add it to the front layer
+                    // and move on.
                     front_layer.insert(node, [a, b]);
                     continue;
                 }
