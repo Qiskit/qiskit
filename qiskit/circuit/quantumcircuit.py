@@ -1745,11 +1745,7 @@ class QuantumCircuit:
                     operation, existing_gate_names, gates_to_define
                 )
                 # Insert qasm representation of the original instruction
-                if operation.name == "c3sx":
-                    operation.name = "c3sqrtx"
                 name_param = _instruction_qasm2(operation)
-                if operation.name == "c3sqrtx":
-                    operation.name = "c3sx"
                 bits_qasm = ",".join(
                     bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
                 )
@@ -5211,7 +5207,10 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
 
 def _instruction_qasm2(operation):
     """Return an OpenQASM 2 string for the instruction."""
-    name_param = operation.name
+    if operation.name == "c3sx":
+        name_param = "c3sqrtx"
+    else:
+        name_param = operation.name
     if operation.params:
         name_param = "{}({})".format(
             name_param,
