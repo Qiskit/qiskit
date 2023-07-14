@@ -30,7 +30,7 @@ from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.circuit.register import Register
 
-from .condition import condition_registers
+from ._builder_utils import condition_resources
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -447,7 +447,7 @@ class ControlFlowBuilderBlock:
                         self.add_register(register)
                         out.add_register(register)
             if getattr(instruction.operation, "condition", None) is not None:
-                for register in condition_registers(instruction.operation.condition):
+                for register in condition_resources(instruction.operation.condition).cregs:
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)
