@@ -1744,6 +1744,7 @@ class QuantumCircuit:
                 operation = _qasm2_define_custom_operation(
                     operation, existing_gate_names, gates_to_define
                 )
+
                 # Insert qasm representation of the original instruction
                 bits_qasm = ",".join(
                     bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
