@@ -274,10 +274,10 @@ def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
                 cargs.add(clbit_indices[clbit])
         if isinstance(node.op, ControlFlowOp):
             node_blocks[node._node_id] = [
-                # TODO: what's the easiest way to get the smallest num_qubits we
-                #  can pass here? A block dag should have fewer qubits than the
-                #  parent, so we could just use that, but really we only need
-                #  max(qubits) + 1
+                # Note: num_qubits and num_clbits are used to preallocate
+                # storage within SabreDAG. Because indices are in terms of the
+                # root DAG, we always pass the same values even though blocks
+                # will often have fewer bits than the outer circuit.
                 _build_sabre_dag(
                     circuit_to_dag(block),
                     num_qubits,
