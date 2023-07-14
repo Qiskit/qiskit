@@ -26,7 +26,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
-from qiskit._accelerate.convert_2q_block_matrix import block_to_matrix_2q_rust
+from qiskit._accelerate.convert_2q_block_matrix import blocks_to_matrix
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -180,9 +180,7 @@ class ConsolidateBlocks(TransformationPass):
         """Converts any block of 2 qubit gates into a matrix"""
         basis_count = 0
         outside_basis = False
-        matrix = np.identity(2 ** len(block_index_map), dtype=complex)
-        identity = np.identity(2, dtype=complex)
-        swap = SwapGate().to_matrix()
+        op_list = []
         for node in block:
             if node.op.name == basis_gate_name:
                 basis_count += 1
@@ -193,41 +191,9 @@ class ConsolidateBlocks(TransformationPass):
             except QiskitError:
                 current = Operator(node.op).data
             q_list = [block_index_map[qubit] for qubit in node.qargs]
-            matrix = block_to_matrix_2q_rust(current, q_list, matrix)
+            op_list.append((current, q_list))
+        matrix = blocks_to_matrix(op_list)
         return basis_count, outside_basis, matrix
-    
-    # def _block_to_matrix(self, block, block_index_map, global_index_map, basis_gate_name):
-    #     """Converts any block of 2 qubit gates into a matrix"""
-    #     basis_count = 0
-    #     outside_basis = False
-    #     matrix = np.identity(2 ** len(block_index_map), dtype=complex)
-    #     identity = np.identity(2, dtype=complex)
-    #     swap = SwapGate().to_matrix()
-    #     for node in block:
-    #         if node.op.name == basis_gate_name:
-    #             basis_count += 1
-    #         if self._check_not_in_basis(node.op.name, node.qargs, global_index_map):
-    #             outside_basis = True
-    #         try:
-    #             current = node.op.to_matrix()
-    #         except QiskitError:
-    #             current = Operator(node.op).data
-    #         q_list = [block_index_map[qubit] for qubit in node.qargs]
-    #         basis_change = False
-    #         if len(q_list) < 2:
-    #             if q_list[0] == 1:
-    #                 current = np.kron(current, identity)
-    #             else:
-    #                 current = np.kron(identity, current)
-    #         else:
-    #             if q_list[0] > q_list[1]:
-    #                 if node.op != SwapGate():
-    #                     basis_change = True
-    #         if basis_change:
-    #             matrix = (swap @ current) @ swap
-    #         else:
-    #             matrix = current @ matrix
-    #     return basis_count, outside_basis, matrix
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):
         if self.target is not None:

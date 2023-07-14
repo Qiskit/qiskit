@@ -10,26 +10,23 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::ArrayBase;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{array, Array, Dim, OwnedRepr};
-use numpy::{PyArray, PyReadonlyArray, ToPyArray};
+use numpy::ndarray::{array, Array, Array2};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 
+/// Return the matrix Operator resulting from a block of Instructions.
 #[pyfunction]
-#[pyo3(text_signature = "(matrix, q_list, /)")]
-pub fn block_to_matrix_2q_rust(
+#[pyo3(text_signature = "(matrix_list, /")]
+pub fn blocks_to_matrix(
     py: Python,
-    matrix: PyReadonlyArray<Complex64, Dim<[usize; 2]>>,
-    q_list: Vec<usize>,
-    end_matrix: PyReadonlyArray<Complex64, Dim<[usize; 2]>>,
-) -> PyResult<Py<PyArray<Complex64, Dim<[usize; 2]>>>> {
-    let matrix_arr = matrix.as_array().to_owned();
-    let end_matrix = end_matrix.as_array().to_owned();
+    op_list: Vec<(PyReadonlyArray2<Complex64>, Vec<usize>)>,
+) -> PyResult<Py<PyArray2<Complex64>>> {
+    let mut matrix: Array2<Complex64> = Array::eye(4);
     let swap_gate = array![
         [
             Complex64::new(1., 0.),
@@ -56,36 +53,46 @@ pub fn block_to_matrix_2q_rust(
             Complex64::new(1., 0.)
         ]
     ];
-    let identity: ArrayBase<OwnedRepr<Complex64>, Dim<[usize; 2]>> = Array::eye(2);
+    let identity: Array2<Complex64> = Array::eye(2);
+    for (op_matrix, q_list) in op_list {
+        let op_matrix = op_matrix.as_array().to_owned();
+        let result = calculate_matrix(&op_matrix, &q_list, &swap_gate, &identity);
+        matrix = result.dot(&matrix);
+    }
+    Ok(matrix.into_pyarray(py).to_owned())
+}
 
+/// Performs the matrix operations for an Instruction in a 2 qubit system
+fn calculate_matrix(
+    matrix: &Array2<Complex64>,
+    q_list: &Vec<usize>,
+    swap_gate: &Array2<Complex64>,
+    identity: &Array2<Complex64>,
+) -> Array2<Complex64> {
     let mut basis_change = false;
-    let current: Array<Complex64, Dim<[usize; 2]>>;
+    let current: Array2<Complex64>;
     if q_list.len() < 2 {
         if q_list[0] == 1 {
-            current = kron(&matrix_arr, &identity);
+            current = kron(matrix, identity);
         } else {
-            current = kron(&identity, &matrix_arr);
+            current = kron(identity, matrix);
         }
     } else {
-        if q_list[0] > q_list[1] && matrix_arr != swap_gate {
+        if q_list[0] > q_list[1] && matrix != swap_gate {
             basis_change = true;
         }
-        current = matrix_arr;
+        current = matrix.to_owned();
     }
 
     if basis_change {
-        Ok((swap_gate.dot(&current))
-            .dot(&swap_gate)
-            .dot(&end_matrix)
-            .to_pyarray(py)
-            .to_owned())
+        (swap_gate.dot(&current)).dot(swap_gate)
     } else {
-        Ok(current.dot(&end_matrix).to_pyarray(py).to_owned())
+        current
     }
 }
 
 #[pymodule]
 pub fn convert_2q_block_matrix(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(block_to_matrix_2q_rust))?;
+    m.add_wrapped(wrap_pyfunction!(blocks_to_matrix))?;
     Ok(())
 }
