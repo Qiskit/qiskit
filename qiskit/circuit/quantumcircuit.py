@@ -508,14 +508,15 @@ class QuantumCircuit:
 
     def __eq__(self, other) -> bool:
         """Check if two circuits are equal.
-        This will check .cablirations and .global_phrase
-        and will not consider .data, .name, .metadata when determining.
+        This will check :attr:`~QuantumCircuit.calibrations` and :attr:`~QuantumCircuit.global_phase`
+        and will not consider :attr:`~QuantumCircuit.data`, :attr:`~QuantumCircuit.name`,
+        :attr:`~QuantumCircuit.metadata` when making determination.
         The reason for this is due to being hard and computationally expensive to perform.
         Please refer to :class:`.Operator` if you need to achieve that level of comparison.
 
         Examples:
 
-            .. code-block:: python
+            .. testcode::
 
                 from qiskit import QuantumCircuit
 
@@ -527,9 +528,12 @@ class QuantumCircuit:
                 qc1.x(1)
                 qc1.x(0)
 
-                QuantumCircuit.__eq__(qc, qc1)
-                # The two circuit above will return True
-                # even though the order of elements in their .data will be different.
+                print(QuantumCircuit.__eq__(qc, qc1))
+
+            .. testoutput::
+
+                #Returns true even though :attr:`~QuantumCircuit.data` on the circuits are different
+                true
         """
         if not isinstance(other, QuantumCircuit):
             return False

@@ -1010,15 +1010,15 @@ class DAGCircuit:
 
     def __eq__(self, other):
         """Check if two circuits are equal.
-        This will check .cablirations and .global_phrase and
-        will not consider .data, .name, .metadata when determining.
-        The reason for this is due to being hard and
-        computationally expensive to perform.
-        Please refer to :class:`.Operator` if you need to achieve that level of comparison.
+        This will check :attr:`~DAGCircuit.calibrations` and :attr:`~DAGCircuit.global_phase`
+        and will not consider :attr:`~DAGCircuit.data`, :attr:`~DAGCircuit.name`,
+        :attr:`~DAGCircuit.metadata` when making determination.
+        The reason for this is due to being hard and computationally expensive to perform.
+        Please refer to :class:`.Operator` if you need to achieve that level of comparision
 
         Examples:
 
-            .. code-block:: python
+            .. testcode::
 
                 from qiskit import QuantumCircuit
                 from qiskit.dagcircuit import DAGCircuit
@@ -1026,16 +1026,19 @@ class DAGCircuit:
                 qc = qk.QuantumCircuit(2)
                 qc.x(0)
                 qc.x(1)
-                dc = circuit_to_dag(qc);
+                dc = circuit_to_dag(qc)
 
                 qc1 = qk.QuantumCircuit(2)
                 qc1.x(1)
                 qc1.x(0)
-                dc1 = circuit_to_dag(qc1);
+                dc1 = circuit_to_dag(qc1)
 
-                DAGCircuit.__eq__(dc, dc1)
-                # The two circuit above will return True
-                # even though the order of elements in their .data will be different.
+                print(DAGCircuit.__eq__(dc, dc1))
+
+            .. testoutput::
+
+                #Returns true even though :attr:`~DAGCircuit.data` on the circuits are different.
+                true
         """
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
