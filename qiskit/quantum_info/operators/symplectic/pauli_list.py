@@ -16,6 +16,7 @@ Optimized list of Pauli operators
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Literal
 
 import numpy as np
 import rustworkx as rx
@@ -828,7 +829,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # Utility methods
     # ---------------------------------------------------------------------
 
-    def commutes(self, other: PauliList, qargs: list | None = None) -> bool:
+    def commutes(self, other: BasePauli, qargs: list | None = None) -> bool:
         """Return True for each Pauli that commutes with other.
 
         Args:
@@ -844,7 +845,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             other = PauliList(other)
         return super().commutes(other, qargs=qargs)
 
-    def anticommutes(self, other: PauliList, qargs: list | None = None) -> bool:
+    def anticommutes(self, other: BasePauli, qargs: list | None = None) -> bool:
         """Return ``True`` if other Pauli that anticommutes with other.
 
         Args:
@@ -911,7 +912,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return inds
 
     def evolve(
-        self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h"
+        self,
+        other: Pauli | Clifford | QuantumCircuit,
+        qargs: list | None = None,
+        frame: Literal["h", "s"] = "h",
     ) -> Pauli:
         r"""Performs either Heisenberg (default) or Schrödinger picture
         evolution of the Pauli by a Clifford and returns the evolved Pauli.

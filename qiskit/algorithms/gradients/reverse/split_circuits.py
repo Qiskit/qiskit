@@ -44,7 +44,7 @@ def split(
                 if isinstance(param, ParameterExpression) and len(param.parameters) > 0
             ]
         else:
-            if inst[0].definition is not None:
+            if inst.operation.definition is not None:
                 free_inst_params = inst.operation.definition.parameters
             else:
                 free_inst_params = {}

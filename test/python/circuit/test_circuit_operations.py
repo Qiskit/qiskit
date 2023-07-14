@@ -1165,7 +1165,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         expected = QuantumCircuit([a, b, c, d], [x, y, z])
         for instruction in instructions():
-            expected.append(*instruction)
+            expected.append(instruction.operation, instruction.qubits, instruction.clbits)
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit_tuples, expected)
@@ -1215,7 +1215,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         expected = QuantumCircuit([a, b], global_phase=0.1)
         for instruction in instructions():
-            expected.append(*instruction)
+            expected.append(instruction.operation, instruction.qubits, instruction.clbits)
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")

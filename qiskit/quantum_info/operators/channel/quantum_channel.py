@@ -19,7 +19,6 @@ import copy
 import sys
 from abc import abstractmethod
 from numbers import Number, Integral
-from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -39,9 +38,6 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
-
-if TYPE_CHECKING:
-    from qiskit.quantum_info import Statevector, DensityMatrix
 
 
 class QuantumChannel(LinearOp):

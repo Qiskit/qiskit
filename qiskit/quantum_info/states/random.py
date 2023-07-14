@@ -26,7 +26,9 @@ from .statevector import Statevector
 from .densitymatrix import DensityMatrix
 
 
-def random_statevector(dims: int | tuple, seed: int | np.random.Generator | None = None):
+def random_statevector(
+    dims: int | tuple, seed: int | np.random.Generator | None = None
+) -> Statevector:
     """Generator a random Statevector.
 
     The statevector is sampled from the uniform (Haar) measure.
@@ -62,7 +64,7 @@ def random_density_matrix(
     rank: int | None = None,
     method: Literal["Hilbert-Schmidt", "Bures"] = "Hilbert-Schmidt",
     seed: int | np.random.Generator | None = None,
-):
+) -> DensityMatrix:
     """Generator a random DensityMatrix.
 
     Args:

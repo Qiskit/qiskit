@@ -105,8 +105,8 @@ class BaseOperator(GroupMixin, ABC):
 
     def reshape(
         self,
-        input_dims: None | tuple = None,
-        output_dims: None | tuple = None,
+        input_dims: None | tuple | int = None,
+        output_dims: None | tuple | int = None,
         num_qubits: None | int = None,
     ) -> BaseOperator:
         """Return a shallow copy with reshaped input and output subsystem dimensions.

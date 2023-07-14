@@ -466,7 +466,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         clifford.phase[n + b.num_qubits :] = a.stab_phase
         return clifford
 
-    def compose(self, other: Clifford, qargs: list | None = None, front: bool = False) -> Clifford:
+    def compose(
+        self,
+        other: Clifford | QuantumCircuit | Instruction,
+        qargs: list | None = None,
+        front: bool = False,
+    ) -> Clifford:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         # If other is a QuantumCircuit we can more efficiently compose
