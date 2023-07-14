@@ -1898,36 +1898,27 @@ class DAGCircuit:
                 op_dict[name] += 1
         return op_dict
 
-    def _get_qubit_input_output_node(self, qubit, in_or_out=False):
-        """Returns qubit and input or output node from an index."""
-        nodes = self.output_map if in_or_out else self.input_map
-        # Check if index is passed
-        if isinstance(qubit, int):
-            if qubit >= self.num_qubits():
-                raise DAGCircuitError(f"Qubit index {qubit} is out of range")
-            qubit = list(nodes.keys())[qubit]
+    def get_causal_cone(self, qubit):
+        """
+        Returns causal cone of a qubit.
+
+        A qubit's causal cone is the set of qubits that can influence the output of that 
+        qubit through interactions, whether through multi-qubit gates or operations. Knowing
+        the causal cone of a qubit can be useful when debugging faulty circuits, as it can
+        help identify which wire(s) may be causing the problem.
+
+        Args:
+            `qubit` (`Qubit`): The output qubit for which we want to find the causal cone.
+        
+        Returns:
+            `Set[Qubit]`: The set of qubits whose interactions affect `qubit`.
+        """
         if qubit not in self.qubits:
-            raise DAGCircuitError("Qubit was not found in circuit")
-        return (qubit, nodes.get(qubit, None))
-
-    def get_qubit_input_node(self, qubit):
-        """Returns qubit and input node from a qubit index."""
-        return self._get_qubit_input_output_node(qubit)
-
-    def get_qubit_output_node(self, qubit):
-        """Returns qubit and output node from a qubit index."""
-        return self._get_qubit_input_output_node(qubit, True)
-
-    def get_causal_cone(self, qubit_index):
-        """Returns causal cone of a qubit."""
-        # Check if the qubit index is in range, else throw an error.
-        if qubit_index >= self.num_qubits():
-            raise DAGCircuitError(f"Qubit index {qubit_index} is out of range")
-
+            raise DAGCircuitError(f"Qubit {qubit} is not part of this circuit.")
         # Retrieve the output node and the qubit
-        qubit, output_node = self.get_qubit_output_node(qubit_index)
+        output_node = self.output_map[qubit]
         # Add the qubit to the causal cone.
-        qubits_to_check = set({qubit})
+        qubits_to_check = {qubit}
         # Add predecessors of output node to the queue.
         queue = deque(self.predecessors(output_node))
 
@@ -1936,7 +1927,7 @@ class DAGCircuit:
             # Pop first element.
             node_to_check = queue.popleft()
             # Check whether element is input or output node.
-            if not (isinstance(node_to_check, (DAGInNode, DAGOutNode))):
+            if isinstance(node_to_check, DAGOpNode):
                 # Keep all the qubits in the operation inside a set.
                 qubit_set = set(node_to_check.qargs)
                 # Check if there are any qubits in common and that the operation is not a barrier.

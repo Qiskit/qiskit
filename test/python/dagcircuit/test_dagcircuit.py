@@ -2352,14 +2352,14 @@ class TestDagCausalCone(QiskitTestCase):
         dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
 
         # Get causal cone of qubit at index 0
-        result = dag.get_causal_cone(0)
+        result = dag.get_causal_cone(qreg[0])
 
         # Expected result
         expected = set(qreg[[0, 3]])
         self.assertEqual(result, expected)
 
-    def test_causal_cone_invalid_index(self):
-        """Test causal cone with invalid index"""
+    def test_causal_cone_invalid_qubit(self):
+        """Test causal cone with invalid qubit"""
 
         # q_0: ───────■─────────────
         #             │
@@ -2385,7 +2385,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
 
         # Raise error due to invalid index
-        self.assertRaises(DAGCircuitError, dag.get_causal_cone, 5)
+        self.assertRaises(DAGCircuitError, dag.get_causal_cone, Qubit())
 
     def test_causal_cone_no_neighbor(self):
         """Test causal cone with no neighbor"""
@@ -2413,7 +2413,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag.apply_operation_back(XGate(), qreg[[3]], [])
 
         # Get causal cone of Qubit at index 3.
-        result = dag.get_causal_cone(3)
+        result = dag.get_causal_cone(qreg[3])
         # Expect only a set with Qubit at index 3
         expected = set(qreg[[3]])
         self.assertEqual(result, expected)
@@ -2427,77 +2427,11 @@ class TestDagCausalCone(QiskitTestCase):
         dag.add_creg(creg)
 
         # Get causal cone of qubit at index 4
-        result = dag.get_causal_cone(4)
+        result = dag.get_causal_cone(qreg[4])
         # Expect only a set with Qubit at index 4
         expected = set(qreg[[4]])
 
         self.assertEqual(result, expected)
-
-
-class TestDagInputOutputNode(QiskitTestCase):
-    """Tests get_qubit_input_node and get_qubit_output_node"""
-
-    def test_input_node_on_dag_index(self):
-        """Test input node on empty dag"""
-        dag = DAGCircuit()
-        qreg = QuantumRegister(5)
-        creg = ClassicalRegister(5)
-        dag.add_qreg(qreg)
-        dag.add_creg(creg)
-
-        result = dag.get_qubit_input_node(2)
-        expected = qreg[2], dag.input_map[qreg[2]]
-
-        self.assertEqual(result, expected)
-
-    def test_output_node_on_dag_index(self):
-        """Test output node on empty dag"""
-        dag = DAGCircuit()
-        qreg = QuantumRegister(5)
-        creg = ClassicalRegister(5)
-        dag.add_qreg(qreg)
-        dag.add_creg(creg)
-
-        result = dag.get_qubit_output_node(3)
-        expected = qreg[3], dag.output_map[qreg[3]]
-
-        self.assertEqual(result, expected)
-
-    def test_input_node_on_dag_qubit(self):
-        """Test input node on empty dag"""
-        dag = DAGCircuit()
-        qreg = QuantumRegister(5)
-        creg = ClassicalRegister(5)
-        dag.add_qreg(qreg)
-        dag.add_creg(creg)
-
-        result = dag.get_qubit_input_node(qreg[1])
-        expected = qreg[1], dag.input_map[qreg[1]]
-
-        self.assertEqual(result, expected)
-
-    def test_output_node_on_dag_qubit(self):
-        """Test output node on empty dag"""
-        dag = DAGCircuit()
-        qreg = QuantumRegister(5)
-        creg = ClassicalRegister(5)
-        dag.add_qreg(qreg)
-        dag.add_creg(creg)
-
-        result = dag.get_qubit_output_node(qreg[0])
-        expected = qreg[0], dag.output_map[qreg[0]]
-
-        self.assertEqual(result, expected)
-
-    def test_input_node_on_invalid_index(self):
-        """Test output node on invalid node"""
-        dag = DAGCircuit()
-        qreg = QuantumRegister(5)
-        creg = ClassicalRegister(5)
-        dag.add_qreg(qreg)
-        dag.add_creg(creg)
-
-        self.assertRaises(DAGCircuitError, dag.get_qubit_output_node, 6)
 
 
 if __name__ == "__main__":
