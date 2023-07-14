@@ -239,6 +239,7 @@ class SabreLayout(TransformationPass):
             final_dict,
             component_map,
             _sabre_result,
+            _circuit_to_dag_dict,
             local_dag,
         ) in layout_components:
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
@@ -267,6 +268,7 @@ class SabreLayout(TransformationPass):
             _final_layout_dict,
             component_map,
             sabre_result,
+            circuit_to_dag_dict,
             local_dag,
         ) in layout_components:
             _apply_sabre_result(
@@ -276,6 +278,7 @@ class SabreLayout(TransformationPass):
                 canonical_register,
                 original_layout,
                 sabre_result,
+                circuit_to_dag_dict,
                 component_map,
             )
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
@@ -292,7 +295,7 @@ class SabreLayout(TransformationPass):
         dist_matrix = coupling_map.distance_matrix
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
-        sabre_dag = _build_sabre_dag(
+        sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
             dag,
             coupling_map.size(),
             len(dag.clbits),
@@ -318,7 +321,14 @@ class SabreLayout(TransformationPass):
                 layout_dict[dag.qubits[k]] = v
         final_layout_dict = final_layout.layout_mapping()
         component_mapping = {x: coupling_map.graph[x] for x in coupling_map.graph.node_indices()}
-        return layout_dict, final_layout_dict, component_mapping, sabre_result, dag
+        return (
+            layout_dict,
+            final_layout_dict,
+            component_mapping,
+            sabre_result,
+            circuit_to_dag_dict,
+            dag,
+        )
 
     def _apply_layout_no_pass_manager(self, dag):
         """Apply and embed a layout into a dagcircuit without using a ``PassManager`` to
