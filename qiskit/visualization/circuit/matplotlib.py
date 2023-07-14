@@ -62,15 +62,16 @@ from ..utils import matplotlib_close_if_inline
 WID = 0.65
 HIG = 0.65
 
-PORDER_GATE = 6
-PORDER_LINE = 4
+# Z dimension order for different drawing types
 PORDER_REGLINE = 1
-PORDER_BARRIER = 4
-PORDER_TEXT = 7
-PORDER_FLOW = 2
-PORDER_MASK = 3
-
-INFINITE_FOLD = 10000000
+PORDER_FLOW = 3
+PORDER_MASK = 4
+PORDER_LINE = 6
+PORDER_LINE_PLUS = 7
+PORDER_BARRIER = 8
+PORDER_GATE = 10
+PORDER_GATE_PLUS = 11
+PORDER_TEXT = 13
 
 INFINITE_FOLD = 10000000
 
@@ -1703,14 +1704,14 @@ class MatplotlibDrawer:
             [ypos - 0.2 * HIG, ypos + 0.2 * HIG],
             color=ac,
             linewidth=linewidth,
-            zorder=PORDER_GATE + 1,
+            zorder=PORDER_GATE_PLUS,
         )
         self._ax.plot(
             [xpos - 0.2 * HIG, xpos + 0.2 * HIG],
             [ypos, ypos],
             color=ac,
             linewidth=linewidth,
-            zorder=PORDER_GATE + 1,
+            zorder=PORDER_GATE_PLUS,
         )
 
     def _symmetric_gate(self, node, node_data, base_type, glob_data):
@@ -1728,7 +1729,7 @@ class MatplotlibDrawer:
         if not isinstance(op, ZGate) and isinstance(base_type, ZGate):
             num_ctrl_qubits = op.num_ctrl_qubits
             self._ctrl_qubit(xy[-1], glob_data, fc=ec, ec=ec, tc=tc)
-            self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE + 1)
+            self._line(qubit_b, qubit_t, lc=lc, zorder=PORDER_LINE_PLUS)
 
         # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
         elif isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
@@ -1779,14 +1780,14 @@ class MatplotlibDrawer:
             [ypos - 0.20 * WID, ypos + 0.20 * WID],
             color=color,
             linewidth=self._lwidth2,
-            zorder=PORDER_LINE + 1,
+            zorder=PORDER_LINE_PLUS,
         )
         self._ax.plot(
             [xpos - 0.20 * WID, xpos + 0.20 * WID],
             [ypos + 0.20 * WID, ypos - 0.20 * WID],
             color=color,
             linewidth=self._lwidth2,
-            zorder=PORDER_LINE + 1,
+            zorder=PORDER_LINE_PLUS,
         )
 
     def _sidetext(self, node, node_data, xy, tc=None, text=""):
