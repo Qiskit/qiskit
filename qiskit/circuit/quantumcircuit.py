@@ -1745,11 +1745,10 @@ class QuantumCircuit:
                     operation, existing_gate_names, gates_to_define
                 )
                 # Insert qasm representation of the original instruction
-                name_param = _instruction_qasm2(operation)
                 bits_qasm = ",".join(
                     bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
                 )
-                instruction_qasm = f"{name_param} {bits_qasm};"
+                instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
             instruction_calls.append(instruction_qasm)
         instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
         gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
@@ -5088,8 +5087,7 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
                 instruction.operation, existing_gate_names, gates_to_define
             )
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
-            name_param = _instruction_qasm2(new_operation)
-            statements.append(f"{name_param} {bits_qasm};")
+            statements.append(f"{_instruction_qasm2(new_operation)} {bits_qasm};")
         body_qasm = " ".join(statements)
 
         # if an inner operation has the same name as the actual operation, it needs to be renamed
