@@ -587,10 +587,7 @@ class C3SXGate(ControlledGate):
         old_name = self.name
         self.name = "c3sqrtx"
         try:
-            # pylint: disable=cyclic-import
-            from qiskit.circuit.quantumcircuit import _instruction_qasm2
-
-            return _instruction_qasm2(self)
+            return super().qasm()
         finally:
             self.name = old_name
 
