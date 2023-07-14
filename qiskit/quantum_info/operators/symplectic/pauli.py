@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
@@ -577,7 +577,10 @@ class Pauli(BasePauli):
         return np.logical_not(self.commutes(other, qargs=qargs))
 
     def evolve(
-        self, other: Pauli | Clifford | QuantumCircuit, qargs: list | None = None, frame: str = "h"
+        self,
+        other: Pauli | Clifford | QuantumCircuit,
+        qargs: list | None = None,
+        frame: Literal["h", "s"] = "h",
     ) -> Pauli:
         r"""Performs either Heisenberg (default) or Schrödinger picture
         evolution of the Pauli by a Clifford and returns the evolved Pauli.
