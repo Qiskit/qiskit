@@ -234,7 +234,9 @@ class SabreSwap(TransformationPass):
         original_layout = layout.copy()
 
         sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
-            dag, dag.num_qubits(), dag.num_clbits(), self._qubit_indices, self._clbit_indices
+            dag,
+            self.coupling_map.size(),
+            self._qubit_indices,
         )
         sabre_result = build_swap_map(
             len(dag.qubits),
@@ -265,52 +267,44 @@ class SabreSwap(TransformationPass):
         return dag
 
 
-def _build_sabre_dag(dag, num_qubits, num_clbits, qubit_indices, clbit_indices):
+def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
     from qiskit.converters import circuit_to_dag
 
     # Maps id(block): circuit_to_dag(block) for all descendant blocks
     circuit_to_dag_dict = {}
 
-    def recurse(block, block_qubit_indices, block_clbit_indices):
+    def recurse(block, block_qubit_indices):
         block_dag = circuit_to_dag(block)
         circuit_to_dag_dict[id(block)] = block_dag
-        return process_dag(block_dag, block_qubit_indices, block_clbit_indices)
+        return process_dag(block_dag, block_qubit_indices)
 
-    def process_dag(block_dag, block_qubit_indices, block_clbit_indices):
+    def process_dag(block_dag, wire_map):
+        clbit_indices = {bit: idx for idx, bit in enumerate(block_dag.clbits)}
         dag_list = []
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
-            cargs = {block_clbit_indices[x] for x in node.cargs}
+            cargs = {clbit_indices[x] for x in node.cargs}
             if node.op.condition is not None:
                 for clbit in block_dag._bits_in_condition(node.op.condition):
-                    cargs.add(block_clbit_indices[clbit])
+                    cargs.add(clbit_indices[clbit])
             if isinstance(node.op, ControlFlowOp):
                 node_blocks[node._node_id] = [
                     recurse(
                         block,
-                        {
-                            inner: block_qubit_indices[outer]
-                            for inner, outer in zip(block.qubits, node.qargs)
-                        },
-                        block_clbit_indices,
+                        {inner: wire_map[outer] for inner, outer in zip(block.qubits, node.qargs)},
                     )
                     for block in node.op.blocks
                 ]
             dag_list.append(
                 (
                     node._node_id,
-                    [block_qubit_indices[x] for x in node.qargs],
+                    [wire_map[x] for x in node.qargs],
                     cargs,
                 )
             )
+        return SabreDAG(num_physical_qubits, block_dag.num_clbits(), dag_list, node_blocks)
 
-        # Note: num_qubits and num_clbits are used to preallocate
-        # storage within SabreDAG. Because indices are in terms of the
-        # root DAG, we always pass the same values even though blocks
-        # will often have fewer bits than the outer circuit.
-        return SabreDAG(num_qubits, num_clbits, dag_list, node_blocks)
-
-    return process_dag(dag, qubit_indices, clbit_indices), circuit_to_dag_dict
+    return process_dag(dag, qubit_indices), circuit_to_dag_dict
 
 
 def _apply_sabre_result(

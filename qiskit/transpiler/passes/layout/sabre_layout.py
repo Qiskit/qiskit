@@ -294,13 +294,10 @@ class SabreLayout(TransformationPass):
         neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
         dist_matrix = coupling_map.distance_matrix
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-        original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
             dag,
             coupling_map.size(),
-            len(dag.clbits),
             original_qubit_indices,
-            original_clbit_indices,
         )
         ((initial_layout, final_layout), sabre_result) = sabre_layout_and_routing(
             sabre_dag,
