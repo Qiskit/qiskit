@@ -32,6 +32,7 @@ repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict -
 
 [tool.ruff]
 select = [
+  "C4",  # category: flake8-comprehensions
   "F631",
   "F632",
   "F634",
@@ -49,7 +50,7 @@ extension-pkg-allow-list = [
     "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
-py-version = "3.7"  # update it when bumping minimum supported python version
+py-version = "3.8"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]
@@ -82,14 +83,12 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "consider-using-from-import",
     "modified-iterating-list",
     "nested-min-max",
     "no-member",
     "no-value-for-parameter",
     "non-ascii-name",
     "not-context-manager",
-    "pointless-exception-statement",
     "superfluous-parens",
     "unknown-option-value",
     "unexpected-keyword-arg",
@@ -105,7 +104,6 @@ disable = [
     "use-list-literal",
     "use-implicit-booleaness-not-comparison",
     "use-maxsplit-arg",
-    "used-before-assignment",
 ]
 
 enable = [

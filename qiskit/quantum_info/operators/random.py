@@ -53,7 +53,7 @@ def random_unitary(dims, seed=None):
     else:
         random_state = default_rng(seed)
 
-    dim = np.product(dims)
+    dim = np.prod(dims)
     from scipy import stats
 
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
@@ -84,7 +84,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         rng = default_rng(seed)
 
     # Total dimension
-    dim = np.product(dims)
+    dim = np.prod(dims)
     from scipy import stats
 
     if traceless:
@@ -133,8 +133,8 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
     elif output_dims is None:
         output_dims = input_dims
 
-    d_in = np.product(input_dims)
-    d_out = np.product(output_dims)
+    d_in = np.prod(input_dims)
+    d_out = np.prod(output_dims)
 
     # If rank is not specified set to the maximum rank for the
     # Choi matrix (input_dim * output_dim)
