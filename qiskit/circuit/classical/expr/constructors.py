@@ -116,7 +116,7 @@ def lift_legacy_condition(
 
             lifted = expr.lift_legacy_condition(instr.condition)
     """
-    from qiskit.circuit import Clbit
+    from qiskit.circuit import Clbit  # pylint: disable=cyclic-import
 
     target, value = condition
     if isinstance(target, Clbit):
@@ -159,7 +159,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
-    from qiskit.circuit import Clbit, ClassicalRegister
+    from qiskit.circuit import Clbit, ClassicalRegister  # pylint: disable=cyclic-import
 
     inferred: types.Type
     if value is True or value is False or isinstance(value, Clbit):
