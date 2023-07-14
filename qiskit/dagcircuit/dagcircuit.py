@@ -1902,14 +1902,14 @@ class DAGCircuit:
         """
         Returns causal cone of a qubit.
 
-        A qubit's causal cone is the set of qubits that can influence the output of that 
+        A qubit's causal cone is the set of qubits that can influence the output of that
         qubit through interactions, whether through multi-qubit gates or operations. Knowing
         the causal cone of a qubit can be useful when debugging faulty circuits, as it can
         help identify which wire(s) may be causing the problem.
 
         Args:
             `qubit` (`Qubit`): The output qubit for which we want to find the causal cone.
-        
+
         Returns:
             `Set[Qubit]`: The set of qubits whose interactions affect `qubit`.
         """
