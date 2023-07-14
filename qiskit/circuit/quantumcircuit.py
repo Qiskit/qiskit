@@ -1740,10 +1740,6 @@ class QuantumCircuit:
             elif operation.name == "barrier":
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
-            elif hasattr(operation, "has_qasm2") and not operation.has_qasm2():
-                raise CircuitError(
-                    f"No OpenQASM 2 representation is defined for operation {operation.name}"
-                )
             else:
                 operation = _qasm2_define_custom_operation(
                     operation, existing_gate_names, gates_to_define

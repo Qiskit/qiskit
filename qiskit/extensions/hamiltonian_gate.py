@@ -117,15 +117,7 @@ class HamiltonianGate(Gate):
         qc._append(UnitaryGate(self.to_matrix()), q[:], [])
         self.definition = qc
 
-    def has_qasm2(self):
-        """Return `False` because no QASM2 representation is defined for HamiltonianGate."""
-        return False
-
     @deprecate_func(
-        additional_msg=(
-            "All methods named `qasm` for classes derived from `Instruction` are deprecated."
-            " Stating that one in particular is not supported is redundant."
-        ),
         since="0.25.0",
     )
     def qasm(self):
