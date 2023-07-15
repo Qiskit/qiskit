@@ -201,6 +201,8 @@ class LinearFunction(Gate):
 
     def __eq__(self, other):
         """Check if two linear functions represent the same matrix."""
+        if not isinstance(other, LinearFunction):
+            return False
         return (self.linear == other.linear).all()
 
     def validate_parameter(self, parameter):
