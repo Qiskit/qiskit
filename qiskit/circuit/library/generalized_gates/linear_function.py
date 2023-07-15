@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.synthesis.linear import check_invertible_binary_matrix
+from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 
 
 class LinearFunction(Gate):
@@ -86,7 +87,6 @@ class LinearFunction(Gate):
         """
 
         # pylint: disable=cyclic-import
-        from qiskit.circuit.library import PermutationGate
         from qiskit.quantum_info import Clifford
 
         original_circuit = None
