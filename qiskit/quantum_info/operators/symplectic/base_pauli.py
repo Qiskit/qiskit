@@ -283,6 +283,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
+
         # Convert Clifford to quantum circuits
         if isinstance(other, Clifford):
             return self._evolve_clifford(other, qargs=qargs, frame=frame)
