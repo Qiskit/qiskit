@@ -37,7 +37,11 @@ from .. import types
 if typing.TYPE_CHECKING:
     import qiskit
 
+
 _T_co = typing.TypeVar("_T_co", covariant=True)
+
+
+# If adding nodes, remember to update `visitors.ExprVisitor` as well.
 
 
 class Expr(abc.ABC):

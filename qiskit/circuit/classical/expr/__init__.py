@@ -137,6 +137,11 @@ Consumers of the expression tree should subclass the visitor, and override the `
 that they wish to handle.  Any non-overridden methods will call :meth:`~ExprVisitor.visit_generic`,
 which unless overridden will raise a ``RuntimeError`` to ensure that you are aware if new nodes
 have been added to the expression tree that you are not yet handling.
+
+For the convenience of simple visitors that only need to inspect the variables in an expression and
+not the general structure, the iterator method :func:`iter_vars` is provided.
+
+.. autofunction:: iter_vars
 """
 
 __all__ = [
@@ -147,6 +152,7 @@ __all__ = [
     "Unary",
     "Binary",
     "ExprVisitor",
+    "iter_vars",
     "lift",
     "cast",
     "bit_not",
@@ -166,7 +172,7 @@ __all__ = [
 ]
 
 from .expr import Expr, Var, Value, Cast, Unary, Binary
-from .visitors import ExprVisitor
+from .visitors import ExprVisitor, iter_vars
 from .constructors import (
     lift,
     cast,

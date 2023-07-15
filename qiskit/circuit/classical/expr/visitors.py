@@ -16,6 +16,7 @@ from __future__ import annotations
 
 __all__ = [
     "ExprVisitor",
+    "iter_vars",
 ]
 
 import typing
@@ -30,6 +31,7 @@ class ExprVisitor(typing.Generic[_T_co]):
     the ``visit_*`` methods that they are able to handle, and should be organised such that
     non-existent methods will never be called."""
 
+    # The method names are self-explanatory and docstrings would just be noise.
     # pylint: disable=missing-function-docstring
 
     __slots__ = ()
@@ -51,3 +53,46 @@ class ExprVisitor(typing.Generic[_T_co]):
 
     def visit_cast(self, node: expr.Cast, /) -> _T_co:  # pragma: no cover
         return self.visit_generic(node)
+
+
+class _VarWalkerImpl(ExprVisitor[typing.Iterable[expr.Var]]):
+    __slots__ = ()
+
+    def visit_var(self, node, /):
+        yield node
+
+    def visit_value(self, node, /):
+        yield from ()
+
+    def visit_unary(self, node, /):
+        yield from node.operand.accept(self)
+
+    def visit_binary(self, node, /):
+        yield from node.left.accept(self)
+        yield from node.right.accept(self)
+
+    def visit_cast(self, node, /):
+        yield from node.operand.accept(self)
+
+
+_VAR_WALKER = _VarWalkerImpl()
+
+
+def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
+    """Get an iterator over the :class:`~.expr.Var` nodes referenced at any level in the given
+    :class:`~.expr.Expr`.
+
+    Examples:
+        Print out the name of each :class:`.ClassicalRegister` encountered::
+
+            from qiskit.circuit import ClassicalRegister
+            from qiskit.circuit.classical import expr
+
+            cr1 = ClassicalRegister(3, "a")
+            cr2 = ClassicalRegister(3, "b")
+
+            for node in expr.iter_vars(expr.bit_and(expr.bit_not(cr1), cr2)):
+                if isinstance(node.var, ClassicalRegister):
+                    print(node.var.name)
+    """
+    yield from node.accept(_VAR_WALKER)
