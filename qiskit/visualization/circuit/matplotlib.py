@@ -921,7 +921,7 @@ class MatplotlibDrawer:
                 fc=self._style["bg"],
                 ec=self._style["bg"],
                 linewidth=self._lwidth15,
-                zorder=PORDER_GATE,
+                zorder=PORDER_MASK,
             )
             self._ax.add_patch(box)
 
