@@ -46,9 +46,9 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
+from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -1228,6 +1228,16 @@ class QuantumCircuit:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
 
+    def _validate_expr(self, node: expr.Expr) -> expr.Expr:
+        for var in expr.iter_vars(node):
+            if isinstance(var.var, Clbit):
+                if var.var not in self._clbit_indices:
+                    raise CircuitError(f"Clbit {var.var} is not present in this circuit.")
+            elif isinstance(var.var, ClassicalRegister):
+                if var.var not in self.cregs:
+                    raise CircuitError(f"Register {var.var} is not present in this circuit.")
+        return node
+
     def append(
         self,
         instruction: Operation | CircuitInstruction,
@@ -1635,11 +1645,14 @@ class QuantumCircuit:
         Raises:
             MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
-            QasmError: If circuit has free parameters.
+            QASM2ExportError: If circuit has free parameters.
         """
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
 
         if self.num_parameters > 0:
-            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
+            raise QASM2ExportError(
+                "Cannot represent circuits with unbound parameters in OpenQASM 2."
+            )
 
         existing_gate_names = {
             "barrier",
@@ -4330,7 +4343,7 @@ class QuantumCircuit:
     @typing.overload
     def while_loop(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         body: None,
         qubits: None,
         clbits: None,
@@ -4342,7 +4355,7 @@ class QuantumCircuit:
     @typing.overload
     def while_loop(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -4397,7 +4410,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if body is None:
             if qubits is not None or clbits is not None:
@@ -4602,7 +4618,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp, IfContext
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if true_body is None:
             if qubits is not None or clbits is not None:
@@ -4668,7 +4687,11 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
+
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     @typing.overload
@@ -4749,7 +4772,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.switch_case import SwitchCaseOp, SwitchContext
 
-        target = self._resolve_classical_resource(target)
+        if isinstance(target, expr.Expr):
+            target = self._validate_expr(target)
+        else:
+            target = self._resolve_classical_resource(target)
         if cases is None:
             if qubits is not None or clbits is not None:
                 raise CircuitError(
