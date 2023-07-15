@@ -2,7 +2,7 @@
 features:
   - |
     Added :meth:`.DAGCircuit.get_causal_cone` to obtain the causal cone of a qubit
-    in a DAGCircuit.
+    in a :class:`~.DAGCircuit`.
     The following example shows its correct usage::
 
         from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
