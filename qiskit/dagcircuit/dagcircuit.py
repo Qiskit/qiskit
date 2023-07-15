@@ -1913,10 +1913,10 @@ class DAGCircuit:
         Returns:
             Set[Qubit]: The set of qubits whose interactions affect ``qubit``.
         """
-        if qubit not in self.qubits:
-            raise DAGCircuitError(f"Qubit {qubit} is not part of this circuit.")
         # Retrieve the output node and the qubit
-        output_node = self.output_map[qubit]
+        output_node = self.output_map.get(qubit, None)
+        if not output_node:
+            raise DAGCircuitError(f"Qubit {qubit} is not part of this circuit.")
         # Add the qubit to the causal cone.
         qubits_to_check = {qubit}
         # Add predecessors of output node to the queue.
