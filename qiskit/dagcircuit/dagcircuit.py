@@ -1014,7 +1014,7 @@ class DAGCircuit:
         and will not consider :attr:`~DAGCircuit.data`, :attr:`~DAGCircuit.name`,
         :attr:`~DAGCircuit.metadata` when making determination.
         The reason for this is due to being hard and computationally expensive to perform.
-        Please refer to :class:`.Operator` if you need to achieve that level of comparision
+        Please refer to :class:`.Operator` if you need to achieve that level of comparison
 
         Examples:
 
