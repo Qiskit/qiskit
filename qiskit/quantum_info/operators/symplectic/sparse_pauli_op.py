@@ -229,6 +229,7 @@ class SparsePauliOp(LinearOp):
         if not isinstance(value, PauliList):
             value = PauliList(value)
         self._pauli_list = value
+        super().__init__(num_qubits=self._pauli_list.num_qubits)
 
     @property
     def coeffs(self):
