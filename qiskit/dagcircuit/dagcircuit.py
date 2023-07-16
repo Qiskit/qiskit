@@ -30,8 +30,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
-from qiskit.circuit.controlflow.condition import condition_bits
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -450,12 +449,14 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if conditioning on an invalid register
         """
-        if (
-            condition is not None
-            and condition[0] not in self.clbits
-            and condition[0].name not in self.cregs
-        ):
-            raise DAGCircuitError("invalid creg in condition for %s" % name)
+        if condition is None:
+            return
+        resources = condition_resources(condition)
+        for creg in resources.cregs:
+            if creg.name not in self.cregs:
+                raise DAGCircuitError(f"invalid creg in condition for {name}")
+        if not set(resources.clbits).issubset(self.clbits):
+            raise DAGCircuitError(f"invalid clbits in condition for {name}")
 
     def _check_bits(self, args, amap):
         """Check the values of a list of (qu)bit arguments.
@@ -479,24 +480,13 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
+            cond (tuple or expr.Expr or None): optional condition in any form that the control-flow
+                operations accept.
 
         Returns:
             list[Clbit]: list of classical bits
-
-        Raises:
-            CircuitError: if cond[0] is not ClassicalRegister or Clbit
         """
-        if cond is None:
-            return []
-        elif isinstance(cond[0], ClassicalRegister):
-            # Returns a list of all the cbits in the given creg cond[0].
-            return cond[0][:]
-        elif isinstance(cond[0], Clbit):
-            # Returns a singleton list of the conditional cbit.
-            return [cond[0]]
-        else:
-            raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
+        return [] if cond is None else list(condition_resources(cond).clbits)
 
     def _increment_op(self, op):
         if op.name in self._op_names:
@@ -1133,7 +1123,7 @@ class DAGCircuit:
             block_cargs |= set(nd.cargs)
             cond = getattr(nd.op, "condition", None)
             if cond is not None:
-                block_cargs.update(condition_bits(cond))
+                block_cargs.update(condition_resources(cond).clbits)
 
         # Create replacement node
         new_node = DAGOpNode(
