@@ -17,8 +17,13 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
 
+_SWAP_ARRAY = numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+
+
+@with_gate_array(_SWAP_ARRAY)
 class SwapGate(Gate):
     r"""The SWAP gate.
 
@@ -53,10 +58,6 @@ class SwapGate(Gate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
-    _ARRAY = numpy.array(
-        [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=numpy.complex128
-    )
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
@@ -111,11 +112,8 @@ class SwapGate(Gate):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SWAP gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_controlled_gate_array(_SWAP_ARRAY, num_ctrl_qubits=1)
 class CSwapGate(ControlledGate):
     r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
@@ -192,34 +190,6 @@ class CSwapGate(ControlledGate):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
-    _ARRAY_1 = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSWAP gate."""
@@ -260,8 +230,3 @@ class CSwapGate(ControlledGate):
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)

@@ -18,10 +18,12 @@ import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
 
 from .xx_plus_yy import XXPlusYYGate
 
 
+@with_gate_array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
 class iSwapGate(Gate):
     r"""iSWAP gate.
 
@@ -82,10 +84,6 @@ class iSwapGate(Gate):
                 0 & 0 & 0 & 1
             \end{pmatrix}
     """
-    _ARRAY = np.array(
-        [[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=np.complex128
-    )
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
@@ -123,10 +121,6 @@ class iSwapGate(Gate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the iSWAP gate."""
-        return np.asarray(self._ARRAY, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

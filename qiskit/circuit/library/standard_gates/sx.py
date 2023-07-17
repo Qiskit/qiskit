@@ -18,8 +18,14 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
 
+_SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
+_SXDG_ARRAY = [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]]
+
+
+@with_gate_array(_SX_ARRAY)
 class SXGate(Gate):
     r"""The single-qubit Sqrt(X) gate (:math:`\sqrt{X}`).
 
@@ -57,10 +63,6 @@ class SXGate(Gate):
                     = e^{-i \pi/4} \sqrt{X}
 
     """
-    _ARRAY = numpy.array(
-        [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]], dtype=numpy.complex128
-    )
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
@@ -111,11 +113,8 @@ class SXGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SX gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_gate_array(_SXDG_ARRAY)
 class SXdgGate(Gate):
     r"""The inverse single-qubit Sqrt(X) gate.
 
@@ -173,11 +172,8 @@ class SXdgGate(Gate):
         """Return inverse SXdg gate (i.e. SX)."""
         return SXGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SXdg gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
 class CSXGate(ControlledGate):
     r"""Controlled-√X gate.
 
@@ -233,26 +229,6 @@ class CSXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    _ARRAY_1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
-            [0, 0, 1, 0],
-            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array(
-        [
-            [(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
-            [0, 1, 0, 0],
-            [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
-            [0, 0, 0, 1],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSX gate."""
@@ -275,8 +251,3 @@ class CSXGate(ControlledGate):
         for operation, qubits, clbits in rules:
             qc._append(operation, qubits, clbits)
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CSX gate."""
-        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)

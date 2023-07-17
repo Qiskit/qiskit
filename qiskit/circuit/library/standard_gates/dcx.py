@@ -12,11 +12,12 @@
 
 """Double-CNOT gate."""
 
-import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
 
 
+@with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
 class DCXGate(Gate):
     r"""Double-CNOT gate.
 
@@ -46,8 +47,6 @@ class DCXGate(Gate):
                 0 & 0 & 1 & 0
             \end{pmatrix}
     """
-    _ARRAY = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=np.complex128)
-    _ARRAY.setflags(write=False)
 
     def __init__(self):
         """Create new DCX gate."""
@@ -68,7 +67,3 @@ class DCXGate(Gate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the DCX gate."""
-        return np.asarray(self._ARRAY, dtype=dtype)

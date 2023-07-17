@@ -14,14 +14,17 @@
 
 from math import pi
 from typing import Optional, Union
-import numpy
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+
+_Y_ARRAY = [[0, -1j], [1j, 0]]
 
 
+@with_gate_array(_Y_ARRAY)
 class YGate(Gate):
     r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
 
@@ -67,8 +70,6 @@ class YGate(Gate):
         |0\rangle \rightarrow i|1\rangle \\
         |1\rangle \rightarrow -i|0\rangle
     """
-    _ARRAY = numpy.array([[0, -1j], [1j, 0]], dtype=numpy.complex128)
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
@@ -116,11 +117,8 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def __array__(self, dtype=complex):
-        """Return a numpy.array for the Y gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_controlled_gate_array(_Y_ARRAY, num_ctrl_qubits=1)
 class CYGate(ControlledGate):
     r"""Controlled-Y gate.
 
@@ -176,10 +174,6 @@ class CYGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    _ARRAY_1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
-    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CY gate."""
@@ -207,8 +201,3 @@ class CYGate(ControlledGate):
     def inverse(self):
         """Return inverted CY gate (itself)."""
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CY gate."""
-        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)

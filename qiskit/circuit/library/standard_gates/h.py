@@ -17,10 +17,14 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
 
+_H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
+
+@with_gate_array(_H_ARRAY)
 class HGate(Gate):
     r"""Single-qubit Hadamard gate.
 
@@ -49,8 +53,6 @@ class HGate(Gate):
                 1 & -1
             \end{pmatrix}
     """
-    _ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new H gate."""
@@ -101,11 +103,8 @@ class HGate(Gate):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a Numpy.array for the H gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
 class CHGate(ControlledGate):
     r"""Controlled-Hadamard gate.
 
@@ -162,16 +161,6 @@ class CHGate(ControlledGate):
                     0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
-    _ARRAY_1 = numpy.array(
-        [[1, 0, 0, 0], [0, sqrt(0.5), 0, sqrt(0.5)], [0, 0, 1, 0], [0, sqrt(0.5), 0, -sqrt(0.5)]],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array(
-        [[sqrt(0.5), 0, sqrt(0.5), 0], [0, 1, 0, 0], [sqrt(0.5), 0, -sqrt(0.5), 0], [0, 0, 0, 1]],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_0.setflags(write=True)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[int, str]] = None):
         """Create new CH gate."""
@@ -214,8 +203,3 @@ class CHGate(ControlledGate):
     def inverse(self):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CH gate."""
-        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)

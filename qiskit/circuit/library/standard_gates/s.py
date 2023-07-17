@@ -21,8 +21,14 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
 
+_S_ARRAY = numpy.array([[1, 0], [0, 1j]])
+_SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
+
+
+@with_gate_array(_S_ARRAY)
 class SGate(Gate):
     r"""Single qubit S gate (Z**0.5).
 
@@ -52,8 +58,6 @@ class SGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
-    _ARRAY = numpy.array([[1, 0], [0, 1j]], dtype=numpy.complex128)
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
@@ -80,15 +84,12 @@ class SGate(Gate):
         """Return inverse of S (SdgGate)."""
         return SdgGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the S gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(0.5 * numpy.pi * exponent)
 
 
+@with_gate_array(_SDG_ARRAY)
 class SdgGate(Gate):
     r"""Single qubit S-adjoint gate (~Z**0.5).
 
@@ -118,8 +119,6 @@ class SdgGate(Gate):
 
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
-    _ARRAY = numpy.array([[1, 0], [0, -1j]], dtype=numpy.complex128)
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
@@ -146,15 +145,12 @@ class SdgGate(Gate):
         """Return inverse of Sdg (SGate)."""
         return SGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Sdg gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(-0.5 * numpy.pi * exponent)
 
 
+@with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
 class CSGate(ControlledGate):
     r"""Controlled-S gate.
 
@@ -183,26 +179,6 @@ class CSGate(ControlledGate):
                 0 & 0 & 0 & i
             \end{pmatrix}
     """
-    _ARRAY_1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1j],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1j, 0],
-            [0, 0, 0, 1],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CS gate."""
@@ -220,16 +196,12 @@ class CSGate(ControlledGate):
         """Return inverse of CSGate (CSdgGate)."""
         return CSdgGate(ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CS gate."""
-        mat = self._ARRAY_1 if self.ctrl_state == 1 else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return CPhaseGate(0.5 * numpy.pi * exponent)
 
 
+@with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
 class CSdgGate(ControlledGate):
     r"""Controlled-S^\dagger gate.
 
@@ -258,26 +230,6 @@ class CSdgGate(ControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
-    _ARRAY_1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, -1j],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, -1j, 0],
-            [0, 0, 0, 1],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSdg gate."""
@@ -300,11 +252,6 @@ class CSdgGate(ControlledGate):
     def inverse(self):
         """Return inverse of CSdgGate (CSGate)."""
         return CSGate(ctrl_state=self.ctrl_state)
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CSdg gate."""
-        mat = self._ARRAY_1 if self.ctrl_state == 1 else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

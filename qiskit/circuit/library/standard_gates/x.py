@@ -18,14 +18,17 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
+from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
 from .u2 import U2Gate
 from .sx import SXGate
 
+_X_ARRAY = [[0, 1], [1, 0]]
 
+
+@with_gate_array(_X_ARRAY)
 class XGate(Gate):
     r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
 
@@ -71,8 +74,6 @@ class XGate(Gate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
-    _ARRAY = numpy.array([[0, 1], [1, 0]], dtype=numpy.complex128)
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
@@ -121,11 +122,8 @@ class XGate(Gate):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the X gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=1)
 class CXGate(ControlledGate):
     r"""Controlled-X gate.
 
@@ -188,14 +186,6 @@ class CXGate(ControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
-    _ARRAY_1 = numpy.array(
-        [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=numpy.complex128
-    )
-    _ARRAY_1.setflags(write=False)
-    _ARRAY_0 = numpy.array(
-        [[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=numpy.complex128
-    )
-    _ARRAY_0.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CX gate."""
@@ -255,12 +245,8 @@ class CXGate(ControlledGate):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CX gate."""
-        mat = self._ARRAY_1 if self.ctrl_state else self._ARRAY_0
-        return numpy.asarray(mat, dtype=dtype)
 
-
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
 class CCXGate(ControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
@@ -328,9 +314,6 @@ class CCXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    _ARRAY_3 = numpy.eye(8, dtype=numpy.complex128)
-    _ARRAY_3[[3, 7], :] = _ARRAY_3[[7, 3], :]
-    _ARRAY_3.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCX gate."""
@@ -408,18 +391,19 @@ class CCXGate(ControlledGate):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CCX gate."""
-        if self.ctrl_state == 3:
-            return numpy.asarray(self._ARRAY_3, dtype=dtype)
-        return numpy.asarray(
-            _compute_control_matrix(
-                self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-            ),
-            dtype=dtype,
-        )
 
-
+@with_gate_array(
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, -1j],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, -1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 1j, 0, 0, 0, 0],
+    ]
+)
 class RCCXGate(Gate):
     """The simplified Toffoli gate, also referred to as Margolus gate.
 
@@ -435,21 +419,6 @@ class RCCXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
-
-    _ARRAY = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, -1j],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, -1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 1j, 0, 0, 0, 0],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
@@ -489,10 +458,6 @@ class RCCXGate(Gate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the simplified CCX gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
 
 class C3SXGate(ControlledGate):
@@ -595,14 +560,12 @@ class C3SXGate(ControlledGate):
             self.name = old_name
 
 
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
 class C3XGate(ControlledGate):
     r"""The X gate controlled on 3 qubits.
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
-    _ARRAY_7 = numpy.eye(16, dtype=numpy.complex128)
-    _ARRAY_7[[7, 15], :] = _ARRAY_7[[15, 7], :]
-    _ARRAY_7.setflags(write=False)
 
     def __init__(
         self,
@@ -714,18 +677,27 @@ class C3XGate(ControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C3XGate(ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
-        if self.ctrl_state == 7:
-            return numpy.asarray(self._ARRAY_7, dtype=dtype)
-        return numpy.asarray(
-            _compute_control_matrix(
-                self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-            ),
-            dtype=numpy.complex128,
-        )
 
-
+@with_gate_array(
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+)
 class RC3XGate(Gate):
     """The simplified 3-controlled Toffoli gate.
 
@@ -739,29 +711,6 @@ class RC3XGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
-
-    _ARRAY = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
-        ],
-        dtype=numpy.complex128,
-    )
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None):
         """Create a new RC3X gate."""
@@ -820,11 +769,8 @@ class RC3XGate(Gate):
 
         self.definition = qc
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the RC3X gate."""
-        return numpy.asarray(self._ARRAY, dtype=dtype)
 
-
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=4, cached_states=(15,))
 class C4XGate(ControlledGate):
     """The 4-qubit controlled X gate.
 
@@ -835,10 +781,6 @@ class C4XGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
-
-    _ARRAY_15 = numpy.eye(32, dtype=numpy.complex128)
-    _ARRAY_15[[15, 31], :] = _ARRAY_15[[31, 15], :]
-    _ARRAY_15.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create a new 4-qubit controlled X gate."""
@@ -922,17 +864,6 @@ class C4XGate(ControlledGate):
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
-        if self.ctrl_state == 15:
-            return numpy.asarray(self._ARRAY_15, dtype=dtype)
-        return numpy.asarray(
-            _compute_control_matrix(
-                self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-            ),
-            dtype=dtype,
-        )
 
 
 class MCXGate(ControlledGate):
