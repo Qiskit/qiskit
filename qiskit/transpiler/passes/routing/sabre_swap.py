@@ -370,7 +370,7 @@ def _apply_sabre_result(
                     # assert mapped_block_layout.layout_mapping() == current_layout.layout_mapping()
 
                     mapped_block_dags.append(mapped_block_dag)
-                    idle_qubits &= set(mapped_block_dag.idle_wires())
+                    idle_qubits.intersection_update(mapped_block_dag.idle_wires())
 
                 mapped_blocks = []
                 for mapped_block_dag in mapped_block_dags:
