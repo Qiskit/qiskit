@@ -240,7 +240,7 @@ class SabreSwap(TransformationPass):
         for node in dag.topological_op_nodes():
             cargs = {self._clbit_indices[x] for x in node.cargs}
             if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
+                for clbit in dag._bits_in_operation(node.op):
                     cargs.add(self._clbit_indices[clbit])
 
             dag_list.append(
