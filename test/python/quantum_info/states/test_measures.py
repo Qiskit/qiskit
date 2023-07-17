@@ -17,13 +17,14 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit.quantum_info.states import DensityMatrix, Statevector, StabilizerState
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import purity
 from qiskit.quantum_info import entropy
 from qiskit.quantum_info import concurrence
 from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
+from qiskit.quantum_info import renyi_entropy
 from qiskit.quantum_info.states import shannon_entropy
 from qiskit.quantum_info import negativity
 
@@ -188,6 +189,194 @@ class TestStateMeasures(QiskitTestCase):
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(entropy(psi), entropy(rho))
+
+    def test_renyi_entropy_stab(self):
+        """Test renyi entanglement entropy on stabilizer states"""
+        # 4-qubit GHZ state
+        stab1 = StabilizerState(
+            [
+                [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 1, 0],
+            ]
+        )
+
+        # Two EPR pairs on qubits (0, 3) and (1, 2)
+        # 1/2(|0000> + |1001> + |0110> + |1111>)
+        stab2 = StabilizerState(
+            [
+                [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 1, 0],
+            ]
+        )
+
+        for alpha in [0, 0.5, 1.0, 1.5, 2.0, 100]:
+            for stab in [stab1, stab2]:
+                self.assertAlmostEqual(renyi_entropy(stab, alpha), 0)
+                self.assertAlmostEqual(renyi_entropy(stab, alpha, []), 0)
+                self.assertAlmostEqual(renyi_entropy(stab, alpha, [0, 1, 2, 3]), 0)
+
+            self.assertAlmostEqual(renyi_entropy(stab1, alpha, [0]), 1)
+            self.assertAlmostEqual(renyi_entropy(stab1, alpha, [0, 1]), 1)
+            self.assertAlmostEqual(renyi_entropy(stab1, alpha, [0, 1, 2]), 1)
+
+            self.assertAlmostEqual(renyi_entropy(stab2, alpha, [0]), 1)
+            self.assertAlmostEqual(renyi_entropy(stab2, alpha, [0, 1]), 2)
+            self.assertAlmostEqual(renyi_entropy(stab2, alpha, [0, 1, 2]), 1)
+
+    def test_renyi_entropy_statevector(self):
+        """Test renyi entanglement entropy on statevector states"""
+        # Hartley case
+        psi = [0, 0, 0.70710678118654746, 0, 0.70710678118654746, 0, 0, 0]
+
+        self.assertAlmostEqual(renyi_entropy(psi, 0), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, []), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [0, 1, 2]), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [0]), 0)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [1]), 1)
+        self.assertAlmostEqual(renyi_entropy(psi, 0, [2]), 1)
+
+        # Shannon case
+        self.assertAlmostEqual(renyi_entropy(psi, 1), entropy(psi))
+        self.assertAlmostEqual(renyi_entropy(psi, 1, []), entropy(psi))
+        self.assertAlmostEqual(renyi_entropy(psi, 1, [0, 1, 2]), 0)
+
+        # General case
+        for alpha in [0.5, 1.5, 2.0, 100]:
+            for theta in np.linspace(0, 2 * np.pi, 4):
+                for phi in np.linspace(0, np.pi, 4):
+                    # Study a parametrized entangled state to test
+                    # |psi> = cos(t)cos(p)|001> + sin(t)cos(p)|010> + sin(p)|100>
+                    psi = [
+                        0,
+                        np.sin(phi),
+                        np.sin(theta) * np.cos(phi),
+                        0,
+                        np.cos(theta) * np.cos(phi),
+                        0,
+                        0,
+                        0,
+                    ]
+
+                    # Analytical entanglement of each qubit:
+                    correct_entropy1 = np.log2(
+                        (np.cos(phi) ** 2) ** alpha + (np.sin(phi) ** 2) ** alpha
+                    ) / (1 - alpha)
+                    correct_entropy2 = np.log2(
+                        ((np.cos(phi) * np.sin(theta)) ** 2) ** alpha
+                        + ((np.cos(phi) * np.cos(theta)) ** 2 + np.sin(phi) ** 2) ** alpha
+                    ) / (1 - alpha)
+                    correct_entropy3 = np.log2(
+                        ((np.cos(theta) * np.cos(phi)) ** 2) ** alpha
+                        + ((np.cos(phi) * np.sin(theta)) ** 2 + np.sin(phi) ** 2) ** alpha
+                    ) / (1 - alpha)
+
+                    # Compare with analytical result
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [0]), correct_entropy1)
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [1, 2]), correct_entropy1)
+
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [1]), correct_entropy2)
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [0, 2]), correct_entropy2)
+
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [2]), correct_entropy3)
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [0, 1]), correct_entropy3)
+
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, []), 0)
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha, [0, 1, 2]), 0)
+                    self.assertAlmostEqual(renyi_entropy(psi, alpha), 0)
+
+    def test_renyi_entropy_density_matrix(self):
+        """Test renyi entanglement entropy on density matrix states"""
+
+        for a in [0, 0.25, 0.5, 0.75, 1.0]:
+            rho = [[0.5, a / 2], [a / 2, 0.5]]
+
+            # Hartley case
+            if a == 1.0:
+                self.assertAlmostEqual(renyi_entropy(rho, 0), 0)
+            else:
+                self.assertAlmostEqual(renyi_entropy(rho, 0), 1)
+
+            # Shannon case
+            self.assertAlmostEqual(renyi_entropy(rho, 1), entropy(rho))
+
+            # General case
+            for alpha in [0.5, 1.5, 2.0]:
+                correct_entropy = (np.log2((1 - a) ** alpha + (1 + a) ** alpha) - alpha) / (
+                    1 - alpha
+                )
+
+                self.assertAlmostEqual(renyi_entropy(rho, alpha, []), 0)
+                self.assertAlmostEqual(renyi_entropy(rho, alpha, [0]), correct_entropy)
+                self.assertAlmostEqual(renyi_entropy(rho, alpha), correct_entropy)
+
+    def test_renyi_entropy_equivalence(self):
+        """Test equivalence of renyi entanglement on equivalent input states"""
+        # 4-qubit GHZ state
+        stab = StabilizerState(
+            [
+                [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 1, 0],
+            ]
+        )
+
+        state = Statevector(stab.clifford.to_instruction())
+
+        for alpha in [0, 0.5, 1.0, 1.5, 100]:
+            for num_qbits in [0, 1, 2, 3]:
+                self.assertAlmostEqual(
+                    renyi_entropy(stab, alpha, list(range(num_qbits))),
+                    renyi_entropy(state, alpha, list(range(num_qbits))),
+                )
+                self.assertAlmostEqual(
+                    renyi_entropy(stab, alpha, list(range(num_qbits))),
+                    renyi_entropy(DensityMatrix(state), alpha, list(range(num_qbits))),
+                )
+
+        # Two EPR pairs on qubits (0, 3) and (1, 2), i.e.
+        # 1/2(|0000> + |1001> + |0110> + |1111>)
+        stab = StabilizerState(
+            [
+                [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [1, 0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 1, 0],
+            ]
+        )
+
+        state = Statevector(stab.clifford.to_instruction())
+
+        for alpha in [0, 0.5, 1.0, 1.5, 100]:
+            for num_qbits in [0, 1, 2, 3]:
+                self.assertAlmostEqual(
+                    renyi_entropy(stab, alpha, list(range(num_qbits))),
+                    renyi_entropy(state, alpha, list(range(num_qbits))),
+                )
+                self.assertAlmostEqual(
+                    renyi_entropy(stab, alpha, list(range(num_qbits))),
+                    renyi_entropy(DensityMatrix(state), alpha, list(range(num_qbits))),
+                )
 
     def test_concurrence_statevector(self):
         """Test concurrence function on statevector inputs"""

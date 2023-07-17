@@ -20,6 +20,7 @@ from .measures import (
     state_fidelity,
     purity,
     entropy,
+    renyi_entropy,
     concurrence,
     mutual_information,
     entanglement_of_formation,
