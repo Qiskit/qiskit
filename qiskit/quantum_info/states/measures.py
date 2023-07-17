@@ -283,9 +283,8 @@ def negativity(state, qargs):
     # Calculating negativity
     negv = (eigvals - 1) / 2
     return negv
-  
-  
-  def mwb_measure(state):
+    
+def mwb_measure(state):
     r"""Calculate the Meyer-Wallach-Brennen measure of the quantum state.
     The Meyer-Wallach-Brennen measure :math:`Q` is given by:
     .. math::
