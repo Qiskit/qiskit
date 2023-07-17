@@ -2433,6 +2433,46 @@ class TestDagCausalCone(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
+    def test_causal_cone_barriers(self):
+        """Test causal cone for circuit with barriers"""
+
+        #       ┌───┐      ░               ░
+        # q1_0: ┤ X ├──■───░───────────────░───────────
+        #       └───┘┌─┴─┐ ░               ░
+        # q1_1: ─────┤ X ├─░───────■───■───░───────────
+        #            └───┘ ░ ┌───┐ │   │   ░ ┌───┐
+        # q1_2: ───────────░─┤ H ├─■───┼───░─┤ Y ├─────
+        #                  ░ └───┘   ┌─┴─┐ ░ └─┬─┘┌───┐
+        # q1_3: ───────────░─────────┤ Y ├─░───■──┤ X ├
+        #                  ░         └───┘ ░      └─┬─┘
+        # q1_4: ───────────░───────────────░────────■──
+        #                  ░               ░
+
+        # Build the circuit:
+        qreg = QuantumRegister(5)
+        qc = QuantumCircuit(qreg)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.barrier()
+
+        qc.h(2)
+        qc.cz(2, 1)
+        qc.cy(1, 3)
+        qc.barrier()
+
+        qc.cy(3, 2)
+        qc.cx(4, 3)
+
+        # Transform into a dag:
+        dag = circuit_to_dag(qc)
+
+        # Compute result:
+        result = dag.get_causal_cone(qreg[1])
+        # Expected:
+        expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
+
+        self.assertEqual(result, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
