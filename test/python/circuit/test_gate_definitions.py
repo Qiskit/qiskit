@@ -283,6 +283,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "Commuting2qBlock",
         "PauliEvolutionGate",
         "SingletonGate",
+        "_U0Gate",
+        "_DefinedGate",
     }
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
     # to a "natural" comprehension or functional iterable definition:
@@ -338,7 +340,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         CU3Gate,
         XGate,
         CXGate,
-        ECRGate,
+        ECRGate,ough.  You might be interested (wr
         CCXGate,
         YGate,
         CYGate,
