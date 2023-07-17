@@ -5151,6 +5151,8 @@ def _qasm_escape_name(name: str, prefix: str) -> str:
 
 def _instruction_qasm2(operation):
     """Return an OpenQASM 2 string for the instruction."""
+    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+
     if operation.name == "c3sx":
         qasm2_call = "c3sqrtx"
     else:
@@ -5162,7 +5164,7 @@ def _instruction_qasm2(operation):
         )
     if operation.condition is not None:
         if not isinstance(operation.condition[0], ClassicalRegister):
-            raise QasmError(
+            raise QASM2ExportError(
                 "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
             )
         qasm2_call = (
