@@ -20,14 +20,13 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
 
-def _append_circuit(clifford, circuit, qargs=None, recursion_depth=0):
+def _append_circuit(clifford, circuit, qargs=None):
     """Update Clifford inplace by applying a Clifford circuit.
 
     Args:
         clifford (Clifford): The Clifford to update.
         circuit (QuantumCircuit): The circuit to apply.
         qargs (list or None): The qubits to apply circuit to.
-        recursion_depth (int): The depth of mutual recursion with _append_operation
 
     Returns:
         Clifford: the updated Clifford.
@@ -45,18 +44,17 @@ def _append_circuit(clifford, circuit, qargs=None, recursion_depth=0):
             )
         # Get the integer position of the flat register
         new_qubits = [qargs[circuit.find_bit(bit).index] for bit in instruction.qubits]
-        clifford = _append_operation(clifford, instruction.operation, new_qubits, recursion_depth)
+        clifford = _append_operation(clifford, instruction.operation, new_qubits)
     return clifford
 
 
-def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
+def _append_operation(clifford, operation, qargs=None):
     """Update Clifford inplace by applying a Clifford operation.
 
     Args:
         clifford (Clifford): The Clifford to update.
         operation (Instruction or Clifford or str): The operation or composite operation to apply.
         qargs (list or None): The qubits to apply operation to.
-        recursion_depth (int): The depth of mutual recursion with _append_circuit
 
     Returns:
         Clifford: the updated Clifford.
@@ -134,16 +132,10 @@ def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
     # This succeeds only if the gate has all-Clifford definition (decomposition).
     # If fails, we need to restore the clifford that was before attempting to unroll and append.
     if gate.definition is not None:
-        if recursion_depth > 0:
-            return _append_circuit(clifford, gate.definition, qargs, recursion_depth + 1)
-        else:  # recursion_depth == 0
-            # clifford may be updated in _append_circuit
-            org_clifford = copy.deepcopy(clifford)
-            try:
-                return _append_circuit(clifford, gate.definition, qargs, 1)
-            except (QiskitError, RecursionError):
-                # discard incompletely updated clifford and continue
-                clifford = org_clifford
+        try:
+            return _append_circuit(clifford.copy(), gate.definition, qargs)
+        except QiskitError:
+            pass
 
     # As a final attempt, if the gate is up to 3 qubits,
     # we try to construct a Clifford to be appended from its matrix representation.
