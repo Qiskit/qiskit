@@ -26,6 +26,7 @@ from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info.states import shannon_entropy
 from qiskit.quantum_info import negativity
+from qiskit.quantum_info import mwb_measure
 
 
 class TestStateMeasures(QiskitTestCase):
@@ -389,7 +390,6 @@ class TestStateMeasures(QiskitTestCase):
         rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
         q_measure = mwb_measure(rho)
         self.assertAlmostEqual(q_measure, 1.0, places=7)
-
 
 
 if __name__ == "__main__":
