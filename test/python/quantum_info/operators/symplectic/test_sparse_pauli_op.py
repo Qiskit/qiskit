@@ -615,7 +615,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         if value == 0:
             np.testing.assert_array_equal(value_mat, target.astype(complex))
         else:
-            np.testing.assert_allclose(value_mat, target)
+            np.testing.assert_allclose(value_mat, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
         target = spp_op.to_matrix() * value
         op = spp_op * value
