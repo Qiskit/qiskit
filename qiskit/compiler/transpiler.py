@@ -331,8 +331,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     output_name = _parse_output_name(output_name, circuits)
     inst_map = _parse_inst_map(inst_map, backend)
 
-    cmap_conf = [coupling_map] * len(circuits)
-    _check_circuits_coupling_map(circuits, cmap_conf, backend)
+    _check_circuits_coupling_map(circuits, coupling_map, backend)
 
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
 
@@ -428,25 +427,22 @@ def transpile(  # pylint: disable=too-many-return-statements
         return out_circuits[0]
 
 
-def _check_circuits_coupling_map(circuits, cmap_conf, backend):
+def _check_circuits_coupling_map(circuits, cmap, backend):
     # Check circuit width against number of qubits in coupling_map(s)
-    coupling_maps_list = cmap_conf
-    for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
+    if cmap is not None:
+        max_qubits = cmap.size()
+    else:
+        backend_version = getattr(backend, "version", 0)
+        if backend_version <= 1:
+            if not backend.configuration().simulator:
+                max_qubits = backend.configuration().n_qubits
+            else:
+                max_qubits = None
+        else:
+            max_qubits = backend.num_qubits
+    for circuit in circuits:
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
-        max_qubits = None
-        if isinstance(parsed_coupling_map, CouplingMap):
-            max_qubits = parsed_coupling_map.size()
-
-        # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
-        elif backend is not None:
-            backend_version = getattr(backend, "version", 0)
-            if backend_version <= 1:
-                if not backend.configuration().simulator:
-                    max_qubits = backend.configuration().n_qubits
-            else:
-                max_qubits = backend.num_qubits
-
         if max_qubits is not None and (num_qubits > max_qubits):
             raise TranspilerError(
                 f"Number of qubits ({num_qubits}) in {circuit.name} "
@@ -548,12 +544,8 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuit):
 def _parse_approximation_degree(approximation_degree):
     if approximation_degree is None:
         return None
-    if not isinstance(approximation_degree, list):
-        if approximation_degree < 0.0 or approximation_degree > 1.0:
-            raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
-    else:
-        if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
-            raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
+    if approximation_degree < 0.0 or approximation_degree > 1.0:
+        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
 
 
