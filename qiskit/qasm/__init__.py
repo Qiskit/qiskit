@@ -24,7 +24,6 @@ QASM Routines
    :toctree: ../stubs/
 
    Qasm
-   QasmError
 
 
 Pygments
