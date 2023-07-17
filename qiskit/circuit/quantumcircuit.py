@@ -5152,12 +5152,12 @@ def _qasm_escape_name(name: str, prefix: str) -> str:
 def _instruction_qasm2(operation):
     """Return an OpenQASM 2 string for the instruction."""
     if operation.name == "c3sx":
-        name_param = "c3sqrtx"
+        qasm2_call = "c3sqrtx"
     else:
-        name_param = operation.name
+        qasm2_call = operation.name
     if operation.params:
-        name_param = "{}({})".format(
-            name_param,
+        qasm2_call = "{}({})".format(
+            qasm2_call,
             ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
         )
     if operation.condition is not None:
@@ -5165,10 +5165,10 @@ def _instruction_qasm2(operation):
             raise QasmError(
                 "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
             )
-        name_param = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + name_param
+        qasm2_call = (
+            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
         )
-    return name_param
+    return qasm2_call
 
 
 def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
