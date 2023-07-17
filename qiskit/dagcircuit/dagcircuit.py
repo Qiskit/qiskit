@@ -1407,7 +1407,7 @@ class DAGCircuit:
 
         Args:
             remove_idle_qubits (bool): Flag denoting whether to remove idle qubits from
-                the separated circuits. If ``True``, each output circuit will contain the
+                the separated circuits. If ``False``, each output circuit will contain the
                 same number of qubits as ``self``.
 
         Returns:
