@@ -342,7 +342,7 @@ class TestStateMeasures(QiskitTestCase):
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
-        
+            
     def test_negativity_statevector(self):
         """Test negativity function on statevector inputs"""
         # Constructing separable quantum statevector
@@ -367,7 +367,8 @@ class TestStateMeasures(QiskitTestCase):
         negv = negativity(rho, [0])
         self.assertAlmostEqual(negv, 0.5, places=7)
         negv = negativity(rho, [1])
-        self.assertAlmostEqual(negv, 0.5, places=7)
+        self.assertAlmostEqual(negv, 0.5, places=7)        
+
 
     def test_mwb_measure_statevector(self):
         """Test mwb_measure function on statevector inputs"""
