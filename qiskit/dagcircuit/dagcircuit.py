@@ -1447,7 +1447,7 @@ class DAGCircuit:
             if not subgraph_is_classical:
                 decomposed_dags.append(new_dag)
 
-        if remove_idle_wires:
+        if remove_idle_qubits:
             for dag in decomposed_dags:
                 dag.remove_qubits(*(bit for bit in dag.idle_wires() if isinstance(qubit, Qubit)))
 
