@@ -340,7 +340,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         CU3Gate,
         XGate,
         CXGate,
-        ECRGate,ough.  You might be interested (wr
+        ECRGate,
         CCXGate,
         YGate,
         CYGate,
