@@ -14,7 +14,13 @@
 Mixin for operator scalar multiplication interface.
 """
 
+import sys
 from abc import ABC, abstractmethod
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class MultiplyMixin(ABC):
@@ -32,16 +38,16 @@ class MultiplyMixin(ABC):
         - ``_multiply(self, other)``
     """
 
-    def __rmul__(self, other):
+    def __rmul__(self, other) -> Self:
         return self._multiply(other)
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> Self:
         return self._multiply(other)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other) -> Self:
         return self._multiply(1 / other)
 
-    def __neg__(self):
+    def __neg__(self) -> Self:
         return self._multiply(-1)
 
     @abstractmethod
