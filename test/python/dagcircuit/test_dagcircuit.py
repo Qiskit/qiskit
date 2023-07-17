@@ -20,25 +20,26 @@ from ddt import ddt, data
 import rustworkx as rx
 from numpy import pi
 
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ClassicalRegister, Clbit
-from qiskit.circuit import QuantumCircuit, Qubit
-from qiskit.circuit import Measure
-from qiskit.circuit import Reset
-from qiskit.circuit import Delay
-from qiskit.circuit import Gate, Instruction
-from qiskit.circuit import Parameter
-from qiskit.circuit.library.standard_gates.i import IGate
-from qiskit.circuit.library.standard_gates.h import HGate
-from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.library.standard_gates.z import CZGate
-from qiskit.circuit.library.standard_gates.x import XGate
-from qiskit.circuit.library.standard_gates.y import YGate
-from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.library.standard_gates.rx import RXGate
-from qiskit.circuit.barrier import Barrier
-from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode, DAGCircuitError
+from qiskit.circuit import (
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+    Clbit,
+    Qubit,
+    Measure,
+    Delay,
+    Reset,
+    Gate,
+    Instruction,
+    Parameter,
+    Barrier,
+    SwitchCaseOp,
+    IfElseOp,
+    WhileLoopOp,
+)
+from qiskit.circuit.classical import expr
+from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
@@ -580,6 +581,68 @@ class TestDagApplyOperation(QiskitTestCase):
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
 
+    def test_apply_operation_expr_condition(self):
+        """Test that the operation-applying functions correctly handle wires implied from `Expr`
+        nodes in the `condition` field of `ControlFlowOp` instances."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2, "a")
+        cr2 = ClassicalRegister(2, "b")
+        clbit = Clbit()
+
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        dag.add_clbits([clbit])
+
+        # Note that 'cr2' is not in either condition.
+        expected_wires = set(qr) | set(cr1) | {clbit}
+
+        op = IfElseOp(expr.logic_and(expr.equal(cr1, 3), expr.logic_not(clbit)), inner, None)
+        node = dag.apply_operation_back(op, qr, ())
+        test_wires = {wire for _source, _dest, wire in dag.edges(node)}
+        self.assertIsInstance(node.op.condition, expr.Expr)
+        self.assertEqual(test_wires, expected_wires)
+
+        op = WhileLoopOp(expr.logic_or(expr.less(2, cr1), clbit), inner)
+        node = dag.apply_operation_front(op, qr, ())
+        test_wires = {wire for _source, _dest, wire in dag.edges(node)}
+        self.assertIsInstance(node.op.condition, expr.Expr)
+        self.assertEqual(test_wires, expected_wires)
+
+    def test_apply_operation_expr_target(self):
+        """Test that the operation-applying functions correctly handle wires implied from `Expr`
+        nodes in the `target` field of `SwitchCaseOp`."""
+        case_1 = QuantumCircuit(1)
+        case_1.x(0)
+        case_2 = QuantumCircuit(1)
+        case_2.y(0)
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2, "a")
+        cr2 = ClassicalRegister(2, "b")
+        # Note that 'cr2' is not in the condition.
+        op = SwitchCaseOp(expr.bit_and(cr1, 2), [(1, case_1), (2, case_2)])
+
+        expected_wires = set(qr) | set(cr1)
+
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+
+        node = dag.apply_operation_back(op, qr, ())
+        test_wires = {wire for _source, _dest, wire in dag.edges(node)}
+        self.assertIsInstance(node.op.target, expr.Expr)
+        self.assertEqual(test_wires, expected_wires)
+
+        node = dag.apply_operation_front(op, qr, ())
+        test_wires = {wire for _source, _dest, wire in dag.edges(node)}
+        self.assertIsInstance(node.op.target, expr.Expr)
+        self.assertEqual(test_wires, expected_wires)
+
 
 class TestDagNodeSelection(QiskitTestCase):
     """Test methods that select certain dag nodes"""
@@ -739,6 +802,73 @@ class TestDagNodeSelection(QiskitTestCase):
             (isinstance(predecessor1, DAGInNode) and isinstance(predecessor2.op, Reset))
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
+
+    def test_classical_predecessors(self):
+        """The method dag.classical_predecessors() returns predecessors connected by classical edges"""
+
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        predecessor_measure = self.dag.classical_predecessors(self.dag.named_nodes("measure").pop())
+
+        predecessor1 = next(predecessor_measure)
+
+        with self.assertRaises(StopIteration):
+            next(predecessor_measure)
+
+        self.assertIsInstance(predecessor1, DAGInNode)
+        self.assertIsInstance(predecessor1.wire, Clbit)
+
+    def test_classical_successors(self):
+        """The method dag.classical_successors() returns successors connected by classical edges"""
+
+        #       ┌───┐                         ┌───┐
+        #  q_0: ┤ H ├──■───────────────────■──┤ H ├
+        #       ├───┤┌─┴─┐               ┌─┴─┐├───┤
+        #  q_1: ┤ H ├┤ X ├──■─────────■──┤ X ├┤ H ├
+        #       └───┘└───┘┌─┴─┐┌───┐┌─┴─┐└───┘└───┘
+        #  q_2: ──────────┤ X ├┤ H ├┤ X ├──────────
+        #                 └───┘└───┘└───┘
+        #  c: 5/═══════════════════════════════════
+
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        successors_measure = self.dag.classical_successors(self.dag.named_nodes("measure").pop())
+
+        successors1 = next(successors_measure)
+        with self.assertRaises(StopIteration):
+            next(successors_measure)
+
+        self.assertIsInstance(successors1, DAGOutNode)
+        self.assertIsInstance(successors1.wire, Clbit)
 
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
