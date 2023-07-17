@@ -14,12 +14,12 @@
 
 """Sphinx documentation builder."""
 
-# -- General configuration ---------------------------------------------------
 import datetime
 import doctest
+import os
 
 project = "Qiskit"
-copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
+project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
@@ -39,7 +39,8 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.doctest",
+    "qiskit_sphinx_theme",
+    "nbsphinx",
 ]
 
 templates_path = ["_templates"]
@@ -77,7 +78,9 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
-# -- Options for HTML output -------------------------------------------------
+# ----------------------------------------------------------------------------------
+# HTML theme
+# ----------------------------------------------------------------------------------
 
 html_theme = "qiskit_sphinx_theme"
 html_last_updated_fmt = "%Y/%m/%d"
@@ -88,8 +91,9 @@ html_theme_options = {
     "style_external_links": True,
 }
 
-
-# -- Options for Autosummary and Autodoc -------------------------------------
+# ----------------------------------------------------------------------------------
+# Autodoc
+# ----------------------------------------------------------------------------------
 
 # Note that setting autodoc defaults here may not have as much of an effect as you may expect; any
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
@@ -131,7 +135,9 @@ napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
 
-# -- Options for Doctest --------------------------------------------------------
+# ----------------------------------------------------------------------------------
+# Doctest
+# ----------------------------------------------------------------------------------
 
 doctest_default_flags = (
     doctest.ELLIPSIS
@@ -145,3 +151,27 @@ doctest_default_flags = (
 # >> code
 # output
 doctest_test_doctest_blocks = ""
+
+# ----------------------------------------------------------------------------------
+# Nbsphinx
+# ----------------------------------------------------------------------------------
+
+nbsphinx_timeout = 300
+nbsphinx_execute = os.getenv("QISKIT_DOCS_BUILD_TUTORIALS", "never")
+nbsphinx_widgets_path = ""
+nbsphinx_thumbnails = {"**": "_static/images/logo.png"}
+
+nbsphinx_prolog = """
+{% set docname = env.doc2path(env.docname, base=None) %}
+
+.. only:: html
+
+    .. role:: raw-html(raw)
+        :format: html
+
+    .. note::
+        This page was generated from `{{ docname }}`__.
+
+    __ https://github.com/Qiskit/qiskit-terra/blob/main/{{ docname }}
+
+"""

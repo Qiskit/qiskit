@@ -143,6 +143,7 @@ qiskit/transpiler/passes/**/cython/**/*.cpp
 qiskit/quantum_info/states/cython/*.cpp
 
 docs/stubs/*
+*.nbconvert.ipynb
 
 # Notebook testing images
 test/visual/mpl/circuit/circuit_results/*.png
