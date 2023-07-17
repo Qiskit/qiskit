@@ -12,7 +12,6 @@
 """
 Circuit simulation for the Clifford class.
 """
-import copy
 import numpy as np
 
 from qiskit.circuit import Barrier, Delay, Gate
