@@ -14,6 +14,7 @@
 """Routines that use local invariants to compute properties
 of two-qubit unitary operators.
 """
+from __future__ import annotations
 from math import sqrt
 import numpy as np
 
@@ -27,7 +28,7 @@ MAGIC = (
 )
 
 
-def two_qubit_local_invariants(U):
+def two_qubit_local_invariants(U: np.ndarray) -> np.ndarray:
     """Computes the local invariants for a two-qubit unitary.
 
     Args:
@@ -67,7 +68,7 @@ def two_qubit_local_invariants(U):
     return np.round([G1.real, G1.imag, G2.real], 12) + 0.0
 
 
-def local_equivalence(weyl):
+def local_equivalence(weyl: np.ndarray) -> np.ndarray:
     """Computes the equivalent local invariants from the
     Weyl coordinates.
 
