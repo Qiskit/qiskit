@@ -1414,7 +1414,7 @@ class DAGCircuit:
             List[DAGCircuit]: The circuits resulting from separating ``self`` into sets
                 of disconnected qubits
 
-        The global phase information in `self` will not be maintained in the subcircuits
+        The global phase information in ``self`` will not be maintained in the subcircuits
         returned by this method.
         """
         connected_components = rx.weakly_connected_components(self._multi_graph)
@@ -1449,7 +1449,7 @@ class DAGCircuit:
 
         if remove_idle_qubits:
             for dag in decomposed_dags:
-                dag.remove_qubits(*(bit for bit in dag.idle_wires() if isinstance(qubit, Qubit)))
+                dag.remove_qubits(*(bit for bit in dag.idle_wires() if isinstance(bit, Qubit)))
 
         return decomposed_dags
 

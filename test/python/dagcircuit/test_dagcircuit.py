@@ -1360,27 +1360,59 @@ class TestCircuitProperties(QiskitTestCase):
         """Test separating disconnected sets of qubits in a circuit."""
         # Empty case
         dag = DAGCircuit()
-        self.assertEqual([], dag.separable_circuits())
+        self.assertEqual(dag.separable_circuits(), [])
 
         # 3 disconnected qubits
-        qreg = QuantumRegister(3, "qr")
-        creg = ClassicalRegister(2, "cr")
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(2, "c")
         dag.add_qreg(qreg)
         dag.add_creg(creg)
         dag.apply_operation_back(HGate(), [qreg[0]], [])
         dag.apply_operation_back(HGate(), [qreg[1]], [])
         dag.apply_operation_back(HGate(), [qreg[2]], [])
         dag.apply_operation_back(HGate(), [qreg[2]], [])
-        self.assertEqual(3, len(dag.separable_circuits(remove_idle_wires=True)))
+
+        qc1 = QuantumCircuit(3, 2)
+        qc2 = QuantumCircuit(3, 2)
+        qc3 = QuantumCircuit(3, 2)
+        qc1.h(0)
+        qc2.h(1)
+        qc3.h(2)
+        qc3.h(2)
+        qcs = [qc1, qc2, qc3]
+        compare_dags = [circuit_to_dag(qc) for qc in qcs]
+
+        dags = dag.separable_circuits(remove_idle_qubits=False)
+
+        self.assertEqual(dags, compare_dags)
 
         # 2 sets of disconnected qubits
+        qc1 = QuantumCircuit(3, 2)
+        qc2 = QuantumCircuit(3, 2)
+        qc1.h(0)
+        qc2.h([1, 2, 2])
+        qc2.cx(1, 2)
+        qcs = [qc1, qc2]
+        compare_dags = [circuit_to_dag(qc) for qc in qcs]
+
         dag.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
-        self.assertEqual(2, len(dag.separable_circuits(remove_idle_wires=True)))
+
+        dags = dag.separable_circuits(remove_idle_qubits=False)
+
+        self.assertEqual(dags, compare_dags)
 
         # One connected component
+        qc = QuantumCircuit(3, 2)
+        qc.h([0, 1, 2, 2])
+        qc.cx(1, 2)
+        qc.cx(0, 1)
+        compare_dags = [circuit_to_dag(qc)]
         dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
-        self.assertEqual(1, len(dag.separable_circuits(remove_idle_wires=True)))
 
+        dags = dag.separable_circuits(remove_idle_qubits=False)
+        self.assertEqual(dags, compare_dags)
+
+    def test_separable_circuits_w_measurements(self):
         # Test circuit ordering with measurements
         dag = DAGCircuit()
         qreg = QuantumRegister(3, "q")
@@ -1395,22 +1427,22 @@ class TestCircuitProperties(QiskitTestCase):
         dag.apply_operation_back(HGate(), [qreg[2]], [])
         dag.apply_operation_back(Measure(), [qreg[0]], [creg[0]])
 
-        compare1 = QuantumCircuit(3, 1)
-        compare1.h(0)
-        compare1.x(0)
-        compare1.measure(0, 0)
-        compare2 = QuantumCircuit(3, 1)
-        compare2.x(1)
-        compare2.h(1)
-        compare3 = QuantumCircuit(3, 1)
-        compare3.y(2)
-        compare3.h(2)
+        qc1 = QuantumCircuit(3, 1)
+        qc1.h(0)
+        qc1.x(0)
+        qc1.measure(0, 0)
+        qc2 = QuantumCircuit(3, 1)
+        qc2.x(1)
+        qc2.h(1)
+        qc3 = QuantumCircuit(3, 1)
+        qc3.y(2)
+        qc3.h(2)
+        qcs = [qc1, qc2, qc3]
+        compare_dags = [circuit_to_dag(qc) for qc in qcs]
 
         dags = dag.separable_circuits()
 
-        self.assertEqual(dag_to_circuit(dags[0]), compare1)
-        self.assertEqual(dag_to_circuit(dags[1]), compare2)
-        self.assertEqual(dag_to_circuit(dags[2]), compare3)
+        self.assertEqual(dags, compare_dags)
 
     def test_default_metadata_value(self):
         """Test that the default DAGCircuit metadata is valid QuantumCircuit metadata."""
