@@ -319,11 +319,14 @@ def _apply_sabre_result(
 ):
     bit_to_qreg_idx = {bit: idx for idx, bit in enumerate(canonical_register)}
 
-    def empty_dag(node):
+    def empty_dag(node, block):
         out = DAGCircuit()
         for qreg in mapped_dag.qregs.values():
             out.add_qreg(qreg)
         out.add_clbits(node.cargs)
+        for creg in block.cregs:
+            out.add_creg(creg)
+        out._global_phase = block.global_phase
         return out
 
     def apply_inner(out_dag, current_layout, qubit_indices_inner, result, id_to_node):
@@ -336,7 +339,7 @@ def _apply_sabre_result(
                 idle_qubits = set(out_dag.qubits)
                 for block, block_result in zip(node.op.blocks, block_results):
                     block_id_to_node = circuit_to_dag_dict[id(block)]._multi_graph
-                    mapped_block_dag = empty_dag(node)
+                    mapped_block_dag = empty_dag(node, block)
                     mapped_block_layout = current_layout.copy()
                     block_qubit_indices = {
                         inner: qubit_indices_inner[outer]

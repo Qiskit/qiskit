@@ -17,7 +17,7 @@ import unittest
 import ddt
 import numpy.random
 
-from qiskit.circuit import Clbit, ControlFlowOp
+from qiskit.circuit import Clbit, ControlFlowOp, Qubit
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
@@ -386,6 +386,29 @@ class TestSabreSwap(QiskitTestCase):
 @ddt.ddt
 class TestSabreSwapControlFlow(QiskitTestCase):
     """Tests for control flow in sabre swap."""
+
+    def test_blocks_use_registers(self):
+        """Test that control flow ops using registers still use registers after routing."""
+        num_qubits = 2
+        qreg = QuantumRegister(num_qubits, "q")
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(1)
+        qc = QuantumCircuit(qreg, cr1, cr2)
+
+        with qc.if_test((cr1, False)):
+            qc.cx(0, 1)
+            qc.measure(0, cr2)
+            with qc.if_test((cr2, True)):
+                qc.cx(0, 1)
+
+        coupling = CouplingMap.from_line(num_qubits)
+        cdag = SabreSwap(coupling, "lookahead", seed=82, trials=1).run(circuit_to_dag(qc))
+
+        outer_if_op = cdag.op_nodes(ControlFlowOp)[0].op
+        self.assertEqual(outer_if_op.condition[0], cr1)
+
+        inner_if_op = circuit_to_dag(outer_if_op.blocks[0]).op_nodes(ControlFlowOp)[0].op
+        self.assertEqual(inner_if_op.condition[0], cr2)
 
     def test_pre_if_else_route(self):
         """test swap with if else controlflow construct"""
@@ -786,7 +809,7 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
-        ewhile_body = QuantumCircuit(qreg, creg[:])
+        ewhile_body = QuantumCircuit(qreg, creg)
         ewhile_body.reset(qreg[2:])
         ewhile_body.h(qreg[2:])
         ewhile_body.swap(0, 1)
@@ -1016,9 +1039,9 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qr = QuantumRegister(num_qubits, "q")
         cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
-        true_body = QuantumCircuit(3, 1)
+        true_body = QuantumCircuit(qr[0:3] + cr[:])
         true_body.cx(0, 1)
-        false_body = QuantumCircuit(3, 1)
+        false_body = QuantumCircuit(qr[0:3] + cr[:])
         false_body.cx(0, 2)
         qc.if_else((cr[0], 1), true_body, false_body, [0, 1, 2], [0])
         cqc = SabreSwap(cm, "lookahead", seed=82, trials=1)(qc)
