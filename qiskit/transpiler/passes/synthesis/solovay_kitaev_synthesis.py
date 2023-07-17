@@ -204,7 +204,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         defaults to ``["h", "t", "tdg"]``.
 
     depth (int):
-        The gate-depth of the the basic approximations. All possible, unique combinations of the
+        The gate-depth of the basic approximations. All possible, unique combinations of the
         basis gates up to length ``depth`` are considered. If None, defaults to 10.
 
     recursion_degree (int):

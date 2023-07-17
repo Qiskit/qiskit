@@ -129,7 +129,7 @@ class Operator(LinearOp):
 
     @property
     def data(self):
-        """Return data."""
+        """The underlying Numpy array."""
         return self._data
 
     @property

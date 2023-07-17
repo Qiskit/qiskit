@@ -30,8 +30,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
-from qiskit.circuit.controlflow.condition import condition_bits
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -450,12 +449,14 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if conditioning on an invalid register
         """
-        if (
-            condition is not None
-            and condition[0] not in self.clbits
-            and condition[0].name not in self.cregs
-        ):
-            raise DAGCircuitError("invalid creg in condition for %s" % name)
+        if condition is None:
+            return
+        resources = condition_resources(condition)
+        for creg in resources.cregs:
+            if creg.name not in self.cregs:
+                raise DAGCircuitError(f"invalid creg in condition for {name}")
+        if not set(resources.clbits).issubset(self.clbits):
+            raise DAGCircuitError(f"invalid clbits in condition for {name}")
 
     def _check_bits(self, args, amap):
         """Check the values of a list of (qu)bit arguments.
@@ -475,28 +476,26 @@ class DAGCircuit:
                 raise DAGCircuitError(f"(qu)bit {wire} not found in {amap}")
 
     @staticmethod
-    def _bits_in_condition(cond):
-        """Return a list of bits in the given condition.
+    def _bits_in_operation(operation):
+        """Return an iterable over the classical bits that are inherent to an instruction.  This
+        includes a `condition`, or the `target` of a :class:`.ControlFlowOp`.
 
         Args:
-            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
+            instruction: the :class:`~.circuit.Instruction` instance for a node.
 
         Returns:
-            list[Clbit]: list of classical bits
-
-        Raises:
-            CircuitError: if cond[0] is not ClassicalRegister or Clbit
+            Iterable[Clbit]: the :class:`.Clbit`\\ s involved.
         """
-        if cond is None:
-            return []
-        elif isinstance(cond[0], ClassicalRegister):
-            # Returns a list of all the cbits in the given creg cond[0].
-            return cond[0][:]
-        elif isinstance(cond[0], Clbit):
-            # Returns a singleton list of the conditional cbit.
-            return [cond[0]]
-        else:
-            raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
+        if (condition := getattr(operation, "condition", None)) is not None:
+            yield from condition_resources(condition).clbits
+        if isinstance(operation, SwitchCaseOp):
+            target = operation.target
+            if isinstance(target, Clbit):
+                yield target
+            elif isinstance(target, ClassicalRegister):
+                yield from target
+            else:
+                yield from node_resources(target).clbits
 
     def _increment_op(self, op):
         if op.name in self._op_names:
@@ -581,8 +580,7 @@ class DAGCircuit:
         qargs = tuple(qargs) if qargs is not None else ()
         cargs = tuple(cargs) if cargs is not None else ()
 
-        all_cbits = self._bits_in_condition(getattr(op, "condition", None))
-        all_cbits = set(all_cbits).union(cargs)
+        all_cbits = set(self._bits_in_operation(op)).union(cargs)
 
         self._check_condition(op.name, getattr(op, "condition", None))
         self._check_bits(qargs, self.output_map)
@@ -613,8 +611,7 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
-        all_cbits = self._bits_in_condition(getattr(op, "condition", None))
-        all_cbits.extend(cargs)
+        all_cbits = set(self._bits_in_operation(op)).union(cargs)
 
         self._check_condition(op.name, getattr(op, "condition", None))
         self._check_bits(qargs, self.input_map)
@@ -1133,7 +1130,7 @@ class DAGCircuit:
             block_cargs |= set(nd.cargs)
             cond = getattr(nd.op, "condition", None)
             if cond is not None:
-                block_cargs.update(condition_bits(cond))
+                block_cargs.update(condition_resources(cond).clbits)
 
         # Create replacement node
         new_node = DAGOpNode(
@@ -1193,9 +1190,7 @@ class DAGCircuit:
             # condition as well.
             if not propagate_condition:
                 node_wire_order += [
-                    bit
-                    for bit in self._bits_in_condition(getattr(node.op, "condition", None))
-                    if bit not in node_cargs
+                    bit for bit in self._bits_in_operation(node.op) if bit not in node_cargs
                 ]
             if len(wires) != len(node_wire_order):
                 raise DAGCircuitError(
@@ -1739,8 +1734,6 @@ class DAGCircuit:
             op = copy.copy(next_node.op)
             qargs = copy.copy(next_node.qargs)
             cargs = copy.copy(next_node.cargs)
-            condition = copy.copy(getattr(next_node.op, "condition", None))
-            _ = self._bits_in_condition(condition)
 
             # Add node to new_layer
             new_layer.apply_operation_back(op, qargs, cargs)
