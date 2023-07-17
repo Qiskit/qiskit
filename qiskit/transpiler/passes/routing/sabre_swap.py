@@ -285,7 +285,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         for node in block_dag.topological_op_nodes():
             cargs = {clbit_indices[x] for x in node.cargs}
             if node.op.condition is not None:
-                for clbit in block_dag._bits_in_condition(node.op.condition):
+                for clbit in block_dag._bits_in_operation(node.op):
                     cargs.add(clbit_indices[clbit])
             if isinstance(node.op, ControlFlowOp):
                 node_blocks[node._node_id] = [
