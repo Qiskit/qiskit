@@ -2352,7 +2352,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
 
         # Get causal cone of qubit at index 0
-        result = dag.get_causal_cone(qreg[0])
+        result = dag.quantum_causal_cone(qreg[0])
 
         # Expected result
         expected = set(qreg[[0, 3]])
@@ -2385,7 +2385,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
 
         # Raise error due to invalid index
-        self.assertRaises(DAGCircuitError, dag.get_causal_cone, Qubit())
+        self.assertRaises(DAGCircuitError, dag.quantum_causal_cone, Qubit())
 
     def test_causal_cone_no_neighbor(self):
         """Test causal cone with no neighbor"""
@@ -2413,7 +2413,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag.apply_operation_back(XGate(), qreg[[3]], [])
 
         # Get causal cone of Qubit at index 3.
-        result = dag.get_causal_cone(qreg[3])
+        result = dag.quantum_causal_cone(qreg[3])
         # Expect only a set with Qubit at index 3
         expected = set(qreg[[3]])
         self.assertEqual(result, expected)
@@ -2427,7 +2427,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag.add_creg(creg)
 
         # Get causal cone of qubit at index 4
-        result = dag.get_causal_cone(qreg[4])
+        result = dag.quantum_causal_cone(qreg[4])
         # Expect only a set with Qubit at index 4
         expected = set(qreg[[4]])
 
@@ -2467,7 +2467,7 @@ class TestDagCausalCone(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         # Compute result:
-        result = dag.get_causal_cone(qreg[1])
+        result = dag.quantum_causal_cone(qreg[1])
         # Expected:
         expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
 

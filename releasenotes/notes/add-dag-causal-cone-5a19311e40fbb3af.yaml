@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added :meth:`.DAGCircuit.get_causal_cone` to obtain the causal cone of a qubit
+    Added :meth:`.DAGCircuit.quantum_causal_cone` to obtain the causal cone of a qubit
     in a :class:`~.DAGCircuit`.
     The following example shows its correct usage::
 
@@ -22,4 +22,4 @@ features:
         dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
 
         # Get the causal cone of qubit at index 0
-        result = dag.get_causal_cone(qreg[0])
+        result = dag.quantum_causal_cone(qreg[0])

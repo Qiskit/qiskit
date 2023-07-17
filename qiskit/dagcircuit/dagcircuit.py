@@ -1888,7 +1888,7 @@ class DAGCircuit:
                 op_dict[name] += 1
         return op_dict
 
-    def get_causal_cone(self, qubit):
+    def quantum_causal_cone(self, qubit):
         """
         Returns causal cone of a qubit.
 
