@@ -31,14 +31,6 @@ Advanced circuits
 
    tutorials/circuits_advanced/*
 
-Classical simulators
-====================
-
-.. nbgallery::
-   :glob:
-
-   tutorials/simulators/*
-
 Algorithms
 ==========
 

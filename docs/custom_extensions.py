@@ -70,7 +70,8 @@ def load_tutorials(app):
             ["git", "clone", "https://github.com/Qiskit/qiskit-tutorials", temp_dir],
             capture_output=True,
         )
-        shutil.copytree(Path(temp_dir, "tutorials"), Path(app.srcdir, "tutorials"))
+        for d in ["algorithms", "circuits", "circuits_advanced", "operators"]:
+            shutil.copytree(Path(temp_dir, "tutorials", d), Path(app.srcdir, "tutorials", d))
 
 
 def clean_docs(app, exc):
