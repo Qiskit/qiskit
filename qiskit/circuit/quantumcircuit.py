@@ -1741,15 +1741,9 @@ class QuantumCircuit:
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
             else:
-                operation = _qasm2_define_custom_operation(
-                    operation, existing_gate_names, gates_to_define
+                instruction_qasm = _qasm2_custom_operation_statement(
+                    instruction, existing_gate_names, gates_to_define, bit_labels
                 )
-
-                # Insert qasm representation of the original instruction
-                bits_qasm = ",".join(
-                    bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
-                )
-                instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
             instruction_calls.append(instruction_qasm)
         instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
         gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
@@ -5006,6 +5000,22 @@ def _compare_parameters(param1: Parameter, param2: Parameter) -> int:
 _QASM2_FIXED_PARAMETERS = [Parameter("param0"), Parameter("param1"), Parameter("param2")]
 
 
+def _qasm2_custom_operation_statement(
+    instruction, existing_gate_names, gates_to_define, bit_labels
+):
+    operation = _qasm2_define_custom_operation(
+        instruction.operation, existing_gate_names, gates_to_define
+    )
+    # Insert qasm representation of the original instruction
+    if instruction.clbits:
+        bits = itertools.chain(instruction.qubits, instruction.clbits)
+    else:
+        bits = instruction.qubits
+    bits_qasm = ",".join(bit_labels[j] for j in bits)
+    instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
+    return instruction_qasm
+
+
 def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_define):
     """Extract a custom definition from the given operation, and append any necessary additional
     subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
@@ -5081,15 +5091,13 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             f"opaque {new_name}{parameters_qasm} {qubits_qasm};",
         )
     else:
-        statements = []
         qubit_labels = {bit: f"q{i}" for i, bit in enumerate(parameterized_definition.qubits)}
-        for instruction in parameterized_definition.data:
-            new_operation = _qasm2_define_custom_operation(
-                instruction.operation, existing_gate_names, gates_to_define
+        body_qasm = " ".join(
+            _qasm2_custom_operation_statement(
+                instruction, existing_gate_names, gates_to_define, qubit_labels
             )
-            bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
-            statements.append(f"{_instruction_qasm2(new_operation)} {bits_qasm};")
-        body_qasm = " ".join(statements)
+            for instruction in parameterized_definition.data
+        )
 
         # if an inner operation has the same name as the actual operation, it needs to be renamed
         if operation.name in gates_to_define:
@@ -5120,6 +5128,28 @@ def _qasm_escape_name(name: str, prefix: str) -> str:
     ):
         escaped_name = prefix + escaped_name
     return escaped_name
+
+
+def _instruction_qasm2(operation):
+    """Return an OpenQASM 2 string for the instruction."""
+    if operation.name == "c3sx":
+        name_param = "c3sqrtx"
+    else:
+        name_param = operation.name
+    if operation.params:
+        name_param = "{}({})".format(
+            name_param,
+            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
+        )
+    if operation.condition is not None:
+        if not isinstance(operation.condition[0], ClassicalRegister):
+            raise QasmError(
+                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
+            )
+        name_param = (
+            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + name_param
+        )
+    return name_param
 
 
 def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
@@ -5202,25 +5232,3 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
-
-
-def _instruction_qasm2(operation):
-    """Return an OpenQASM 2 string for the instruction."""
-    if operation.name == "c3sx":
-        name_param = "c3sqrtx"
-    else:
-        name_param = operation.name
-    if operation.params:
-        name_param = "{}({})".format(
-            name_param,
-            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
-        )
-    if operation.condition is not None:
-        if not isinstance(operation.condition[0], ClassicalRegister):
-            raise QasmError(
-                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
-            )
-        name_param = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + name_param
-        )
-    return name_param
