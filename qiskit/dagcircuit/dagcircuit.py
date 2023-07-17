@@ -1897,13 +1897,16 @@ class DAGCircuit:
         the causal cone of a qubit can be useful when debugging faulty circuits, as it can
         help identify which wire(s) may be causing the problem.
 
+        This method does not consider classical to quantum influences through conditionals or
+        other means.
+
         Args:
             qubit (Qubit): The output qubit for which we want to find the causal cone.
 
         Returns:
             Set[Qubit]: The set of qubits whose interactions affect ``qubit``.
         """
-        # Retrieve the output node and the qubit
+        # Retrieve the output node from the qubit
         output_node = self.output_map.get(qubit, None)
         if not output_node:
             raise DAGCircuitError(f"Qubit {qubit} is not part of this circuit.")
@@ -1923,7 +1926,8 @@ class DAGCircuit:
                 # Check if there are any qubits in common and that the operation is not a barrier.
                 if (
                     len(qubit_set.intersection(qubits_to_check)) > 0
-                    and not node_to_check.op.name == "barrier"
+                    and node_to_check.op.name != "barrier"
+                    and not getattr(node_to_check.op, "_directive")
                 ):
                     # If so, add all the qubits to the causal cone.
                     qubits_to_check = qubits_to_check.union(qubit_set)
