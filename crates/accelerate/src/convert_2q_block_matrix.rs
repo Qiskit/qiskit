@@ -16,7 +16,7 @@ use pyo3::Python;
 
 use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{array, Array, Array2};
+use numpy::ndarray::{array, Array, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 
 /// Return the matrix Operator resulting from a block of Instructions.
@@ -55,37 +55,42 @@ pub fn blocks_to_matrix(
     ];
     let identity: Array2<Complex64> = Array::eye(2);
     for (op_matrix, q_list) in op_list {
-        let op_matrix = op_matrix.as_array().to_owned();
-        let result = calculate_matrix(&op_matrix, &q_list, &swap_gate, &identity);
-        matrix = result.dot(&matrix);
+        let op_matrix = op_matrix.as_array();
+        let result = calculate_matrix(op_matrix, &q_list, &swap_gate, &identity);
+        matrix = match result {
+            Some(result) => result.dot(&matrix),
+            None => op_matrix.dot(&matrix),
+        };
     }
     Ok(matrix.into_pyarray(py).to_owned())
 }
 
 /// Performs the matrix operations for an Instruction in a 2 qubit system
 fn calculate_matrix(
-    matrix: &Array2<Complex64>,
+    matrix: ArrayView2<Complex64>,
     q_list: &Vec<usize>,
     swap_gate: &Array2<Complex64>,
     identity: &Array2<Complex64>,
-) -> Array2<Complex64> {
+) -> Option<Array2<Complex64>> {
     let mut basis_change = false;
-    let current: Array2<Complex64>;
-    if q_list.len() < 2 {
+    let current: Option<Array2<Complex64>> = if q_list.len() < 2 {
         if q_list[0] == 1 {
-            current = kron(matrix, identity);
+            Some(kron(&matrix, identity))
         } else {
-            current = kron(identity, matrix);
+            Some(kron(identity, &matrix))
         }
     } else {
         if q_list[0] > q_list[1] && matrix != swap_gate {
             basis_change = true;
         }
-        current = matrix.to_owned();
-    }
+        None
+    };
 
     if basis_change {
-        (swap_gate.dot(&current)).dot(swap_gate)
+        match current {
+            Some(current) => Some(swap_gate.dot(&current).dot(swap_gate)),
+            None => Some(swap_gate.dot(&matrix).dot(swap_gate)),
+        }
     } else {
         current
     }
