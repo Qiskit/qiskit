@@ -663,8 +663,6 @@ class TestTemplateMatching(QiskitTestCase):
         parameter clash between it and the circuit. This should include binding a partial match with a
         parameter. Used the rzx template ('zz3').
         """
-        
-        theta = Parameter("ϴ")
         circuit_in = QuantumCircuit(2)
         circuit_in.cx(0, 1)
         circuit_in.rz(0.42, 1)

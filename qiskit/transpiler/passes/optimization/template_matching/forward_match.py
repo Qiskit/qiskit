@@ -27,7 +27,6 @@ Exact and practical pattern matching for quantum circuit optimization.
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.transpiler.passes.optimization.template_matching.template_substitution import TemplateSubstitution
 
-
 class ForwardMatch:
     """
     Object to apply template matching in the forward direction.
@@ -423,16 +422,13 @@ class ForwardMatch:
                 circuit_sublist = [x[1] for x in temp_match]
                 template = substitution._attempt_bind(template_sublist,circuit_sublist)
 
-                if template is not None :
-                    continue
-
                 # Check if the qubit, clbit configuration are compatible for a match,
                 # also check if the operation are the same.
                 if (
                     self._is_same_q_conf(node_circuit, node_template)
                     and self._is_same_c_conf(node_circuit, node_template)
                     and self._is_same_op(node_circuit, node_template)
-                ):
+                ) and template is not None :
 
                     v[1].matchedwith = [i]
 
