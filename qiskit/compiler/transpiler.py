@@ -319,7 +319,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     # If target is not specified and any hardware constraint object is
     # manually specified then do not use the target from the backend as
     # it is invalidated by a custom basis gate list or a custom coupling map
-    elif basis_gates or coupling_map:
+    elif basis_gates is not None or coupling_map is not None:
         _skip_target = True
     else:
         target = getattr(backend, "target", None)
