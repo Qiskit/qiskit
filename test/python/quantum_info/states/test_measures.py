@@ -25,7 +25,6 @@ from qiskit.quantum_info import concurrence
 from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info.states import shannon_entropy
-from qiskit.quantum_info import mwb_measure
 from qiskit.quantum_info import negativity
 
 
@@ -342,7 +341,7 @@ class TestStateMeasures(QiskitTestCase):
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
-            
+
     def test_negativity_statevector(self):
         """Test negativity function on statevector inputs"""
         # Constructing separable quantum statevector
@@ -367,8 +366,7 @@ class TestStateMeasures(QiskitTestCase):
         negv = negativity(rho, [0])
         self.assertAlmostEqual(negv, 0.5, places=7)
         negv = negativity(rho, [1])
-        self.assertAlmostEqual(negv, 0.5, places=7)        
-
+        self.assertAlmostEqual(negv, 0.5, places=7)
 
     def test_mwb_measure_statevector(self):
         """Test mwb_measure function on statevector inputs"""
@@ -391,6 +389,7 @@ class TestStateMeasures(QiskitTestCase):
         rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
         q_measure = mwb_measure(rho)
         self.assertAlmostEqual(q_measure, 1.0, places=7)
+
 
 
 if __name__ == "__main__":
