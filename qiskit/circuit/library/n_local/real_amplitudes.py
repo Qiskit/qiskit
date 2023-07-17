@@ -24,7 +24,7 @@ class RealAmplitudes(TwoLocal):
 
     The ``RealAmplitudes`` circuit is a heuristic trial wave function used as Ansatz in chemistry
     applications or classification circuits in machine learning. The circuit consists of
-    of alternating layers of :math:`Y` rotations and :math:`CX` entanglements. The entanglement
+    alternating layers of :math:`Y` rotations and :math:`CX` entanglements. The entanglement
     pattern can be user-defined or selected from a predefined set.
     It is called ``RealAmplitudes`` since the prepared quantum states will only have
     real amplitudes, the complex part is always 0.

@@ -129,7 +129,7 @@ class Operator(LinearOp):
 
     @property
     def data(self):
-        """Return data."""
+        """The underlying Numpy array."""
         return self._data
 
     @property
@@ -418,7 +418,7 @@ class Operator(LinearOp):
         tensor = np.reshape(self.data, self._op_shape.tensor_shape)
         mat = np.reshape(other.data, other._op_shape.tensor_shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [int(np.product(output_dims)), int(np.product(input_dims))]
+        final_shape = [int(np.prod(output_dims)), int(np.prod(input_dims))]
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
         )

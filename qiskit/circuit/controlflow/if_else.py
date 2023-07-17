@@ -10,20 +10,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"Circuit operation representing an ``if/else`` statement."
+"""Circuit operation representing an ``if/else`` statement."""
 
+from __future__ import annotations
 
 from typing import Optional, Tuple, Union, Iterable
 import itertools
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
 
 from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
-from .condition import validate_condition, condition_bits, condition_registers
 from .control_flow import ControlFlowOp
-from ._builder_utils import partition_registers, unify_circuit_resources
+from ._builder_utils import (
+    partition_registers,
+    unify_circuit_resources,
+    validate_condition,
+    condition_resources,
+)
 
 
 # This is just an indication of what's actually meant to be the public API.
@@ -71,10 +77,10 @@ class IfElseOp(ControlFlowOp):
 
     def __init__(
         self,
-        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         true_body: QuantumCircuit,
-        false_body: Optional[QuantumCircuit] = None,
-        label: Optional[str] = None,
+        false_body: QuantumCircuit | None = None,
+        label: str | None = None,
     ):
         # Type checking generally left to @params.setter, but required here for
         # finding num_qubits and num_clbits.
@@ -364,9 +370,10 @@ class IfContext:
         return self._in_loop
 
     def __enter__(self):
+        resources = condition_resources(self._condition)
         self._circuit._push_scope(
-            clbits=condition_bits(self._condition),
-            registers=condition_registers(self._condition),
+            clbits=resources.clbits,
+            registers=resources.cregs,
             allow_jumps=self._in_loop,
         )
         return ElseContext(self)
