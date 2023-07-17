@@ -1402,11 +1402,20 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
-    def separable_circuits(self, remove_idle_wires=False) -> List["DAGCircuit"]:
+    def separable_circuits(self, remove_idle_qubits=False) -> List["DAGCircuit"]:
         """Decompose the circuit into sets of qubits with no gates connecting them.
 
-        The global phase information in `self` will not be maintained in the
-        subcircuits returned by this method.
+        Args:
+            remove_idle_qubits (bool): Flag denoting whether to remove idle qubits from
+                the separated circuits. If ``True``, each output circuit will contain the
+                same number of qubits as ``self``.
+
+        Returns:
+            List[DAGCircuit]: The circuits resulting from separating ``self`` into sets
+                of disconnected qubits
+
+        The global phase information in `self` will not be maintained in the subcircuits
+        returned by this method.
         """
         connected_components = rx.weakly_connected_components(self._multi_graph)
 
@@ -1440,9 +1449,7 @@ class DAGCircuit:
 
         if remove_idle_wires:
             for dag in decomposed_dags:
-                idle_qubits = [qubit for qubit in dag.idle_wires() if isinstance(qubit, Qubit)]
-                for qubit in idle_qubits:
-                    dag.remove_qubits(qubit)
+                dag.remove_qubits(*(bit for bit in dag.idle_wires() if isinstance(qubit, Qubit)))
 
         return decomposed_dags
 
