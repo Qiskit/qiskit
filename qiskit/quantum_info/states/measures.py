@@ -254,24 +254,48 @@ def entanglement_of_formation(state):
     return shannon_entropy([val, 1 - val])
 
 
-def mwb_measure(state):
-    r"""Calculate the Meyer-Wallach-Brennen measure of the quantum state.
+def negativity(state, qargs):
+    r"""Calculates the negativity
 
-    The Meyer-Wallach-Brennen measure :math:`Q` is given by:
-
+    The mathematical expression for negativity is given by:
     .. math::
-
-        Q=2\left(1-\frac{1}{n}\sum_{i=1}^n Tr(\rho_i^2)\right)
-
-    where :math:`\rho_i` is a density matrix obtained by tracing all the other
-     subsystems except the ith subsystems and N is the total number of subsystems.
+        {\cal{N}}(\rho) = \frac{|| \rho^{T_A}|| - 1 }{2}
 
     Args:
-        state (Statevector or DensityMatrix)
+        state (Statevector or DensityMatrix): a quantum state.
+        qargs (list): The subsystems to be transposed.
 
     Returns:
-        float: The Meyer-Wallach-Brennen measure :math:`Q`.
+        negv (float): Negativity value of the quantum state
 
+    Raises:
+        QiskitError: if the input state is not a valid QuantumState.
+    """
+
+    if isinstance(state, Statevector):
+        # If input is statevector then converting it into density matrix
+        state = DensityMatrix(state)
+    # Generating partially transposed state
+    state = state.partial_transpose(qargs)
+    # Calculating SVD
+    singular_values = np.linalg.svd(state.data, compute_uv=False)
+    eigvals = np.sum(singular_values)
+    # Calculating negativity
+    negv = (eigvals - 1) / 2
+    return negv
+  
+  
+  def mwb_measure(state):
+    r"""Calculate the Meyer-Wallach-Brennen measure of the quantum state.
+    The Meyer-Wallach-Brennen measure :math:`Q` is given by:
+    .. math::
+        Q=2\left(1-\frac{1}{n}\sum_{i=1}^n Tr(\rho_i^2)\right)
+    where :math:`\rho_i` is a density matrix obtained by tracing all the other
+     subsystems except the ith subsystems and N is the total number of subsystems.
+    Args:
+        state (Statevector or DensityMatrix)
+    Returns:
+        float: The Meyer-Wallach-Brennen measure :math:`Q`.
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
     """

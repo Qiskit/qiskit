@@ -22,13 +22,24 @@ environment = 'RUSTUP_TOOLCHAIN="stable"'
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
+
+[tool.cibuildwheel.macos]
+repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict --report {wheel}"
 
 [tool.ruff]
 select = [
-  "F631",
-  "F632",
-  "F634",
-  "F823",
+  # Rules in alphabetic order
+  "C4",    # category: flake8-comprehensions
+  "EXE",   # Category: flake8-executable
+  "F631",  # assert-tuple
+  "F632",  # is-literal
+  "F634",  # if-tuple
+  "F823",  # undefined-local
+  "C4",  # category: flake8-comprehensions
 ]
 
 [tool.pylint.main]
@@ -42,7 +53,7 @@ extension-pkg-allow-list = [
     "tweedledum",
 ]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
-py-version = "3.7"  # update it when bumping minimum supported python version
+py-version = "3.8"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]
@@ -75,14 +86,12 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "consider-using-from-import",
     "modified-iterating-list",
     "nested-min-max",
     "no-member",
     "no-value-for-parameter",
     "non-ascii-name",
     "not-context-manager",
-    "pointless-exception-statement",
     "superfluous-parens",
     "unknown-option-value",
     "unexpected-keyword-arg",
@@ -98,7 +107,6 @@ disable = [
     "use-list-literal",
     "use-implicit-booleaness-not-comparison",
     "use-maxsplit-arg",
-    "used-before-assignment",
 ]
 
 enable = [
