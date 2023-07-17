@@ -283,5 +283,3 @@ def negativity(state, qargs):
     # Calculating negativity
     negv = (eigvals - 1) / 2
     return negv
-    
-
