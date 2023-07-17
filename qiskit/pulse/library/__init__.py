@@ -89,10 +89,14 @@ Parametric Pulse Representation
    GaussianSquare
    GaussianSquareDrag
    gaussian_square_echo
+   GaussianDeriv
    Sin
    Cos
    Sawtooth
    Triangle
+   Square
+   Sech
+   SechDeriv
 
 """
 
@@ -119,12 +123,16 @@ from .symbolic_pulses import (
     GaussianSquare,
     GaussianSquareDrag,
     gaussian_square_echo,
+    GaussianDeriv,
     Drag,
     Constant,
     Sin,
     Cos,
     Sawtooth,
     Triangle,
+    Square,
+    Sech,
+    SechDeriv,
 )
 from .pulse import Pulse
 from .waveform import Waveform

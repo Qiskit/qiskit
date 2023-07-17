@@ -197,7 +197,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 )
             base_z[i] = pauli._z
             base_x[i] = pauli._x
-            base_phase[i] = pauli._phase
+            base_phase[i] = pauli._phase.item()
         return base_z, base_x, base_phase
 
     def __repr__(self):
@@ -348,7 +348,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             self._phase[index] = value._phase
         else:
             # Row and Qubit indexing
-            self._phase[index[0]] += value._phase
+            self._phase[index[0]] += value._phase.item()
             self._phase %= 4
 
     def delete(self, ind, qubit=False):
@@ -901,20 +901,24 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return inds
 
     def evolve(self, other, qargs=None, frame="h"):
-        r"""Evolve the Pauli by a Clifford.
+        r"""Performs either Heisenberg (default) or Schrödinger picture
+        evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
-        This returns the Pauli :math:`P^\prime = C.P.C^\dagger`.
+        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``.
+        This option yields a faster calculation.
 
-        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
-        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+        Heisenberg picture evolves the Pauli as :math:`P^\prime = C^\dagger.P.C`.
+
+        Schrödinger picture evolves the Pauli as :math:`P^\prime = C.P.C^\dagger`.
 
         Args:
             other (Pauli or Clifford or QuantumCircuit): The Clifford operator to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for Schrödinger framework.
 
         Returns:
-            Pauli: the Pauli :math:`C.P.C^\dagger`.
+            PauliList: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
+            or the Pauli :math:`C.P.C^\dagger` (Schrödinger picture).
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
