@@ -175,8 +175,8 @@ from .states import (
     schmidt_decomposition,
     shannon_entropy,
     state_fidelity,
-    mwb_measure,
     negativity,
+    mwb_measure,
 )
 from .synthesis import (
     OneQubitEulerDecomposer,
