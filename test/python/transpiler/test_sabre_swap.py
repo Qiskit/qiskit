@@ -415,8 +415,8 @@ class TestSabreSwapControlFlow(QiskitTestCase):
 
         with qc.if_test((cr1, False)):
             qc.cx(0, 1)
-            qc.measure(0, cr2)
-            with qc.if_test((cr2, True)):
+            qc.measure(0, cr2[0])
+            with qc.if_test((cr2, 0)):
                 qc.cx(0, 1)
 
         coupling = CouplingMap.from_line(num_qubits)
