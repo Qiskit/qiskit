@@ -197,7 +197,10 @@ class EvolvedOperatorAnsatz(NLocal):
             gate = PauliEvolutionGate(operator, time, synthesis=evolution)
 
         evolved = QuantumCircuit(operator.num_qubits)
-        evolved.append(gate, evolved.qubits)
+        if not self.flatten:
+            evolved.append(gate, evolved.qubits)
+        else:
+            evolved.compose(gate.definition, evolved.qubits, inplace=True)
         return evolved
 
     def _build(self):
