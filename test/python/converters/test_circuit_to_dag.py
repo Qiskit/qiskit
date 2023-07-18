@@ -14,8 +14,9 @@
 
 import unittest
 
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Clbit
+from qiskit.circuit.classical import expr
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 
 
@@ -50,6 +51,58 @@ class TestCircuitToDag(QiskitTestCase):
 
         circuit_out = dag_to_circuit(dag)
         self.assertEqual(len(circuit_out.calibrations), 1)
+
+    def test_wires_from_expr_nodes_condition(self):
+        """Test that the classical wires implied by an `Expr` node in a control-flow op's
+        `condition` are correctly transferred."""
+        # The control-flow builder interface always includes any classical wires in the blocks of
+        # the operation, so we test by using manually constructed blocks that don't do that.  It's
+        # not required by the `QuantumCircuit` model (just like `c_if` instructions don't expand
+        # their `cargs`).
+        inner = QuantumCircuit(1)
+        inner.x(0)
+        cr1 = ClassicalRegister(2, "a")
+        cr2 = ClassicalRegister(2, "b")
+        clbit = Clbit()
+        outer = QuantumCircuit(QuantumRegister(1), cr1, cr2, [clbit])
+        # Note that 'cr2' is not in the condition.
+        outer.if_test(expr.logic_and(expr.equal(cr1, 3), expr.logic_not(clbit)), inner, [0], [])
+        outer.while_loop(expr.logic_or(expr.less(2, cr1), clbit), inner, [0], [])
+
+        dag = circuit_to_dag(outer)
+        expected_wires = set(outer.qubits) | set(cr1) | {clbit}
+        for node in dag.topological_op_nodes():
+            test_wires = {wire for _source, _dest, wire in dag.edges(node)}
+            self.assertIsInstance(node.op.condition, expr.Expr)
+            self.assertEqual(test_wires, expected_wires)
+
+        roundtripped = dag_to_circuit(dag)
+        for original, test in zip(outer, roundtripped):
+            self.assertEqual(original.operation.condition, test.operation.condition)
+
+    def test_wires_from_expr_nodes_target(self):
+        """Test that the classical wires implied by an `Expr` node in a control-flow op's
+        `target` are correctly transferred."""
+        case_1 = QuantumCircuit(1)
+        case_1.x(0)
+        case_2 = QuantumCircuit(1)
+        case_2.y(0)
+        cr1 = ClassicalRegister(2, "a")
+        cr2 = ClassicalRegister(2, "b")
+        outer = QuantumCircuit(QuantumRegister(1), cr1, cr2)
+        # Note that 'cr2' is not in the condition.
+        outer.switch(expr.bit_and(cr1, 2), [(1, case_1), (2, case_2)], [0], [])
+
+        dag = circuit_to_dag(outer)
+        expected_wires = set(outer.qubits) | set(cr1)
+        for node in dag.topological_op_nodes():
+            test_wires = {wire for _source, _dest, wire in dag.edges(node)}
+            self.assertIsInstance(node.op.target, expr.Expr)
+            self.assertEqual(test_wires, expected_wires)
+
+        roundtripped = dag_to_circuit(dag)
+        for original, test in zip(outer, roundtripped):
+            self.assertEqual(original.operation.target, test.operation.target)
 
 
 if __name__ == "__main__":

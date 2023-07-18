@@ -15,6 +15,7 @@
 Choi-matrix representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 import numpy as np
 
@@ -27,6 +28,7 @@ from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Choi(QuantumChannel):
@@ -58,7 +60,12 @@ class Choi(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
+    ):
         """Initialize a quantum channel Choi matrix operator.
 
         Args:
@@ -92,9 +99,9 @@ class Choi(QuantumChannel):
             if dim_l != dim_r:
                 raise QiskitError("Invalid Choi-matrix input.")
             if input_dims:
-                input_dim = np.product(input_dims)
+                input_dim = np.prod(input_dims)
             if output_dims:
-                output_dim = np.product(output_dims)
+                output_dim = np.prod(output_dims)
             if output_dims is None and input_dims is None:
                 output_dim = int(np.sqrt(dim_l))
                 input_dim = dim_l // output_dim
@@ -159,7 +166,7 @@ class Choi(QuantumChannel):
         ret._data = np.reshape(data, (d_in * d_out, d_in * d_out))
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Choi, qargs: list | None = None, front: bool = False) -> Choi:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -186,12 +193,12 @@ class Choi(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Choi) -> Choi:
         if not isinstance(other, Choi):
             other = Choi(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Choi) -> Choi:
         if not isinstance(other, Choi):
             other = Choi(other)
         return self._tensor(other, self)

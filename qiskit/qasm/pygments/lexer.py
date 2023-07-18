@@ -12,16 +12,9 @@
 """Pygments tools for Qasm.
 """
 
-from qiskit.exceptions import MissingOptionalLibraryError
-
-try:
-    from pygments.lexer import RegexLexer
-    from pygments.token import Comment, String, Keyword, Name, Number, Text
-    from pygments.style import Style
-except ImportError as ex:
-    raise MissingOptionalLibraryError(
-        "pygments>2.4", "qiskit.qasm.pygments", "pip install pygments"
-    ) from ex
+from pygments.lexer import RegexLexer
+from pygments.token import Comment, String, Keyword, Name, Number, Text
+from pygments.style import Style
 
 
 class QasmTerminalStyle(Style):
