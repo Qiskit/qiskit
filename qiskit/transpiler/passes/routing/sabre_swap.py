@@ -274,8 +274,12 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
     circuit_to_dag_dict = {}
 
     def recurse(block, block_qubit_indices):
-        block_dag = circuit_to_dag(block)
-        circuit_to_dag_dict[id(block)] = block_dag
+        block_id = id(block)
+        if block_id in circuit_to_dag_dict:
+            block_dag = circuit_to_dag_dict[block_id]
+        else:
+            block_dag = circuit_to_dag(block)
+            circuit_to_dag_dict[block_id] = block_dag
         return process_dag(block_dag, block_qubit_indices)
 
     def process_dag(block_dag, wire_map):

@@ -15,6 +15,7 @@
 import unittest
 
 import ddt
+import itertools
 import numpy.random
 
 from qiskit.circuit import Clbit, ControlFlowOp
@@ -386,6 +387,23 @@ class TestSabreSwap(QiskitTestCase):
 @ddt.ddt
 class TestSabreSwapControlFlow(QiskitTestCase):
     """Tests for control flow in sabre swap."""
+
+    def test_shared_block(self):
+        """Test multiple control flow ops sharing the same block instance."""
+        inner = QuantumCircuit(2)
+        inner.cx(0, 1)
+
+        qreg = QuantumRegister(4, "q")
+        outer = QuantumCircuit(qreg, ClassicalRegister(1))
+        for pair in itertools.permutations(range(outer.num_qubits), 2):
+            outer.if_test((outer.cregs[0], 1), inner, pair, [])
+
+        coupling = CouplingMap.from_line(4)
+        cdag = SabreSwap(coupling, "lookahead", seed=82, trials=1).run(circuit_to_dag(outer))
+
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
     def test_blocks_use_registers(self):
         """Test that control flow ops using registers still use registers after routing."""
