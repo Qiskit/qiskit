@@ -429,9 +429,10 @@ def transpile(  # pylint: disable=too-many-return-statements
 
 def _check_circuits_coupling_map(circuits, cmap, backend):
     # Check circuit width against number of qubits in coupling_map(s)
+    max_qubits = None
     if cmap is not None:
         max_qubits = cmap.size()
-    else:
+    elif backend is not None:
         backend_version = getattr(backend, "version", 0)
         if backend_version <= 1:
             if not backend.configuration().simulator:
