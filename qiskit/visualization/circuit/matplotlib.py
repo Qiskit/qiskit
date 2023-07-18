@@ -1490,7 +1490,7 @@ class MatplotlibDrawer:
                 ha="left",
                 va="center",
                 fontsize=self._style["fs"],
-                color=node_data[node]["gt"],
+                color=node_data[node]["tc"],
                 clip_on=True,
                 zorder=PORDER_FLOW,
             )
@@ -1508,7 +1508,7 @@ class MatplotlibDrawer:
                         ha="left",
                         va="center",
                         fontsize=self._style["sfs"],
-                        color=node_data[node]["gt"],
+                        color=node_data[node]["tc"],
                         clip_on=True,
                         zorder=PORDER_FLOW,
                     )
@@ -1525,7 +1525,7 @@ class MatplotlibDrawer:
                     ha="left",
                     va="center",
                     fontsize=self._style["sfs"],
-                    color=node_data[node]["gt"],
+                    color=node_data[node]["tc"],
                     clip_on=True,
                     zorder=PORDER_FLOW,
                 )
@@ -1549,7 +1549,7 @@ class MatplotlibDrawer:
                         ha="left",
                         va="center",
                         fontsize=self._style["fs"],
-                        color=node_data[node]["gt"],
+                        color=node_data[node]["tc"],
                         clip_on=True,
                         zorder=PORDER_FLOW,
                     )
@@ -1573,7 +1573,7 @@ class MatplotlibDrawer:
                             ha="left",
                             va="center",
                             fontsize=self._style["sfs"],
-                            color=node_data[node]["gt"],
+                            color=node_data[node]["tc"],
                             clip_on=True,
                             zorder=PORDER_FLOW,
                         )
