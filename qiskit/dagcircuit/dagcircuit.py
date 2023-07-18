@@ -1414,8 +1414,9 @@ class DAGCircuit:
             List[DAGCircuit]: The circuits resulting from separating ``self`` into sets
                 of disconnected qubits
 
-        The global phase information in ``self`` will not be maintained in the subcircuits
-        returned by this method.
+        Each :class:`~.DAGCircuit` instance returned by this method will contain the same number of
+        clbits as ``self``. The global phase information in ``self`` will not be maintained
+        in the subcircuits returned by this method.
         """
         connected_components = rx.weakly_connected_components(self._multi_graph)
 
