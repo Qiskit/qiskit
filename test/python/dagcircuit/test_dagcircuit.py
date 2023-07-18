@@ -1302,6 +1302,7 @@ class TestDagLayers(QiskitTestCase):
 
 def _sort_key(indices: dict[Qubit, int]):
     """Return key function for sorting DAGCircuits, given a global qubit mapping."""
+
     def _min_active_qubit_id(dag):
         """Transform a DAGCircuit into its minimum active qubit index."""
         try:
@@ -1309,6 +1310,7 @@ def _sort_key(indices: dict[Qubit, int]):
         except StopIteration:
             return -1
         return min(indices[q] for q in first_op.qargs)
+
     return _min_active_qubit_id
 
 
