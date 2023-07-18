@@ -40,7 +40,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 
 
@@ -1356,6 +1356,11 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
+    def _min_active_qubit(self, d):
+        """Return the minimum index of all active qubits."""
+        circ = dag_to_circuit(d)
+        return min({circ.find_bit(inst.qubits[i]).index for inst in circ for i in range(len(inst.qubits))})
+
     def test_separable_circuits(self):
         """Test separating disconnected sets of qubits in a circuit."""
         # Empty case
@@ -1388,7 +1393,7 @@ class TestCircuitProperties(QiskitTestCase):
 
         compare_dags = [comp_dag1, comp_dag2, comp_dag3]
 
-        dags = dag.separable_circuits(remove_idle_qubits=True)
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=self._min_active_qubit)
 
         self.assertEqual(dags, compare_dags)
 
@@ -1409,7 +1414,7 @@ class TestCircuitProperties(QiskitTestCase):
 
         compare_dags = [comp_dag1, comp_dag2]
 
-        dags = dag.separable_circuits(remove_idle_qubits=True)
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=self._min_active_qubit)
 
         self.assertEqual(dags, compare_dags)
 
@@ -1428,7 +1433,7 @@ class TestCircuitProperties(QiskitTestCase):
 
         compare_dags = [comp_dag1]
 
-        dags = dag.separable_circuits(remove_idle_qubits=True)
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=self._min_active_qubit)
 
         self.assertEqual(dags, compare_dags)
 
@@ -1461,7 +1466,7 @@ class TestCircuitProperties(QiskitTestCase):
         qcs = [qc1, qc2, qc3]
         compare_dags = [circuit_to_dag(qc) for qc in qcs]
 
-        dags = dag.separable_circuits()
+        dags = sorted(dag.separable_circuits(), key=self._min_active_qubit)
 
         self.assertEqual(dags, compare_dags)
 
