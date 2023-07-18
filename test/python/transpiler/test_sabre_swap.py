@@ -17,7 +17,7 @@ import unittest
 import ddt
 import numpy.random
 
-from qiskit.circuit import Clbit, ControlFlowOp, Qubit
+from qiskit.circuit import Clbit, ControlFlowOp
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
