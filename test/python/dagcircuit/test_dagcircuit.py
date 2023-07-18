@@ -1372,44 +1372,64 @@ class TestCircuitProperties(QiskitTestCase):
         dag.apply_operation_back(HGate(), [qreg[2]], [])
         dag.apply_operation_back(HGate(), [qreg[2]], [])
 
-        qc1 = QuantumCircuit(3, 2)
-        qc2 = QuantumCircuit(3, 2)
-        qc3 = QuantumCircuit(3, 2)
-        qc1.h(0)
-        qc2.h(1)
-        qc3.h(2)
-        qc3.h(2)
-        qcs = [qc1, qc2, qc3]
-        compare_dags = [circuit_to_dag(qc) for qc in qcs]
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qubits([qreg[0]])
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag2 = DAGCircuit()
+        comp_dag2.add_qubits([qreg[1]])
+        comp_dag2.add_creg(creg)
+        comp_dag2.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag3 = DAGCircuit()
+        comp_dag3.add_qubits([qreg[2]])
+        comp_dag3.add_creg(creg)
+        comp_dag3.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag3.apply_operation_back(HGate(), [qreg[2]], [])
 
-        dags = dag.separable_circuits(remove_idle_qubits=False)
+        compare_dags = [comp_dag1, comp_dag2, comp_dag3]
+
+        dags = dag.separable_circuits(remove_idle_qubits=True)
 
         self.assertEqual(dags, compare_dags)
 
         # 2 sets of disconnected qubits
-        qc1 = QuantumCircuit(3, 2)
-        qc2 = QuantumCircuit(3, 2)
-        qc1.h(0)
-        qc2.h([1, 2, 2])
-        qc2.cx(1, 2)
-        qcs = [qc1, qc2]
-        compare_dags = [circuit_to_dag(qc) for qc in qcs]
-
         dag.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
 
-        dags = dag.separable_circuits(remove_idle_qubits=False)
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qubits([qreg[0]])
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag2 = DAGCircuit()
+        comp_dag2.add_qubits([qreg[1], qreg[2]])
+        comp_dag2.add_creg(creg)
+        comp_dag2.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag2.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag2.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag2.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+
+        compare_dags = [comp_dag1, comp_dag2]
+
+        dags = dag.separable_circuits(remove_idle_qubits=True)
 
         self.assertEqual(dags, compare_dags)
 
         # One connected component
-        qc = QuantumCircuit(3, 2)
-        qc.h([0, 1, 2, 2])
-        qc.cx(1, 2)
-        qc.cx(0, 1)
-        compare_dags = [circuit_to_dag(qc)]
         dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
 
-        dags = dag.separable_circuits(remove_idle_qubits=False)
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qreg(qreg)
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag1.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+        comp_dag1.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+
+        compare_dags = [comp_dag1]
+
+        dags = dag.separable_circuits(remove_idle_qubits=True)
+
         self.assertEqual(dags, compare_dags)
 
     def test_separable_circuits_w_measurements(self):
