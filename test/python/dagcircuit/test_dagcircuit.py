@@ -1300,6 +1300,18 @@ class TestDagLayers(QiskitTestCase):
             self.assertEqual(comp, truth)
 
 
+def _sort_key(indices: dict[Qubit, int]):
+    """Return key function for sorting DAGCircuits, given a global qubit mapping."""
+    def _min_active_qubit_id(dag):
+        """Transform a DAGCircuit into its minimum active qubit index."""
+        try:
+            first_op = next(dag.topological_op_nodes())
+        except StopIteration:
+            return -1
+        return min(indices[q] for q in first_op.qargs)
+    return _min_active_qubit_id
+
+
 class TestCircuitProperties(QiskitTestCase):
     """DAGCircuit properties test."""
 
@@ -1356,11 +1368,6 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
-    def _min_active_qubit(self, dag):
-        """Return the minimum index of all active qubits."""
-        circ = dag_to_circuit(dag)
-        return min({circ.find_bit(inst.qubits[i]).index for inst in circ for i in range(len(inst.qubits))})
-
     def test_separable_circuits(self):
         """Test separating disconnected sets of qubits in a circuit."""
         # Empty case
@@ -1393,7 +1400,11 @@ class TestCircuitProperties(QiskitTestCase):
 
         compare_dags = [comp_dag1, comp_dag2, comp_dag3]
 
-        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=self._min_active_qubit)
+        # Get a mapping from qubit to qubit id in original circuit
+        indices = {bit: i for i, bit in enumerate(dag.qubits)}
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
 
         self.assertEqual(dags, compare_dags)
 
@@ -1414,7 +1425,8 @@ class TestCircuitProperties(QiskitTestCase):
 
         compare_dags = [comp_dag1, comp_dag2]
 
-        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=self._min_active_qubit)
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
 
         self.assertEqual(dags, compare_dags)
 
@@ -1433,7 +1445,8 @@ class TestCircuitProperties(QiskitTestCase):
 
         compare_dags = [comp_dag1]
 
-        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=self._min_active_qubit)
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
 
         self.assertEqual(dags, compare_dags)
 
@@ -1466,7 +1479,11 @@ class TestCircuitProperties(QiskitTestCase):
         qcs = [qc1, qc2, qc3]
         compare_dags = [circuit_to_dag(qc) for qc in qcs]
 
-        dags = sorted(dag.separable_circuits(), key=self._min_active_qubit)
+        # Get a mapping from qubit to qubit id in original circuit
+        indices = {bit: i for i, bit in enumerate(dag.qubits)}
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(), key=_sort_key(indices))
 
         self.assertEqual(dags, compare_dags)
 
