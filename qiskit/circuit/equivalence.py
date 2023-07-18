@@ -285,7 +285,7 @@ def _raise_if_shape_mismatch(gate, circuit):
 
 def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
-    param_map = dict((x, y) for x, y in zip(equiv_params, query_params) if isinstance(x, Parameter))
+    param_map = {x: y for x, y in zip(equiv_params, query_params) if isinstance(x, Parameter)}
     equiv = equiv_circuit.assign_parameters(param_map, inplace=False, flat_input=True)
 
     return equiv
