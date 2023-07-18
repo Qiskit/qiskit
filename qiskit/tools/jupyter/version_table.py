@@ -49,10 +49,7 @@ class VersionTable(Magics):
 
         qiskit_modules = {module.split(".")[0] for module in modules.keys() if "qiskit" in module}
         for qiskit_module in qiskit_modules:
-            try:
-                packages[metadata(qiskit_module)["Name"]] = metadata(qiskit_module)["Version"]
-            except PackageNotFoundError:
-                packages["qiskit"] = None
+            packages[qiskit_module] = getattr(sys.modules[qiskit_module], "__version__", None)
 
         for name, version in packages.items():
             html += f"<tr><td><code>{name}</code></td><td>{version}</td></tr>"
