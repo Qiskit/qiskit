@@ -14,8 +14,8 @@
 
 import unittest
 
-import ddt
 import itertools
+import ddt
 import numpy.random
 
 from qiskit.circuit import Clbit, ControlFlowOp
