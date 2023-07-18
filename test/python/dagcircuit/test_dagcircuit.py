@@ -1356,9 +1356,10 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
-    def _min_active_qubit(self, d):
+    def _min_active_qubit(self, dag):
         """Return the minimum index of all active qubits."""
-        return min({dag_to_circuit(d).find_bit(inst.qubits[i]).index for inst in circ for i in range(len(inst.qubits))})
+        circ = dag_to_circuit(dag)
+        return min({circ.find_bit(inst.qubits[i]).index for inst in circ for i in range(len(inst.qubits))})
 
     def test_separable_circuits(self):
         """Test separating disconnected sets of qubits in a circuit."""
