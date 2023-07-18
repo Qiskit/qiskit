@@ -14,6 +14,7 @@ Quantum Shannon Decomposition.
 
 Method is described in arXiv:quant-ph/0406176.
 """
+from __future__ import annotations
 import scipy
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -23,7 +24,13 @@ from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _
 
 
 def qs_decomposition(
-    mat, opt_a1=True, opt_a2=True, decomposer_1q=None, decomposer_2q=None, *, _depth=0
+    mat: np.ndarray,
+    opt_a1: bool = True,
+    opt_a2: bool = True,
+    decomposer_1q=None,
+    decomposer_2q=None,
+    *,
+    _depth=0,
 ):
     """
     Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.

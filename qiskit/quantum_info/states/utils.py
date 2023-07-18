@@ -14,6 +14,8 @@
 Quantum information utility functions for states.
 """
 
+from __future__ import annotations
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -23,7 +25,7 @@ from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 
 
-def partial_trace(state, qargs):
+def partial_trace(state: Statevector | DensityMatrix, qargs: list) -> DensityMatrix:
     """Return reduced density matrix by tracing out part of quantum state.
 
     If all subsystems are traced over this returns the
@@ -77,7 +79,7 @@ def partial_trace(state, qargs):
     return ret
 
 
-def shannon_entropy(pvec, base=2):
+def shannon_entropy(pvec: list | np.ndarray, base: int = 2) -> float:
     r"""Compute the Shannon entropy of a probability vector.
 
     The shannon entropy of a probability vector
