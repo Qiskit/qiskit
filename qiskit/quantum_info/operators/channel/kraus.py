@@ -14,6 +14,7 @@
 Kraus representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -28,6 +29,7 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Kraus(QuantumChannel):
@@ -58,7 +60,12 @@ class Kraus(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
+    ):
         """Initialize a quantum channel Kraus operator.
 
         Args:
@@ -220,7 +227,7 @@ class Kraus(QuantumChannel):
         ret._data = (kraus_l, kraus_r)
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Kraus, qargs: list | None = None, front: bool = False) -> Kraus:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -252,12 +259,12 @@ class Kraus(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(other, self)

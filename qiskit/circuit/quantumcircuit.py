@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -37,17 +36,19 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    Literal,
     overload,
 )
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
 from ._utils import sort_parameters
+from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -61,21 +62,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -455,22 +441,26 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
-    def has_calibration_for(self, instr_context: tuple):
+    def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
-        instr, qargs, _ = instr_context
-        if not self.calibrations or instr.name not in self.calibrations:
+        if isinstance(instruction, CircuitInstruction):
+            operation = instruction.operation
+            qubits = instruction.qubits
+        else:
+            operation, qubits, _ = instruction
+        if not self.calibrations or operation.name not in self.calibrations:
             return False
-        qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
+        qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
         params = []
-        for p in instr.params:
+        for p in operation.params:
             if isinstance(p, ParameterExpression) and not p.parameters:
                 params.append(float(p))
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[instr.name]
+        return (qubits, params) in self.calibrations[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -1238,6 +1228,16 @@ class QuantumCircuit:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
 
+    def _validate_expr(self, node: expr.Expr) -> expr.Expr:
+        for var in expr.iter_vars(node):
+            if isinstance(var.var, Clbit):
+                if var.var not in self._clbit_indices:
+                    raise CircuitError(f"Clbit {var.var} is not present in this circuit.")
+            elif isinstance(var.var, ClassicalRegister):
+                if var.var not in self.cregs:
+                    raise CircuitError(f"Register {var.var} is not present in this circuit.")
+        return node
+
     def append(
         self,
         instruction: Operation | CircuitInstruction,
@@ -1645,11 +1645,14 @@ class QuantumCircuit:
         Raises:
             MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
-            QasmError: If circuit has free parameters.
+            QASM2ExportError: If circuit has free parameters.
         """
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
 
         if self.num_parameters > 0:
-            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
+            raise QASM2ExportError(
+                "Cannot represent circuits with unbound parameters in OpenQASM 2."
+            )
 
         existing_gate_names = {
             "barrier",
@@ -1768,12 +1771,15 @@ class QuantumCircuit:
                 file.write(out)
 
         if formatted:
-            if not HAS_PYGMENTS:
-                raise MissingOptionalLibraryError(
-                    libname="pygments>2.4",
-                    name="formatted QASM output",
-                    pip_install="pip install pygments",
-                )
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+
+            import pygments
+            from pygments.formatters import (  # pylint: disable=no-name-in-module
+                Terminal256Formatter,
+            )
+            from qiskit.qasm.pygments import OpenQASMLexer
+            from qiskit.qasm.pygments import QasmTerminalStyle
+
             code = pygments.highlight(
                 out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
@@ -4328,7 +4334,7 @@ class QuantumCircuit:
     @typing.overload
     def while_loop(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         body: None,
         qubits: None,
         clbits: None,
@@ -4340,7 +4346,7 @@ class QuantumCircuit:
     @typing.overload
     def while_loop(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -4395,7 +4401,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if body is None:
             if qubits is not None or clbits is not None:
@@ -4600,7 +4609,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp, IfContext
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if true_body is None:
             if qubits is not None or clbits is not None:
@@ -4666,7 +4678,11 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
+
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     @typing.overload
@@ -4747,7 +4763,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.switch_case import SwitchCaseOp, SwitchContext
 
-        target = self._resolve_classical_resource(target)
+        if isinstance(target, expr.Expr):
+            target = self._validate_expr(target)
+        else:
+            target = self._resolve_classical_resource(target)
         if cases is None:
             if qubits is not None or clbits is not None:
                 raise CircuitError(
@@ -5069,10 +5088,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     # Otherwise, if there's a naming clash, we need a unique name.
     if operation.name in gates_to_define:
-        new_name = f"{operation.name}_{id(operation)}"
-        operation = operation.copy(name=new_name)
-    else:
-        new_name = operation.name
+        operation = _rename_operation(operation)
+
+    new_name = operation.name
 
     if parameterized_operation.params:
         parameters_qasm = (
@@ -5097,9 +5115,22 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
             statements.append(f"{new_operation.qasm()} {bits_qasm};")
         body_qasm = " ".join(statements)
+
+        # if an inner operation has the same name as the actual operation, it needs to be renamed
+        if operation.name in gates_to_define:
+            operation = _rename_operation(operation)
+            new_name = operation.name
+
         definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
         gates_to_define[new_name] = (parameterized_operation, definition_qasm)
     return operation
+
+
+def _rename_operation(operation):
+    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
+    new_name = f"{operation.name}_{id(operation)}"
+    updated_operation = operation.copy(name=new_name)
+    return updated_operation
 
 
 def _qasm_escape_name(name: str, prefix: str) -> str:
