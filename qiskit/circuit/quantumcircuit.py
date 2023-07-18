@@ -19,7 +19,6 @@ import sys
 import collections.abc
 import copy
 import itertools
-import functools
 import multiprocessing as mp
 import string
 import re
@@ -48,11 +47,12 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from ._utils import sort_parameters
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterReferences, ParameterTable, ParameterView
-from .parametervector import ParameterVector, ParameterVectorElement
+from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .operation import Operation
 from .register import Register
@@ -2636,9 +2636,7 @@ class QuantumCircuit:
         """
         # parameters from gates
         if self._parameters is None:
-            unsorted = self._unsorted_parameters()
-            self._parameters = sorted(unsorted, key=functools.cmp_to_key(_compare_parameters))
-
+            self._parameters = sort_parameters(self._unsorted_parameters())
         # return as parameter view, which implements the set and list interface
         return ParameterView(self._parameters)
 
@@ -2753,14 +2751,21 @@ class QuantumCircuit:
                circuit.draw('mpl')
 
         """
-        if not inplace:
+        if inplace:
+            target = self
+        else:
             target = self.copy()
             target._increment_instances()
             target._name_update()
-            target.assign_parameters(parameters, inplace=True, flat_input=flat_input, strict=strict)
-            return target
 
-        # Normalise the input into an iterable of `(parameter, value)` pairs.
+        # Normalise the inputs into simple abstract interfaces, so we've dispatched the "iteration"
+        # logic in one place at the start of the function.  This lets us do things like calculate
+        # and cache expensive properties for (e.g.) the sequence format only if they're used; for
+        # many large, close-to-hardware circuits, we won't need the extra handling for
+        # `global_phase` or recursive definition binding.
+        #
+        # During normalisation, be sure to reference 'parameters' and related things from 'self' not
+        # 'target' so we can take advantage of any caching we might be doing.
         if isinstance(parameters, dict):
             raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
             our_parameters = self._unsorted_parameters()
@@ -2769,37 +2774,27 @@ class QuantumCircuit:
                     f"Cannot bind parameters ({', '.join(str(x) for x in extras)}) not present in"
                     " the circuit."
                 )
-            parameter_binds = {
-                parameter: value
-                for parameter, value in raw_mapping.items()
-                if parameter in our_parameters
-            }
+            parameter_binds = _ParameterBindsDict(raw_mapping, our_parameters)
         else:
-            if len(parameters) != self.num_parameters:
+            our_parameters = self.parameters
+            if len(parameters) != len(our_parameters):
                 raise ValueError(
                     "Mismatching number of values and parameters. For partial binding "
                     "please pass a dictionary of {parameter: value} pairs."
                 )
-            parameter_binds = dict(zip(self.parameters, parameters))
-        parameter_binds_keys = parameter_binds.keys()
-
-        if isinstance(self.global_phase, ParameterExpression):
-            new_phase = self.global_phase
-            for parameter in new_phase.parameters & parameter_binds_keys:
-                new_phase = new_phase.assign(parameter, parameter_binds[parameter])
-            self.global_phase = new_phase
+            parameter_binds = _ParameterBindsSequence(our_parameters, parameters)
 
         # Clear out the parameter table for the relevant entries, since we'll be binding those.
         # Any new references to parameters are reinserted as part of the bind.
-        self._parameters = None
+        target._parameters = None
         # This is deliberately eager, because we want the side effect of clearing the table.
         all_references = [
-            (parameter, self._parameter_table.pop(parameter, ())) for parameter in parameter_binds
+            (parameter, value, target._parameter_table.pop(parameter, ()))
+            for parameter, value in parameter_binds.items()
         ]
         seen_operations = {}
         # The meat of the actual binding for regular operations.
-        for to_bind, references in all_references:
-            bound_value = parameter_binds[to_bind]
+        for to_bind, bound_value, references in all_references:
             update_parameters = (
                 tuple(bound_value.parameters)
                 if isinstance(bound_value, ParameterExpression)
@@ -2811,9 +2806,9 @@ class QuantumCircuit:
                 if isinstance(assignee, ParameterExpression):
                     new_parameter = assignee.assign(to_bind, bound_value)
                     for parameter in update_parameters:
-                        if parameter not in self._parameter_table:
-                            self._parameter_table[parameter] = ParameterReferences(())
-                        self._parameter_table[parameter].add((operation, index))
+                        if parameter not in target._parameter_table:
+                            target._parameter_table[parameter] = ParameterReferences(())
+                        target._parameter_table[parameter].add((operation, index))
                     if not new_parameter.parameters:
                         if new_parameter.is_real():
                             new_parameter = (
@@ -2834,15 +2829,24 @@ class QuantumCircuit:
                         " This may indicate an internal logic error in symbol tracking."
                     )
                 operation.params[index] = new_parameter
+
         # After we've been through everything at the top level, make a single visit to each
         # operation we've seen, rebinding its definition if necessary.
         for operation in seen_operations.values():
-            if (definition := getattr(operation, "_definition", None)) is not None:
+            if (
+                definition := getattr(operation, "_definition", None)
+            ) is not None and definition.num_parameters:
                 definition.assign_parameters(
-                    parameter_binds, inplace=True, flat_input=True, strict=False
+                    parameter_binds.mapping, inplace=True, flat_input=True, strict=False
                 )
 
-        # Finally, assign the parameters inside any of our calibrations.  We don't track these in
+        if isinstance(target.global_phase, ParameterExpression):
+            new_phase = target.global_phase
+            for parameter in new_phase.parameters & parameter_binds.mapping.keys():
+                new_phase = new_phase.assign(parameter, parameter_binds.mapping[parameter])
+            target.global_phase = new_phase
+
+        # Finally, assign the parameters inside any of the calibrations.  We don't track these in
         # the `ParameterTable`, so we manually reconstruct things.
         def map_calibration(qubits, parameters, schedule):
             modified = False
@@ -2850,10 +2854,10 @@ class QuantumCircuit:
             for i, parameter in enumerate(new_parameters):
                 if not isinstance(parameter, ParameterExpression):
                     continue
-                if not (contained := parameter.parameters & parameter_binds_keys):
+                if not (contained := parameter.parameters & parameter_binds.mapping.keys()):
                     continue
                 for to_bind in contained:
-                    parameter = parameter.assign(to_bind, parameter_binds[to_bind])
+                    parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
                 if not parameter.parameters:
                     parameter = (
                         int(parameter) if parameter._symbol_expr.is_integer else float(parameter)
@@ -2861,10 +2865,10 @@ class QuantumCircuit:
                 new_parameters[i] = parameter
                 modified = True
             if modified:
-                schedule.assign_parameters(parameter_binds)
+                schedule.assign_parameters(parameter_binds.mapping)
             return (qubits, tuple(new_parameters)), schedule
 
-        self._calibrations = defaultdict(
+        target._calibrations = defaultdict(
             dict,
             (
                 (
@@ -2874,10 +2878,10 @@ class QuantumCircuit:
                         for (qubits, parameters), schedule in calibrations.items()
                     ),
                 )
-                for gate, calibrations in self._calibrations.items()
+                for gate, calibrations in target._calibrations.items()
             ),
         )
-        return None
+        return None if inplace else target
 
     @staticmethod
     def _unroll_param_dict(
@@ -4966,22 +4970,40 @@ class QuantumCircuit:
         return 0  # If there are no instructions over bits
 
 
-def _standard_compare(value1, value2):
-    if value1 < value2:
-        return -1
-    if value1 > value2:
-        return 1
-    return 0
+class _ParameterBindsDict:
+    __slots__ = ("mapping", "allowed_keys")
+
+    def __init__(self, mapping, allowed_keys):
+        self.mapping = mapping
+        self.allowed_keys = allowed_keys
+
+    def items(self):
+        """Iterator through all the keys in the mapping that we care about.  Wrapping the main
+        mapping allows us to avoid reconstructing a new 'dict', but just use the given 'mapping'
+        without any copy / reconstruction."""
+        for parameter, value in self.mapping.items():
+            if parameter in self.allowed_keys:
+                yield parameter, value
 
 
-def _compare_parameters(param1: Parameter, param2: Parameter) -> int:
-    if isinstance(param1, ParameterVectorElement) and isinstance(param2, ParameterVectorElement):
-        # if they belong to a vector with the same name, sort by index
-        if param1.vector.name == param2.vector.name:
-            return _standard_compare(param1.index, param2.index)
+class _ParameterBindsSequence:
+    __slots__ = ("parameters", "values", "mapping_cache")
 
-    # else sort by name
-    return _standard_compare(param1.name, param2.name)
+    def __init__(self, parameters, values):
+        self.parameters = parameters
+        self.values = values
+        self.mapping_cache = None
+
+    def items(self):
+        """Iterator through all the keys in the mapping that we care about."""
+        return zip(self.parameters, self.values)
+
+    @property
+    def mapping(self):
+        """Cached version of a mapping.  This is only generated on demand."""
+        if self.mapping_cache is None:
+            self.mapping_cache = dict(zip(self.parameters, self.values))
+        return self.mapping_cache
 
 
 # Used by the OQ2 exporter.  Just needs to have enough parameters to support the largest standard
