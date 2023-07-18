@@ -1413,6 +1413,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(dags, compare_dags)
 
     def test_separable_circuits_w_measurements(self):
+        """Test separating disconnected sets of qubits in a circuit with measurements."""
         # Test circuit ordering with measurements
         dag = DAGCircuit()
         qreg = QuantumRegister(3, "q")
