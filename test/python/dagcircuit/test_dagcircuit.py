@@ -1358,8 +1358,7 @@ class TestCircuitProperties(QiskitTestCase):
 
     def _min_active_qubit(self, d):
         """Return the minimum index of all active qubits."""
-        circ = dag_to_circuit(d)
-        return min({circ.find_bit(inst.qubits[i]).index for inst in circ for i in range(len(inst.qubits))})
+        return min({dag_to_circuit(d).find_bit(inst.qubits[i]).index for inst in circ for i in range(len(inst.qubits))})
 
     def test_separable_circuits(self):
         """Test separating disconnected sets of qubits in a circuit."""
