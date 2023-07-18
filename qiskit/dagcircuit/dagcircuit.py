@@ -1900,8 +1900,8 @@ class DAGCircuit:
         the causal cone of a qubit can be useful when debugging faulty circuits, as it can
         help identify which wire(s) may be causing the problem.
 
-        This method does not consider classical to quantum influences through conditionals or
-        other means.
+        This method does not consider any classical data dependency in the ``DAGCircuit``,
+        classical bit wires are ignored for the purposes of building the causal cone.
 
         Args:
             qubit (Qubit): The output qubit for which we want to find the causal cone.
@@ -1936,7 +1936,7 @@ class DAGCircuit:
                     qubits_to_check = qubits_to_check.union(qubit_set)
             # For each predecessor of the current node, filter input/output nodes,
             # also make sure it has at least one qubit in common. Then append.
-            for node in self.predecessors(node_to_check):
+            for node in self.quantum_predecessors(node_to_check):
                 if (
                     isinstance(node, DAGOpNode)
                     and len(qubits_to_check.intersection(set(node.qargs))) > 0
