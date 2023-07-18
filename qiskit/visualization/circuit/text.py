@@ -767,6 +767,8 @@ class TextDrawing:
         )
 
     def __repr__(self):
+        if ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
+            return ""
         return self.single_string()
 
     def single_string(self):
