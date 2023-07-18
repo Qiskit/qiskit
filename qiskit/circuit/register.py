@@ -143,8 +143,8 @@ class Register:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
             # Since the hash of Bits created by the line above will depend upon
-            # the the hash of self, which is not guaranteed to have been initialized
-            # first on deepcopying or on pickling, so defer populating _bit_indices
+            # the hash of self, which is not guaranteed to have been initialized
+            # first on deep-copying or on pickling, so defer populating _bit_indices
             # until first access.
             self._bit_indices = None
 

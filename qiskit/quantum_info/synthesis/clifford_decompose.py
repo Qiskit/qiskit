@@ -13,6 +13,7 @@
 Circuit synthesis for the Clifford class.
 """
 
+from __future__ import annotations
 from qiskit.synthesis.clifford import (
     synth_clifford_ag,
     synth_clifford_bm,

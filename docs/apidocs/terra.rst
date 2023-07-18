@@ -9,6 +9,7 @@ Qiskit Terra API Reference
 
    circuit
    circuit_library
+   circuit_classical
    compiler
    execute
    visualization
