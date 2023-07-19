@@ -42,7 +42,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
