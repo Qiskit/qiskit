@@ -171,6 +171,9 @@ class BasicPrinter:
         if node.size is not None:
             self.stream.write(f"[{node.size}]")
 
+    def _visit_BitType(self, _node: ast.BitType) -> None:
+        self.stream.write("bit")
+
     def _visit_BitArrayType(self, node: ast.BitArrayType) -> None:
         self.stream.write(f"bit[{node.size}]")
 
@@ -271,7 +274,8 @@ class BasicPrinter:
     def _visit_QuantumDeclaration(self, node: ast.QuantumDeclaration) -> None:
         self._start_line()
         self.stream.write("qubit")
-        self.visit(node.designator)
+        if node.designator is not None:
+            self.visit(node.designator)
         self.stream.write(" ")
         self.visit(node.identifier)
         self._end_statement()
@@ -281,7 +285,7 @@ class BasicPrinter:
         self.stream.write("let ")
         self.visit(node.identifier)
         self.stream.write(" = ")
-        self._visit_sequence(node.concatenation, separator=" ++ ")
+        self.visit(node.value)
         self._end_statement()
 
     def _visit_QuantumGateModifier(self, node: ast.QuantumGateModifier) -> None:

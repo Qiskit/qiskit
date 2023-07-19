@@ -85,7 +85,7 @@ def plot_histogram(
 
     Args:
         data (list or dict): This is either a list of dictionaries or a single
-            dict containing the values to represent (ex {'001': 130})
+            dict containing the values to represent (ex ``{'001': 130}``)
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
@@ -343,8 +343,8 @@ def _plotting_core(
     labels_dict, all_pvalues, all_inds = _plot_data(data, labels, number_to_keep, kind=kind)
     rects = []
     for item, _ in enumerate(data):
+        label = None
         for idx, val in enumerate(all_pvalues[item]):
-            label = None
             if not idx and legend:
                 label = legend[item]
             if val > 0:
@@ -358,6 +358,7 @@ def _plotting_core(
                         zorder=2,
                     )
                 )
+                label = None
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
         ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)

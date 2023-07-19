@@ -61,10 +61,10 @@ _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not
 # without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
     "layout_method": _ControlFlowState(
-        working={"trivial", "dense"}, not_working={"sabre", "noise_adaptive"}
+        working={"trivial", "dense", "sabre"}, not_working={"noise_adaptive"}
     ),
     "routing_method": _ControlFlowState(
-        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic"}
+        working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     # 'synthesis' is not a supported translation method because of the block-collection passes
     # involved; we currently don't have a neat way to pass the information about nested blocks - the

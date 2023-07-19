@@ -12,12 +12,15 @@
 
 """Circuit operation representing an ``switch/case`` statement."""
 
+from __future__ import annotations
+
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
 import contextlib
 from typing import Union, Iterable, Any, Tuple, Optional, List, Literal
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
@@ -64,15 +67,24 @@ class SwitchCaseOp(ControlFlowOp):
 
     def __init__(
         self,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         cases: Iterable[Tuple[Any, QuantumCircuit]],
         *,
         label: Optional[str] = None,
     ):
-        if not isinstance(target, (Clbit, ClassicalRegister)):
+        if isinstance(target, expr.Expr):
+            if target.type.kind not in (types.Uint, types.Bool):
+                raise CircuitError(
+                    "the switch target must be an expression with type 'Uint(n)' or 'Bool()',"
+                    f" not '{target.type}'"
+                )
+        elif not isinstance(target, (Clbit, ClassicalRegister)):
             raise CircuitError("the switch target must be a classical bit or register")
 
-        target_bits = 1 if isinstance(target, Clbit) else len(target)
+        if isinstance(target, expr.Expr):
+            target_bits = 1 if target.type.kind is types.Bool else target.type.width
+        else:
+            target_bits = 1 if isinstance(target, Clbit) else len(target)
         target_max = (1 << target_bits) - 1
 
         case_ids = set()
@@ -127,9 +139,13 @@ class SwitchCaseOp(ControlFlowOp):
     def __eq__(self, other):
         # The general __eq__ will compare the blocks in the right order, so we just need to ensure
         # that all the labels point the right way as well.
-        return super().__eq__(other) and all(
-            set(labels_self) == set(labels_other)
-            for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+        return (
+            super().__eq__(other)
+            and self.target == other.target
+            and all(
+                set(labels_self) == set(labels_other)
+                for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+            )
         )
 
     def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:

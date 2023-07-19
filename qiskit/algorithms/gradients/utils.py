@@ -126,13 +126,13 @@ def _make_lin_comb_gradient_circuit(
     circuit_temp.data.insert(1, circuit_temp.data.pop())
 
     lin_comb_circuits = {}
-    for i, (inst, qregs, _) in enumerate(circuit_temp.data):
-        if inst.is_parameterized():
-            for p in inst.params[0].parameters:
-                gate = _gate_gradient(inst)
+    for i, instruction in enumerate(circuit_temp.data):
+        if instruction.operation.is_parameterized():
+            for p in instruction.operation.params[0].parameters:
+                gate = _gate_gradient(instruction.operation)
                 lin_comb_circuit = circuit_temp.copy()
                 # insert `gate` to i-th position
-                lin_comb_circuit.append(gate, [qr_aux[0]] + qregs, [])
+                lin_comb_circuit.append(gate, [qr_aux[0]] + list(instruction.qubits), [])
                 lin_comb_circuit.data.insert(i, lin_comb_circuit.data.pop())
                 lin_comb_circuit.h(qr_aux)
                 if add_measurement:
@@ -192,15 +192,15 @@ def _make_lin_comb_qgt_circuit(
     circuit_temp.data.insert(0, circuit_temp.data.pop())
 
     lin_comb_qgt_circuits = {}
-    for i, (inst_i, qregs_i, _) in enumerate(circuit_temp.data):
-        if not inst_i.is_parameterized():
+    for i, instruction_i in enumerate(circuit_temp.data):
+        if not instruction_i.operation.is_parameterized():
             continue
-        for j, (inst_j, qregs_j, _) in enumerate(circuit_temp.data):
-            if not inst_j.is_parameterized():
+        for j, instruction_j in enumerate(circuit_temp.data):
+            if not instruction_j.operation.is_parameterized():
                 continue
             # Calculate the QGT of the i-th gate with respect to the j-th gate.
-            param_i = inst_i.params[0]
-            param_j = inst_j.params[0]
+            param_i = instruction_i.operation.params[0]
+            param_j = instruction_j.operation.params[0]
 
             for p_i in param_i.parameters:
                 for p_j in param_j.parameters:
@@ -208,28 +208,36 @@ def _make_lin_comb_qgt_circuit(
                         p_j
                     ):
                         continue
-                    gate_i = _gate_gradient(inst_i)
-                    gate_j = _gate_gradient(inst_j)
+                    gate_i = _gate_gradient(instruction_i.operation)
+                    gate_j = _gate_gradient(instruction_j.operation)
                     lin_comb_qgt_circuit = circuit_temp.copy()
                     if i < j:
                         # insert gate_j to j-th position
-                        lin_comb_qgt_circuit.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                        lin_comb_qgt_circuit.append(
+                            gate_j, [qr_aux[0]] + list(instruction_j.qubits), []
+                        )
                         lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
                         # insert gate_i to i-th position with two X gates at its sides
                         lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
                         lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
-                        lin_comb_qgt_circuit.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                        lin_comb_qgt_circuit.append(
+                            gate_i, [qr_aux[0]] + list(instruction_i.qubits), []
+                        )
                         lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
                         lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
                         lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
                     else:
                         # insert gate_i to i-th position
-                        lin_comb_qgt_circuit.append(gate_i, [qr_aux[0]] + qregs_i, [])
+                        lin_comb_qgt_circuit.append(
+                            gate_i, [qr_aux[0]] + list(instruction_i.qubits), []
+                        )
                         lin_comb_qgt_circuit.data.insert(i, lin_comb_qgt_circuit.data.pop())
                         # insert gate_j to j-th position with two X gates at its sides
                         lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
                         lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
-                        lin_comb_qgt_circuit.append(gate_j, [qr_aux[0]] + qregs_j, [])
+                        lin_comb_qgt_circuit.append(
+                            gate_j, [qr_aux[0]] + list(instruction_j.qubits), []
+                        )
                         lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
                         lin_comb_qgt_circuit.append(XGate(), [qr_aux[0]], [])
                         lin_comb_qgt_circuit.data.insert(j, lin_comb_qgt_circuit.data.pop())
@@ -290,18 +298,18 @@ def _assign_unique_parameters(
     parameter_map = defaultdict(list)
     gradient_parameter_map = {}
     num_gradient_parameters = 0
-    for instruction, qargs, cargs in circuit.data:
-        if instruction.is_parameterized():
-            new_inst_params = []
-            for angle in instruction.params:
+    for instruction in circuit.data:
+        if instruction.operation.is_parameterized():
+            new_op_params = []
+            for angle in instruction.operation.params:
                 new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
-                new_inst_params.append(new_parameter)
+                new_op_params.append(new_parameter)
                 num_gradient_parameters += 1
                 for parameter in angle.parameters:
                     parameter_map[parameter].append((new_parameter, angle.gradient(parameter)))
                 gradient_parameter_map[new_parameter] = angle
-            instruction.params = new_inst_params
-        gradient_circuit.append(instruction, qargs, cargs)
+            instruction.operation.params = new_op_params
+        gradient_circuit.append(instruction.operation, instruction.qubits, instruction.clbits)
     # For the global phase
     gradient_circuit.global_phase = circuit.global_phase
     if isinstance(gradient_circuit.global_phase, ParameterExpression):
