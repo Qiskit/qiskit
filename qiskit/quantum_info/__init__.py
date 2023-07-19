@@ -128,7 +128,6 @@ Synthesis
    Quaternion
    decompose_clifford
    XXDecomposer
-   qs_decomposition
 """
 
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
@@ -182,5 +181,4 @@ from .synthesis import (
     XXDecomposer,
     decompose_clifford,
     two_qubit_cnot_decompose,
-    qs_decomposition,
 )
