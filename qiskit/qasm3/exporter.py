@@ -1056,7 +1056,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)
         if node.type.kind is types.Uint:
-            return ast.BitstringLiteral(node.value, node.type.width)
+            return ast.IntegerLiteral(node.value)
         raise RuntimeError(f"unhandled Value type '{node}'")
 
     def visit_cast(self, node, /):

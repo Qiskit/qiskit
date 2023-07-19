@@ -121,13 +121,13 @@ class TestCircuitQASM3(QiskitTestCase):
                 "cr[0] = measure qr1[0];",
                 "cr[1] = measure qr2[0];",
                 "cr[2] = measure qr2[1];",
-                'if (cr == "000") {',
+                'if (cr == 0) {',
                 "  x qr2[1];",
                 "}",
-                'if (cr == "001") {',
+                'if (cr == 1) {',
                 "  y qr1[0];",
                 "}",
-                'if (cr == "010") {',
+                'if (cr == 2) {',
                 "  z qr1[0];",
                 "}",
                 "",
@@ -1111,7 +1111,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'while (cr == "00") {',
+                'while (cr == 0) {',
                 "  h qr[1];",
                 "  break;",
                 "  continue;",
@@ -1148,7 +1148,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'while (cr == "00") {',
+                'while (cr == 0) {',
                 "  cr[0] = measure qr[0];",
                 "  cr[1] = measure qr[1];",
                 # Note the reversed bits in the body.
@@ -1182,7 +1182,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'if (cr == "00") {',
+                'if (cr == 0) {',
                 "  h qr[1];",
                 "}",
                 "x qr[0];",
@@ -1210,7 +1210,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'if (cr == "00") {',
+                'if (cr == 0) {',
                 "  h qr[1];",
                 "} else {",
                 "  z qr[1];",
@@ -1249,7 +1249,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'if (cr == "00") {',
+                'if (cr == 0) {',
                 "  if (!cr[0]) {",
                 "    cr[0] = measure qr[0];",
                 "  } else {",
@@ -1296,7 +1296,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'if (cr == "00") {',
+                'if (cr == 0) {',
                 "  if (!cr[0]) {",
                 "    cr[0] = measure qr[0];",
                 "  } else {",
@@ -1353,7 +1353,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
-                'if (cr == "00") {',
+                'if (cr == 0) {',
                 "  if (!cr[0]) {",
                 "    cr[0] = measure qr[0];",
                 "  } else {",
@@ -1516,7 +1516,7 @@ qubit _qubit0;
 if (!_bit0) {
   x _qubit0;
 }
-while (cr == "11") {
+while (cr == 3) {
   x _qubit0;
 }
 """
@@ -1554,8 +1554,8 @@ if (!_bit0) {
     x _qubit0;
   }
 }
-while (cr == "11") {
-  while ((cr & "11") == "11") {
+while (cr == 3) {
+  while ((cr & 3) == 3) {
     x _qubit0;
   }
 }
@@ -1585,11 +1585,11 @@ include "stdgates.inc";
 bit[3] cr1;
 bit[3] cr2;
 bit[3] cr3;
-if ((cr1 & cr2 & cr3) == "111") {
+if ((cr1 & cr2 & cr3) == 7) {
 }
-if ((cr1 | cr2 | cr3) == "111") {
+if ((cr1 | cr2 | cr3) == 7) {
 }
-if ((cr1 ^ cr2 ^ cr3) == "111") {
+if ((cr1 ^ cr2 ^ cr3) == 7) {
 }
 if (cr1[0] && cr1[1] && cr1[2]) {
 }
@@ -1623,11 +1623,11 @@ include "stdgates.inc";
 bit[3] cr1;
 bit[3] cr2;
 bit[3] cr3;
-if ((cr1 & (cr2 & cr3)) == "111") {
+if ((cr1 & (cr2 & cr3)) == 7) {
 }
-if ((cr1 | (cr2 | cr3)) == "111") {
+if ((cr1 | (cr2 | cr3)) == 7) {
 }
-if ((cr1 ^ (cr2 ^ cr3)) == "111") {
+if ((cr1 ^ (cr2 ^ cr3)) == 7) {
 }
 if (cr1[0] && (cr1[1] && cr1[2])) {
 }
@@ -1648,7 +1648,7 @@ if (cr1[0] || (cr1[1] || cr1[2])) {
 OPENQASM 3;
 include "stdgates.inc";
 bit[2] cr;
-if (~~cr == "11") {
+if (~~cr == 3) {
 }
 if (!!cr[0]) {
 }
@@ -2250,7 +2250,7 @@ bit[2] c;
 int switch_dummy;
 int switch_dummy__generated0;
 qubit _qubit0;
-if (c == "01") {
+if (c == 1) {
   switch_dummy = c;
   switch (switch_dummy) {
     case 0: {
@@ -2307,7 +2307,7 @@ switch (switch_dummy) {
   }
   break;
 }
-switch_dummy__generated0 = cr & "11";
+switch_dummy__generated0 = cr & 3;
 switch (switch_dummy__generated0) {
   case 3: {
     x _qubit0;
