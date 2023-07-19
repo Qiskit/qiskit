@@ -753,6 +753,11 @@ class TextDrawing:
 
         self._nest_depth = 0  # nesting depth for control flow ops
 
+        # Because jupyter calls both __repr__ and __repr_html__ for some backends,
+        # the entire drawer can be run twice which can result in different output
+        # for different backends. This var caches the output so the drawer only runs once.
+        self._single_string = ""
+
     def __str__(self):
         return self.single_string()
 
@@ -767,8 +772,6 @@ class TextDrawing:
         )
 
     def __repr__(self):
-        if ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
-            return ""
         return self.single_string()
 
     def single_string(self):
@@ -776,8 +779,12 @@ class TextDrawing:
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
+        if self._single_string:
+            return self._single_string
         try:
-            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+            self._single_string = (
+                "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+            )
         except (UnicodeEncodeError, UnicodeDecodeError):
             warn(
                 "The encoding %s has a limited charset. Consider a different encoding in your "
@@ -785,7 +792,10 @@ class TextDrawing:
                 RuntimeWarning,
             )
             self.encoding = "utf-8"
-            return "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+            self._single_string = (
+                "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
+            )
+        return self._single_string
 
     def dump(self, filename, encoding=None):
         """Dumps the ascii art in the file.
