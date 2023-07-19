@@ -315,10 +315,10 @@ def _read_expr(
     cregs: collections.abc.Mapping[str, ClassicalRegister],
 ) -> expr.Expr:
     # pylint: disable=too-many-return-statements
-    type_key = file_obj.read(1)
+    type_key = file_obj.read(formats.EXPRESSION_DISCRIMINATOR_SIZE)
     type_ = _read_expr_type(file_obj)
     if type_key == type_keys.Expression.VAR:
-        var_type_key = file_obj.read(1)
+        var_type_key = file_obj.read(formats.EXPR_VAR_DISCRIMINATOR_SIZE)
         if var_type_key == type_keys.ExprVar.CLBIT:
             payload = formats.EXPR_VAR_CLBIT._make(
                 struct.unpack(
@@ -336,7 +336,7 @@ def _read_expr(
             return expr.Var(cregs[name], type_)
         raise exceptions.QpyError("Invalid classical-expression Var key '{var_type_key}'")
     if type_key == type_keys.Expression.VALUE:
-        value_type_key = file_obj.read(1)
+        value_type_key = file_obj.read(formats.EXPR_VALUE_DISCRIMINATOR_SIZE)
         if value_type_key == type_keys.ExprValue.BOOL:
             payload = formats.EXPR_VALUE_BOOL._make(
                 struct.unpack(
@@ -382,7 +382,7 @@ def _read_expr(
 
 
 def _read_expr_type(file_obj) -> types.Type:
-    type_key = file_obj.read(1)
+    type_key = file_obj.read(formats.EXPR_TYPE_DISCRIMINATOR_SIZE)
     if type_key == type_keys.ExprType.BOOL:
         return types.Bool()
     if type_key == type_keys.ExprType.UINT:
