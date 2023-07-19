@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Union, Tuple, Optional
-
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
@@ -140,13 +138,9 @@ class WhileLoopContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        condition: Union[
-            Tuple[ClassicalRegister, int],
-            Tuple[Clbit, int],
-            Tuple[Clbit, bool],
-        ],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
 
         self._circuit = circuit
