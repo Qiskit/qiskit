@@ -4,4 +4,4 @@ fixes:
     prevented the :meth:`.BasicSwap.run` method from functioning if the
     ``fake_run`` keyword argument was set to ``True`` when the class was
     instantiated.
-    Fixed `#10149 <https://github.com/Qiskit/qiskit-terra/issues/10147>`__
+    Fixed `#10147 <https://github.com/Qiskit/qiskit-terra/issues/10147>`__
