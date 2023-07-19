@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -545,6 +546,7 @@ class C3SXGate(ControlledGate):
 
         self.definition = qc
 
+    @deprecate_func(since="0.25.0")
     def qasm(self):
         # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
         # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
