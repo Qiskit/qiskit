@@ -14,8 +14,6 @@
 
 from numpy import identity, kron
 from qiskit.circuit.library import SwapGate
-from qiskit.circuit import Qubit
-from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
 from qiskit.exceptions import QiskitError
 
@@ -25,7 +23,7 @@ SWAP_MATRIX = SWAP_GATE.to_matrix()
 IDENTITY = identity(2, dtype=complex)
 
 
-def _block_to_matrix(block: list[DAGOpNode], block_index_map: dict[Qubit, int]):
+def _block_to_matrix(block, block_index_map):
     """
     The function converts any sequence of operations between two qubits into a matrix
     that can be utilized to create a gate or a unitary.
