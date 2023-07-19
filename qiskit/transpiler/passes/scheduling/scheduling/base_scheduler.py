@@ -13,7 +13,6 @@
 """Base circuit scheduling pass."""
 
 import warnings
-
 from typing import Dict
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import AnalysisPass
