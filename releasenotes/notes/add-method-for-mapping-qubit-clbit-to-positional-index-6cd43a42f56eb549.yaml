@@ -10,10 +10,3 @@ features:
     The BitLocations is a namedtuple which includes the positional index of the 
     bit in the circuit and a list of registers containing the bit. If the bit 
     cannot be found or is of an unknown type, it raises a DAGCircuitError.
-upgrade:
-  - |
-    Transpiler passes have been updated to use this new method. 
-    Methods from :class:`~qiskit.dagcircuit.DagCircuit` such as
-    add_qubit, add_clbit, add_qreg, add_creg, remove_qubit, remove_clbit, 
-    remove_qreg, remove_creg, have been updated to maintain qubit and 
-    clbit indices and registers.
