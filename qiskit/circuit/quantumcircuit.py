@@ -48,6 +48,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
+from . import _classical_resource_map
 from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
@@ -949,43 +950,18 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
-        # Cache for `map_register_to_dest`.
-        _map_register_cache = {}
-
-        def map_register_to_dest(theirs):
-            """Map the target's registers to suitable equivalents in the destination, adding an
-            extra one if there's no exact match."""
-            if theirs.name in _map_register_cache:
-                return _map_register_cache[theirs.name]
-            mapped_bits = [edge_map[bit] for bit in theirs]
-            for ours in dest.cregs:
-                if mapped_bits == list(ours):
-                    mapped_theirs = ours
-                    break
-            else:
-                mapped_theirs = ClassicalRegister(bits=mapped_bits)
-                dest.add_register(mapped_theirs)
-            _map_register_cache[theirs.name] = mapped_theirs
-            return mapped_theirs
-
+        variable_mapper = _classical_resource_map.VariableMapper(
+            dest.cregs, edge_map, dest.add_register
+        )
         mapped_instrs: list[CircuitInstruction] = []
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
-
-            if getattr(n_op, "condition", None) is not None:
-                target, value = n_op.condition
-                if isinstance(target, Clbit):
-                    n_op.condition = (edge_map[target], value)
-                else:
-                    n_op.condition = (map_register_to_dest(target), value)
-            elif isinstance(n_op, SwitchCaseOp):
-                if isinstance(n_op.target, Clbit):
-                    n_op.target = edge_map[n_op.target]
-                else:
-                    n_op.target = map_register_to_dest(n_op.target)
-
+            if (condition := getattr(n_op, "condition", None)) is not None:
+                n_op.condition = variable_mapper.map_condition(condition)
+            if isinstance(n_op, SwitchCaseOp):
+                n_op.target = variable_mapper.map_target(n_op.target)
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
         if front:
