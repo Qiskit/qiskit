@@ -10,13 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"Circuit operation representing a ``while`` loop."
+"""Circuit operation representing a ``while`` loop."""
 
-from typing import Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import Union, Tuple, Optional
 
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
-from .condition import validate_condition, condition_bits, condition_registers
+from ._builder_utils import validate_condition, condition_resources
 from .control_flow import ControlFlowOp
 
 
@@ -53,13 +56,9 @@ class WhileLoopOp(ControlFlowOp):
 
     def __init__(
         self,
-        condition: Union[
-            Tuple[ClassicalRegister, int],
-            Tuple[Clbit, int],
-            Tuple[Clbit, bool],
-        ],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         body: QuantumCircuit,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
@@ -155,9 +154,8 @@ class WhileLoopContext:
         self._label = label
 
     def __enter__(self):
-        self._circuit._push_scope(
-            clbits=condition_bits(self._condition), registers=condition_registers(self._condition)
-        )
+        resources = condition_resources(self._condition)
+        self._circuit._push_scope(clbits=resources.clbits, registers=resources.cregs)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
