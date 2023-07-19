@@ -43,7 +43,7 @@ def schedule(
     meas_map: Optional[List[List[int]]] = None,
     dt: Optional[float] = None,
     method: Optional[Union[str, List[str]]] = None,
-    target: Optional[Target] = None, 
+    target: Optional[Target] = None,
 ) -> Union[Schedule, List[Schedule]]:
     """
     Schedule a circuit to a pulse ``Schedule``, using the backend, according to any specified
@@ -60,6 +60,9 @@ def schedule(
             which contain time information, dt is required. If not provided, it will be
             obtained from the backend configuration
         method: Optionally specify a particular scheduling method
+        target: The optional :class:`~.Target` representing the target backend. If ``None``,
+                defaults to the ``backend``\'s ``target``, constructed from convert_to_target,
+                or prepared from ``meas_map`` and ``inst_map``
 
     Returns:
         A pulse ``Schedule`` that implements the input circuit
@@ -76,7 +79,7 @@ def schedule(
             target = convert_to_target(
                 configuration=backend.configuration,
                 properties=backend.properties,
-                defaults= backend.defaults() if hasattr(backend, "defaults") else None
+                defaults=backend.defaults() if hasattr(backend, "defaults") else None,
             )
         else:
             if inst_map:
