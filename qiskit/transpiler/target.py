@@ -290,7 +290,7 @@ class Target(Mapping):
                 qubits don't have properties available you can set that entry to
                 ``None``
             concurrent_measurements(list): A list of sets of qubits that must be
-                measured together. This must be provided 
+                measured together. This must be provided
                 as a nested list like [[0, 1], [2, 3, 4]].
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
             defined and the value of ``num_qubits`` differs from the length of
