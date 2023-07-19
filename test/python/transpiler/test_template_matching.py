@@ -671,7 +671,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         pass_ = TemplateOptimization(**rzx_templates(["zz3"]))
         circuit_out = PassManager(pass_).run(circuit_in)
-       
+
         # these are NOT equal if template optimization works
         self.assertNotEqual(circuit_in, circuit_out)
 
