@@ -1210,7 +1210,7 @@ Instructions:
         target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, target.instruction_schedule_map())
 
-    def test_update_from_instruction_schedule_map_with_parameter(self):
+    def test_update_from_instruction_schedule_map_with_schedule_parameter(self):
         self.pulse_target.dt = None
         inst_map = InstructionScheduleMap()
         duration = Parameter("duration")
