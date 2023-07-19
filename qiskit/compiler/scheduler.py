@@ -20,6 +20,7 @@ from time import time
 from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.measure import Measure
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend, BackendV1, BackendV2
@@ -78,22 +79,31 @@ def schedule(
             if inst_map:
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
         elif isinstance(backend, BackendV1):
-            target = convert_to_target(
-                configuration=backend.configuration(),
-                properties=backend.properties(),
-                defaults=backend.defaults() if hasattr(backend, "defaults") else None,
-            )
+            if hasattr(backend, "configuration"):
+                target = convert_to_target(
+                    configuration=backend.configuration(),
+                    properties=backend.properties(),
+                    defaults=backend.defaults() if hasattr(backend, "defaults") else None,
+                )
+                print(f"{inst_map=}")
+                print(backend.defaults().instruction_schedule_map)
+            else:
+                target = Target(concurrent_measurements=meas_map or backend.configuration().meas_map)
+                defaults=backend.defaults() if hasattr(backend, "defaults") else None
+                inst_map = inst_map or defaults.instruction_schedule_map if hasattr(defaults, "instruction_schedule_map") else None
+                # print(f"aaaa{inst_map=}")
+                # target.add_instruction(Measure(), properties=backend.properties())
             if inst_map:
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
         else:
             if inst_map:
-                target = Target(meas_map=meas_map)
+                target = Target(concurrent_measurements=meas_map)
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
             else:
                 raise QiskitError(
                     "Must specify either target, backend, or inst_map for scheduling passes."
                 )
-
+    print(target.instruction_schedule_map())
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = parallel_map(schedule_circuit, circuits, (None, target, method))
     end_time = time()

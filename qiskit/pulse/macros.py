@@ -66,11 +66,13 @@ def measure(
 
     # backend is V2.
     if isinstance(backend, BackendV2) or target:
+        if hasattr(backend, "meas_map"):
+            meas_map = meas_map or backend.meas_map
 
         return _measure_v2(
             qubits=qubits,
             target=target or backend.target,
-            meas_map=meas_map or backend.meas_map,
+            meas_map=meas_map or target.concurrent_measurements,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
@@ -172,7 +174,7 @@ def _measure_v2(
         A measurement schedule corresponding to the inputs provided.
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
-
+    
     if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
     meas_group = set()

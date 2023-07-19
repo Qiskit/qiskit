@@ -79,6 +79,7 @@ def convert_to_target(
         gates: Dict[str, Any] = {}
         for gate in properties.gates:
             name = gate.gate
+            print(f"{name=}")
             if name in name_mapping:
                 if name not in gates:
                     gates[name] = {}
@@ -102,8 +103,11 @@ def convert_to_target(
                 if param.name == "gate_length":
                     gate_props["duration"] = apply_prefix(param.value, param.unit)
             gates[name][qubits] = InstructionProperties(**gate_props)
+        print("----------------------------------------------------------------")
+        print(target.instruction_schedule_map())
         for gate, props in gates.items():
             inst = name_mapping[gate]
+            print(inst, props)
             target.add_instruction(inst, props)
         # Create measurement instructions:
         measure_props = {}
