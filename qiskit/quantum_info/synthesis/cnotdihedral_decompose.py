@@ -13,6 +13,7 @@
 Circuit synthesis for the CNOTDihedral class.
 """
 
+from __future__ import annotations
 from qiskit.synthesis.cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,

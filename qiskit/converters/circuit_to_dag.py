@@ -16,7 +16,7 @@ import copy
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
-def circuit_to_dag(circuit, copy_operations=True):
+def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
     """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
     Args:
@@ -28,9 +28,17 @@ def circuit_to_dag(circuit, copy_operations=True):
             :class:`~.DAGCircuit` will be shared instances and modifications to
             operations in the :class:`~.DAGCircuit` will be reflected in the
             :class:`~.QuantumCircuit` (and vice versa).
+        qubit_order (Iterable[Qubit] or None): the order that the qubits should be indexed in the
+            output DAG.  Defaults to the same order as in the circuit.
+        clbit_order (Iterable[Clbit] or None): the order that the clbits should be indexed in the
+            output DAG.  Defaults to the same order as in the circuit.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
+
+    Raises:
+        ValueError: if the ``qubit_order`` or ``clbit_order`` parameters do not match the bits in
+            the circuit.
 
     Example:
         .. code-block::
@@ -54,8 +62,22 @@ def circuit_to_dag(circuit, copy_operations=True):
     dagcircuit.calibrations = circuit.calibrations
     dagcircuit.metadata = circuit.metadata
 
-    dagcircuit.add_qubits(circuit.qubits)
-    dagcircuit.add_clbits(circuit.clbits)
+    if qubit_order is None:
+        qubits = circuit.qubits
+    elif len(qubit_order) != circuit.num_qubits or set(qubit_order) != set(circuit.qubits):
+        raise ValueError("'qubit_order' does not contain exactly the same qubits as the circuit")
+    else:
+        qubits = qubit_order
+
+    if clbit_order is None:
+        clbits = circuit.clbits
+    elif len(clbit_order) != circuit.num_clbits or set(clbit_order) != set(circuit.clbits):
+        raise ValueError("'clbit_order' does not contain exactly the same clbits as the circuit")
+    else:
+        clbits = clbit_order
+
+    dagcircuit.add_qubits(qubits)
+    dagcircuit.add_clbits(clbits)
 
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)

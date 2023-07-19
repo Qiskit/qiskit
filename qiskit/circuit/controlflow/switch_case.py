@@ -139,9 +139,13 @@ class SwitchCaseOp(ControlFlowOp):
     def __eq__(self, other):
         # The general __eq__ will compare the blocks in the right order, so we just need to ensure
         # that all the labels point the right way as well.
-        return super().__eq__(other) and all(
-            set(labels_self) == set(labels_other)
-            for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+        return (
+            super().__eq__(other)
+            and self.target == other.target
+            and all(
+                set(labels_self) == set(labels_other)
+                for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+            )
         )
 
     def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:
