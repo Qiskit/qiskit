@@ -12,6 +12,8 @@
 
 """Test for the DAGCircuit object"""
 
+from __future__ import annotations
+
 from collections import Counter
 import unittest
 
@@ -1300,6 +1302,20 @@ class TestDagLayers(QiskitTestCase):
             self.assertEqual(comp, truth)
 
 
+def _sort_key(indices: dict[Qubit, int]):
+    """Return key function for sorting DAGCircuits, given a global qubit mapping."""
+
+    def _min_active_qubit_id(dag):
+        """Transform a DAGCircuit into its minimum active qubit index."""
+        try:
+            first_op = next(dag.topological_op_nodes())
+        except StopIteration:
+            return -1
+        return min(indices[q] for q in first_op.qargs)
+
+    return _min_active_qubit_id
+
+
 class TestCircuitProperties(QiskitTestCase):
     """DAGCircuit properties test."""
 
@@ -1355,6 +1371,125 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_factors(self):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
+
+    def test_separable_circuits(self):
+        """Test separating disconnected sets of qubits in a circuit."""
+        # Empty case
+        dag = DAGCircuit()
+        self.assertEqual(dag.separable_circuits(), [])
+
+        # 3 disconnected qubits
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(2, "c")
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(), [qreg[0]], [])
+        dag.apply_operation_back(HGate(), [qreg[1]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qubits([qreg[0]])
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag2 = DAGCircuit()
+        comp_dag2.add_qubits([qreg[1]])
+        comp_dag2.add_creg(creg)
+        comp_dag2.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag3 = DAGCircuit()
+        comp_dag3.add_qubits([qreg[2]])
+        comp_dag3.add_creg(creg)
+        comp_dag3.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag3.apply_operation_back(HGate(), [qreg[2]], [])
+
+        compare_dags = [comp_dag1, comp_dag2, comp_dag3]
+
+        # Get a mapping from qubit to qubit id in original circuit
+        indices = {bit: i for i, bit in enumerate(dag.qubits)}
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
+
+        # 2 sets of disconnected qubits
+        dag.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qubits([qreg[0]])
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag2 = DAGCircuit()
+        comp_dag2.add_qubits([qreg[1], qreg[2]])
+        comp_dag2.add_creg(creg)
+        comp_dag2.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag2.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag2.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag2.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+
+        compare_dags = [comp_dag1, comp_dag2]
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
+
+        # One connected component
+        dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qreg(qreg)
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag1.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+        comp_dag1.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+
+        compare_dags = [comp_dag1]
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
+
+    def test_separable_circuits_w_measurements(self):
+        """Test separating disconnected sets of qubits in a circuit with measurements."""
+        # Test circuit ordering with measurements
+        dag = DAGCircuit()
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(1, "c")
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(), [qreg[0]], [])
+        dag.apply_operation_back(XGate(), [qreg[0]], [])
+        dag.apply_operation_back(XGate(), [qreg[1]], [])
+        dag.apply_operation_back(HGate(), [qreg[1]], [])
+        dag.apply_operation_back(YGate(), [qreg[2]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+        dag.apply_operation_back(Measure(), [qreg[0]], [creg[0]])
+
+        qc1 = QuantumCircuit(3, 1)
+        qc1.h(0)
+        qc1.x(0)
+        qc1.measure(0, 0)
+        qc2 = QuantumCircuit(3, 1)
+        qc2.x(1)
+        qc2.h(1)
+        qc3 = QuantumCircuit(3, 1)
+        qc3.y(2)
+        qc3.h(2)
+        qcs = [qc1, qc2, qc3]
+        compare_dags = [circuit_to_dag(qc) for qc in qcs]
+
+        # Get a mapping from qubit to qubit id in original circuit
+        indices = {bit: i for i, bit in enumerate(dag.qubits)}
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
 
     def test_default_metadata_value(self):
         """Test that the default DAGCircuit metadata is valid QuantumCircuit metadata."""
@@ -1609,6 +1744,39 @@ class TestDagEquivalence(QiskitTestCase):
         qc2 = QuantumCircuit(qreg, creg, [Clbit()])
         qc2.x(0).c_if(qc2.cregs[0], 1)
         qc2.x(0).c_if(qc2.clbits[-1], False)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+    def test_semantic_expr(self):
+        """Test that the semantic equality is applied to the bits in `Expr` components as well."""
+        cr = ClassicalRegister(3, "c1")
+        clbit1 = Clbit()
+        clbit2 = Clbit()
+
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc1.if_test(expr.logic_not(clbit1), body, [0], [])
+        qc2 = QuantumCircuit(cr, [Qubit(), clbit2])
+        qc2.if_test(expr.logic_not(clbit2), body, [0], [])
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc2 = QuantumCircuit(cr, [Qubit(), clbit2])
+        qc1.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        qc2.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        self.assertEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+        # Order of bits not the same.
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc1.if_test(expr.logic_not(clbit1), body, [0], [])
+        qc2 = QuantumCircuit([Qubit(), clbit2], cr)
+        qc2.if_test(expr.logic_not(clbit2), body, [0], [])
+
+        qc1 = QuantumCircuit(cr, [Qubit(), clbit1])
+        qc1.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
+        qc2 = QuantumCircuit([Qubit(), clbit2], cr)
+        qc2.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
         self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
 
@@ -2383,6 +2551,158 @@ class TestSwapNodes(QiskitTestCase):
         expected.apply_operation_back(CXGate(), qreg[[1, 0]], [])
         expected.apply_operation_back(CZGate(), qreg[[1, 2]], [])
         self.assertEqual(dag, expected)
+
+
+class TestDagCausalCone(QiskitTestCase):
+    """Test `get_causal_node` function"""
+
+    def test_causal_cone_regular_circuit(self):
+        """Test causal cone with a regular circuit"""
+
+        # q_0: ───────■─────────────
+        #             │
+        # q_1: ──■────┼───■─────────
+        #      ┌─┴─┐  │   │
+        # q_2: ┤ X ├──┼───┼──■──────
+        #      └───┘┌─┴─┐ │  │
+        # q_3: ─────┤ X ├─┼──┼───■──
+        #           └───┘ │  │ ┌─┴─┐
+        # q_4: ───────────■──■─┤ X ├
+        #                      └───┘
+        # c: 5/═════════════════════
+
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(CXGate(), qreg[[1, 2]], [])
+        dag.apply_operation_back(CXGate(), qreg[[0, 3]], [])
+        dag.apply_operation_back(CZGate(), qreg[[1, 4]], [])
+        dag.apply_operation_back(CZGate(), qreg[[2, 4]], [])
+        dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
+
+        # Get causal cone of qubit at index 0
+        result = dag.quantum_causal_cone(qreg[0])
+
+        # Expected result
+        expected = set(qreg[[0, 3]])
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_invalid_qubit(self):
+        """Test causal cone with invalid qubit"""
+
+        # q_0: ───────■─────────────
+        #             │
+        # q_1: ──■────┼───■─────────
+        #      ┌─┴─┐  │   │
+        # q_2: ┤ X ├──┼───┼──■──────
+        #      └───┘┌─┴─┐ │  │
+        # q_3: ─────┤ X ├─┼──┼───■──
+        #           └───┘ │  │ ┌─┴─┐
+        # q_4: ───────────■──■─┤ X ├
+        #                      └───┘
+        # c: 5/═════════════════════
+
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(CXGate(), qreg[[1, 2]], [])
+        dag.apply_operation_back(CXGate(), qreg[[0, 3]], [])
+        dag.apply_operation_back(CZGate(), qreg[[1, 4]], [])
+        dag.apply_operation_back(CZGate(), qreg[[2, 4]], [])
+        dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
+
+        # Raise error due to invalid index
+        self.assertRaises(DAGCircuitError, dag.quantum_causal_cone, Qubit())
+
+    def test_causal_cone_no_neighbor(self):
+        """Test causal cone with no neighbor"""
+
+        # q_0: ───────────
+
+        # q_1: ──■───■────
+        #      ┌─┴─┐ │
+        # q_2: ┤ X ├─┼──■─
+        #      ├───┤ │  │
+        # q_3: ┤ X ├─┼──┼─
+        #      └───┘ │  │
+        # q_4: ──────■──■─
+
+        # c: 5/═══════════
+
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(CXGate(), qreg[[1, 2]], [])
+        dag.apply_operation_back(CZGate(), qreg[[1, 4]], [])
+        dag.apply_operation_back(CZGate(), qreg[[2, 4]], [])
+        dag.apply_operation_back(XGate(), qreg[[3]], [])
+
+        # Get causal cone of Qubit at index 3.
+        result = dag.quantum_causal_cone(qreg[3])
+        # Expect only a set with Qubit at index 3
+        expected = set(qreg[[3]])
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_empty_circuit(self):
+        """Test causal cone for circuit with no operations"""
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+
+        # Get causal cone of qubit at index 4
+        result = dag.quantum_causal_cone(qreg[4])
+        # Expect only a set with Qubit at index 4
+        expected = set(qreg[[4]])
+
+        self.assertEqual(result, expected)
+
+    def test_causal_cone_barriers(self):
+        """Test causal cone for circuit with barriers"""
+
+        #       ┌───┐      ░               ░
+        # q1_0: ┤ X ├──■───░───────────────░───────────
+        #       └───┘┌─┴─┐ ░               ░
+        # q1_1: ─────┤ X ├─░───────■───■───░───────────
+        #            └───┘ ░ ┌───┐ │   │   ░ ┌───┐
+        # q1_2: ───────────░─┤ H ├─■───┼───░─┤ Y ├─────
+        #                  ░ └───┘   ┌─┴─┐ ░ └─┬─┘┌───┐
+        # q1_3: ───────────░─────────┤ Y ├─░───■──┤ X ├
+        #                  ░         └───┘ ░      └─┬─┘
+        # q1_4: ───────────░───────────────░────────■──
+        #                  ░               ░
+
+        # Build the circuit:
+        qreg = QuantumRegister(5)
+        qc = QuantumCircuit(qreg)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.barrier()
+
+        qc.h(2)
+        qc.cz(2, 1)
+        qc.cy(1, 3)
+        qc.barrier()
+
+        qc.cy(3, 2)
+        qc.cx(4, 3)
+
+        # Transform into a dag:
+        dag = circuit_to_dag(qc)
+
+        # Compute result:
+        result = dag.quantum_causal_cone(qreg[1])
+        # Expected:
+        expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
+
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":

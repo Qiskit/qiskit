@@ -88,7 +88,7 @@ def qs_decomposition(
         circ = decomposer_1q(mat)
     elif dim == 4:
         if decomposer_2q is None:
-            if opt_a2:
+            if opt_a2 and _depth > 0:
                 from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
@@ -125,7 +125,7 @@ def qs_decomposition(
         right_circ = _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(right_circ.to_instruction(), qr)
 
-    if opt_a2 and _depth == 0:
+    if opt_a2 and _depth == 0 and dim > 4:
         return _apply_a2(circ)
     return circ
 
@@ -243,6 +243,8 @@ def _apply_a2(circ):
     for i, instruction in enumerate(ccirc.data):
         if instruction.operation.name == "qsd2q":
             ind2q.append(i)
+    if not ind2q:
+        return ccirc
     # rolling over diagonals
     ind2 = None  # lint
     for ind1, ind2 in zip(ind2q[0:-1:], ind2q[1::]):
