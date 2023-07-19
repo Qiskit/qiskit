@@ -12,6 +12,8 @@
 
 """Test for the DAGCircuit object"""
 
+from __future__ import annotations
+
 from collections import Counter
 import unittest
 
@@ -1300,6 +1302,20 @@ class TestDagLayers(QiskitTestCase):
             self.assertEqual(comp, truth)
 
 
+def _sort_key(indices: dict[Qubit, int]):
+    """Return key function for sorting DAGCircuits, given a global qubit mapping."""
+
+    def _min_active_qubit_id(dag):
+        """Transform a DAGCircuit into its minimum active qubit index."""
+        try:
+            first_op = next(dag.topological_op_nodes())
+        except StopIteration:
+            return -1
+        return min(indices[q] for q in first_op.qargs)
+
+    return _min_active_qubit_id
+
+
 class TestCircuitProperties(QiskitTestCase):
     """DAGCircuit properties test."""
 
@@ -1355,6 +1371,125 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_factors(self):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
+
+    def test_separable_circuits(self):
+        """Test separating disconnected sets of qubits in a circuit."""
+        # Empty case
+        dag = DAGCircuit()
+        self.assertEqual(dag.separable_circuits(), [])
+
+        # 3 disconnected qubits
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(2, "c")
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(), [qreg[0]], [])
+        dag.apply_operation_back(HGate(), [qreg[1]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qubits([qreg[0]])
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag2 = DAGCircuit()
+        comp_dag2.add_qubits([qreg[1]])
+        comp_dag2.add_creg(creg)
+        comp_dag2.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag3 = DAGCircuit()
+        comp_dag3.add_qubits([qreg[2]])
+        comp_dag3.add_creg(creg)
+        comp_dag3.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag3.apply_operation_back(HGate(), [qreg[2]], [])
+
+        compare_dags = [comp_dag1, comp_dag2, comp_dag3]
+
+        # Get a mapping from qubit to qubit id in original circuit
+        indices = {bit: i for i, bit in enumerate(dag.qubits)}
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
+
+        # 2 sets of disconnected qubits
+        dag.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qubits([qreg[0]])
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag2 = DAGCircuit()
+        comp_dag2.add_qubits([qreg[1], qreg[2]])
+        comp_dag2.add_creg(creg)
+        comp_dag2.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag2.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag2.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag2.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+
+        compare_dags = [comp_dag1, comp_dag2]
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
+
+        # One connected component
+        dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+
+        comp_dag1 = DAGCircuit()
+        comp_dag1.add_qreg(qreg)
+        comp_dag1.add_creg(creg)
+        comp_dag1.apply_operation_back(HGate(), [qreg[0]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[1]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag1.apply_operation_back(HGate(), [qreg[2]], [])
+        comp_dag1.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+        comp_dag1.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+
+        compare_dags = [comp_dag1]
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(remove_idle_qubits=True), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
+
+    def test_separable_circuits_w_measurements(self):
+        """Test separating disconnected sets of qubits in a circuit with measurements."""
+        # Test circuit ordering with measurements
+        dag = DAGCircuit()
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(1, "c")
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(), [qreg[0]], [])
+        dag.apply_operation_back(XGate(), [qreg[0]], [])
+        dag.apply_operation_back(XGate(), [qreg[1]], [])
+        dag.apply_operation_back(HGate(), [qreg[1]], [])
+        dag.apply_operation_back(YGate(), [qreg[2]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+        dag.apply_operation_back(Measure(), [qreg[0]], [creg[0]])
+
+        qc1 = QuantumCircuit(3, 1)
+        qc1.h(0)
+        qc1.x(0)
+        qc1.measure(0, 0)
+        qc2 = QuantumCircuit(3, 1)
+        qc2.x(1)
+        qc2.h(1)
+        qc3 = QuantumCircuit(3, 1)
+        qc3.y(2)
+        qc3.h(2)
+        qcs = [qc1, qc2, qc3]
+        compare_dags = [circuit_to_dag(qc) for qc in qcs]
+
+        # Get a mapping from qubit to qubit id in original circuit
+        indices = {bit: i for i, bit in enumerate(dag.qubits)}
+
+        # Don't rely on separable_circuits outputs to be in any order. We sort by min active qubit id
+        dags = sorted(dag.separable_circuits(), key=_sort_key(indices))
+
+        self.assertEqual(dags, compare_dags)
 
     def test_default_metadata_value(self):
         """Test that the default DAGCircuit metadata is valid QuantumCircuit metadata."""
