@@ -153,12 +153,15 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            # Failures due to missing optionals should be very rare, so we
-            # optimise for faster turnaround in testing optional features.
+            # A PR is more likely to fail CI because it introduces a logic error
+            # into an existing test than because it adds a new test / optional
+            # dependency that isn't accounted for in the test-skipping logic
+            # (and such a failure would need fewer iterations to fix).  We want
+            # to fail fast in the first CI stage.
             installOptionals: true
             testRust: true
             testQPY: true
-            testImages: false
+            testImages: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -178,7 +181,7 @@ stages:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             testRust: false
             testQPY: false
-            testImages: true
+            testImages: false
             installFromSdist: true
             installOptionals: false
 
