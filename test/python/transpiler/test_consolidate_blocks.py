@@ -435,25 +435,24 @@ class TestConsolidateBlocks(QiskitTestCase):
             qc.cx(0, 1)
             qc.cx(1, 0)
 
+        def do_consolidation(qc):
+            pass_manager = PassManager()
+            pass_manager.append(Collect2qBlocks())
+            pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+            return pass_manager.run(qc)
+
         qc = QuantumCircuit(2, 1)
         append_test_gates(qc)
-        pass_manager = PassManager()
-        pass_manager.append(Collect2qBlocks())
-        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
-        result_top = pass_manager.run(qc)
+        result_top = do_consolidation(qc)
 
         qc_control_flow = QuantumCircuit(2, 1)
-
         qc_block = QuantumCircuit(qc.qubits, qc.clbits)
         append_test_gates(qc_block)
 
         ifop = IfElseOp((qc.clbits[0], False), qc_block, None)
         qc_control_flow.append(ifop, qc.qubits, qc.clbits)
 
-        pass_manager = PassManager()
-        pass_manager.append(Collect2qBlocks())
-        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
-        result_block = pass_manager.run(qc_control_flow)
+        result_block = do_consolidation(qc_control_flow)
         gate_top = result_top[0].operation
         gate_block = result_block[0].operation.blocks[0][0].operation
         np.testing.assert_allclose(gate_top, gate_block)
