@@ -140,9 +140,15 @@ EXPRESSION
 ----------
 
 An :class:`~.expr.Expr` node is represented by a stream of variable-width data.  A node itself is
-represented by a type code discriminator, followed by an EXPR_TYPE, followed by a type-code-specific
-additional payload, followed by a type-code-specific number of child EXPRESSION payloads (this
-number is not stored in the QPY file).  These are described in the following table:
+represented by (in order in the byte stream):
+
+#. a one-byte type code discriminator;
+#. an EXPR_TYPE object;
+#. a type-code-specific additional payload;
+#. a type-code-specific number of child EXPRESSION payloads (the number of these is implied by the
+   type code and not explicitly stored).
+
+Each of these are described in the following table:
 
 ======================  =========  =======================================================  ========
 Qiskit class            Type code  Payload                                                  Children
