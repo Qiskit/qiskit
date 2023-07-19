@@ -153,7 +153,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The same instruction instance that was passed, but mutated to propagate the tracked
             changes to this class.
         """
-        # In general the tuple creation should be a no-op, because ``tuple(t) is t`` for tuples.
         instruction.condition = self.condition
         return instruction
 
