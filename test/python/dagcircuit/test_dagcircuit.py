@@ -253,6 +253,60 @@ class TestDagRegisters(QiskitTestCase):
         self.assertEqual(dag.qubits, list(qr) + [new_bit])
         self.assertEqual(list(dag.qregs.values()), [qr])
 
+    def test_find_bit_with_registers(self):
+        """Test find_bit with a register."""
+        qr = QuantumRegister(3, "qr")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        res = dag.find_bit(qr[2])
+        self.assertEqual(res.index, 2)
+        self.assertEqual(res.registers, [(qr, 2)])
+
+    def test_find_bit_with_registers_and_standalone(self):
+        """Test find_bit with a register and standalone bit."""
+        qr = QuantumRegister(3, "qr")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        new_bit = Qubit()
+        dag.add_qubits([new_bit])
+        res = dag.find_bit(qr[2])
+        self.assertEqual(res.index, 2)
+        bit_res = dag.find_bit(new_bit)
+        self.assertEqual(bit_res.index, 3)
+        self.assertEqual(bit_res.registers, [])
+
+    def test_find_bit_with_classical_registers_and_standalone(self):
+        """Test find_bit with a register and standalone bit."""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "C")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        new_bit = Qubit()
+        new_clbit = Clbit()
+        dag.add_qubits([new_bit])
+        dag.add_clbits([new_clbit])
+        res = dag.find_bit(qr[2])
+        self.assertEqual(res.index, 2)
+        bit_res = dag.find_bit(new_bit)
+        self.assertEqual(bit_res.index, 3)
+        self.assertEqual(bit_res.registers, [])
+        classical_res = dag.find_bit(cr[2])
+        self.assertEqual(classical_res.index, 2)
+        self.assertEqual(classical_res.registers, [(cr, 2)])
+        single_cl_bit_res = dag.find_bit(new_clbit)
+        self.assertEqual(single_cl_bit_res.index, 3)
+        self.assertEqual(single_cl_bit_res.registers, [])
+
+    def test_find_bit_missing(self):
+        """Test error when find_bit is called with missing bit."""
+        qr = QuantumRegister(3, "qr")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        new_bit = Qubit()
+        with self.assertRaises(DAGCircuitError):
+            dag.find_bit(new_bit)
+
 
 class TestDagWireRemoval(QiskitTestCase):
     """Test removal of registers and idle wires."""
