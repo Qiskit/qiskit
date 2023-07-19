@@ -34,7 +34,7 @@ from qiskit._accelerate.sabre_swap import (
     Heuristic,
     NeighborTable,
 )
-from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
+from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.tools.parallel import CPU_COUNT
@@ -238,8 +238,8 @@ class SabreLayout(TransformationPass):
             layout_dict,
             final_dict,
             component_map,
-            _gate_order,
-            _swap_map,
+            _sabre_result,
+            _circuit_to_dag_dict,
             local_dag,
         ) in layout_components:
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
@@ -262,36 +262,25 @@ class SabreLayout(TransformationPass):
             {dag.qubits[k]: v for (k, v) in final_layout_dict.items()}
         )
         canonical_register = dag.qregs["q"]
-        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
         for (
             _layout_dict,
             _final_layout_dict,
             component_map,
-            gate_order,
-            swap_map,
+            sabre_result,
+            circuit_to_dag_dict,
             local_dag,
         ) in layout_components:
-            for node_id in gate_order:
-                node = local_dag._multi_graph[node_id]
-                process_swaps(
-                    swap_map,
-                    node,
-                    mapped_dag,
-                    original_layout,
-                    canonical_register,
-                    False,
-                    qubit_indices,
-                    component_map,
-                )
-                apply_gate(
-                    mapped_dag,
-                    node,
-                    original_layout,
-                    canonical_register,
-                    False,
-                    initial_layout_dict,
-                )
+            _apply_sabre_result(
+                mapped_dag,
+                local_dag,
+                initial_layout_dict,
+                canonical_register,
+                original_layout,
+                sabre_result,
+                circuit_to_dag_dict,
+                component_map,
+            )
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
         return mapped_dag
 
@@ -304,24 +293,14 @@ class SabreLayout(TransformationPass):
             coupling_map.make_symmetric()
         neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
         dist_matrix = coupling_map.distance_matrix
-
-        dag_list = []
-        for node in dag.topological_op_nodes():
-            cargs = {dag.find_bit(x).index for x in node.cargs}
-            if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
-                    cargs.add(dag.find_bit(clbit).index)
-
-            dag_list.append(
-                (
-                    node._node_id,
-                    [dag.find_bit(x).index for x in node.qargs],
-                    cargs,
-                )
-            )
-        ((initial_layout, final_layout), swap_map, gate_order) = sabre_layout_and_routing(
-            len(dag.clbits),
-            dag_list,
+        original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
+            dag,
+            coupling_map.size(),
+            original_qubit_indices,
+        )
+        ((initial_layout, final_layout), sabre_result) = sabre_layout_and_routing(
+            sabre_dag,
             neighbor_table,
             dist_matrix,
             Heuristic.Decay,
@@ -330,6 +309,7 @@ class SabreLayout(TransformationPass):
             self.layout_trials,
             self.seed,
         )
+
         # Apply initial layout selected.
         layout_dict = {}
         num_qubits = len(dag.qubits)
@@ -338,7 +318,14 @@ class SabreLayout(TransformationPass):
                 layout_dict[dag.qubits[k]] = v
         final_layout_dict = final_layout.layout_mapping()
         component_mapping = {x: coupling_map.graph[x] for x in coupling_map.graph.node_indices()}
-        return layout_dict, final_layout_dict, component_mapping, gate_order, swap_map, dag
+        return (
+            layout_dict,
+            final_layout_dict,
+            component_mapping,
+            sabre_result,
+            circuit_to_dag_dict,
+            dag,
+        )
 
     def _apply_layout_no_pass_manager(self, dag):
         """Apply and embed a layout into a dagcircuit without using a ``PassManager`` to

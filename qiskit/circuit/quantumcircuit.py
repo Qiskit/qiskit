@@ -15,7 +15,6 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import sys
 import collections.abc
 import copy
 import itertools
@@ -38,16 +37,18 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    Literal,
     overload,
 )
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
+from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -61,21 +62,7 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
+from .tools import pi_check
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -455,22 +442,26 @@ class QuantumCircuit:
         """
         self._calibrations = defaultdict(dict, calibrations)
 
-    def has_calibration_for(self, instr_context: tuple):
+    def has_calibration_for(self, instruction: CircuitInstruction | tuple):
         """Return True if the circuit has a calibration defined for the instruction context. In this
         case, the operation does not need to be translated to the device basis.
         """
-        instr, qargs, _ = instr_context
-        if not self.calibrations or instr.name not in self.calibrations:
+        if isinstance(instruction, CircuitInstruction):
+            operation = instruction.operation
+            qubits = instruction.qubits
+        else:
+            operation, qubits, _ = instruction
+        if not self.calibrations or operation.name not in self.calibrations:
             return False
-        qubits = tuple(self.qubits.index(qubit) for qubit in qargs)
+        qubits = tuple(self.qubits.index(qubit) for qubit in qubits)
         params = []
-        for p in instr.params:
+        for p in operation.params:
             if isinstance(p, ParameterExpression) and not p.parameters:
                 params.append(float(p))
             else:
                 params.append(p)
         params = tuple(params)
-        return (qubits, params) in self.calibrations[instr.name]
+        return (qubits, params) in self.calibrations[operation.name]
 
     @property
     def metadata(self) -> dict:
@@ -958,43 +949,16 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
-        # Cache for `map_register_to_dest`.
-        _map_register_cache = {}
-
-        def map_register_to_dest(theirs):
-            """Map the target's registers to suitable equivalents in the destination, adding an
-            extra one if there's no exact match."""
-            if theirs.name in _map_register_cache:
-                return _map_register_cache[theirs.name]
-            mapped_bits = [edge_map[bit] for bit in theirs]
-            for ours in dest.cregs:
-                if mapped_bits == list(ours):
-                    mapped_theirs = ours
-                    break
-            else:
-                mapped_theirs = ClassicalRegister(bits=mapped_bits)
-                dest.add_register(mapped_theirs)
-            _map_register_cache[theirs.name] = mapped_theirs
-            return mapped_theirs
-
+        variable_mapper = _ComposeVariableMapper(dest, edge_map)
         mapped_instrs: list[CircuitInstruction] = []
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
-
-            if getattr(n_op, "condition", None) is not None:
-                target, value = n_op.condition
-                if isinstance(target, Clbit):
-                    n_op.condition = (edge_map[target], value)
-                else:
-                    n_op.condition = (map_register_to_dest(target), value)
-            elif isinstance(n_op, SwitchCaseOp):
-                if isinstance(n_op.target, Clbit):
-                    n_op.target = edge_map[n_op.target]
-                else:
-                    n_op.target = map_register_to_dest(n_op.target)
-
+            if (condition := getattr(n_op, "condition", None)) is not None:
+                n_op.condition = variable_mapper.map_condition(condition)
+            if isinstance(n_op, SwitchCaseOp):
+                n_op.target = variable_mapper.map_target(n_op.target)
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
         if front:
@@ -1237,6 +1201,16 @@ class QuantumCircuit:
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
+
+    def _validate_expr(self, node: expr.Expr) -> expr.Expr:
+        for var in expr.iter_vars(node):
+            if isinstance(var.var, Clbit):
+                if var.var not in self._clbit_indices:
+                    raise CircuitError(f"Clbit {var.var} is not present in this circuit.")
+            elif isinstance(var.var, ClassicalRegister):
+                if var.var not in self.cregs:
+                    raise CircuitError(f"Register {var.var} is not present in this circuit.")
+        return node
 
     def append(
         self,
@@ -1645,11 +1619,15 @@ class QuantumCircuit:
         Raises:
             MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
-            QasmError: If circuit has free parameters.
+            QASM2ExportError: If circuit has free parameters.
+            QASM2ExportError: If an operation that has no OpenQASM 2 representation is encountered.
         """
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
 
         if self.num_parameters > 0:
-            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
+            raise QASM2ExportError(
+                "Cannot represent circuits with unbound parameters in OpenQASM 2."
+            )
 
         existing_gate_names = {
             "barrier",
@@ -1738,15 +1716,9 @@ class QuantumCircuit:
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
             else:
-                operation = _qasm2_define_custom_operation(
-                    operation, existing_gate_names, gates_to_define
+                instruction_qasm = _qasm2_custom_operation_statement(
+                    instruction, existing_gate_names, gates_to_define, bit_labels
                 )
-
-                # Insert qasm representation of the original instruction
-                bits_qasm = ",".join(
-                    bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
-                )
-                instruction_qasm = f"{operation.qasm()} {bits_qasm};"
             instruction_calls.append(instruction_qasm)
         instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
         gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
@@ -1768,12 +1740,15 @@ class QuantumCircuit:
                 file.write(out)
 
         if formatted:
-            if not HAS_PYGMENTS:
-                raise MissingOptionalLibraryError(
-                    libname="pygments>2.4",
-                    name="formatted QASM output",
-                    pip_install="pip install pygments",
-                )
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+
+            import pygments
+            from pygments.formatters import (  # pylint: disable=no-name-in-module
+                Terminal256Formatter,
+            )
+            from qiskit.qasm.pygments import OpenQASMLexer
+            from qiskit.qasm.pygments import QasmTerminalStyle
+
             code = pygments.highlight(
                 out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
@@ -4337,7 +4312,7 @@ class QuantumCircuit:
     @typing.overload
     def while_loop(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         body: None,
         qubits: None,
         clbits: None,
@@ -4349,7 +4324,7 @@ class QuantumCircuit:
     @typing.overload
     def while_loop(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -4404,7 +4379,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if body is None:
             if qubits is not None or clbits is not None:
@@ -4609,7 +4587,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp, IfContext
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
 
         if true_body is None:
             if qubits is not None or clbits is not None:
@@ -4675,7 +4656,11 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp
 
-        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        if isinstance(condition, expr.Expr):
+            condition = self._validate_expr(condition)
+        else:
+            condition = (self._resolve_classical_resource(condition[0]), condition[1])
+
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     @typing.overload
@@ -4756,7 +4741,10 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.switch_case import SwitchCaseOp, SwitchContext
 
-        target = self._resolve_classical_resource(target)
+        if isinstance(target, expr.Expr):
+            target = self._validate_expr(target)
+        else:
+            target = self._resolve_classical_resource(target)
         if cases is None:
             if qubits is not None or clbits is not None:
                 raise CircuitError(
@@ -5003,6 +4991,22 @@ def _compare_parameters(param1: Parameter, param2: Parameter) -> int:
 _QASM2_FIXED_PARAMETERS = [Parameter("param0"), Parameter("param1"), Parameter("param2")]
 
 
+def _qasm2_custom_operation_statement(
+    instruction, existing_gate_names, gates_to_define, bit_labels
+):
+    operation = _qasm2_define_custom_operation(
+        instruction.operation, existing_gate_names, gates_to_define
+    )
+    # Insert qasm representation of the original instruction
+    if instruction.clbits:
+        bits = itertools.chain(instruction.qubits, instruction.clbits)
+    else:
+        bits = instruction.qubits
+    bits_qasm = ",".join(bit_labels[j] for j in bits)
+    instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
+    return instruction_qasm
+
+
 def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_define):
     """Extract a custom definition from the given operation, and append any necessary additional
     subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
@@ -5078,15 +5082,13 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             f"opaque {new_name}{parameters_qasm} {qubits_qasm};",
         )
     else:
-        statements = []
         qubit_labels = {bit: f"q{i}" for i, bit in enumerate(parameterized_definition.qubits)}
-        for instruction in parameterized_definition.data:
-            new_operation = _qasm2_define_custom_operation(
-                instruction.operation, existing_gate_names, gates_to_define
+        body_qasm = " ".join(
+            _qasm2_custom_operation_statement(
+                instruction, existing_gate_names, gates_to_define, qubit_labels
             )
-            bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
-            statements.append(f"{new_operation.qasm()} {bits_qasm};")
-        body_qasm = " ".join(statements)
+            for instruction in parameterized_definition.data
+        )
 
         # if an inner operation has the same name as the actual operation, it needs to be renamed
         if operation.name in gates_to_define:
@@ -5117,6 +5119,30 @@ def _qasm_escape_name(name: str, prefix: str) -> str:
     ):
         escaped_name = prefix + escaped_name
     return escaped_name
+
+
+def _instruction_qasm2(operation):
+    """Return an OpenQASM 2 string for the instruction."""
+    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+
+    if operation.name == "c3sx":
+        qasm2_call = "c3sqrtx"
+    else:
+        qasm2_call = operation.name
+    if operation.params:
+        qasm2_call = "{}({})".format(
+            qasm2_call,
+            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
+        )
+    if operation.condition is not None:
+        if not isinstance(operation.condition[0], ClassicalRegister):
+            raise QASM2ExportError(
+                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
+            )
+        qasm2_call = (
+            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
+        )
+    return qasm2_call
 
 
 def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
@@ -5199,3 +5225,79 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+class _ComposeVariableMapper(expr.ExprVisitor[expr.Expr]):
+    """Stateful helper class that manages the mapping of variables in conditions and expressions to
+    items in the destination ``circuit``.
+
+    This mutates ``circuit`` by adding registers as required."""
+
+    __slots__ = ("circuit", "register_map", "bit_map")
+
+    def __init__(self, circuit, bit_map):
+        self.circuit = circuit
+        self.register_map = {}
+        self.bit_map = bit_map
+
+    def _map_register(self, theirs):
+        """Map the target's registers to suitable equivalents in the destination, adding an
+        extra one if there's no exact match."""
+        if (mapped_theirs := self.register_map.get(theirs.name)) is not None:
+            return mapped_theirs
+        mapped_bits = [self.bit_map[bit] for bit in theirs]
+        for ours in self.circuit.cregs:
+            if mapped_bits == list(ours):
+                mapped_theirs = ours
+                break
+        else:
+            mapped_theirs = ClassicalRegister(bits=mapped_bits)
+            self.circuit.add_register(mapped_theirs)
+        self.register_map[theirs.name] = mapped_theirs
+        return mapped_theirs
+
+    def map_condition(self, condition, /):
+        """Map the given ``condition`` so that it only references variables in the destination
+        circuit (as given to this class on initialisation)."""
+        if condition is None:
+            return None
+        if isinstance(condition, expr.Expr):
+            return self.map_expr(condition)
+        target, value = condition
+        if isinstance(target, Clbit):
+            return (self.bit_map[target], value)
+        return (self._map_register(target), value)
+
+    def map_target(self, target, /):
+        """Map the runtime variables in a ``target`` of a :class:`.SwitchCaseOp` to the new circuit,
+        as defined in the ``circuit`` argument of the initialiser of this class."""
+        if isinstance(target, Clbit):
+            return self.bit_map[target]
+        if isinstance(target, ClassicalRegister):
+            return self._map_register(target)
+        return self.map_expr(target)
+
+    def map_expr(self, node: expr.Expr, /) -> expr.Expr:
+        """Map the variables in an :class:`~.expr.Expr` node to the new circuit."""
+        return node.accept(self)
+
+    def visit_var(self, node, /):
+        if isinstance(node.var, Clbit):
+            return expr.Var(self.bit_map[node.var], node.type)
+        if isinstance(node.var, ClassicalRegister):
+            return expr.Var(self._map_register(node.var), node.type)
+        # Defensive against the expansion of the variable system; we don't want to silently do the
+        # wrong thing (which would be `return node` without mapping, right now).
+        raise CircuitError(f"unhandled variable in 'compose': {node}")  # pragma: no cover
+
+    def visit_value(self, node, /):
+        return expr.Value(node.value, node.type)
+
+    def visit_unary(self, node, /):
+        return expr.Unary(node.op, node.operand.accept(self), node.type)
+
+    def visit_binary(self, node, /):
+        return expr.Binary(node.op, node.left.accept(self), node.right.accept(self), node.type)
+
+    def visit_cast(self, node, /):
+        return expr.Cast(node.operand.accept(self), node.type, implicit=node.implicit)
