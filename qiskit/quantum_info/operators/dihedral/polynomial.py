@@ -13,6 +13,7 @@
 SpecialPolynomial class.
 """
 
+from __future__ import annotations
 import itertools
 from itertools import combinations
 import copy

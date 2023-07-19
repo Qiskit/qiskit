@@ -1549,8 +1549,6 @@ class TestIntegrationControlFlow(QiskitTestCase):
         with qc.for_loop((1,)):
             qc.x(0)
 
-        with self.assertRaisesRegex(TranspilerError, "Got layout_method="):
-            transpile(qc, layout_method="sabre", optimization_level=optimization_level)
         with self.assertRaisesRegex(TranspilerError, "Got routing_method="):
             transpile(qc, routing_method="lookahead", optimization_level=optimization_level)
         with self.assertRaisesRegex(TranspilerError, "Got translation_method="):

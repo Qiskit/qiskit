@@ -120,16 +120,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hashbrown"
-version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
-dependencies = [
- "ahash 0.8.3",
- "rayon",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -145,7 +135,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
- "hashbrown 0.12.3",
+ "hashbrown",
  "rayon",
 ]
 
@@ -364,7 +354,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffb88ae05f306b4bfcde40ac4a51dc0b05936a9207a4b75b798c7729c4258a59"
 dependencies = [
  "cfg-if",
- "hashbrown 0.13.2",
+ "hashbrown",
  "indexmap",
  "indoc",
  "libc",
@@ -425,7 +415,7 @@ dependencies = [
 name = "qiskit-qasm2"
 version = "0.25.0"
 dependencies = [
- "hashbrown 0.13.2",
+ "hashbrown",
  "pyo3",
 ]
 
@@ -434,7 +424,7 @@ name = "qiskit_accelerate"
 version = "0.25.0"
 dependencies = [
  "ahash 0.8.3",
- "hashbrown 0.13.2",
+ "hashbrown",
  "indexmap",
  "ndarray",
  "num-bigint",
@@ -568,7 +558,7 @@ checksum = "e3e9d46abff559cde170ba3bca60c58698356053a395419d29a26f512df68f88"
 dependencies = [
  "ahash 0.8.3",
  "fixedbitset",
- "hashbrown 0.12.3",
+ "hashbrown",
  "indexmap",
  "num-traits",
  "petgraph",
