@@ -152,6 +152,7 @@ class MatplotlibDrawer:
 
         # Set if gate is inside a flow gate
         self._flow_parent = None
+        self._flow_wire_map = {}
 
         # _char_list for finding text_width of names, labels, and params
         self._char_list = {
@@ -294,7 +295,7 @@ class MatplotlibDrawer:
         wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
 
         # node_data per node with "width", "gate_text", "raw_gate_text", "ctrl_text",
-        # "param_text", "if_depth", "inside_flow", "x_index", "indexset", "jump_values",
+        # "param_text", "nest_depth", "inside_flow", "x_index", "indexset", "jump_values",
         # "case_num", "q_xy", "c_xy", and colors "fc", "ec", "lc", "sc", "gt", and "tc"
         node_data = {}
 
@@ -480,56 +481,47 @@ class MatplotlibDrawer:
                 elif isinstance(node.op, ControlFlowOp):
                     self._flow_drawers[node] = []
                     node_data[node]["width"] = []
-                    node_data[node]["if_depth"] = 0
+                    node_data[node]["nest_depth"] = 0
                     gate_width = 0.0
 
-                    # params[0] holds circuit for if or while, params[1] holds circuit for else,
+                    # Get the list of circuits to iterate over from the blocks
+                    circuit_list = list(node.op.blocks)
+
                     # params is [indexset, loop_param, circuit] for for_loop,
                     # op.cases_specifier() returns jump tuple and circuit for switch/case
-                    circuit_list = []
-                    if isinstance(op, IfElseOp):
-                        for k in range(2):
-                            circuit_list.append(op.params[k])
-                    elif isinstance(op, WhileLoopOp):
-                        circuit_list.append(op.params[0])
-                    elif isinstance(op, ForLoopOp):
-                        node_data[node]["indexset"], _, circ = op.params
-                        circuit_list.append(circ)
+                    if isinstance(op, ForLoopOp):
+                        node_data[node]["indexset"] = op.params[0]
                     elif isinstance(op, SwitchCaseOp):
                         node_data[node]["jump_values"] = []
                         cases = list(op.cases_specifier())
 
-                        # Create an empty circuit for the Switch box
-                        circuit_list.append(cases[0][1].copy_empty_like())
-                        for jump_values, circ in cases:
+                        # Create an empty circuit at the head of the circuit_list if a Switch box
+                        circuit_list.insert(0, cases[0][1].copy_empty_like())
+                        for jump_values, _ in cases:
                             node_data[node]["jump_values"].append(jump_values)
-                            circuit_list.append(circ)
 
                     # Now process the circuits inside the ControlFlowOps
                     for circ_num, circuit in enumerate(circuit_list):
                         raw_gate_width = 0.0
-                        if circuit is None:  # If with no else
-                            self._flow_drawers[node].append(None)
-                            node_data[node]["width"].append(0.0)
-                            break
 
                         # Depth of nested ControlFlowOp used for color of box
                         if self._flow_parent is not None:
-                            node_data[node]["if_depth"] = (
-                                node_data[self._flow_parent]["if_depth"] + 1
+                            node_data[node]["nest_depth"] = (
+                                node_data[self._flow_parent]["nest_depth"] + 1
                             )
                         # Update the wire_map with the qubits from the inner circuit
-                        inner_wire_map = {
+                        flow_wire_map = {
                             inner: wire_map[outer]
                             for outer, inner in zip(self._qubits, circuit.qubits)
                             if inner not in wire_map
                         }
-                        wire_map.update(inner_wire_map)
+                        if not flow_wire_map:
+                            flow_wire_map = wire_map
 
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, nodes = _get_layered_instructions(
-                            circuit, wire_map=wire_map
+                            circuit, wire_map=flow_wire_map
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,
@@ -541,10 +533,11 @@ class MatplotlibDrawer:
                             fold=self._fold,
                             cregbundle=self._cregbundle,
                         )
-                        self._flow_drawers[node].append(flow_drawer)
 
                         # flow_parent is the parent of the new class instance
                         flow_drawer._flow_parent = node
+                        flow_drawer._flow_wire_map = flow_wire_map
+                        self._flow_drawers[node].append(flow_drawer)
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
@@ -676,7 +669,7 @@ class MatplotlibDrawer:
         clbits_dict,
         glob_data,
         flow_parent=None,
-        is_if_while=None,
+        is_not_first_block=None,
     ):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
@@ -692,7 +685,7 @@ class MatplotlibDrawer:
                     node_data[node]["x_index"] = (
                         node_data[flow_parent]["x_index"] + curr_x_index + 1
                     )
-                    if not is_if_while:
+                    if is_not_first_block:
                         # Add index space for else or first case if switch/case
                         node_data[node]["x_index"] += int(node_data[flow_parent]["width"][0]) + 1
 
@@ -950,24 +943,21 @@ class MatplotlibDrawer:
         self, nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
     ):
         """Add the nodes from ControlFlowOps and their coordinates to the main circuit"""
-        for flow_drawer in self._flow_drawers.values():
-            for i in range(0, len(flow_drawer)):
-                if flow_drawer[i] is None:  # No else
-                    continue
-
-                nodes += flow_drawer[i]._nodes
-                flow_drawer[i]._get_coords(
+        for flow_drawers in self._flow_drawers.values():
+            for i, flow_drawer in enumerate(flow_drawers):
+                nodes += flow_drawer._nodes
+                flow_drawer._get_coords(
                     node_data,
-                    wire_map,
+                    flow_drawer._flow_wire_map,
                     layer_widths,
                     qubits_dict,
                     clbits_dict,
                     glob_data,
-                    flow_parent=flow_drawer[i]._flow_parent,
-                    is_if_while=(i == 0),
+                    flow_parent=flow_drawer._flow_parent,
+                    is_not_first_block=(i > 0),
                 )
                 # Recurse for ControlFlowOps inside the flow_drawer
-                flow_drawer[i]._add_nodes_and_coords(
+                flow_drawer._add_nodes_and_coords(
                     nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
                 )
 
@@ -1468,7 +1458,7 @@ class MatplotlibDrawer:
                 height=height,
                 boxstyle="round, pad=0.1",
                 fc="none",
-                ec=colors[node_data[node]["if_depth"] % 4],
+                ec=colors[node_data[node]["nest_depth"] % 4],
                 linewidth=self._lwidth3,
                 zorder=PORDER_FLOW,
             )
@@ -1537,7 +1527,7 @@ class MatplotlibDrawer:
                     self._ax.plot(
                         [xpos + ewidth_incr + 0.3 - x_shift, xpos + ewidth_incr + 0.3 - x_shift],
                         [ypos - 0.5 * HIG - 0.08 - y_shift, ypos + height - 0.22 - y_shift],
-                        color=colors[node_data[node]["if_depth"] % 4],
+                        color=colors[node_data[node]["nest_depth"] % 4],
                         linewidth=3.0,
                         linestyle="solid",
                         zorder=PORDER_FLOW,

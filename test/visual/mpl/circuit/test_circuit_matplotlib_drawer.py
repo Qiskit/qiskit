@@ -1630,6 +1630,30 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.99)
 
+    def test_if_else_op_textbook_style(self):
+        """Test the IfElseOp with else in textbook style"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+
+        fname = "if_else_op_textbook.png"
+        self.circuit_drawer(circuit, style="textbook", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
     def test_if_else_with_body(self):
         """Test the IfElseOp with adding a body manually"""
         qr = QuantumRegister(4, "q")

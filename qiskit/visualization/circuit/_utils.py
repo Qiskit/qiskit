@@ -391,7 +391,7 @@ def _get_layered_instructions(
     justify = justify if justify in ("right", "none") else "left"
 
     if wire_map is not None:
-        qubits = [bit for bit in list(wire_map.keys()).copy() if isinstance(bit, Qubit)]
+        qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
     else:
         qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()
