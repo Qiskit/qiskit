@@ -460,7 +460,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         result_block = pass_manager.run(qc_control_flow)
         gate_top = result_top[0].operation
         gate_block = result_block[0].operation.blocks[0][0].operation
-        self.assertEqual(gate_top, gate_block)
+        np.testing.assert_allclose(gate_top, gate_block)
 
     def test_not_crossing_between_control_flow_block_and_parent(self):
         """Test that consolidation does not occur across the boundary between control flow
@@ -480,11 +480,11 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc_out = pass_manager.run(qc)
 
         self.assertIsInstance(qc_out[0].operation, UnitaryGate)
-        self.assertTrue(np.alltrue(CXGate().to_matrix() == qc_out[0].operation.to_matrix()))
+        np.testing.assert_allclose(CXGate().to_matrix(), qc_out[0].operation.to_matrix())
         op_true = qc_out[1].operation.blocks[0][0].operation
         op_false = qc_out[1].operation.blocks[1][0].operation
-        self.assertTrue(np.alltrue(CXGate().to_matrix() == op_true.to_matrix()))
-        self.assertTrue(np.alltrue(CZGate().to_matrix() == op_false.to_matrix()))
+        np.testing.assert_allclose(CXGate().to_matrix(), op_true.to_matrix())
+        np.testing.assert_allclose(CZGate().to_matrix(), op_false.to_matrix())
 
     def test_not_crossing_between_control_flow_ops(self):
         """Test that consolidation does not occur between control flow ops."""
