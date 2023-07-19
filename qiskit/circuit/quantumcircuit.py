@@ -44,7 +44,6 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
-import qiskit.circuit.instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
