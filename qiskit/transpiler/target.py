@@ -1274,8 +1274,8 @@ class Target(Mapping):
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
             concurrent_measurements(list): A list of sets of qubits that must be
-                measured together. The qubits which should be measured concurrently
-                is provided as the nested list like [[0, 1], [2, 3, 4]].
+                measured together. This must be provided
+                as a nested list like [[0, 1], [2, 3, 4]].
             dt: The system time resolution of input signals in seconds
             timing_constraints: Optional timing constraints to include in the
                 :class:`~.Target`
