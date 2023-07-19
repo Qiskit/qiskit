@@ -16,6 +16,7 @@ import math
 from typing import List
 
 import numpy as np
+import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
 from qiskit.exceptions import QiskitError
@@ -92,8 +93,6 @@ def plot_gate_map(
            plot_gate_map(backend)
     """
     qubit_coordinates_map = {}
-
-    qubit_coordinates_map[1] = [[0, 0]]
 
     qubit_coordinates_map[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
@@ -931,7 +930,6 @@ def plot_gate_map(
                 f"The number of specified qubit coordinates {len(qubit_coordinates)} "
                 f"does not match the device number of qubits: {num_qubits}"
             )
-
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
@@ -1042,7 +1040,11 @@ def plot_coupling_map(
     if line_color is None:
         line_color = ["#648fff"] * len(coupling_map)
 
-    graph = CouplingMap(coupling_map).graph
+    if num_qubits == 1:
+        graph = rx.PyDiGraph()
+        graph.add_node(0)
+    else:
+        graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
         graph = graph.to_undirected(multigraph=False)
@@ -1099,6 +1101,7 @@ def plot_coupling_map(
         edge_attr_fn=color_edge,
         filename=filename,
     )
+
     if filename:
         return None
 
