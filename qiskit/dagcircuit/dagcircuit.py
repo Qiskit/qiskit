@@ -1085,7 +1085,9 @@ class DAGCircuit:
             propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
-                conditional logic already.
+                conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
+                treated as if it is ``False``); replacements of those must already fulfil the same
+                conditional logic or this function would be close to useless for them.
 
         Returns:
             dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
