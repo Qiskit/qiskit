@@ -459,8 +459,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         blocks and the parent circuit."""
         qc = QuantumCircuit(2, 1)
         qc.cx(0, 1)
-        qc_true = QuantumCircuit(qc.qubits, qc.clbits)
-        qc_false = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_true = QuantumCircuit(2, 1)
+        qc_false = QuantumCircuit(2, 1)
         qc_true.cx(0, 1)
         qc_false.cz(0, 1)
         ifop = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
@@ -472,17 +472,18 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc_out = pass_manager.run(qc)
 
         self.assertIsInstance(qc_out[0].operation, UnitaryGate)
-        np.testing.assert_allclose(CXGate().to_matrix(), qc_out[0].operation.to_matrix())
+        np.testing.assert_allclose(CXGate(), qc_out[0].operation)
         op_true = qc_out[1].operation.blocks[0][0].operation
         op_false = qc_out[1].operation.blocks[1][0].operation
-        np.testing.assert_allclose(CXGate().to_matrix(), op_true.to_matrix())
-        np.testing.assert_allclose(CZGate().to_matrix(), op_false.to_matrix())
+        np.testing.assert_allclose(CXGate(), op_true)
+        np.testing.assert_allclose(CZGate(), op_false)
+
 
     def test_not_crossing_between_control_flow_ops(self):
         """Test that consolidation does not occur between control flow ops."""
         qc = QuantumCircuit(2, 1)
-        qc_true = QuantumCircuit(qc.qubits, qc.clbits)
-        qc_false = QuantumCircuit(qc.qubits, qc.clbits)
+        qc_true = QuantumCircuit(2, 1)
+        qc_false = QuantumCircuit(2, 1)
         qc_true.cx(0, 1)
         qc_false.cz(0, 1)
         ifop1 = IfElseOp((qc.clbits[0], True), qc_true, qc_false)
@@ -499,10 +500,10 @@ class TestConsolidateBlocks(QiskitTestCase):
         op_false1 = qc_out[0].operation.blocks[1][0].operation
         op_true2 = qc_out[1].operation.blocks[0][0].operation
         op_false2 = qc_out[1].operation.blocks[1][0].operation
-        np.testing.assert_allclose(CXGate().to_matrix(), op_true1.to_matrix())
-        np.testing.assert_allclose(CZGate().to_matrix(), op_false1.to_matrix())
-        np.testing.assert_allclose(CXGate().to_matrix(), op_true2.to_matrix())
-        np.testing.assert_allclose(CZGate().to_matrix(), op_false2.to_matrix())
+        np.testing.assert_allclose(CXGate(), op_true1)
+        np.testing.assert_allclose(CZGate(), op_false1)
+        np.testing.assert_allclose(CXGate(), op_true2)
+        np.testing.assert_allclose(CZGate(), op_false2)
 
 
 if __name__ == "__main__":
