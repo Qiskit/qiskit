@@ -1274,41 +1274,30 @@ class TextDrawing:
         flow_layer = self.draw_flow_box(node, CF_LEFT)
         layers.append(flow_layer.full_layer)
 
-        # params[0] holds circuit for if or while, params[1] holds circuit for else,
-        # params is [indexset, loop_param, circuit] for for_loop,
-        # op.cases_specifier() returns jump tuple and circuit for switch/case
-        op = node.op
-        circuit_list = []
-        if isinstance(op, IfElseOp):
-            for k in range(2):
-                circuit_list.append(op.params[k])
-        elif isinstance(op, WhileLoopOp):
-            circuit_list.append(op.params[0])
-        elif isinstance(op, ForLoopOp):
-            circuit_list.append(op.params[2])
-        elif isinstance(op, SwitchCaseOp):
-            cases = list(op.cases_specifier())
-            # Create an empty circuit for the Switch box
-            circuit_list.append(cases[0][1].copy_empty_like())
-            for _, circ in cases:
-                circuit_list.append(circ)
+        # Get the list of circuits in the ControlFlowOp from the node blocks
+        circuit_list = list(node.op.blocks)
+
+        if isinstance(node.op, SwitchCaseOp):
+            # Create an empty circuit at the head of the circuit_list if a Switch box
+            circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
-            if circuit is None:  # If with no else
-                break
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
             # Update the wire_map with the qubits from the inner circuit
-            inner_wire_map = {
+            flow_wire_map = {
                 inner: self._wire_map[outer]
                 for outer, inner in zip(self.qubits, circuit.qubits)
                 if inner not in self._wire_map
             }
-            self._wire_map.update(inner_wire_map)
-            qubits, _, if_nodes = _get_layered_instructions(circuit, wire_map=self._wire_map)
+            if not flow_wire_map:
+                flow_wire_map = self._wire_map
+            else:
+                flow_wire_map.update(self._wire_map)
+            qubits, _, if_nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for if_layer in if_nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 if_layer2 = Layer(
@@ -1316,7 +1305,7 @@ class TextDrawing:
                     self.clbits,
                     self.cregbundle,
                     self._circuit,
-                    self._wire_map,
+                    flow_wire_map,
                 )
                 for if_node in if_layer:
                     if isinstance(if_node.op, ControlFlowOp):
