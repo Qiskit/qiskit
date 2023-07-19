@@ -405,20 +405,21 @@ class ForwardMatch:
                     continue
 
                 # Check if parameters match the template or not.
-                # Construct a temporary list of matches. 
+                # Construct a temporary list of matches.
                 temp_match = self.match.copy()
 
                 # Append the new match to the list of matches.
                 temp_match.append([i,label])
 
-                # attempt bind for the matching template. Returns None if there isn't any possible candidate.
+                # Check if the potential match is valid by attempting
+                # to bind parameters.
                 substitution = TemplateSubstitution(
                     [temp_match],
                     self.circuit_dag_dep,
                     self.template_dag_dep,
                     None
                 )
-                    
+
                 template_sublist, circuit_sublist = zip(*temp_match)
                 template = substitution._attempt_bind(template_sublist,circuit_sublist)
 
