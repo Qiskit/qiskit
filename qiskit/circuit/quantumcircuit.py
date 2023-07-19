@@ -949,43 +949,16 @@ class QuantumCircuit:
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
-        # Cache for `map_register_to_dest`.
-        _map_register_cache = {}
-
-        def map_register_to_dest(theirs):
-            """Map the target's registers to suitable equivalents in the destination, adding an
-            extra one if there's no exact match."""
-            if theirs.name in _map_register_cache:
-                return _map_register_cache[theirs.name]
-            mapped_bits = [edge_map[bit] for bit in theirs]
-            for ours in dest.cregs:
-                if mapped_bits == list(ours):
-                    mapped_theirs = ours
-                    break
-            else:
-                mapped_theirs = ClassicalRegister(bits=mapped_bits)
-                dest.add_register(mapped_theirs)
-            _map_register_cache[theirs.name] = mapped_theirs
-            return mapped_theirs
-
+        variable_mapper = _ComposeVariableMapper(dest, edge_map)
         mapped_instrs: list[CircuitInstruction] = []
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
-
-            if getattr(n_op, "condition", None) is not None:
-                target, value = n_op.condition
-                if isinstance(target, Clbit):
-                    n_op.condition = (edge_map[target], value)
-                else:
-                    n_op.condition = (map_register_to_dest(target), value)
-            elif isinstance(n_op, SwitchCaseOp):
-                if isinstance(n_op.target, Clbit):
-                    n_op.target = edge_map[n_op.target]
-                else:
-                    n_op.target = map_register_to_dest(n_op.target)
-
+            if (condition := getattr(n_op, "condition", None)) is not None:
+                n_op.condition = variable_mapper.map_condition(condition)
+            if isinstance(n_op, SwitchCaseOp):
+                n_op.target = variable_mapper.map_target(n_op.target)
             mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
         if front:
@@ -5252,3 +5225,79 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+class _ComposeVariableMapper(expr.ExprVisitor[expr.Expr]):
+    """Stateful helper class that manages the mapping of variables in conditions and expressions to
+    items in the destination ``circuit``.
+
+    This mutates ``circuit`` by adding registers as required."""
+
+    __slots__ = ("circuit", "register_map", "bit_map")
+
+    def __init__(self, circuit, bit_map):
+        self.circuit = circuit
+        self.register_map = {}
+        self.bit_map = bit_map
+
+    def _map_register(self, theirs):
+        """Map the target's registers to suitable equivalents in the destination, adding an
+        extra one if there's no exact match."""
+        if (mapped_theirs := self.register_map.get(theirs.name)) is not None:
+            return mapped_theirs
+        mapped_bits = [self.bit_map[bit] for bit in theirs]
+        for ours in self.circuit.cregs:
+            if mapped_bits == list(ours):
+                mapped_theirs = ours
+                break
+        else:
+            mapped_theirs = ClassicalRegister(bits=mapped_bits)
+            self.circuit.add_register(mapped_theirs)
+        self.register_map[theirs.name] = mapped_theirs
+        return mapped_theirs
+
+    def map_condition(self, condition, /):
+        """Map the given ``condition`` so that it only references variables in the destination
+        circuit (as given to this class on initialisation)."""
+        if condition is None:
+            return None
+        if isinstance(condition, expr.Expr):
+            return self.map_expr(condition)
+        target, value = condition
+        if isinstance(target, Clbit):
+            return (self.bit_map[target], value)
+        return (self._map_register(target), value)
+
+    def map_target(self, target, /):
+        """Map the runtime variables in a ``target`` of a :class:`.SwitchCaseOp` to the new circuit,
+        as defined in the ``circuit`` argument of the initialiser of this class."""
+        if isinstance(target, Clbit):
+            return self.bit_map[target]
+        if isinstance(target, ClassicalRegister):
+            return self._map_register(target)
+        return self.map_expr(target)
+
+    def map_expr(self, node: expr.Expr, /) -> expr.Expr:
+        """Map the variables in an :class:`~.expr.Expr` node to the new circuit."""
+        return node.accept(self)
+
+    def visit_var(self, node, /):
+        if isinstance(node.var, Clbit):
+            return expr.Var(self.bit_map[node.var], node.type)
+        if isinstance(node.var, ClassicalRegister):
+            return expr.Var(self._map_register(node.var), node.type)
+        # Defensive against the expansion of the variable system; we don't want to silently do the
+        # wrong thing (which would be `return node` without mapping, right now).
+        raise CircuitError(f"unhandled variable in 'compose': {node}")  # pragma: no cover
+
+    def visit_value(self, node, /):
+        return expr.Value(node.value, node.type)
+
+    def visit_unary(self, node, /):
+        return expr.Unary(node.op, node.operand.accept(self), node.type)
+
+    def visit_binary(self, node, /):
+        return expr.Binary(node.op, node.left.accept(self), node.right.accept(self), node.type)
+
+    def visit_cast(self, node, /):
+        return expr.Cast(node.operand.accept(self), node.type, implicit=node.implicit)
