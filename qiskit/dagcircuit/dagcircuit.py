@@ -1085,9 +1085,12 @@ class DAGCircuit:
                 node block to be replaced
             op (qiskit.circuit.Operation): The operation to replace the
                 block with
-            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
-                the position. This is necessary to reconstruct the qarg order
-                over multiple gates in the combined single op node.
+            wire_pos_map (Dict[Bit, int]): The dictionary mapping the bits to their positions in the
+                output ``qargs`` or ``cargs``. This is necessary to reconstruct the arg order over
+                multiple gates in the combined single op node.  If a :class:`.Bit` is not in the
+                dictionary, it will not be added to the args; this can be useful when dealing with
+                control-flow operations that have inherent bits in their ``condition`` or ``target``
+                fields.
             cycle_check (bool): When set to True this method will check that
                 replacing the provided ``node_block`` with a single node
                 would introduce a cycle (which would invalidate the
@@ -1117,16 +1120,21 @@ class DAGCircuit:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            cond = getattr(nd.op, "condition", None)
-            if cond is not None:
-                block_cargs.update(condition_resources(cond).clbits)
+            if (condition := getattr(nd.op, "condition", None)) is not None:
+                block_cargs.update(condition_resources(condition).clbits)
+            elif isinstance(nd.op, SwitchCaseOp):
+                if isinstance(nd.op.target, Clbit):
+                    block_cargs.add(nd.op.target)
+                elif isinstance(nd.op.target, ClassicalRegister):
+                    block_cargs.update(nd.op.target)
+                else:
+                    block_cargs.update(node_resources(nd.op.target).clbits)
 
-        # Create replacement node
-        new_node = DAGOpNode(
-            op,
-            sorted(block_qargs, key=lambda x: wire_pos_map[x]),
-            sorted(block_cargs, key=lambda x: wire_pos_map[x]),
-        )
+        block_qargs = [bit for bit in block_qargs if bit in wire_pos_map]
+        block_qargs.sort(key=wire_pos_map.get)
+        block_cargs = [bit for bit in block_cargs if bit in wire_pos_map]
+        block_cargs.sort(key=wire_pos_map.get)
+        new_node = DAGOpNode(op, block_qargs, block_cargs)
 
         try:
             new_node._node_id = self._multi_graph.contract_nodes(
