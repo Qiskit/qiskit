@@ -46,7 +46,6 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
 from .classical import expr
@@ -63,6 +62,7 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
+from .tools import pi_check
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -1646,11 +1646,15 @@ class QuantumCircuit:
         Raises:
             MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
-            QasmError: If circuit has free parameters.
+            QASM2ExportError: If circuit has free parameters.
+            QASM2ExportError: If an operation that has no OpenQASM 2 representation is encountered.
         """
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
 
         if self.num_parameters > 0:
-            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
+            raise QASM2ExportError(
+                "Cannot represent circuits with unbound parameters in OpenQASM 2."
+            )
 
         existing_gate_names = {
             "barrier",
@@ -1739,15 +1743,9 @@ class QuantumCircuit:
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
             else:
-                operation = _qasm2_define_custom_operation(
-                    operation, existing_gate_names, gates_to_define
+                instruction_qasm = _qasm2_custom_operation_statement(
+                    instruction, existing_gate_names, gates_to_define, bit_labels
                 )
-
-                # Insert qasm representation of the original instruction
-                bits_qasm = ",".join(
-                    bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
-                )
-                instruction_qasm = f"{operation.qasm()} {bits_qasm};"
             instruction_calls.append(instruction_qasm)
         instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
         gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
@@ -5020,6 +5018,22 @@ def _compare_parameters(param1: Parameter, param2: Parameter) -> int:
 _QASM2_FIXED_PARAMETERS = [Parameter("param0"), Parameter("param1"), Parameter("param2")]
 
 
+def _qasm2_custom_operation_statement(
+    instruction, existing_gate_names, gates_to_define, bit_labels
+):
+    operation = _qasm2_define_custom_operation(
+        instruction.operation, existing_gate_names, gates_to_define
+    )
+    # Insert qasm representation of the original instruction
+    if instruction.clbits:
+        bits = itertools.chain(instruction.qubits, instruction.clbits)
+    else:
+        bits = instruction.qubits
+    bits_qasm = ",".join(bit_labels[j] for j in bits)
+    instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
+    return instruction_qasm
+
+
 def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_define):
     """Extract a custom definition from the given operation, and append any necessary additional
     subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
@@ -5095,15 +5109,13 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
             f"opaque {new_name}{parameters_qasm} {qubits_qasm};",
         )
     else:
-        statements = []
         qubit_labels = {bit: f"q{i}" for i, bit in enumerate(parameterized_definition.qubits)}
-        for instruction in parameterized_definition.data:
-            new_operation = _qasm2_define_custom_operation(
-                instruction.operation, existing_gate_names, gates_to_define
+        body_qasm = " ".join(
+            _qasm2_custom_operation_statement(
+                instruction, existing_gate_names, gates_to_define, qubit_labels
             )
-            bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
-            statements.append(f"{new_operation.qasm()} {bits_qasm};")
-        body_qasm = " ".join(statements)
+            for instruction in parameterized_definition.data
+        )
 
         # if an inner operation has the same name as the actual operation, it needs to be renamed
         if operation.name in gates_to_define:
@@ -5134,6 +5146,30 @@ def _qasm_escape_name(name: str, prefix: str) -> str:
     ):
         escaped_name = prefix + escaped_name
     return escaped_name
+
+
+def _instruction_qasm2(operation):
+    """Return an OpenQASM 2 string for the instruction."""
+    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+
+    if operation.name == "c3sx":
+        qasm2_call = "c3sqrtx"
+    else:
+        qasm2_call = operation.name
+    if operation.params:
+        qasm2_call = "{}({})".format(
+            qasm2_call,
+            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
+        )
+    if operation.condition is not None:
+        if not isinstance(operation.condition[0], ClassicalRegister):
+            raise QASM2ExportError(
+                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
+            )
+        qasm2_call = (
+            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
+        )
+    return qasm2_call
 
 
 def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
