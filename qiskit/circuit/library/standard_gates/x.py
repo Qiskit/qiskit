@@ -19,14 +19,17 @@ from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
+from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
 from .u2 import U2Gate
 from .sx import SXGate
 
+_X_ARRAY = [[0, 1], [1, 0]]
 
+
+@with_gate_array(_X_ARRAY)
 class XGate(Gate):
     r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
 
@@ -120,11 +123,8 @@ class XGate(Gate):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the X gate."""
-        return numpy.array([[0, 1], [1, 0]], dtype=dtype)
 
-
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=1)
 class CXGate(ControlledGate):
     r"""Controlled-X gate.
 
@@ -246,18 +246,8 @@ class CXGate(ControlledGate):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CX gate."""
-        if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=dtype
-            )
-        else:
-            return numpy.array(
-                [[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=dtype
-            )
 
-
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
 class CCXGate(ControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
@@ -402,16 +392,19 @@ class CCXGate(ControlledGate):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CCX gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
 
-
+@with_gate_array(
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, -1j],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, -1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 1j, 0, 0, 0, 0],
+    ]
+)
 class RCCXGate(Gate):
     """The simplified Toffoli gate, also referred to as Margolus gate.
 
@@ -466,22 +459,6 @@ class RCCXGate(Gate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the simplified CCX gate."""
-        return numpy.array(
-            [
-                [1, 0, 0, 0, 0, 0, 0, 0],
-                [0, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 1, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, -1j],
-                [0, 0, 0, 0, 1, 0, 0, 0],
-                [0, 0, 0, 0, 0, -1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 1, 0],
-                [0, 0, 0, 1j, 0, 0, 0, 0],
-            ],
-            dtype=dtype,
-        )
 
 
 class C3SXGate(ControlledGate):
@@ -585,6 +562,7 @@ class C3SXGate(ControlledGate):
             self.name = old_name
 
 
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
 class C3XGate(ControlledGate):
     r"""The X gate controlled on 3 qubits.
 
@@ -701,16 +679,27 @@ class C3XGate(ControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C3XGate(ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
 
-
+@with_gate_array(
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+)
 class RC3XGate(Gate):
     """The simplified 3-controlled Toffoli gate.
 
@@ -782,31 +771,8 @@ class RC3XGate(Gate):
 
         self.definition = qc
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the RC3X gate."""
-        return numpy.array(
-            [
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 1j, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1j, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
-            ],
-            dtype=dtype,
-        )
 
-
+@with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=4, cached_states=(15,))
 class C4XGate(ControlledGate):
     """The 4-qubit controlled X gate.
 
@@ -900,15 +866,6 @@ class C4XGate(ControlledGate):
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the C4X gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
 
 
 class MCXGate(ControlledGate):

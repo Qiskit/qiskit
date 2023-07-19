@@ -20,7 +20,7 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, deque
 import copy
 import itertools
 import math
@@ -1890,6 +1890,59 @@ class DAGCircuit:
             else:
                 op_dict[name] += 1
         return op_dict
+
+    def quantum_causal_cone(self, qubit):
+        """
+        Returns causal cone of a qubit.
+
+        A qubit's causal cone is the set of qubits that can influence the output of that
+        qubit through interactions, whether through multi-qubit gates or operations. Knowing
+        the causal cone of a qubit can be useful when debugging faulty circuits, as it can
+        help identify which wire(s) may be causing the problem.
+
+        This method does not consider any classical data dependency in the ``DAGCircuit``,
+        classical bit wires are ignored for the purposes of building the causal cone.
+
+        Args:
+            qubit (Qubit): The output qubit for which we want to find the causal cone.
+
+        Returns:
+            Set[Qubit]: The set of qubits whose interactions affect ``qubit``.
+        """
+        # Retrieve the output node from the qubit
+        output_node = self.output_map.get(qubit, None)
+        if not output_node:
+            raise DAGCircuitError(f"Qubit {qubit} is not part of this circuit.")
+        # Add the qubit to the causal cone.
+        qubits_to_check = {qubit}
+        # Add predecessors of output node to the queue.
+        queue = deque(self.predecessors(output_node))
+
+        # While queue isn't empty
+        while queue:
+            # Pop first element.
+            node_to_check = queue.popleft()
+            # Check whether element is input or output node.
+            if isinstance(node_to_check, DAGOpNode):
+                # Keep all the qubits in the operation inside a set.
+                qubit_set = set(node_to_check.qargs)
+                # Check if there are any qubits in common and that the operation is not a barrier.
+                if (
+                    len(qubit_set.intersection(qubits_to_check)) > 0
+                    and node_to_check.op.name != "barrier"
+                    and not getattr(node_to_check.op, "_directive")
+                ):
+                    # If so, add all the qubits to the causal cone.
+                    qubits_to_check = qubits_to_check.union(qubit_set)
+            # For each predecessor of the current node, filter input/output nodes,
+            # also make sure it has at least one qubit in common. Then append.
+            for node in self.quantum_predecessors(node_to_check):
+                if (
+                    isinstance(node, DAGOpNode)
+                    and len(qubits_to_check.intersection(set(node.qargs))) > 0
+                ):
+                    queue.append(node)
+        return qubits_to_check
 
     def properties(self):
         """Return a dictionary of circuit properties."""
