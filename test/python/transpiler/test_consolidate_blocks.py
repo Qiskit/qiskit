@@ -430,14 +430,13 @@ class TestConsolidateBlocks(QiskitTestCase):
 
     def test_descent_into_control_flow(self):
         """Test consolidation in blocks when control flow op is the same as at top level."""
-        qc = QuantumCircuit(2, 1)
-        u2gate1 = U2Gate(-1.2, np.pi)
-        u2gate2 = U2Gate(-3.4, np.pi)
-        qc.append(u2gate1, [0])
-        qc.append(u2gate2, [1])
-        qc.cx(0, 1)
-        qc.cx(1, 0)
 
+        def append_test_gates(qc):
+            qc.cx(0, 1)
+            qc.cx(1, 0)
+
+        qc = QuantumCircuit(2, 1)
+        append_test_gates(qc)
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
         pass_manager.append(ConsolidateBlocks(force_consolidate=True))
@@ -446,10 +445,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc_control_flow = QuantumCircuit(2, 1)
 
         qc_block = QuantumCircuit(qc.qubits, qc.clbits)
-        qc_block.append(u2gate1, [0])
-        qc_block.append(u2gate2, [1])
-        qc_block.cx(0, 1)
-        qc_block.cx(1, 0)
+        append_test_gates(qc_block)
 
         ifop = IfElseOp((qc.clbits[0], False), qc_block, None)
         qc_control_flow.append(ifop, qc.qubits, qc.clbits)
