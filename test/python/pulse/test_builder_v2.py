@@ -12,7 +12,6 @@
 
 """Test pulse builder with backendV2 context utilities."""
 
-from math import pi
 
 import numpy as np
 
@@ -462,20 +461,20 @@ class TestBuilderCompositionV2(TestBuilderV2):
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
                 pulse.delay(delay_dur, d0)
-                pulse.u2(0, pi / 2, 1)
+                pulse.u2(0, np.pi / 2, 1)
             with pulse.align_right():
                 pulse.play(library.Constant(short_dur, 0.1), d1)
                 pulse.play(library.Constant(long_dur, 0.1), d2)
-                pulse.u2(0, pi / 2, 1)
+                pulse.u2(0, np.pi / 2, 1)
             with pulse.align_left():
-                pulse.u2(0, pi / 2, 0)
-                pulse.u2(0, pi / 2, 1)
-                pulse.u2(0, pi / 2, 0)
+                pulse.u2(0, np.pi / 2, 0)
+                pulse.u2(0, np.pi / 2, 1)
+                pulse.u2(0, np.pi / 2, 0)
             pulse.measure(0)
 
         # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
-        single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
+        single_u2_qc.append(circuit.library.U2Gate(0, np.pi / 2), [1])
         single_u2_qc = compiler.transpile(single_u2_qc, self.backend)
         single_u2_sched = compiler.schedule(single_u2_qc, self.backend)
 
@@ -498,9 +497,9 @@ class TestBuilderCompositionV2(TestBuilderV2):
 
         # align left
         triple_u2_qc = circuit.QuantumCircuit(2)
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
-        triple_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [0])
+        triple_u2_qc.append(circuit.library.U2Gate(0, np.pi / 2), [0])
+        triple_u2_qc.append(circuit.library.U2Gate(0, np.pi / 2), [1])
+        triple_u2_qc.append(circuit.library.U2Gate(0, np.pi / 2), [0])
         triple_u2_qc = compiler.transpile(triple_u2_qc, self.backend)
         align_left_reference = compiler.schedule(triple_u2_qc, self.backend, method="alap")
 
