@@ -5,7 +5,7 @@ features:
     This is suitable for ``Counts``, ``QuasiDistribution`` and ``ProbDistribution``.
     Raw `dict` can be passed as well. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.visualization import plot_distribution
 
@@ -24,7 +24,7 @@ upgrade:
     equivalent graph. For example, the previous behavior of
     ``plot_histogram({'00': 512, '11': 500})`` can be re-created with:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.visualization import plot_distribution
         import matplotlib.pyplot as plt

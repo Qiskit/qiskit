@@ -12,11 +12,9 @@
 
 
 """Model and schema for pulse defaults."""
-import copy
 from typing import Any, Dict, List
 
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, PulseQobjDef
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 
@@ -152,11 +150,14 @@ class Command:
             qiskit.providers.model.Command: The ``Command`` from the input
                 dictionary.
         """
-        in_data = copy.copy(data)
-        if "sequence" in in_data:
-            in_data["sequence"] = [
-                PulseQobjInstruction.from_dict(x) for x in in_data.pop("sequence")
-            ]
+        # Pulse command data is nested dictionary.
+        # To avoid deepcopy and avoid mutating the source object, create new dict here.
+        in_data = {}
+        for key, value in data.items():
+            if key == "sequence":
+                in_data[key] = list(map(PulseQobjInstruction.from_dict, value))
+            else:
+                in_data[key] = value
         return cls(**in_data)
 
 
@@ -200,13 +201,16 @@ class PulseDefaults:
         self.pulse_library = pulse_library
         self.cmd_def = cmd_def
         self.instruction_schedule_map = InstructionScheduleMap()
-
         self.converter = QobjToInstructionConverter(pulse_library)
+
         for inst in cmd_def:
-            pulse_insts = [self.converter(inst) for inst in inst.sequence]
-            schedule = Schedule(*pulse_insts, name=inst.name)
-            schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
-            self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
+            entry = PulseQobjDef(converter=self.converter, name=inst.name)
+            entry.define(inst.sequence, user_provided=False)
+            self.instruction_schedule_map._add(
+                instruction_name=inst.name,
+                qubits=tuple(inst.qubits),
+                entry=entry,
+            )
 
         if meas_kernel is not None:
             self.meas_kernel = meas_kernel
@@ -267,15 +271,25 @@ class PulseDefaults:
         Returns:
             PulseDefaults: The PulseDefaults from the input dictionary.
         """
-        in_data = copy.copy(data)
-        in_data["pulse_library"] = [
-            PulseLibraryItem.from_dict(x) for x in in_data.pop("pulse_library")
-        ]
-        in_data["cmd_def"] = [Command.from_dict(x) for x in in_data.pop("cmd_def")]
-        if "meas_kernel" in in_data:
-            in_data["meas_kernel"] = MeasurementKernel.from_dict(in_data.pop("meas_kernel"))
-        if "discriminator" in in_data:
-            in_data["discriminator"] = Discriminator.from_dict(in_data.pop("discriminator"))
+        schema = {
+            "pulse_library": PulseLibraryItem,
+            "cmd_def": Command,
+            "meas_kernel": MeasurementKernel,
+            "discriminator": Discriminator,
+        }
+
+        # Pulse defaults data is nested dictionary.
+        # To avoid deepcopy and avoid mutating the source object, create new dict here.
+        in_data = {}
+        for key, value in data.items():
+            if key in schema:
+                if isinstance(value, list):
+                    in_data[key] = list(map(schema[key].from_dict, value))
+                else:
+                    in_data[key] = schema[key].from_dict(value)
+            else:
+                in_data[key] = value
+
         return cls(**in_data)
 
     def __str__(self):

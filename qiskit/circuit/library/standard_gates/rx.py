@@ -13,10 +13,10 @@
 """Rotation around the X axis."""
 
 import math
+from math import pi
 from typing import Optional, Union
 import numpy
 
-from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -45,8 +45,8 @@ class RXGate(Gate):
 
         RX(\theta) = \exp\left(-i \th X\right) =
             \begin{pmatrix}
-                \cos{\th}   & -i\sin{\th} \\
-                -i\sin{\th} & \cos{\th}
+                \cos\left(\th\right)   & -i\sin\left(\th\right) \\
+                -i\sin\left(\th\right) & \cos\left(\th\right)
             \end{pmatrix}
     """
 
@@ -106,6 +106,11 @@ class RXGate(Gate):
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RXGate(exponent * theta)
+
 
 class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
@@ -132,9 +137,9 @@ class CRXGate(ControlledGate):
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & \cos{\th} & 0 & -i\sin{\th} \\
+                0 & \cos\left(\th\right) & 0 & -i\sin\left(\th\right) \\
                 0 & 0 & 1 & 0 \\
-                0 & -i\sin{\th} & 0 & \cos{\th}
+                0 & -i\sin\left(\th\right) & 0 & \cos\left(\th\right)
             \end{pmatrix}
 
     .. note::
@@ -160,8 +165,8 @@ class CRXGate(ControlledGate):
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos{\th}   & -i\sin{\th} \\
-                    0 & 0 & -i\sin{\th} & \cos{\th}
+                    0 & 0 & \cos\left(\th\right)   & -i\sin\left(\th\right) \\
+                    0 & 0 & -i\sin\left(\th\right) & \cos\left(\th\right)
                 \end{pmatrix}
     """
 

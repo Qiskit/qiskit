@@ -13,14 +13,20 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
+from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
-from typing import Dict, Optional
+from copy import deepcopy
 
 import numpy as np
 import rustworkx as rx
 
 from qiskit._accelerate.sparse_pauli_op import unordered_unique
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -29,6 +35,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
 class SparsePauliOp(LinearOp):
@@ -74,7 +81,14 @@ class SparsePauliOp(LinearOp):
       - ``chop`` since :class:`.ParameterExpression` does not support absolute value.
     """
 
-    def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
+    def __init__(
+        self,
+        data: PauliList | SparsePauliOp | Pauli | list | str,
+        coeffs: np.ndarray | None = None,
+        *,
+        ignore_pauli_phase: bool = False,
+        copy: bool = True,
+    ):
         """Initialize an operator object.
 
         Args:
@@ -112,10 +126,18 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
-        dtype = object if isinstance(coeffs, np.ndarray) and coeffs.dtype == object else complex
+        if isinstance(coeffs, np.ndarray) and coeffs.dtype == object:
+            dtype = object
+        elif coeffs is not None:
+            if not isinstance(coeffs, (np.ndarray, Sequence)):
+                coeffs = [coeffs]
+            if any(isinstance(coeff, ParameterExpression) for coeff in coeffs):
+                dtype = object
+            else:
+                dtype = complex
 
         if coeffs is None:
-            coeffs = np.ones(pauli_list.size, dtype=dtype)
+            coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
             coeffs = np.array(coeffs, copy=copy, dtype=dtype)
 
@@ -170,7 +192,7 @@ class SparsePauliOp(LinearOp):
             )
         )
 
-    def equiv(self, other, atol: Optional[float] = None):
+    def equiv(self, other: SparsePauliOp, atol: float | None = None) -> bool:
         """Check if two SparsePauliOp operators are equivalent.
 
         Args:
@@ -187,7 +209,7 @@ class SparsePauliOp(LinearOp):
         return np.allclose((self - other).simplify().coeffs, 0.0, atol=atol)
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return settings."""
         return {"data": self._pauli_list, "coeffs": self._coeffs}
 
@@ -206,7 +228,7 @@ class SparsePauliOp(LinearOp):
 
     @property
     def paulis(self):
-        """Return the the PauliList."""
+        """Return the PauliList."""
         return self._pauli_list
 
     @paulis.setter
@@ -270,7 +292,9 @@ class SparsePauliOp(LinearOp):
         ret._coeffs = ret._coeffs.conj()
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(
+        self, other: SparsePauliOp, qargs: list | None = None, front: bool = False
+    ) -> SparsePauliOp:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
 
@@ -321,12 +345,12 @@ class SparsePauliOp(LinearOp):
         coeffs = np.multiply.outer(self.coeffs, other.coeffs).ravel()
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
-    def tensor(self, other):
+    def tensor(self, other: SparsePauliOp) -> SparsePauliOp:
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: SparsePauliOp) -> SparsePauliOp:
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
         return self._tensor(other, self)
@@ -335,7 +359,7 @@ class SparsePauliOp(LinearOp):
     def _tensor(cls, a, b):
         paulis = a.paulis.tensor(b.paulis)
         coeffs = np.kron(a.coeffs, b.coeffs)
-        return SparsePauliOp(paulis, coeffs, copy=False)
+        return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _add(self, other, qargs=None):
         if qargs is None:
@@ -351,8 +375,8 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _multiply(self, other):
-        if not isinstance(other, Number):
-            raise QiskitError("other is not a number")
+        if not isinstance(other, (Number, ParameterExpression)):
+            raise QiskitError("other is neither a Number nor a Parameter/ParameterExpression")
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
@@ -371,7 +395,7 @@ class SparsePauliOp(LinearOp):
     # Utility Methods
     # ---------------------------------------------------------------------
 
-    def is_unitary(self, atol=None, rtol=None):
+    def is_unitary(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if operator is a unitary matrix.
 
         Args:
@@ -399,7 +423,7 @@ class SparsePauliOp(LinearOp):
             and not np.any(val.paulis.z)
         )
 
-    def simplify(self, atol=None, rtol=None):
+    def simplify(self, atol: float | None = None, rtol: float | None = None) -> SparsePauliOp:
         """Simplify PauliList by combining duplicates and removing zeros.
 
         Args:
@@ -469,7 +493,7 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
-    def argsort(self, weight=False):
+    def argsort(self, weight: bool = False):
         """Return indices for sorting the rows of the table.
 
         Returns the composition of permutations in the order of sorting
@@ -482,7 +506,7 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp argsort.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -512,6 +536,18 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
+        .. parsed-literal::
+
+            Initial Ordering
+            SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
+                          coeffs=[2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j])
+            Lexicographically sorted
+            [4 7 0 1 2 6 5 3]
+            Lexicographically sorted
+            [4 7 0 1 2 6 5 3]
+            Weight sorted
+            [4 7 3 0 1 2 6 5]
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
             By using the weight kwarg the output can additionally be sorted
@@ -525,7 +561,7 @@ class SparsePauliOp(LinearOp):
         sort_pauli_inds = pauli_list.argsort(weight=weight, phase=False)
         return sort_coeffs_inds[sort_pauli_inds]
 
-    def sort(self, weight=False):
+    def sort(self, weight: bool = False):
         """Sort the rows of the table.
 
         After sorting the coefficients using numpy's argsort, sort by Pauli.
@@ -539,7 +575,7 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp sort.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -569,6 +605,21 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
+        .. parsed-literal::
+
+            Initial Ordering
+            SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
+                          coeffs=[2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j])
+            Lexicographically sorted
+            SparsePauliOp(['II', 'XI', 'XX', 'XX', 'XX', 'XY', 'XZ', 'YI'],
+                          coeffs=[4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
+            Lexicographically sorted
+            SparsePauliOp(['II', 'XI', 'XX', 'XX', 'XX', 'XY', 'XZ', 'YI'],
+                          coeffs=[4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
+            Weight sorted
+            SparsePauliOp(['II', 'XI', 'YI', 'XX', 'XX', 'XX', 'XY', 'XZ'],
+                          coeffs=[4.+0.j, 7.+0.j, 3.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j])
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
             By using the weight kwarg the output can additionally be sorted
@@ -580,7 +631,7 @@ class SparsePauliOp(LinearOp):
         indices = self.argsort(weight=weight)
         return SparsePauliOp(self._pauli_list[indices], self._coeffs[indices])
 
-    def chop(self, tol=1e-14):
+    def chop(self, tol: float = 1e-14) -> SparsePauliOp:
         """Set real and imaginary parts of the coefficients to 0 if ``< tol`` in magnitude.
 
         For example, the operator representing ``1+1e-17j X + 1e-17 Y`` with a tolerance larger
@@ -621,7 +672,7 @@ class SparsePauliOp(LinearOp):
         )
 
     @staticmethod
-    def sum(ops):
+    def sum(ops: list[SparsePauliOp]) -> SparsePauliOp:
         """Sum of SparsePauliOps.
 
         This is a specialized version of the builtin ``sum`` function for SparsePauliOp
@@ -657,7 +708,9 @@ class SparsePauliOp(LinearOp):
     # ---------------------------------------------------------------------
 
     @staticmethod
-    def from_operator(obj, atol=None, rtol=None):
+    def from_operator(
+        obj: Operator, atol: float | None = None, rtol: float | None = None
+    ) -> SparsePauliOp:
         """Construct from an Operator objector.
 
         Note that the cost of this construction is exponential as it involves
@@ -709,7 +762,7 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_list(obj, dtype=complex):
+    def from_list(obj: Iterable[tuple[str, complex]], dtype: type = complex) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
         For example, the 5-qubit Hamiltonian
@@ -726,7 +779,7 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
+            obj (Iterable[tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
             dtype (type): The dtype of coeffs (Default complex).
 
         Returns:
@@ -754,7 +807,12 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_sparse_list(obj, num_qubits, do_checks=True, dtype=complex):
+    def from_sparse_list(
+        obj: Iterable[tuple[str, list[int], complex]],
+        num_qubits: int,
+        do_checks: bool = True,
+        dtype: type = complex,
+    ) -> SparsePauliOp:
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
@@ -777,7 +835,7 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[Tuple[str, List[int], complex]]): The list 3-tuples specifying the Paulis.
+            obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
             do_checks (bool): The flag of checking if the input indices are not duplicated.
             dtype (type): The dtype of coeffs (Default complex).
@@ -817,7 +875,7 @@ class SparsePauliOp(LinearOp):
         paulis = PauliList(labels)
         return SparsePauliOp(paulis, coeffs, copy=False)
 
-    def to_list(self, array=False):
+    def to_list(self, array: bool = False):
         """Convert to a list Pauli string labels and coefficients.
 
         For operators with a lot of terms converting using the ``array=True``
@@ -842,7 +900,7 @@ class SparsePauliOp(LinearOp):
             return labels
         return labels.tolist()
 
-    def to_matrix(self, sparse=False):
+    def to_matrix(self, sparse: bool = False) -> np.ndarray:
         """Convert to a dense or sparse matrix.
 
         Args:
@@ -861,7 +919,7 @@ class SparsePauliOp(LinearOp):
                 mat += i
         return mat
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to a matrix Operator object"""
         return Operator(self.to_matrix())
 
@@ -893,7 +951,7 @@ class SparsePauliOp(LinearOp):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse=False):
+    def matrix_iter(self, sparse: bool = False):
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each term in the SparsePauliOp
@@ -939,7 +997,7 @@ class SparsePauliOp(LinearOp):
         graph.add_edges_from_no_data(edges)
         return graph
 
-    def group_commuting(self, qubit_wise=False):
+    def group_commuting(self, qubit_wise: bool = False) -> list[SparsePauliOp]:
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
 
         Args:
@@ -958,7 +1016,7 @@ class SparsePauliOp(LinearOp):
                      SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
 
         Returns:
-            List[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
+            list[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
                 commuting Pauli operators.
         """
 
@@ -969,6 +1027,58 @@ class SparsePauliOp(LinearOp):
         for idx, color in coloring_dict.items():
             groups[color].append(idx)
         return [self[group] for group in groups.values()]
+
+    @property
+    def parameters(self) -> ParameterView:
+        r"""Return the free ``Parameter``\s in the coefficients."""
+        ret = set()
+        for coeff in self.coeffs:
+            if isinstance(coeff, ParameterExpression):
+                ret |= coeff.parameters
+        return ParameterView(ret)
+
+    def assign_parameters(
+        self,
+        parameters: Mapping[Parameter, complex | ParameterExpression]
+        | Sequence[complex | ParameterExpression],
+        inplace: bool = False,
+    ) -> SparsePauliOp | None:
+        r"""Bind the free ``Parameter``\s in the coefficients to provided values.
+
+        Args:
+            parameters: The values to bind the parameters to.
+            inplace: If ``False``, a copy of the operator with the bound parameters is returned.
+                If ``True`` the operator itself is modified.
+
+        Returns:
+            A copy of the operator with bound parameters, if ``inplace`` is ``False``, otherwise
+            ``None``.
+        """
+        if inplace:
+            bound = self
+        else:
+            bound = deepcopy(self)
+
+        # turn the parameters to a dictionary
+        if isinstance(parameters, Sequence):
+            free_parameters = bound.parameters
+            if len(parameters) != len(free_parameters):
+                raise ValueError(
+                    f"Mismatching number of values ({len(parameters)}) and parameters "
+                    f"({len(free_parameters)}). For partial binding please pass a dictionary of "
+                    "{parameter: value} pairs."
+                )
+            parameters = dict(zip(free_parameters, parameters))
+
+        for i, coeff in enumerate(bound.coeffs):
+            if isinstance(coeff, ParameterExpression):
+                for key in coeff.parameters & parameters.keys():
+                    coeff = coeff.assign(key, parameters[key])
+                if len(coeff.parameters) == 0:
+                    coeff = complex(coeff)
+                bound.coeffs[i] = coeff
+
+        return None if inplace else bound
 
 
 # Update docstrings for API docs

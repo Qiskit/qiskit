@@ -13,6 +13,7 @@
 """
 CNOTDihedral operator class.
 """
+from __future__ import annotations
 import itertools
 import numpy as np
 
@@ -45,7 +46,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. jupyter-execute::
+     .. code-block::
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -60,6 +61,14 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
          # Print the CNOTDihedral element
          print(elem)
+
+    .. parsed-literal::
+
+        phase polynomial =
+        0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
+        affine function =
+         (x_0,x_0 + x_1,x_2 + 1)
+
 
     **Circuit Conversion**
 
@@ -92,7 +101,12 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             npj Quantum Inf 2, 16012 (2016).
     """
 
-    def __init__(self, data=None, num_qubits=None, validate=True):
+    def __init__(
+        self,
+        data: CNOTDihedral | QuantumCircuit | Instruction | None = None,
+        num_qubits: int | None = None,
+        validate: bool = True,
+    ):
         """Initialize a CNOTDihedral operator object.
 
         Args:
@@ -351,11 +365,13 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(
+        self, other: CNOTDihedral, qargs: list | None = None, front: bool = False
+    ) -> CNOTDihedral:
         if qargs is not None:
             raise NotImplementedError("compose method does not support qargs.")
         if self.num_qubits != other.num_qubits:
@@ -415,10 +431,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
         return result
 
-    def tensor(self, other):
+    def tensor(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=True)
 
-    def expand(self, other):
+    def expand(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=False)
 
     def adjoint(self):

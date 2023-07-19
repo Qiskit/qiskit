@@ -267,11 +267,13 @@ class TestPad(QiskitTestCase):
         )
 
         ref_sched = (
-            sched
+            sched  # pylint: disable=unsupported-binary-operation
             | Delay(delay, DriveChannel(0))
             | Delay(delay, DriveChannel(0)).shift(20)
             | Delay(delay, DriveChannel(1))
-            | Delay(2 * delay, DriveChannel(1)).shift(20)
+            | Delay(  # pylint: disable=unsupported-binary-operation
+                2 * delay, DriveChannel(1)
+            ).shift(20)
         )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
@@ -290,11 +292,13 @@ class TestPad(QiskitTestCase):
         )
 
         ref_sched = (
-            sched
+            sched  # pylint: disable=unsupported-binary-operation
             | Delay(delay, DriveChannel(0))
             | Delay(delay, DriveChannel(0)).shift(20)
             | Delay(delay, DriveChannel(1))
-            | Delay(2 * delay, DriveChannel(1)).shift(20)
+            | Delay(  # pylint: disable=unsupported-binary-operation
+                2 * delay, DriveChannel(1)
+            ).shift(20)
         )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
@@ -316,10 +320,10 @@ class TestPad(QiskitTestCase):
         sched = Delay(delay, DriveChannel(0)).shift(10) + Delay(delay, DriveChannel(1))
 
         ref_sched = (
-            sched
+            sched  # pylint: disable=unsupported-binary-operation
             | Delay(delay, DriveChannel(0))
             | Delay(30, DriveChannel(0)).shift(20)
-            | Delay(40, DriveChannel(1)).shift(10)
+            | Delay(40, DriveChannel(1)).shift(10)  # pylint: disable=unsupported-binary-operation
         )
 
         self.assertEqual(transforms.pad(sched, until=50), ref_sched)
@@ -433,14 +437,14 @@ class TestCompressTransform(QiskitTestCase):
         """Test with parametric pulses."""
         schedule = Schedule()
         drive_channel = DriveChannel(0)
-        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
-        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), drive_channel)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), drive_channel)
         schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
         schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
-        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
-        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
-        schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
-        schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.5, angle=0.7), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.5, angle=0.7), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.4, angle=-0.3, sigma=7.8, beta=4), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.4, angle=-0.3, sigma=7.8, beta=4), drive_channel)
 
         compressed_schedule = transforms.compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -452,14 +456,14 @@ class TestCompressTransform(QiskitTestCase):
         """Test parametric pulses with no duplicates."""
         schedule = Schedule()
         drive_channel = DriveChannel(0)
-        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
-        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.49j), drive_channel)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), drive_channel)
+        schedule += Play(Gaussian(duration=25, sigma=4, amp=0.49, angle=np.pi / 2), drive_channel)
         schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
         schedule += Play(GaussianSquare(duration=150, amp=0.19, sigma=8, width=140), drive_channel)
-        schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
-        schedule += Play(Constant(duration=150, amp=0.1 + 0.41j), drive_channel)
-        schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
-        schedule += Play(Drag(duration=25, amp=0.2 + 0.31j, sigma=7.8, beta=4), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.5, angle=0.3), drive_channel)
+        schedule += Play(Constant(duration=150, amp=0.51, angle=0.3), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.5, angle=0.5, sigma=7.8, beta=4), drive_channel)
+        schedule += Play(Drag(duration=25, amp=0.5, angle=0.51, sigma=7.8, beta=4), drive_channel)
 
         compressed_schedule = transforms.compress_pulses([schedule])
         original_pulse_ids = get_pulse_ids([schedule])
@@ -903,12 +907,14 @@ class TestRemoveSubroutines(QiskitTestCase):
 
         subroutine = pulse.Schedule()
         subroutine.insert(0, pulse.Delay(20, d0), inplace=True)
-        subroutine.insert(20, pulse.instructions.Call(nested_routine), inplace=True)
+        with self.assertWarns(DeprecationWarning):
+            subroutine.insert(20, pulse.instructions.Call(nested_routine), inplace=True)
         subroutine.insert(50, pulse.Delay(10, d0), inplace=True)
 
         main_program = pulse.Schedule()
         main_program.insert(0, pulse.Delay(10, d0), inplace=True)
-        main_program.insert(30, pulse.instructions.Call(subroutine), inplace=True)
+        with self.assertWarns(DeprecationWarning):
+            main_program.insert(30, pulse.instructions.Call(subroutine), inplace=True)
 
         target = transforms.inline_subroutines(main_program)
 
@@ -928,7 +934,8 @@ class TestRemoveSubroutines(QiskitTestCase):
         subroutine.insert(10, pulse.Delay(10, d0), inplace=True)
 
         nested_sched = pulse.Schedule()
-        nested_sched.insert(0, pulse.instructions.Call(subroutine), inplace=True)
+        with self.assertWarns(DeprecationWarning):
+            nested_sched.insert(0, pulse.instructions.Call(subroutine), inplace=True)
 
         main_sched = pulse.Schedule()
         main_sched.insert(0, nested_sched, inplace=True)
@@ -952,7 +959,8 @@ class TestRemoveSubroutines(QiskitTestCase):
         subroutine.append(pulse.Delay(10, d0), inplace=True)
 
         nested_block = pulse.ScheduleBlock()
-        nested_block.append(pulse.instructions.Call(subroutine), inplace=True)
+        with self.assertWarns(DeprecationWarning):
+            nested_block.append(pulse.instructions.Call(subroutine), inplace=True)
 
         main_block = pulse.ScheduleBlock()
         main_block.append(nested_block, inplace=True)

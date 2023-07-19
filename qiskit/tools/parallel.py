@@ -72,10 +72,7 @@ def get_platform_parallel_default():
         parallel_default = False
     # On macOS default false on Python >=3.8
     elif sys.platform == "darwin":
-        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-            parallel_default = False
-        else:
-            parallel_default = True
+        parallel_default = False
     # On linux (and other OSes) default to True
     else:
         parallel_default = True
@@ -106,7 +103,7 @@ def _task_wrapper(param):
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
-    task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT
+    task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT
 ):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -171,7 +168,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         try:
             results = []
             with ProcessPoolExecutor(max_workers=num_processes) as executor:
-                param = map(lambda value: (task, value, task_args, task_kwargs), values)
+                param = ((task, value, task_args, task_kwargs) for value in values)
                 future = executor.map(_task_wrapper, param)
 
             results = list(future)

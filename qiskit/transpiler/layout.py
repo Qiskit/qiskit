@@ -17,9 +17,8 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
-
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict
 
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
@@ -262,7 +261,7 @@ class Layout:
 
         return edge_map
 
-    def reorder_bits(self, bits):
+    def reorder_bits(self, bits) -> list[int]:
         """Given an ordered list of bits, reorder them according to this layout.
 
         The list of bits must exactly match the virtual bits in this layout.
@@ -370,7 +369,36 @@ class Layout:
 
 @dataclass
 class TranspileLayout:
-    """Layout attributes from output circuit from transpiler."""
+    r"""Layout attributes from output circuit from transpiler.
+
+    The transpiler in general is unitary-perserving up to permutations caused
+    by setting and applying initial layout during the :ref:`layout_stage`
+    and :class:`~.SwapGate` insertion during the :ref:`routing_stage`. To
+    provide an interface to reason about these permutations caused by
+    the :mod:`~qiskit.transpiler`.
+
+    There are three attributes associated with the class:
+
+      * :attr:`initial_layout` - This attribute is used to model the
+        permutation caused by the :ref:`layout_stage` it contains a
+        :class:`~.Layout` object that maps the input :class:`~.QuantumCircuit`\s
+        :class:`~.Qubit` objects to the position in the output
+        :class:`.QuantumCircuit.qubits` list.
+      * :attr:`input_qubit_mapping` - This attribute is used to retain
+        input ordering of the original :class:`~.QuantumCircuit` object. It
+        maps the virtual :class:`~.Qubit` object from the original circuit
+        (and :attr:`initial_layout`) to its corresponding position in
+        :attr:`.QuantumCircuit.qubits` in the original circuit. This
+        is needed when computing the permutation of the :class:`Operator` of
+        the circuit (and used by :meth:`.Operator.from_circuit`).
+      * :attr:`final_layout` - This is a :class:`~.Layout` object used to
+        model the output permutation caused ny any :class:`~.SwapGate`\s
+        inserted into the :class:~.QuantumCircuit` during the
+        :ref:`routing_stage`. It maps the output circuit's qubits from
+        :class:`.QuantumCircuit.qubits` to the final position after
+        routing.
+    """
 
     initial_layout: Layout
-    input_qubit_mapping: Dict[Qubit, int]
+    input_qubit_mapping: dict[Qubit, int]
+    final_layout: Layout | None = None

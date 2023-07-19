@@ -126,6 +126,136 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_8:
+
+Version 8
+=========
+
+Version 8 adds support for handling a :class:`~.TranspileLayout` stored in the
+:attr:`.QuantumCircuit.layout` attribute. In version 8 immediately following the
+calibrations block at the end of the circuit payload there is now the
+``LAYOUT`` struct. This struct outlines the size of the three attributes of a
+:class:`~.TranspileLayout` class.
+
+LAYOUT
+------
+
+.. code-block:: c
+
+    struct {
+        char exists;
+        int32_t initial_layout_size;
+        int32_t input_mapping_size;
+        int32_t final_layout_size;
+        uint32_t extra_registers;
+    }
+
+If any of the signed values are ``-1`` this indicates the corresponding
+attribute is ``None``.
+
+Immediately following the ``LAYOUT`` struct there is a :ref:`qpy_registers` struct
+for ``extra_registers`` (specifically the format introduced in :ref:`qpy_version_4`)
+standalone register definitions that aren't present in the circuit. Then there
+are ``initial_layout_size`` ``INITIAL_LAYOUT_BIT`` structs to define the
+:attr:`.TranspileLayout.initial_layout` attribute.
+
+INITIAL_LAYOUT_BIT
+------------------
+
+.. code-block:: c
+
+    struct {
+        int32_t index;
+        int32_t register_size;
+    }
+
+Where a value of ``-1`` indicates ``None`` (as in no register is associated
+with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
+bytes for a ``utf8`` encoded string for the register name.
+
+Following the initial layout there is ``input_mapping_size`` array of
+``uint32_t`` integers representing the positions of the phyiscal bit from the
+initial layout. This enables constructing a list of virtual bits where the
+array index is its input mapping position.
+
+Finally, there is an array of ``final_layout_size`` ``uint32_t`` integers. Each
+element is an index in the circuit's ``qubits`` attribute which enables building
+a mapping from qubit starting position to the output position at the end of the
+circuit.
+
+.. _qpy_version_7:
+
+Version 7
+=========
+
+Version 7 adds support for :class:`.~Reference` instruction and serialization of
+a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
+
+    from qiskit import pulse
+    from qiskit import qpy
+
+    with pulse.build() as schedule:
+        pulse.reference("cr45p", "q0", "q1")
+        pulse.reference("x", "q0")
+        pulse.reference("cr45p", "q0", "q1")
+
+    with open('template_ecr.qpy', 'wb') as fd:
+        qpy.dump(schedule, fd)
+
+The conventional :ref:`qpy_schedule_block` data model is preserved, but in
+version 7 it is immediately followed by an extra :ref:`qpy_mapping` utf8 bytes block
+representing the data of the referenced subroutines.
+
+New type key character is added to the :ref:`qpy_schedule_instructions` group
+for the :class:`.~Reference` instruction.
+
+- ``y``: :class:`~qiskit.pulse.instructions.Reference` instruction
+
+New type key character is added to the :ref:`qpy_schedule_operands` group
+for the operands of :class:`.~Reference` instruction,
+which is a tuple of strings, e.g. ("cr45p", "q0", "q1").
+
+- ``o``: string (operand string)
+
+Note that this is the same encoding with the built-in Python string, however,
+the standard value encoding in QPY uses ``s`` type character for string data,
+which conflicts with the :class:`~qiskit.pulse.library.SymbolicPulse` in the scope of
+pulse instruction operands. A special type character ``o`` is reserved for
+the string data that appears in the pulse instruction operands.
+
+In addition, version 7 adds two new type keys to the INSTRUCTION_PARM struct.  ``"d"`` is followed
+by no data and represents the literal value :data:`.CASE_DEFAULT` for switch-statement support.
+``"R"`` represents a :class:`.ClassicalRegister` or :class:`.Clbit`, and is followed by the same
+format as the description of register or classical bit as used in the first element of :ref:`the
+condition of an INSTRUCTION field <qpy_instructions>`.
+
+.. _qpy_version_6:
+
+Version 6
+=========
+
+Version 6 adds support for :class:`.~ScalableSymbolicPulse`. These objects are saved and read
+like `SymbolicPulse` objects, and the class name is added to the data to correctly handle
+the class selection.
+
+`SymbolicPulse` block now starts with SYMBOLIC_PULSE_V2 header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t class_name_size;
+        uint16_t type_size;
+        uint16_t envelope_size;
+        uint16_t constraints_size;
+        uint16_t valid_amp_conditions_size;
+        _bool amp_limited;
+    }
+
+The only change compared to :ref:`qpy_version_5` is the addition of `class_name_size`. The header
+is then immediately followed by ``class_name_size`` utf8 bytes with the name of the class. Currently,
+either `SymbolicPulse` or `ScalableSymbolicPulse` are supported. The rest of the data is then
+identical to :ref:`qpy_version_5`.
+
 .. _qpy_version_5:
 
 Version 5
@@ -186,6 +316,8 @@ Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and
 no extra option is required to save the schedule block.
 
+.. _qpy_schedule_block_header:
+
 SCHEDULE_BLOCK_HEADER
 ---------------------
 
@@ -203,6 +335,11 @@ which is immediately followed by ``name_size`` utf8 bytes of schedule name and
 ``metadata_size`` utf8 bytes of the JSON serialized metadata dictionary
 attached to the schedule.
 
+.. _qpy_schedule_alignments:
+
+SCHEDULE_BLOCK_ALIGNMENTS
+-------------------------
+
 Then, alignment context of the schedule block starts with ``char``
 representing the supported context type followed by the :ref:`qpy_sequence` block representing
 the parameters associated with the alignment context :attr:`AlignmentKind._context_params`.
@@ -215,6 +352,11 @@ The context type char is mapped to each alignment subclass as follows:
 
 Note that :class:`~.AlignFunc` context is not supported becasue of the callback function
 stored in the context parameters.
+
+.. _qpy_schedule_instructions:
+
+SCHEDULE_BLOCK_INSTRUCTIONS
+---------------------------
 
 This alignment block is further followed by ``num_element`` length of block elements which may
 consist of nested schedule blocks and schedule instructions.
@@ -234,6 +376,12 @@ The mapping of type char to the instruction subclass is defined as follows:
 - ``r``: :class:`~qiskit.pulse.instructions.ShiftPhase` instruction
 - ``b``: :class:`~qiskit.pulse.instructions.RelativeBarrier` instruction
 - ``t``: :class:`~qiskit.pulse.instructions.TimeBlockade` instruction
+- ``y``: :class:`~qiskit.pulse.instructions.Reference` instruction (new in version 0.7)
+
+.. _qpy_schedule_operands:
+
+SCHEDULE_BLOCK_OPERANDS
+-----------------------
 
 The operands of these instances can be serialized through the standard QPY value serialization
 mechanism, however there are special object types that only appear in the schedule operands.
@@ -245,6 +393,7 @@ Special objects start with the following type key:
 - ``c``: :class:`~qiskit.pulse.channels.Channel`
 - ``w``: :class:`~qiskit.pulse.library.Waveform`
 - ``s``: :class:`~qiskit.pulse.library.SymbolicPulse`
+- ``o``: string (operand string, new in version 0.7)
 
 .. _qpy_schedule_channel:
 
@@ -769,10 +918,10 @@ as part of it, for example::
 the register ``qr`` would be a standalone register. While something like::
 
     bits = [Qubit(), Qubit()]
-    qr = QuantumRegister(bits=bits)
-    qc = QuantumCircuit(bits=bits)
+    qr2 = QuantumRegister(bits=bits)
+    qc = QuantumCircuit(qr2)
 
-``qr`` would have ``standalone`` set to ``False``.
+``qr2`` would have ``standalone`` set to ``False``.
 
 
 .. _qpy_custom_definition:

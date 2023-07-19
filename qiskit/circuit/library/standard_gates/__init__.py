@@ -11,66 +11,7 @@
 # that they have been altered from the originals.
 
 """
-=============================================================
-Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
-=============================================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   C3XGate
-   C3SXGate
-   C4XGate
-   CCXGate
-   DCXGate
-   CHGate
-   CPhaseGate
-   CRXGate
-   CRYGate
-   CRZGate
-   CSwapGate
-   CSXGate
-   CUGate
-   CU1Gate
-   CU3Gate
-   CXGate
-   CYGate
-   CZGate
-   CCZGate
-   HGate
-   IGate
-   MCPhaseGate
-   PhaseGate
-   RCCXGate
-   RC3XGate
-   RXGate
-   RXXGate
-   RYGate
-   RYYGate
-   RZGate
-   RZZGate
-   RZXGate
-   XXMinusYYGate
-   XXPlusYYGate
-   ECRGate
-   SGate
-   SdgGate
-   CSGate
-   CSdgGate
-   SwapGate
-   iSwapGate
-   SXGate
-   SXdgGate
-   TGate
-   TdgGate
-   UGate
-   U1Gate
-   U2Gate
-   U3Gate
-   XGate
-   YGate
-   ZGate
-
+Standard gates
 """
 
 from .h import HGate, CHGate
@@ -101,7 +42,7 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate, CCZGate
-
+from .global_phase import GlobalPhaseGate
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 
@@ -139,6 +80,7 @@ def get_standard_gate_name_mapping():
         CYGate(),
         CZGate(),
         CCZGate(),
+        GlobalPhaseGate(Parameter("ϴ")),
         HGate(),
         PhaseGate(Parameter("ϴ")),
         RCCXGate(),

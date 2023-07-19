@@ -56,7 +56,21 @@ class CollectCliffords(CollectAndCollapse):
         )
 
 
-clifford_gate_names = ["x", "y", "z", "h", "s", "sdg", "cx", "cy", "cz", "swap"]
+clifford_gate_names = [
+    "x",
+    "y",
+    "z",
+    "h",
+    "s",
+    "sdg",
+    "cx",
+    "cy",
+    "cz",
+    "swap",
+    "clifford",
+    "linear_function",
+    "pauli",
+]
 
 
 def _is_clifford_gate(node):

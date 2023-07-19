@@ -15,7 +15,7 @@
 """QASM3 AST Nodes"""
 
 import enum
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Iterable, Tuple
 
 
 class ASTNode:
@@ -110,9 +110,6 @@ class QuantumInstruction(ASTNode):
         | quantumBarrier
     """
 
-    def __init__(self):
-        pass
-
 
 class ClassicalType(ASTNode):
     """Information about a classical type.  This is just an abstract base for inheritance tests."""
@@ -126,6 +123,17 @@ class FloatType(ClassicalType, enum.Enum):
     DOUBLE = 64
     QUAD = 128
     OCT = 256
+
+
+class IntType(ClassicalType):
+    """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class BitType(ClassicalType):
+    """Type information for a single bit."""
 
 
 class BitArrayType(ClassicalType):
@@ -299,6 +307,14 @@ class ClassicalDeclaration(Statement):
         self.initializer = initializer
 
 
+class AssignmentStatement(Statement):
+    """Assignment of an expression to an l-value."""
+
+    def __init__(self, lvalue: SubscriptedIdentifier, rvalue: Expression):
+        self.lvalue = lvalue
+        self.rvalue = rvalue
+
+
 class QuantumDeclaration(ASTNode):
     """
     quantumDeclaration
@@ -317,9 +333,9 @@ class AliasStatement(ASTNode):
         : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
 
-    def __init__(self, identifier: Identifier, concatenation: List[Identifier]):
+    def __init__(self, identifier: Identifier, value: Expression):
         self.identifier = identifier
-        self.concatenation = concatenation
+        self.value = value
 
 
 class QuantumGateModifierName(enum.Enum):
@@ -629,3 +645,20 @@ class IODeclaration(ClassicalDeclaration):
     def __init__(self, modifier: IOModifier, type_: ClassicalType, identifier: Identifier):
         super().__init__(type_, identifier)
         self.modifier = modifier
+
+
+class DefaultCase(Expression):
+    """An object representing the `default` special label in switch statements."""
+
+    def __init__(self):
+        super().__init__(None)
+
+
+class SwitchStatement(Statement):
+    """AST node for the proposed 'switch-case' extension to OpenQASM 3."""
+
+    def __init__(
+        self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
+    ):
+        self.target = target
+        self.cases = [(tuple(values), case) for values, case in cases]

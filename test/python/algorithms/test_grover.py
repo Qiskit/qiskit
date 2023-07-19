@@ -80,7 +80,6 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
         expected = [state in ["01", "11"] for state in possible_states]
-        # pylint: disable=not-callable
         actual = [problem.is_good_state(state) for state in possible_states]
 
         self.assertListEqual(expected, actual)
@@ -92,12 +91,13 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.statevector = QuantumInstance(
-            BasicAer.get_backend("statevector_simulator"), seed_simulator=12, seed_transpiler=32
-        )
-        self.qasm = QuantumInstance(
-            BasicAer.get_backend("qasm_simulator"), seed_simulator=12, seed_transpiler=32
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.statevector = QuantumInstance(
+                BasicAer.get_backend("statevector_simulator"), seed_simulator=12, seed_transpiler=32
+            )
+            self.qasm = QuantumInstance(
+                BasicAer.get_backend("qasm_simulator"), seed_simulator=12, seed_transpiler=32
+            )
         self._sampler = Sampler()
         self._sampler_with_shots = Sampler(options={"shots": 1024, "seed": 123})
         algorithm_globals.random_seed = 123
@@ -109,7 +109,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         grover = self._prepare_grover(use_sampler)
         oracle = PhaseOracle("x & y")
         problem = AmplificationProblem(oracle)
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "11")
 
     @idata(itertools.product(["ideal", "shots", False], [[1, 2, 3], None, 2]))
@@ -118,7 +122,24 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test the algorithm with different iteration types and with good state"""
         grover = self._prepare_grover(use_sampler, iterations)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, "111")
+
+    @idata(itertools.product(["shots", False], [[1, 2, 3], None, 2]))
+    @unpack
+    def test_iterations_with_good_state_sample_from_iterations(self, use_sampler, iterations):
+        """Test the algorithm with different iteration types and with good state"""
+        grover = self._prepare_grover(use_sampler, iterations, sample_from_iterations=True)
+        problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
     @data("ideal", "shots", False)
@@ -126,7 +147,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test the algorithm with iterations as an int and without good state"""
         grover = self._prepare_grover(use_sampler, iterations=2)
         problem = AmplificationProblem(Statevector.from_label("111"))
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
     @idata(itertools.product(["ideal", "shots", False], [[1, 2, 3], None]))
@@ -135,10 +160,15 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test the correct error is thrown for none/list of iterations and without good state"""
         grover = self._prepare_grover(use_sampler, iterations=iterations)
         problem = AmplificationProblem(Statevector.from_label("111"))
+
         with self.assertRaisesRegex(
             TypeError, "An is_good_state function is required with the provided oracle"
         ):
-            grover.amplify(problem)
+            if not use_sampler:
+                with self.assertWarns(DeprecationWarning):
+                    grover.amplify(problem)
+            else:
+                grover.amplify(problem)
 
     @data("ideal", "shots", False)
     def test_iterator(self, use_sampler):
@@ -155,7 +185,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
         grover = self._prepare_grover(use_sampler, iterations=iterator())
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
     @data("ideal", "shots", False)
@@ -163,7 +197,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test running the algorithm on a growth rate"""
         grover = self._prepare_grover(use_sampler, growth_rate=8 / 7)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
     @data("ideal", "shots", False)
@@ -177,7 +215,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         grover = self._prepare_grover(use_sampler, iterations=zero())
         n = 5
         problem = AmplificationProblem(Statevector.from_label("1" * n), is_good_state=["1" * n])
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertEqual(len(result.iterations), 2**n)
 
     @data("ideal", "shots", False)
@@ -196,7 +238,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
         grover = self._prepare_grover(use_sampler)
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 
     @data("ideal", "shots", False)
@@ -205,7 +251,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         mark_state = Statevector.from_label("11")
         problem = AmplificationProblem(mark_state, is_good_state=["11"])
         grover = self._prepare_grover(use_sampler)
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 
     @data("ideal", "shots", False)
@@ -218,8 +268,12 @@ class TestGrover(QiskitAlgorithmsTestCase):
             oracle=oracle, grover_operator=grover_op, is_good_state=["11"]
         )
         grover = self._prepare_grover(use_sampler)
-        ret = grover.amplify(problem)
-        self.assertIn(ret.top_measurement, ["11"])
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
+        self.assertIn(result.top_measurement, ["11"])
 
     def test_optimal_num_iterations(self):
         """Test optimal_num_iterations"""
@@ -253,14 +307,19 @@ class TestGrover(QiskitAlgorithmsTestCase):
         # is_good_state=['00'] is intentionally selected to obtain a list of results
         problem = AmplificationProblem(oracle, is_good_state=["00"])
         grover = self._prepare_grover(use_sampler, iterations=[1, 2, 3, 4])
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         if use_sampler:
             for i, dist in enumerate(result.circuit_results):
                 keys, values = zip(*sorted(dist.items()))
-                self.assertTupleEqual(keys, ("00", "01", "10", "11"))
                 if i in (0, 3):
-                    np.testing.assert_allclose(values, [0, 0, 0, 1], atol=0.2)
+                    self.assertTupleEqual(keys, ("11",))
+                    np.testing.assert_allclose(values, [1], atol=0.2)
                 else:
+                    self.assertTupleEqual(keys, ("00", "01", "10", "11"))
                     np.testing.assert_allclose(values, [0.25, 0.25, 0.25, 0.25], atol=0.2)
         else:
             expected_results = [
@@ -278,7 +337,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
         grover = self._prepare_grover(use_sampler)
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertAlmostEqual(result.max_probability, 1.0)
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
@@ -288,7 +351,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         oracle = PhaseOracle("x1 & x2 & (not x3)")
         problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
         grover = self._prepare_grover(use_sampler)
-        result = grover.amplify(problem)
+        if not use_sampler:
+            with self.assertWarns(DeprecationWarning):
+                result = grover.amplify(problem)
+        else:
+            result = grover.amplify(problem)
         self.assertTrue(result.oracle_evaluation)
         self.assertEqual("011", result.top_measurement)
 
@@ -298,18 +365,31 @@ class TestGrover(QiskitAlgorithmsTestCase):
         grover.sampler = self._sampler
         self.assertEqual(grover.sampler, self._sampler)
 
-    def _prepare_grover(self, use_sampler, iterations=None, growth_rate=None):
+    def _prepare_grover(
+        self, use_sampler, iterations=None, growth_rate=None, sample_from_iterations=False
+    ):
         """Prepare Grover instance for test"""
         if use_sampler == "ideal":
-            grover = Grover(sampler=self._sampler, iterations=iterations, growth_rate=growth_rate)
+            grover = Grover(
+                sampler=self._sampler,
+                iterations=iterations,
+                growth_rate=growth_rate,
+                sample_from_iterations=sample_from_iterations,
+            )
         elif use_sampler == "shots":
             grover = Grover(
-                sampler=self._sampler_with_shots, iterations=iterations, growth_rate=growth_rate
+                sampler=self._sampler_with_shots,
+                iterations=iterations,
+                growth_rate=growth_rate,
+                sample_from_iterations=sample_from_iterations,
             )
         else:
-            with self.assertWarns(PendingDeprecationWarning):
+            with self.assertWarns(DeprecationWarning):
                 grover = Grover(
-                    quantum_instance=self.qasm, iterations=iterations, growth_rate=growth_rate
+                    quantum_instance=self.qasm,
+                    iterations=iterations,
+                    growth_rate=growth_rate,
+                    sample_from_iterations=sample_from_iterations,
                 )
         return grover
 

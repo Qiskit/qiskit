@@ -1,0 +1,16 @@
+[package]
+name = "qiskit-qasm2"
+# The following options can be inherited with (e.g.) `version.workspace = true` once we hit Rust
+# 1.64.  Until then, keep in sync with the root `Cargo.toml`.
+version = "0.25.0"
+edition = "2021"
+rust-version = "1.61"
+license = "Apache-2.0"
+
+[lib]
+name = "qiskit_qasm2"
+crate-type = ["cdylib"]
+
+[dependencies]
+hashbrown = "0.12.3"
+pyo3 = { version = "0.19.1", features = ["extension-module", "abi3-py38"] }

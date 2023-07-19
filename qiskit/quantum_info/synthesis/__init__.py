@@ -12,8 +12,9 @@
 
 """State and Unitary synthesis methods."""
 
+from __future__ import annotations
 from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
 from .one_qubit_decompose import OneQubitEulerDecomposer
 from .quaternion import Quaternion
 from .clifford_decompose import decompose_clifford
-from .xx_decompose import XXDecomposer
+from .xx_decompose.decomposer import XXDecomposer

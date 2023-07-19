@@ -121,7 +121,7 @@ class Waveform(Pulse):
         )
 
     def __hash__(self) -> int:
-        return hash(self.samples.tostring())
+        return hash(self.samples.tobytes())
 
     def __repr__(self) -> str:
         opt = np.get_printoptions()

@@ -8,7 +8,7 @@ fixes:
     contains an instruction with the name ``delay`` this will be mapped to
     a :class:`qiskit.circuit.Delay` instruction. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
        from qiskit import QuantumCircuit
 

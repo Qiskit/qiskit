@@ -195,6 +195,21 @@ SYMBOLIC_PULSE = namedtuple(
 SYMBOLIC_PULSE_PACK = "!HHHH?"
 SYMBOLIC_PULSE_SIZE = struct.calcsize(SYMBOLIC_PULSE_PACK)
 
+# SYMBOLIC_PULSE_V2
+SYMBOLIC_PULSE_V2 = namedtuple(
+    "SYMBOLIC_PULSE",
+    [
+        "class_name_size",
+        "type_size",
+        "envelope_size",
+        "constraints_size",
+        "valid_amp_conditions_size",
+        "amp_limited",
+    ],
+)
+SYMBOLIC_PULSE_PACK_V2 = "!HHHHH?"
+SYMBOLIC_PULSE_SIZE_V2 = struct.calcsize(SYMBOLIC_PULSE_PACK_V2)
+
 # INSTRUCTION_PARAM
 INSTRUCTION_PARAM = namedtuple("INSTRUCTION_PARAM", ["type", "size"])
 INSTRUCTION_PARAM_PACK = "!1cQ"
@@ -246,3 +261,14 @@ SEQUENCE_SIZE = struct.calcsize(SEQUENCE_PACK)
 MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
 MAP_ITEM_PACK = "!H1cH"
 MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
+
+LAYOUT = namedtuple(
+    "LAYOUT",
+    ["exists", "initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"],
+)
+LAYOUT_PACK = "!?iiiI"
+LAYOUT_SIZE = struct.calcsize(LAYOUT_PACK)
+
+INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"])
+INITIAL_LAYOUT_BIT_PACK = "!ii"
+INITIAL_LAYOUT_BIT_SIZE = struct.calcsize(INITIAL_LAYOUT_BIT_PACK)

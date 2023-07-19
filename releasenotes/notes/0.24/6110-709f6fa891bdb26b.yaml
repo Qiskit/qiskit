@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    For the class :class:`~DagDepNode`, the previously deprecated ``condition``
+    attribute has been removed. It was deprecated since 0.18 release.
+    You can use :meth:`~DAGDepNode.op.condition~ if the ``DAGDepNode`` is of type ``op``.

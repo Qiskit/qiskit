@@ -17,6 +17,7 @@ from typing import List
 import numpy as np
 
 from qiskit.circuit.operation import Operation
+from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.quantum_info.operators import Operator
 
 
@@ -88,6 +89,11 @@ class CommutationChecker:
         ):
             return False
 
+        # Commutation of ControlFlow gates also not supported yet. This may be
+        # pending a control flow graph.
+        if isinstance(op1, ControlFlowOp) or isinstance(op2, ControlFlowOp):
+            return False
+
         # These lines are adapted from dag_dependency and say that two gates over
         # different quantum and classical bits necessarily commute. This is more
         # permissive that the check from commutation_analysis, as for example it
@@ -144,7 +150,7 @@ class CommutationChecker:
             # being the lowest possible indices so the identity can be tensored before it.
             extra_qarg2 = num_qubits - len(qarg1)
             if extra_qarg2:
-                id_op = _identity_op(2**extra_qarg2)
+                id_op = _identity_op(extra_qarg2)
                 operator_1 = id_op.tensor(operator_1)
             op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
             op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)

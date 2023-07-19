@@ -40,10 +40,10 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qasm.exceptions import QasmError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
+from qiskit.utils.deprecation import deprecate_func
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
@@ -131,11 +131,13 @@ class Instruction(Operation):
                 pass
 
             try:
-                if numpy.shape(self_param) == numpy.shape(other_param) and numpy.allclose(
+                self_asarray = numpy.asarray(self_param)
+                other_asarray = numpy.asarray(other_param)
+                if numpy.shape(self_asarray) == numpy.shape(other_asarray) and numpy.allclose(
                     self_param, other_param, atol=_CUTOFF_PRECISION, rtol=0
                 ):
                     continue
-            except TypeError:
+            except (ValueError, TypeError):
                 pass
 
             try:
@@ -415,12 +417,11 @@ class Instruction(Operation):
         Copy of the instruction.
 
         Args:
-          name (str): name to be given to the copied circuit,
-            if None then the name stays the same.
+            name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
 
         Returns:
-          qiskit.circuit.Instruction: a copy of the current instruction, with the name
-            updated if it was provided
+            qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
+            was provided
         """
         cpy = self.__deepcopy__()
 
@@ -437,14 +438,24 @@ class Instruction(Operation):
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+
         if self.condition is None:
             return string
         if not isinstance(self.condition[0], ClassicalRegister):
-            raise QasmError(
+            raise QASM2ExportError(
                 "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
             )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
+    @deprecate_func(
+        additional_msg=(
+            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
+            "safely be done on an object-by-object basis without context. No replacement will be "
+            "provided, because the premise is wrong."
+        ),
+        since="0.25.0",
+    )
     def qasm(self):
         """Return a default OpenQASM string for the instruction.
 
@@ -479,6 +490,11 @@ class Instruction(Operation):
             raise CircuitError(
                 f"The amount of qubit arguments {len(qargs)} does not match"
                 f" the instruction expectation ({self.num_qubits})."
+            )
+        if len(cargs) != self.num_clbits:
+            raise CircuitError(
+                f"The amount of clbit arguments {len(cargs)} does not match"
+                f" the instruction expectation ({self.num_clbits})."
             )
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]

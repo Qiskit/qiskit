@@ -29,12 +29,15 @@ q_1: ┤ X ├┤ RZ(ϴ) ├┤ √X ├┤ RZ(π) ├┤ √X ├┤ RZ(3π) �
 «q_1: ┤ RZ(π/2) ├
 «     └─────────┘
 """
+from __future__ import annotations
 
 import numpy as np
+
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
-def rzx_zz1(theta: float = None):
+def rzx_zz1(theta: ParameterValueType | None = None):
     """Template for CX - RZGate - CX."""
     if theta is None:
         theta = Parameter("ϴ")

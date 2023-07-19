@@ -7,7 +7,7 @@ features:
     :attr:`~qiskit.circuit.QuantumCircuit.cregs` in the circuit and missing
     indices are represented with a ``_``. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit, execute, BasicAer, result
         from qiskit.result.utils import marginal_counts

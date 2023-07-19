@@ -13,11 +13,17 @@
 """iSWAP gate."""
 
 from typing import Optional
+
 import numpy as np
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
+
+from .xx_plus_yy import XXPlusYYGate
 
 
+@with_gate_array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
 class iSwapGate(Gate):
     r"""iSWAP gate.
 
@@ -96,6 +102,7 @@ class iSwapGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .h import HGate
         from .s import SGate
         from .x import CXGate
@@ -115,6 +122,6 @@ class iSwapGate(Gate):
 
         self.definition = qc
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return XXPlusYYGate(-np.pi * exponent)
