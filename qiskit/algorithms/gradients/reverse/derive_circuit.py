@@ -137,8 +137,8 @@ def derive_circuit(
 
     summands, op_context = [], []
     for i, op in enumerate(circuit.data):
-        gate = op[0]
-        op_context += [op[1:]]
+        gate = op.operation
+        op_context.append((op.qubits, op.clbits))
         if parameter in gate.params:
             coeffs_and_grads = gradient_lookup(gate)
             summands += [coeffs_and_grads]

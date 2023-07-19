@@ -110,9 +110,6 @@ class QuantumInstruction(ASTNode):
         | quantumBarrier
     """
 
-    def __init__(self):
-        pass
-
 
 class ClassicalType(ASTNode):
     """Information about a classical type.  This is just an abstract base for inheritance tests."""
@@ -133,6 +130,10 @@ class IntType(ClassicalType):
 
     def __init__(self, size: Optional[int] = None):
         self.size = size
+
+
+class BitType(ClassicalType):
+    """Type information for a single bit."""
 
 
 class BitArrayType(ClassicalType):
@@ -332,9 +333,9 @@ class AliasStatement(ASTNode):
         : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
 
-    def __init__(self, identifier: Identifier, concatenation: List[Identifier]):
+    def __init__(self, identifier: Identifier, value: Expression):
         self.identifier = identifier
-        self.concatenation = concatenation
+        self.value = value
 
 
 class QuantumGateModifierName(enum.Enum):
