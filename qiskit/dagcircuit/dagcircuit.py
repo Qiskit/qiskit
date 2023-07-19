@@ -838,17 +838,18 @@ class DAGCircuit:
     def reverse_ops(self):
         """Reverse the operations in the ``self`` circuit.
 
+        .. note::
+
+            The output reversed :class:`~.DAGCircuit` object will have shared
+            references for all operations and qubits to this dag.
+
         Returns:
             DAGCircuit: the reversed dag.
         """
-        # TODO: speed up
-        # pylint: disable=cyclic-import
-        from qiskit.converters import dag_to_circuit, circuit_to_dag
-
-        qc = dag_to_circuit(self)
-        reversed_qc = qc.reverse_ops()
-        reversed_dag = circuit_to_dag(reversed_qc)
-        return reversed_dag
+        out_graph = copy.copy(self)
+        out_graph._multi_graph = out_graph._multi_graph.copy()
+        out_graph._multi_graph.reverse()
+        return out_graph
 
     def idle_wires(self, ignore=None):
         """Return idle wires.
