@@ -12,12 +12,12 @@
 
 """Converts any block of 2 qubit gates into a matrix."""
 
+from numpy import identity, kron
 from qiskit.circuit.library import SwapGate
 from qiskit.circuit import Qubit
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
-from qiskit import QiskitError
-from numpy import identity, kron
+from qiskit.exceptions import QiskitError
 
 
 SWAP_GATE = SwapGate()
