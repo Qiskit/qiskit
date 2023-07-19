@@ -2251,6 +2251,43 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
         self.assertIsInstance(new_node.op, XGate)
 
+    def test_replace_control_flow_block(self):
+        """Test that we can replace a block of control-flow nodes with a single one."""
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(3)
+        cr2 = ClassicalRegister(3)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        nodes = [
+            dag.apply_operation_back(IfElseOp(expr.logic_not(cr1[0]), body.copy(), None), qr, []),
+            dag.apply_operation_back(
+                SwitchCaseOp(expr.lift(cr2), [((0, 1, 2, 3), body.copy())]), qr, []
+            ),
+        ]
+
+        dag.replace_block_with_op(
+            nodes,
+            IfElseOp(expr.logic_or(expr.logic_not(cr1[0]), expr.less(cr2, 4)), body.copy(), None),
+            {qr[0]: 0},
+        )
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_creg(cr1)
+        expected.add_creg(cr2)
+        expected.apply_operation_back(
+            IfElseOp(expr.logic_or(expr.logic_not(cr1[0]), expr.less(cr2, 4)), body.copy(), None),
+            qr,
+            [],
+        )
+
+        self.assertEqual(dag, expected)
+
 
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
