@@ -450,7 +450,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         append_test_gates(qc_block)
 
         ifop = IfElseOp((qc_control_flow.clbits[0], False), qc_block, None)
-        qc_control_flow.append(ifop, qc.qubits, qc.clbits)
+        qc_control_flow.append(ifop, qc_control_flow.qubits, qc_control_flow.clbits)
 
         result_block = do_consolidation(qc_control_flow)
         gate_top = result_top[0].operation
