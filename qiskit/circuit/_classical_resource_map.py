@@ -33,24 +33,22 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     If an ``add_register`` callable is given to the initialiser, the mapper will use it to attempt
     to add new aliasing registers to the outer circuit object, if there is not already a suitable
-    register for the mapping available in the circuit.  If this parameter is not given, the mapping
-    function will raise an exception of type ``exc_type`` instead.
-    """
+    register for the mapping available in the circuit.  If this parameter is not given, a
+    ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
+    its own exception."""
 
-    __slots__ = ("target_cregs", "register_map", "bit_map", "add_register", "exc_type")
+    __slots__ = ("target_cregs", "register_map", "bit_map", "add_register")
 
     def __init__(
         self,
         target_cregs: typing.Iterable[ClassicalRegister],
         bit_map: typing.Mapping[Bit, Bit],
         add_register: typing.Callable[[ClassicalRegister], None] | None = None,
-        exc_type: typing.Type[Exception] = ValueError,
     ):
         self.target_cregs = tuple(target_cregs)
         self.register_map = {}
         self.bit_map = bit_map
         self.add_register = add_register
-        self.exc_type = exc_type
 
     def _map_register(self, theirs: ClassicalRegister) -> ClassicalRegister:
         """Map the target's registers to suitable equivalents in the destination, adding an
@@ -64,9 +62,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
                 break
         else:
             if self.add_register is None:
-                raise self.exc_type(
-                    f"Register '{theirs.name}' has no counterpart in the destination."
-                )
+                raise ValueError(f"Register '{theirs.name}' has no counterpart in the destination.")
             mapped_theirs = ClassicalRegister(bits=mapped_bits)
             self.add_register(mapped_theirs)
         self.register_map[theirs.name] = mapped_theirs

@@ -710,8 +710,12 @@ class DAGCircuit:
         for gate, cals in other.calibrations.items():
             dag._calibrations[gate].update(cals)
 
+        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatiblity.
+        def _reject_new_register(reg):
+            raise DAGCircuitError(f"No register with '{reg.bits}' to map this expression onto.")
+
         variable_mapper = _classical_resource_map.VariableMapper(
-            dag.cregs.values(), edge_map, exc_type=DAGCircuitError
+            dag.cregs.values(), edge_map, _reject_new_register
         )
         for nd in other.topological_nodes():
             if isinstance(nd, DAGInNode):
