@@ -4,6 +4,7 @@ fixes:
     Improved the error messages returned when an attempt to convert a fully bound
     :class:`.ParameterExpression` into a concrete ``float`` or ``int`` failed, for example because
     the expression was naturally a complex number.
+    Fixed `#9187 <https://github.com/Qiskit/qiskit-terra/issues/9187>`__
   - |
     Fixed ``float`` conversions for :class:`.ParameterExpression` values which had, at some point in
     their construction history, an imaginary component that had subsequently been cancelled.  When
@@ -11,3 +12,4 @@ fixes:
     Symengine as the backend, these conversions would often fail with type errors, despite the
     result having been symbolically evaluated to be real, and :meth:`.ParameterExpression.is_real`
     being true.
+    Fixed `#10191 <https://github.com/Qiskit/qiskit-terra/issues/10191>`__

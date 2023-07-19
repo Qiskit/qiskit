@@ -5,3 +5,4 @@ fixes:
     :class:`.Qubit`\ s (bits without registers) where references to these bits
     from the containing circuit could be broken, causing issues with
     serialization and circuit visualization.
+    Fixed `#10409 <https://github.com/Qiskit/qiskit-terra/issues/10409>`__

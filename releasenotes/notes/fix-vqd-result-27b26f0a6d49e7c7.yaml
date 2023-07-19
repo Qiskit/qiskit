@@ -3,3 +3,4 @@ fixes:
   - |
      Fixed bug in :class:`~qiskit.algorithms.eigensolvers.VQD` where ``result.optimal_values`` was a
      copy of ``result.optimal_points``. It now returns the corresponding values.
+     Fixed `#10263 <https://github.com/Qiskit/qiskit-terra/issues/10263>`__

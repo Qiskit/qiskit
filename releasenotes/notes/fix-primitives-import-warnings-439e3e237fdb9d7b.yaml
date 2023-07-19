@@ -5,3 +5,4 @@ fixes:
     deprecated :mod:`qiskit.opflow` module.  These warnings would have been hidden to users by the
     default Python filters, but triggered the eager import of :mod:`.opflow`, which meant that a
     subsequent import by a user would not trigger the warnings.
+    Fixed `#10245 <https://github.com/Qiskit/qiskit-terra/issues/10245>`__
