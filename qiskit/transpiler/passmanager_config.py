@@ -106,7 +106,7 @@ class PassManagerConfig:
         self.hls_config = hls_config
 
     @classmethod
-    def from_backend(cls, backend, **pass_manager_options):
+    def from_backend(cls, backend, _skip_target=False, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
         This method automatically gererates a PassManagerConfig object based on the backend's
@@ -128,7 +128,6 @@ class PassManagerConfig:
             backend_version = 0
         if backend_version < 2:
             config = backend.configuration()
-
         if res.basis_gates is None:
             if backend_version < 2:
                 res.basis_gates = getattr(config, "basis_gates", None)
@@ -156,7 +155,7 @@ class PassManagerConfig:
                 res.instruction_durations = backend.instruction_durations
         if res.backend_properties is None and backend_version < 2:
             res.backend_properties = backend.properties()
-        if res.target is None:
+        if res.target is None and not _skip_target:
             if backend_version >= 2:
                 res.target = backend.target
         if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
