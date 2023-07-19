@@ -75,12 +75,16 @@ def schedule(
     if target is None:
         if isinstance(backend, BackendV2):
             target = backend.target
+            if inst_map:
+                target.update_from_instruction_schedule_map(inst_map=inst_map)
         elif isinstance(backend, BackendV1):
             target = convert_to_target(
-                configuration=backend.configuration,
-                properties=backend.properties,
+                configuration=backend.configuration(),
+                properties=backend.properties(),
                 defaults=backend.defaults() if hasattr(backend, "defaults") else None,
             )
+            if inst_map:
+                target.update_from_instruction_schedule_map(inst_map=inst_map)
         else:
             if inst_map:
                 target = Target(meas_map=meas_map)
@@ -89,8 +93,9 @@ def schedule(
                 raise QiskitError(
                     "Must specify either target, backend, or inst_map for scheduling passes."
                 )
+
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    schedules = parallel_map(schedule_circuit, circuits, (target, method))
+    schedules = parallel_map(schedule_circuit, circuits, (None, target, method))
     end_time = time()
     _log_schedule_time(start_time, end_time)
     if arg_circuits_list:

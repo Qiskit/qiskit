@@ -196,7 +196,7 @@ def lower_gates(
 
             try:
                 schedule = target.get_calibration(
-                    instruction.operation, inst_qubits, *instruction.operation.params
+                    instruction.operation.name, tuple(inst_qubits), *instruction.operation.params
                 )
                 schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))

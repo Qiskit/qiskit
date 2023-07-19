@@ -71,5 +71,5 @@ def sequence(
         else:
             raise QiskitError("Must specify either target, backend, or inst_map for sequencing.")
     circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
-    schedules = [_sequence(circuit, target) for circuit in circuits]
+    schedules = [_sequence(circuit, target=target) for circuit in circuits]
     return schedules[0] if len(schedules) == 1 else schedules
