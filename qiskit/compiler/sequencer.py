@@ -22,20 +22,15 @@ from qiskit.providers.backend_compat import convert_to_target
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.transpiler import Target
 from qiskit.scheduler.sequence import sequence as _sequence
-from qiskit.utils.deprecation import deprecate_arg
 
 
-@deprecate_arg(
-    "backend",
-    additional_msg=("'backend' argument becomes required from Optional."),
-    since="0.25.0",
-)
 def sequence(
     scheduled_circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Backend] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[List[List[int]]] = None,
     dt: Optional[float] = None,
+    target: Optional[Target] = None,
 ) -> Union[Schedule, List[Schedule]]:
     """
     Schedule a scheduled circuit to a pulse ``Schedule``, using the backend.
@@ -50,6 +45,10 @@ def sequence(
         dt: The output sample rate of backend control electronics. For scheduled circuits
             which contain time information, dt is required. If not provided, it will be
             obtained from the backend configuration
+        target: The optional :class:`~.Target` representing the target backend. If ``None``,
+                defaults to the ``backend``\'s ``target``, constructed from convert_to_target,
+                or prepared from ``meas_map`` and ``inst_map``
+
 
     Returns:
         A pulse ``Schedule`` that implements the input circuit
@@ -57,23 +56,20 @@ def sequence(
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
-    if target is None:
-        if isinstance(backend, BackendV2):
-            target = backend.target
-        elif isinstance(backend, BackendV1):
-            target = convert_to_target(
-                configuration=backend.configuration,
-                properties=backend.properties,
-                defaults= backend.defaults() if hasattr(backend, "defaults") else None
-            )
+    if isinstance(backend, BackendV2):
+        target = backend.target
+    elif isinstance(backend, BackendV1):
+        target = convert_to_target(
+            configuration=backend.configuration,
+            properties=backend.properties,
+            defaults=backend.defaults() if hasattr(backend, "defaults") else None,
+        )
+    else:
+        if inst_map:
+            target = Target(meas_map=meas_map)
+            target.update_from_instruction_schedule_map(inst_map=inst_map)
         else:
-            if inst_map:
-                target = Target(meas_map=meas_map)
-                target.update_from_instruction_schedule_map(inst_map=inst_map)
-            else:
-                raise QiskitError(
-                    "Must specify either target, backend, or inst_map for sequencing."
-                )
+            raise QiskitError("Must specify either target, backend, or inst_map for sequencing.")
     circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
     schedules = [_sequence(circuit, target) for circuit in circuits]
     return schedules[0] if len(schedules) == 1 else schedules
