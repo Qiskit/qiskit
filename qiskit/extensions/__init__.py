@@ -26,6 +26,7 @@ Unitary Extensions
    UnitaryGate
    HamiltonianGate
    SingleQubitUnitary
+   DiagonalGate
 
 Simulator Extensions
 ====================
@@ -66,6 +67,7 @@ from .quantum_initializer import (
     UCRXGate,
     UCRYGate,
     UCRZGate,
+    DiagonalGate,
 )
 from .unitary import UnitaryGate
 from .hamiltonian_gate import HamiltonianGate

@@ -1,7 +1,9 @@
 ---
 fixes:
   - |
-    When :func:`~qiskit.quantum_info.synthesis.qs_decomposition`, which does quantum Shannon
-    decomposition, was called on trivial numeric unitaries that do not benefit from this
-    decomposition, an unexpected error was raised. With this fix, such unitaries are detected and
-    the equivalent circuit is returned without performing Shannon decomposition.
+    Fixed an issue with the :func:`~.qs_decomposition` function, which does
+    quantum Shannon decomposition, when it was called on trivial numeric
+    unitaries that do not benefit from this decomposition, an unexpected error
+    was raised. This error has been fixed so that such unitaries are detected
+    and the equivalent circuit is returned.
+    Fixed `#10036 <https://github.com/Qiskit/qiskit-terra/issues/10036>`__
