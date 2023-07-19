@@ -36,7 +36,7 @@ author = "Qiskit Development Team"
 # The short X.Y version
 version = ""
 # The full version, including alpha/beta/rc tags
-release = "0.43.2"
+release = "0.43.3"
 
 docs_url_prefix = "documentation"  # i.e., www.qiskit.org/documentation/
 
