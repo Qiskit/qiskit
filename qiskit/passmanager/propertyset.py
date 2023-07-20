@@ -13,6 +13,9 @@
 """A property set dictionary that shared among optimization passes."""
 
 
+from dataclasses import dataclass, field
+from enum import IntEnum
+
 from .exceptions import PassManagerError
 
 
@@ -28,3 +31,33 @@ class FencedPropertySet(PropertySet):
 
     def __setitem__(self, key, value):
         raise PassManagerError("The fenced PropertySet has the property __setitem__ protected.")
+
+
+class RunState(IntEnum):
+    """Allowed values for the result of a pass execution."""
+
+    FAIL = 0
+    SUCCESS = 1
+    SKIP = 2
+
+
+@dataclass
+class PassState:
+    """Collection of compilation status.
+
+    This information is initialized in the pass manager instance at construction time,
+    and recursively passed to flow controllers at running time.
+    Passes can mutate the information in this data set.
+    """
+
+    property_set: PropertySet = field(default_factory=PropertySet)
+    """Property set dictionary that shares intermediate information across passes."""
+
+    count: int = 0
+    """Current number of pass execution."""
+
+    completed_passes: set = field(default_factory=set)
+    """Passes already run that have not been invalidated."""
+
+    previous_run: RunState = 0
+    """Status of the latest pass run."""

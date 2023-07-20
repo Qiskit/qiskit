@@ -15,35 +15,57 @@ from __future__ import annotations
 
 import logging
 import time
-from abc import ABC, abstractmethod
-from collections.abc import Iterable, Callable, Iterator
-from typing import Any, Protocol
+from abc import abstractmethod, ABC
+from collections.abc import Iterable, Callable, Iterator, Sequence
+from typing import Any
 
 from .exceptions import PassManagerError
-from .propertyset import PropertySet, FencedPropertySet
+from .propertyset import PassState, PropertySet, FencedPropertySet, RunState
 
 logger = logging.getLogger(__name__)
 
 
-class OptimizerTask(Protocol):
+class OptimizerTask(ABC):
     """A definition of optimization task.
 
     The optimizer task takes a passmanager IR, and outputs new passmanager IR
-    after program optimization. Optimization task can rely on the :class:`.PropertySet`
+    after program optimization. Optimization task can rely on the :class:`.PassState`
     to communicate intermediate state with other tasks.
     """
+
+    _state: PassState | None
+
+    @property
+    def state(self) -> PassState:
+        """A local state information associated with this optimization workflow."""
+        if self._state is None:
+            # Allocate state information as needed basis.
+            # This slightly reduces memory footprint for instantiation.
+            self._state = PassState()
+        return self._state
+
+    @property
+    def property_set(self) -> PropertySet:
+        """Property set of this flow controller."""
+        return self.state.property_set
+
+    @property_set.setter
+    def property_set(self, new_property_set: PropertySet):
+        self.state.property_set = new_property_set
 
     @abstractmethod
     def execute(
         self,
         passmanager_ir: Any,
-        property_set: PropertySet | None = None,
+        state: PassState | None = None,
+        callback: Callable = None,
     ) -> Any:
         """Execute optimization task for input passmanager IR.
 
         Args:
             passmanager_ir: Passmanager IR to optimize.
-            property_set: A local namespace associated with this optimization workflow.
+            state: A local state information associated with this optimization workflow.
+            callback: A callback function which is caller per execution of optimization task.
 
         Returns:
             Optimized passmanager IR.
@@ -59,8 +81,7 @@ class GenericPass(OptimizerTask, ABC):
 
     def __init__(self):
         self.requires: Iterable[OptimizerTask] = []
-        self.preserves: Iterable[GenericPass] = []
-        self.property_set = PropertySet()
+        self._state = None
 
     def name(self) -> str:
         """Name of the pass."""
@@ -69,10 +90,48 @@ class GenericPass(OptimizerTask, ABC):
     def execute(
         self,
         passmanager_ir: Any,
-        property_set: PropertySet | None = None,
+        state: PassState | None = None,
+        callback: Callable = None,
     ) -> Any:
-        self.property_set = property_set
-        return self.run(passmanager_ir)
+        if state is not None:
+            self._state = state
+
+        for required in self.requires:
+            passmanager_ir = required.execute(
+                passmanager_ir=passmanager_ir,
+                state=self.state,
+                callback=callback,
+            )
+        if self in self.state.completed_passes:
+            self.state.previous_run = RunState.SKIP
+            return passmanager_ir
+
+        start_time = time.time()
+        ret = None
+        try:
+            ret = self.run(passmanager_ir)
+            if ret is None:
+                # Analysis pass may not return
+                ret = passmanager_ir
+        except Exception as ex:
+            self.state.previous_run = RunState.FAIL
+            raise ex
+        finally:
+            running_time = time.time() - start_time
+            log_msg = f"Pass: {self.name()} - {running_time * 1000:.5f} (ms)"
+            logger.info(log_msg)
+            if callback is not None:
+                callback(
+                    task=self,
+                    passmanager_ir=ret,
+                    property_set=self.state.property_set,
+                    running_time=running_time,
+                    count=self.state.count,
+                )
+        self.state.previous_run = RunState.SUCCESS
+        self.state.count += 1
+        self.state.completed_passes.add(self)
+        return ret
 
     @abstractmethod
     def run(
@@ -101,121 +160,72 @@ class BaseFlowController(OptimizerTask, ABC):
 
     def __init__(
         self,
-        passes: list[OptimizerTask] | None = None,
+        passes: OptimizerTask | list[OptimizerTask] | None = None,
         options: dict[str, Any] | None = None,
     ):
         """Create new flow controller.
 
         Args:
-            passes: A list of optimization tasks.
+            passes: A list of optimization tasks or flow controller instance.
             options: Option for this flow controller.
         """
         self._options = options or dict()
-        self._property_set = PropertySet()
-        self._callback = None
+        self._state = None
 
-        self.pipeline: list[OptimizerTask] = passes
-
-        # passes already run that have not been invalidated
-        self.valid_passes = set()
+        self.pipeline: list[OptimizerTask] = []
+        if passes:
+            self.append(passes)
 
     @property
-    def property_set(self) -> PropertySet:
-        """Property set of this flow controller."""
-        return self._property_set
+    def passes(self) -> list[OptimizerTask]:
+        """Alias of pipeline for backward compatibility."""
+        return self.pipeline
 
     @property
     def fenced_property_set(self) -> FencedPropertySet:
         """Readonly property set of this flow controller."""
-        return FencedPropertySet(self._property_set)
+        return FencedPropertySet(self.state.property_set)
 
-    @property
-    def callback(self) -> Callable:
-        """A user provided function called per execution of single optimization task."""
-        return self._callback
+    def __iter__(self) -> Iterator[OptimizerTask]:
+        raise NotImplementedError()
 
-    @callback.setter
-    def callback(self, new_callback: Callable):
-        for task in self.pipeline:
-            if isinstance(task, BaseFlowController):
-                task.callback = new_callback
-        self._callback = new_callback
+    def append(
+        self,
+        passes: OptimizerTask | list[OptimizerTask],
+    ):
+        """Add new task to pipeline.
 
-    @abstractmethod
-    def yield_pipeline(self) -> Iterator[OptimizerTask]:
-        """Return iterator of optimization tasks."""
-        pass
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Sequence):
+            passes = [passes]
+        for task in passes:
+            if not isinstance(task, (GenericPass, BaseFlowController)):
+                raise PassManagerError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            self.pipeline.append(task)
 
     def execute(
         self,
         passmanager_ir: Any,
-        property_set: PropertySet | None = None,
+        state: PassState | None = None,
+        callback: Callable = None,
     ):
-        if property_set:
-            self._property_set = property_set
+        if state is not None:
+            self._state = state
 
-        for task in self.yield_pipeline():
-            if isinstance(task, GenericPass):
-                for required in task.requires:
-                    passmanager_ir = required.execute(passmanager_ir, self._property_set)
-                if task not in self.valid_passes:
-                    start_time = time.time()
-                    try:
-                        passmanager_ir = task.execute(passmanager_ir, self._property_set)
-                    finally:
-                        running_time = time.time() - start_time
-                        log_msg = f"Pass: {task.name()} - {running_time * 1000:.5f} (ms)"
-                        logger.info(log_msg)
-                    self._finalize(
-                        task=task,
-                        passmanager_ir=passmanager_ir,
-                        running_time=running_time,
-                    )
-                    return passmanager_ir
+        for task in self:
+            try:
+                passmanager_ir = task.execute(
+                    passmanager_ir=passmanager_ir,
+                    state=self.state,
+                    callback=callback,
+                )
+            except TypeError as ex:
+                raise PassManagerError(
+                    f"{task.__class__} is not a valid pass for flow controller."
+                ) from ex
 
-            if isinstance(task, BaseFlowController):
-                return task.execute(passmanager_ir, self._property_set)
-
-            raise PassManagerError(f"{task.__class__} is not a valid pass for flow controller.")
-
-    def _finalize(
-        self,
-        task: GenericPass,
-        passmanager_ir: Any,
-        running_time: float,
-    ):
-        self.valid_passes.add(task)
-
-        if self._callback is not None:
-            self._callback(
-                task=task,
-                passmanager_ir=passmanager_ir,
-                property_set=self._property_set,
-                running_time=running_time,
-            )
-
-
-class ControllableController(BaseFlowController, ABC):
-    """Base class of flow controller with controller callable.
-
-    This is a special type of flow controller that iterates over optimization tasks
-    based upon the evaluation of trigger condition. This condition is evaluated
-    by a callback function to instantiate with, which consumes :class:`.PropertySet` and
-    returns a boolean value.
-    """
-
-    def __init__(
-        self,
-        passes: list[OptimizerTask] | None = None,
-        options: dict[str, Any] | None = None,
-        controller_callback: Callable[[PropertySet], bool] = None,
-    ):
-        """Create new flow controller.
-
-        Args:
-            passes: A list of optimization tasks.
-            options: Option for this flow controller.
-            controller_callback: A callable to consume property set and provide a control.
-        """
-        super().__init__(passes, options)
-        self.controller_callback = controller_callback
+        return passmanager_ir

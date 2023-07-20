@@ -68,6 +68,8 @@ Base classes
    :toctree: ../stubs/
 
    BasePassManager
+   BaseFlowController
+   GenericPass
 
 Flow controllers
 ----------------
@@ -87,6 +89,7 @@ PropertySet
 
    PropertySet
    FuturePropertySet
+   PassState
 
 Exceptions
 ----------
@@ -100,6 +103,6 @@ Exceptions
 
 from .passmanager import BasePassManager
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
-from .base_optimization_tasks import GenericPass
-from .propertyset import PropertySet, FencedPropertySet
+from .base_optimization_tasks import GenericPass, BaseFlowController
+from .propertyset import PropertySet, FencedPropertySet, PassState
 from .exceptions import PassManagerError

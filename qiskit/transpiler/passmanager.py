@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import BasePassManager
-from qiskit.passmanager.base_optimization_tasks import OptimizerTask
+from qiskit.passmanager.base_optimization_tasks import OptimizerTask, GenericPass
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
@@ -140,6 +140,8 @@ class PassManager(BasePassManager):
         super().append(passes, **flow_controller_conditions)
 
         # Backward compatibility as of Terra 0.25
+        if isinstance(passes, GenericPass):
+            passes = [passes]
         self._pass_sets.append(
             {
                 "passes": passes,
@@ -175,6 +177,8 @@ class PassManager(BasePassManager):
         super().replace(index, passes, **flow_controller_conditions)
 
         # Backward compatibility as of Terra 0.25
+        if isinstance(passes, GenericPass):
+            passes = [passes]
         self._pass_sets[index] = {
             "passes": passes,
             "flow_controllers": flow_controller_conditions,
@@ -212,7 +216,7 @@ class PassManager(BasePassManager):
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
-        callback: Callable | None = None,
+        callback: Callable = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -249,6 +253,9 @@ class PassManager(BasePassManager):
         Returns:
             The transformed circuit(s).
         """
+        if callback is not None:
+            callback = _legacy_style_callback(callback)
+
         return super().run(
             in_programs=circuits,
             callback=callback,
@@ -528,3 +535,16 @@ for _name, _method in inspect.getmembers(PassManager, predicate=inspect.isfuncti
         continue
     _wrapped = _replace_error(_method)
     setattr(PassManager, _name, _wrapped)
+
+
+def _legacy_style_callback(callback: Callable):
+    def _wrapped_callable(task, passmanager_ir, property_set, running_time, count):
+        callback(
+            pass_=task,
+            dag=passmanager_ir,
+            time=running_time,
+            property_set=property_set,
+            count=count,
+        )
+
+    return _wrapped_callable

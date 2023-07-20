@@ -24,7 +24,7 @@ from qiskit.tools.parallel import parallel_map
 from .base_optimization_tasks import OptimizerTask
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLiner, FlowController
-from .propertyset import PropertySet
+from .propertyset import PassState, PropertySet
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +46,15 @@ class BasePassManager(ABC):
         """
         self._flow_controller = FlowControllerLiner()
         self.max_iteration = max_iteration
-        self.property_set = PropertySet()
+        self.state = PassState()
 
         if passes is not None:
             self.append(passes)
+
+    @property
+    def property_set(self) -> PropertySet:
+        """Property set of this pass manager."""
+        return self.state.property_set
 
     def append(
         self,
@@ -70,12 +75,12 @@ class BasePassManager(ABC):
                 * do_while: The passes repeat until the callable returns False.
                 * condition: The passes run only if the callable returns True.
         """
-        normalized_controller = FlowController(
+        normalized_controller = FlowController.controller_factory(
             passes=passes,
             options={"max_iteration": self.max_iteration},
             **flow_controller_conditions,
         )
-        self._flow_controller.pipeline.append(normalized_controller)
+        self._flow_controller.append(normalized_controller)
 
     def replace(
         self,
@@ -94,7 +99,7 @@ class BasePassManager(ABC):
         Raises:
             PassManagerError: If the index is not found.
         """
-        normalized_controller = FlowController(
+        normalized_controller = FlowController.controller_factory(
             passes=passes,
             options={"max_iteration": self.max_iteration},
             **flow_controller_conditions,
@@ -126,7 +131,7 @@ class BasePassManager(ABC):
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_controller = FlowControllerLiner([self._flow_controller.pipeline[index]])
+        new_controller = FlowControllerLiner(self._flow_controller.pipeline[index])
         new_passmanager._flow_controller = new_controller
         return new_passmanager
 
@@ -178,6 +183,7 @@ class BasePassManager(ABC):
                     passmanager_ir (Any): depending on pass manager subclass
                     property_set (PropertySet): the property set
                     running_time (float): the time to execute the pass
+                    count (int): the index for the pass execution
 
                 The exact arguments pass expose the internals of the pass
                 manager and are subject to change as the pass manager internals
@@ -193,6 +199,7 @@ class BasePassManager(ABC):
                         passmanager_ir = kwargs['passmanager_ir']
                         property_set = kwargs['property_set']
                         running_time = kwargs['running_time']
+                        count = kwargs['count']
                         ...
 
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
@@ -203,47 +210,34 @@ class BasePassManager(ABC):
         if not self._flow_controller.pipeline and not kwargs and callback is None:
             return in_programs
 
-        if callback:
-            self._flow_controller.callback = callback
-
         is_list = True
         if not isinstance(in_programs, Sequence):
             in_programs = [in_programs]
             is_list = False
 
         if len(in_programs) == 1:
-            out_program = self._run_workflow(self, in_programs[0], **kwargs)
+            out_program = _run_workflow(
+                program=in_programs[0],
+                pass_manager=self,
+                callback=callback,
+                **kwargs,
+            )
             if is_list:
                 return [out_program]
             return out_program
+
+        del callback
+        del kwargs
 
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
         # Thus, we can resue the same manager without state collision, without building it per thread.
         return parallel_map(
-            lambda prog, pm_dill, **task_kwargs: self._run_workflow(
-                pass_manager=dill.loads(pm_dill),
-                program=prog,
-                **task_kwargs,
-            ),
+            _run_workflow_in_new_process,
             values=in_programs,
-            task_kwargs={"pm_dill": dill.dumps(self)},
+            task_kwargs={"pass_manager_bin": dill.dumps(self)},
         )
-
-    @staticmethod
-    def _run_workflow(
-        pass_manager: BasePassManager,
-        program: Any,
-        **kwargs,
-    ) -> Any:
-        flow_controller = pass_manager.to_flow_controller()
-
-        passmanager_ir = pass_manager._passmanager_frontend(input_program=program, **kwargs)
-        passmanager_ir = flow_controller.execute(passmanager_ir, pass_manager.property_set)
-        out_program = pass_manager._passmanager_backend(passmanager_ir, **kwargs)
-
-        return out_program
 
     def to_flow_controller(self) -> FlowControllerLiner:
         """Linearize this manager into a single :class:`.FlowControllerLiner`,
@@ -253,3 +247,54 @@ class BasePassManager(ABC):
             A linearized pass manager.
         """
         return self._flow_controller
+
+
+def _run_workflow(
+    program: Any,
+    pass_manager: BasePassManager,
+    **kwargs,
+) -> Any:
+    """Run single program optimization with a pass manager.
+
+    Args:
+        program: Arbitrary program to optimize.
+        pass_manager: Pass manager with scheduled passes.
+        **kwargs: Keyword arguments for IR conversion.
+
+    Returns:
+        Optimized program.
+    """
+    flow_controller = pass_manager.to_flow_controller()
+
+    passmanager_ir = pass_manager._passmanager_frontend(input_program=program, **kwargs)
+    passmanager_ir = flow_controller.execute(
+        passmanager_ir=passmanager_ir,
+        state=pass_manager.state,
+        callback=kwargs.get("callback", None),
+    )
+    out_program = pass_manager._passmanager_backend(passmanager_ir, **kwargs)
+
+    # Cleanup pass state after run.
+    pass_manager.state.count = 0
+    pass_manager.state.completed_passes.clear()
+
+    return out_program
+
+
+def _run_workflow_in_new_process(
+    program: Any,
+    pass_manager_bin: bytes,
+) -> Any:
+    """Run single program optimization in new process.
+
+    Args:
+        program: Arbitrary program to optimize.
+        pass_manager_bin: Binary of the pass manager with scheduled passes.
+
+    Returns:
+          Optimized program.
+    """
+    return _run_workflow(
+        program=program,
+        pass_manager=dill.loads(pass_manager_bin),
+    )

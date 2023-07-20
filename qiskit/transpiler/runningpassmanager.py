@@ -17,7 +17,7 @@ from __future__ import annotations
 import inspect
 import logging
 from functools import wraps
-from typing import Callable, Any
+from typing import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -27,6 +27,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 # pylint: disable=unused-import
 from qiskit.passmanager.flow_controllers import (
+    BaseFlowController,
     FlowController,
     FlowControllerLiner,
     # for backward compatibility
@@ -34,7 +35,6 @@ from qiskit.passmanager.flow_controllers import (
     DoWhileController,
 )
 
-from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
@@ -52,11 +52,6 @@ class RunningPassManager(FlowControllerLiner):
         Relying on a subclass of the running pass manager might break your code stack.
     """
 
-    @deprecate_func(
-        since="0.25",
-        additional_msg="Now RunningPassManager is a subclass of flow controller.",
-        pending=True,
-    )
     def append(
         self,
         passes: OptimizerTask | list[OptimizerTask],
@@ -76,15 +71,45 @@ class RunningPassManager(FlowControllerLiner):
                 * do_while: The passes repeat until the callable returns False.
                 * condition: The passes run only if the callable returns True.
         """
-        # Backward compatibility.
-        normalized_controller = FlowController(
-            passes=passes,
-            options=self._options,
-            **flow_controller_conditions,
-        )
-        self.pipeline.append(normalized_controller)
+        if not isinstance(passes, BaseFlowController):
+            normalized_controller = passes
+        else:
+            # Backward compatibility. Will be deprecated.
+            normalized_controller = FlowController.controller_factory(
+                passes=passes,
+                options=self._options,
+                **flow_controller_conditions,
+            )
+        super().append(normalized_controller)
+
+    @property
+    @deprecate_func(
+        since="0.45",
+        additional_msg="Now RunningPassManager is a subclass of flow controller.",
+        pending=True,
+        is_property=True,
+    )
+    def count(self) -> int:
+        """Number of pass run."""
+        return self.state.count
+
+    @property
+    @deprecate_func(
+        since="0.45",
+        additional_msg="Now RunningPassManager is a subclass of flow controller.",
+        pending=True,
+        is_property=True,
+    )
+    def valid_passes(self) -> int:
+        """Passes already run that have not been invalidated."""
+        return self.state.completed_passes
 
     # pylint: disable=arguments-differ
+    @deprecate_func(
+        since="0.45",
+        additional_msg="Now RunningPassManager is a subclass of flow controller.",
+        pending=True,
+    )
     def run(
         self,
         circuit: QuantumCircuit,
@@ -101,9 +126,8 @@ class RunningPassManager(FlowControllerLiner):
         Returns:
             QuantumCircuit: Transformed circuit.
         """
-        self.callback = callback
         passmanager_ir = circuit_to_dag(circuit)
-        passmanager_ir = super().execute(passmanager_ir=passmanager_ir)
+        passmanager_ir = super().execute(passmanager_ir=passmanager_ir, callback=callback)
 
         out_circuit = dag_to_circuit(passmanager_ir, copy_operations=False)
         out_circuit.name = output_name
@@ -128,29 +152,6 @@ class RunningPassManager(FlowControllerLiner):
             circuit._op_start_times = topological_start_times
 
         return circuit
-
-    def _finalize(
-        self,
-        task: BasePass,
-        passmanager_ir: Any,
-        running_time: float,
-    ):
-        self.valid_passes.add(task)
-        if not task.is_analysis_pass:
-            # Analysis passes preserve all
-            self.valid_passes.intersection_update(set(task.preserves))
-
-        if self._callback is not None:
-            # Use old signature for backward compatibility.
-            # Count information is dropped because pass execution management is moved to
-            # pass flow controller, and count cannot be accumulated.
-            self._callback(
-                pass_=task,
-                dag=passmanager_ir,
-                time=running_time,
-                property_set=self.property_set,
-                count=None,
-            )
 
 
 # A temporary error handling with slight overhead at class loading.

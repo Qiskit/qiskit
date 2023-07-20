@@ -614,7 +614,7 @@ class DoXTimesController(FlowController):
         super().__init__(passes, options)
 
     def __iter__(self):
-        for _ in range(self.do_x_times()):
+        for _ in range(self.do_x_times(self.fenced_property_set)):
             yield from self.passes
 
 
