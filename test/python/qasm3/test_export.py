@@ -1718,6 +1718,27 @@ if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !
 """
         self.assertEqual(dumps(qc), expected)
 
+    def test_no_unnecessary_cast(self):
+        """This is a bit of a cross `Expr`-constructor / OQ3-exporter test.  It doesn't really
+        matter whether or not the `Expr` constructor functions insert cast nodes into their output
+        for the literals (at the time of writing [commit 2616602], they don't because they do some
+        type inference) but the OQ3 export definitely shouldn't have them."""
+        cr = ClassicalRegister(8, "cr")
+        qc = QuantumCircuit(cr)
+        # Note that the integer '1' has a minimum bit-width of 1, whereas the register has a width
+        # of 8.  We're testing to make sure that there's no spurious cast up from `bit[1]` to
+        # `bit[8]`, or anything like that, _whether or not_ the `Expr` node includes one.
+        qc.if_test(expr.equal(cr, 1), QuantumCircuit(), [], [])
+
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[8] cr;
+if (cr == 1) {
+}
+"""
+        self.assertEqual(dumps(qc), expected)
+
 
 class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCase):
     """Test functionality that is not what we _want_, but is what we need to do while the definition
