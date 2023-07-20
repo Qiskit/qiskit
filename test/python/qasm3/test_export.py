@@ -433,7 +433,7 @@ class TestCircuitQASM3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "gate custom(p0, p1) _gate_q_0, _gate_q_1 {",
+                "gate custom(_gate_p_0, _gate_p_0) _gate_q_0, _gate_q_1 {",
                 "  rz(pi) _gate_q_0;",
                 "  rz(pi/4) _gate_q_1;",
                 "}",
@@ -1886,7 +1886,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                f"gate custom_{custom_id}(p0, p1) _gate_q_0, _gate_q_1 {{",
+                f"gate custom_{custom_id}(_gate_p_0, _gate_p_1) _gate_q_0, _gate_q_1 {{",
                 "  rz(pi) _gate_q_0;",
                 "  rz(pi/4) _gate_q_1;",
                 "}",
