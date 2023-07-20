@@ -119,6 +119,15 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
         self.assertEqual(evo.count_ops()["hamiltonian"], 3)
 
+    def test_flattened(self):
+        """Test flatten option is actually flattened."""
+        num_qubits = 3
+        ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
+        evo = EvolvedOperatorAnsatz(ops, reps=3, flatten=True)
+        self.assertNotIn("hamiltonian", evo.count_ops())
+        self.assertNotIn("EvolvedOps", evo.count_ops())
+        self.assertNotIn("PauliEvolution", evo.count_ops())
+
 
 def evolve(pauli_string, time):
     """Get the reference evolution circuit for a single Pauli string."""

@@ -90,6 +90,7 @@ class NLocal(BlueprintCircuit):
         skip_unentangled_qubits: bool = False,
         initial_state: QuantumCircuit | None = None,
         name: str | None = "nlocal",
+        flatten: Optional[bool] = None,
     ) -> None:
         """Create a new n-local circuit.
 
@@ -114,6 +115,13 @@ class NLocal(BlueprintCircuit):
             initial_state: A :class:`.QuantumCircuit` object which can be used to describe an initial
                 state prepended to the NLocal circuit.
             name: The name of the circuit.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         Examples:
             TODO
@@ -144,6 +152,7 @@ class NLocal(BlueprintCircuit):
         self._initial_state: QuantumCircuit | None = None
         self._initial_state_circuit: QuantumCircuit | None = None
         self._bounds: list[tuple[float | None, float | None]] | None = None
+        self._flatten = flatten
 
         if int(reps) != reps:
             raise TypeError("The value of reps should be int")
@@ -187,6 +196,16 @@ class NLocal(BlueprintCircuit):
             self._invalidate()
             self._num_qubits = num_qubits
             self.qregs = [QuantumRegister(num_qubits, name="q")]
+
+    @property
+    def flatten(self) -> bool:
+        """Returns whether the circuit is wrapped in nested gates/instructions or flattened."""
+        return bool(self._flatten)
+
+    @flatten.setter
+    def flatten(self, flatten: bool) -> None:
+        self._invalidate()
+        self._flatten = flatten
 
     def _convert_to_block(self, layer: Any) -> QuantumCircuit:
         """Try to convert ``layer`` to a QuantumCircuit.
@@ -900,7 +919,10 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits == 0:
             return
 
-        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        if not self._flatten:
+            circuit = QuantumCircuit(*self.qregs, name=self.name)
+        else:
+            circuit = self
 
         # use the initial state as starting circuit, if it is set
         if self.initial_state:
@@ -944,12 +966,13 @@ class NLocal(BlueprintCircuit):
                 # expression contains free parameters
                 pass
 
-        try:
-            block = circuit.to_gate()
-        except QiskitError:
-            block = circuit.to_instruction()
+        if not self._flatten:
+            try:
+                block = circuit.to_gate()
+            except QiskitError:
+                block = circuit.to_instruction()
 
-        self.append(block, self.qubits)
+            self.append(block, self.qubits)
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
