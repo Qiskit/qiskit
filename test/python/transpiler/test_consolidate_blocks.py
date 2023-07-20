@@ -504,6 +504,56 @@ class TestConsolidateBlocks(QiskitTestCase):
         np.testing.assert_allclose(CXGate(), op_true2)
         np.testing.assert_allclose(CZGate(), op_false2)
 
+    def test_inverted_order(self):
+        """Test that the `ConsolidateBlocks` pass creates matrices that are correct under the
+        application of qubit binding from the outer circuit to the inner block."""
+        body = QuantumCircuit(2, 1)
+        body.h(0)
+        body.cx(0, 1)
+
+        id_op = Operator(np.eye(4))
+        bell = Operator(body)
+
+        qc = QuantumCircuit(2, 1)
+        # The first two 'if' blocks here represent exactly the same operation as each other on the
+        # outer bits, because in the second, the bit-order of the block is reversed, but so is the
+        # order of the bits in the outer circuit that they're bound to, which makes them the same.
+        # The second two 'if' blocks also represnt the same operation as each other, but the 'first
+        # two' and 'second two' pairs represent qubit-flipped operations.
+        qc.if_test((0, False), body.copy(), qc.qubits, qc.clbits)
+        qc.if_test((0, False), body.reverse_bits(), reversed(qc.qubits), qc.clbits)
+        qc.if_test((0, False), body.copy(), reversed(qc.qubits), qc.clbits)
+        qc.if_test((0, False), body.reverse_bits(), qc.qubits, qc.clbits)
+
+        # The first two operations represent Bell-state creation on _outer_ qubits (0, 1), the
+        # second two represent the same creation, but on outer qubits (1, 0).
+        expected = [
+            id_op.compose(bell, qargs=(0, 1)),
+            id_op.compose(bell, qargs=(0, 1)),
+            id_op.compose(bell, qargs=(1, 0)),
+            id_op.compose(bell, qargs=(1, 0)),
+        ]
+
+        actual = []
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks(force_consolidate=True)])
+        for instruction in pm.run(qc).data:
+            # For each instruction, the `UnitaryGate` that's been created will always have been made
+            # (as an implementation detail of `DAGCircuit.collect_2q_runs` as of commit e5950661) to
+            # apply to _inner_ qubits (0, 1).  We need to map that back to the _outer_ qubits that
+            # it applies to compare.
+            body = instruction.operation.blocks[0]
+            wire_map = {
+                inner: qc.find_bit(outer).index
+                for inner, outer in zip(body.qubits, instruction.qubits)
+            }
+            actual.append(
+                id_op.compose(
+                    Operator(body.data[0].operation),
+                    qargs=[wire_map[q] for q in body.data[0].qubits],
+                )
+            )
+        self.assertEqual(expected, actual)
+
 
 if __name__ == "__main__":
     unittest.main()
