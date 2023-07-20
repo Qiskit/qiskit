@@ -1550,8 +1550,6 @@ class TestIntegrationControlFlow(QiskitTestCase):
 
         with self.assertRaisesRegex(TranspilerError, "Got routing_method="):
             transpile(qc, routing_method="lookahead", optimization_level=optimization_level)
-        with self.assertRaisesRegex(TranspilerError, "Got translation_method="):
-            transpile(qc, translation_method="synthesis", optimization_level=optimization_level)
         with self.assertRaisesRegex(TranspilerError, "Got scheduling_method="):
             transpile(qc, scheduling_method="alap", optimization_level=optimization_level)
 

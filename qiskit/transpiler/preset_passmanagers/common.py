@@ -67,7 +67,8 @@ _CONTROL_FLOW_STATES = {
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     "translation_method": _ControlFlowState(
-        working={"translator", "synthesis", "unroller"}, not_working=set(),
+        working={"translator", "synthesis", "unroller"},
+        not_working=set(),
     ),
     "optimization_method": _ControlFlowState(working=set(), not_working=set()),
     "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
