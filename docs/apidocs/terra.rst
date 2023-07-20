@@ -18,7 +18,6 @@ Qiskit Terra API Reference
    assembler
    dagcircuit
    extensions
-   passmanager
    providers_basicaer
    providers
    providers_fake_provider
