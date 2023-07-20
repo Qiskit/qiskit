@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
-
 from typing import Dict
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
