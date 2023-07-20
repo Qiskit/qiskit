@@ -846,7 +846,7 @@ class TestControlledGate(QiskitTestCase):
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
         num_target = 2
-        base_gate = random_unitary(2**num_target).to_instruction()
+        base_gate = random_unitary(2**num_target, seed=num_ctrl_qubits*291).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
         test_op = Operator(cgate)
