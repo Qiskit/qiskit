@@ -231,9 +231,7 @@ class BlockCollector:
         # If we are collecting from the back, both the order of the blocks
         # and the order of nodes in each block should be reversed.
         if self._collect_from_back:
-            matching_blocks = matching_blocks[::-1]
-            for i, block in enumerate(matching_blocks):
-                matching_blocks[i] = block[::-1]
+            matching_blocks = [block[::-1] for block in matching_blocks[::-1]]
 
         # Keep only blocks with at least min_block_sizes.
         matching_blocks = [block for block in matching_blocks if len(block) >= min_block_size]
