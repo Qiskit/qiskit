@@ -1019,7 +1019,7 @@ def plot_coupling_map(
         font_size = 20
 
     if qubit_size is None:
-        qubit_size = 24
+        qubit_size = 30
 
     if num_qubits > 20:
         qubit_size = 20
