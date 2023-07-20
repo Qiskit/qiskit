@@ -253,6 +253,60 @@ class TestDagRegisters(QiskitTestCase):
         self.assertEqual(dag.qubits, list(qr) + [new_bit])
         self.assertEqual(list(dag.qregs.values()), [qr])
 
+    def test_find_bit_with_registers(self):
+        """Test find_bit with a register."""
+        qr = QuantumRegister(3, "qr")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        res = dag.find_bit(qr[2])
+        self.assertEqual(res.index, 2)
+        self.assertEqual(res.registers, [(qr, 2)])
+
+    def test_find_bit_with_registers_and_standalone(self):
+        """Test find_bit with a register and standalone bit."""
+        qr = QuantumRegister(3, "qr")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        new_bit = Qubit()
+        dag.add_qubits([new_bit])
+        res = dag.find_bit(qr[2])
+        self.assertEqual(res.index, 2)
+        bit_res = dag.find_bit(new_bit)
+        self.assertEqual(bit_res.index, 3)
+        self.assertEqual(bit_res.registers, [])
+
+    def test_find_bit_with_classical_registers_and_standalone(self):
+        """Test find_bit with a register and standalone bit."""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "C")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        new_bit = Qubit()
+        new_clbit = Clbit()
+        dag.add_qubits([new_bit])
+        dag.add_clbits([new_clbit])
+        res = dag.find_bit(qr[2])
+        self.assertEqual(res.index, 2)
+        bit_res = dag.find_bit(new_bit)
+        self.assertEqual(bit_res.index, 3)
+        self.assertEqual(bit_res.registers, [])
+        classical_res = dag.find_bit(cr[2])
+        self.assertEqual(classical_res.index, 2)
+        self.assertEqual(classical_res.registers, [(cr, 2)])
+        single_cl_bit_res = dag.find_bit(new_clbit)
+        self.assertEqual(single_cl_bit_res.index, 3)
+        self.assertEqual(single_cl_bit_res.registers, [])
+
+    def test_find_bit_missing(self):
+        """Test error when find_bit is called with missing bit."""
+        qr = QuantumRegister(3, "qr")
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        new_bit = Qubit()
+        with self.assertRaises(DAGCircuitError):
+            dag.find_bit(new_bit)
+
 
 class TestDagWireRemoval(QiskitTestCase):
     """Test removal of registers and idle wires."""
@@ -1872,6 +1926,103 @@ class TestDagSubstitute(QiskitTestCase):
 
         self.assertEqual(self.dag, expected)
 
+    def test_substitute_dag_if_else_expr(self):
+        """Test that an `IfElseOp` with an `Expr` condition can be substituted for a DAG that
+        contains an `IfElseOp` with an `Expr` condition."""
+
+        body_rep = QuantumCircuit(1)
+        body_rep.z(0)
+
+        q_rep = QuantumRegister(1)
+        c_rep = ClassicalRegister(2)
+        replacement = DAGCircuit()
+        replacement.add_qreg(q_rep)
+        replacement.add_creg(c_rep)
+        replacement.apply_operation_back(XGate(), [q_rep[0]], [])
+        replacement.apply_operation_back(
+            IfElseOp(expr.logic_not(expr.bit_and(c_rep, 1)), body_rep, None), [q_rep[0]], []
+        )
+
+        true_src = QuantumCircuit(1)
+        true_src.x(0)
+        true_src.z(0)
+        false_src = QuantumCircuit(1)
+        false_src.x(0)
+        q_src = QuantumRegister(4)
+        c1_src = ClassicalRegister(2)
+        c2_src = ClassicalRegister(2)
+        src = DAGCircuit()
+        src.add_qreg(q_src)
+        src.add_creg(c1_src)
+        src.add_creg(c2_src)
+        node = src.apply_operation_back(
+            IfElseOp(expr.logic_not(expr.bit_and(c1_src, 1)), true_src, false_src), [q_src[2]], []
+        )
+
+        wires = {q_rep[0]: q_src[2], c_rep[0]: c1_src[0], c_rep[1]: c1_src[1]}
+        src.substitute_node_with_dag(node, replacement, wires=wires)
+
+        expected = DAGCircuit()
+        expected.add_qreg(q_src)
+        expected.add_creg(c1_src)
+        expected.add_creg(c2_src)
+        expected.apply_operation_back(XGate(), [q_src[2]], [])
+        expected.apply_operation_back(
+            IfElseOp(expr.logic_not(expr.bit_and(c1_src, 1)), body_rep, None), [q_src[2]], []
+        )
+
+        self.assertEqual(src, expected)
+
+    def test_substitute_dag_switch_expr(self):
+        """Test that a `SwitchCaseOp` with an `Expr` target can be substituted for a DAG that
+        contains another `SwitchCaseOp` with an `Expr` target."""
+
+        case_rep = QuantumCircuit(1)
+        case_rep.z(0)
+
+        q_rep = QuantumRegister(1)
+        c_rep = ClassicalRegister(2)
+        replacement = DAGCircuit()
+        replacement.add_qreg(q_rep)
+        replacement.add_creg(c_rep)
+        replacement.apply_operation_back(XGate(), [q_rep[0]], [])
+        # This could logically be an `IfElseOp`, but the point is just to test the `target`.
+        replacement.apply_operation_back(
+            SwitchCaseOp(expr.equal(c_rep[0], c_rep[1]), [(True, case_rep)]), [q_rep[0]], []
+        )
+
+        same_src = QuantumCircuit(1)
+        same_src.x(0)
+        same_src.z(0)
+        diff_src = QuantumCircuit(1)
+        diff_src.x(0)
+        q_src = QuantumRegister(4)
+        c1_src = ClassicalRegister(2)
+        c2_src = ClassicalRegister(2)
+        src = DAGCircuit()
+        src.add_qreg(q_src)
+        src.add_creg(c1_src)
+        src.add_creg(c2_src)
+        node = src.apply_operation_back(
+            SwitchCaseOp(expr.lift(c1_src), [((1, 2), diff_src), ((0, 3), same_src)]),
+            [q_src[2]],
+            [],
+        )
+
+        wires = {q_rep[0]: q_src[2], c_rep[0]: c1_src[0], c_rep[1]: c1_src[1]}
+        src.substitute_node_with_dag(node, replacement, wires=wires)
+
+        expected = DAGCircuit()
+        expected.add_qreg(q_src)
+        expected.add_creg(c1_src)
+        expected.add_creg(c2_src)
+        expected.apply_operation_back(XGate(), [q_src[2]], [])
+        node = expected.apply_operation_back(
+            SwitchCaseOp(expr.equal(c1_src[0], c1_src[1]), [(True, case_rep)]), [q_src[2]], []
+        )
+
+        self.assertEqual(src, expected)
+
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
@@ -2150,6 +2301,120 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(dag.descendants(replacement_node), descendants)
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 
+    @data(True, False)
+    def test_refuses_to_overwrite_condition(self, inplace):
+        """Test that the method will not forcibly overwrite a condition."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(2)
+
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        node = dag.apply_operation_back(XGate().c_if(cr, 2), qr, [])
+
+        with self.assertRaisesRegex(DAGCircuitError, "Cannot propagate a condition"):
+            dag.substitute_node(
+                node, XGate().c_if(cr, 1), inplace=inplace, propagate_condition=True
+            )
+
+    @data(True, False)
+    def test_replace_if_else_op_with_another(self, inplace):
+        """Test that one `IfElseOp` can be replaced with another."""
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        node = dag.apply_operation_back(IfElseOp(expr.logic_not(cr1), body.copy(), None), qr, [])
+        dag.substitute_node(node, IfElseOp(expr.equal(cr1, 0), body.copy(), None), inplace=inplace)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_creg(cr1)
+        expected.add_creg(cr2)
+        expected.apply_operation_back(IfElseOp(expr.equal(cr1, 0), body.copy(), None), qr, [])
+
+        self.assertEqual(dag, expected)
+
+    @data(True, False)
+    def test_reject_replace_if_else_op_with_other_resources(self, inplace):
+        """Test that the resources in the `condition` of a `IfElseOp` are checked against those in
+        the node to be replaced."""
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        node = dag.apply_operation_back(IfElseOp(expr.logic_not(cr1), body.copy(), None), qr, [])
+
+        with self.assertRaisesRegex(DAGCircuitError, "does not span the same wires"):
+            dag.substitute_node(
+                node, IfElseOp(expr.logic_not(cr2), body.copy(), None), inplace=inplace
+            )
+
+    @data(True, False)
+    def test_replace_switch_with_another(self, inplace):
+        """Test that one `SwitchCaseOp` can be replaced with another."""
+        case = QuantumCircuit(1)
+        case.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        node = dag.apply_operation_back(
+            SwitchCaseOp(expr.lift(cr1), [((1, 3), case.copy())]), qr, []
+        )
+        dag.substitute_node(
+            node, SwitchCaseOp(expr.bit_and(cr1, 1), [(1, case.copy())]), inplace=inplace
+        )
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_creg(cr1)
+        expected.add_creg(cr2)
+        expected.apply_operation_back(
+            SwitchCaseOp(expr.bit_and(cr1, 1), [(1, case.copy())]), qr, []
+        )
+
+        self.assertEqual(dag, expected)
+
+    @data(True, False)
+    def test_reject_replace_switch_with_other_resources(self, inplace):
+        """Test that the resources in the `target` of a `SwitchCaseOp` are checked against those in
+        the node to be replaced."""
+        case = QuantumCircuit(1)
+        case.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        node = dag.apply_operation_back(
+            SwitchCaseOp(expr.lift(cr1), [((1, 3), case.copy())]), qr, []
+        )
+
+        with self.assertRaisesRegex(DAGCircuitError, "does not span the same wires"):
+            dag.substitute_node(
+                node, SwitchCaseOp(expr.lift(cr2), [((1, 3), case.copy())]), inplace=inplace
+            )
+
 
 class TestReplaceBlock(QiskitTestCase):
     """Test replacing a block of nodes in a DAG."""
@@ -2196,6 +2461,43 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(expected_dag, dag)
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
         self.assertIsInstance(new_node.op, XGate)
+
+    def test_replace_control_flow_block(self):
+        """Test that we can replace a block of control-flow nodes with a single one."""
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(3)
+        cr2 = ClassicalRegister(3)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_creg(cr1)
+        dag.add_creg(cr2)
+        nodes = [
+            dag.apply_operation_back(IfElseOp(expr.logic_not(cr1[0]), body.copy(), None), qr, []),
+            dag.apply_operation_back(
+                SwitchCaseOp(expr.lift(cr2), [((0, 1, 2, 3), body.copy())]), qr, []
+            ),
+        ]
+
+        dag.replace_block_with_op(
+            nodes,
+            IfElseOp(expr.logic_or(expr.logic_not(cr1[0]), expr.less(cr2, 4)), body.copy(), None),
+            {qr[0]: 0},
+        )
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_creg(cr1)
+        expected.add_creg(cr2)
+        expected.apply_operation_back(
+            IfElseOp(expr.logic_or(expr.logic_not(cr1[0]), expr.less(cr2, 4)), body.copy(), None),
+            qr,
+            [],
+        )
+
+        self.assertEqual(dag, expected)
 
 
 class TestDagProperties(QiskitTestCase):
