@@ -1579,8 +1579,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         mat = np.block([[u1, zmat], [zmat, u2]])
         circ = self.qsd(mat)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-        self.assertTrue(Operator(mat) == Operator(ccirc))
-        print(ccirc.count_ops(), self._qsd_l2_a1a2_mod(num_qubits))
+        self.assertEqual(Operator(mat), Operator(ccirc))
         self.assertLess(ccirc.count_ops().get("cx"), self._qsd_l2_a1a2_mod(num_qubits))
 
 
