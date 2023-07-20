@@ -24,7 +24,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
-from qiskit.transpiler.passes.utils.block_to_matrix import _block_to_matrix
+from qiskit.transpiler.passes.utils import _block_to_matrix
 
 
 class ConsolidateBlocks(TransformationPass):
