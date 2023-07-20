@@ -300,8 +300,7 @@ def split_block_into_layers(block):
     layers = []
 
     for node in block:
-        cur_bits = set()
-        cur_bits.update(node.qargs)
+        cur_bits.set(node.qargs)
         cur_bits.update(node.cargs)
 
         cond = getattr(node.op, "condition", None)
