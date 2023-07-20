@@ -305,7 +305,7 @@ def split_block_into_layers(block):
 
         cond = getattr(node.op, "condition", None)
         if cond is not None:
-            cur_bits.update(condition_bits(cond))
+            cur_bits.update(condition_resources(cond).clbits)
 
         cur_depth = max(bit_depths.get(bit, 0) for bit in cur_bits)
         while len(layers) <= cur_depth:
