@@ -23,7 +23,11 @@ from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit.controlflow import ControlFlowOp
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
+from .collect_1q_runs import Collect1qRuns
+from .collect_2q_blocks import Collect2qBlocks
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -49,12 +53,16 @@ class ConsolidateBlocks(TransformationPass):
     ):
         """ConsolidateBlocks initializer.
 
+        If `kak_basis_gate` is not `None` it will be used as the basis gate for KAK decomposition.
+        Otherwise, if `basis_gates` is not `None` a basis gate will be chosen from this list.
+        Otherwise the basis gate will be `CXGate`.
+
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation
+            force_consolidate (bool): Force block consolidation.
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
             approximation_degree (float): a float between [0.0, 1.0]. Lower approximates more.
-            target (Target): The target object for the compilation target backend
+            target (Target): The target object for the compilation target backend.
         """
         super().__init__()
         self.basis_gates = None
@@ -159,11 +167,32 @@ class ConsolidateBlocks(TransformationPass):
                         dag.remove_op_node(node)
                 else:
                     dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+
+        dag = self._handle_control_flow_ops(dag)
+
         # Clear collected blocks and runs as they are no longer valid after consolidation
         if "run_list" in self.property_set:
             del self.property_set["run_list"]
         if "block_list" in self.property_set:
             del self.property_set["block_list"]
+
+        return dag
+
+    def _handle_control_flow_ops(self, dag):
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        collect blocks is redone for the control flow blocks.
+        """
+
+        pass_manager = PassManager()
+        if "run_list" in self.property_set:
+            pass_manager.append(Collect1qRuns())
+        if "block_list" in self.property_set:
+            pass_manager.append(Collect2qBlocks())
+
+        pass_manager.append(self)
+        for node in dag.op_nodes(ControlFlowOp):
+            node.op = node.op.replace_blocks(pass_manager.run(block) for block in node.op.blocks)
         return dag
 
     def _check_not_in_basis(self, gate_name, qargs, global_index_map):
