@@ -26,7 +26,6 @@ from ddt import ddt, data
 
 from qiskit import execute, QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (
