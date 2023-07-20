@@ -17,7 +17,12 @@ import logging
 from collections.abc import Iterator
 from typing import Type
 
-from .base_pass import BaseFlowController, ControllableController, GenericPass, OptimizerTask
+from .base_optimization_tasks import (
+    BaseFlowController,
+    ControllableController,
+    GenericPass,
+    OptimizerTask,
+)
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)

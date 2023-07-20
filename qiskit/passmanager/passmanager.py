@@ -21,7 +21,7 @@ from typing import Any
 import dill
 
 from qiskit.tools.parallel import parallel_map
-from .base_pass import OptimizerTask
+from .base_optimization_tasks import OptimizerTask
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLiner, FlowController
 from .propertyset import PropertySet

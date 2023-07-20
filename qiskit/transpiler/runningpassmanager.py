@@ -21,7 +21,7 @@ from typing import Callable, Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.passmanager.base_pass import OptimizerTask
+from qiskit.passmanager.base_optimization_tasks import OptimizerTask
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_func
 

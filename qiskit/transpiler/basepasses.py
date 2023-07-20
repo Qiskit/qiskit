@@ -17,7 +17,7 @@ from abc import abstractmethod
 
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.base_pass import GenericPass
+from qiskit.passmanager.base_optimization_tasks import GenericPass
 from qiskit.passmanager.propertyset import PropertySet
 
 from .fencedobjs import FencedDAGCircuit

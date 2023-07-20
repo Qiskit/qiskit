@@ -100,6 +100,6 @@ Exceptions
 
 from .passmanager import BasePassManager
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
-from .base_pass import GenericPass
+from .base_optimization_tasks import GenericPass
 from .propertyset import PropertySet, FencedPropertySet
 from .exceptions import PassManagerError
