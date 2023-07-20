@@ -1166,7 +1166,9 @@ class DAGCircuit:
             propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
-                conditional logic already.
+                conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
+                treated as if it is ``False``); replacements of those must already fulfil the same
+                conditional logic or this function would be close to useless for them.
 
         Returns:
             dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
@@ -1207,8 +1209,13 @@ class DAGCircuit:
                 )
 
         reverse_wire_map = {b: a for a, b in wire_map.items()}
-        op_condition = getattr(node.op, "condition", None)
-        if propagate_condition and op_condition is not None:
+        # It doesn't make sense to try and propagate a condition from a control-flow op; a
+        # replacement for the control-flow op should implement the operation completely.
+        if (
+            propagate_condition
+            and not isinstance(node.op, ControlFlowOp)
+            and (op_condition := getattr(node.op, "condition", None)) is not None
+        ):
             in_dag = input_dag.copy_empty_like()
             # The remapping of `condition` below is still using the old code that assumes a 2-tuple.
             # This is because this remapping code only makes sense in the case of non-control-flow
