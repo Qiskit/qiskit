@@ -499,26 +499,26 @@ class Target(Mapping):
                 except (KeyError, TypeError):
                     props = None
                 entry = get_calibration(inst_name, qargs)
-                # if entry.user_provided and getattr(props, "_calibration", None) != entry:
-                # It only copies user-provided calibration from the inst map.
-                # Backend defined entry must already exist in Target.
-                if self.dt is not None:
-                    try:
-                        duration = entry.get_schedule().duration * self.dt
-                    except UnassignedDurationError:
-                        # duration of schedule is parameterized
+                if entry.user_provided and getattr(props, "_calibration", None) != entry:
+                    # It only copies user-provided calibration from the inst map.
+                    # Backend defined entry must already exist in Target.
+                    if self.dt is not None:
+                        try:
+                            duration = entry.get_schedule().duration * self.dt
+                        except UnassignedDurationError:
+                            # duration of schedule is parameterized
+                            duration = None
+                    else:
                         duration = None
+                    props = InstructionProperties(
+                        duration=duration,
+                        calibration=entry,
+                    )
                 else:
-                    duration = None
-                props = InstructionProperties(
-                    duration=duration,
-                    calibration=entry,
-                )
-                # else:
-                #     if props is None:
-                #         # Edge case. Calibration is backend defined, but this is not
-                #         # registered in the backend target. Ignore this entry.
-                #         continue
+                    if props is None:
+                        # Edge case. Calibration is backend defined, but this is not
+                        # registered in the backend target. Ignore this entry.
+                        continue
                 try:
                     # Update gate error if provided.
                     props.error = error_dict[inst_name][qargs]
