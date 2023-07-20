@@ -1345,7 +1345,7 @@ class DAGCircuit:
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
-    def substitute_node(self, node, op, inplace=False):
+    def substitute_node(self, node, op, inplace=False, propagate_condition=True):
         """Replace an DAGOpNode with a single operation. qargs, cargs and
         conditions for the new operation will be inferred from the node to be
         replaced. The new operation will be checked to match the shape of the
@@ -1358,6 +1358,10 @@ class DAGCircuit:
             inplace (bool): Optional, default False. If True, existing DAG node
                 will be modified to include op. Otherwise, a new DAG node will
                 be used.
+            propagate_condition (bool): Optional, default True.  If True, a condition on the
+                ``node`` to be replaced will be applied to the new ``op``.  This is the legacy
+                behaviour.  If either node is a control-flow operation, this will be ignored.  If
+                the ``op`` already has a condition, :exc:`.DAGCircuitError` is raised.
 
         Returns:
             DAGOpNode: the new node containing the added operation.
@@ -1378,23 +1382,50 @@ class DAGCircuit:
                 )
             )
 
+        # This might include wires that are inherent to the node, like in its `condition` or
+        # `target` fields, so might be wider than `node.op.num_{qu,cl}bits`.
+        current_wires = {wire for _, _, wire in self.edges(node)}
+        new_wires = set(node.qargs) | set(node.cargs)
+        if (new_condition := getattr(op, "condition", None)) is not None:
+            new_wires.update(condition_resources(new_condition).clbits)
+        elif isinstance(op, SwitchCaseOp):
+            if isinstance(op.target, Clbit):
+                new_wires.add(op.target)
+            elif isinstance(op.target, ClassicalRegister):
+                new_wires.update(op.target)
+            else:
+                new_wires.update(node_resources(op.target).clbits)
+
+        if propagate_condition and not (
+            isinstance(node.op, ControlFlowOp) or isinstance(op, ControlFlowOp)
+        ):
+            if new_condition is not None:
+                raise DAGCircuitError(
+                    "Cannot propagate a condition to an operation that already has one."
+                )
+            if (old_condition := getattr(node.op, "condition", None)) is not None:
+                if not isinstance(op, Instruction):
+                    raise DAGCircuitError("Cannot add a condition on a generic Operation.")
+                op.condition = old_condition
+                new_wires.update(condition_resources(old_condition).clbits)
+
+        if new_wires != current_wires:
+            # The new wires must be a non-strict subset of the current wires; if they add new wires,
+            # we'd not know where to cut the existing wire to insert the new dependency.
+            raise DAGCircuitError(
+                f"New operation '{op}' does not span the same wires as the old node '{node}'."
+                f" New wires: {new_wires}, old wires: {current_wires}."
+            )
+
         if inplace:
             if op.name != node.op.name:
                 self._increment_op(op)
                 self._decrement_op(node.op)
-            save_condition = getattr(node.op, "condition", None)
             node.op = op
-            if save_condition and not isinstance(op, Instruction):
-                raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-            node.op.condition = save_condition
             return node
 
         new_node = copy.copy(node)
-        save_condition = getattr(new_node.op, "condition", None)
         new_node.op = op
-        if save_condition and not isinstance(new_node.op, Instruction):
-            raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-        new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
         if op.name != node.op.name:
             self._increment_op(op)
