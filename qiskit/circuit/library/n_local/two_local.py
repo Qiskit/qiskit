@@ -173,6 +173,7 @@ class TwoLocal(NLocal):
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
         name: str = "TwoLocal",
+        flatten: Optional[bool] = None,
     ) -> None:
         """Construct a new two-local circuit.
 
@@ -208,6 +209,13 @@ class TwoLocal(NLocal):
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         """
         super().__init__(
@@ -222,6 +230,7 @@ class TwoLocal(NLocal):
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
             name=name,
+            flatten=flatten,
         )
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:

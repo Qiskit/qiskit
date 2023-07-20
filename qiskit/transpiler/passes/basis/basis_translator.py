@@ -135,6 +135,7 @@ class BasisTranslator(TransformationPass):
             return dag
 
         qarg_indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
+
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
