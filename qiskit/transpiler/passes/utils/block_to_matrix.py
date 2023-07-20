@@ -35,15 +35,26 @@ def _block_to_matrix(block, block_index_map):
     Returns:
         NDArray: Matrix representation of the block of operations.
     """
-    matrix = identity(2 ** len(block_index_map), dtype=complex)
+    block_index_length = len(block_index_map)
+    if block_index_length != 2:
+        raise QiskitError(
+            "This function can only operate with blocks of 2 qubits or less."
+            + f"This block had {block_index_length}"
+        )
+    matrix = identity(2**block_index_length, dtype=complex)
     for node in block:
         try:
             current = node.op.to_matrix()
         except QiskitError:
             current = Operator(node.op).data
         q_list = [block_index_map[qubit] for qubit in node.qargs]
+        if len(q_list) > 2:
+            raise QiskitError(
+                f"The operation {node.op.name} in this block has "
+                + f"{len(q_list)} qubits, only 2 max allowed."
+            )
         basis_change = False
-        if len(q_list) < 2:
+        if len(q_list) < block_index_length:
             if q_list[0] == 1:
                 current = kron(current, IDENTITY)
             else:
