@@ -164,7 +164,7 @@ class UnitaryGate(Gate):
             if "CS decomposition error" in repr(qerr):
                 from qiskit.extensions.quantum_initializer.isometry import Isometry
 
-                cmat_def = isometry.Isometry(cmat, 0, 0).definition
+                cmat_def = Isometry(cmat, 0, 0).definition
         return ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,
