@@ -478,7 +478,6 @@ class TestConsolidateBlocks(QiskitTestCase):
         np.testing.assert_allclose(CXGate(), op_true)
         np.testing.assert_allclose(CZGate(), op_false)
 
-
     def test_not_crossing_between_control_flow_ops(self):
         """Test that consolidation does not occur between control flow ops."""
         qc = QuantumCircuit(2, 1)
