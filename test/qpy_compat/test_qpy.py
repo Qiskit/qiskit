@@ -575,6 +575,37 @@ def generate_open_controlled_gates():
     return circuits
 
 
+def generate_acquire_instruction_with_kernel_and_discriminator():
+    """Test QPY serialization with Acquire instruction with kernel and discriminator."""
+    from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
+
+    schedule_blocks = []
+
+    with builder.build() as block:
+        builder.acquire(
+            100,
+            AcquireChannel(0),
+            MemorySlot(0),
+            kernel=Kernel(
+                name="my_kernel", my_params_1={"param1": 0.1, "param2": 0.2}, my_params_2=[0, 1]
+            ),
+        )
+    schedule_blocks.append(block)
+
+    with builder.build() as block:
+        builder.acquire(
+            100,
+            AcquireChannel(0),
+            MemorySlot(0),
+            discriminator=Discriminator(
+                name="my_disc", my_params_1={"param1": 0.1, "param2": 0.2}, my_params_2=[0, 1]
+            ),
+        )
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
 def generate_layout_circuits():
     """Test qpy circuits with layout set."""
 
@@ -718,6 +749,9 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
     if version_parts >= (0, 25, 0):
+        output_circuits[
+            "acquire_inst_with_kernel_and_disc.qpy"
+        ] = generate_acquire_instruction_with_kernel_and_discriminator()
         output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
     return output_circuits
 
