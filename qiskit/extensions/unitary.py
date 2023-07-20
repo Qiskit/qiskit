@@ -20,7 +20,6 @@ from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.exceptions import QiskitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -155,17 +154,17 @@ class UnitaryGate(Gate):
         """
         from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
             qs_decomposition,
+            QSDError,
         )
 
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
         try:
             cmat_def = qs_decomposition(cmat)
-        except QiskitError as qerr:
-            if "CS decomposition error" in repr(qerr):
-                from qiskit.extensions.quantum_initializer.isometry import Isometry
+        except QSDError:
+            from qiskit.extensions.quantum_initializer.isometry import Isometry
 
-                cmat_def = Isometry(cmat, 0, 0).definition
+            cmat_def = Isometry(cmat, 0, 0).definition
         return ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,

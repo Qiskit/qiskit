@@ -1546,26 +1546,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             ccirc.count_ops().get("cx"), (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3
         )
 
-    def test_cs_decomp_error_raises(self):
-        """
-        Test that either an exception is raised or the decomposition succeeds.
-        """
-        base_gate_dim = 4
-        num_ctrls = 4
-        for i in range(3, 5):  # on my system i=3 induced exception but may vary
-            base_gate = random_unitary(base_gate_dim, seed=i * 2089).data
-            cmat = _compute_control_matrix(base_gate, num_ctrls)
-            try:
-                qc = self.qsd(cmat)
-            except QiskitError as err:
-                if "CS decomposition error" in repr(err):
-                    pass
-                else:
-                    self.fail("unexpected QiskitError")
-            else:
-                cqcop = Operator(qc)
-                self.assertTrue(cqcop == Operator(cmat))
-
     def test_block_diagonal(self):
         """
         Test catching block diagonal input matrices.

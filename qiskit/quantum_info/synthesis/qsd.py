@@ -113,7 +113,7 @@ def qs_decomposition(
         csmat = np.block([[cmat, -smat], [smat, cmat]])
         vmat = np.block([[v1h, zmat], [zmat, v2h]])
         if not np.allclose(mat, umat @ csmat @ vmat):
-            raise QiskitError("CS decomposition error")
+            raise QSDError("CS decomposition error")
         # left circ
         left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
@@ -275,5 +275,10 @@ def _is_block_diagonal(mat, dim_o2):
 
     TODO: check for matrices which can be made block diagonal
     """
-    zmat = np.zeros((dim_o2, dim_o2))
-    return np.allclose(mat[:dim_o2, dim_o2:], zmat) and np.allclose(mat[dim_o2:, :dim_o2], zmat)
+    return np.allclose(mat[:dim_o2, dim_o2:], 0) and np.allclose(mat[dim_o2:, :dim_o2], 0)
+
+
+class QSDError(QiskitError):
+    """Quantum Shannon Decomposition Error"""
+
+    pass
