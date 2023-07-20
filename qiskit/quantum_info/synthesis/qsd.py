@@ -20,6 +20,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.exceptions import QiskitError
 
 
 def qs_decomposition(
@@ -72,6 +73,7 @@ def qs_decomposition(
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
+    dim_o2 = dim // 2
     nqubits = int(np.log2(dim))
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
@@ -95,11 +97,23 @@ def qs_decomposition(
                 decomposer_2q = two_qubit_decompose.two_qubit_cnot_decompose
         circ = decomposer_2q(mat)
     else:
+        if _is_block_diagonal(mat, dim_o2):
+            # this about halves CX count over standard qsd for this special case
+            u1, u2 = mat[:dim_o2, :dim_o2], mat[dim_o2:, dim_o2:]
+            return _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         qr = QuantumRegister(nqubits)
         circ = QuantumCircuit(qr)
-        dim_o2 = dim // 2
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
+        # for some matrices the decomposition seems to fail (some multi-controlled SU4?)
+        zmat = np.zeros((dim_o2, dim_o2))
+        umat = np.block([[u1, zmat], [zmat, u2]])
+        cmat = np.diag(np.cos(vtheta))
+        smat = np.diag(np.sin(vtheta))
+        csmat = np.block([[cmat, -smat], [smat, cmat]])
+        vmat = np.block([[v1h, zmat], [zmat, v2h]])
+        if not np.allclose(mat, umat @ csmat @ vmat):
+            raise QiskitError("CS decomposition error")
         # left circ
         left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
@@ -195,7 +209,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
 
 def _get_ucry_cz(nqubits, angles):
     """
-    Get uniformly controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
+    Get uniformly controlled Ry gate in CZ-Ry as in UCPauliRotGate.
     """
     nangles = len(angles)
     qc = QuantumCircuit(nqubits)
@@ -253,3 +267,13 @@ def _apply_a2(circ):
     qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
     ccirc.data[ind2] = (qc3.to_gate(), qargs, cargs)
     return ccirc
+
+
+def _is_block_diagonal(mat, dim_o2):
+    """
+    Check whether matrix is block diagonal
+
+    TODO: check for matrices which can be made block diagonal
+    """
+    zmat = np.zeros((dim_o2, dim_o2))
+    return np.allclose(mat[:dim_o2, dim_o2:], zmat) and np.allclose(mat[dim_o2:, :dim_o2], zmat)

@@ -26,6 +26,7 @@ from ddt import ddt, data
 
 from qiskit import execute, QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (
@@ -1458,6 +1459,9 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
     def _qsd_l2_a2_mod(self, n):
         return 4 ** (n - 1) - 1
 
+    def _qsd_l2_a1a2_mod(self, n):
+        return (23 / 48) * 4**n - (3 / 2) * 2**n + 4 / 3
+
     @data(*list(range(1, 5)))
     def test_random_decomposition_l2_no_opt(self, nqubits):
         """test decomposition of random SU(n) down to 2 qubits without optimizations."""
@@ -1541,6 +1545,43 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         self.assertEqual(
             ccirc.count_ops().get("cx"), (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3
         )
+
+    def test_cs_decomp_error_raises(self):
+        """
+        Test that either an exception is raised or the decomposition succeeds.
+        """
+        base_gate_dim = 4
+        num_ctrls = 4
+        for i in range(3, 5):  # on my system i=3 induced exception but may vary
+            base_gate = random_unitary(base_gate_dim, seed=i * 2089).data
+            cmat = _compute_control_matrix(base_gate, num_ctrls)
+            try:
+                qc = self.qsd(cmat)
+            except QiskitError as err:
+                if "CS decomposition error" in repr(err):
+                    pass
+                else:
+                    self.fail("unexpected QiskitError")
+            else:
+                cqcop = Operator(qc)
+                self.assertTrue(cqcop == Operator(cmat))
+
+    def test_block_diagonal(self):
+        """
+        Test catching block diagonal input matrices.
+        """
+        num_qubits = 4
+        dim = 2**num_qubits
+        halfdim = dim // 2
+        u1 = scipy.stats.unitary_group.rvs(halfdim, random_state=422)
+        u2 = scipy.stats.unitary_group.rvs(halfdim, random_state=423)
+        zmat = np.zeros((halfdim, halfdim))
+        mat = np.block([[u1, zmat], [zmat, u2]])
+        circ = self.qsd(mat)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(Operator(mat) == Operator(ccirc))
+        print(ccirc.count_ops(), self._qsd_l2_a1a2_mod(num_qubits))
+        self.assertLess(ccirc.count_ops().get("cx"), self._qsd_l2_a1a2_mod(num_qubits))
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
