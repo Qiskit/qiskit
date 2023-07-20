@@ -426,8 +426,8 @@ __all__ = [
 
 warnings.warn(
     "``qiskit.algorithms`` has been migrated to an independent package: "
-    "https://github.com/qiskit-community/qiskit-algorithms."
-    "The ``qiskit.algorithms`` import path is deprecated as of qiskit-terra 0.25.0 and"
+    "https://github.com/qiskit-community/qiskit-algorithms. "
+    "The ``qiskit.algorithms`` import path is deprecated as of qiskit-terra 0.25.0 and "
     "will be removed no earlier than 3 months after the release date. "
     "Please run ``pip install qiskit_algorithms`` and use ``import qiskit_algorithms`` instead.",
     category=DeprecationWarning,
