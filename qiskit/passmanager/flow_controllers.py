@@ -10,217 +10,153 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass flow controllers to provide pass iterator conditioned on the property set."""
+"""Built-in pass flow controllers."""
 from __future__ import annotations
-from collections import OrderedDict
-from collections.abc import Sequence, Callable
-from functools import partial
-from typing import List, Union, Any
-import logging
 
-from .base_pass import GenericPass
-from .propertyset import FuturePropertySet
+import logging
+from collections.abc import Iterator
+from typing import Type
+
+from .base_pass import BaseFlowController, ControllableController, GenericPass, OptimizerTask
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)
 
 
 class FlowController:
-    """Base class for multiple types of working list.
+    """A flow controller namespace to instantiate flow controller with controller dictionary.
 
-    This class is a base class for multiple types of working list. When you iterate on it, it
-    returns the next pass to run.
+    This allows syntactic suger of writing pipeline. For example,
+
+    .. code-block:: python
+
+        controller = FlowController(
+            [PassA(), PassB()],
+            {"max_iteration": 1000},
+            condition=lambda prop_set: prop_set["x"] == 0,
+            do_while=lambda prop_set: prop_set["x"] < 100,
+        )
+
+    This creates a nested flow controller that runs when the value :code:`x` in the
+    :class:`.PropertySet` is zero and repeats the pipeline until the value becomes 100.
+
+    .. note::
+
+        This class creates an instance of :class:`.BaseFlowController` rather than itself.
+        Instance check must be done against :class:`.BaseFlowController` type.
+        This class just accommodates a controller namespace to allow instantiation of
+        the structured :class:`.ControllableController` with keyword arguments.
+        User can also manually instantiate :class:`.ControllableController` instances
+        with dependency.
     """
 
-    registered_controllers = OrderedDict()
+    registered_controllers = {}
+    hierarchy = []
 
-    def __init__(
-        self,
-        passes: Sequence[GenericPass | "FlowController"],
+    def __new__(
+        cls,
+        passes: OptimizerTask | list[OptimizerTask],
         options: dict,
-        **partial_controller: Callable,
-    ):
-        """Create new flow controller.
+        **controllers,
+    ) -> BaseFlowController:
+        """Create new flow controller with normalization.
 
         Args:
-            passes: passes to add to the flow controller. This must be normalized.
-            options: PassManager options.
-            **partial_controller: Partially evaluated callables representing
-                a condition to invoke flow controllers. This dictionary
-                must be keyed on the registered controller name.
-        """
-        self._passes = passes
-        self.passes = FlowController.controller_factory(passes, options, **partial_controller)
-        self.options = options
-
-    def __iter__(self):
-        yield from self.passes
-
-    def dump_passes(self):
-        """Fetches the passes added to this flow controller.
+            passes: A list of optimization tasks.
+            options: Option for this flow controller.
+            controllers: Dictionary of controller callables keyed on flow controller alias.
 
         Returns:
-             dict: {'options': self.options, 'passes': [passes], 'type': type(self)}
+            An instance of normalized flow controller.
         """
-        # TODO remove
-        ret = {"options": self.options, "passes": [], "type": type(self)}
-        for pass_ in self._passes:
-            if isinstance(pass_, FlowController):
-                ret["passes"].append(pass_.dump_passes())
-            else:
-                ret["passes"].append(pass_)
-        return ret
+        if isinstance(passes, BaseFlowController):
+            return passes
+
+        if isinstance(passes, GenericPass):
+            passes = [passes]
+
+        if None in controllers.values():
+            raise PassManagerError("The controller needs a callable. Value cannot be None.")
+
+        instance = FlowControllerLiner(passes, options)
+
+        if controllers:
+            # Alias in higher hierarchy becomes outer controller.
+            for alias in cls.hierarchy[::-1]:
+                class_type = cls.registered_controllers[alias]
+                if alias not in controllers or not issubclass(class_type, ControllableController):
+                    continue
+                instance = class_type(
+                    passes=[instance],
+                    options=options,
+                    controller_callback=controllers.pop(alias),
+                )
+
+        return instance
 
     @classmethod
-    def add_flow_controller(cls, name, controller):
+    def add_controller(
+        cls,
+        name: str,
+        controller: Type[BaseFlowController],
+    ):
         """Adds a flow controller.
 
         Args:
-            name (string): Name of the controller to add.
-            controller (type(FlowController)): The class implementing a flow controller.
+            name: Alias of controller class in the namespace.
+            controller: Flow controller class.
         """
         cls.registered_controllers[name] = controller
+        if name not in cls.hierarchy:
+            cls.hierarchy.append(name)
 
     @classmethod
-    def remove_flow_controller(cls, name):
+    def remove_flow_controller(
+        cls,
+        name: str,
+    ):
         """Removes a flow controller.
 
         Args:
-            name (string): Name of the controller to remove.
+            name: Alias of the controller to remove.
 
         Raises:
             KeyError: If the controller to remove was not registered.
         """
-        if name not in cls.registered_controllers:
+        if name not in cls.hierarchy:
             raise KeyError("Flow controller not found: %s" % name)
         del cls.registered_controllers[name]
-
-    @classmethod
-    def controller_factory(
-        cls,
-        passes: Sequence[GenericPass | "FlowController"],
-        options: dict,
-        **partial_controller,
-    ):
-        """Constructs a flow controller based on the partially evaluated controller arguments.
-
-        Args:
-            passes: passes to add to the flow controller.
-            options: PassManager options.
-            **partial_controller: Partially evaluated callables representing
-                a condition to invoke flow controllers. This dictionary
-                must be keyed on the registered controller name.
-                Callable may only take property set, and if the property set is unbound,
-                the factory method implicitly binds :class:`.FuturePropertySet`.
-                When multiple controllers and conditions are provided, this recursively
-                initializes controllers according to the priority defined by
-                the key order of the :attr:`FlowController.registered_controllers`.
-
-        Raises:
-            PassManagerError: When partial_controller is not well-formed.
-
-        Returns:
-            FlowController: A FlowController instance.
-        """
-        if not _is_passes_sequence(passes):
-            raise PassManagerError(
-                f"{passes.__class__} is not a valid BasePass of FlowController instance."
-            )
-        if None in partial_controller.values():
-            raise PassManagerError("The controller needs a condition.")
-
-        if partial_controller:
-            for key, value in partial_controller.items():
-                if callable(value) and not isinstance(value, partial):
-                    partial_controller[key] = partial(value, FuturePropertySet())
-            for label, controller_cls in cls.registered_controllers.items():
-                if label in partial_controller:
-                    return controller_cls(passes, options, **partial_controller)
-            raise PassManagerError(f"The controllers for {partial_controller} are not registered")
-        return FlowControllerLinear(passes, options)
+        cls.hierarchy.remove(name)
 
 
-def _is_passes_sequence(passes: Any) -> bool:
-    """Check if input is valid pass sequence.
+class FlowControllerLiner(BaseFlowController):
+    """A standard flow controller that runs tasks one after the other."""
 
-    Valid pass sequence representation are:
-
-    * BasePass,
-    * FlowController,
-    * Sequence of BasePass or FlowController.
-
-    Note that nested sequence is not a valid pass sequence.
-    FlowController.passes must be validated in constructor.
-    """
-    if isinstance(passes, (GenericPass, FlowController)):
-        return True
-    for inner_pass in passes:
-        if not isinstance(inner_pass, (GenericPass, FlowController)):
-            return False
-    return True
+    def yield_pipeline(self) -> Iterator[OptimizerTask]:
+        yield from self.pipeline
 
 
-class FlowControllerLinear(FlowController):
-    """The basic controller runs the passes one after the other."""
+class DoWhileController(ControllableController):
+    """A flow controller that repeatedly run the entire pipeline until the condition is not met."""
 
-    def __init__(self, passes, options):  # pylint: disable=super-init-not-called
-        self.passes = self._passes = passes
-        self.options = options
+    def yield_pipeline(self) -> Iterator[OptimizerTask]:
+        max_iteration = self._options.get("max_iteration", 1000)
+        for _ in range(max_iteration):
+            yield from self.pipeline
 
-
-class DoWhileController(FlowController):
-    """Implements a set of passes in a do-while loop."""
-
-    def __init__(
-        self,
-        passes: PassSequence,
-        options: dict = None,
-        do_while: Callable = None,
-        **partial_controller: Callable,
-    ):
-        if not callable(do_while):
-            raise PassManagerError("The flow controller parameter do_while is not callable.")
-        if not isinstance(do_while, partial):
-            do_while = partial(do_while, FuturePropertySet())
-        self.do_while = do_while
-        self.max_iteration = options["max_iteration"] if options else 1000
-        super().__init__(passes, options, **partial_controller)
-
-    def __iter__(self):
-        for _ in range(self.max_iteration):
-            yield from self.passes
-
-            if not self.do_while():
+            if not self.controller_callback(self.fenced_property_set):
                 return
 
-        raise PassManagerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
+        raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
 
 
-class ConditionalController(FlowController):
-    """Implements a set of passes under a certain condition."""
+class ConditionalController(ControllableController):
+    """A flow controller runs the pipeline once when the condition is met."""
 
-    def __init__(
-        self,
-        passes: PassSequence,
-        options: dict = None,
-        condition: Callable = None,
-        **partial_controller: Callable,
-    ):
-        if not callable(condition):
-            raise PassManagerError("The flow controller parameter condition is not callable.")
-        if not isinstance(condition, partial):
-            condition = partial(condition, FuturePropertySet())
-        self.condition = condition
-        super().__init__(passes, options, **partial_controller)
-
-    def __iter__(self):
-        if self.condition():
-            yield from self.passes
+    def yield_pipeline(self) -> Iterator[OptimizerTask]:
+        if self.controller_callback(self.fenced_property_set):
+            yield from self.pipeline
 
 
-# Alias to a sequence of all kind of pass elements
-PassSequence = Union[Union[GenericPass, FlowController], List[Union[GenericPass, FlowController]]]
-
-# Default controllers
-FlowController.add_flow_controller("condition", ConditionalController)
-FlowController.add_flow_controller("do_while", DoWhileController)
+FlowController.add_controller("condition", ConditionalController)
+FlowController.add_controller("do_while", DoWhileController)
