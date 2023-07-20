@@ -25,7 +25,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
-from ._builder_utils import unify_circuit_resources, partition_registers
+from ._builder_utils import unify_circuit_resources, partition_registers, node_resources
 
 
 class _DefaultCaseType:
@@ -139,9 +139,13 @@ class SwitchCaseOp(ControlFlowOp):
     def __eq__(self, other):
         # The general __eq__ will compare the blocks in the right order, so we just need to ensure
         # that all the labels point the right way as well.
-        return super().__eq__(other) and all(
-            set(labels_self) == set(labels_other)
-            for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+        return (
+            super().__eq__(other)
+            and self.target == other.target
+            and all(
+                set(labels_self) == set(labels_other)
+                for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+            )
         )
 
     def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:
@@ -203,7 +207,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
 
     def __init__(
         self,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         cases: List[Tuple[Any, ControlFlowBuilderBlock]],
         *,
         label: Optional[str] = None,
@@ -226,9 +230,13 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         cregs = set()
         if isinstance(self.__target, Clbit):
             clbits.add(self.__target)
-        else:
+        elif isinstance(self.__target, ClassicalRegister):
             clbits.update(self.__target)
             cregs.add(self.__target)
+        else:
+            resources = node_resources(self.__target)
+            clbits.update(resources.clbits)
+            cregs.update(resources.cregs)
         for _, body in self.__cases:
             qubits |= body.qubits
             clbits |= body.clbits
@@ -290,13 +298,23 @@ class SwitchContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         *,
         in_loop: bool,
         label: Optional[str] = None,
     ):
         self.circuit = circuit
-        self.target = target
+        self._target = target
+        if isinstance(target, Clbit):
+            self.target_clbits: tuple[Clbit, ...] = (target,)
+            self.target_cregs: tuple[ClassicalRegister, ...] = ()
+        elif isinstance(target, ClassicalRegister):
+            self.target_clbits = tuple(target)
+            self.target_cregs = (target,)
+        else:
+            resources = node_resources(target)
+            self.target_clbits = resources.clbits
+            self.target_cregs = resources.cregs
         self.in_loop = in_loop
         self.complete = False
         self._op_label = label
@@ -331,7 +349,7 @@ class SwitchContext:
         # If we're in a loop-builder context, we need to emit a placeholder so that any `break` or
         # `continue`s in any of our cases can be expanded when the loop-builder.  If we're not, we
         # need to emit a concrete instruction immediately.
-        placeholder = SwitchCasePlaceholder(self.target, self._cases, label=self._op_label)
+        placeholder = SwitchCasePlaceholder(self._target, self._cases, label=self._op_label)
         initial_resources = placeholder.placeholder_resources()
         if self.in_loop:
             self.circuit.append(placeholder, initial_resources.qubits, initial_resources.clbits)
@@ -382,14 +400,10 @@ class CaseBuilder:
             if self.switch.label_in_use(value) or value in seen:
                 raise CircuitError(f"duplicate case label: '{value}'")
             seen.add(value)
-        if isinstance(self.switch.target, Clbit):
-            target_clbits = [self.switch.target]
-            target_registers = []
-        else:
-            target_clbits = list(self.switch.target)
-            target_registers = [self.switch.target]
         self.switch.circuit._push_scope(
-            clbits=target_clbits, registers=target_registers, allow_jumps=self.switch.in_loop
+            clbits=self.switch.target_clbits,
+            registers=self.switch.target_cregs,
+            allow_jumps=self.switch.in_loop,
         )
 
         try:

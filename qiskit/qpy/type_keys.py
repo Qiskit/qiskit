@@ -17,7 +17,7 @@ QPY Type keys for several namespace.
 """
 
 from abc import abstractmethod
-from enum import Enum
+from enum import Enum, IntEnum
 
 import numpy as np
 
@@ -30,6 +30,7 @@ from qiskit.circuit import (
     Clbit,
     ClassicalRegister,
 )
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -110,6 +111,7 @@ class Value(TypeKeyBase):
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
     NULL = b"z"
+    EXPRESSION = b"x"
 
     @classmethod
     def assign(cls, obj):
@@ -135,6 +137,8 @@ class Value(TypeKeyBase):
             return cls.NULL
         if obj is CASE_DEFAULT:
             return cls.CASE_DEFAULT
+        if isinstance(obj, expr.Expr):
+            return cls.EXPRESSION
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -143,6 +147,18 @@ class Value(TypeKeyBase):
     @classmethod
     def retrieve(cls, type_key):
         raise NotImplementedError
+
+
+class Condition(IntEnum):
+    """Type keys for the ``conditional_key`` field of the INSTRUCTION struct."""
+
+    # This class is deliberately raw integers and not in terms of ASCII characters for backwards
+    # compatiblity in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
+    # have the enumeration values 0 and 1.
+
+    NONE = 0
+    TWO_TUPLE = 1
+    EXPRESSION = 2
 
 
 class Container(TypeKeyBase):
@@ -413,6 +429,91 @@ class Program(TypeKeyBase):
         if isinstance(obj, ScheduleBlock):
             return cls.SCHEDULE_BLOCK
 
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class Expression(TypeKeyBase):
+    """Type keys for the ``EXPRESSION`` QPY item."""
+
+    VAR = b"x"
+    VALUE = b"v"
+    CAST = b"c"
+    UNARY = b"u"
+    BINARY = b"b"
+
+    @classmethod
+    def assign(cls, obj):
+        if (
+            isinstance(obj, expr.Expr)
+            and (key := getattr(cls, obj.__class__.__name__.upper(), None)) is not None
+        ):
+            return key
+        raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprType(TypeKeyBase):
+    """Type keys for the ``EXPR_TYPE`` QPY item."""
+
+    BOOL = b"b"
+    UINT = b"u"
+
+    @classmethod
+    def assign(cls, obj):
+        if (
+            isinstance(obj, types.Type)
+            and (key := getattr(cls, obj.__class__.__name__.upper(), None)) is not None
+        ):
+            return key
+        raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVar(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR`` QPY item."""
+
+    CLBIT = b"C"
+    REGISTER = b"R"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, Clbit):
+            return cls.CLBIT
+        if isinstance(obj, ClassicalRegister):
+            return cls.REGISTER
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprValue(TypeKeyBase):
+    """Type keys for the ``EXPR_VALUE`` QPY item."""
+
+    BOOL = b"b"
+    INT = b"i"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, bool):
+            return cls.BOOL
+        if isinstance(obj, int):
+            return cls.INT
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
         )

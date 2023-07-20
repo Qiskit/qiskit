@@ -22,6 +22,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_func
 
 from .unitary import UnitaryGate
 
@@ -116,6 +117,9 @@ class HamiltonianGate(Gate):
         qc._append(UnitaryGate(self.to_matrix()), q[:], [])
         self.definition = qc
 
+    @deprecate_func(
+        since="0.25.0",
+    )
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""
         raise ExtensionError("HamiltonianGate has no QASM definition.")
