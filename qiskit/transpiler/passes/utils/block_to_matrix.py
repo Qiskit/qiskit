@@ -38,7 +38,7 @@ def _block_to_matrix(block, block_index_map):
     block_index_length = len(block_index_map)
     if block_index_length != 2:
         raise QiskitError(
-            "This function can only operate with blocks of 2 qubits or less."
+            "This function can only operate with blocks of 2 qubits."
             + f"This block had {block_index_length}"
         )
     matrix = identity(2**block_index_length, dtype=complex)
