@@ -26,6 +26,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
+from qiskit.transpiler.passes.utils import _block_to_matrix
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
 
@@ -110,19 +111,24 @@ class ConsolidateBlocks(TransformationPass):
                     if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
                         block_cargs |= set(getattr(nd.op, "condition", None)[0])
                     all_block_gates.add(nd)
-                q = QuantumRegister(len(block_qargs))
-                qc = QuantumCircuit(q)
-                if block_cargs:
-                    c = ClassicalRegister(len(block_cargs))
-                    qc.add_register(c)
                 block_index_map = self._block_qargs_to_indices(block_qargs, global_index_map)
                 for nd in block:
                     if nd.op.name == basis_gate_name:
                         basis_count += 1
                     if self._check_not_in_basis(nd.op.name, nd.qargs, global_index_map):
                         outside_basis = True
-                    qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
-                unitary = UnitaryGate(Operator(qc))
+                if len(block_qargs) > 2:
+                    q = QuantumRegister(len(block_qargs))
+                    qc = QuantumCircuit(q)
+                    if block_cargs:
+                        c = ClassicalRegister(len(block_cargs))
+                        qc.add_register(c)
+                    for nd in block:
+                        qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
+                    unitary = UnitaryGate(Operator(qc))
+                else:
+                    matrix = _block_to_matrix(block, block_index_map)
+                    unitary = UnitaryGate(matrix)
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
                 if (  # pylint: disable=too-many-boolean-expressions
