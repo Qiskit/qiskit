@@ -94,6 +94,7 @@ class EfficientSU2(TwoLocal):
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
         name: str = "EfficientSU2",
+        flatten: Optional[bool] = None,
     ) -> None:
         """Create a new EfficientSU2 2-local circuit.
 
@@ -124,7 +125,13 @@ class EfficientSU2(TwoLocal):
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
-
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
         """
         if su2_gates is None:
             su2_gates = [RYGate, RZGate]
@@ -140,6 +147,7 @@ class EfficientSU2(TwoLocal):
             insert_barriers=insert_barriers,
             initial_state=initial_state,
             name=name,
+            flatten=flatten,
         )
 
     @property

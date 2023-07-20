@@ -14,10 +14,9 @@
 Exception for errors raised by the transpiler.
 """
 from qiskit.exceptions import QiskitError
-from qiskit.passmanager.exceptions import PassManagerError
 
 
-class TranspilerAccessError(PassManagerError):
+class TranspilerAccessError(QiskitError):
     """DEPRECATED: Exception of access error in the transpiler passes."""
 
 
