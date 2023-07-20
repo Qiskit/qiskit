@@ -25,7 +25,10 @@ Exact and practical pattern matching for quantum circuit optimization.
 """
 
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.transpiler.passes.optimization.template_matching.template_substitution import TemplateSubstitution
+from qiskit.transpiler.passes.optimization.template_matching.template_substitution import (
+    TemplateSubstitution,
+)
+
 
 class ForwardMatch:
     """
@@ -409,21 +412,18 @@ class ForwardMatch:
                 temp_match = self.match.copy()
 
                 # Append the new match to the list of matches.
-                temp_match.append([i,label])
+                temp_match.append([i, label])
 
                 # Check if the potential match is valid by attempting
                 # to bind parameters.
                 substitution = TemplateSubstitution(
-                    [temp_match],
-                    self.circuit_dag_dep,
-                    self.template_dag_dep,
-                    None
+                    [temp_match], self.circuit_dag_dep, self.template_dag_dep, None
                 )
 
                 template_sublist, circuit_sublist = zip(*temp_match)
-                template = substitution._attempt_bind(template_sublist,circuit_sublist)
+                template = substitution._attempt_bind(template_sublist, circuit_sublist)
 
-                if template is None :
+                if template is None:
                     continue
 
                 # Check if the qubit, clbit configuration are compatible for a match,
