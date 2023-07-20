@@ -20,11 +20,11 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict, defaultdict, deque
+from collections import OrderedDict, defaultdict, deque, namedtuple
 import copy
 import itertools
 import math
-from typing import Generator, Any, List
+from typing import Dict, Generator, Any, List
 
 import numpy as np
 import rustworkx as rx
@@ -45,7 +45,11 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.circuit.bit import Bit
 from qiskit.utils.deprecation import deprecate_func
+
+
+BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
 
 class DAGCircuit:
@@ -94,6 +98,13 @@ class DAGCircuit:
         # List of Qubit/Clbit wires that the DAG acts on.
         self.qubits: List[Qubit] = []
         self.clbits: List[Clbit] = []
+
+        # Dictionary mapping of Qubit and Clbit instances to a tuple comprised of
+        # 0) corresponding index in dag.{qubits,clbits} and
+        # 1) a list of Register-int pairs for each Register containing the Bit and
+        # its index within that register.
+        self._qubit_indices: Dict[Qubit, BitLocations] = {}
+        self._clbit_indices: Dict[Clbit, BitLocations] = {}
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -226,8 +237,9 @@ class DAGCircuit:
         if duplicate_qubits:
             raise DAGCircuitError("duplicate qubits %s" % duplicate_qubits)
 
-        self.qubits.extend(qubits)
         for qubit in qubits:
+            self.qubits.append(qubit)
+            self._qubit_indices[qubit] = BitLocations(len(self.qubits) - 1, [])
             self._add_wire(qubit)
 
     def add_clbits(self, clbits):
@@ -239,8 +251,9 @@ class DAGCircuit:
         if duplicate_clbits:
             raise DAGCircuitError("duplicate clbits %s" % duplicate_clbits)
 
-        self.clbits.extend(clbits)
         for clbit in clbits:
+            self.clbits.append(clbit)
+            self._clbit_indices[clbit] = BitLocations(len(self.clbits) - 1, [])
             self._add_wire(clbit)
 
     def add_qreg(self, qreg):
@@ -252,8 +265,13 @@ class DAGCircuit:
         self.qregs[qreg.name] = qreg
         existing_qubits = set(self.qubits)
         for j in range(qreg.size):
+            if qreg[j] in self._qubit_indices:
+                self._qubit_indices[qreg[j]].registers.append((qreg, j))
             if qreg[j] not in existing_qubits:
                 self.qubits.append(qreg[j])
+                self._qubit_indices[qreg[j]] = BitLocations(
+                    len(self.qubits) - 1, registers=[(qreg, j)]
+                )
                 self._add_wire(qreg[j])
 
     def add_creg(self, creg):
@@ -265,8 +283,13 @@ class DAGCircuit:
         self.cregs[creg.name] = creg
         existing_clbits = set(self.clbits)
         for j in range(creg.size):
+            if creg[j] in self._clbit_indices:
+                self._clbit_indices[creg[j]].registers.append((creg, j))
             if creg[j] not in existing_clbits:
                 self.clbits.append(creg[j])
+                self._clbit_indices[creg[j]] = BitLocations(
+                    len(self.clbits) - 1, registers=[(creg, j)]
+                )
                 self._add_wire(creg[j])
 
     def _add_wire(self, wire):
@@ -293,6 +316,38 @@ class DAGCircuit:
             self._multi_graph.add_edge(inp_node._node_id, outp_node._node_id, wire)
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
+
+    def find_bit(self, bit: Bit) -> BitLocations:
+        """
+        Finds locations in the circuit, by mapping the Qubit and Clbit to positional index
+        BitLocations is defined as: BitLocations = namedtuple("BitLocations", ("index", "registers"))
+
+        Args:
+            bit (Bit): The bit to locate.
+
+        Returns:
+            namedtuple(int, List[Tuple(Register, int)]): A 2-tuple. The first element (``index``)
+                contains the index at which the ``Bit`` can be found (in either
+                :obj:`~DAGCircuit.qubits`, :obj:`~DAGCircuit.clbits`, depending on its
+                type). The second element (``registers``) is a list of ``(register, index)``
+                pairs with an entry for each :obj:`~Register` in the circuit which contains the
+                :obj:`~Bit` (and the index in the :obj:`~Register` at which it can be found).
+
+          Raises:
+            DAGCircuitError: If the supplied :obj:`~Bit` was of an unknown type.
+            DAGCircuitError: If the supplied :obj:`~Bit` could not be found on the circuit.
+        """
+        try:
+            if isinstance(bit, Qubit):
+                return self._qubit_indices[bit]
+            elif isinstance(bit, Clbit):
+                return self._clbit_indices[bit]
+            else:
+                raise DAGCircuitError(f"Could not locate bit of unknown type: {type(bit)}")
+        except KeyError as err:
+            raise DAGCircuitError(
+                f"Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
+            ) from err
 
     def remove_clbits(self, *clbits):
         """
@@ -328,6 +383,11 @@ class DAGCircuit:
         for clbit in clbits:
             self._remove_idle_wire(clbit)
             self.clbits.remove(clbit)
+            del self._clbit_indices[clbit]
+
+        # Update the indices of remaining clbits
+        for i, clbit in enumerate(self.clbits):
+            self._clbit_indices[clbit] = self._clbit_indices[clbit]._replace(index=i)
 
     def remove_cregs(self, *cregs):
         """
@@ -350,6 +410,10 @@ class DAGCircuit:
 
         for creg in cregs:
             del self.cregs[creg.name]
+            for j in range(creg.size):
+                bit = creg[j]
+                bit_position = self._clbit_indices[bit]
+                bit_position.registers.remove((creg, j))
 
     def remove_qubits(self, *qubits):
         """
@@ -385,6 +449,11 @@ class DAGCircuit:
         for qubit in qubits:
             self._remove_idle_wire(qubit)
             self.qubits.remove(qubit)
+            del self._qubit_indices[qubit]
+
+        # Update the indices of remaining qubits
+        for i, qubit in enumerate(self.qubits):
+            self._qubit_indices[qubit] = self._qubit_indices[qubit]._replace(index=i)
 
     def remove_qregs(self, *qregs):
         """
@@ -407,6 +476,10 @@ class DAGCircuit:
 
         for qreg in qregs:
             del self.qregs[qreg.name]
+            for j in range(qreg.size):
+                bit = qreg[j]
+                bit_position = self._qubit_indices[bit]
+                bit_position.registers.remove((qreg, j))
 
     def _is_wire_idle(self, wire):
         """Check if a wire is idle.
@@ -1012,9 +1085,12 @@ class DAGCircuit:
                 node block to be replaced
             op (qiskit.circuit.Operation): The operation to replace the
                 block with
-            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
-                the position. This is necessary to reconstruct the qarg order
-                over multiple gates in the combined single op node.
+            wire_pos_map (Dict[Bit, int]): The dictionary mapping the bits to their positions in the
+                output ``qargs`` or ``cargs``. This is necessary to reconstruct the arg order over
+                multiple gates in the combined single op node.  If a :class:`.Bit` is not in the
+                dictionary, it will not be added to the args; this can be useful when dealing with
+                control-flow operations that have inherent bits in their ``condition`` or ``target``
+                fields.
             cycle_check (bool): When set to True this method will check that
                 replacing the provided ``node_block`` with a single node
                 would introduce a cycle (which would invalidate the
@@ -1044,16 +1120,21 @@ class DAGCircuit:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            cond = getattr(nd.op, "condition", None)
-            if cond is not None:
-                block_cargs.update(condition_resources(cond).clbits)
+            if (condition := getattr(nd.op, "condition", None)) is not None:
+                block_cargs.update(condition_resources(condition).clbits)
+            elif isinstance(nd.op, SwitchCaseOp):
+                if isinstance(nd.op.target, Clbit):
+                    block_cargs.add(nd.op.target)
+                elif isinstance(nd.op.target, ClassicalRegister):
+                    block_cargs.update(nd.op.target)
+                else:
+                    block_cargs.update(node_resources(nd.op.target).clbits)
 
-        # Create replacement node
-        new_node = DAGOpNode(
-            op,
-            sorted(block_qargs, key=lambda x: wire_pos_map[x]),
-            sorted(block_cargs, key=lambda x: wire_pos_map[x]),
-        )
+        block_qargs = [bit for bit in block_qargs if bit in wire_pos_map]
+        block_qargs.sort(key=wire_pos_map.get)
+        block_cargs = [bit for bit in block_cargs if bit in wire_pos_map]
+        block_cargs.sort(key=wire_pos_map.get)
+        new_node = DAGOpNode(op, block_qargs, block_cargs)
 
         try:
             new_node._node_id = self._multi_graph.contract_nodes(
@@ -1085,7 +1166,9 @@ class DAGCircuit:
             propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
-                conditional logic already.
+                conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
+                treated as if it is ``False``); replacements of those must already fulfil the same
+                conditional logic or this function would be close to useless for them.
 
         Returns:
             dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
@@ -1126,8 +1209,13 @@ class DAGCircuit:
                 )
 
         reverse_wire_map = {b: a for a, b in wire_map.items()}
-        op_condition = getattr(node.op, "condition", None)
-        if propagate_condition and op_condition is not None:
+        # It doesn't make sense to try and propagate a condition from a control-flow op; a
+        # replacement for the control-flow op should implement the operation completely.
+        if (
+            propagate_condition
+            and not isinstance(node.op, ControlFlowOp)
+            and (op_condition := getattr(node.op, "condition", None)) is not None
+        ):
             in_dag = input_dag.copy_empty_like()
             # The remapping of `condition` below is still using the old code that assumes a 2-tuple.
             # This is because this remapping code only makes sense in the case of non-control-flow
@@ -1264,7 +1352,7 @@ class DAGCircuit:
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
-    def substitute_node(self, node, op, inplace=False):
+    def substitute_node(self, node, op, inplace=False, propagate_condition=True):
         """Replace an DAGOpNode with a single operation. qargs, cargs and
         conditions for the new operation will be inferred from the node to be
         replaced. The new operation will be checked to match the shape of the
@@ -1277,6 +1365,10 @@ class DAGCircuit:
             inplace (bool): Optional, default False. If True, existing DAG node
                 will be modified to include op. Otherwise, a new DAG node will
                 be used.
+            propagate_condition (bool): Optional, default True.  If True, a condition on the
+                ``node`` to be replaced will be applied to the new ``op``.  This is the legacy
+                behaviour.  If either node is a control-flow operation, this will be ignored.  If
+                the ``op`` already has a condition, :exc:`.DAGCircuitError` is raised.
 
         Returns:
             DAGOpNode: the new node containing the added operation.
@@ -1297,23 +1389,50 @@ class DAGCircuit:
                 )
             )
 
+        # This might include wires that are inherent to the node, like in its `condition` or
+        # `target` fields, so might be wider than `node.op.num_{qu,cl}bits`.
+        current_wires = {wire for _, _, wire in self.edges(node)}
+        new_wires = set(node.qargs) | set(node.cargs)
+        if (new_condition := getattr(op, "condition", None)) is not None:
+            new_wires.update(condition_resources(new_condition).clbits)
+        elif isinstance(op, SwitchCaseOp):
+            if isinstance(op.target, Clbit):
+                new_wires.add(op.target)
+            elif isinstance(op.target, ClassicalRegister):
+                new_wires.update(op.target)
+            else:
+                new_wires.update(node_resources(op.target).clbits)
+
+        if propagate_condition and not (
+            isinstance(node.op, ControlFlowOp) or isinstance(op, ControlFlowOp)
+        ):
+            if new_condition is not None:
+                raise DAGCircuitError(
+                    "Cannot propagate a condition to an operation that already has one."
+                )
+            if (old_condition := getattr(node.op, "condition", None)) is not None:
+                if not isinstance(op, Instruction):
+                    raise DAGCircuitError("Cannot add a condition on a generic Operation.")
+                op.condition = old_condition
+                new_wires.update(condition_resources(old_condition).clbits)
+
+        if new_wires != current_wires:
+            # The new wires must be a non-strict subset of the current wires; if they add new wires,
+            # we'd not know where to cut the existing wire to insert the new dependency.
+            raise DAGCircuitError(
+                f"New operation '{op}' does not span the same wires as the old node '{node}'."
+                f" New wires: {new_wires}, old wires: {current_wires}."
+            )
+
         if inplace:
             if op.name != node.op.name:
                 self._increment_op(op)
                 self._decrement_op(node.op)
-            save_condition = getattr(node.op, "condition", None)
             node.op = op
-            if save_condition and not isinstance(op, Instruction):
-                raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-            node.op.condition = save_condition
             return node
 
         new_node = copy.copy(node)
-        save_condition = getattr(new_node.op, "condition", None)
         new_node.op = op
-        if save_condition and not isinstance(new_node.op, Instruction):
-            raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-        new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
         if op.name != node.op.name:
             self._increment_op(op)
