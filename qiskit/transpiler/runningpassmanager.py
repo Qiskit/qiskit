@@ -13,126 +13,76 @@
 """RunningPassManager class for the transpiler.
 This object holds the state of a pass manager during running-time."""
 from __future__ import annotations
-import logging
+
 import inspect
+import logging
 from functools import wraps
-from typing import Callable
+from typing import Callable, Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager import BasePassRunner
+from qiskit.passmanager.base_pass import OptimizerTask
+from qiskit.passmanager.exceptions import PassManagerError
+from qiskit.utils.deprecation import deprecate_func
 
 # pylint: disable=unused-import
 from qiskit.passmanager.flow_controllers import (
-    PassSequence,
     FlowController,
+    FlowControllerLiner,
     # for backward compatibility
     ConditionalController,
     DoWhileController,
-    FlowControllerLinear,
 )
-from qiskit.passmanager.propertyset import get_property_set
-from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.transpiler.basepasses import BasePass
-from qiskit.utils.deprecation import deprecate_func
+
+from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .layout import TranspileLayout
 
 logger = logging.getLogger(__name__)
 
 
-class RunningPassManager(BasePassRunner):
-    """A RunningPassManager is a running pass manager."""
+class RunningPassManager(FlowControllerLiner):
+    """A RunningPassManager is a running pass manager.
 
-    IN_PROGRAM_TYPE = QuantumCircuit
-    OUT_PROGRAM_TYPE = QuantumCircuit
-    IR_TYPE = DAGCircuit
+    .. warning::
 
-    @property
-    def property_set(self):
-        """Property set of this running pass manager."""
-        return get_property_set()
+        :class:`.RunningPassManager` will be deprecated in the future release.
+        As of Qiskit Terra 0.25 this class becomes a subclass of the flow controller
+        with extra methods for backward compatibility.
+        Relying on a subclass of the running pass manager might break your code stack.
+    """
 
-    @property
     @deprecate_func(
         since="0.25",
+        additional_msg="Now RunningPassManager is a subclass of flow controller.",
         pending=True,
-        additional_msg=(
-            "Property set binding to flow controllers is now managed by the "
-            "flow controller itself. This property is no longer used."
-        ),
-        is_property=True,
     )
-    def fenced_property_set(self):
-        """Fenced property set of this running pass manager."""
-        return FencedPropertySet(get_property_set())
-
     def append(
         self,
-        passes: PassSequence,
+        passes: OptimizerTask | list[OptimizerTask],
         **flow_controller_conditions,
     ):
         """Append a passes to the schedule of passes.
 
         Args:
-            passes: passes to be added to schedule
-            flow_controller_conditions: See add_flow_controller(): Dictionary of
-            control flow plugins. Default:
+            passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
+                passes that are controlled by the same flow controller. If a single pass is
+                provided, the pass set will only have that pass a single element.
+                It is also possible to append a :class:`.BaseFlowController` instance and
+                the rest of the parameter will be ignored.
+            flow_controller_conditions: Dictionary of control flow plugins.
+                Following built-in controllers are available by default:
 
-                * do_while (callable property_set -> boolean): The passes repeat until the
-                  callable returns False.
-                  Default: `lambda x: False # i.e. passes run once`
-
-                * condition (callable property_set -> boolean): The passes run only if the
-                  callable returns True.
-                  Default: `lambda x: True # i.e. passes run`
+                * do_while: The passes repeat until the callable returns False.
+                * condition: The passes run only if the callable returns True.
         """
         # Backward compatibility.
-        # Appended passes to the pass runner subclass is normalized by the pass manager,
-        # unless this API is directly called by end-users.
-        normalized_flow_controller = FlowController.controller_factory(
+        normalized_controller = FlowController(
             passes=passes,
-            options=self.passmanager_options,
+            options=self._options,
             **flow_controller_conditions,
         )
-        super().append(normalized_flow_controller)
-
-    def _to_passmanager_ir(self, in_program: QuantumCircuit) -> DAGCircuit:
-        if not isinstance(in_program, QuantumCircuit):
-            raise TranspilerError(f"Input {in_program.__class__} is not QuantumCircuit.")
-        return circuit_to_dag(in_program)
-
-    def _to_target(self, passmanager_ir: DAGCircuit) -> QuantumCircuit:
-        if not isinstance(passmanager_ir, DAGCircuit):
-            raise TranspilerError(f"Input {passmanager_ir.__class__} is not DAGCircuit.")
-
-        circuit = dag_to_circuit(passmanager_ir, copy_operations=False)
-        circuit.name = self.metadata["output_name"]
-
-        property_set = get_property_set()
-
-        if property_set["layout"] is not None:
-            circuit._layout = TranspileLayout(
-                initial_layout=property_set["layout"],
-                input_qubit_mapping=property_set["original_qubit_indices"],
-                final_layout=property_set["final_layout"],
-            )
-        circuit._clbit_write_latency = property_set["clbit_write_latency"]
-        circuit._conditional_latency = property_set["conditional_latency"]
-
-        if property_set["node_start_time"]:
-            # This is dictionary keyed on the DAGOpNode, which is invalidated once
-            # dag is converted into circuit. So this schedule information is
-            # also converted into list with the same ordering with circuit.data.
-            topological_start_times = []
-            start_times = property_set["node_start_time"]
-            for dag_node in passmanager_ir.topological_op_nodes():
-                topological_start_times.append(start_times[dag_node])
-            circuit._op_start_times = topological_start_times
-
-        return circuit
+        self.pipeline.append(normalized_controller)
 
     # pylint: disable=arguments-differ
     def run(
@@ -151,70 +101,56 @@ class RunningPassManager(BasePassRunner):
         Returns:
             QuantumCircuit: Transformed circuit.
         """
-        return super().run(
-            in_program=circuit,
-            callback=_rename_callback_args(callback),
-            output_name=output_name or circuit.name,
-        )
+        self.callback = callback
+        passmanager_ir = circuit_to_dag(circuit)
+        passmanager_ir = super().execute(passmanager_ir=passmanager_ir)
 
-    def _run_base_pass(
+        out_circuit = dag_to_circuit(passmanager_ir, copy_operations=False)
+        out_circuit.name = output_name
+
+        if self.property_set["layout"] is not None:
+            circuit._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+                final_layout=self.property_set["final_layout"],
+            )
+        circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
+        circuit._conditional_latency = self.property_set["conditional_latency"]
+
+        if self.property_set["node_start_time"]:
+            # This is dictionary keyed on the DAGOpNode, which is invalidated once
+            # dag is converted into circuit. So this schedule information is
+            # also converted into list with the same ordering with circuit.data.
+            topological_start_times = []
+            start_times = self.property_set["node_start_time"]
+            for dag_node in passmanager_ir.topological_op_nodes():
+                topological_start_times.append(start_times[dag_node])
+            circuit._op_start_times = topological_start_times
+
+        return circuit
+
+    def _finalize(
         self,
-        pass_: BasePass,
-        passmanager_ir: DAGCircuit,
-    ) -> DAGCircuit:
-        """Do either a pass and its "requires" or FlowController.
+        task: BasePass,
+        passmanager_ir: Any,
+        running_time: float,
+    ):
+        self.valid_passes.add(task)
+        if not task.is_analysis_pass:
+            # Analysis passes preserve all
+            self.valid_passes.intersection_update(set(task.preserves))
 
-        Args:
-            pass_: A base pass to run.
-            passmanager_ir: Pass manager IR, i.e. DAGCircuit for this class.
-
-        Returns:
-            The transformed dag in case of a transformation pass.
-            The same input dag in case of an analysis pass.
-
-        Raises:
-            TranspilerError: When transform pass returns non DAGCircuit.
-            TranspilerError: When pass is neither transform pass nor analysis pass.
-        """
-        if pass_.is_transformation_pass:
-            # Measure time if we have a callback or logging set
-            new_dag = pass_.run(passmanager_ir)
-            if isinstance(new_dag, DAGCircuit):
-                new_dag.calibrations = passmanager_ir.calibrations
-            else:
-                raise TranspilerError(
-                    "Transformation passes should return a transformed dag."
-                    "The pass %s is returning a %s" % (type(pass_).__name__, type(new_dag))
-                )
-            passmanager_ir = new_dag
-        elif pass_.is_analysis_pass:
-            # Measure time if we have a callback or logging set
-            pass_.run(FencedDAGCircuit(passmanager_ir))
-        else:
-            raise TranspilerError("I dont know how to handle this type of pass")
-        return passmanager_ir
-
-    def _update_valid_passes(self, pass_):
-        super()._update_valid_passes(pass_)
-        if not pass_.is_analysis_pass:  # Analysis passes preserve all
-            self.valid_passes.intersection_update(set(pass_.preserves))
-
-
-def _rename_callback_args(callback):
-    """A helper function to run callback with conventional argument names."""
-    if callback is None:
-        return callback
-
-    def _call_with_dag(pass_, passmanager_ir, time, property_set, count):
-        callback(
-            pass_=pass_,
-            dag=passmanager_ir,
-            time=time,
-            property_set=property_set,
-            count=count,
-        )
-
-    return _call_with_dag
+        if self._callback is not None:
+            # Use old signature for backward compatibility.
+            # Count information is dropped because pass execution management is moved to
+            # pass flow controller, and count cannot be accumulated.
+            self._callback(
+                pass_=task,
+                dag=passmanager_ir,
+                time=running_time,
+                property_set=self.property_set,
+                count=None,
+            )
 
 
 # A temporary error handling with slight overhead at class loading.

@@ -46,6 +46,7 @@ class BasePassManager(ABC):
         """
         self._flow_controller = FlowControllerLiner()
         self.max_iteration = max_iteration
+        self.property_set = PropertySet()
 
         if passes is not None:
             self.append(passes)
@@ -171,13 +172,12 @@ class BasePassManager(ABC):
         Args:
             in_programs: Input programs to transform via all the registered passes.
             callback: A callback function that will be called after each pass execution. The
-                function will be called with 5 keyword arguments::
+                function will be called with 4 keyword arguments::
 
                     task (GenericPass): the pass being run
                     passmanager_ir (Any): depending on pass manager subclass
-                    time (float): the time to execute the pass
                     property_set (PropertySet): the property set
-                    count (int): the index for the pass execution
+                    running_time (float): the time to execute the pass
 
                 The exact arguments pass expose the internals of the pass
                 manager and are subject to change as the pass manager internals
@@ -190,10 +190,9 @@ class BasePassManager(ABC):
 
                     def callback_func(**kwargs):
                         task = kwargs['task']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
+                        passmanager_ir = kwargs['passmanager_ir']
                         property_set = kwargs['property_set']
-                        count = kwargs['count']
+                        running_time = kwargs['running_time']
                         ...
 
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
@@ -229,7 +228,7 @@ class BasePassManager(ABC):
                 **task_kwargs,
             ),
             values=in_programs,
-            task_kwargs={"pm_dill": dill.dumps(self)}
+            task_kwargs={"pm_dill": dill.dumps(self)},
         )
 
     @staticmethod
@@ -241,7 +240,7 @@ class BasePassManager(ABC):
         flow_controller = pass_manager.to_flow_controller()
 
         passmanager_ir = pass_manager._passmanager_frontend(input_program=program, **kwargs)
-        passmanager_ir = flow_controller.execute(passmanager_ir)
+        passmanager_ir = flow_controller.execute(passmanager_ir, pass_manager.property_set)
         out_program = pass_manager._passmanager_backend(passmanager_ir, **kwargs)
 
         return out_program

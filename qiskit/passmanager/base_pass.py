@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Baseclasses for the Qiskit passmanager optimization tasks."""
+from __future__ import annotations
+
 import logging
 import time
 from abc import ABC, abstractmethod
@@ -108,12 +110,14 @@ class BaseFlowController(OptimizerTask, ABC):
             passes: A list of optimization tasks.
             options: Option for this flow controller.
         """
-        self._completed = set()
         self._options = options or dict()
         self._property_set = PropertySet()
         self._callback = None
 
         self.pipeline: list[OptimizerTask] = passes
+
+        # passes already run that have not been invalidated
+        self.valid_passes = set()
 
     @property
     def property_set(self) -> PropertySet:
@@ -122,19 +126,20 @@ class BaseFlowController(OptimizerTask, ABC):
 
     @property
     def fenced_property_set(self) -> FencedPropertySet:
+        """Readonly property set of this flow controller."""
         return FencedPropertySet(self._property_set)
 
     @property
-    def callback(self):
+    def callback(self) -> Callable:
         """A user provided function called per execution of single optimization task."""
         return self._callback
 
     @callback.setter
-    def callback(self, new_callabck: Callable):
+    def callback(self, new_callback: Callable):
         for task in self.pipeline:
             if isinstance(task, BaseFlowController):
-                task.callback = new_callabck
-        self.callback = new_callabck
+                task.callback = new_callback
+        self._callback = new_callback
 
     @abstractmethod
     def yield_pipeline(self) -> Iterator[OptimizerTask]:
@@ -153,7 +158,7 @@ class BaseFlowController(OptimizerTask, ABC):
             if isinstance(task, GenericPass):
                 for required in task.requires:
                     passmanager_ir = required.execute(passmanager_ir, self._property_set)
-                if task not in self._completed:
+                if task not in self.valid_passes:
                     start_time = time.time()
                     try:
                         passmanager_ir = task.execute(passmanager_ir, self._property_set)
@@ -161,20 +166,33 @@ class BaseFlowController(OptimizerTask, ABC):
                         running_time = time.time() - start_time
                         log_msg = f"Pass: {task.name()} - {running_time * 1000:.5f} (ms)"
                         logger.info(log_msg)
-                    if self._callback:
-                        self._callback(
-                            task=task,
-                            passmanager_ir=passmanager_ir,
-                            time=running_time,
-                            property_set=self._property_set,
-                        )
-                    self._completed.add(task)
+                    self._finalize(
+                        task=task,
+                        passmanager_ir=passmanager_ir,
+                        running_time=running_time,
+                    )
                     return passmanager_ir
 
             if isinstance(task, BaseFlowController):
                 return task.execute(passmanager_ir, self._property_set)
 
             raise PassManagerError(f"{task.__class__} is not a valid pass for flow controller.")
+
+    def _finalize(
+        self,
+        task: GenericPass,
+        passmanager_ir: Any,
+        running_time: float,
+    ):
+        self.valid_passes.add(task)
+
+        if self._callback is not None:
+            self._callback(
+                task=task,
+                passmanager_ir=passmanager_ir,
+                property_set=self._property_set,
+                running_time=running_time,
+            )
 
 
 class ControllableController(BaseFlowController, ABC):

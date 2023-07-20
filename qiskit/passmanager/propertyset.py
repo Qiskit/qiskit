@@ -27,6 +27,4 @@ class FencedPropertySet(PropertySet):
     """A readonly property set that cannot be written via __setitem__."""
 
     def __setitem__(self, key, value):
-        raise PassManagerError(
-            "The fenced PropertySet has the property __setitem__ protected."
-        )
+        raise PassManagerError("The fenced PropertySet has the property __setitem__ protected.")

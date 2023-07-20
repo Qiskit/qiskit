@@ -12,19 +12,24 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 from __future__ import annotations
+
 import inspect
 import io
 import re
-from functools import wraps
 from collections.abc import Iterator, Iterable, Callable
+from functools import wraps
 from typing import Union, List, Any
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import BasePassManager
-from qiskit.passmanager.flow_controllers import PassSequence
+from qiskit.passmanager.base_pass import OptimizerTask
 from qiskit.passmanager.exceptions import PassManagerError
+from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
 from .exceptions import TranspilerError
+from .layout import TranspileLayout
 from .runningpassmanager import RunningPassManager
 
 _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
@@ -35,30 +40,79 @@ class PassManager(BasePassManager):
 
     def __init__(
         self,
-        passes: PassSequence | None = None,
+        passes: OptimizerTask | list[OptimizerTask] = None,
         max_iteration: int = 1000,
     ):
-        """Initialize an empty `PassManager` object (with no passes scheduled).
+        """Initialize an empty pass manager object.
 
         Args:
-            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
-                to be added to the pass manager schedule.
+            passes: A pass set to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        self.property_set = None
+        super().__init__(max_iteration=max_iteration)
+
+        # Override type
+        self._flow_controller = RunningPassManager()
 
         # For backward compatibility.
         self._pass_sets = []
-        super().__init__(passes, max_iteration)
+        if passes:
+            self.append(passes)
 
-    @property
-    def _pass_runner(self):
-        return RunningPassManager
+    def _passmanager_frontend(
+        self,
+        input_program: QuantumCircuit,
+        **kwargs,
+    ) -> DAGCircuit:
+        passmanager_ir = circuit_to_dag(input_program, copy_operations=False)
+        del input_program
 
+        return passmanager_ir
+
+    def _passmanager_backend(
+        self,
+        passmanager_ir: DAGCircuit,
+        **kwargs,
+    ) -> QuantumCircuit:
+        out_program = dag_to_circuit(passmanager_ir)
+
+        out_name = kwargs.get("output_name", None)
+        if out_name:
+            out_program.name = out_name
+
+        property_set = self._flow_controller.property_set
+
+        if property_set["layout"] is not None:
+            out_program._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=property_set["original_qubit_indices"],
+                final_layout=property_set["final_layout"],
+            )
+        out_program._clbit_write_latency = property_set["clbit_write_latency"]
+        out_program._conditional_latency = property_set["conditional_latency"]
+
+        if property_set["node_start_time"]:
+            # This is dictionary keyed on the DAGOpNode, which is invalidated once
+            # dag is converted into circuit. So this schedule information is
+            # also converted into list with the same ordering with circuit.data.
+            topological_start_times = []
+            start_times = self.property_set["node_start_time"]
+            for dag_node in passmanager_ir.topological_op_nodes():
+                topological_start_times.append(start_times[dag_node])
+            out_program._op_start_times = topological_start_times
+
+        return out_program
+
+    @deprecate_arg(
+        name="max_iteration",
+        since="0.25",
+        additional_msg="'max_iteration' can be set in the constructor.",
+        pending=True,
+    )
     def append(
         self,
-        passes: PassSequence,
+        passes: OptimizerTask | list[OptimizerTask],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -66,21 +120,16 @@ class PassManager(BasePassManager):
 
         Args:
             passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
-                    passes that are controlled by the same flow controller. If a single pass is
-                    provided, the pass set will only have that pass a single element.
-                    It is also possible to append a
-                    :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
-                    rest of the parameter will be ignored.
+                passes that are controlled by the same flow controller. If a single pass is
+                provided, the pass set will only have that pass a single element.
+                It is also possible to append a :class:`.BaseFlowController` instance and
+                the rest of the parameter will be ignored.
             max_iteration: max number of iterations of passes.
-            flow_controller_conditions: Dictionary of control flow plugins. Default:
+            flow_controller_conditions: Dictionary of control flow plugins.
+                Following built-in controllers are available by default:
 
-                * do_while (callable property_set -> boolean): The passes repeat until the
-                  callable returns False.
-                  Default: `lambda x: False # i.e. passes run once`
-
-                * condition (callable property_set -> boolean): The passes run only if the
-                  callable returns True.
-                  Default: `lambda x: True # i.e. passes run`
+                * do_while: The passes repeat until the callable returns False.
+                * condition: The passes run only if the callable returns True.
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
@@ -98,10 +147,16 @@ class PassManager(BasePassManager):
             }
         )
 
+    @deprecate_arg(
+        name="max_iteration",
+        since="0.25",
+        additional_msg="'max_iteration' can be set in the constructor.",
+        pending=True,
+    )
     def replace(
         self,
         index: int,
-        passes: PassSequence,
+        passes: OptimizerTask | list[OptimizerTask],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -109,10 +164,10 @@ class PassManager(BasePassManager):
 
         Args:
             index: Pass index to replace, based on the position in passes().
-            passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
-                to be added to the pass manager schedule.
+            passes: A pass set to be added to the pass manager schedule.
             max_iteration: max number of iterations of passes.
-            flow_controller_conditions: control flow plugins.
+            flow_controller_conditions: Dictionary of control flow plugins.
+                See :meth:`qiskit.transpiler.PassManager.append` for details.
         """
         if max_iteration:
             # TODO remove this argument from append
@@ -126,14 +181,6 @@ class PassManager(BasePassManager):
         }
 
     def remove(self, index: int) -> None:
-        """Removes a particular pass in the scheduler.
-
-        Args:
-            index: Pass index to replace, based on the position in passes().
-
-        Raises:
-            TranspilerError: if the index is not found.
-        """
         super().remove(index)
 
         # Backward compatibility as of Terra 0.25
@@ -207,20 +254,6 @@ class PassManager(BasePassManager):
             callback=callback,
             output_name=output_name,
         )
-
-    # pylint: disable=signature-differs
-    def _run_single_circuit(
-        self,
-        pass_runner: RunningPassManager,
-        input_program: Any,
-        callback: Callable,
-        **metadata,
-    ) -> QuantumCircuit:
-        out_program = pass_runner.run(input_program, callback=callback, **metadata)
-        # Store property set of pass runner for backward compatibility
-        self.property_set = pass_runner.property_set
-
-        return out_program
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the pass manager.
@@ -387,12 +420,12 @@ class StagedPassManager(PassManager):
             yield "post_" + stage
 
     def _update_passmanager(self) -> None:
-        self._flow_controllers = []
+        self._flow_controller = RunningPassManager()
         self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
-                self._flow_controllers.extend(pm._flow_controllers)
+                self._flow_controller.pipeline.extend(pm._flow_controller.pipeline)
                 self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
@@ -404,7 +437,7 @@ class StagedPassManager(PassManager):
 
     def append(
         self,
-        passes: PassSequence,
+        passes: OptimizerTask | list[OptimizerTask],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -429,7 +462,8 @@ class StagedPassManager(PassManager):
         # Do not inherit from the PassManager, i.e. super()
         # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
-        new_passmanager._flow_controllers = [self._flow_controllers[index]]
+        new_controller = RunningPassManager([self._flow_controller.pipeline[index]])
+        new_passmanager._flow_controller = new_controller
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]

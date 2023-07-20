@@ -11,12 +11,16 @@
 # that they have been altered from the originals.
 
 """Base transpiler passes."""
+from __future__ import annotations
 
 from abc import abstractmethod
 
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_pass import GenericPass
 from qiskit.passmanager.propertyset import PropertySet
 
+from .fencedobjs import FencedDAGCircuit
 from .layout import TranspileLayout
 
 
@@ -24,11 +28,12 @@ class BasePass(GenericPass):
     """Base class for transpiler passes."""
 
     @abstractmethod
-    def run(self, dag):  # pylint: disable=arguments-differ
+    def run(self, dag: DAGCircuit):  # pylint: disable=arguments-differ
         """Run a pass on the DAGCircuit. This is implemented by the pass developer.
 
         Args:
-            dag (DAGCircuit): the dag on which the pass is run.
+            dag: the dag on which the pass is run.
+
         Raises:
             NotImplementedError: when this is left unimplemented for a pass.
         """
@@ -65,9 +70,6 @@ class BasePass(GenericPass):
             QuantumCircuit: If on transformation pass, the resulting QuantumCircuit. If analysis
                    pass, the input circuit.
         """
-        from qiskit.converters import circuit_to_dag, dag_to_circuit
-        from qiskit.dagcircuit.dagcircuit import DAGCircuit
-
         property_set_ = None
         if isinstance(property_set, dict):  # this includes (dict, PropertySet)
             property_set_ = PropertySet(property_set)
@@ -114,10 +116,26 @@ class BasePass(GenericPass):
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
 
-    pass
+    def execute(
+        self,
+        passmanager_ir: DAGCircuit,
+        property_set: PropertySet | None = None,
+    ) -> DAGCircuit:
+        # analysis pass must not mutate DAG object
+        fenced_dag = FencedDAGCircuit(passmanager_ir)
+        return super().execute(fenced_dag, property_set)
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
 
-    pass
+    def execute(
+        self,
+        passmanager_ir: DAGCircuit,
+        property_set: PropertySet | None = None,
+    ) -> DAGCircuit:
+        # Copy calibration data from the original program
+        new_dag = super().execute(passmanager_ir, property_set)
+        new_dag.calibrations = passmanager_ir.calibrations
+
+        return new_dag

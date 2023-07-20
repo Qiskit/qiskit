@@ -12,6 +12,10 @@
 
 """Fenced objects are wraps for raising TranspilerError when they are modified."""
 
+# For backward compatibility
+# pylint: disable=unused-import
+from qiskit.passmanager.propertyset import FencedPropertySet
+
 from .exceptions import TranspilerError
 
 
@@ -51,13 +55,6 @@ class FencedObject:
                 "The fenced %s has the property %s protected"
                 % (type(object.__getattribute__(self, "_wrapped")), name)
             )
-
-
-class FencedPropertySet(FencedObject):
-    """A property set that cannot be written (via __setitem__)"""
-
-    def __init__(self, property_set_instance):
-        super().__init__(property_set_instance, ["__setitem__"])
 
 
 class FencedDAGCircuit(FencedObject):
