@@ -94,14 +94,14 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
         "num_parameters",
         "num_qargs",
         "num_cargs",
-        "has_condition",
+        "conditional_key",
         "condition_register_size",
         "condition_value",
         "num_ctrl_qubits",
         "ctrl_state",
     ],
 )
-CIRCUIT_INSTRUCTION_V2_PACK = "!HHHII?HqII"
+CIRCUIT_INSTRUCTION_V2_PACK = "!HHHIIBHqII"
 CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
 
 
@@ -272,3 +272,58 @@ LAYOUT_SIZE = struct.calcsize(LAYOUT_PACK)
 INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"])
 INITIAL_LAYOUT_BIT_PACK = "!ii"
 INITIAL_LAYOUT_BIT_SIZE = struct.calcsize(INITIAL_LAYOUT_BIT_PACK)
+
+# EXPRESSION
+
+EXPRESSION_DISCRIMINATOR_SIZE = 1
+
+EXPRESSION_CAST = namedtuple("EXPRESSION_CAST", ["implicit"])
+EXPRESSION_CAST_PACK = "!?"
+EXPRESSION_CAST_SIZE = struct.calcsize(EXPRESSION_CAST_PACK)
+
+EXPRESSION_UNARY = namedtuple("EXPRESSION_UNARY", ["opcode"])
+EXPRESSION_UNARY_PACK = "!B"
+EXPRESSION_UNARY_SIZE = struct.calcsize(EXPRESSION_UNARY_PACK)
+
+EXPRESSION_BINARY = namedtuple("EXPRESSION_BINARY", ["opcode"])
+EXPRESSION_BINARY_PACK = "!B"
+EXPRESSION_BINARY_SIZE = struct.calcsize(EXPRESSION_BINARY_PACK)
+
+
+# EXPR_TYPE
+
+EXPR_TYPE_DISCRIMINATOR_SIZE = 1
+
+EXPR_TYPE_BOOL = namedtuple("EXPR_TYPE_BOOL", [])
+EXPR_TYPE_BOOL_PACK = "!"
+EXPR_TYPE_BOOL_SIZE = struct.calcsize(EXPR_TYPE_BOOL_PACK)
+
+EXPR_TYPE_UINT = namedtuple("EXPR_TYPE_UINT", ["width"])
+EXPR_TYPE_UINT_PACK = "!L"
+EXPR_TYPE_UINT_SIZE = struct.calcsize(EXPR_TYPE_UINT_PACK)
+
+
+# EXPR_VAR
+
+EXPR_VAR_DISCRIMINATOR_SIZE = 1
+
+EXPR_VAR_CLBIT = namedtuple("EXPR_VAR_CLBIT", ["index"])
+EXPR_VAR_CLBIT_PACK = "!L"
+EXPR_VAR_CLBIT_SIZE = struct.calcsize(EXPR_VAR_CLBIT_PACK)
+
+EXPR_VAR_REGISTER = namedtuple("EXPR_VAR_REGISTER", ["reg_name_size"])
+EXPR_VAR_REGISTER_PACK = "!H"
+EXPR_VAR_REGISTER_SIZE = struct.calcsize(EXPR_VAR_REGISTER_PACK)
+
+
+# EXPR_VALUE
+
+EXPR_VALUE_DISCRIMINATOR_SIZE = 1
+
+EXPR_VALUE_BOOL = namedtuple("EXPR_VALUE_BOOL", ["value"])
+EXPR_VALUE_BOOL_PACK = "!?"
+EXPR_VALUE_BOOL_SIZE = struct.calcsize(EXPR_VALUE_BOOL_PACK)
+
+EXPR_VALUE_INT = namedtuple("EXPR_VALUE_INT", ["num_bytes"])
+EXPR_VALUE_INT_PACK = "!B"
+EXPR_VALUE_INT_SIZE = struct.calcsize(EXPR_VALUE_INT_PACK)
