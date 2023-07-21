@@ -66,11 +66,9 @@ _CONTROL_FLOW_STATES = {
     "routing_method": _ControlFlowState(
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
-    # 'synthesis' is not a supported translation method because of the block-collection passes
-    # involved; we currently don't have a neat way to pass the information about nested blocks - the
-    # `UnitarySynthesis` pass itself is control-flow aware.
     "translation_method": _ControlFlowState(
-        working={"translator", "unroller"}, not_working={"synthesis"}
+        working={"translator", "synthesis", "unroller"},
+        not_working=set(),
     ),
     "optimization_method": _ControlFlowState(working=set(), not_working=set()),
     "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
