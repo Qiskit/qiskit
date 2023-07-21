@@ -1716,6 +1716,10 @@ class QuantumCircuit:
             elif operation.name == "reset":
                 instruction_qasm = f"reset {bit_labels[instruction.qubits[0]]};"
             elif operation.name == "barrier":
+                if not instruction.qubits:
+                    # Barriers with no operands are invalid in (strict) OQ2, and the statement
+                    # would have no meaning anyway.
+                    continue
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
             else:
