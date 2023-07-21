@@ -14,9 +14,8 @@
 about the current state of the circuit """
 
 
-from qiskit.passmanager import propertyset as passmanager_propertyset
+class PropertySet(dict):
+    """A default dictionary-like object"""
 
-
-def __getattr__(name):
-    # Just redirect to new module. This will be deprecated.
-    return getattr(passmanager_propertyset, name)
+    def __missing__(self, key):
+        return None
