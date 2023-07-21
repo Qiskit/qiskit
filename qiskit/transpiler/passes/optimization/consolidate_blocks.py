@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -23,7 +22,7 @@ from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library.standard_gates import CXGate, SwapGate
+from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.transpiler.passmanager import PassManager
