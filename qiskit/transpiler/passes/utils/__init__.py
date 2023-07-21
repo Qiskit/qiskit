@@ -32,3 +32,4 @@ from .minimum_point import MinimumPoint
 
 # Utility functions
 from . import control_flow
+from .block_to_matrix import _block_to_matrix

@@ -43,7 +43,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
@@ -505,7 +505,11 @@ class Target(Mapping):
                     # It only copies user-provided calibration from the inst map.
                     # Backend defined entry must already exist in Target.
                     if self.dt is not None:
-                        duration = entry.get_schedule().duration * self.dt
+                        try:
+                            duration = entry.get_schedule().duration * self.dt
+                        except UnassignedDurationError:
+                            # duration of schedule is parameterized
+                            duration = None
                     else:
                         duration = None
                     props = InstructionProperties(

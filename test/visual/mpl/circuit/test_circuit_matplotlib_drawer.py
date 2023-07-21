@@ -1573,7 +1573,322 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(label="End Y/X")
 
         fname = "barrier_label.png"
-        self.circuit_drawer(circuit, filename="barrier_label.png")
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_op(self):
+        """Test the IfElseOp with if only"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+
+        fname = "if_op.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_else_op(self):
+        """Test the IfElseOp with else"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+
+        fname = "if_else_op.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_else_op_textbook_style(self):
+        """Test the IfElseOp with else in textbook style"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+
+        fname = "if_else_op_textbook.png"
+        self.circuit_drawer(circuit, style="textbook", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_else_with_body(self):
+        """Test the IfElseOp with adding a body manually"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, 1)
+        circuit.measure(1, 2)
+        circuit.x(2)
+        circuit.x(2, label="XLabel").c_if(cr, 2)
+
+        qr2 = QuantumRegister(3, "qr2")
+        qc2 = QuantumCircuit(qr2, cr)
+        qc2.x(1)
+        qc2.y(1)
+        qc2.z(0)
+        qc2.x(0, label="X1i").c_if(cr, 4)
+
+        circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
+        circuit.x(0, label="X1i")
+
+        fname = "if_else_body.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_else_op_nested(self):
+        """Test the IfElseOp with complex nested if/else"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+
+        fname = "if_else_op_nested.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_else_op_wire_order(self):
+        """Test the IfElseOp with complex nested if/else and wire_order"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+
+        fname = "if_else_op_wire_order.png"
+        self.circuit_drawer(circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_if_else_op_fold(self):
+        """Test the IfElseOp with complex nested if/else and fold"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+
+        fname = "if_else_op_fold.png"
+        self.circuit_drawer(circuit, fold=7, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_while_loop_op(self):
+        """Test the WhileLoopOp"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.while_loop((cr[0], 0)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+
+        fname = "while_loop.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_for_loop_op(self):
+        """Test the ForLoopOp"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        a = Parameter("a")
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.for_loop((2, 4, 8, 16), loop_parameter=a):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.rx(pi / a, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+
+        fname = "for_loop.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_switch_case_op(self):
+        """Test the SwitchCaseOp"""
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+            with case(3, 4, 5):
+                circuit.y(1)
+                circuit.y(0)
+                circuit.y(0)
+            with case(case.DEFAULT):
+                circuit.cx(0, 1)
+        circuit.h(0)
+
+        fname = "switch_case.png"
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
