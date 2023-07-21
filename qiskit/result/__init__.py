@@ -39,10 +39,7 @@ Distributions
 Expectation values
 ==================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   sampled_expectation_value
+.. autofunction:: sampled_expectation_value
 
 Mitigation
 ==========

@@ -62,60 +62,48 @@ Channels
 Measures
 ========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   average_gate_fidelity
-   process_fidelity
-   gate_error
-   diamond_norm
-   state_fidelity
-   purity
-   concurrence
-   entropy
-   entanglement_of_formation
-   mutual_information
+.. autofunction:: average_gate_fidelity
+.. autofunction:: process_fidelity
+.. autofunction:: gate_error
+.. autofunction:: diamond_norm
+.. autofunction:: state_fidelity
+.. autofunction:: purity
+.. autofunction:: concurrence
+.. autofunction:: entropy
+.. autofunction:: entanglement_of_formation
+.. autofunction:: mutual_information
 
 Utility Functions
 =================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   partial_trace
-   schmidt_decomposition
-   shannon_entropy
-   commutator
-   anti_commutator
-   double_commutator
+.. autofunction:: partial_trace
+.. autofunction:: schmidt_decomposition
+.. autofunction:: shannon_entropy
+.. autofunction:: commutator
+.. autofunction:: anti_commutator
+.. autofunction:: double_commutator
 
 Random
 ======
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   random_statevector
-   random_density_matrix
-   random_unitary
-   random_hermitian
-   random_pauli
-   random_clifford
-   random_quantum_channel
-   random_cnotdihedral
-   random_pauli_table
-   random_pauli_list
-   random_stabilizer_table
+.. autofunction:: random_statevector
+.. autofunction:: random_density_matrix
+.. autofunction:: random_unitary
+.. autofunction:: random_hermitian
+.. autofunction:: random_pauli
+.. autofunction:: random_clifford
+.. autofunction:: random_quantum_channel
+.. autofunction:: random_cnotdihedral
+.. autofunction:: random_pauli_table
+.. autofunction:: random_pauli_list
+.. autofunction:: random_stabilizer_table
 
 Analysis
 =========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   hellinger_distance
-   hellinger_fidelity
-   Z2Symmetries
+.. autofunction:: hellinger_distance
+.. autofunction:: hellinger_fidelity
+.. autofunction:: Z2Symmetries
 
 Synthesis
 =========
@@ -125,10 +113,11 @@ Synthesis
 
    OneQubitEulerDecomposer
    TwoQubitBasisDecomposer
-   two_qubit_cnot_decompose
    Quaternion
-   decompose_clifford
    XXDecomposer
+
+.. autofunction:: two_qubit_cnot_decompose
+.. autofunction:: decompose_clifford
 """
 
 from __future__ import annotations

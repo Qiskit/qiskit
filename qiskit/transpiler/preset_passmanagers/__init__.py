@@ -34,31 +34,25 @@ part) the stages which the preset pass managers are composed of
 Preset Pass Manager Generation
 ------------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   generate_preset_pass_manager
-   level_0_pass_manager
-   level_1_pass_manager
-   level_2_pass_manager
-   level_3_pass_manager
+.. autofunction:: generate_preset_pass_manager
+.. autofunction:: level_0_pass_manager
+.. autofunction:: level_1_pass_manager
+.. autofunction:: level_2_pass_manager
+.. autofunction:: level_3_pass_manager
 
 .. _stage_generators:
 
 Stage Generator Functions
 -------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.transpiler.preset_passmanagers.common.generate_control_flow_options_check
-   ~qiskit.transpiler.preset_passmanagers.common.generate_error_on_control_flow
-   ~qiskit.transpiler.preset_passmanagers.common.generate_unroll_3q
-   ~qiskit.transpiler.preset_passmanagers.common.generate_embed_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_routing_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_pre_op_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_translation_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_scheduling
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_control_flow_options_check
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_error_on_control_flow
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_unroll_3q
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_embed_passmanager
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_routing_passmanager
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_pre_op_passmanager
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_translation_passmanager
+.. autofunction:: ~qiskit.transpiler.preset_passmanagers.common.generate_scheduling
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig

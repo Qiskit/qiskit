@@ -90,10 +90,7 @@ Counts Visualizations
 
 This section contains functions that visualize measurement outcome counts.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   plot_histogram
+.. autofunction:: plot_histogram
 
 Example Usage
 -------------
@@ -116,25 +113,19 @@ Distribution Visualizations
 
 This section contains functions that visualize sampled distributions.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   plot_distribution
+.. autofunction:: plot_distribution
 
 State Visualizations
 ====================
 
 This section contains functions that visualize quantum states.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   plot_bloch_vector
-   plot_bloch_multivector
-   plot_state_city
-   plot_state_hinton
-   plot_state_paulivec
-   plot_state_qsphere
+.. autofunction:: plot_bloch_vector
+.. autofunction:: plot_bloch_multivector
+.. autofunction:: plot_state_city
+.. autofunction:: plot_state_hinton
+.. autofunction:: plot_state_paulivec
+.. autofunction:: plot_state_qsphere
 
 Example Usage
 -------------
@@ -189,81 +180,54 @@ You can find code examples for each visualization functions on the individual fu
 Device Visualizations
 =====================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   plot_gate_map
-   plot_error_map
-   plot_circuit_layout
-   plot_coupling_map
+.. autofunction:: plot_gate_map
+.. autofunction:: plot_error_map
+.. autofunction:: plot_circuit_layout
+.. autofunction:: plot_coupling_map
 
 Circuit Visualizations
 ======================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   circuit_drawer
-   ~qiskit.visualization.qcstyle.DefaultStyle
+.. autofunction:: circuit_drawer
+.. autofunction:: ~qiskit.visualization.qcstyle.DefaultStyle
 
 DAG Visualizations
 ==================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   dag_drawer
+.. autofunction:: dag_drawer
 
 Pass Manager Visualizations
 ===========================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   pass_manager_drawer
+.. autofunction:: pass_manager_drawer
 
 Pulse Visualizations
 ====================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   pulse_drawer
-   ~qiskit.visualization.pulse.IQXStandard
-   ~qiskit.visualization.pulse.IQXSimple
-   ~qiskit.visualization.pulse.IQXDebugging
+.. autofunction:: pulse_drawer
+.. autofunction:: ~qiskit.visualization.pulse.IQXStandard
+.. autofunction:: ~qiskit.visualization.pulse.IQXSimple
+.. autofunction:: ~qiskit.visualization.pulse.IQXDebugging
 
 Timeline Visualizations
 =======================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   timeline_drawer
+.. autofunction:: timeline_drawer
 
 Single Qubit State Transition Visualizations
 ============================================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   visualize_transition
+.. autofunction:: visualize_transition
 
 Array/Matrix Visualizations
 ===========================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   array_to_latex
+.. autofunction:: array_to_latex
 
 Exceptions
 ==========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   VisualizationError
+.. autofunction:: VisualizationError
 """
 
 import os
