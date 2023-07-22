@@ -36,7 +36,14 @@ class VersionTable(Magics):
         html += "<table>"
         html += "<tr><th>Software</th><th>Version</th></tr>"
 
-        packages = {}
+        packages = {"qiskit": None}
+
+        packages["qiskit-terra"] = qiskit.__version__
+
+        qiskit_modules = {module.split(".")[0] for module in modules.keys() if "qiskit" in module}
+
+        for qiskit_module in qiskit_modules:
+            packages[qiskit_module] = getattr(modules[qiskit_module], "__version__", None)
 
         from importlib.metadata import metadata, PackageNotFoundError
 
@@ -45,14 +52,9 @@ class VersionTable(Magics):
         except PackageNotFoundError:
             packages["qiskit"] = None
 
-        packages["qiskit-terra"] = qiskit.__version__
-
-        qiskit_modules = {module.split(".")[0] for module in modules.keys() if "qiskit" in module}
-        for qiskit_module in qiskit_modules:
-            packages[qiskit_module] = getattr(modules[qiskit_module], "__version__", None)
-
         for name, version in packages.items():
-            html += f"<tr><td><code>{name}</code></td><td>{version}</td></tr>"
+            if name == "qiskit" or version:
+                html += f"<tr><td><code>{name}</code></td><td>{version}</td></tr>"
 
         html += "<tr><th colspan='2'>System information</th></tr>"
 
