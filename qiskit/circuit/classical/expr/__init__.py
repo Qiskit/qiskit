@@ -142,6 +142,14 @@ For the convenience of simple visitors that only need to inspect the variables i
 not the general structure, the iterator method :func:`iter_vars` is provided.
 
 .. autofunction:: iter_vars
+
+Two expressions can be compared for direct structural equality by using the built-in Python ``==``
+operator.  In general, though, one might want to compare two expressions slightly more semantically,
+allowing that the :class:`Var` nodes inside them are bound to different memory-location descriptions
+between two different circuits.  In this case, one can use :func:`structurally_equivalent` with two
+suitable "key" functions to do the comparison.
+
+.. autofunction:: structurally_equivalent
 """
 
 __all__ = [
@@ -153,6 +161,7 @@ __all__ = [
     "Binary",
     "ExprVisitor",
     "iter_vars",
+    "structurally_equivalent",
     "lift",
     "cast",
     "bit_not",
@@ -172,7 +181,7 @@ __all__ = [
 ]
 
 from .expr import Expr, Var, Value, Cast, Unary, Binary
-from .visitors import ExprVisitor, iter_vars
+from .visitors import ExprVisitor, iter_vars, structurally_equivalent
 from .constructors import (
     lift,
     cast,
