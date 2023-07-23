@@ -13,18 +13,26 @@
 """
 Superoperator representation of a Quantum Channel."""
 
+from __future__ import annotations
+
 import copy
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor, _to_superop
+from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
-from qiskit.quantum_info.operators.channel.transformations import _to_superop
-from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
-from qiskit.quantum_info.operators.mixins import generate_apidocs
+
+if TYPE_CHECKING:
+    from qiskit.quantum_info.states.densitymatrix import DensityMatrix
+    from qiskit.quantum_info.states.statevector import Statevector
 
 
 class SuperOp(QuantumChannel):
@@ -50,7 +58,12 @@ class SuperOp(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
+    ):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
@@ -151,12 +164,12 @@ class SuperOp(QuantumChannel):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: SuperOp) -> SuperOp:
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: SuperOp) -> SuperOp:
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
         return self._tensor(other, self)
@@ -170,7 +183,7 @@ class SuperOp(QuantumChannel):
         )
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: SuperOp, qargs: list | None = None, front: bool = False) -> SuperOp:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, SuperOp):
