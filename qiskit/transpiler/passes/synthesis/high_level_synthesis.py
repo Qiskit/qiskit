@@ -130,6 +130,7 @@ class HighLevelSynthesis(TransformationPass):
     ):
         """
         HighLevelSynthesis initializer.
+
         Args:
             hls_config: Optional, the high-level-synthesis config that specifies synthesis methods
                 and parameters for various high-level-objects in the circuit. If it is not specified,
