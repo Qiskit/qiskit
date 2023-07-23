@@ -19,7 +19,7 @@ import unittest.mock
 
 from qiskit.circuit import QuantumCircuit, Operation
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, TranspilerError, CouplingMap
 from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 
@@ -72,7 +72,7 @@ class OpB(Operation):
 class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
     """The default synthesis for opA"""
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         qc = QuantumCircuit(1)
         qc.id(0)
         return qc
@@ -81,7 +81,7 @@ class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
 class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
     """The repeat synthesis for opA"""
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         if "n" not in options.keys():
             return None
 
@@ -94,7 +94,7 @@ class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
 class OpBSimpleSynthesisPlugin(HighLevelSynthesisPlugin):
     """The simple synthesis for OpB"""
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
         return qc
@@ -110,12 +110,23 @@ class OpBAnotherSynthesisPlugin(HighLevelSynthesisPlugin):
     def __init__(self, num_swaps=1):
         self.num_swaps = num_swaps
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         num_swaps = options.get("num_swaps", self.num_swaps)
 
         qc = QuantumCircuit(2)
         for _ in range(num_swaps):
             qc.swap(0, 1)
+        return qc
+
+
+class OpAPluginNeedsCouplingMap(HighLevelSynthesisPlugin):
+    """Synthesis plugins for OpA that needs a coupling map to be run."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if coupling_map is None:
+            raise TranspilerError("Coupling map should be specified!")
+        qc = QuantumCircuit(1)
+        qc.id(0)
         return qc
 
 
@@ -129,9 +140,13 @@ class MockPluginManager:
             "op_a.default": OpADefaultSynthesisPlugin,
             "op_a.repeat": OpARepeatSynthesisPlugin,
             "op_b.simple": OpBSimpleSynthesisPlugin,
+            "op_a.needs_coupling_map": OpAPluginNeedsCouplingMap,
         }
 
-        self.plugins_by_op = {"op_a": ["default", "repeat"], "op_b": ["simple"]}
+        self.plugins_by_op = {
+            "op_a": ["default", "repeat", "needs_coupling_map"],
+            "op_b": ["simple"],
+        }
 
     def method_names(self, op_name):
         """Returns plugin methods for op_name."""
@@ -363,6 +378,33 @@ class TestHighLeverSynthesisInterface(QiskitTestCase):
             tqc = pm.run(qc)
             ops = tqc.count_ops()
             self.assertEqual(ops["swap"], 6)
+
+    def test_coupling_map_gets_passed_to_plugins(self):
+        """Check that passing coupling map works correctly."""
+        qc = self.create_circ()
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            hls_config = HLSConfig(op_a=["needs_coupling_map"])
+            pm_bad = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+            pm_good = PassManager(
+                [
+                    HighLevelSynthesis(
+                        hls_config=hls_config, coupling_map=CouplingMap.from_line(qc.num_qubits)
+                    )
+                ]
+            )
+
+            # HighLevelSynthesis is initialized without a coupling map, but calling a plugin that
+            # raises a TranspilerError without the coupling map.
+            with self.assertRaises(TranspilerError):
+                pm_bad.run(qc)
+
+            # Now HighLevelSynthesis is initialized with a coupling map.
+            tqc = pm_good.run(qc)
+            print(tqc)
 
 
 if __name__ == "__main__":
