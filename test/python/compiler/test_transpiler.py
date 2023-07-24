@@ -76,7 +76,7 @@ from qiskit.test import QiskitTestCase, slow_test
 from qiskit.tools import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
@@ -1879,13 +1879,22 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 qubit_indices.append(qubit_idx)
             return qubit_indices
 
+        vf2_post_layout_called = False
+
+        def callback(**kwargs):
+            nonlocal vf2_post_layout_called
+            if isinstance(kwargs["pass_"], VF2PostLayout):
+                vf2_post_layout_called = True
+                self.assertIsNotNone(kwargs["property_set"])
+
         backend = FakeVigo()
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(qc, backend=backend, seed_transpiler=4242)
+        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        self.assertTrue(vf2_post_layout_called)
         self.assertEqual([3, 2, 1], _get_index_layout(tqc, qubits))
 
 
