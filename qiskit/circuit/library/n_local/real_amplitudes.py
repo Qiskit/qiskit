@@ -119,7 +119,7 @@ class RealAmplitudes(TwoLocal):
     def __init__(
         self,
         num_qubits: int | None = None,
-        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
