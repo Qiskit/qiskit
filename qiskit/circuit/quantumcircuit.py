@@ -5025,7 +5025,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     Returns a potentially new :class:`.Instruction`, which should be used for the
     :meth:`~.Instruction.qasm` call (it may have been renamed)."""
-    from qiskit.circuit import library as lib  # pylint: disable=cyclic-import
+    # pylint: disable=cyclic-import
+    from qiskit.circuit import library as lib
+    from qiskit.qasm2 import QASM2ExportError
 
     if operation.name in existing_gate_names:
         return operation
@@ -5087,14 +5089,14 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
     else:
         parameters_qasm = ""
 
-    # Gate definitions with 0 qubits or with any classical bits are not allowed.
-    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
-
-    if operation.num_qubits == 0 or operation.num_clbits != 0:
+    if operation.num_qubits == 0:
         raise QASM2ExportError(
-            "OpenQASM 2 does not allow gate definitions with no qubits or with any "
-            f"classical bit: '{operation.name}' has {operation.num_qubits} qubits "
-            f"and {operation.num_clbits} clbits"
+            f"OpenQASM 2 cannot represent '{operation.name}, which acts on zero qubits."
+        )
+    if operation.num_clbits != 0:
+        raise QASM2ExportError(
+            f"OpenQASM 2 cannot represent '{operation.name}', which acts on {operation.num_clbits}"
+            " classical bits."
         )
 
     qubits_qasm = ",".join(f"q{i}" for i in range(parameterized_operation.num_qubits))
