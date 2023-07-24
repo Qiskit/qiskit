@@ -128,7 +128,6 @@ class TestApplyLayout(QiskitTestCase):
         cmap = FakeVigoV2().coupling_map
         initial_pm += common.generate_embed_passmanager(cmap)
         first_layout_circ = initial_pm.run(qc)
-        print(first_layout_circ.qubits)
         out_pass = ApplyLayout()
         out_pass.property_set["layout"] = first_layout_circ.layout.initial_layout
         out_pass.property_set[
