@@ -1885,7 +1885,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
             nonlocal vf2_post_layout_called
             if isinstance(kwargs["pass_"], VF2PostLayout):
                 vf2_post_layout_called = True
-                self.assertIsNotNone(kwargs["property_set"])
+                self.assertIsNotNone(kwargs["property_set"]["post_layout"])
 
         backend = FakeVigo()
         qubits = 3
