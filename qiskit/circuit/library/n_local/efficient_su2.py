@@ -81,9 +81,9 @@ class EfficientSU2(TwoLocal):
         num_qubits: int | None = None,
         su2_gates: str
         | type
-        | Instruction
+        | qiskit.circuit.Instruction
         | QuantumCircuit
-        | list[str | type | Instruction | QuantumCircuit]
+        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
         | None = None,
         entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
