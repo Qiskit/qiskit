@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Some of the custom operator that Qiskit is available to express are not expressible in OpenQASM 2.
+    When exporting those gates using :meth:`qiskit.QuantumCircuit.qasm`, this sort of operators are now
+    raising. See `#7351 <https://github.com/Qiskit/qiskit-terra/issues/7351>`__ and
+    `#10435 <https://github.com/Qiskit/qiskit-terra/issues/10435>`__.

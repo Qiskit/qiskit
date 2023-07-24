@@ -658,7 +658,8 @@ p(pi) q[0];\n"""
             qc.qasm()
 
     def test_circuit_raises_invalid_custom_gate_1(self):
-        """OpenQASM 2 exporter of custom gates with no qubits."""
+        """OpenQASM 2 exporter of custom gates with no qubits.
+        See: https://github.com/Qiskit/qiskit-terra/issues/10435"""
         legit_circuit = QuantumCircuit(5, name="legit_circuit")
         empty_circuit = QuantumCircuit(name="empty_circuit")
         legit_circuit.append(empty_circuit)
@@ -667,7 +668,8 @@ p(pi) q[0];\n"""
             legit_circuit.qasm()
 
     def test_circuit_raises_invalid_custom_gate_2(self):
-        """OpenQASM 2 exporter of custom instruction."""
+        """OpenQASM 2 exporter of custom instruction.
+        See: https://github.com/Qiskit/qiskit-terra/issues/7351"""
         instruction = QuantumCircuit(2, 2, name="inst")
         instruction.cx(0, 1)
         instruction.measure_all()
