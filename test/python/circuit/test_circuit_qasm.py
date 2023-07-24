@@ -657,6 +657,15 @@ p(pi) q[0];\n"""
         with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
             qc.qasm()
 
+    def test_circuit_raises_invalid_custom_gate_1(self):
+        """OpenQASM 2 exporter of custom gates with no qubits."""
+        legit_circuit = QuantumCircuit(5, name="legit_circuit")
+        empty_circuit = QuantumCircuit(name="empty_circuit")
+        legit_circuit.append(empty_circuit)
+
+        with self.assertRaisesRegex(QasmError, "gate definitions with no qubits"):
+            legit_circuit.qasm()
+
     def test_circuit_qasm_with_permutations(self):
         """Test circuit qasm() method with Permutation gates."""
 
