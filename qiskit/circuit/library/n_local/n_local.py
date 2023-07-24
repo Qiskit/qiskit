@@ -12,10 +12,10 @@
 
 """The n-local circuit class."""
 
-from __future__ import annotations
-
 import typing
-from typing import Union, Optional, Any, Sequence, Callable, Mapping
+from __future__ import annotations
+from collections.abc import Callable, Mapping
+
 from itertools import combinations
 
 import numpy
@@ -90,10 +90,9 @@ class NLocal(BlueprintCircuit):
         skip_unentangled_qubits: bool = False,
         initial_state: QuantumCircuit | None = None,
         name: str | None = "nlocal",
-        flatten: Optional[bool] = None,
+        flatten: bool | None = None,
     ) -> None:
-        """Create a new n-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the circuit.
             rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
@@ -122,9 +121,6 @@ class NLocal(BlueprintCircuit):
                 for anything besides visualization its **strongly** recommended
                 to set this flag to ``True`` to avoid a large performance
                 overhead for parameter binding.
-
-        Examples:
-            TODO
 
         Raises:
             ValueError: If ``reps`` parameter is less than or equal to 0.
@@ -289,17 +285,9 @@ class NLocal(BlueprintCircuit):
     @property
     def entanglement(
         self,
-    ) -> Union[
-        str,
-        list[str],
-        list[list[str]],
-        list[int],
-        list[list[int]],
-        list[list[list[int]]],
-        list[list[list[list[int]]]],
-        Callable[[int], str],
-        Callable[[int], list[list[int]]],
-    ]:
+    ) -> str | list[str] | list[list[str]] | list[int] | list[list[int]] | list[
+        list[list[int]]
+    ] | list[list[list[list[int]]]] | Callable[[int], str] | Callable[[int], list[list[int]]]:
         """Get the entanglement strategy.
 
         Returns:
@@ -311,19 +299,16 @@ class NLocal(BlueprintCircuit):
     @entanglement.setter
     def entanglement(
         self,
-        entanglement: Optional[
-            Union[
-                str,
-                list[str],
-                list[list[str]],
-                list[int],
-                list[list[int]],
-                list[list[list[int]]],
-                list[list[list[list[int]]]],
-                Callable[[int], str],
-                Callable[[int], list[list[int]]],
-            ]
-        ],
+        entanglement: str
+        | list[str]
+        | list[list[str]]
+        | list[int]
+        | list[list[int]]
+        | list[list[list[int]]]
+        | list[list[list[list[int]]]]
+        | Callable[[int], str]
+        | Callable[[int], list[list[int]]]
+        | None,
     ) -> None:
         """Set the entanglement strategy.
 
@@ -730,7 +715,7 @@ class NLocal(BlueprintCircuit):
 
     def add_layer(
         self,
-        other: Union["NLocal", qiskit.circuit.Instruction, QuantumCircuit],
+        other: QuantumCircuit | qiskit.circuit.Instruction,
         entanglement: list[int] | str | list[list[int]] | None = None,
         front: bool = False,
     ) -> "NLocal":
