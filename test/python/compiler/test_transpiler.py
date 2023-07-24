@@ -1526,9 +1526,7 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
-    # TODO: Add optimization level 2 and 3 after they support control flow
-    # compilation
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
         """Test transpile() with a target and constrol flow ops."""
         target = FakeMumbaiV2().target
@@ -1760,10 +1758,15 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         self.assertEqual(round_tripped, transpiled)
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_qpy_roundtrip_control_flow(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow can be round-tripped
         through QPY."""
+        if optimization_level == 3 and sys.platform == "win32":
+            self.skipTest(
+                "This test case triggers a bug in the eigensolver routine on windows. "
+                "See #10345 for more details."
+            )
 
         backend = FakeMelbourne()
         transpiled = transpile(
@@ -1782,7 +1785,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         round_tripped = qpy.load(buffer)[0]
         self.assertEqual(round_tripped, transpiled)
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_qpy_roundtrip_control_flow_backendv2(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow can be round-tripped
         through QPY."""
@@ -1819,7 +1822,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         # itself doesn't throw an error, though.
         self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_qasm3_output_control_flow(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow can be dumped into
         OpenQASM 3."""
