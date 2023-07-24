@@ -666,6 +666,19 @@ p(pi) q[0];\n"""
         with self.assertRaisesRegex(QasmError, "gate definitions with no qubits"):
             legit_circuit.qasm()
 
+    def test_circuit_raises_invalid_custom_gate_2(self):
+        """OpenQASM 2 exporter of custom instruction."""
+        instruction = QuantumCircuit(2, 2, name="inst")
+        instruction.cx(0, 1)
+        instruction.measure_all()
+        custom_instruction = instruction.to_instruction()
+
+        qc = QuantumCircuit(2, 2)
+        qc.append(custom_instruction, [0, 1], [0, 1])
+
+        with self.assertRaisesRegex(QasmError, "gate definitions with no qubits"):
+            qc.qasm()
+
     def test_circuit_qasm_with_permutations(self):
         """Test circuit qasm() method with Permutation gates."""
 
