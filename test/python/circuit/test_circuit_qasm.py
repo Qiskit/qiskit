@@ -266,6 +266,11 @@ c3sqrtx q[0],q[1],q[2],q[3];
         parsed = QuantumCircuit.from_qasm_str(qasm)
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
 
+    def test_c3sxgate_qasm_deprecation_warning(self):
+        """Test deprecation warning for C3SXGate."""
+        with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
+            C3SXGate().qasm()
+
     def test_cczgate_qasm(self):
         """Test that CCZ dumps definition as a non-qelib1 gate."""
         qc = QuantumCircuit(3)
@@ -650,6 +655,30 @@ p(pi) q[0];\n"""
         qc.x(0).c_if(0, True)
 
         with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
+            qc.qasm()
+
+    def test_circuit_raises_invalid_custom_gate_1(self):
+        """OpenQASM 2 exporter of custom gates with no qubits.
+        See: https://github.com/Qiskit/qiskit-terra/issues/10435"""
+        legit_circuit = QuantumCircuit(5, name="legit_circuit")
+        empty_circuit = QuantumCircuit(name="empty_circuit")
+        legit_circuit.append(empty_circuit)
+
+        with self.assertRaisesRegex(QasmError, "gate definitions with no qubits"):
+            legit_circuit.qasm()
+
+    def test_circuit_raises_invalid_custom_gate_2(self):
+        """OpenQASM 2 exporter of custom instruction.
+        See: https://github.com/Qiskit/qiskit-terra/issues/7351"""
+        instruction = QuantumCircuit(2, 2, name="inst")
+        instruction.cx(0, 1)
+        instruction.measure_all()
+        custom_instruction = instruction.to_instruction()
+
+        qc = QuantumCircuit(2, 2)
+        qc.append(custom_instruction, [0, 1], [0, 1])
+
+        with self.assertRaisesRegex(QasmError, "gate definitions with no qubits"):
             qc.qasm()
 
     def test_circuit_qasm_with_permutations(self):

@@ -12,13 +12,15 @@
 
 """Parameter Vector Class to simplify management of parameter lists."""
 
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from .parameter import Parameter
 
 
 class ParameterVectorElement(Parameter):
     """An element of a ParameterVector."""
+
+    ___slots__ = ("_vector", "_index")
 
     def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
         obj = object.__new__(cls)
@@ -34,7 +36,7 @@ class ParameterVectorElement(Parameter):
     def __getnewargs__(self):
         return (self.vector, self.index, self._uuid)
 
-    def __init__(self, vector, index):
+    def __init__(self, vector, index, uuid=None):  # pylint: disable=unused-argument
         name = f"{vector.name}[{index}]"
         super().__init__(name)
         self._vector = vector
@@ -69,12 +71,16 @@ class ParameterVectorElement(Parameter):
 class ParameterVector:
     """ParameterVector class to quickly generate lists of parameters."""
 
+    __slots__ = ("_name", "_params", "_size", "_root_uuid")
+
     def __init__(self, name, length=0):
         self._name = name
-        self._params = []
         self._size = length
-        for i in range(length):
-            self._params += [ParameterVectorElement(self, i)]
+        self._root_uuid = uuid4()
+        root_uuid_int = self._root_uuid.int
+        self._params = [
+            ParameterVectorElement(self, i, UUID(int=root_uuid_int + i)) for i in range(length)
+        ]
 
     @property
     def name(self):
@@ -119,6 +125,11 @@ class ParameterVector:
         This is to ensure that the parameter instances do not change.
         """
         if length > len(self._params):
-            for i in range(len(self._params), length):
-                self._params += [ParameterVectorElement(self, i)]
+            root_uuid_int = self._root_uuid.int
+            self._params.extend(
+                [
+                    ParameterVectorElement(self, i, UUID(int=root_uuid_int + i))
+                    for i in range(len(self._params), length)
+                ]
+            )
         self._size = length

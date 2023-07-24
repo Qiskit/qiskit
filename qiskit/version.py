@@ -102,13 +102,58 @@ class QiskitVersion(Mapping):
             category=DeprecationWarning,
         )
         self._version_dict = {
-            "qiskit": __version__,
+            "qiskit-terra": __version__,
+            "qiskit": None,
         }
         self._loaded = False
 
     def _load_versions(self):
         from importlib.metadata import version
 
+        try:
+            # TODO: Update to use qiskit_aer instead when we remove the
+            # namespace redirect
+            from qiskit.providers import aer
+
+            self._version_dict["qiskit-aer"] = aer.__version__
+        except Exception:
+            self._version_dict["qiskit-aer"] = None
+        try:
+            from qiskit import ignis
+
+            self._version_dict["qiskit-ignis"] = ignis.__version__
+        except Exception:
+            self._version_dict["qiskit-ignis"] = None
+        try:
+            from qiskit.providers import ibmq
+
+            self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
+        except Exception:
+            self._version_dict["qiskit-ibmq-provider"] = None
+        try:
+            import qiskit_nature
+
+            self._version_dict["qiskit-nature"] = qiskit_nature.__version__
+        except Exception:
+            self._version_dict["qiskit-nature"] = None
+        try:
+            import qiskit_finance
+
+            self._version_dict["qiskit-finance"] = qiskit_finance.__version__
+        except Exception:
+            self._version_dict["qiskit-finance"] = None
+        try:
+            import qiskit_optimization
+
+            self._version_dict["qiskit-optimization"] = qiskit_optimization.__version__
+        except Exception:
+            self._version_dict["qiskit-optimization"] = None
+        try:
+            import qiskit_machine_learning
+
+            self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
+        except Exception:
+            self._version_dict["qiskit-machine-learning"] = None
         try:
             self._version_dict["qiskit"] = version("qiskit")
         except Exception:

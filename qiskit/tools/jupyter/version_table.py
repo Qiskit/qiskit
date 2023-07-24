@@ -38,17 +38,14 @@ class VersionTable(Magics):
 
         packages = {"qiskit": qiskit.__version__}
 
-        from importlib.metadata import metadata, PackageNotFoundError
+        qiskit_modules = {module.split(".")[0] for module in modules.keys() if "qiskit" in module}
 
-        for module in modules.keys():
-            if "qiskit" in module and "qiskit" != module:
-                try:
-                    packages[metadata(module)["Name"]] = metadata(module)["Version"]
-                except PackageNotFoundError:
-                    pass
+        for qiskit_module in qiskit_modules:
+            packages[qiskit_module] = getattr(modules[qiskit_module], "__version__", None)
 
         for name, version in packages.items():
-            html += f"<tr><td><code>{name}</code></td><td>{version}</td></tr>"
+            if version:
+                html += f"<tr><td><code>{name}</code></td><td>{version}</td></tr>"
 
         html += "<tr><th colspan='2'>System information</th></tr>"
 
