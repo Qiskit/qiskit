@@ -17,6 +17,7 @@ from collections.abc import Callable
 
 import numpy as np
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RYGate, CXGate
 from .two_local import TwoLocal
 
@@ -118,13 +119,7 @@ class RealAmplitudes(TwoLocal):
     def __init__(
         self,
         num_qubits: int | None = None,
-        entanglement_blocks: str
-        | list[str]
-        | type
-        | list[type]
-        | QuantumCircuit
-        | list[QuantumCircuit]
-        | None = None,
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
@@ -185,7 +180,7 @@ class RealAmplitudes(TwoLocal):
         )
 
     @property
-    def parameter_bounds(self) -> List[Tuple[float, float]]:
+    def parameter_bounds(self) -> list[tuple[float, float]]:
         """Return the parameter bounds.
 
         Returns:

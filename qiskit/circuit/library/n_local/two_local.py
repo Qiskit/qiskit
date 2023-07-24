@@ -13,7 +13,7 @@
 """The two-local gate circuit."""
 
 from __future__ import annotations
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
@@ -240,7 +240,7 @@ class TwoLocal(NLocal):
             flatten=flatten,
         )
 
-    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
+    def _convert_to_block(self, layer: str | type | Gate | QuantumCircuit) -> QuantumCircuit:
         """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
          returns the
          according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).

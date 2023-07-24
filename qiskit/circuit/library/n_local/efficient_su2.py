@@ -12,6 +12,9 @@
 
 """The EfficientSU2 2-local circuit."""
 
+from __future__ import annotations
+from collections.abc import Callable
+
 from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, Instruction

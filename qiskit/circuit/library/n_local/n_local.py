@@ -12,9 +12,9 @@
 
 """The n-local circuit class."""
 
-import typing
 from __future__ import annotations
-from collections.abc import Callable, Mapping
+import typing
+from collections.abc import Callable, Mapping, Sequence
 
 from itertools import combinations
 
@@ -203,7 +203,7 @@ class NLocal(BlueprintCircuit):
         self._invalidate()
         self._flatten = flatten
 
-    def _convert_to_block(self, layer: Any) -> QuantumCircuit:
+    def _convert_to_block(self, layer: typing.Any) -> QuantumCircuit:
         """Try to convert ``layer`` to a QuantumCircuit.
 
         Args:
