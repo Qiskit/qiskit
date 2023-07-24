@@ -83,7 +83,7 @@ class ApplyLayout(TransformationPass):
             full_layout = Layout()
             old_phys_to_virtual = layout.get_physical_bits()
             new_virtual_to_physical = post_layout.get_virtual_bits()
-            phys_map = {i: i for i in range(len(new_dag.qubits))}
+            phys_map = list(range(len(new_dag.qubits)))
             for new_virt, new_phys in new_virtual_to_physical.items():
                 old_phys = dag.find_bit(new_virt).index
                 old_virt = old_phys_to_virtual[old_phys]
