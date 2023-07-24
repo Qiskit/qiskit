@@ -829,6 +829,23 @@ z q[2];
 
         self.assertEqual(qc.qasm(), expected_output)
 
+    def test_empty_barrier(self):
+        """Test that a blank barrier statement in _Qiskit_ acts over all qubits, while an explicitly
+        no-op barrier (assuming Qiskit continues to allow this) is not output to OQ2 at all, since
+        the statement requires an argument in the spec."""
+        qc = QuantumCircuit(QuantumRegister(2, "qr1"), QuantumRegister(3, "qr2"))
+        qc.barrier()  # In Qiskit land, this affects _all_ qubits.
+        qc.barrier([])  # This explicitly affects _no_ qubits (so is totally meaningless).
+
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr1[2];
+qreg qr2[3];
+barrier qr1[0],qr1[1],qr2[0],qr2[1],qr2[2];
+"""
+        self.assertEqual(qc.qasm(), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
