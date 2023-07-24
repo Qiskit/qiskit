@@ -5086,17 +5086,6 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
         )
     else:
         parameters_qasm = ""
-
-    # Gate definitions with 0 qubits or with any classical bits are not allowed.
-    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
-
-    if operation.num_qubits == 0 or operation.num_clbits != 0:
-        raise QASM2ExportError(
-            "OpenQASM 2 does not allow gate definitions with no qubits or with any "
-            f"classical bit: '{operation.name}' has {operation.num_qubits} qubits "
-            f"and {operation.num_clbits} clbits"
-        )
-
     qubits_qasm = ",".join(f"q{i}" for i in range(parameterized_operation.num_qubits))
     parameterized_definition = getattr(parameterized_operation, "definition", None)
     if parameterized_definition is None:
