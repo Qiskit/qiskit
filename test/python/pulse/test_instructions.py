@@ -67,31 +67,16 @@ class TestAcquire(QiskitTestCase):
 
     def test_instructions_hash(self):
         """Test hashing for acquire instruction."""
-        kernel_opts = {"start_window": 0, "stop_window": 10}
-        kernel = configuration.Kernel(name="boxcar", **kernel_opts)
-
-        discriminator_opts = {
-            "neighborhoods": [{"qubits": 1, "channels": 1}],
-            "cal": "coloring",
-            "resample": False,
-        }
-        discriminator = configuration.Discriminator(
-            name="linear_discriminator", **discriminator_opts
-        )
         acq_1 = instructions.Acquire(
             10,
             channels.AcquireChannel(0),
             channels.MemorySlot(0),
-            kernel=kernel,
-            discriminator=discriminator,
             name="acquire",
         )
         acq_2 = instructions.Acquire(
             10,
             channels.AcquireChannel(0),
             channels.MemorySlot(0),
-            kernel=kernel,
-            discriminator=discriminator,
             name="acquire",
         )
 
@@ -361,14 +346,16 @@ class TestCall(QiskitTestCase):
 
     def test_call(self):
         """Test basic call instruction."""
-        call = instructions.Call(subroutine=self.subroutine)
+        with self.assertWarns(DeprecationWarning):
+            call = instructions.Call(subroutine=self.subroutine)
 
         self.assertEqual(call.duration, 10)
         self.assertEqual(call.subroutine, self.subroutine)
 
     def test_parameterized_call(self):
         """Test call instruction with parameterized subroutine."""
-        call = instructions.Call(subroutine=self.function)
+        with self.assertWarns(DeprecationWarning):
+            call = instructions.Call(subroutine=self.function)
 
         self.assertTrue(call.is_parameterized())
         self.assertEqual(len(call.parameters), 2)
@@ -393,7 +380,8 @@ class TestCall(QiskitTestCase):
     def test_call_initialize_with_parameter(self):
         """Test call instruction with parameterized subroutine with initial dict."""
         init_dict = {self.param1: 0.1, self.param2: 0.5}
-        call = instructions.Call(subroutine=self.function, value_dict=init_dict)
+        with self.assertWarns(DeprecationWarning):
+            call = instructions.Call(subroutine=self.function, value_dict=init_dict)
 
         with pulse.build() as ref_sched:
             pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))

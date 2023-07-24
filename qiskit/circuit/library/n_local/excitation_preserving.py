@@ -100,6 +100,7 @@ class ExcitationPreserving(TwoLocal):
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
         name: str = "ExcitationPreserving",
+        flatten: Optional[bool] = None,
     ) -> None:
         """Create a new ExcitationPreserving 2-local circuit.
 
@@ -127,6 +128,13 @@ class ExcitationPreserving(TwoLocal):
                 we use :class:`~qiskit.circuit.ParameterVector`.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         Raises:
             ValueError: If the selected mode is not supported.
@@ -155,6 +163,7 @@ class ExcitationPreserving(TwoLocal):
             insert_barriers=insert_barriers,
             initial_state=initial_state,
             name=name,
+            flatten=flatten,
         )
 
     @property

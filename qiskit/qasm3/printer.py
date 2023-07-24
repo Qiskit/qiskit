@@ -12,12 +12,51 @@
 
 """Printers for QASM 3 AST nodes."""
 
+import collections
 import io
 from typing import Sequence
 
 from . import ast
 from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
+
+# Precedence and associativity table for prefix, postfix and infix operators.  The rules are a
+# lookup table of two-tuples; the "binding power" of the operator to the left and to the right.
+# Prefix operators have maximum binding power to the left, postfix have maximum power to the right
+# (i.e. they bind "so tightly" on that side that parentheses are never needed).
+#
+# Associativity is represented by having offset binding between the left and right sides.  The rule
+# is that each infix operator's power is a `(2*n - 1, 2*n)` pair so the odd number is lower then
+# the even - it's not meaningful itself, just a convention to avoid conflicts.  If the operator is
+# left-associative (conventional, `a + b + c` is parsed `(a + b) + c`), the lower number is on the
+# left, and vice-versa for right-associative operators (such as `**`).
+#
+# This hashmap is ordered from highest precedence to lowest, for convenience.  Function calls,
+# indexing and casting are all higher priority than these, so we just ignore them.
+_BindingPower = collections.namedtuple("_BindingPower", ("left", "right"), defaults=(255, 255))
+_BINDING_POWER = {
+    # Power: (21, 22)
+    #
+    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=20),
+    ast.Unary.Op.BIT_NOT: _BindingPower(right=20),
+    #
+    # Multiplication/division/modulo: (17, 18)
+    # Addition/subtraction: (15, 16)
+    #
+    ast.Binary.Op.LESS: _BindingPower(13, 14),
+    ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
+    ast.Binary.Op.GREATER: _BindingPower(13, 14),
+    ast.Binary.Op.GREATER_EQUAL: _BindingPower(13, 14),
+    #
+    ast.Binary.Op.EQUAL: _BindingPower(11, 12),
+    ast.Binary.Op.NOT_EQUAL: _BindingPower(11, 12),
+    #
+    ast.Binary.Op.BIT_AND: _BindingPower(9, 10),
+    ast.Binary.Op.BIT_XOR: _BindingPower(7, 8),
+    ast.Binary.Op.BIT_OR: _BindingPower(5, 6),
+    ast.Binary.Op.LOGIC_AND: _BindingPower(3, 4),
+    ast.Binary.Op.LOGIC_OR: _BindingPower(1, 2),
+}
 
 
 class BasicPrinter:
@@ -171,27 +210,26 @@ class BasicPrinter:
         if node.size is not None:
             self.stream.write(f"[{node.size}]")
 
+    def _visit_BitType(self, _node: ast.BitType) -> None:
+        self.stream.write("bit")
+
     def _visit_BitArrayType(self, node: ast.BitArrayType) -> None:
         self.stream.write(f"bit[{node.size}]")
+
+    def _visit_StringifyAndPray(self, node: ast.StringifyAndPray) -> None:
+        self.stream.write(str(node.obj))
 
     def _visit_Identifier(self, node: ast.Identifier) -> None:
         self.stream.write(node.string)
 
-    def _visit_PhysicalQubitIdentifier(self, node: ast.PhysicalQubitIdentifier) -> None:
-        self.stream.write("$")
-        self.visit(node.identifier)
-
-    def _visit_Expression(self, node: ast.Expression) -> None:
-        self.stream.write(str(node.something))
-
-    def _visit_Constant(self, node: ast.Constant) -> None:
-        self.stream.write(self._CONSTANT_LOOKUP[node])
-
     def _visit_SubscriptedIdentifier(self, node: ast.SubscriptedIdentifier) -> None:
-        self.visit(node.identifier)
+        self.stream.write(node.string)
         self.stream.write("[")
         self.visit(node.subscript)
         self.stream.write("]")
+
+    def _visit_Constant(self, node: ast.Constant) -> None:
+        self.stream.write(self._CONSTANT_LOOKUP[node])
 
     def _visit_Range(self, node: ast.Range) -> None:
         if node.start is not None:
@@ -231,8 +269,14 @@ class BasicPrinter:
         self._visit_sequence(node.qubits, separator=", ")
         self._end_statement()
 
-    def _visit_Integer(self, node: ast.Integer) -> None:
-        self.stream.write(str(node.something))
+    def _visit_IntegerLiteral(self, node: ast.IntegerLiteral) -> None:
+        self.stream.write(str(node.value))
+
+    def _visit_BooleanLiteral(self, node: ast.BooleanLiteral):
+        self.stream.write("true" if node.value else "false")
+
+    def _visit_BitstringLiteral(self, node: ast.BitstringLiteral):
+        self.stream.write(f'"{node.value:0{node.width}b}"')
 
     def _visit_DurationLiteral(self, node: ast.DurationLiteral) -> None:
         self.stream.write(f"{node.value}{node.unit.value}")
@@ -241,6 +285,45 @@ class BasicPrinter:
         self.stream.write("[")
         self.visit(node.expression)
         self.stream.write("]")
+
+    def _visit_Unary(self, node: ast.Unary):
+        self.stream.write(node.op.value)
+        if (
+            isinstance(node.operand, (ast.Unary, ast.Binary))
+            and _BINDING_POWER[node.operand.op].left < _BINDING_POWER[node.op].right
+        ):
+            self.stream.write("(")
+            self.visit(node.operand)
+            self.stream.write(")")
+        else:
+            self.visit(node.operand)
+
+    def _visit_Binary(self, node: ast.Binary):
+        if (
+            isinstance(node.left, (ast.Unary, ast.Binary))
+            and _BINDING_POWER[node.left.op].right < _BINDING_POWER[node.op].left
+        ):
+            self.stream.write("(")
+            self.visit(node.left)
+            self.stream.write(")")
+        else:
+            self.visit(node.left)
+        self.stream.write(f" {node.op.value} ")
+        if (
+            isinstance(node.right, (ast.Unary, ast.Binary))
+            and _BINDING_POWER[node.right.op].left < _BINDING_POWER[node.op].right
+        ):
+            self.stream.write("(")
+            self.visit(node.right)
+            self.stream.write(")")
+        else:
+            self.visit(node.right)
+
+    def _visit_Cast(self, node: ast.Cast):
+        self.visit(node.type)
+        self.stream.write("(")
+        self.visit(node.operand)
+        self.stream.write(")")
 
     def _visit_ClassicalDeclaration(self, node: ast.ClassicalDeclaration) -> None:
         self._start_line()
@@ -271,7 +354,8 @@ class BasicPrinter:
     def _visit_QuantumDeclaration(self, node: ast.QuantumDeclaration) -> None:
         self._start_line()
         self.stream.write("qubit")
-        self.visit(node.designator)
+        if node.designator is not None:
+            self.visit(node.designator)
         self.stream.write(" ")
         self.visit(node.identifier)
         self._end_statement()
@@ -281,7 +365,7 @@ class BasicPrinter:
         self.stream.write("let ")
         self.visit(node.identifier)
         self.stream.write(" = ")
-        self._visit_sequence(node.concatenation, separator=" ++ ")
+        self.visit(node.value)
         self._end_statement()
 
     def _visit_QuantumGateModifier(self, node: ast.QuantumGateModifier) -> None:
@@ -298,15 +382,6 @@ class BasicPrinter:
         self.visit(node.quantumGateName)
         if node.parameters:
             self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
-        self.stream.write(" ")
-        self._visit_sequence(node.indexIdentifierList, separator=", ")
-        self._end_statement()
-
-    def _visit_SubroutineCall(self, node: ast.SubroutineCall) -> None:
-        self._start_line()
-        self.visit(node.identifier)
-        if node.expressionList:
-            self._visit_sequence(node.expressionList, start="(", end=")", separator=", ")
         self.stream.write(" ")
         self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
@@ -357,15 +432,6 @@ class BasicPrinter:
         self.visit(node.quantumBlock)
         self._end_line()
 
-    def _visit_SubroutineDefinition(self, node: ast.SubroutineDefinition) -> None:
-        self._start_line()
-        self.stream.write("def ")
-        self.visit(node.identifier)
-        self._visit_sequence(node.arguments, start="(", end=")", separator=", ")
-        self.stream.write(" ")
-        self.visit(node.subroutineBlock)
-        self._end_line()
-
     def _visit_CalibrationDefinition(self, node: ast.CalibrationDefinition) -> None:
         self._start_line()
         self.stream.write("defcal ")
@@ -379,22 +445,6 @@ class BasicPrinter:
         # properly.
         self.stream.write(" {}")
         self._end_line()
-
-    def _visit_LtOperator(self, _node: ast.LtOperator) -> None:
-        self.stream.write(">")
-
-    def _visit_GtOperator(self, _node: ast.GtOperator) -> None:
-        self.stream.write("<")
-
-    def _visit_EqualsOperator(self, _node: ast.EqualsOperator) -> None:
-        self.stream.write("==")
-
-    def _visit_ComparisonExpression(self, node: ast.ComparisonExpression) -> None:
-        self.visit(node.left)
-        self.stream.write(" ")
-        self.visit(node.relation)
-        self.stream.write(" ")
-        self.visit(node.right)
 
     def _visit_BreakStatement(self, _node: ast.BreakStatement) -> None:
         self._write_statement("break")

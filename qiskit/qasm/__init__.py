@@ -24,7 +24,6 @@ QASM Routines
    :toctree: ../stubs/
 
    Qasm
-   QasmError
 
 
 Pygments
@@ -42,18 +41,16 @@ Pygments
 
 from numpy import pi
 
+from qiskit.utils.optionals import HAS_PYGMENTS
+
 from .qasm import Qasm
 from .exceptions import QasmError
 
-try:
-    import pygments
 
-    HAS_PYGMENTS = True
-except ImportError:
-    HAS_PYGMENTS = False
+def __getattr__(name):
+    if name in ("OpenQASMLexer", "QasmHTMLStyle", "QasmTerminalStyle"):
+        import qiskit.qasm.pygments
 
-if HAS_PYGMENTS:
-    try:
-        from .pygments import OpenQASMLexer, QasmHTMLStyle, QasmTerminalStyle
-    except Exception:  # pylint: disable=broad-except
-        HAS_PYGMENTS = False
+        return getattr(qiskit.qasm.pygments, name)
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

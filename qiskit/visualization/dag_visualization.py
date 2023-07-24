@@ -105,8 +105,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         edge_attr_func = None
 
     else:
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         register_bit_labels = {
             bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
@@ -127,18 +125,26 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["fillcolor"] = "lightblue"
                 if isinstance(node, DAGInNode):
                     if isinstance(node.wire, Qubit):
-                        label = register_bit_labels.get(node.wire, f"q_{qubit_indices[node.wire]}")
+                        label = register_bit_labels.get(
+                            node.wire, f"q_{dag.find_bit(node.wire).index}"
+                        )
                     else:
-                        label = register_bit_labels.get(node.wire, f"c_{clbit_indices[node.wire]}")
+                        label = register_bit_labels.get(
+                            node.wire, f"c_{dag.find_bit(node.wire).index}"
+                        )
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                 if isinstance(node, DAGOutNode):
                     if isinstance(node.wire, Qubit):
-                        label = register_bit_labels.get(node.wire, f"q[{qubit_indices[node.wire]}]")
+                        label = register_bit_labels.get(
+                            node.wire, f"q[{dag.find_bit(node.wire).index}]"
+                        )
                     else:
-                        label = register_bit_labels.get(node.wire, f"c[{clbit_indices[node.wire]}]")
+                        label = register_bit_labels.get(
+                            node.wire, f"c[{dag.find_bit(node.wire).index}]"
+                        )
                     n["label"] = label
                     n["color"] = "black"
                     n["style"] = "filled"
@@ -150,9 +156,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         def edge_attr_func(edge):
             e = {}
             if isinstance(edge, Qubit):
-                label = register_bit_labels.get(edge, f"q_{qubit_indices[edge]}")
+                label = register_bit_labels.get(edge, f"q_{dag.find_bit(edge).index}")
             else:
-                label = register_bit_labels.get(edge, f"c_{clbit_indices[edge]}")
+                label = register_bit_labels.get(edge, f"c_{dag.find_bit(edge).index}")
             e["label"] = label
             return e
 

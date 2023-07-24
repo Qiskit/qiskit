@@ -767,6 +767,153 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 3)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
 
+    def test_collect_blocks_backwards_dagcircuit(self):
+        """Test collecting H gates from DAGCircuit in the forward vs. the reverse
+        directions."""
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.h(3)
+        qc.cx(1, 2)
+        qc.z(0)
+        qc.z(1)
+        qc.z(2)
+        qc.z(3)
+
+        block_collector = BlockCollector(circuit_to_dag(qc))
+
+        # When collecting in the forward direction, there are two blocks of
+        # single-qubit gates: the first of size 6, and the second of size 2.
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["h", "z"],
+            split_blocks=False,
+            min_block_size=1,
+            collect_from_back=False,
+        )
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 6)
+        self.assertEqual(len(blocks[1]), 2)
+
+        # When collecting in the backward direction, there are also two blocks of
+        # single-qubit ates: but now the first is of size 2, and the second is of size 6.
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["h", "z"],
+            split_blocks=False,
+            min_block_size=1,
+            collect_from_back=True,
+        )
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 2)
+        self.assertEqual(len(blocks[1]), 6)
+
+    def test_collect_blocks_backwards_dagdependency(self):
+        """Test collecting H gates from DAGDependency in the forward vs. the reverse
+        directions."""
+        qc = QuantumCircuit(4)
+        qc.z(0)
+        qc.z(1)
+        qc.z(2)
+        qc.z(3)
+        qc.cx(1, 2)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.h(3)
+
+        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+
+        # When collecting in the forward direction, there are two blocks of
+        # single-qubit gates: the first of size 6, and the second of size 2.
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["h", "z"],
+            split_blocks=False,
+            min_block_size=1,
+            collect_from_back=False,
+        )
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 6)
+        self.assertEqual(len(blocks[1]), 2)
+
+        # When collecting in the backward direction, there are also two blocks of
+        # single-qubit ates: but now the first is of size 1, and the second is of size 7
+        # (note that z(1) and CX(1, 2) commute).
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["h", "z"],
+            split_blocks=False,
+            min_block_size=1,
+            collect_from_back=True,
+        )
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 1)
+        self.assertEqual(len(blocks[1]), 7)
+
+    def test_split_layers_dagcircuit(self):
+        """Test that splitting blocks of nodes into layers works correctly."""
+
+        # original circuit is linear
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.cx(2, 0)
+        circuit.cx(0, 3)
+        circuit.swap(3, 2)
+        circuit.swap(4, 1)
+
+        block_collector = BlockCollector(circuit_to_dag(circuit))
+
+        # If we split the gates into depth-1 layers, we expect four linear blocks:
+        #   CX(0, 2), CX(1, 4)
+        #   CX(2, 0), CX(4, 1)
+        #   CX(0, 3)
+        #   CX(3, 2)
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=1,
+            split_layers=True,
+        )
+        self.assertEqual(len(blocks), 4)
+        self.assertEqual(len(blocks[0]), 2)
+        self.assertEqual(len(blocks[1]), 2)
+        self.assertEqual(len(blocks[2]), 1)
+        self.assertEqual(len(blocks[3]), 1)
+
+    def test_split_layers_dagdependency(self):
+        """Test that splitting blocks of nodes into layers works correctly."""
+
+        # original circuit is linear
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.cx(2, 0)
+        circuit.cx(0, 3)
+        circuit.swap(3, 2)
+        circuit.swap(4, 1)
+
+        block_collector = BlockCollector(circuit_to_dagdependency(circuit))
+
+        # If we split the gates into depth-1 layers, we expect four linear blocks:
+        #   CX(0, 2), CX(1, 4)
+        #   CX(2, 0), CX(4, 1)
+        #   CX(0, 3)
+        #   CX(3, 2)
+        blocks = block_collector.collect_all_matching_blocks(
+            lambda node: node.op.name in ["cx", "swap"],
+            split_blocks=False,
+            min_block_size=1,
+            split_layers=True,
+        )
+        self.assertEqual(len(blocks), 4)
+        self.assertEqual(len(blocks[0]), 2)
+        self.assertEqual(len(blocks[1]), 2)
+        self.assertEqual(len(blocks[2]), 1)
+        self.assertEqual(len(blocks[3]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
