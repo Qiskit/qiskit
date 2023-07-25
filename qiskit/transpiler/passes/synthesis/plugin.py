@@ -166,11 +166,23 @@ abstract plugin class:
 which defines the interface and contract for high-level synthesis plugins.
 The primary method is
 :meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`.
-It takes in a single positional argument, a "higher-level-object" to be
-synthesized, which is any object of type :class:`~qiskit.circuit.Operation`
+The positional argument ``high_level_object`` specifies the "higher-level-object" to
+be synthesized, which is any object of type :class:`~qiskit.circuit.Operation`
 (including, for example,
 :class:`~qiskit.circuit.library.generalized_gates.linear_function.LinearFunction` or
 :class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford`).
+The positional arguments ``target`` specifies the target backend, allowing the plugin
+to access all target-specific information,
+such as the coupling map, the supported gate set, and so on. The positional argument
+``coupling_map`` only specifies the coupling map, and is only used when ``target``
+is not specified.
+The positional argument ``qubits`` specifies the list of qubits over which the
+higher-level-object is defined, in case the synthesis is done on the physical circuit.
+Additionally, plugin-specific options and tunables can be specified via ``options``,
+which is a free form configuration dictionary.
+If your plugin has these configuration options you
+should clearly document how a user should specify these configuration options
+and how they're used as it's a free form field.
 The method
 :meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`
 is expected to return a :class:`~qiskit.circuit.QuantumCircuit` object
@@ -180,11 +192,6 @@ unable to synthesize the given higher-level-object.
 The actual synthesis of higher-level objects is performed by
 :class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
 transpiler pass.
-In the near future,
-:class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin`
-will be extended with additional information necessary to run this transpiler
-pass, for instance whether the plugin supports and/or requires ``coupling_map``
-to perform synthesis.
 For the full details refer to the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin`
 documentation for all the required fields. An example plugin class would look
@@ -196,7 +203,7 @@ something like::
 
     class SpecialSynthesisClifford(HighLevelSynthesisPlugin):
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         if higher_level_object.num_qubits <= 3:
             return synth_clifford_bm(high_level_object)
         else:
