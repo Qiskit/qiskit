@@ -65,10 +65,19 @@ class CommutationChecker:
         return ("fallback", str(params))
 
     def commute(
-        self, op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
-    ):
+        self,
+        op1: Operation,
+        qargs1: List,
+        cargs1: List,
+        op2: Operation,
+        qargs2: List,
+        cargs2: List,
+        max_num_qubits: int = 3,
+    ) -> bool:
         """
-        Checks if two Operations commute.
+        Checks if two Operations commute. The return value of `True` means that the operations truly commute,
+        and the return value of `False` means that either the operations do not commute or that the commutation
+        check was skipped (for example, when the operations have conditions or have too many qubits).
 
         Args:
             op1: first operation.
@@ -77,6 +86,8 @@ class CommutationChecker:
             op2: second operation.
             qargs2: second operation's qubits.
             cargs2: second operation's clbits.
+            max_num_qubits: the maximum number of qubits to consider, the check may be skipped if
+                the number of qubits for either operation exceeds this amount.
 
         Returns:
             bool: whether two operations commute.
@@ -104,6 +115,10 @@ class CommutationChecker:
         intersection_c = set(cargs1).intersection(set(cargs2))
         if not (intersection_q or intersection_c):
             return True
+
+        # Skip the check if the number of qubits for either operation is too large
+        if len(qargs1) > max_num_qubits or len(qargs2) > max_num_qubits:
+            return False
 
         # These lines are adapted from commutation_analysis, which is more restrictive than the
         # check from dag_dependency when considering nodes with "_directive".  It would be nice to
