@@ -39,7 +39,8 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.doctest"
+    "sphinx.ext.doctest",
+    "qiskit_sphinx_theme",
 ]
 
 templates_path = ["_templates"]
@@ -74,15 +75,8 @@ intersphinx_mapping = {
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "qiskit_sphinx_theme"
+html_theme = "qiskit"
 html_last_updated_fmt = "%Y/%m/%d"
-html_theme_options = {
-    "logo_only": True,
-    "display_version": True,
-    "prev_next_buttons_location": "bottom",
-    "style_external_links": True,
-}
-
 
 # -- Options for Autosummary and Autodoc -------------------------------------
 
