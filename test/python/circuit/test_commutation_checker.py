@@ -367,10 +367,14 @@ class TestCommutationChecker(QiskitTestCase):
         """Test that checking wide gates does not lead to memory problems."""
         res = CommutationChecker().commute(MCXGate(29), list(range(30)), [], XGate(), [0], [])
         self.assertFalse(res)
+        res = CommutationChecker().commute(XGate(), [0], [], MCXGate(29), list(range(30)), [])
+        self.assertFalse(res)
 
     def test_wide_gates_over_disjoint_qubits(self):
         """Test that wide gates still commute when they are over disjoint sets of qubits."""
         res = CommutationChecker().commute(MCXGate(29), list(range(30)), [], XGate(), [30], [])
+        self.assertTrue(res)
+        res = CommutationChecker().commute(XGate(), [30], [], MCXGate(29), list(range(30)), [])
         self.assertTrue(res)
 
 
