@@ -164,8 +164,6 @@ class HighLevelSynthesis(TransformationPass):
         Raises:
             TranspilerError: when the specified synthesis method is not available.
         """
-        dag_bit_indices = {bit: i for i, bit in enumerate(dag.qubits)}
-
         for node in dag.op_nodes():
             if node.name in self.hls_config.methods.keys():
                 # the operation's name appears in the user-provided config,
@@ -215,7 +213,7 @@ class HighLevelSynthesis(TransformationPass):
                     node.op,
                     coupling_map=self._coupling_map,
                     target=self._target,
-                    qubits=[dag_bit_indices[x] for x in node.qargs],
+                    qubits=[dag.find_bit(x).index for x in node.qargs],
                     **plugin_args,
                 )
 
