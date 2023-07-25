@@ -75,9 +75,10 @@ class CommutationChecker:
         max_num_qubits: int = 3,
     ) -> bool:
         """
-        Checks if two Operations commute. The return value of `True` means that the operations truly commute,
-        and the return value of `False` means that either the operations do not commute or that the commutation
-        check was skipped (for example, when the operations have conditions or have too many qubits).
+        Checks if two Operations commute. The return value of `True` means that the operations
+        truly commute, and the return value of `False` means that either the operations do not
+        commute or that the commutation check was skipped (for example, when the operations
+        have conditions or have too many qubits).
 
         Args:
             op1: first operation.
@@ -92,6 +93,8 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
+        # pylint: disable=too-many-return-statements
+
         # We don't support commutation of conditional gates for now due to bugs in
         # CommutativeCancellation.  See gh-8553.
         if (
