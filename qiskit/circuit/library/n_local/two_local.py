@@ -13,6 +13,7 @@
 """The two-local gate circuit."""
 
 from __future__ import annotations
+import typing
 from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -45,6 +46,9 @@ from ..standard_gates import (
     CRZGate,
     CHGate,
 )
+
+if typing.TYPE_CHECKING:
+    import qiskit  # pylint: disable=cyclic-import
 
 
 class TwoLocal(NLocal):
@@ -160,18 +164,16 @@ class TwoLocal(NLocal):
         self,
         num_qubits: int | None = None,
         rotation_blocks: str
-        | list[str]
         | type
-        | list[type]
+        | qiskit.circuit.Instruction
         | QuantumCircuit
-        | list[QuantumCircuit]
+        | list[str | type | qiskit.circuit.Instruction, QuantumCircuit]
         | None = None,
         entanglement_blocks: str
-        | list[str]
         | type
-        | list[type]
+        | qiskit.circuit.Instruction
         | QuantumCircuit
-        | list[QuantumCircuit]
+        | list[str | type | qiskit.circuit.Instruction, QuantumCircuit]
         | None = None,
         entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
         reps: int = 3,

@@ -13,13 +13,17 @@
 """The EfficientSU2 2-local circuit."""
 
 from __future__ import annotations
+import typing
 from collections.abc import Callable
 
 from numpy import pi
 
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
 from .two_local import TwoLocal
+
+if typing.TYPE_CHECKING:
+    import qiskit  # pylint: disable=cyclic-import
 
 
 class EfficientSU2(TwoLocal):
@@ -83,7 +87,7 @@ class EfficientSU2(TwoLocal):
         | type
         | qiskit.circuit.Instruction
         | QuantumCircuit
-        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+        | list[str | type | qiskit.circuit.Instruction, QuantumCircuit]
         | None = None,
         entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
