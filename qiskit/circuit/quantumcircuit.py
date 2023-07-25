@@ -1716,6 +1716,10 @@ class QuantumCircuit:
             elif operation.name == "reset":
                 instruction_qasm = f"reset {bit_labels[instruction.qubits[0]]};"
             elif operation.name == "barrier":
+                if not instruction.qubits:
+                    # Barriers with no operands are invalid in (strict) OQ2, and the statement
+                    # would have no meaning anyway.
+                    continue
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
             else:
@@ -5025,7 +5029,9 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     Returns a potentially new :class:`.Instruction`, which should be used for the
     :meth:`~.Instruction.qasm` call (it may have been renamed)."""
-    from qiskit.circuit import library as lib  # pylint: disable=cyclic-import
+    # pylint: disable=cyclic-import
+    from qiskit.circuit import library as lib
+    from qiskit.qasm2 import QASM2ExportError
 
     if operation.name in existing_gate_names:
         return operation
@@ -5086,6 +5092,17 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
         )
     else:
         parameters_qasm = ""
+
+    if operation.num_qubits == 0:
+        raise QASM2ExportError(
+            f"OpenQASM 2 cannot represent '{operation.name}, which acts on zero qubits."
+        )
+    if operation.num_clbits != 0:
+        raise QASM2ExportError(
+            f"OpenQASM 2 cannot represent '{operation.name}', which acts on {operation.num_clbits}"
+            " classical bits."
+        )
+
     qubits_qasm = ",".join(f"q{i}" for i in range(parameterized_operation.num_qubits))
     parameterized_definition = getattr(parameterized_operation, "definition", None)
     if parameterized_definition is None:

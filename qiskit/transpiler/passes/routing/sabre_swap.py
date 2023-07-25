@@ -282,14 +282,13 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         return process_dag(block_dag, block_qubit_indices)
 
     def process_dag(block_dag, wire_map):
-        clbit_indices = {bit: idx for idx, bit in enumerate(block_dag.clbits)}
         dag_list = []
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
-            cargs = {clbit_indices[x] for x in node.cargs}
+            cargs = {block_dag.find_bit(x).index for x in node.cargs}
             if node.op.condition is not None:
                 for clbit in block_dag._bits_in_operation(node.op):
-                    cargs.add(clbit_indices[clbit])
+                    cargs.add(block_dag.find_bit(clbit).index)
             if isinstance(node.op, ControlFlowOp):
                 node_blocks[node._node_id] = [
                     recurse(

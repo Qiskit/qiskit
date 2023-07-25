@@ -67,6 +67,7 @@ from qiskit.providers.fake_provider import (
     FakeNairobiV2,
     FakeRueschlikon,
     FakeSherbrooke,
+    FakeVigo,
 )
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
@@ -75,7 +76,7 @@ from qiskit.test import QiskitTestCase, slow_test
 from qiskit.tools import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
@@ -1856,6 +1857,45 @@ class TestPostTranspileIntegration(QiskitTestCase):
         qc.measure(0, 0)
         res = transpile(qc, target=target, optimization_level=opt_level)
         self.assertEqual(qc, res)
+
+    def test_transpile_final_layout_updated_with_post_layout(self):
+        """Test that the final layout is correctly set when vf2postlayout runs.
+
+        Reproduce from #10457
+        """
+
+        def _get_index_layout(transpiled_circuit: QuantumCircuit, num_source_qubits: int):
+            """Return the index layout of a transpiled circuit"""
+            layout = transpiled_circuit.layout
+            if layout is None:
+                return list(range(num_source_qubits))
+
+            pos_to_virt = {v: k for k, v in layout.input_qubit_mapping.items()}
+            qubit_indices = []
+            for index in range(num_source_qubits):
+                qubit_idx = layout.initial_layout[pos_to_virt[index]]
+                if layout.final_layout is not None:
+                    qubit_idx = layout.final_layout[transpiled_circuit.qubits[qubit_idx]]
+                qubit_indices.append(qubit_idx)
+            return qubit_indices
+
+        vf2_post_layout_called = False
+
+        def callback(**kwargs):
+            nonlocal vf2_post_layout_called
+            if isinstance(kwargs["pass_"], VF2PostLayout):
+                vf2_post_layout_called = True
+                self.assertIsNotNone(kwargs["property_set"]["post_layout"])
+
+        backend = FakeVigo()
+        qubits = 3
+        qc = QuantumCircuit(qubits)
+        for i in range(5):
+            qc.cx(i % qubits, int(i + qubits / 2) % qubits)
+
+        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        self.assertTrue(vf2_post_layout_called)
+        self.assertEqual([3, 2, 1], _get_index_layout(tqc, qubits))
 
 
 class StreamHandlerRaiseException(StreamHandler):
