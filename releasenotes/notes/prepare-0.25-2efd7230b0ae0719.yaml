@@ -1,0 +1,12 @@
+---
+prelude: |
+  The Qiskit Terra 0.25.0 release highlights are:
+
+  * Control-flow operations are now supported through the transpiler at
+    all optimization levels, including levels 2 and 3 (e.g. calling
+    :func:`.transpile` or :func:`.generate_preset_pass_manager` with
+    keyword argument ``optimization_level`` specified as 2 or 3 is now
+    supported).
+
+  This release removes support for Python 3.7. With this release,
+  Python 3.8 is the minimum version supported.
