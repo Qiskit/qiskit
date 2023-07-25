@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added the arguments ``coupling_map`` and ``target`` to :class:`.HighLevelSynthesis`
+    transpiler pass.
+  - |
+    Added the arguments ``coupling_map``, ``target`` and ``qubits`` to :class:`.HighLevelSynthesisPlugin`.
+    This enables a cleaner separation of synthesis plugins options into general interface options
+    for plugins (that is, ``coupling_map``, ``target``, and ``qubits``) and into plugin-specific options
+    (a free form configuration dictionary specified via ``options``). It is worthwhile to note that this
+    change is backward-compatible, if the options ``coupling_map``, etc. are not explicitly added to
+    the plugin's ``run()`` method, they will appear as part of ``options``.

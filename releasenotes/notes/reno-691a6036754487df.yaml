@@ -1,8 +1,0 @@
----
-features:
-  - |
-    Added the arguments ``coupling_map`` and ``target`` to :class:`.HighLevelSynthesis`
-    transpiler pass.
-  - |
-    Added the arguments ``coupling_map``, ``target`` and ``qubits`` to :class:`.HighLevelSynthesisPlugin`.
-    This change is backward-compatible.
