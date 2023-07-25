@@ -205,9 +205,9 @@ Pulse Visualizations
 ====================
 
 .. autofunction:: pulse_drawer
-.. autofunction:: ~qiskit.visualization.pulse.IQXStandard
-.. autofunction:: ~qiskit.visualization.pulse.IQXSimple
-.. autofunction:: ~qiskit.visualization.pulse.IQXDebugging
+.. autofunction:: qiskit.visualization.pulse.IQXStandard
+.. autofunction:: qiskit.visualization.pulse.IQXSimple
+.. autofunction:: qiskit.visualization.pulse.IQXDebugging
 
 Timeline Visualizations
 =======================

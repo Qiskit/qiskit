@@ -345,7 +345,7 @@ Parametric Quantum Circuits
 Random Circuits
 ---------------
 
-.. autofunction:: random.random_circuit
+.. autofunction:: qiskit.circuit.random.random_circuit
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
