@@ -38,7 +38,7 @@ Algorithm Utilities
 .. autofunction:: has_ibmq
 .. autofunction:: has_aer
 .. autofunction:: name_args
-.. autofunction:: algorithm_globals
+.. autodata:: algorithm_globals
 
 .. autosummary::
    :toctree: ../stubs/

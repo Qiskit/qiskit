@@ -103,7 +103,11 @@ Analysis
 
 .. autofunction:: hellinger_distance
 .. autofunction:: hellinger_fidelity
-.. autofunction:: Z2Symmetries
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Z2Symmetries
 
 Synthesis
 =========

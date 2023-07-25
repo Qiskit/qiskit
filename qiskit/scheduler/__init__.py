@@ -19,8 +19,8 @@ Circuit Scheduler (:mod:`qiskit.scheduler`)
 
 A circuit scheduler compiles a circuit program to a pulse program.
 
-.. autofunction:: schedule_circuit
-.. autofunction:: ScheduleConfig
+.. autofunction:: qiskit.scheduler.schedule_circuit.schedule_circuit
+.. autoclass:: ScheduleConfig
 
 .. automodule:: qiskit.scheduler.methods
 """
