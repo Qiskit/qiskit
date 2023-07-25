@@ -404,7 +404,6 @@ class TestHighLeverSynthesisInterface(QiskitTestCase):
 
             # Now HighLevelSynthesis is initialized with a coupling map.
             tqc = pm_good.run(qc)
-            print(tqc)
 
 
 if __name__ == "__main__":
