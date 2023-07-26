@@ -2,7 +2,7 @@
 features_circuits:
   - |
     Added support for constructing :class:`.LinearFunction`\ s from more general quantum circuits,
-    that may contain::
+    that may contain:
 
      * Barriers (of type :class:`.Barrier`) and delays (:class:`~qiskit.circuit.Delay`),
        which are simply ignored
