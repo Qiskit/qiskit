@@ -346,7 +346,7 @@ class BlockCollapser:
 
             # Additionally, find the set of classical registers used in conditions over full registers
             # (in such a case, we need to add that register to the block circuit, not just its clbits).
-            cur_clregs = []
+            cur_clregs = set()
 
             for node in block:
                 cur_qubits.update(node.qargs)
@@ -355,7 +355,7 @@ class BlockCollapser:
                 if cond is not None:
                     cur_clbits.update(condition_resources(cond).clbits)
                     if isinstance(cond[0], ClassicalRegister):
-                        cur_clregs.append(cond[0])
+                        cur_clregs.add(cond[0])
 
             # For reproducibility, order these qubits/clbits compatibly with the global order.
             sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
