@@ -14,12 +14,12 @@
 
 """Sphinx documentation builder."""
 
-# -- General configuration ---------------------------------------------------
 import datetime
 import doctest
+import os
 
 project = "Qiskit"
-copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
+project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
@@ -37,8 +37,8 @@ extensions = [
     "sphinx.ext.doctest",
     "reno.sphinxext",
     "sphinx_design",
+    "sphinx_remove_toctrees",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.doctest",
     "qiskit_sphinx_theme",
 ]
 
@@ -71,6 +71,11 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
+
+# This speeds up the docs build because it works around the Furo theme's slowdown from the left
+# sidebar when the site has lots of HTML pages. But, it results in a much worse user experience,
+# so we only use it in dev/CI builds.
+remove_from_toctrees = ["stubs/*"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -127,3 +132,13 @@ doctest_default_flags = (
 # >> code
 # output
 doctest_test_doctest_blocks = ""
+
+# ---------------------------------------------------------------------------------------
+# Prod changes
+# ---------------------------------------------------------------------------------------
+
+if os.getenv("DOCS_PROD_BUILD"):
+    # `viewcode` down the Furo-based theme by about 14 minutes.
+    extensions.append("sphinx.ext.viewcode")
+    # Include all pages in the left sidebar in prod.
+    remove_from_toctrees = []
