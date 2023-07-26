@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed an issue in the :func:`.QuantumCircuit.decompose` method
+    Fixed an issue in :meth:`.QuantumCircuit.decompose`
     where passing a circuit name to the function that matched a
     composite gate name would not decompose the gate if it had a label
     assigned to it as well.
