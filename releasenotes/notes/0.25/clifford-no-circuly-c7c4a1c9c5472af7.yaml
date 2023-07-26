@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_quantum_info:
   - |
     :meth:`.Clifford.from_circuit` will no longer attempt to resolve instructions whose
     :attr:`~.circuit.Instruction.definition` fields are mutually recursive with some other object.

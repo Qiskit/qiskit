@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     The Sabre family of transpiler passes (namely :class:`.SabreLayout`
     and :class:`.SabreSwap`) are now used by default for all circuits

@@ -1,11 +1,11 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     Support for passing in lists of argument values to the :func:`~.transpile`
     function is removed. This functionality was deprecated as part of the
-    0.23.0 release and is now being removed. You are still able to pass in a
-    list of :class:`~.QuantumCircuit` objects for the first positional argument,
-    what has been removed is the broadcasting lists of the other arguments to
+    0.23.0 release. You are still able to pass in a
+    list of :class:`~.QuantumCircuit` objects for the first positional argument.
+    What has been removed is list broadcasting of the other arguments to
     each circuit in that input list. Removing this functionality was necessary
     to greatly reduce the overhead for parallel execution for transpiling
     multiple circuits at once. If you’re using this functionality
