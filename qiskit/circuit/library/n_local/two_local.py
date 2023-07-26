@@ -167,13 +167,13 @@ class TwoLocal(NLocal):
         | type
         | qiskit.circuit.Instruction
         | QuantumCircuit
-        | list[str | type | qiskit.circuit.Instruction, QuantumCircuit]
+        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
         | None = None,
         entanglement_blocks: str
         | type
         | qiskit.circuit.Instruction
         | QuantumCircuit
-        | list[str | type | qiskit.circuit.Instruction, QuantumCircuit]
+        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
         | None = None,
         entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
         reps: int = 3,
