@@ -45,7 +45,7 @@ Preset Pass Manager Generation
 Stage Generator Functions
 -------------------------
 
-.. autofunction:: qiskit.transpiler.preset_passmanagers.common
+.. currentmodule:: qiskit.transpiler.preset_passmanagers.common
 .. autofunction:: generate_control_flow_options_check
 .. autofunction:: generate_error_on_control_flow
 .. autofunction:: generate_unroll_3q
@@ -54,7 +54,7 @@ Stage Generator Functions
 .. autofunction:: generate_pre_op_passmanager
 .. autofunction:: generate_translation_passmanager
 .. autofunction:: generate_scheduling
-.. autofunction:: qiskit.transpiler.preset_passmanagers
+.. currentmodule:: qiskit.transpiler.preset_passmanagers
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
