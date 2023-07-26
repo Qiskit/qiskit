@@ -83,6 +83,7 @@ Utility Functions
    :toctree: ../stubs/
 
    partial_trace
+   schmidt_decomposition
    shannon_entropy
    commutator
    anti_commutator
@@ -130,6 +131,7 @@ Synthesis
    XXDecomposer
 """
 
+from __future__ import annotations
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
@@ -171,8 +173,10 @@ from .states import (
     mutual_information,
     partial_trace,
     purity,
+    schmidt_decomposition,
     shannon_entropy,
     state_fidelity,
+    negativity,
 )
 from .synthesis import (
     OneQubitEulerDecomposer,

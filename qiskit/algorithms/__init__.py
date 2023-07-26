@@ -14,6 +14,18 @@
 =====================================
 Algorithms (:mod:`qiskit.algorithms`)
 =====================================
+
+.. deprecated:: 0.25.0
+
+    The :mod:`qiskit.algorithms` module has been migrated to an independent package:
+    https://github.com/qiskit-community/qiskit-algorithms.
+    The current import path is deprecated and will be removed no earlier
+    than 3 months after the release date. If your code uses primitives, you can run
+    ``pip install qiskit_algorithms`` and import ``from qiskit_algorithms`` instead.
+    If you use opflow/quantum instance-based algorithms, please update your code to
+    use primitives following: https://qisk.it/algo_migration before migrating to
+    the new package.
+
 It contains a collection of quantum algorithms, for use with quantum computers, to
 carry out research and investigate how to solve problems in different domains on
 near-term quantum devices with short depth circuits.
@@ -297,6 +309,8 @@ Utility classes used by algorithms (mainly for type-hinting purposes).
    AlgorithmJob
 
 """
+import warnings
+
 from .algorithm_job import AlgorithmJob
 from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
@@ -412,3 +426,13 @@ __all__ = [
     "VarQTE",
     "VarQTEResult",
 ]
+
+warnings.warn(
+    "``qiskit.algorithms`` has been migrated to an independent package: "
+    "https://github.com/qiskit-community/qiskit-algorithms. "
+    "The ``qiskit.algorithms`` import path is deprecated as of qiskit-terra 0.25.0 and "
+    "will be removed no earlier than 3 months after the release date. "
+    "Please run ``pip install qiskit_algorithms`` and use ``import qiskit_algorithms`` instead.",
+    category=DeprecationWarning,
+    stacklevel=2,
+)

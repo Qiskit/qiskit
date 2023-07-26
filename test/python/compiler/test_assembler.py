@@ -1278,12 +1278,21 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric(self):
         """Test that parametric pulses can be assembled properly into a PulseQobj."""
+        amp = [0.5, 0.6, 1, 0.2]
+        angle = [np.pi / 2, 0.6, 0, 0]
         sched = pulse.Schedule(name="test_parametric")
-        sched += Play(pulse.Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0))
-        sched += Play(pulse.Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
+        sched += Play(
+            pulse.Gaussian(duration=25, sigma=4, amp=amp[0], angle=angle[0]), DriveChannel(0)
+        )
+        sched += Play(
+            pulse.Drag(duration=25, amp=amp[1], angle=angle[1], sigma=7.8, beta=4), DriveChannel(1)
+        )
+        sched += Play(pulse.Constant(duration=25, amp=amp[2], angle=angle[2]), DriveChannel(2))
         sched += (
-            Play(pulse.GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), MeasureChannel(0))
+            Play(
+                pulse.GaussianSquare(duration=150, amp=amp[3], angle=angle[3], sigma=8, width=140),
+                MeasureChannel(0),
+            )
             << sched.duration
         )
         backend = FakeOpenPulse3Q()
@@ -1302,16 +1311,24 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj_insts[1].pulse_shape, "drag")
         self.assertEqual(qobj_insts[2].pulse_shape, "constant")
         self.assertEqual(qobj_insts[3].pulse_shape, "gaussian_square")
-        self.assertDictEqual(qobj_insts[0].parameters, {"duration": 25, "sigma": 4, "amp": 0.5j})
         self.assertDictEqual(
-            qobj_insts[1].parameters, {"duration": 25, "sigma": 7.8, "amp": 0.2 + 0.3j, "beta": 4}
+            qobj_insts[0].parameters,
+            {"duration": 25, "sigma": 4, "amp": amp[0] * np.exp(1j * angle[0])},
         )
-        self.assertDictEqual(qobj_insts[2].parameters, {"duration": 25, "amp": 1})
         self.assertDictEqual(
-            qobj_insts[3].parameters, {"duration": 150, "sigma": 8, "amp": 0.2, "width": 140}
+            qobj_insts[1].parameters,
+            {"duration": 25, "sigma": 7.8, "amp": amp[1] * np.exp(1j * angle[1]), "beta": 4},
+        )
+        self.assertDictEqual(
+            qobj_insts[2].parameters, {"duration": 25, "amp": amp[2] * np.exp(1j * angle[2])}
+        )
+        self.assertDictEqual(
+            qobj_insts[3].parameters,
+            {"duration": 150, "sigma": 8, "amp": amp[3] * np.exp(1j * angle[3]), "width": 140},
         )
         self.assertEqual(
-            qobj.to_dict()["experiments"][0]["instructions"][0]["parameters"]["amp"], 0.5j
+            qobj.to_dict()["experiments"][0]["instructions"][0]["parameters"]["amp"],
+            amp[0] * np.exp(1j * angle[0]),
         )
 
     def test_assemble_parametric_unsupported(self):
@@ -1319,7 +1336,9 @@ class TestPulseAssembler(QiskitTestCase):
         by the backend during assemble time.
         """
         sched = pulse.Schedule(name="test_parametric_to_sample_pulse")
-        sched += Play(pulse.Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), DriveChannel(1))
+        sched += Play(
+            pulse.Drag(duration=25, amp=0.5, angle=-0.3, sigma=7.8, beta=4), DriveChannel(1)
+        )
         sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
 
         backend = FakeOpenPulse3Q()

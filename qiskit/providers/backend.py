@@ -88,6 +88,7 @@ class BackendV1(Backend, ABC):
         private methods:
 
         .. automethod:: _default_options
+           :noindex:
         """
         self._configuration = configuration
         self._options = self._default_options()
