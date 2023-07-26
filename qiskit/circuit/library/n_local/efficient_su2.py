@@ -12,12 +12,18 @@
 
 """The EfficientSU2 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable, Any
+from __future__ import annotations
+import typing
+from collections.abc import Callable
+
 from numpy import pi
 
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RYGate, RZGate, CXGate
 from .two_local import TwoLocal
+
+if typing.TYPE_CHECKING:
+    import qiskit  # pylint: disable=cyclic-import
 
 
 class EfficientSU2(TwoLocal):
@@ -76,28 +82,24 @@ class EfficientSU2(TwoLocal):
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
-        su2_gates: Optional[
-            Union[
-                str,
-                type,
-                Instruction,
-                QuantumCircuit,
-                List[Union[str, type, Instruction, QuantumCircuit]],
-            ]
-        ] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "reverse_linear",
+        num_qubits: int | None = None,
+        su2_gates: str
+        | type
+        | qiskit.circuit.Instruction
+        | QuantumCircuit
+        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+        | None = None,
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: QuantumCircuit | None = None,
         name: str = "EfficientSU2",
-        flatten: Optional[bool] = None,
+        flatten: bool | None = None,
     ) -> None:
-        """Create a new EfficientSU2 2-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the EfficientSU2 circuit.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -151,7 +153,7 @@ class EfficientSU2(TwoLocal):
         )
 
     @property
-    def parameter_bounds(self) -> List[Tuple[float, float]]:
+    def parameter_bounds(self) -> list[tuple[float, float]]:
         """Return the parameter bounds.
 
         Returns:
