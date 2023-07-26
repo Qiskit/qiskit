@@ -39,6 +39,7 @@ from qiskit.circuit import (
     SwitchCaseOp,
     WhileLoopOp,
 )
+from qiskit.circuit.classical import expr
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import (
     CXGate,
@@ -1722,6 +1723,42 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 base.append(CustomCX(), [3, 4])
         return base
 
+    def _control_flow_expr_circuit(self):
+        a = Parameter("a")
+        regs = [
+            QuantumRegister(2, name="q0"),
+            QuantumRegister(3, name="q1"),
+            ClassicalRegister(2, name="c0"),
+        ]
+        bits = [Qubit(), Qubit(), Clbit()]
+        base = QuantumCircuit(*regs, bits)
+        base.h(0)
+        base.measure(0, 0)
+        with base.if_test(expr.equal(base.cregs[0], 1)) as else_:
+            base.cx(0, 1)
+            base.cz(0, 2)
+            base.cz(0, 3)
+        with else_:
+            base.cz(1, 4)
+            with base.for_loop((1, 2)):
+                base.cx(1, 5)
+        base.measure(2, 2)
+        with base.while_loop(expr.logic_not(bits[2])):
+            base.append(CustomCX(), [3, 6])
+            base.append(CustomCX(), [5, 4])
+            base.append(CustomCX(), [5, 3])
+            base.append(CustomCX(), [2, 4])
+            base.ry(a, 4)
+            base.measure(4, 2)
+        with base.switch(expr.bit_and(base.cregs[0], 2)) as case_:
+            with case_(0, 1):
+                base.cz(3, 5)
+            with case_(case_.DEFAULT):
+                base.cz(1, 4)
+                base.append(CustomCX(), [2, 4])
+                base.append(CustomCX(), [3, 4])
+        return base
+
     @data(0, 1, 2, 3)
     def test_qpy_roundtrip(self, optimization_level):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
@@ -1809,6 +1846,46 @@ class TestPostTranspileIntegration(QiskitTestCase):
         self.assertEqual(round_tripped, transpiled)
 
     @data(0, 1, 2, 3)
+    def test_qpy_roundtrip_control_flow_expr(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
+        be round-tripped through QPY."""
+        backend = FakeMelbourne()
+        transpiled = transpile(
+            self._control_flow_expr_circuit(),
+            backend=backend,
+            basis_gates=backend.configuration().basis_gates
+            + ["if_else", "for_loop", "while_loop", "switch_case"],
+            optimization_level=optimization_level,
+            seed_transpiler=2023_07_26,
+        )
+        buffer = io.BytesIO()
+        qpy.dump(transpiled, buffer)
+        buffer.seek(0)
+        round_tripped = qpy.load(buffer)[0]
+        self.assertEqual(round_tripped, transpiled)
+
+    @data(0, 1, 2, 3)
+    def test_qpy_roundtrip_control_flow_expr_backendv2(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
+        be round-tripped through QPY."""
+        backend = FakeMumbaiV2()
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        backend.target.add_instruction(ForLoopOp, name="for_loop")
+        backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        transpiled = transpile(
+            self._control_flow_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2023_07_26,
+        )
+        buffer = io.BytesIO()
+        qpy.dump(transpiled, buffer)
+        buffer.seek(0)
+        round_tripped = qpy.load(buffer)[0]
+        self.assertEqual(round_tripped, transpiled)
+
+    @data(0, 1, 2, 3)
     def test_qasm3_output(self, optimization_level):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
@@ -1836,6 +1913,29 @@ class TestPostTranspileIntegration(QiskitTestCase):
             backend=backend,
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
+        )
+        # TODO: There's not a huge amount we can sensibly test for the output here until we can
+        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
+        # itself doesn't throw an error, though.
+        self.assertIsInstance(
+            qasm3.dumps(transpiled, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1).strip(),
+            str,
+        )
+
+    @data(0, 1, 2, 3)
+    def test_qasm3_output_control_flow_expr(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
+        dumped into OpenQASM 3."""
+        backend = FakeMumbaiV2()
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        backend.target.add_instruction(ForLoopOp, name="for_loop")
+        backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        transpiled = transpile(
+            self._control_flow_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2023_07_26,
         )
         # TODO: There's not a huge amount we can sensibly test for the output here until we can
         # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
