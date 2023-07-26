@@ -15,8 +15,10 @@
 import numpy as np
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
 
 
+@with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
 class DCXGate(SingletonGate):
     r"""Double-CNOT gate.
 
@@ -71,7 +73,3 @@ class DCXGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the DCX gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=dtype)

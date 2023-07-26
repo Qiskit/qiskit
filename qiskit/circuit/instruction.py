@@ -43,6 +43,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
+from qiskit.utils.deprecation import deprecate_func
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
@@ -455,6 +456,14 @@ class Instruction(Operation):
             )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
+    @deprecate_func(
+        additional_msg=(
+            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
+            "safely be done on an object-by-object basis without context. No replacement will be "
+            "provided, because the premise is wrong."
+        ),
+        since="0.25.0",
+    )
     def qasm(self):
         """Return a default OpenQASM string for the instruction.
 

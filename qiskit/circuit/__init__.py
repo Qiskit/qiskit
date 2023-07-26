@@ -297,9 +297,41 @@ Control Flow Operations
 
 The :class:`.SwitchCaseOp` also understands a special value:
 
-.. py:data: CASE_DEFAULT
-    Used as a possible "label" in a :class:`.SwitchCaseOp` to represent the default case.  This will
-    always match, if it is tried.
+.. py:data:: CASE_DEFAULT
+
+   A special object that represents the "default" case of a switch statement.  If you use this as a
+   case target, it must be the last case, and will match anything that wasn't already matched.  For
+   example::
+
+       from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+       from qiskit.circuit import SwitchCaseOp, CASE_DEFAULT
+
+       body0 = QuantumCircuit(2, 2)
+       body0.x(0)
+       body1 = QuantumCircuit(2, 2)
+       body1.z(0)
+       body2 = QuantumCircuit(2, 2)
+       body2.cx(0, 1)
+
+       qr, cr = QuantumRegister(2), ClassicalRegister(2)
+       qc = QuantumCircuit(qr, cr)
+       qc.switch(cr, [(0, body0), (1, body1), (CASE_DEFAULT, body2)], qr, cr)
+
+   When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as
+   the ``DEFAULT`` attribute of the bound case-builder object, such as::
+
+       from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+       qr, cr = QuantumRegister(2), ClassicalRegister(2)
+       qc = QuantumCircuit(qr, cr)
+       with qc.switch(cr) as case:
+           with case(0):
+               qc.x(0)
+           with case(1):
+               qc.z(0)
+           with case(case.DEFAULT):
+               qc.cx(0, 1)
+
 
 Parametric Quantum Circuits
 ---------------------------

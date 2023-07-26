@@ -17,8 +17,13 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
 
+_SWAP_ARRAY = numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+
+
+@with_gate_array(_SWAP_ARRAY)
 class SwapGate(SingletonGate):
     r"""The SWAP gate.
 
@@ -110,11 +115,8 @@ class SwapGate(SingletonGate):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SWAP gate."""
-        return numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=dtype)
 
-
+@with_controlled_gate_array(_SWAP_ARRAY, num_ctrl_qubits=1)
 class CSwapGate(ControlledGate):
     r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
@@ -191,31 +193,6 @@ class CSwapGate(ControlledGate):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
-    )
-    _matrix0 = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
-    )
 
     def __init__(
         self,
@@ -261,10 +238,3 @@ class CSwapGate(ControlledGate):
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat

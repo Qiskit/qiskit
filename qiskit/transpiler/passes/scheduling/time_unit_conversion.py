@@ -95,11 +95,10 @@ class TimeUnitConversion(TransformationPass):
                 )
 
         # Make units consistent
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.op_nodes():
             try:
                 duration = self.inst_durations.get(
-                    node.op, [bit_indices[qarg] for qarg in node.qargs], unit=time_unit
+                    node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
                 )
             except TranspilerError:
                 continue

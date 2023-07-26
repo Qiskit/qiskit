@@ -18,10 +18,12 @@ import numpy as np
 
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
 
 from .xx_plus_yy import XXPlusYYGate
 
 
+@with_gate_array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
 class iSwapGate(SingletonGate):
     r"""iSWAP gate.
 
@@ -123,10 +125,6 @@ class iSwapGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

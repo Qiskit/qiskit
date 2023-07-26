@@ -203,14 +203,14 @@ class DynamicalDecoupling(TransformationPass):
             index_sequence_duration_map[physical_qubit] = dd_sequence_duration
 
         new_dag = dag.copy_empty_like()
-        qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
+
         for nd in dag.topological_op_nodes():
             if not isinstance(nd.op, Delay):
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                 continue
 
             dag_qubit = nd.qargs[0]
-            physical_qubit = qubit_index_map[dag_qubit]
+            physical_qubit = dag.find_bit(dag_qubit).index
             if physical_qubit not in self._qubits:  # skip unwanted qubits
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                 continue

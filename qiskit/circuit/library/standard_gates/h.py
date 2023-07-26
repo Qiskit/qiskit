@@ -17,10 +17,14 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
 
+_H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
+
+@with_gate_array(_H_ARRAY)
 class HGate(SingletonGate):
     r"""Single-qubit Hadamard gate.
 
@@ -102,11 +106,8 @@ class HGate(SingletonGate):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a Numpy.array for the H gate."""
-        return numpy.array([[1, 1], [1, -1]], dtype=dtype) / numpy.sqrt(2)
 
-
+@with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
 class CHGate(ControlledGate):
     r"""Controlled-Hadamard gate.
 
@@ -163,16 +164,6 @@ class CHGate(ControlledGate):
                     0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
-    # Define class constants. This saves future allocation time.
-    _sqrt2o2 = 1 / sqrt(2)
-    _matrix1 = numpy.array(
-        [[1, 0, 0, 0], [0, _sqrt2o2, 0, _sqrt2o2], [0, 0, 1, 0], [0, _sqrt2o2, 0, -_sqrt2o2]],
-        dtype=complex,
-    )
-    _matrix0 = numpy.array(
-        [[_sqrt2o2, 0, _sqrt2o2, 0], [0, 1, 0, 0], [_sqrt2o2, 0, -_sqrt2o2, 0], [0, 0, 0, 1]],
-        dtype=complex,
-    )
 
     def __init__(
         self,
@@ -226,10 +217,3 @@ class CHGate(ControlledGate):
     def inverse(self):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CH gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
