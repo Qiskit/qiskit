@@ -1,5 +1,5 @@
 ---
-features:
+features_misc:
   - |
     The magic ``%qiskit_version_table`` from ``qiskit.tools.jupyter`` now includes all
     imported modules with ``qiskit`` in their name.
