@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The transpiler's built-in :class:`.EquivalenceLibrary` has been taught more Pauli-rotation
     equivalences between the one-qubit :math:`R_X`, :math:`R_Y` and :math:`R_Z` gates, and between

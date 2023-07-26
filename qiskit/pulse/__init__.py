@@ -34,6 +34,7 @@ time dynamics of the measured output.
 This is sufficient to allow the quantum physicist to explore and correct for
 noise in a quantum system.
 
+.. automodule:: qiskit.pulse.configuration
 .. automodule:: qiskit.pulse.instructions
 .. automodule:: qiskit.pulse.library
 .. automodule:: qiskit.pulse.channels
@@ -50,6 +51,7 @@ Configuration
    :toctree: ../stubs/
 
    InstructionScheduleMap
+
 
 Exceptions
 ==========

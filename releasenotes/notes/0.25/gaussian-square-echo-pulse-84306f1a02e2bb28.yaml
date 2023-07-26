@@ -1,8 +1,9 @@
 ---
-features:
+features_pulse:
   - |
-    Add new :meth:`~qiskit.pulse.gaussian_square_echo` pulse shape. This pulse
-    is composed by three :class:`~qiskit.pulse.GaussianSquare` pulses. The 
+    Added a new method :meth:`~qiskit.pulse.library.gaussian_square_echo` to the
+    pulse library. The returned pulse
+    is composed by three :class:`~qiskit.pulse.library.GaussianSquare` pulses. The 
     first two are echo pulses with duration half of the total duration and
     implement rotary tones. The third pulse is a cancellation tone that lasts
     the full duration of the pulse and implements correcting single qubit

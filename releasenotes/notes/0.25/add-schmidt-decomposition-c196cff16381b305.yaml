@@ -1,6 +1,7 @@
 ---
-features:
+features_quantum_info:
   - |
-    Add ``schmidt_decomposition`` function to the ``quantum_info`` module.
-    This function works with the ``Statevector`` and ``DensityMatrix``
-    classes for bipartite pure states.
+    Added function :func:`~qiskit.quantum_info.schmidt_decomposition`.
+    This function works with the :class:`~qiskit.quantum_info.Statevector`
+    and :class:`~qiskit.quantum_info.DensityMatrix` classes for bipartite
+    pure states.

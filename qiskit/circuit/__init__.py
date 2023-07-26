@@ -272,6 +272,7 @@ Gates and Instructions
 .. autosummary::
    :toctree: ../stubs/
 
+   Barrier
    Gate
    ControlledGate
    Delay

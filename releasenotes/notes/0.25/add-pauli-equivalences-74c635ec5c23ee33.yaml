@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The transpiler's built-in :class:`.EquivalenceLibrary` has been taught the circular Pauli
     relations :math:`X = iYZ`, :math:`Y = iZX` and :math:`Z = iXY`.  This should make transpiling

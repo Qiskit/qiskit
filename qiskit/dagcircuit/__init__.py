@@ -38,7 +38,18 @@ Exceptions
    :toctree: ../stubs/
 
    DAGCircuitError
+
+Utilities
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlockCollapser
+   BlockCollector
+   BlockSplitter
 """
+from .collect_blocks import BlockCollapser, BlockCollector, BlockSplitter
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
