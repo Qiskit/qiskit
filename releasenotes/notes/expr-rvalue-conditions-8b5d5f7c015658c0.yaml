@@ -57,7 +57,7 @@ features:
     * :func:`~.expr.greater_equal`
 
     These can act on Python integer and Boolean literals, or on :class:`.ClassicalRegister`
-    and :clas:`.Clbit` instances.
+    and :class:`.Clbit` instances.
 
     All these classical expressions are fully supported through the Qiskit transpiler stack, through
     QPY serialisation (:mod:`qiskit.qpy`) and for export to OpenQASM 3 (:mod:`qiskit.qasm3`). Import
