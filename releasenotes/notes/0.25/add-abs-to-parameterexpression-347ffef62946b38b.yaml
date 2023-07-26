@@ -1,5 +1,5 @@
 
-issues:
+features_circuits:
   - |
     Added support for taking absolute values of :class:`.ParameterExpression`\s. For example, 
     the following is now possible::
