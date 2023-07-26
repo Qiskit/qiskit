@@ -20,8 +20,11 @@ Algorithms (:mod:`qiskit.algorithms`)
     The :mod:`qiskit.algorithms` module has been migrated to an independent package:
     https://github.com/qiskit-community/qiskit-algorithms.
     The current import path is deprecated and will be removed no earlier
-    than 3 months after the release date. You can run ``pip install qiskit_algorithms``
-    and import ``from qiskit_algorithms`` instead.
+    than 3 months after the release date. If your code uses primitives, you can run
+    ``pip install qiskit_algorithms`` and import ``from qiskit_algorithms`` instead.
+    If you use opflow/quantum instance-based algorithms, please update your code to
+    use primitives following: https://qisk.it/algo_migration before migrating to
+    the new package.
 
 It contains a collection of quantum algorithms, for use with quantum computers, to
 carry out research and investigate how to solve problems in different domains on
