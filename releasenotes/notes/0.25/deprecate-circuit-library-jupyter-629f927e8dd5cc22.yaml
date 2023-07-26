@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_misc:
   - |
     The Jupyter magic ``%circuit_library_info`` and the objects in ``qiskit.tools.jupyter.library``
     it calls in turn:

@@ -48,6 +48,7 @@ Pulse Models
    :toctree: ../stubs/
 
    Waveform
+   ScalableSymbolicPulse
    SymbolicPulse
    ParametricPulse
 
