@@ -320,15 +320,18 @@ def split_block_into_layers(block):
 
 class BlockCollapser:
     """This class implements various strategies of consolidating blocks of nodes
-     in a DAG (direct acyclic graph). It works both with the
-    :class:`~qiskit.dagcircuit.DAGCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
+     in a DAG (direct acyclic graph). It works both with
+     the :class:`~qiskit.dagcircuit.DAGCircuit`
+     and :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
     """
 
     def __init__(self, dag):
         """
         Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+
+        Raises:
+            DAGCircuitError: the input object is not a DAG.
         """
 
         self.dag = dag

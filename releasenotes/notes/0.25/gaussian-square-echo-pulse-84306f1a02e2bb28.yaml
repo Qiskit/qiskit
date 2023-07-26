@@ -1,7 +1,7 @@
 ---
 features_pulse:
   - |
-    Added a new method :meth:`~qiskit.pulse.library.gaussian_square_echo` to the
+    Added a new function :func:`~qiskit.pulse.library.gaussian_square_echo` to the
     pulse library. The returned pulse
     is composed by three :class:`~qiskit.pulse.library.GaussianSquare` pulses. The 
     first two are echo pulses with duration half of the total duration and

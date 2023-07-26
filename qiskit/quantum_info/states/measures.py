@@ -258,10 +258,12 @@ def entanglement_of_formation(state: Statevector | DensityMatrix) -> float:
 
 
 def negativity(state, qargs):
-    r"""Calculates the negativity
+    r"""Calculates the negativity.
 
     The mathematical expression for negativity is given by:
+
     .. math::
+
         {\cal{N}}(\rho) = \frac{|| \rho^{T_A}|| - 1 }{2}
 
     Args:
@@ -269,7 +271,7 @@ def negativity(state, qargs):
         qargs (list): The subsystems to be transposed.
 
     Returns:
-        negv (float): Negativity value of the quantum state
+        float: Negativity value of the quantum state
 
     Raises:
         QiskitError: if the input state is not a valid QuantumState.

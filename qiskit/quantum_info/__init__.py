@@ -82,6 +82,7 @@ Utility Functions
 .. autosummary::
    :toctree: ../stubs/
 
+   negativity
    partial_trace
    schmidt_decomposition
    shannon_entropy

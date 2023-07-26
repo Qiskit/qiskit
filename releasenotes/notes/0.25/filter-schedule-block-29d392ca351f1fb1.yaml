@@ -13,7 +13,7 @@ features_pulse:
   - |
     The method :meth:`~qiskit.pulse.schedule.ScheduleBlock.exclude` is activated
     in the :class:`~qiskit.pulse.schedule.ScheduleBlock` class.
-    This method enables users to retain only :class:`~qiskit.pulse.Instruction`
+    This method enables users to retain only :class:`~qiskit.pulse.instructions.Instruction`
     objects which do not pass at least one of all the provided filters.
     As builtin filter conditions, pulse :class:`~qiskit.pulse.channels.Channel`
     subclass instance and :class:`~qiskit.pulse.instructions.Instruction`
