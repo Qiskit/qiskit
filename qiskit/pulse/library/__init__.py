@@ -58,22 +58,19 @@ Pulse Models
 Waveform Pulse Representation
 =============================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   constant
-   zero
-   square
-   sawtooth
-   triangle
-   cos
-   sin
-   gaussian
-   gaussian_deriv
-   sech
-   sech_deriv
-   gaussian_square
-   drag
+.. autofunction:: constant
+.. autofunction:: zero
+.. autofunction:: square
+.. autofunction:: sawtooth
+.. autofunction:: triangle
+.. autofunction:: cos
+.. autofunction:: sin
+.. autofunction:: gaussian
+.. autofunction:: gaussian_deriv
+.. autofunction:: sech
+.. autofunction:: sech_deriv
+.. autofunction:: gaussian_square
+.. autofunction:: drag
 
 
 .. _symbolic_pulses:

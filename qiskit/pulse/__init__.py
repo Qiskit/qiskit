@@ -56,7 +56,7 @@ Configuration
 Exceptions
 ==========
 
-.. autoclass:: PulseError
+.. autoexception:: PulseError
 """
 
 # Builder imports.
