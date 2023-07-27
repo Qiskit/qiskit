@@ -1,9 +1,9 @@
 ---
-features:
+features_transpiler:
   - |
     Added :meth:`.DAGCircuit.classical_predecessors` and
-    :meth:`.DAGCircuit.classical_successors`, an alternative to select the classical
-    wires without having to go to the inner graph object directly of a node in the DAG.
+    :meth:`.DAGCircuit.classical_successors`, an alternative to selecting classical
+    wires that doesn't require accessing the inner graph of a DAG node directly.
     The following example illustrates the new functionality::
 
         from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister

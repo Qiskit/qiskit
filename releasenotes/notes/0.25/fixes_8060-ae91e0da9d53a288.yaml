@@ -1,4 +1,8 @@
 ---
-features:
+features_transpiler:
   - |
-    The transpiler pass :class:`SetLayout` now is able to be constructed with a list of integers that represent the physical qubits on which the quantum circuit will be mapped on. That is, the first qubit in the circuit will be allocated in the physical qubit in the position zero of the list, and so on.
+    The transpiler pass :class:`~qiskit.transpiler.passes.SetLayout` can now
+    be constructed with a list of integers that represent the physical qubits
+    on which the quantum circuit will be mapped on. That is, the first qubit
+    in the circuit will be allocated to the physical qubit in position zero
+    of the list, and so on.

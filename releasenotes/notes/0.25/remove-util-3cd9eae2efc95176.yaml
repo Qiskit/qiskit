@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     The ``qiskit.util`` import location has been removed, as it had
     been deprecated since Qiskit Terra 0.17.  Users should use the new

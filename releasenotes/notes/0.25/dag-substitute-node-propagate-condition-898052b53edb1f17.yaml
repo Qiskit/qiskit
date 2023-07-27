@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     :meth:`.DAGCircuit.substitute_node` gained a ``propagate_condition`` keyword argument that is
     analogous to the same argument in :meth:`~.DAGCircuit.substitute_node_with_dag`.  Setting this

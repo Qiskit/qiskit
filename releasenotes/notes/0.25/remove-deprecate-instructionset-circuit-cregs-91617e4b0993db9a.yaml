@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_circuits:
   - |
     The deprecated ``circuit_cregs`` argument to the constructor for the
     :class:`~.InstructionSet` class has been removed. It was deprecated in the

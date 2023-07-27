@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_misc:
   - |
     The Jupyter magic ``%circuit_library_info`` and the objects in ``qiskit.tools.jupyter.library``
     it calls in turn:
@@ -10,5 +10,5 @@ deprecations:
     - ``circuit_digram_widget``
     - ``circuit_library_widget``
 
-    are deprecated and will be removed in Terra 0.27.  These objects were only intended for use in
+    are deprecated and will be removed in a future release. These objects were only intended for use in
     the documentation build. They are no longer used there, so are no longer supported or maintained.

@@ -1,7 +1,7 @@
 ---
-features:
+features_visualization:
   - |
-    Some restrictions when using ``wire_order`` in the circuit drawers had been relaxed.
+    Some restrictions when using ``wire_order`` in the circuit drawers have been relaxed.
     Now, ``wire_order`` can list just qubits and, in that case, it can be used
     with ``cregbundle=True``, since it will not affect the classical bits.
 

@@ -1,5 +1,5 @@
 ---
-features:
+features_pulse:
   - |
     QPY supports the :class:`~qiskit.pulse.configuration.Discriminator` and
     :class:`~qiskit.pulse.configuration.Kernel` objects.

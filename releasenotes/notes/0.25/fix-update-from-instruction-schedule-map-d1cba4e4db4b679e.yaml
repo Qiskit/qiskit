@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    Fixed an failure of :meth:`.Target.update_from_instruction_schedule_map` when
-    the argument ``inst_map`` has schedule with unassigned duration.
+    Fixed a failure with method :meth:`.Target.update_from_instruction_schedule_map`
+    triggered by the given ``inst_map`` containing a :class:`~qiskit.pulse.Schedule`
+    with unassigned durations.
 

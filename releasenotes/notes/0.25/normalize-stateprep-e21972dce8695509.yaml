@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     The instructions :class:`.StatePreparation` and :class:`~.extensions.Initialize`,
     and their associated circuit methods :meth:`.QuantumCircuit.prepare_state` and :meth:`~.QuantumCircuit.initialize`,

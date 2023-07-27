@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added :meth:`.DAGCircuit.quantum_causal_cone` to obtain the causal cone of a qubit
     in a :class:`~.DAGCircuit`.

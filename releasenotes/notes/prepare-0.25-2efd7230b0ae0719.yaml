@@ -1,7 +1,14 @@
 ---
-features_circuits:
-  - |
-    The fields :attr:`.IfElseOp.condition`, :attr:`.WhileLoopOp.condition` and
+prelude: |
+  The Qiskit Terra 0.25.0 release highlights are:
+
+  * Control-flow operations are now supported through the transpiler at
+    all optimization levels, including levels 2 and 3 (e.g. calling
+    :func:`.transpile` or :func:`.generate_preset_pass_manager` with
+    keyword argument ``optimization_level`` specified as 2 or 3 is now
+    supported).
+
+  * The fields :attr:`.IfElseOp.condition`, :attr:`.WhileLoopOp.condition` and
     :attr:`.SwitchCaseOp.target` can now be instances of the new runtime classical-expression type
     :class:`.expr.Expr`.  This is distinct from :class:`.ParameterExpression` because it is
     evaluated *at runtime* for backends that support such operations.
@@ -66,21 +73,28 @@ features_circuits:
     from OpenQASM 3 is currently managed by `a separate package <https://github.com/Qiskit/qiskit-qasm3-import>`__
     (which is re-exposed via :mod:`qiskit.qasm3`), which we hope will be extended to match the new
     features in Qiskit.
-  - |
-    Tooling for working with the new representations of classical runtime expressions
-    has been added.
-    A general :class:`~.expr.ExprVisitor` is provided for
-    consumers of these expressions to subclass.  Two utilities based on this structure,
-    :func:`~.expr.iter_vars` and :func:`~.expr.structurally_equivalent`, are also provided, which
-    respectively produce an iterator through the :class:`~.expr.Var` nodes and check whether two
-    :class:`~.expr.Expr` instances are structurally the same, up to some mapping of the
-    :class:`~.expr.Var` nodes contained.
-  - |
-    Added function :func:`~.expr.lift_legacy_condition` which can be used to convert old-style
-    conditions into new-style :class:`~.expr.Expr` nodes.
-    Note that these expression nodes are not permitted in old-style :attr:`.Instruction.condition`
-    fields, which are due to be replaced by more advanced classical handling such as :class:`.IfElseOp`.
-issues:
-  - |
-    Circuits containing classical expressions made with the :mod:`~.classical.expr` module are not
-    yet supported by the circuit visualizers.
+
+  * The :mod:`qiskit.algorithms` module has been deprecated and will be removed
+    in a future release. It has been superseded by a new standalone library
+    ``qiskit-algorithms`` which can be found on PyPi or on Github here:
+
+    https://github.com/qiskit-community/qiskit-algorithms
+
+    The :mod:`qiskit.algorithms` module will continue to work as before and bug fixes
+    will be made to it until its future removal, but active development
+    of new features has moved to the new package.
+    If you're relying on :mod:`qiskit.algorithms` you should update your
+    Python requirements to also include ``qiskit-algorithms`` and update the imports
+    from ``qiskit.algorithms`` to ``qiskit_algorithms``. Please note that this
+    new package does not include already deprecated algorithms code, including
+    ``opflow`` and ``QuantumInstance``-based algorithms. If you have not yet
+    migrated from ``QuantumInstance``-based to primitives-based algorithms,
+    you should follow the migration guidelines in https://qisk.it/algo_migration.
+    The decision to migrate the :mod:`~.algorithms` module to a
+    separate package was made to clarify the purpose Qiskit and
+    make a distinction between the tools and libraries built on top of it.
+
+  Qiskit Terra 0.25 has dropped support for Python 3.7 following
+  deprecation warnings started in Qiskit Terra 0.23. This is consistent
+  with Python 3.7’s end-of-life on the 27th of June, 2023. To continue
+  using Qiskit, you must upgrade to a more recent version of Python. 

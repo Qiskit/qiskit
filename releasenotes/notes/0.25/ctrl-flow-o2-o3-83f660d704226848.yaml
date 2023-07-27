@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Control-flow operations are now supported through the transpiler at
     all optimization levels, including levels 2 and 3 (e.g. calling

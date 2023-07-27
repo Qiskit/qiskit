@@ -76,6 +76,7 @@ Measures
 Utility Functions
 =================
 
+.. autofunction:: negativity
 .. autofunction:: partial_trace
 .. autofunction:: schmidt_decomposition
 .. autofunction:: shannon_entropy

@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     The performance of :meth:`.QuantumCircuit.assign_parameters` and :meth:`~.QuantumCircuit.bind_parameters`
     has significantly increased for large circuits with structures typical of applications uses.

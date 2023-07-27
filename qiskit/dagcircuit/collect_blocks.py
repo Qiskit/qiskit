@@ -16,7 +16,9 @@ into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependency
+from .dagnode import DAGOpNode
+from .dagcircuit import DAGCircuit
+from .dagdependency import DAGDependency
 from .exceptions import DAGCircuitError
 
 
@@ -318,15 +320,18 @@ def split_block_into_layers(block):
 
 class BlockCollapser:
     """This class implements various strategies of consolidating blocks of nodes
-     in a DAG (direct acyclic graph). It works both with the
-    :class:`~qiskit.dagcircuit.DAGCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
+    in a DAG (direct acyclic graph). It works both with
+    the :class:`~qiskit.dagcircuit.DAGCircuit`
+    and :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
     """
 
     def __init__(self, dag):
         """
         Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+
+        Raises:
+            DAGCircuitError: the input object is not a DAG.
         """
 
         self.dag = dag

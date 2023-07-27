@@ -1,18 +1,19 @@
 ---
-features:
+features_transpiler:
   - |
-    Added two new options to :class:`~BlockCollector`.
+    Added two new options to :class:`~qiskit.dagcircuit.BlockCollector`.
 
-    The first new options ``split_layers`` allows to split the collected block into sub-blocks
+    The first new option ``split_layers`` allows collected blocks to be split into sub-blocks
     over disjoint qubit subsets, i.e. into depth-1 sub-blocks.
 
-    The second new option ``collect_from_back`` allows to greedily collect blocks starting
+    The second new option ``collect_from_back`` allows blocks to be greedily collected starting
     from the outputs of the circuit. This is important in combination with ALAP-scheduling passes
     where we may prefer to put gates in the later rather than earlier blocks.
 
   - |
     Added new options ``split_layers`` and ``collect_from_back`` to
-    :class:`~CollectLinearFunctions` and :class:`~CollectCliffords` transpiler passes.
+    :class:`~qiskit.transpiler.passes.CollectLinearFunctions` and
+    :class:`~qiskit.transpiler.passes.CollectCliffords` transpiler passes.
 
     When ``split_layers`` is `True`, the collected blocks are split into
     into sub-blocks over disjoint qubit subsets, i.e. into depth-1 sub-blocks.

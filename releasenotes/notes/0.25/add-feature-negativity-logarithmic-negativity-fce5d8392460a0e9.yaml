@@ -1,11 +1,10 @@
 ---
-features:
+features_quantum_info:
   - |
-    Added a new function , :func:`negativity` that adds support for calculating
-    entanglement measures negativity of an quantum state.
-    An illustrative example for using the above function is given below:
+    Added a new function :func:`~qiskit.quantum_info.negativity` that calculates
+    the entanglement measure of negativity of a quantum state.
+    Example usage of the above function is given below::
 
-    .. code-block:
       from qiskit.quantum_info.states.densitymatrix import DensityMatrix
       from qiskit.quantum_info.states.statevector import Statevector
       from qiskit.quantum_info import negativity

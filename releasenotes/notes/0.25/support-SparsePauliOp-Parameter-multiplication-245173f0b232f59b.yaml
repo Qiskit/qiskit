@@ -1,4 +1,4 @@
-features:
+features_quantum_info:
   - |
     Adds support for multiplication of :class:`.SparsePauliOp` objects
     with :class:`.Parameter` objects by using the * operator, for example::
@@ -12,4 +12,4 @@ features:
 
 fixes:
   - |
-    Fixes issue `#10185 <https://github.com/Qiskit/qiskit-terra/issues/10185>`.
+    Fixes issue `#10185 <https://github.com/Qiskit/qiskit-terra/issues/10185>`__.

@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixed an failure of the pulse builder when the context is initialized with :class:`.BackendV2`.
