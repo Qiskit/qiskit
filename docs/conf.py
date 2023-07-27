@@ -36,7 +36,7 @@ author = "Qiskit Development Team"
 # The short X.Y version
 version = ""
 # The full version, including alpha/beta/rc tags
-release = "0.43.3"
+release = "0.44.0"
 
 docs_url_prefix = "documentation"  # i.e., www.qiskit.org/documentation/
 
@@ -197,6 +197,7 @@ autodoc_typehints = "description"
 # Only add type hints from signature to description body if the parameter has documentation.  The
 # return type is always added to the description (if in the signature).
 autodoc_typehints_description_target = "documented_params"
+add_module_name = True
 
 # Plot directive configuration
 # ----------------------------
