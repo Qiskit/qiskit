@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Forced a type check on 'name' argument in copy method of QuantumCircuit class hence fixing issues that may rise due to unsupported/unwanted types.
