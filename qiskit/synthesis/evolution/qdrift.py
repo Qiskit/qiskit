@@ -16,7 +16,6 @@ from typing import Union, Optional, Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils import algorithm_globals
 
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
@@ -75,7 +74,7 @@ class QDrift(ProductFormula):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates
-        self.sampled_ops = algorithm_globals.random.choice(
+        self.sampled_ops = np.random.choice(
             np.array(pauli_list, dtype=object),
             size=(num_gates,),
             p=weights / lambd,
