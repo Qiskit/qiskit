@@ -14,6 +14,7 @@
 
 from typing import Optional
 import logging
+import warnings
 
 import numpy as np
 
@@ -26,11 +27,32 @@ logger = logging.getLogger(__name__)
 
 
 class QiskitAlgorithmGlobals:
-    """Class for global properties."""
+    """
+    .. deprecated:: 0.25.0
+
+        The :mod:`algorithm_globals` utility has been migrated to an independent package.
+        The current import path is deprecated and will be removed no earlier
+        than 3 months after the release date. You can run
+        ``pip install qiskit_algorithms`` and import
+        ``from qiskit_algorithms.utils import algorithm_globals`` instead.
+
+    Class for global properties.
+    """
 
     CPU_COUNT = parallel.local_hardware_info()["cpus"]
 
     def __init__(self) -> None:
+        warnings.warn(
+            "``qiskit.utils.algorithm_globals`` has been migrated to an independent package: "
+            "https://github.com/qiskit-community/qiskit-algorithms. "
+            "The ``qiskit.utils.algorithm_globals`` import path is deprecated as of qiskit-terra 0.25.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "Please run ``pip install qiskit_algorithms`` and use "
+            "``from qiskit_algorithms.utils import algorithm_globals`` instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
         self._random_seed = None  # type: Optional[int]
         self._num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         self._random = None
