@@ -1849,6 +1849,11 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qpy_roundtrip_control_flow_expr(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
         be round-tripped through QPY."""
+        if optimization_level == 3 and sys.platform == "win32":
+            self.skipTest(
+                "This test case triggers a bug in the eigensolver routine on windows. "
+                "See #10345 for more details."
+            )
         backend = FakeMelbourne()
         transpiled = transpile(
             self._control_flow_expr_circuit(),
