@@ -30,7 +30,13 @@ pub fn blocks_to_matrix(
     let identity: Array2<Complex64> = Array::eye(2);
     for (op_matrix, q_list) in op_list {
         let op_matrix = op_matrix.as_array();
-        let result = calculate_matrix(op_matrix, &q_list, &identity);
+        let q_list = q_list.as_slice();
+        let result = match q_list {
+            [0] => Some(kron(&identity, &op_matrix)),
+            [1] => Some(kron(&op_matrix, &identity)),
+            [1, 0] => Some(change_basis(op_matrix)),
+            _ => None,
+        };
         matrix = match result {
             Some(result) => result.dot(&matrix),
             None => op_matrix.dot(&matrix),
@@ -39,30 +45,16 @@ pub fn blocks_to_matrix(
     Ok(matrix.into_pyarray(py).to_owned())
 }
 
-/// Performs the matrix operations for an Instruction in a 2 qubit system
-fn calculate_matrix(
-    matrix: ArrayView2<Complex64>,
-    q_list: &[usize],
-    identity: &Array2<Complex64>,
-) -> Option<Array2<Complex64>> {
-    match q_list {
-        [0] => Some(kron(identity, &matrix)),
-        [1] => Some(kron(&matrix, identity)),
-        [1, 0] => Some(change_basis(matrix)),
-        _ => None,
-    }
-}
-
+/// Switches the order of qubits in a two qubit operation.
 fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
     let mut trans_matrix: Array2<Complex64> = matrix.reversed_axes().to_owned();
-    let mut temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
+    let temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
     for (index, value) in temp.into_iter().enumerate() {
         trans_matrix[[2, index]] = trans_matrix[[1, index]].to_owned();
         trans_matrix[[1, index]] = value;
     }
     trans_matrix = trans_matrix.reversed_axes();
-
-    temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
+    let temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
     for (index, value) in temp.into_iter().enumerate() {
         trans_matrix[[2, index]] = trans_matrix[[1, index]];
         trans_matrix[[1, index]] = value;
