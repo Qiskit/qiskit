@@ -18,8 +18,9 @@ import itertools
 import ddt
 import numpy.random
 
-from qiskit.circuit import Clbit, ControlFlowOp
+from qiskit.circuit import Clbit, ControlFlowOp, Qubit
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
+from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -730,6 +731,44 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.measure(qreg, creg[[1, 2, 0, 3, 4]])
         self.assertEqual(dag_to_circuit(cdag), expected)
 
+    def test_if_expr(self):
+        """Test simple if conditional with an `Expr` condition."""
+        coupling = CouplingMap.from_line(4)
+
+        body = QuantumCircuit(4)
+        body.cx(0, 1)
+        body.cx(0, 2)
+        body.cx(0, 3)
+        qc = QuantumCircuit(4, 2)
+        qc.if_test(expr.logic_and(qc.clbits[0], qc.clbits[1]), body, [0, 1, 2, 3], [])
+
+        dag = circuit_to_dag(qc)
+        cdag = SabreSwap(coupling, "lookahead", seed=58, trials=1).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+    def test_if_else_expr(self):
+        """Test simple if/else conditional with an `Expr` condition."""
+        coupling = CouplingMap.from_line(4)
+
+        true = QuantumCircuit(4)
+        true.cx(0, 1)
+        true.cx(0, 2)
+        true.cx(0, 3)
+        false = QuantumCircuit(4)
+        false.cx(3, 0)
+        false.cx(3, 1)
+        false.cx(3, 2)
+        qc = QuantumCircuit(4, 2)
+        qc.if_else(expr.logic_and(qc.clbits[0], qc.clbits[1]), true, false, [0, 1, 2, 3], [])
+
+        dag = circuit_to_dag(qc)
+        cdag = SabreSwap(coupling, "lookahead", seed=58, trials=1).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
     def test_no_layout_change(self):
         """test controlflow with no layout change needed"""
         num_qubits = 5
@@ -841,6 +880,54 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         expected.measure(qreg, creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
+    def test_while_loop_expr(self):
+        """Test simple while loop with an `Expr` condition."""
+        coupling = CouplingMap.from_line(4)
+
+        body = QuantumCircuit(4)
+        body.cx(0, 1)
+        body.cx(0, 2)
+        body.cx(0, 3)
+        qc = QuantumCircuit(4, 2)
+        qc.while_loop(expr.logic_and(qc.clbits[0], qc.clbits[1]), body, [0, 1, 2, 3], [])
+
+        dag = circuit_to_dag(qc)
+        cdag = SabreSwap(coupling, "lookahead", seed=82, trials=1).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+    def test_switch_implicit_carg_use(self):
+        """Test that a switch statement that uses cargs only implicitly via its ``target`` attribute
+        and not explicitly in bodies of the cases is routed correctly, with the dependencies
+        fulfilled correctly."""
+        coupling = CouplingMap.from_line(4)
+        pass_ = SabreSwap(coupling, "lookahead", seed=82, trials=1)
+
+        body = QuantumCircuit([Qubit()])
+        body.x(0)
+
+        # If the classical wire condition isn't respected, then the switch would appear in the front
+        # layer and be immediately eligible for routing, which would produce invalid output.
+        qc = QuantumCircuit(4, 1)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(0, 2)
+        qc.measure(2, 0)
+        qc.switch(expr.lift(qc.clbits[0]), [(False, body.copy()), (True, body.copy())], [3], [])
+
+        expected = QuantumCircuit(4, 1)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+        expected.swap(2, 1)
+        expected.cx(0, 1)
+        expected.measure(1, 0)
+        expected.switch(
+            expr.lift(expected.clbits[0]), [(False, body.copy()), (True, body.copy())], [3], []
+        )
+
+        self.assertEqual(pass_(qc), expected)
+
     def test_switch_single_case(self):
         """Test routing of 'switch' with just a single case."""
         qreg = QuantumRegister(5, "q")
@@ -920,6 +1007,88 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         case2.cx(4, 3)
         case2.swap(2, 3)
         expected.switch(creg, [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_expr_single_case(self):
+        """Test routing of 'switch' with an `Expr` target and just a single case."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(3, "c")
+        qc = QuantumCircuit(qreg, creg)
+
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        qc.switch(expr.bit_or(creg, 5), [(0, case0)], qreg[[0, 1, 2]], creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = SabreSwap(coupling, "lookahead", seed=82, trials=1)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        case0.swap(0, 1)
+        expected.switch(expr.bit_or(creg, 5), [(0, case0)], qreg[[0, 1, 2]], creg[:])
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_expr_nonexhaustive(self):
+        """Test routing of 'switch' with an `Expr` target and several but nonexhaustive cases."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg, creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        case1 = QuantumCircuit(qreg, creg[:])
+        case1.cx(1, 2)
+        case1.cx(2, 3)
+        case1.cx(3, 1)
+        case2 = QuantumCircuit(qreg, creg[:])
+        case2.cx(2, 3)
+        case2.cx(3, 4)
+        case2.cx(4, 2)
+        qc.switch(expr.bit_or(creg, 5), [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = SabreSwap(coupling, "lookahead", seed=82, trials=1)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg, creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        case0.swap(0, 1)
+        case1 = QuantumCircuit(qreg, creg[:])
+        case1.cx(1, 2)
+        case1.cx(2, 3)
+        case1.swap(1, 2)
+        case1.cx(3, 2)
+        case1.swap(1, 2)
+        case2 = QuantumCircuit(qreg, creg[:])
+        case2.cx(2, 3)
+        case2.cx(3, 4)
+        case2.swap(2, 3)
+        case2.cx(4, 3)
+        case2.swap(2, 3)
+        expected.switch(expr.bit_or(creg, 5), [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
 
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
