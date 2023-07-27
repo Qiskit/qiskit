@@ -127,6 +127,7 @@ class HighLevelSynthesis(TransformationPass):
         hls_config: Optional[HLSConfig] = None,
         coupling_map: Optional[CouplingMap] = None,
         target: Optional[Target] = None,
+        use_qubit_indices: bool = False,
     ):
         """
         HighLevelSynthesis initializer.
@@ -138,6 +139,9 @@ class HighLevelSynthesis(TransformationPass):
             coupling_map: Optional, directed graph represented as a coupling map.
             target: Optional, the backend target to use for this pass. If it is specified,
                 it will be used instead of the coupling map.
+            use_qubit_indices: a flag indicating whether this synthesis pass is running before or after
+                the layout is set, that is, whether the qubit indices of higher-level-objects correspond
+                to qubit indices on the target backend.
         """
         super().__init__()
 
@@ -150,6 +154,7 @@ class HighLevelSynthesis(TransformationPass):
         self.hls_plugin_manager = HighLevelSynthesisPluginManager()
         self._coupling_map = coupling_map
         self._target = target
+        self._use_qubit_indices = use_qubit_indices
         if target is not None:
             self._coupling_map = self._target.build_coupling_map()
 
@@ -209,11 +214,15 @@ class HighLevelSynthesis(TransformationPass):
                 else:
                     plugin_method = plugin_specifier
 
+                qubits = (
+                    [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
+                )
+
                 decomposition = plugin_method.run(
                     node.op,
                     coupling_map=self._coupling_map,
                     target=self._target,
-                    qubits=[dag.find_bit(x).index for x in node.qargs],
+                    qubits=qubits,
                     **plugin_args,
                 )
 

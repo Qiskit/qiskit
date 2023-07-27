@@ -171,7 +171,7 @@ be synthesized, which is any object of type :class:`~qiskit.circuit.Operation`
 (including, for example,
 :class:`~qiskit.circuit.library.generalized_gates.linear_function.LinearFunction` or
 :class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford`).
-The positional arguments ``target`` specifies the target backend, allowing the plugin
+The positional argument ``target`` specifies the target backend, allowing the plugin
 to access all target-specific information,
 such as the coupling map, the supported gate set, and so on. The positional argument
 ``coupling_map`` only specifies the coupling map, and is only used when ``target``

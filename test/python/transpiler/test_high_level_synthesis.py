@@ -22,6 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap
 from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
 
 
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic
@@ -130,6 +131,17 @@ class OpAPluginNeedsCouplingMap(HighLevelSynthesisPlugin):
         return qc
 
 
+class OpAPluginNeedsQubits(HighLevelSynthesisPlugin):
+    """Synthesis plugins for OpA that needs ``qubits`` to be specified."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if qubits is None:
+            raise TranspilerError("Qubits should be specified!")
+        qc = QuantumCircuit(1)
+        qc.id(0)
+        return qc
+
+
 class MockPluginManager:
     """Mocks the functionality of HighLevelSynthesisPluginManager,
     without actually depending on the stevedore extension manager.
@@ -141,10 +153,11 @@ class MockPluginManager:
             "op_a.repeat": OpARepeatSynthesisPlugin,
             "op_b.simple": OpBSimpleSynthesisPlugin,
             "op_a.needs_coupling_map": OpAPluginNeedsCouplingMap,
+            "op_a.needs_qubits": OpAPluginNeedsQubits,
         }
 
         self.plugins_by_op = {
-            "op_a": ["default", "repeat", "needs_coupling_map"],
+            "op_a": ["default", "repeat", "needs_coupling_map", "needs_qubits"],
             "op_b": ["simple"],
         }
 
@@ -404,6 +417,49 @@ class TestHighLeverSynthesisInterface(QiskitTestCase):
 
             # Now HighLevelSynthesis is initialized with a coupling map.
             pm_good.run(qc)
+
+    def test_target_gets_passed_to_plugins(self):
+        """Check that passing target (and constructing coupling map from the target)
+        works correctly.
+        """
+        qc = self.create_circ()
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            hls_config = HLSConfig(op_a=["needs_coupling_map"])
+            pm_good = PassManager(
+                [HighLevelSynthesis(hls_config=hls_config, target=FakeBackend5QV2().target)]
+            )
+
+            # HighLevelSynthesis is initialized with target.
+            pm_good.run(qc)
+
+    def test_qubits_get_passed_to_plugins(self):
+        """Check that setting ``use_qubit_indices`` works correctly."""
+        qc = self.create_circ()
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            hls_config = HLSConfig(op_a=["needs_qubits"])
+            pm_use_qubits_false = PassManager(
+                [HighLevelSynthesis(hls_config=hls_config, use_qubit_indices=False)]
+            )
+            pm_use_qubits_true = PassManager(
+                [HighLevelSynthesis(hls_config=hls_config, use_qubit_indices=True)]
+            )
+
+            # HighLevelSynthesis is initialized with use_qubit_indices=False, which means synthesis
+            # plugin should see qubits=None and raise a transpiler error.
+            with self.assertRaises(TranspilerError):
+                pm_use_qubits_false.run(qc)
+
+            # HighLevelSynthesis is initialized with use_qubit_indices=True, which means synthesis
+            # plugin should see qubits and complete without errors.
+            pm_use_qubits_true.run(qc)
 
 
 if __name__ == "__main__":
