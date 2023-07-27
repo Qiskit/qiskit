@@ -24,7 +24,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
-from qiskit.utils import algorithm_globals
 
 
 @ddt
@@ -34,7 +33,7 @@ class TestEvolutionGate(QiskitTestCase):
     def setUp(self):
         super().setUp()
         # fix random seed for reproducibility (used in QDrift)
-        algorithm_globals.random_seed = 2
+        np.random.seed(2)
 
     def test_matrix_decomposition(self):
         """Test the default decomposition."""
