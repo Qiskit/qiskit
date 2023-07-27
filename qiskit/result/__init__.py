@@ -23,9 +23,10 @@ Experiment Results (:mod:`qiskit.result`)
    Result
    ResultError
    Counts
-   marginal_counts
-   marginal_distribution
-   marginal_memory
+
+.. autofunction:: marginal_counts
+.. autofunction:: marginal_distribution
+.. autofunction:: marginal_memory
 
 Distributions
 =============
