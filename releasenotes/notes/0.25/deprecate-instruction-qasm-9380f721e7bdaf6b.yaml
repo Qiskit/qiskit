@@ -3,4 +3,9 @@ deprecations_circuits:
   - |
     The method :meth:`~qiskit.circuit.Instruction.qasm` and all overriding methods of subclasses
     of `:class:~qiskit.circuit.Instruction` are deprecated. There is no replacement for generating
-    an OpenQASM 2 string for an isolated instruction.
+    an OpenQASM2 string for an isolated instruction as typically
+    a single instruction object has insufficient context to completely
+    generate a valid OpenQASM2 string. If you're relying on this
+    method currently you'll have to instead rely on the OpenQASM2
+    exporter:  :meth:`.QuantumCircuit.qasm` to generate the OpenQASM2
+    for an entire circuit object.
