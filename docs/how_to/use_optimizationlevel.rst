@@ -23,9 +23,9 @@ which is a three qubit gate which will be transpiled into one and two qubit gate
 
     from qiskit import QuantumCircuit 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito
+    from qiskit.providers.fake_provider import FakeQuitoV2
 
-    backend = FakeQuito()
+    backend = FakeQuitoV2()
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
