@@ -21,7 +21,7 @@ which is a three qubit gate which will be transpiled into one and two qubit gate
 .. plot::
     :include-source:
 
-    from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
+    from qiskit import QuantumCircuit 
     from qiskit.compiler import transpile
     from qiskit.providers.fake_provider import FakeQuito
 
