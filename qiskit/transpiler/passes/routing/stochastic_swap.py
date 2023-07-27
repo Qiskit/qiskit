@@ -18,6 +18,7 @@ from math import inf
 import numpy as np
 
 from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -474,7 +475,16 @@ def _controlflow_exhaustive_acyclic(operation: ControlFlowOp):
         return len(operation.blocks) == 2
     if isinstance(operation, SwitchCaseOp):
         cases = operation.cases()
-        max_matches = 2 if isinstance(operation.target, Clbit) else 1 << len(operation.target)
+        if isinstance(operation.target, expr.Expr):
+            type_ = operation.target.type
+            if type_.kind is types.Bool:
+                max_matches = 2
+            elif type_.kind is types.Uint:
+                max_matches = 1 << type_.width
+            else:
+                raise RuntimeError(f"unhandled target type: '{type_}'")
+        else:
+            max_matches = 2 if isinstance(operation.target, Clbit) else 1 << len(operation.target)
         return CASE_DEFAULT in cases or len(cases) == max_matches
     return False
 
