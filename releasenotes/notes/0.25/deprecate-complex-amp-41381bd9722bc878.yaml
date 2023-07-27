@@ -11,6 +11,6 @@ deprecations_pulse:
 
     Initializing ``amp`` for these with a complex value is now deprecated as well.
 
-    Instead, use two floats when specifying the ``amp`` and `angle` parameters, where ``amp`` represents the
+    Instead, use two floats when specifying the ``amp`` and ``angle`` parameters, where ``amp`` represents the
     magnitude of the complex amplitude, and `angle` represents the angle of the complex amplitude. i.e. the
     complex amplitude is given by :math:`\texttt{amp} \times \exp(i \times \texttt{angle})`.

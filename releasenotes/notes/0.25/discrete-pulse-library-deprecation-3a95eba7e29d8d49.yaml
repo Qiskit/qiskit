@@ -12,5 +12,5 @@ features_pulse:
 
     The new functions return a :class:`~qiskit.pulse.library.ScalableSymbolicPulse` instance, and match the functionality
     of the corresponding functions in the discrete pulse library, with the exception of
-    :func:`~qiskit.pulse.library.Square` for which a phase of :math:`2\\pi` shifts by a full cycle (contrary to the
-    discrete :func:`~qiskit.pulse.library.square` where such a shift was induced by a :math:`\\pi` phase).
+    :func:`~qiskit.pulse.library.Square` for which a phase of :math:`2\pi` shifts by a full cycle (contrary to the
+    discrete :func:`~qiskit.pulse.library.square` where such a shift was induced by a :math:`\pi` phase).
