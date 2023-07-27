@@ -1107,7 +1107,8 @@ class MatplotlibDrawer:
         cond_pos = []
 
         if isinstance(condition, expr.Expr):
-            warn("runtime-expression conditions are not properly supported yet")
+            # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
+            # `visualization.circuit_drawer` to remove warnings.
             condition_bits = condition_resources(condition).clbits
             label = "[expression]"
             override_fc = True

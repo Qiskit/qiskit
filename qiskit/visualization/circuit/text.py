@@ -1348,7 +1348,8 @@ class Layer:
             List: list of tuples of connections between clbits for multi-bit conditions
         """
         if isinstance(condition, expr.Expr):
-            warn("runtime-expression conditions are not properly supported yet")
+            # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
+            # `visualization.circuit_drawer` to remove warnings.
             label = "<expression>"
             out = []
             condition_bits = node_resources(condition).clbits
