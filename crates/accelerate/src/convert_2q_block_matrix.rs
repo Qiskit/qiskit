@@ -21,7 +21,7 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 
 /// Return the matrix Operator resulting from a block of Instructions.
 #[pyfunction]
-#[pyo3(text_signature = "(matrix_list, /")]
+#[pyo3(text_signature = "(op_list, /")]
 pub fn blocks_to_matrix(
     py: Python,
     op_list: Vec<(PyReadonlyArray2<Complex64>, Vec<usize>)>,
@@ -68,31 +68,15 @@ pub fn blocks_to_matrix(
 /// Performs the matrix operations for an Instruction in a 2 qubit system
 fn calculate_matrix(
     matrix: ArrayView2<Complex64>,
-    q_list: &Vec<usize>,
+    q_list: &[usize],
     swap_gate: &Array2<Complex64>,
     identity: &Array2<Complex64>,
 ) -> Option<Array2<Complex64>> {
-    let mut basis_change = false;
-    let current: Option<Array2<Complex64>> = if q_list.len() < 2 {
-        if q_list[0] == 1 {
-            Some(kron(&matrix, identity))
-        } else {
-            Some(kron(identity, &matrix))
-        }
-    } else {
-        if q_list[0] > q_list[1] && matrix != swap_gate {
-            basis_change = true;
-        }
-        None
-    };
-
-    if basis_change {
-        match current {
-            Some(current) => Some(swap_gate.dot(&current).dot(swap_gate)),
-            None => Some(swap_gate.dot(&matrix).dot(swap_gate)),
-        }
-    } else {
-        current
+    match q_list {
+        [0] => Some(kron(identity, &matrix)),
+        [1] => Some(kron(&matrix, identity)),
+        [1, 0] => Some(swap_gate.dot(&matrix).dot(swap_gate)),
+        _ => None,
     }
 }
 
