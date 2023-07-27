@@ -16,7 +16,7 @@ use pyo3::Python;
 
 use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{array, Array, Array2, ArrayView2};
+use numpy::ndarray::{s, Array, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 
 /// Return the matrix Operator resulting from a block of Instructions.
@@ -27,36 +27,10 @@ pub fn blocks_to_matrix(
     op_list: Vec<(PyReadonlyArray2<Complex64>, Vec<usize>)>,
 ) -> PyResult<Py<PyArray2<Complex64>>> {
     let mut matrix: Array2<Complex64> = Array::eye(4);
-    let swap_gate = array![
-        [
-            Complex64::new(1., 0.),
-            Complex64::new(0., 0.),
-            Complex64::new(0., 0.),
-            Complex64::new(0., 0.)
-        ],
-        [
-            Complex64::new(0., 0.),
-            Complex64::new(0., 0.),
-            Complex64::new(1., 0.),
-            Complex64::new(0., 0.)
-        ],
-        [
-            Complex64::new(0., 0.),
-            Complex64::new(1., 0.),
-            Complex64::new(0., 0.),
-            Complex64::new(0., 0.)
-        ],
-        [
-            Complex64::new(0., 0.),
-            Complex64::new(0., 0.),
-            Complex64::new(0., 0.),
-            Complex64::new(1., 0.)
-        ]
-    ];
     let identity: Array2<Complex64> = Array::eye(2);
     for (op_matrix, q_list) in op_list {
         let op_matrix = op_matrix.as_array();
-        let result = calculate_matrix(op_matrix, &q_list, &swap_gate, &identity);
+        let result = calculate_matrix(op_matrix, &q_list, &identity);
         matrix = match result {
             Some(result) => result.dot(&matrix),
             None => op_matrix.dot(&matrix),
@@ -69,15 +43,31 @@ pub fn blocks_to_matrix(
 fn calculate_matrix(
     matrix: ArrayView2<Complex64>,
     q_list: &[usize],
-    swap_gate: &Array2<Complex64>,
     identity: &Array2<Complex64>,
 ) -> Option<Array2<Complex64>> {
     match q_list {
         [0] => Some(kron(identity, &matrix)),
         [1] => Some(kron(&matrix, identity)),
-        [1, 0] => Some(swap_gate.dot(&matrix).dot(swap_gate)),
+        [1, 0] => Some(change_basis(matrix)),
         _ => None,
     }
+}
+
+fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
+    let mut trans_matrix: Array2<Complex64> = matrix.reversed_axes().to_owned();
+    let mut temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
+    for (index, value) in temp.into_iter().enumerate() {
+        trans_matrix[[2, index]] = trans_matrix[[1, index]].to_owned();
+        trans_matrix[[1, index]] = value;
+    }
+    trans_matrix = trans_matrix.reversed_axes();
+
+    temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
+    for (index, value) in temp.into_iter().enumerate() {
+        trans_matrix[[2, index]] = trans_matrix[[1, index]];
+        trans_matrix[[1, index]] = value;
+    }
+    trans_matrix
 }
 
 #[pymodule]
