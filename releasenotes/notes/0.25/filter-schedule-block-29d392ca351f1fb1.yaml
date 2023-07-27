@@ -21,7 +21,7 @@ features_pulse:
     User-defined callbacks taking :class:`~qiskit.pulse.instructions.Instruction` instance
     can be added to the filters, too.
     This method is the complement of :meth:`~qiskit.pulse.schedule.ScheduleBlock.filter`, so
-    the following condition is always satisfied::
+    the following condition is always satisfied:
     ``block.filter(*filters) + block.exclude(*filters) == block`` in terms of
     instructions included, where ``block`` is a :class:`~qiskit.pulse.schedule.ScheduleBlock`
     instance.

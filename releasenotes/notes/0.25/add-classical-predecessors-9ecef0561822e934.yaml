@@ -1,5 +1,5 @@
 ---
-features_circuits:
+features_transpiler:
   - |
     Added :meth:`.DAGCircuit.classical_predecessors` and
     :meth:`.DAGCircuit.classical_successors`, an alternative to selecting classical

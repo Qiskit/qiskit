@@ -3,5 +3,5 @@ fixes:
   - |
     Fixed an issue with using :class:`~.Target`\ s without coupling maps with the :class:`~.FullAncillaAllocation` transpiler pass.
     In this case, :class:`~.FullAncillaAllocation` will now add
-    ancilla qubits so that the number of qubits in the :class:`~.DAGCircuit` matches the number
+    ancilla qubits so that the number of qubits in the :class:`~.DAGCircuit` matches
     that of :attr:`Target.num_qubits`.

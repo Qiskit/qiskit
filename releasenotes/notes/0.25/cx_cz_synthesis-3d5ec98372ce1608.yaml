@@ -5,7 +5,7 @@ features_synthesis:
     which produces the circuit form of a CX circuit followed by a CZ circuit for linear
     nearest neighbor (LNN) connectivity in 2-qubit depth of at most 5n, using CX and
     phase gates (S, Sdg or Z). The synthesis algorithm is based on the paper of Maslov
-    and Yang (https://arxiv.org/abs/2210.16195).
+    and Yang, `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`__.
     
     The algorithm accepts a binary invertible matrix ``mat_x`` representing the CX-circuit,
     a binary symmetric matrix ``mat_z`` representing the CZ-circuit, and returns a quantum circuit

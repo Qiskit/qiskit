@@ -5,7 +5,7 @@ upgrade:
     `Python Stable ABI <https://docs.python.org/3/c-api/stable.html>`__
     with support back to the oldest version of Python supported by Qiskit
     (currently 3.8). This means that moving forward there
-    will be a single precompiled wheel that is shipped with the release that
+    will be a single precompiled wheel that is shipped on release that
     works with all of Qiskit's supported Python versions. There isn't any
     expected runtime performance difference using the limited API so it is
     enabled by default for all builds now.

@@ -1,5 +1,5 @@
 ---
-features_circuits:
+features_transpiler:
   - |
     Added two new options to :class:`~qiskit.dagcircuit.BlockCollector`.
 
@@ -10,7 +10,6 @@ features_circuits:
     from the outputs of the circuit. This is important in combination with ALAP-scheduling passes
     where we may prefer to put gates in the later rather than earlier blocks.
 
-features_transpiler:
   - |
     Added new options ``split_layers`` and ``collect_from_back`` to
     :class:`~qiskit.transpiler.passes.CollectLinearFunctions` and

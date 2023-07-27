@@ -1,9 +1,8 @@
 ---
 features_visualization:
   - |
-    In :class:`~qiskit.visualization.circuit.MatplotlibDrawer`, operations
-    built from :class:`~qiskit.circuit.ControlFlowOp`, including
-    ``if``, ``else``, ``while``, ``for``, and ``switch/case``, whether
-    directly instantiated or built using methods in :class:`~qiskit.circuit.QuantumCircuit`,
-    will now fully display nested circuit blocks therein, wrapped
-    with boxes to delineate the circuits.
+    :meth:`.QuantumCircuit.draw` and function :func:`~qiskit.visualization.circuit_drawer`
+    when using option ``output='mpl'`` now support drawing the nested circuit blocks of 
+    :class:`~qiskit.circuit.ControlFlowOp` operations, including
+    ``if``, ``else``, ``while``, ``for``, and ``switch/case``. Circuit blocks are
+    wrapped with boxes to delineate the circuits.

@@ -1,16 +1,17 @@
 ---
 features_transpiler:
   - |
-    Added attribute :attr:`.Target.concurrent_measurements` which represents a hardware
+    Added the attribute :attr:`.Target.concurrent_measurements` which represents a hardware
     constraint of qubits measured concurrently. This constraint is provided in a nested list form,
     in which each element represents a qubit group to be measured together. 
-    In an example below,
-    
-    .. code-block:: python
+    In an example below::
     
         [[0, 1], [2, 3, 4]]
      
     qubits 0 and 1, and 2, 3 and 4 are measured together on the device.
-    This constraint doesn't block measuring an individual qubit,
-    but the Qiskit scheduler must consider the alignment of 
-    measure operations for those qubits.    
+    This constraint doesn't block measuring an individual qubit, but you may
+    need to consider the alignment of measure operations for these qubits when
+    working with the
+    `Qiskit Pulse scheduler <https://qiskit.org/documentation/tutorials/circuits_advanced/07_pulse_scheduler.html>`__
+    and when authoring new transpiler passes that are timing-aware (i.e. passes
+    that perform scheduling).

@@ -1,5 +1,5 @@
 ---
-features_circuits:
+features_transpiler:
   - |
     A new method :meth:`~qiskit.dagcircuit.DAGCircuit.find_bit` has
     been added to the :class:`~qiskit.dagcircuit.DAGCircuit` class,
