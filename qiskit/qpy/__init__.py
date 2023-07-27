@@ -71,11 +71,8 @@ and then loading that file will return a list with all the circuits
 API documentation
 =================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   load
-   dump
+.. autofunction:: load
+.. autofunction:: dump
 
 QPY Compatibility
 =================
