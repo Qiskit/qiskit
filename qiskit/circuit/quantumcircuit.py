@@ -1794,6 +1794,13 @@ class QuantumCircuit:
 
         **latex_source**: raw uncompiled latex output.
 
+        .. warning::
+
+            Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target`
+            fields is preliminary and incomplete.  The ``text`` and ``mpl`` drawers will make a
+            best-effort attempt to show data dependencies, but the LaTeX-based drawers will skip
+            these completely.
+
         Args:
             output (str): select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
