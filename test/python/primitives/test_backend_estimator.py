@@ -384,6 +384,24 @@ class TestBackendEstimator(QiskitTestCase):
                 self.assertEqual(value, -1)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_circuit_with_measurement(self):
+        """Test estimator with a dynamic circuit"""
+        from qiskit import Aer
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure_all()
+        observable = SparsePauliOp("ZZ")
+
+        backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=15)
+        estimator = BackendEstimator(backend, skip_transpilation=True)
+        estimator.set_transpile_options(seed_transpiler=15)
+        result = estimator.run(bell, observable).result()
+        self.assertAlmostEqual(result.values[0], 1, places=1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_dynamic_circuit(self):
         """Test estimator with a dynamic circuit"""
         from qiskit import Aer
