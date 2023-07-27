@@ -2,7 +2,7 @@
 name = "qiskit_accelerate"
 # The following options can be inherited with (e.g.) `version.workspace = true` once we hit Rust
 # 1.64.  Until then, keep in sync with the root `Cargo.toml`.
-version = "0.25.0"
+version = "0.45.0"
 edition = "2021"
 rust-version = "1.61"
 license = "Apache-2.0"
@@ -33,7 +33,7 @@ version = "^0.15.6"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.13.2"
+version = "0.12.3"
 features = ["rayon"]
 
 [dependencies.indexmap]

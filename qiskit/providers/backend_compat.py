@@ -70,7 +70,11 @@ def convert_to_target(
         if filter_faulty:
             faulty_qubits = set(properties.faulty_qubits())
         qubit_properties = qubit_props_list_from_props(properties=properties)
-        target = Target(num_qubits=configuration.n_qubits, qubit_properties=qubit_properties)
+        target = Target(
+            num_qubits=configuration.n_qubits,
+            qubit_properties=qubit_properties,
+            concurrent_measurements=getattr(configuration, "meas_map", None),
+        )
         # Parse instructions
         gates: Dict[str, Any] = {}
         for gate in properties.gates:
@@ -122,7 +126,10 @@ def convert_to_target(
         target.add_instruction(Measure(), measure_props)
     # Parse from configuration because properties doesn't exist
     else:
-        target = Target(num_qubits=configuration.n_qubits)
+        target = Target(
+            num_qubits=configuration.n_qubits,
+            concurrent_measurements=getattr(configuration, "meas_map", None),
+        )
         for gate in configuration.gates:
             name = gate.name
             gate_props = (
