@@ -13,7 +13,7 @@
 """Base circuit scheduling pass."""
 
 import warnings
-from typing import Dict
+
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
@@ -59,11 +59,10 @@ class BaseScheduler(AnalysisPass):
     @staticmethod
     def _get_node_duration(
         node: DAGOpNode,
-        bit_index_map: Dict,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node or calibration."""
-        indices = [bit_index_map[qarg] for qarg in node.qargs]
+        indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
         if dag.has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
