@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     The fields :attr:`.IfElseOp.condition`, :attr:`.WhileLoopOp.condition` and
     :attr:`.SwitchCaseOp.target` can now be instances of the new runtime classical-expression type
@@ -36,9 +36,11 @@ features:
 
     For more examples, see the documentation for :mod:`qiskit.circuit.classical`.
 
-    This is a feature that hardware is only just beginning to support, so Qiskit's support is
-    starting conservatively, and you may well find rough edges in places where hardware doesn't
-    support expressions that look simple in Qiskit.  Please bear with us, and your hardware vendors!
+    This feature is new for both Qiskit and the available quantum hardware that
+    Qiskit works with. As the features are still being developed there are likely
+    to be places where there are unexpected edge cases that will need some time to
+    be worked out. If you encounter any issue around classical expression support
+    or usage please open an issue with Qiskit or your hardware vendor.
 
     In this initial release, Qiskit has added the operations:
 
@@ -65,18 +67,19 @@ features:
     (which is re-exposed via :mod:`qiskit.qasm3`), which we hope will be extended to match the new
     features in Qiskit.
   - |
-    In addition to the new representations of classical runtime expressions, some tools for working
-    with these objects have also been added.  A general :class:`~.expr.ExprVisitor` is provided for
+    Tooling for working with the new representations of classical runtime expressions
+    has been added.
+    A general :class:`~.expr.ExprVisitor` is provided for
     consumers of these expressions to subclass.  Two utilities based on this structure,
     :func:`~.expr.iter_vars` and :func:`~.expr.structurally_equivalent`, are also provided, which
     respectively produce an iterator through the :class:`~.expr.Var` nodes and check whether two
     :class:`~.expr.Expr` instances are structurally the same, up to some mapping of the
     :class:`~.expr.Var` nodes contained.
   - |
-    For those who wish to convert all old-style conditions into new-style :class:`~.expr.Expr` nodes
-    immediately, the function :func:`~.expr.lift_legacy_condition` is provided, though these new
-    expression nodes are not permitted in old-style :attr:`.Instruction.condition` fields, which are
-    due to be replaced by more advanced classical handling such as :class:`.IfElseOp`.
+    Added function :func:`~.expr.lift_legacy_condition` which can be used to convert old-style
+    conditions into new-style :class:`~.expr.Expr` nodes.
+    Note that these expression nodes are not permitted in old-style :attr:`.Instruction.condition`
+    fields, which are due to be replaced by more advanced classical handling such as :class:`.IfElseOp`.
 issues:
   - |
     Circuits containing classical expressions made with the :mod:`~.classical.expr` module are not

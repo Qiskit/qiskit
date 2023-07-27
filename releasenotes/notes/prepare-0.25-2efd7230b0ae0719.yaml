@@ -43,9 +43,11 @@ prelude: |
 
     For more examples, see the documentation for :mod:`qiskit.circuit.classical`.
 
-    This is a feature that hardware is only just beginning to support, so Qiskit's support is
-    starting conservatively, and you may well find rough edges in places where hardware doesn't
-    support expressions that look simple in Qiskit.  Please bear with us, and your hardware vendors!
+    This feature is new for both Qiskit and the available quantum hardware that
+    Qiskit works with. As the features are still being developed there are likely
+    to be places where there are unexpected edge cases that will need some time to
+    be worked out. If you encounter any issue around classical expression support
+    or usage please open an issue with Qiskit or your hardware vendor.
 
     In this initial release, Qiskit has added the operations:
 
