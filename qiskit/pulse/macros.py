@@ -174,7 +174,7 @@ def _measure_v2(
         A measurement schedule corresponding to the inputs provided.
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
-    
+
     if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
     meas_group = set()
