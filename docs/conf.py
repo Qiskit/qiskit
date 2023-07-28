@@ -119,7 +119,7 @@ gettext_compact = False  # optional.
 pygments_style = "colorful"
 
 # Whether module names are included in crossrefs of functions, classes, etc.
-add_module_names = False
+add_module_names = True
 
 # A list of prefixes that are ignored for sorting the Python module index
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
@@ -185,7 +185,6 @@ autodoc_typehints = "description"
 # Only add type hints from signature to description body if the parameter has documentation.  The
 # return type is always added to the description (if in the signature).
 autodoc_typehints_description_target = "documented_params"
-add_module_name = True
 
 # Plot directive configuration
 # ----------------------------
