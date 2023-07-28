@@ -171,12 +171,12 @@ be synthesized, which is any object of type :class:`~qiskit.circuit.Operation`
 (including, for example,
 :class:`~qiskit.circuit.library.generalized_gates.linear_function.LinearFunction` or
 :class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford`).
-The positional argument ``target`` specifies the target backend, allowing the plugin
+The keyword argument ``target`` specifies the target backend, allowing the plugin
 to access all target-specific information,
-such as the coupling map, the supported gate set, and so on. The positional argument
+such as the coupling map, the supported gate set, and so on. The keyword argument
 ``coupling_map`` only specifies the coupling map, and is only used when ``target``
 is not specified.
-The positional argument ``qubits`` specifies the list of qubits over which the
+The keyword argument ``qubits`` specifies the list of qubits over which the
 higher-level-object is defined, in case the synthesis is done on the physical circuit.
 The value of ``None`` indicates that the layout has not yet been chosen.
 Additionally, plugin-specific options and tunables can be specified via ``options``,
