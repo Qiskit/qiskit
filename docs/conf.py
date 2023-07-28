@@ -39,7 +39,7 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.doctest"
+    "sphinx.ext.doctest",
 ]
 
 templates_path = ["_templates"]
@@ -75,6 +75,7 @@ intersphinx_mapping = {
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
