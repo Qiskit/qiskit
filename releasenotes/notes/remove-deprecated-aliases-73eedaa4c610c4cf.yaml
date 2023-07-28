@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The deprecated ``qiskit.IBMQ`` object hase been removed. The object  was marked
+    as deprecated. This alias object was marked as deprecated in the 0.23.0 release.
+    This alias object lazily redirected attribute access to ``qiskit.providers.ibmq.IBMQ``. As the
+    ``qiskit-ibmq-provider`` package has now been retired and superseded by
+    ``qiskit-ibm-provider`` package which maintains its own namespace
+    maintaining this alias is no longer relevant. If you
+    were relying on the ``qiskit.IBMQ`` alias you should migrate your usage to
+    the ``qiskit-ibm-provider`` package, see the
+    `migration guide <https://qiskit.org/ecosystem/ibm-provider/tutorials/Migration_Guide_from_qiskit-ibmq-provider.html>`__
+    for more details.

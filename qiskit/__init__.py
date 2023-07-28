@@ -137,57 +137,7 @@ class AerWrapper:
         return getattr(self.aer, attr)
 
 
-class IBMQWrapper:
-    """Lazy loading wrapper for IBMQ provider."""
-
-    def __init__(self):
-        self.ibmq = None
-
-    def __bool__(self):
-        if self.ibmq is None:
-            try:
-                from qiskit.providers import ibmq
-
-                self.ibmq = ibmq.IBMQ
-                warnings.warn(
-                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-                    "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
-                    "'pip install qiskit_ibm_provider'",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-            except ImportError:
-                return False
-        return True
-
-    def __getattr__(self, attr):
-        if not self.ibmq:
-            try:
-                from qiskit.providers import ibmq
-
-                self.ibmq = ibmq.IBMQ
-                warnings.warn(
-                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-                    "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
-                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
-                    "'qiskit_ibm_provider.IBMProvider'",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-            except ImportError as ex:
-                raise MissingOptionalLibraryError(
-                    "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
-                ) from ex
-        return getattr(self.ibmq, attr)
-
-
 Aer = AerWrapper()
-IBMQ = IBMQWrapper()
 
 __all__ = [
     "Aer",
