@@ -79,22 +79,16 @@ def schedule(
             if inst_map:
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
         elif isinstance(backend, BackendV1):
-            if hasattr(backend, "configuration"):
+            if backend.configuration() is not None:
                 target = convert_to_target(
                     configuration=backend.configuration(),
                     properties=backend.properties(),
                     defaults=backend.defaults() if hasattr(backend, "defaults") else None,
                 )
-                print(f"{inst_map=}")
-                print(backend.defaults().instruction_schedule_map)
+                if inst_map:
+                    target.update_from_instruction_schedule_map(inst_map=inst_map)
             else:
-                target = Target(concurrent_measurements=meas_map or backend.configuration().meas_map)
-                defaults=backend.defaults() if hasattr(backend, "defaults") else None
-                inst_map = inst_map or defaults.instruction_schedule_map if hasattr(defaults, "instruction_schedule_map") else None
-                # print(f"aaaa{inst_map=}")
-                # target.add_instruction(Measure(), properties=backend.properties())
-            if inst_map:
-                target.update_from_instruction_schedule_map(inst_map=inst_map)
+                raise QiskitError("Must specify backend which has a configuration.")
         else:
             if inst_map:
                 target = Target(concurrent_measurements=meas_map)
@@ -103,7 +97,6 @@ def schedule(
                 raise QiskitError(
                     "Must specify either target, backend, or inst_map for scheduling passes."
                 )
-    print(target.instruction_schedule_map())
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = parallel_map(schedule_circuit, circuits, (None, target, method))
     end_time = time()
