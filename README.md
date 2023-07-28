@@ -1,11 +1,11 @@
-# Qiskit Terra
+# Qiskit
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)<!--- long-description-skip-begin -->[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)[![Minimum rustc 1.61.0](https://img.shields.io/badge/rustc-1.61.0+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)<!--- long-description-skip-end -->
 
 **Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
 
-This library is the core component of Qiskit, **Terra**, which contains the building blocks for creating
-and working with quantum circuits, programs, and algorithms. It also contains a compiler that supports
-different quantum computers and a common interface for running programs on different quantum computer architectures.
+This Qiskit contains the building blocks for creating and working with quantum circuits, programs, and algorithms. It also
+contains a compiler that supports different quantum computers and a common interface for running programs on different quantum
+computer architectures.
 
 For more details on how to use Qiskit you can refer to the documentation located here:
 
@@ -14,7 +14,7 @@ https://qiskit.org/documentation/
 
 ## Installation
 
-We encourage installing Qiskit via ``pip``. The following command installs the core Qiskit components, including Terra.
+We encourage installing Qiskit via ``pip``.
 
 ```bash
 pip install qiskit
@@ -24,7 +24,7 @@ Pip will handle all dependencies automatically and you will always install the l
 
 To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
-## Creating Your First Quantum Program in Qiskit Terra
+## Creating Your First Quantum Program in Qiskit
 
 Now that Qiskit is installed, it's time to begin working with Qiskit. To do this
 we create a `QuantumCircuit` object to define a basic quantum program.
@@ -94,7 +94,7 @@ on how to get access and use these systems.
 
 ## Contribution Guidelines
 
-If you'd like to contribute to Qiskit Terra, please take a look at our
+If you'd like to contribute to Qiskit, please take a look at our
 [contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
@@ -109,7 +109,7 @@ Now you're set up and ready to check out some of the other examples from our
 
 ## Authors and Citation
 
-Qiskit Terra is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
+Qiskit is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
 to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](CITATION.bib).
 
 ## Changelog and Release Notes

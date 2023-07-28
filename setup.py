@@ -12,6 +12,7 @@
 
 "The Qiskit Terra setup file."
 
+import json
 import os
 import re
 from setuptools import setup, find_packages
@@ -36,25 +37,11 @@ with open(README_PATH) as readme_file:
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
+with open("extras.json") as fd:
+    extras_dict = json.load(fd)
 
-qasm3_import_extras = [
-    "qiskit-qasm3-import>=0.1.0",
-]
-visualization_extras = [
-    "matplotlib>=3.3",
-    "ipywidgets>=7.3.0",
-    "pydot",
-    "pillow>=4.2.1",
-    "pylatexenc>=1.4",
-    "seaborn>=0.9.0",
-    "pygments>=2.4",
-]
-z3_requirements = [
-    "z3-solver>=4.7",
-]
-bip_requirements = ["cplex", "docplex"]
-csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.1.0"]
+extras_dict["all"] = [pkg for requirements in extras_dict.values() for pkg in requirements]
+
 
 setup(
     name="qiskit-terra",
@@ -86,17 +73,7 @@ setup(
     install_requires=REQUIREMENTS,
     include_package_data=True,
     python_requires=">=3.8",
-    extras_require={
-        "qasm3-import": qasm3_import_extras,
-        "visualization": visualization_extras,
-        "bip-mapper": bip_requirements,
-        "crosstalk-pass": z3_requirements,
-        "csp-layout-pass": csp_requirements,
-        "toqm": toqm_requirements,
-        # Note: 'all' only includes extras that are stable and work on the majority of Python
-        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
-        "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
-    },
+    extras_require=extras_dict,
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
         "Documentation": "https://qiskit.org/documentation/",

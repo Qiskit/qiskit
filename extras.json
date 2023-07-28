@@ -1,0 +1,6 @@
+{
+  "qasm3-import": ["qiskit-qasm3-import>=0.1.0"],
+  "visualization": ["matplotlib>=3.3", "ipywidgets>=7.3.0", "pydot", "pillow>=4.2.1", "pylatexenc>=1.4", "seaborn>=0.9.0", "pygments>=2.4"],
+  "crosstalk-pass": ["z3-solver>=4.7"],
+  "csp-layout-pass": ["python-constraint>=1.4"]
+}
