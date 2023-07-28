@@ -2180,39 +2180,33 @@ class QuantumCircuit:
         """Copy the circuit.
 
         Args:
-          name (str): name to be given to the copied circuit. If None, then the name stays the same.
-                      raises an error if type of name is not string or None type
+          name (str): name to be given to the copied circuit. If None, then the name stays the same
 
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
-        if isinstance(name, (type(" "), type(None))):
-            cpy = self.copy_empty_like(name)
+        cpy = self.copy_empty_like(name)
 
-            operation_copies = {
-                id(instruction.operation): instruction.operation.copy()
-                for instruction in self._data
+        operation_copies = {
+            id(instruction.operation): instruction.operation.copy() for instruction in self._data
+        }
+
+        cpy._parameter_table = ParameterTable(
+            {
+                param: ParameterReferences(
+                    (operation_copies[id(operation)], param_index)
+                    for operation, param_index in self._parameter_table[param]
+                )
+                for param in self._parameter_table
             }
+        )
 
-            cpy._parameter_table = ParameterTable(
-                {
-                    param: ParameterReferences(
-                        (operation_copies[id(operation)], param_index)
-                        for operation, param_index in self._parameter_table[param]
-                    )
-                    for param in self._parameter_table
-                }
-            )
+        cpy._data = [
+            instruction.replace(operation=operation_copies[id(instruction.operation)])
+            for instruction in self._data
+        ]
 
-            cpy._data = [
-                instruction.replace(operation=operation_copies[id(instruction.operation)])
-                for instruction in self._data
-            ]
-
-            return cpy
-        else:
-            # Raising error if type of name of copied circuit is not of string or None type
-            raise TypeError("The name of the copied circuit must be of 'string' or 'None' type")
+        return cpy
 
     def copy_empty_like(self, name: str | None = None) -> "QuantumCircuit":
         """Return a copy of self with the same structure but empty.
@@ -2224,10 +2218,16 @@ class QuantumCircuit:
 
         Args:
             name (str): Name for the copied circuit. If None, then the name stays the same.
+                        raises an error if type of name is not string or None type
 
         Returns:
             QuantumCircuit: An empty copy of self.
         """
+        if not (name is None or isinstance(name, str)):
+            # Raising error if type of name of copied circuit is not of string or None type
+            raise TypeError(
+                f"invalid name for a circuit: '{name}'. The name must be a 'string' or 'None' type."
+            )
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
