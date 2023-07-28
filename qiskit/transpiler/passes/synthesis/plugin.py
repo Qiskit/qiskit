@@ -178,7 +178,8 @@ such as the coupling map, the supported gate set, and so on. The keyword argumen
 is not specified.
 The keyword argument ``qubits`` specifies the list of qubits over which the
 higher-level-object is defined, in case the synthesis is done on the physical circuit.
-The value of ``None`` indicates that the layout has not yet been chosen.
+The value of ``None`` indicates that the layout has not yet been chosen and the physical qubits
+in the target or coupling map that this operation is operating on has not yet been determined.
 Additionally, plugin-specific options and tunables can be specified via ``options``,
 which is a free form configuration dictionary.
 If your plugin has these configuration options you
