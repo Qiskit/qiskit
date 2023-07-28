@@ -38,9 +38,9 @@ Using backend’s information
 ===========================
 
 
-You should adhere to the specific configuration of your backend when utilizing :meth:`~qiskit.transpile` . 
-This process entails breaking down your circuit into :attr:`~qiskit.transpile.basis_gates` and considering the physical connections specified in the 
-:attr:`~qiskit.transpile.coupling_map` for two qubit gates.
+You should adhere to the specific configuration of your backend when utilizing :func:`~qiskit.transpile` . 
+This process entails breaking down your circuit into ``operation_names`` and considering the physical connections specified in the 
+``coupling_map`` for two qubit gates.
 Given the presence of noise in the backend, it is crucial to optimize your circuit by adjusting the ``optimization_level`` parameter. 
 This will help minimize the number of circuit operations and enhance the overall performance.
 
@@ -49,22 +49,22 @@ What each optimization level does
 
 
 When using a backend, you can access its properties through the instruction  :meth:`backend.configuration()`.
-These properties, such as basis gates, coupling map, and init layout, play a crucial role in shaping the behavior of the quantum circuit.
+These properties, such as operation names, the coupling map connection, and init layout, play a crucial role in shaping the behavior of the quantum circuit.
 
-For example, with :meth:`~qiskit.providers.fake_provider.FakeQuito`, you can learn about its qubit connections and the gates it uses to generate your quantum circuits.
+For example, with :meth:`~qiskit.providers.fake_provider.FakeQuitoV2`, you can learn about its qubit connections and the gates it uses to generate your quantum circuits.
 
 .. testcode::
 
-    print(f"Basis gates of your backend: {backend.configuration().basis_gates}")
-    print(f"Coupling map of your backend: ",{backend.configuration().coupling_map}")
+    print(f"Operation names of your backend: {backend.operation_names}")
+    print(f"Coupling map connection of your backend: ",{[i for i in backend.coupling_map.get_edges()]}")
 
 .. testoutput::
 
-    Basis gates of your backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
-    Coupling map of your backend:  [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+    Operation names of your backend:  ['id', 'rz', 'sx', 'x', 'cx', 'reset']
+    Coupling map connection of your backend:  [(3, 4), (4, 3), (1, 3), (3, 1), (1, 2), (2, 1), (0, 1), (1, 0)]
 
 When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and simply mapped to the device, considering a trivial layout and stochastic swap. 
-The coupling map, represented by the subset ``[[0,1],[1,0],[1,2],[2,1]]``, indicates the physical qubits available in the backend. 
+The coupling map connection, represented by the subset ``[(2,1),(1,2),(1,0),(0,1)]``, indicates the physical qubits available in the backend. 
 In this configuration, the quantum circuit is transformed into a combination of one and two-qubit gates,
 represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
 
@@ -77,9 +77,9 @@ represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
 
     from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito
+    from qiskit.providers.fake_provider import FakeQuitoV2
 
-    backend = FakeQuito()
+    backend = FakeQuitoV2()
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
@@ -91,7 +91,7 @@ represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
 When you set the ``optimization_level`` to 1,the circuit undergoes a light optimization process that focuses on collapsing adjacent gates 
 with the goal to find a heuristic layout and swap insertion algorithm, 
 improving the overall performance of the circuit. This results in a reduction in :class:`.CXGate` count and changes in the positions of qubits, 
-following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adjacent gates :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single :math:`RZ(3\pi/4)` operation. 
+following the connections ``[(2,1),(1,0),(0,1)]``. In this example, the two adjacent gates :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single :math:`RZ(3\pi/4)` operation. 
 
 .. note::
     This optimization level is the default setting.
@@ -105,9 +105,9 @@ following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adja
 
     from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito
+    from qiskit.providers.fake_provider import FakeQuitoV2
 
-    backend = FakeQuito()
+    backend = FakeQuitoV2()
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
@@ -117,7 +117,7 @@ following the connections ``[[0,1],[1,0],[2,1]]``. In this example, the two adja
     qc_b1.draw("mpl")                                              
 
 
-When you set the :attr:`~qiskit.transpile.optimization_level`` to 2, the circuit undergoes a medium optimization process. 
+When you set the ``qiskit.transpile`` to 2, the circuit undergoes a medium optimization process. 
 This involves using a noise-adaptive layout and gate cancellation techniques based on commutation relationships similar than 1 with multiple trials. 
 Depending on the circuit, this level of optimization can occasionally yield the same results as light optimization.
 
@@ -132,9 +132,9 @@ Depending on the circuit, this level of optimization can occasionally yield the 
 
     from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito
+    from qiskit.providers.fake_provider import FakeQuitoV2
 
-    backend = FakeQuito()
+    backend = FakeQuitoV2()
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
@@ -143,10 +143,10 @@ Depending on the circuit, this level of optimization can occasionally yield the 
     qc_b2 = transpile(qc,backend=backend,optimization_level=2)
     qc_b2.draw("mpl")                                                   
 
-When you set the :attr:`~qiskit.transpile.optimization_level`` to 3, it enables heavy optimization. 
+When you set the ``optimization_level`` to 3, it enables heavy optimization. 
 This level of optimization considers previous considerations and involves the resynthesis of two qubit blocks of gates in the circuit. 
-The result of multiple seeds for different trials is a reduction in the number of quantum gates and the determination of the a coupling map connection, such as **[[0,1],[1,0],[2,1]]**.
-Based on the basis gates, results in one less :class:`.CXGate` and the addition of eight one qubit gates.
+The result of multiple seeds for different trials is a reduction in the number of quantum gates and the determination of the a coupling map connection, such as **[(2,1),(0,1),(1,0)]**.
+Based on the operation names, results in one less :class:`.CXGate` and the addition of eight one qubit gates.
 
 .. testcode::
 
@@ -158,9 +158,9 @@ Based on the basis gates, results in one less :class:`.CXGate` and the addition 
 
     from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito
+    from qiskit.providers.fake_provider import FakeQuitoV2
 
-    backend = FakeQuito()
+    backend = FakeQuitoV2()
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
@@ -225,10 +225,10 @@ is actually reduced compared to other optimization levels.
     import matplotlib.pyplot as plt
     from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister 
     from qiskit.compiler import transpile
-    from qiskit.providers.fake_provider import FakeQuito
+    from qiskit.providers.fake_provider import FakeQuitoV2
     import numpy as np
 
-    backend = FakeQuito()
+    backend = FakeQuitoV2()
 
     qc = QuantumCircuit(3) # Initialize the quantum circuit with 3 qubits.
     
