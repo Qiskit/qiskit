@@ -17,8 +17,9 @@ from copy import copy, deepcopy
 
 import rustworkx
 
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import SwitchCaseOp, ControlFlowOp, Clbit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.controlflow import condition_resources, node_resources
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.coupling import CouplingMap
@@ -282,14 +283,21 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
         return process_dag(block_dag, block_qubit_indices)
 
     def process_dag(block_dag, wire_map):
-        clbit_indices = {bit: idx for idx, bit in enumerate(block_dag.clbits)}
         dag_list = []
         node_blocks = {}
         for node in block_dag.topological_op_nodes():
-            cargs = {clbit_indices[x] for x in node.cargs}
+            cargs_bits = set(node.cargs)
             if node.op.condition is not None:
-                for clbit in block_dag._bits_in_operation(node.op):
-                    cargs.add(clbit_indices[clbit])
+                cargs_bits.update(condition_resources(node.op.condition).clbits)
+            if isinstance(node.op, SwitchCaseOp):
+                target = node.op.target
+                if isinstance(target, Clbit):
+                    cargs_bits.add(target)
+                elif isinstance(target, ClassicalRegister):
+                    cargs_bits.update(target)
+                else:  # Expr
+                    cargs_bits.update(node_resources(target).clbits)
+            cargs = {block_dag.find_bit(x).index for x in cargs_bits}
             if isinstance(node.op, ControlFlowOp):
                 node_blocks[node._node_id] = [
                     recurse(

@@ -62,9 +62,8 @@ class ALAPSchedule(BaseSchedulerTransform):
             new_dag.add_creg(creg)
 
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
-            op_duration = self._get_node_duration(node, bit_indices, dag)
+            op_duration = self._get_node_duration(node, dag)
 
             # compute t0, t1: instruction interval, note that
             # t0: start time of instruction
@@ -131,7 +130,7 @@ class ALAPSchedule(BaseSchedulerTransform):
 
             for bit in node.qargs:
                 delta = t0 - idle_before[bit]
-                if delta > 0 and self._delay_supported(bit_indices[bit]):
+                if delta > 0 and self._delay_supported(dag.find_bit(bit).index):
                     new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
                 idle_before[bit] = t1
 
@@ -142,7 +141,7 @@ class ALAPSchedule(BaseSchedulerTransform):
             delta = circuit_duration - before
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
-            if self._delay_supported(bit_indices[bit]):
+            if self._delay_supported(dag.find_bit(bit).index):
                 new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
 
         new_dag.name = dag.name
