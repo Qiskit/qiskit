@@ -453,7 +453,7 @@ def generate_translation_passmanager(
                 hls_config=hls_config,
                 coupling_map=coupling_map,
                 target=target,
-                use_qubit_indices=False,
+                use_qubit_indices=True,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
