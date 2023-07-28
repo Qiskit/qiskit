@@ -657,6 +657,30 @@ p(pi) q[0];\n"""
         with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
             qc.qasm()
 
+    def test_circuit_raises_invalid_custom_gate_no_qubits(self):
+        """OpenQASM 2 exporter of custom gates with no qubits.
+        See: https://github.com/Qiskit/qiskit-terra/issues/10435"""
+        legit_circuit = QuantumCircuit(5, name="legit_circuit")
+        empty_circuit = QuantumCircuit(name="empty_circuit")
+        legit_circuit.append(empty_circuit)
+
+        with self.assertRaisesRegex(QasmError, "acts on zero qubits"):
+            legit_circuit.qasm()
+
+    def test_circuit_raises_invalid_custom_gate_clbits(self):
+        """OpenQASM 2 exporter of custom instruction.
+        See: https://github.com/Qiskit/qiskit-terra/issues/7351"""
+        instruction = QuantumCircuit(2, 2, name="inst")
+        instruction.cx(0, 1)
+        instruction.measure([0, 1], [0, 1])
+        custom_instruction = instruction.to_instruction()
+
+        qc = QuantumCircuit(2, 2)
+        qc.append(custom_instruction, [0, 1], [0, 1])
+
+        with self.assertRaisesRegex(QasmError, "acts on 2 classical bits"):
+            qc.qasm()
+
     def test_circuit_qasm_with_permutations(self):
         """Test circuit qasm() method with Permutation gates."""
 
@@ -804,6 +828,23 @@ z q[2];
 """
 
         self.assertEqual(qc.qasm(), expected_output)
+
+    def test_empty_barrier(self):
+        """Test that a blank barrier statement in _Qiskit_ acts over all qubits, while an explicitly
+        no-op barrier (assuming Qiskit continues to allow this) is not output to OQ2 at all, since
+        the statement requires an argument in the spec."""
+        qc = QuantumCircuit(QuantumRegister(2, "qr1"), QuantumRegister(3, "qr2"))
+        qc.barrier()  # In Qiskit land, this affects _all_ qubits.
+        qc.barrier([])  # This explicitly affects _no_ qubits (so is totally meaningless).
+
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr1[2];
+qreg qr2[3];
+barrier qr1[0],qr1[1],qr2[0],qr2[1],qr2[2];
+"""
+        self.assertEqual(qc.qasm(), expected)
 
 
 if __name__ == "__main__":

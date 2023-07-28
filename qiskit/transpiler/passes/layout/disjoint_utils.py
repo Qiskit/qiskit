@@ -156,15 +156,14 @@ def require_layout_isolated_to_component(
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
         coupling_map = components_source
-    qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():
         component_index = None
         for i, component_set in enumerate(component_sets):
-            if qubit_indices[inst.qargs[0]] in component_set:
+            if dag.find_bit(inst.qargs[0]).index in component_set:
                 component_index = i
                 break
-        if qubit_indices[inst.qargs[1]] not in component_sets[component_index]:
+        if dag.find_bit(inst.qargs[1]).index not in component_sets[component_index]:
             raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
 
 
