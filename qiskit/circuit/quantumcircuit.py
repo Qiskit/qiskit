@@ -2180,7 +2180,8 @@ class QuantumCircuit:
         """Copy the circuit.
 
         Args:
-          name (str): name to be given to the copied circuit. If None, then the name stays the same
+          name (str): name to be given to the copied circuit. If None, then the name stays the same.
+                      Raises an error if type of name is not string or None type
 
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
@@ -2218,7 +2219,7 @@ class QuantumCircuit:
 
         Args:
             name (str): Name for the copied circuit. If None, then the name stays the same.
-                        raises an error if type of name is not string or None type
+                        Raises an error if type of name is not string or None type
 
         Returns:
             QuantumCircuit: An empty copy of self.
