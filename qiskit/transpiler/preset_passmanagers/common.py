@@ -430,7 +430,7 @@ def generate_translation_passmanager(
                 hls_config=hls_config,
                 coupling_map=coupling_map,
                 target=target,
-                use_qubit_indices=False,
+                use_qubit_indices=True,
             ),
             UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
