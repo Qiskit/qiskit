@@ -13,7 +13,6 @@
 
 use hashbrown::HashSet;
 use ndarray::prelude::*;
-use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -26,14 +25,11 @@ use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 use crate::sabre_swap::neighbor_table::NeighborTable;
 use crate::sabre_swap::sabre_dag::SabreDAG;
-use crate::sabre_swap::swap_map::SwapMap;
-use crate::sabre_swap::{build_swap_map_inner, Heuristic};
+use crate::sabre_swap::{build_swap_map_inner, Heuristic, SabreResult};
 
 #[pyfunction]
 pub fn sabre_layout_and_routing(
-    py: Python,
-    num_clbits: usize,
-    mut dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+    dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
@@ -42,7 +38,7 @@ pub fn sabre_layout_and_routing(
     num_layout_trials: usize,
     seed: Option<u64>,
     partial_layout: Option<Vec<Option<usize>>>,
-) -> ([NLayout; 2], SwapMap, PyObject) {
+) -> ([NLayout; 2], SabreResult) {
     let run_in_parallel = getenv_use_multiple_threads();
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -53,7 +49,7 @@ pub fn sabre_layout_and_routing(
         .take(num_layout_trials)
         .collect();
     let dist = distance_matrix.as_array();
-    let result = if run_in_parallel && num_layout_trials > 1 {
+    if run_in_parallel && num_layout_trials > 1 {
         seed_vec
             .into_par_iter()
             .enumerate()
@@ -62,8 +58,7 @@ pub fn sabre_layout_and_routing(
                 (
                     index,
                     layout_trial(
-                        num_clbits,
-                        &mut dag_nodes.clone(),
+                        dag,
                         neighbor_table,
                         &dist,
                         heuristic,
@@ -75,9 +70,9 @@ pub fn sabre_layout_and_routing(
                     ),
                 )
             })
-            .min_by_key(|(index, result)| {
+            .min_by_key(|(index, (_, result))| {
                 (
-                    result.1.map.values().map(|x| x.len()).sum::<usize>(),
+                    result.map.map.values().map(|x| x.len()).sum::<usize>(),
                     *index,
                 )
             })
@@ -90,8 +85,7 @@ pub fn sabre_layout_and_routing(
             .map(|(index, seed_trial)| {
                 let partial = if index > 0 { &partial_layout } else { &None };
                 layout_trial(
-                    num_clbits,
-                    &mut dag_nodes,
+                    dag,
                     neighbor_table,
                     &dist,
                     heuristic,
@@ -102,15 +96,13 @@ pub fn sabre_layout_and_routing(
                     partial.clone(),
                 )
             })
-            .min_by_key(|result| result.1.map.values().map(|x| x.len()).sum::<usize>())
+            .min_by_key(|(_, result)| result.map.map.values().map(|x| x.len()).sum::<usize>())
             .unwrap()
-    };
-    (result.0, result.1, result.2.into_pyarray(py).into())
+    }
 }
 
 fn layout_trial(
-    num_clbits: usize,
-    dag_nodes: &mut Vec<(usize, Vec<usize>, HashSet<usize>)>,
+    dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: &ArrayView2<f64>,
     heuristic: &Heuristic,
@@ -119,7 +111,7 @@ fn layout_trial(
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
     partial_layout: Option<Vec<Option<usize>>>,
-) -> ([NLayout; 2], SwapMap, Vec<usize>) {
+) -> ([NLayout; 2], SabreResult) {
     // Pick a random initial layout and fully populate ancillas in that layout too
     let num_physical_qubits = distance_matrix.shape()[0];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
@@ -148,26 +140,39 @@ fn layout_trial(
             physical_qubits.shuffle(&mut rng);
         }
     };
-    let mut phys_to_logic = vec![0; num_physical_qubits];
-    physical_qubits
-        .iter()
-        .enumerate()
-        .for_each(|(logic, phys)| phys_to_logic[*phys] = logic);
-
-    let mut initial_layout = NLayout {
-        logic_to_phys: physical_qubits,
-        phys_to_logic,
+    let mut initial_layout = NLayout::from_logical_to_physical(physical_qubits);
+    let new_dag_fn = |nodes| {
+        // Because the current implementation of Sabre swap doesn't permute
+        // the layout when placing control flow ops, there's no need to
+        // recurse into blocks. We remove them here, but still map control
+        // flow node IDs to an empty block list so Sabre treats these ops
+        // as control flow nodes, but doesn't route their blocks.
+        let node_blocks_empty = dag
+            .node_blocks
+            .iter()
+            .map(|(node_index, _)| (*node_index, Vec::with_capacity(0)));
+        SabreDAG::new(
+            dag.num_qubits,
+            dag.num_clbits,
+            nodes,
+            node_blocks_empty.collect(),
+        )
+        .unwrap()
     };
-    let mut rev_dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)> =
-        dag_nodes.iter().rev().cloned().collect();
+
+    // Create forward and reverse dags (without node blocks).
+    // Once we've settled on a layout, we recursively apply it to the original
+    // DAG and its node blocks.
+    let mut dag_forward: SabreDAG = new_dag_fn(dag.nodes.clone());
+    let mut dag_reverse: SabreDAG = new_dag_fn(dag.nodes.iter().rev().cloned().collect());
     for _iter in 0..max_iterations {
         // forward and reverse
         for _direction in 0..2 {
-            let dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
+            let layout_dag = apply_layout(&dag_forward, &initial_layout);
             let mut pass_final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
             build_swap_map_inner(
                 num_physical_qubits,
-                &dag,
+                &layout_dag,
                 neighbor_table,
                 distance_matrix,
                 heuristic,
@@ -178,12 +183,15 @@ fn layout_trial(
             );
             let final_layout = compose_layout(&initial_layout, &pass_final_layout);
             initial_layout = final_layout;
-            std::mem::swap(dag_nodes, &mut rev_dag_nodes);
+            std::mem::swap(&mut dag_forward, &mut dag_reverse);
         }
     }
-    let layout_dag = apply_layout(dag_nodes, &initial_layout, num_physical_qubits, num_clbits);
+
+    // Apply the layout to the original DAG.
+    let layout_dag = apply_layout(dag, &initial_layout);
+
     let mut final_layout = NLayout::generate_trivial_layout(num_physical_qubits);
-    let (swap_map, gate_order) = build_swap_map_inner(
+    let sabre_result = build_swap_map_inner(
         num_physical_qubits,
         &layout_dag,
         neighbor_table,
@@ -194,23 +202,27 @@ fn layout_trial(
         num_swap_trials,
         Some(run_swap_in_parallel),
     );
-    ([initial_layout, final_layout], swap_map, gate_order)
+    ([initial_layout, final_layout], sabre_result)
 }
 
-fn apply_layout(
-    dag_nodes: &[(usize, Vec<usize>, HashSet<usize>)],
-    layout: &NLayout,
-    num_qubits: usize,
-    num_clbits: usize,
-) -> SabreDAG {
-    let layout_dag_nodes: Vec<(usize, Vec<usize>, HashSet<usize>)> = dag_nodes
-        .iter()
-        .map(|(node_index, qargs, cargs)| {
-            let new_qargs: Vec<usize> = qargs.iter().map(|n| layout.logic_to_phys[*n]).collect();
-            (*node_index, new_qargs, cargs.clone())
-        })
-        .collect();
-    SabreDAG::new(num_qubits, num_clbits, layout_dag_nodes).unwrap()
+fn apply_layout(dag: &SabreDAG, layout: &NLayout) -> SabreDAG {
+    let layout_nodes = dag.nodes.iter().map(|(node_index, qargs, cargs)| {
+        let new_qargs: Vec<usize> = qargs.iter().map(|n| layout.logic_to_phys[*n]).collect();
+        (*node_index, new_qargs, cargs.clone())
+    });
+    let node_blocks = dag.node_blocks.iter().map(|(node_index, blocks)| {
+        (
+            *node_index,
+            blocks.iter().map(|d| apply_layout(d, layout)).collect(),
+        )
+    });
+    SabreDAG::new(
+        dag.num_qubits,
+        dag.num_clbits,
+        layout_nodes.collect(),
+        node_blocks.collect(),
+    )
+    .unwrap()
 }
 
 fn compose_layout(initial_layout: &NLayout, final_layout: &NLayout) -> NLayout {

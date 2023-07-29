@@ -13,6 +13,7 @@
 PauliList utility functions.
 """
 
+from __future__ import annotations
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.utils.deprecation import deprecate_arg
 
@@ -24,7 +25,7 @@ from qiskit.utils.deprecation import deprecate_arg
         "The argument ``pauli_list`` has no effect as the function always returns a PauliList."
     ),
 )
-def pauli_basis(num_qubits, weight=False, pauli_list=None):
+def pauli_basis(num_qubits: int, weight: bool = False, pauli_list=None) -> PauliList:
     """Return the ordered PauliTable or PauliList for the n-qubit Pauli basis.
 
     Args:

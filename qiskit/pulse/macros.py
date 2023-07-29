@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Union, TYPE_CHECKING
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
+from qiskit.providers.backend import BackendV2
 
 
 if TYPE_CHECKING:
@@ -62,17 +63,12 @@ def measure(
     """
 
     # backend is V2.
-    if hasattr(backend, "target"):
-        try:
-            meas_map = backend.configuration().meas_map
-        except AttributeError:
-            # TODO add meas_map to Target in 0.25
-            meas_map = [list(range(backend.num_qubits))]
+    if isinstance(backend, BackendV2):
 
         return _measure_v2(
             qubits=qubits,
             target=backend.target,
-            meas_map=meas_map,
+            meas_map=meas_map or backend.meas_map,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
@@ -180,7 +176,7 @@ def _measure_v2(
     meas_group = set()
     for qubit in qubits:
         meas_group |= set(meas_map[qubit])
-    meas_group = sorted(list(meas_group))
+    meas_group = sorted(meas_group)
 
     meas_group_set = set(range(max(meas_group) + 1))
     unassigned_qubit_indices = sorted(set(meas_group) - qubit_mem_slots.keys())
@@ -198,12 +194,7 @@ def _measure_v2(
                         channels.AcquireChannel(measure_qubit),
                     ]
                 )
-            else:
-                default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(
-                    channels=[
-                        channels.AcquireChannel(measure_qubit),
-                    ]
-                )
+                schedule += _schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
         except KeyError as ex:
             raise exceptions.PulseError(
                 "We could not find a default measurement schedule called '{}'. "
@@ -211,7 +202,6 @@ def _measure_v2(
                 "argument. For assistance, the instructions which are defined are: "
                 "{}".format(measure_name, target.instructions)
             ) from ex
-        schedule += _schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
     return schedule
 
 
@@ -226,7 +216,12 @@ def measure_all(backend) -> Schedule:
     Returns:
         A schedule corresponding to the inputs provided.
     """
-    return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
+    # backend is V2.
+    if isinstance(backend, BackendV2):
+        qubits = list(range(backend.num_qubits))
+    else:
+        qubits = list(range(backend.configuration().n_qubits))
+    return measure(qubits=qubits, backend=backend)
 
 
 def _schedule_remapping_memory_slot(

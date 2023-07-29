@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    A new module :mod:`qiskit.passmanager` is added.
+    This module implements a generic pass manager and flow controllers,
+    and provides an infrastructure to manage execution of transform passes.
+    The pass manager is a baseclass and not aware of the input and output object types,
+    and you need to create a subclass of the pass manager
+    for a particular program data to optimize.
+    The :mod:`qiskit.transpiler` module is also reorganized to rebuild the existing
+    quantum circuit pass manager based off of new generic pass manager.
+    See upgrade notes for more details.
+upgrade:
+  - |
+    :class:`qiskit.transpiler.PassManager` is now a subclass of
+    :class:`qiskit.passmanager.BasePassManager`. There is no functional modification
+    due to this class hierarchy change.
+  - |
+    New error baseclass :class:`~qiskit.passmanager.PassManagerError` is introduced.
+    This will replace :class:`~qiskit.transpiler.TranspilerError` raised in the
+    pass handling machinery. The TranspilerError is now only used for the errors
+    related to the failure in handling the quantum circuit or DAG circuit object.
+    Note that the TranspilerError can be caught by the PassManagerError
+    because of their class hierarchy. For backward compatibility,
+    :class:`qiskit.transpiler.PassManager` catches PassManagerError and
+    re-raises the TranspilerError. This error replacement will be dropped in future.

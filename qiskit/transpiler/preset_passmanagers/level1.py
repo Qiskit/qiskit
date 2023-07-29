@@ -73,8 +73,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     init_method = pass_manager_config.init_method
     # Unlike other presets, the layout and routing defaults aren't set here because they change
     # based on whether the input circuit has control flow.
-    layout_method = pass_manager_config.layout_method
-    routing_method = pass_manager_config.routing_method
+    layout_method = pass_manager_config.layout_method or "sabre"
+    routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
     scheduling_method = pass_manager_config.scheduling_method
@@ -158,44 +158,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             and routing_method != "sabre",
             vf2_call_limit=int(5e4),
         )
-    elif layout_method is None:
-        _improve_layout = common.if_has_control_flow_else(
-            DenseLayout(coupling_map, backend_properties, target=target),
-            SabreLayout(
-                coupling_map_layout,
-                max_iterations=2,
-                seed=seed_transpiler,
-                swap_trials=5,
-                layout_trials=5,
-                skip_routing=pass_manager_config.routing_method is not None
-                and routing_method != "sabre",
-                vf2_call_limit=int(5e4),
-            ),
-        ).to_flow_controller()
 
     # Choose routing pass
-    routing_pm = None
-    if routing_method is None:
-        _stochastic_routing = plugin_manager.get_passmanager_stage(
-            "routing",
-            "stochastic",
-            pass_manager_config,
-            optimization_level=1,
-        )
-        _sabre_routing = plugin_manager.get_passmanager_stage(
-            "routing",
-            "sabre",
-            pass_manager_config,
-            optimization_level=1,
-        )
-        routing_pm = common.if_has_control_flow_else(_stochastic_routing, _sabre_routing)
-    else:
-        routing_pm = plugin_manager.get_passmanager_stage(
-            "routing",
-            routing_method,
-            pass_manager_config,
-            optimization_level=1,
-        )
+    routing_pm = plugin_manager.get_passmanager_stage(
+        "routing", routing_method, pass_manager_config, optimization_level=1
+    )
 
     # Build optimization loop: merge 1q rotations and cancel CNOT gates iteratively
     # until no more change in depth

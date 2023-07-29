@@ -58,7 +58,7 @@ toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.25.0",
+    version="0.45.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -110,9 +110,13 @@ setup(
             debug=rust_debug,
         ),
         RustExtension(
-            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
         ),
     ],
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [

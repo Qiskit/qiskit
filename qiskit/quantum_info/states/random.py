@@ -14,6 +14,9 @@
 Random state generation.
 """
 
+from __future__ import annotations
+from typing import Literal
+
 import numpy as np
 from numpy.random import default_rng
 
@@ -23,7 +26,9 @@ from .statevector import Statevector
 from .densitymatrix import DensityMatrix
 
 
-def random_statevector(dims, seed=None):
+def random_statevector(
+    dims: int | tuple, seed: int | np.random.Generator | None = None
+) -> Statevector:
     """Generator a random Statevector.
 
     The statevector is sampled from the uniform (Haar) measure.
@@ -43,7 +48,7 @@ def random_statevector(dims, seed=None):
     else:
         rng = default_rng(seed)
 
-    dim = np.product(dims)
+    dim = np.prod(dims)
 
     # Random array over interval (0, 1]
     x = rng.random(dim)
@@ -54,7 +59,12 @@ def random_statevector(dims, seed=None):
     return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
 
 
-def random_density_matrix(dims, rank=None, method="Hilbert-Schmidt", seed=None):
+def random_density_matrix(
+    dims: int | tuple,
+    rank: int | None = None,
+    method: Literal["Hilbert-Schmidt", "Bures"] = "Hilbert-Schmidt",
+    seed: int | np.random.Generator | None = None,
+) -> DensityMatrix:
     """Generator a random DensityMatrix.
 
     Args:
@@ -74,7 +84,7 @@ def random_density_matrix(dims, rank=None, method="Hilbert-Schmidt", seed=None):
         QiskitError: if the method is not valid.
     """
     # Flatten dimensions
-    dim = np.product(dims)
+    dim = np.prod(dims)
     if rank is None:
         rank = dim  # Use full rank
 

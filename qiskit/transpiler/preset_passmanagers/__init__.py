@@ -34,31 +34,27 @@ part) the stages which the preset pass managers are composed of
 Preset Pass Manager Generation
 ------------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   generate_preset_pass_manager
-   level_0_pass_manager
-   level_1_pass_manager
-   level_2_pass_manager
-   level_3_pass_manager
+.. autofunction:: generate_preset_pass_manager
+.. autofunction:: level_0_pass_manager
+.. autofunction:: level_1_pass_manager
+.. autofunction:: level_2_pass_manager
+.. autofunction:: level_3_pass_manager
 
 .. _stage_generators:
 
 Stage Generator Functions
 -------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.transpiler.preset_passmanagers.common.generate_control_flow_options_check
-   ~qiskit.transpiler.preset_passmanagers.common.generate_error_on_control_flow
-   ~qiskit.transpiler.preset_passmanagers.common.generate_unroll_3q
-   ~qiskit.transpiler.preset_passmanagers.common.generate_embed_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_routing_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_pre_op_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_translation_passmanager
-   ~qiskit.transpiler.preset_passmanagers.common.generate_scheduling
+.. currentmodule:: qiskit.transpiler.preset_passmanagers.common
+.. autofunction:: generate_control_flow_options_check
+.. autofunction:: generate_error_on_control_flow
+.. autofunction:: generate_unroll_3q
+.. autofunction:: generate_embed_passmanager
+.. autofunction:: generate_routing_passmanager
+.. autofunction:: generate_pre_op_passmanager
+.. autofunction:: generate_translation_passmanager
+.. autofunction:: generate_scheduling
+.. currentmodule:: qiskit.transpiler.preset_passmanagers
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -92,6 +88,8 @@ def generate_preset_pass_manager(
     hls_config=None,
     init_method=None,
     optimization_method=None,
+    *,
+    _skip_target=False,
 ):
     """Generate a preset :class:`~.PassManager`
 
@@ -241,10 +239,10 @@ def generate_preset_pass_manager(
     }
 
     if backend is not None:
+        pm_options["_skip_target"] = _skip_target
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
-
     if optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:

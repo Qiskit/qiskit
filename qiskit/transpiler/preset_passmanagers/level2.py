@@ -255,8 +255,14 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=2
         )
-    init = common.generate_error_on_control_flow(
-        "The optimizations in optimization_level=2 do not yet support control flow."
+    init = common.generate_control_flow_options_check(
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        optimization_method=optimization_method,
+        scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(

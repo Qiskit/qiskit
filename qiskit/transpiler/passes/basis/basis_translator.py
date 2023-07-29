@@ -135,6 +135,7 @@ class BasisTranslator(TransformationPass):
             return dag
 
         qarg_indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
+
         # Names of instructions assumed to supported by any backend.
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
@@ -334,12 +335,12 @@ class BasisTranslator(TransformationPass):
 
     @_extract_basis.register
     def _(self, circ: QuantumCircuit):
-        for instr_context in circ.data:
-            instr, _, _ = instr_context
-            if not circ.has_calibration_for(instr_context):
-                yield (instr.name, instr.num_qubits)
-            if isinstance(instr, ControlFlowOp):
-                for block in instr.blocks:
+        for instruction in circ.data:
+            operation = instruction.operation
+            if not circ.has_calibration_for(instruction):
+                yield (operation.name, operation.num_qubits)
+            if isinstance(operation, ControlFlowOp):
+                for block in operation.blocks:
                     yield from self._extract_basis(block)
 
     def _extract_basis_target(
