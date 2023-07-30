@@ -54,7 +54,7 @@ pub fn sabre_layout_and_routing(
             .into_par_iter()
             .enumerate()
             .map(|(index, seed_trial)| {
-                let partial = if index > 0 { &partial_layout } else { &None };
+                let partial = if index == 0 { &partial_layout } else { &None };
                 (
                     index,
                     layout_trial(
@@ -83,7 +83,7 @@ pub fn sabre_layout_and_routing(
             .into_iter()
             .enumerate()
             .map(|(index, seed_trial)| {
-                let partial = if index > 0 { &partial_layout } else { &None };
+                let partial = if index == 0 { &partial_layout } else { &None };
                 layout_trial(
                     dag,
                     neighbor_table,
@@ -115,29 +115,70 @@ fn layout_trial(
     // Pick a random initial layout and fully populate ancillas in that layout too
     let num_physical_qubits = distance_matrix.shape()[0];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
-    let mut physical_qubits: Vec<usize>;
-    match partial_layout {
+    let physical_qubits: Vec<usize> = match partial_layout {
         Some(partial_layout_bits) => {
-            let used_bits: HashSet<usize> = partial_layout_bits
+            let mut used_bits: HashSet<usize> = partial_layout_bits
                 .iter()
                 .filter_map(|x| x.as_ref())
                 .copied()
                 .collect();
-            let mut free_bits: Vec<usize> = (0..num_physical_qubits)
-                .filter(|x| !used_bits.contains(x))
-                .collect();
-            free_bits.shuffle(&mut rng);
-            physical_qubits = partial_layout_bits
-                .iter()
-                .map(|x| match x {
-                    Some(phys) => *phys,
-                    None => free_bits.pop().unwrap(),
+            // Compute nearest neighbors to use for free bits
+            let mut free_bits_distance: Vec<(usize, f64)> = distance_matrix
+                .axis_iter(Axis(0))
+                .enumerate()
+                .filter_map(|(x, row)| {
+                    // If starting from free bit don't check distance
+                    if !used_bits.contains(&x) {
+                        None
+                    } else {
+                        let index_distance =
+                            row.into_iter().enumerate().filter_map(|(y, value)| {
+                                if used_bits.contains(&y) {
+                                    None
+                                } else {
+                                    Some((y, *value))
+                                }
+                            });
+                        Some(index_distance)
+                    }
                 })
+                .flatten()
                 .collect();
+            free_bits_distance.par_sort_by(|a, b| {
+                // Reverse arg order so lowest distance is at the end of Vec
+                // and when we pop below we get the closest nodes first
+                b.1.partial_cmp(&a.1).unwrap()
+            });
+
+            let mut get_free_bit = || -> usize {
+                // As the free_bits_distance Vec will have multiple
+                // entries for each bit we need to loop until we find
+                // an unused bit
+                let mut new_bit = free_bits_distance.pop().unwrap().0;
+                while used_bits.contains(&new_bit) {
+                    new_bit = free_bits_distance.pop().unwrap().0;
+                }
+                used_bits.insert(new_bit);
+                new_bit
+            };
+
+            (0..num_physical_qubits)
+                .map(|x| {
+                    if x >= partial_layout_bits.len() {
+                        get_free_bit()
+                    } else {
+                        match partial_layout_bits[x] {
+                            Some(phys) => phys,
+                            None => get_free_bit(),
+                        }
+                    }
+                })
+                .collect()
         }
         None => {
-            physical_qubits = (0..num_physical_qubits).collect();
+            let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
             physical_qubits.shuffle(&mut rng);
+            physical_qubits
         }
     };
     let mut initial_layout = NLayout::from_logical_to_physical(physical_qubits);
