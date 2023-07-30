@@ -46,7 +46,7 @@ pub fn sabre_layout_and_routing(
     };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
-        .take(num_layout_trials)
+        .take(num_layout_trials + 1)
         .collect();
     let dist = distance_matrix.as_array();
     if run_in_parallel && num_layout_trials > 1 {
@@ -54,7 +54,7 @@ pub fn sabre_layout_and_routing(
             .into_par_iter()
             .enumerate()
             .map(|(index, seed_trial)| {
-                let partial = if index == 0 { &partial_layout } else { &None };
+                let partial = if index == num_layout_trials { &partial_layout } else { &None };
                 (
                     index,
                     layout_trial(
@@ -83,7 +83,7 @@ pub fn sabre_layout_and_routing(
             .into_iter()
             .enumerate()
             .map(|(index, seed_trial)| {
-                let partial = if index == 0 { &partial_layout } else { &None };
+                let partial = if index == num_layout_trials { &partial_layout } else { &None };
                 layout_trial(
                     dag,
                     neighbor_table,
