@@ -466,7 +466,9 @@ class SabreLayout(TransformationPass):
                         im_graph_node_map[qargs[0]] = im_graph.add_node(weights)
                         reverse_im_graph_node_map[im_graph_node_map[qargs[0]]] = qargs[0]
                     else:
-                        im_graph[im_graph_node_map[qargs[0]]][node.op.name] += weight
+                        im_graph[  # pylint: disable=unsubscriptable-object
+                            im_graph_node_map[qargs[0]]
+                        ][node.op.name] += weight
                 if len_args == 2:
                     if qargs[0] not in im_graph_node_map:
                         im_graph_node_map[qargs[0]] = im_graph.add_node(defaultdict(int))
