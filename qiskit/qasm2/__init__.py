@@ -98,7 +98,7 @@ OpenQASM 2 program to a file-like object or return a string, respectively.
 
 .. autofunction:: dump
 
-.. autodunction:: dumps
+.. autofunction:: dumps
 
 
 Errors
@@ -158,7 +158,7 @@ Write out the same :class:`.QuantumCircuit` to a given filename:
 
     qiskit.qasm2.dump(qc, "myfile.qasm")
 
-Similarly, one can use general :cls:`os.PathLike` instances as the filename:
+Similarly, one can use general :class:`os.PathLike` instances as the filename:
 
 .. code-block:: python
 
