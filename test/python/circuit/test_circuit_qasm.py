@@ -846,6 +846,20 @@ barrier qr1[0],qr1[1],qr2[0],qr2[1],qr2[2];
 """
         self.assertEqual(qc.qasm(), expected)
 
+    def test_small_angle_valid(self):
+        """Test that small angles do not get converted to invalid OQ2 floating-point values."""
+        # OQ2 _technically_ requires a decimal point in all floating-point values, even ones that
+        # are followed by an exponent.
+        qc = QuantumCircuit(1)
+        qc.rx(0.000001, 0)
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[1];
+rx(1.e-06) q[0];
+"""
+        self.assertEqual(qc.qasm(), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
