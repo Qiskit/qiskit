@@ -141,7 +141,7 @@ Export a simple :class:`.QuantumCircuit` to an OpenQASM 2 string:
     qc.measure([0, 1], [0, 1])
     print(qiskit.qasm2.dumps(qc))
 
-.. code-block:: qasm2
+.. code-block:: text
 
     OPENQASM 2.0;
     include "qelib1.inc";
