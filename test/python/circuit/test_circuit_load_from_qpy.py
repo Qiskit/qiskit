@@ -20,8 +20,6 @@ import random
 import ddt
 import numpy as np
 
-import qiskit.opflow
-
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, pulse
 from qiskit.circuit import CASE_DEFAULT
 from qiskit.circuit.classical import expr, types
