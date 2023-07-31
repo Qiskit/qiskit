@@ -20,6 +20,8 @@ import random
 import ddt
 import numpy as np
 
+import qiskit.opflow
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, pulse
 from qiskit.circuit import CASE_DEFAULT
 from qiskit.circuit.classical import expr, types
@@ -1606,6 +1608,31 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertEqual(qc.qregs, new_circuit.qregs)
         self.assertEqual(qc.cregs, new_circuit.cregs)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_multiple_nested_control_custom_definitions(self):
+        """Test that circuits with multiple controlled custom gates that in turn depend on custom
+        gates can be exported successfully when there are several such gates in the outer circuit.
+        See gh-9746"""
+        inner_1 = QuantumCircuit(1, name="inner_1")
+        inner_1.x(0)
+        inner_2 = QuantumCircuit(1, name="inner_2")
+        inner_2.y(0)
+
+        outer_1 = QuantumCircuit(1, name="outer_1")
+        outer_1.append(inner_1.to_gate(), [0], [])
+        outer_2 = QuantumCircuit(1, name="outer_2")
+        outer_2.append(inner_2.to_gate(), [0], [])
+
+        qc = QuantumCircuit(2)
+        qc.append(outer_1.to_gate().control(1), [0, 1], [])
+        qc.append(outer_2.to_gate().control(1), [0, 1], [])
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_deprecation(self):
