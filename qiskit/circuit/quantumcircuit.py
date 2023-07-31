@@ -17,7 +17,6 @@
 from __future__ import annotations
 import copy
 import multiprocessing as mp
-import re
 import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
@@ -43,7 +42,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import optionals as _optionals, deprecate_func
+from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .classical import expr
