@@ -4,17 +4,6 @@ version = 3
 
 [[package]]
 name = "ahash"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
-dependencies = [
- "getrandom",
- "once_cell",
- "version_check",
-]
-
-[[package]]
-name = "ahash"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
@@ -114,8 +103,14 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "hashbrown"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
- "ahash 0.7.6",
+ "ahash",
  "rayon",
 ]
 
@@ -135,7 +130,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
- "hashbrown",
+ "hashbrown 0.12.3",
  "rayon",
 ]
 
@@ -354,7 +349,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ffb88ae05f306b4bfcde40ac4a51dc0b05936a9207a4b75b798c7729c4258a59"
 dependencies = [
  "cfg-if",
- "hashbrown",
+ "hashbrown 0.13.2",
  "indexmap",
  "indoc",
  "libc",
@@ -415,7 +410,7 @@ dependencies = [
 name = "qiskit-qasm2"
 version = "0.45.0"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.13.2",
  "pyo3",
 ]
 
@@ -423,8 +418,8 @@ dependencies = [
 name = "qiskit_accelerate"
 version = "0.45.0"
 dependencies = [
- "ahash 0.8.3",
- "hashbrown",
+ "ahash",
+ "hashbrown 0.13.2",
  "indexmap",
  "ndarray",
  "num-bigint",
@@ -556,9 +551,9 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34932d9b2a5d67da9f166a70009fc742075a5844671c5f000b89dec578e0f024"
 dependencies = [
- "ahash 0.8.3",
+ "ahash",
  "fixedbitset",
- "hashbrown",
+ "hashbrown 0.13.2",
  "indexmap",
  "num-traits",
  "petgraph",
