@@ -16,6 +16,8 @@ import struct
 import zlib
 import warnings
 
+from io import BytesIO
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -25,6 +27,7 @@ from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
 from qiskit.utils import optionals as _optional
+from qiskit.pulse.configuration import Kernel, Discriminator
 
 if _optional.HAS_SYMENGINE:
     import symengine as sym
@@ -58,6 +61,46 @@ def _read_waveform(file_obj, version):
         epsilon=header.epsilon,
         limit_amplitude=header.amp_limited,
     )
+
+
+def _loads_obj(type_key, binary_data, version, vectors):
+    """Wraps `value.loads_value` to deserialize binary data to dictionary
+    or list objects which are not supported by `value.loads_value`.
+    """
+    if type_key == b"D":
+        with BytesIO(binary_data) as container:
+            return common.read_mapping(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    elif type_key == b"l":
+        with BytesIO(binary_data) as container:
+            return common.read_sequence(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    else:
+        return value.loads_value(type_key, binary_data, version, vectors)
+
+
+def _read_kernel(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=_loads_obj,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Kernel(name=name, **params)
+
+
+def _read_discriminator(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=_loads_obj,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Discriminator(name=name, **params)
 
 
 def _loads_symbolic_expr(expr_bytes):
@@ -229,6 +272,7 @@ def _read_alignment_context(file_obj, version):
     return instance
 
 
+# pylint: disable=too-many-return-statements
 def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
@@ -241,6 +285,18 @@ def _loads_operand(type_key, data_bytes, version):
         return common.data_from_binary(data_bytes, _read_channel, version=version)
     if type_key == type_keys.ScheduleOperand.OPERAND_STR:
         return data_bytes.decode(common.ENCODE)
+    if type_key == type_keys.ScheduleOperand.KERNEL:
+        return common.data_from_binary(
+            data_bytes,
+            _read_kernel,
+            version=version,
+        )
+    if type_key == type_keys.ScheduleOperand.DISCRIMINATOR:
+        return common.data_from_binary(
+            data_bytes,
+            _read_discriminator,
+            version=version,
+        )
 
     return value.loads_value(type_key, data_bytes, version, {})
 
@@ -298,6 +354,38 @@ def _write_waveform(file_obj, data):
     file_obj.write(header)
     file_obj.write(samples_bytes)
     value.write_value(file_obj, data.name)
+
+
+def _dumps_obj(obj):
+    """Wraps `value.dumps_value` to serialize dictionary and list objects
+    which are not supported by `value.dumps_value`.
+    """
+    if isinstance(obj, dict):
+        with BytesIO() as container:
+            common.write_mapping(file_obj=container, mapping=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"D", binary_data
+    elif isinstance(obj, list):
+        with BytesIO() as container:
+            common.write_sequence(file_obj=container, sequence=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"l", binary_data
+    else:
+        return value.dumps_value(obj)
+
+
+def _write_kernel(file_obj, data):
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
+
+
+def _write_discriminator(file_obj, data):
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
 
 
 def _dumps_symbolic_expr(expr):
@@ -364,6 +452,12 @@ def _dumps_operand(operand):
     elif isinstance(operand, str):
         type_key = type_keys.ScheduleOperand.OPERAND_STR
         data_bytes = operand.encode(common.ENCODE)
+    elif isinstance(operand, Kernel):
+        type_key = type_keys.ScheduleOperand.KERNEL
+        data_bytes = common.data_to_binary(operand, _write_kernel)
+    elif isinstance(operand, Discriminator):
+        type_key = type_keys.ScheduleOperand.DISCRIMINATOR
+        data_bytes = common.data_to_binary(operand, _write_discriminator)
     else:
         type_key, data_bytes = value.dumps_value(operand)
 
@@ -421,7 +515,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         QiskitError: QPY version is earlier than block support.
     """
     if version < 5:
-        QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+        raise QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
     data = formats.SCHEDULE_BLOCK_HEADER._make(
         struct.unpack(

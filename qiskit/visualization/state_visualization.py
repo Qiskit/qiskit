@@ -67,7 +67,7 @@ def plot_state_hinton(
             it is redundant.
 
     Returns:
-         matplotlib.Figure:
+        :class:`matplotlib:matplotlib.figure.Figure` :
             The matplotlib.Figure of the visualization if
             neither ax_real or ax_imag is set.
 
@@ -210,7 +210,7 @@ def plot_bloch_vector(
         font_size (float): Font size.
 
     Returns:
-        Figure: A matplotlib figure instance if ``ax = None``.
+        :class:`matplotlib:matplotlib.figure.Figure` : A matplotlib figure instance if ``ax = None``.
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
@@ -286,7 +286,7 @@ def plot_bloch_multivector(
         title_pad (float): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
 
     Returns:
-        matplotlib.Figure:
+        :class:`matplotlib:matplotlib.figure.Figure` :
             A matplotlib figure instance.
 
     Raises:
@@ -402,7 +402,7 @@ def plot_state_city(
             it is redundant.
 
     Returns:
-         matplotlib.Figure:
+        :class:`matplotlib:matplotlib.figure.Figure` :
             The matplotlib.Figure of the visualization if the
             ``ax_real`` and ``ax_imag`` kwargs are not set
 
@@ -515,6 +515,9 @@ def plot_state_city(
     min_dzr = min(dzr)
     min_dzi = np.min(dzi)
     max_dzi = np.max(dzi)
+
+    # There seems to be a rounding error in which some zero bars are negative
+    dzr = np.clip(dzr, 0, None)
 
     if ax1 is not None:
         fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
@@ -644,7 +647,7 @@ def plot_state_paulivec(
             will be no returned Figure since it is redundant.
 
     Returns:
-         matplotlib.Figure:
+         :class:`matplotlib:matplotlib.figure.Figure` :
             The matplotlib.Figure of the visualization if the
             ``ax`` kwarg is not set
 
@@ -824,7 +827,8 @@ def plot_state_qsphere(
             radians or degrees for the phase values in the plot.
 
     Returns:
-        Figure: A matplotlib figure instance if the ``ax`` kwarg is not set
+        :class:`matplotlib:matplotlib.figure.Figure` :
+            A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.

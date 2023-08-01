@@ -678,7 +678,8 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         test_waveform = pulse.Constant(100, self.amp0)
 
         param_sched = pulse.Schedule(pulse.Play(test_waveform, self.d0))
-        call_inst = pulse.instructions.Call(param_sched)
+        with self.assertWarns(DeprecationWarning):
+            call_inst = pulse.instructions.Call(param_sched)
 
         sub_block = pulse.ScheduleBlock()
         sub_block += call_inst
@@ -958,7 +959,7 @@ class TestBlockFilter(BaseTestBlock):
         excluded = sched_blk.exclude(*args, **kwargs)
 
         def list_instructions(blk: pulse.ScheduleBlock) -> List[pulse.Instruction]:
-            insts = list()
+            insts = []
             for element in blk.blocks:
                 if isinstance(element, pulse.ScheduleBlock):
                     inner_insts = list_instructions(element)

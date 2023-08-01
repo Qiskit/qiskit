@@ -12,6 +12,7 @@
 
 """Test cases for the pulse scheduler passes."""
 
+from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate, Parameter
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
@@ -352,7 +353,9 @@ class TestBasicSchedule(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.append(Gate("gauss", 1, []), qargs=[qr[0]])
-        custom_gauss = Schedule(Play(Gaussian(duration=25, sigma=4, amp=0.5j), DriveChannel(0)))
+        custom_gauss = Schedule(
+            Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=pi / 2), DriveChannel(0))
+        )
         self.inst_map.add("gauss", [0], custom_gauss)
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
         self.assertEqual(sched.instructions[0], custom_gauss.instructions[0])
