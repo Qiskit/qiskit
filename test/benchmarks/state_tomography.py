@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,8 +14,9 @@
 # pylint: disable=no-else-return, attribute-defined-outside-init
 # pylint: disable=import-error
 
-import qiskit
 from qiskit_experiments.library import StateTomography
+
+import qiskit
 
 
 class StateTomographyBench:

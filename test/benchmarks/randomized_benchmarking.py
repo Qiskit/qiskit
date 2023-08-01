@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -48,7 +46,7 @@ def build_rb_circuit(qubits, length_vector, num_samples=1, seed=None):
             seed=seed,
         )
     except OSError:
-        skip_msg = "Skipping tests because " "tables are missing"
+        skip_msg = "Skipping tests because tables are missing"
         raise NotImplementedError(skip_msg)  # pylint: disable=raise-missing-from
     return rb_exp.circuits()
 
