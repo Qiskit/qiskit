@@ -163,14 +163,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         pre_opt += translation
     else:
         pre_opt = None
-    if scheduling_method is None or scheduling_method in {"alap", "asap"}:
-        sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
-        )
-    else:
-        sched = plugin_manager.get_passmanager_stage(
-            "scheduling", scheduling_method, pass_manager_config, optimization_level=0
-        )
+    
+    sched = plugin_manager.get_passmanager_stage(
+        "scheduling", scheduling_method, pass_manager_config, optimization_level=0
+    )
     init = common.generate_control_flow_options_check(
         layout_method=layout_method,
         routing_method=routing_method,
