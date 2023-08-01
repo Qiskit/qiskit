@@ -20,7 +20,6 @@ from time import time
 from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.measure import Measure
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend, BackendV1, BackendV2
