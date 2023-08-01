@@ -16,7 +16,7 @@ use pyo3::Python;
 
 use num_complex::Complex64;
 use numpy::ndarray::linalg::kron;
-use numpy::ndarray::{s, Array, Array2, ArrayView2};
+use numpy::ndarray::{Array, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 
 /// Return the matrix Operator resulting from a block of Instructions.
@@ -48,16 +48,12 @@ pub fn blocks_to_matrix(
 /// Switches the order of qubits in a two qubit operation.
 fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
     let mut trans_matrix: Array2<Complex64> = matrix.reversed_axes().to_owned();
-    let temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
-    for (index, value) in temp.into_iter().enumerate() {
-        trans_matrix[[2, index]] = trans_matrix[[1, index]].to_owned();
-        trans_matrix[[1, index]] = value;
+    for index in 0..trans_matrix.ncols() {
+        trans_matrix.swap([1, index], [2, index]);
     }
     trans_matrix = trans_matrix.reversed_axes();
-    let temp = trans_matrix.slice(s![2_usize, ..]).to_owned();
-    for (index, value) in temp.into_iter().enumerate() {
-        trans_matrix[[2, index]] = trans_matrix[[1, index]];
-        trans_matrix[[1, index]] = value;
+    for index in 0..trans_matrix.ncols() {
+        trans_matrix.swap([1, index], [2, index]);
     }
     trans_matrix
 }
