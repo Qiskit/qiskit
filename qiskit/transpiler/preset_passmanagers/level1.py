@@ -264,11 +264,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             inst_map,
             target=target,
         )
-    else:    
+    else:
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=1
         )
-        
+
     init = common.generate_control_flow_options_check(
         layout_method=layout_method,
         routing_method=routing_method,

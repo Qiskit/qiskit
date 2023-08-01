@@ -316,43 +316,36 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
             use_barrier_before_measurement=True,
         )
 
+
 class AlapSchedulingPassManager(PassManagerStagePlugin):
     """Plugin class for alap scheduling stage."""
-    
-    def pass_manager(self, pass_manager_config, optimization_level = None) -> PassManager:
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""
-        
+
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
-        
+
         return common.generate_scheduling(
-            instruction_durations, 
-            scheduling_method, 
-            timing_constraints, 
-            inst_map, 
-            target
-        )    
-        
+            instruction_durations, scheduling_method, timing_constraints, inst_map, target
+        )
+
+
 class AsapSchedulingPassManager(PassManagerStagePlugin):
     """Plugin class for alap scheduling stage."""
-    
-    def pass_manager(self, pass_manager_config, optimization_level = None) -> PassManager:
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""
-        
+
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
-        
+
         return common.generate_scheduling(
-            instruction_durations, 
-            scheduling_method, 
-            timing_constraints, 
-            inst_map, 
-            target
-        )        
-        
+            instruction_durations, scheduling_method, timing_constraints, inst_map, target
+        )
