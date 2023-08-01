@@ -454,9 +454,9 @@ class TestBuilderCompositionV2(TestBuilderV2):
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
-        delay_dur = 30
-        short_dur = 20
-        long_dur = 49
+        delay_dur = 300
+        short_dur = 200
+        long_dur = 810
 
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
@@ -471,7 +471,6 @@ class TestBuilderCompositionV2(TestBuilderV2):
                 pulse.u2(0, np.pi / 2, 1)
                 pulse.u2(0, np.pi / 2, 0)
             pulse.measure(0)
-
         # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
         single_u2_qc.append(circuit.library.U2Gate(0, np.pi / 2), [1])
@@ -505,7 +504,7 @@ class TestBuilderCompositionV2(TestBuilderV2):
 
         # measurement
         measure_reference = macros.measure(
-            qubits=[0], inst_map=self.inst_map, meas_map=self.configuration.meas_map
+            qubits=[0], backend=self.backend, meas_map=self.backend.meas_map
         )
         reference = pulse.Schedule()
         reference += sequential_reference

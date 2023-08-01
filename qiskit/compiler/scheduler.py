@@ -20,7 +20,6 @@ from time import time
 from typing import List, Optional, Union
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.measure import Measure
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend, BackendV1, BackendV2
@@ -79,23 +78,29 @@ def schedule(
             if inst_map:
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
         elif isinstance(backend, BackendV1):
+            defaults = backend.defaults() if hasattr(backend, "defaults") else None
+            if defaults is None:
+                raise QiskitError(
+                    "The backend defaults are unavailable. The backend may not support pulse."
+                )
             if backend.configuration() is not None:
                 target = convert_to_target(
                     configuration=backend.configuration(),
                     properties=backend.properties(),
-                    defaults=backend.defaults() if hasattr(backend, "defaults") else None,
+                    defaults=defaults,
                 )
                 if inst_map:
                     target.update_from_instruction_schedule_map(inst_map=inst_map)
             else:
-                raise QiskitError("Must specify backend which has a configuration.")
+                raise QiskitError("Must specify backend that has a configuration.")
         else:
-            if inst_map:
-                target = Target(concurrent_measurements=meas_map)
+            if meas_map and inst_map:
+                target = Target(concurrent_measurements=meas_map, dt=dt)
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
             else:
                 raise QiskitError(
-                    "Must specify either target, backend, or inst_map for scheduling passes."
+                    "Must specify either target, backend, "
+                    "or both meas_map and inst_map for scheduling passes."
                 )
     circuits = circuits if isinstance(circuits, list) else [circuits]
     schedules = parallel_map(schedule_circuit, circuits, (None, target, method))

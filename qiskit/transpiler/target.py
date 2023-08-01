@@ -481,6 +481,7 @@ class Target(Mapping):
             ``None`` will be used.
         """
         get_calibration = getattr(inst_map, "_get_calibration_entry")
+
         # Expand name mapping with custom gate name provided by user.
         qiskit_inst_name_map = get_standard_gate_name_mapping()
         if inst_name_map is not None:
@@ -498,6 +499,7 @@ class Target(Mapping):
                     props = self._gate_map[inst_name][qargs]
                 except (KeyError, TypeError):
                     props = None
+
                 entry = get_calibration(inst_name, qargs)
                 if entry.user_provided and getattr(props, "_calibration", None) != entry:
                     # It only copies user-provided calibration from the inst map.
