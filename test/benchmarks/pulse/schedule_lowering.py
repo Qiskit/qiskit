@@ -73,13 +73,12 @@ def build_complicated_schedule():
         for i in range(3):
             samples = np.random.random(160)
             builder.play(samples, channels.DriveChannel(i))
-    schedule.assign_references({("sub", ): subroutine}, inplace=True)
+    schedule.assign_references({("sub",): subroutine}, inplace=True)
 
     return schedule
 
 
 class ScheduleLoweringBench:
-
     def setup(self):
         self.schedule_block = build_complicated_schedule()
 

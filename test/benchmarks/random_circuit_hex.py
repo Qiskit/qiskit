@@ -22,15 +22,19 @@ from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 
 try:
     from qiskit.compiler import transpile
-    TRANSPILER_SEED_KEYWORD = 'seed_transpiler'
+
+    TRANSPILER_SEED_KEYWORD = "seed_transpiler"
 except ImportError:
     from qiskit.transpiler import transpile
-    TRANSPILER_SEED_KEYWORD = 'seed_mapper'
+
+    TRANSPILER_SEED_KEYWORD = "seed_mapper"
 try:
     from qiskit.quantum_info.random import random_unitary
+
     HAS_RANDOM_UNITARY = True
 except ImportError:
     from qiskit.tools.qi.qi import random_unitary_matrix
+
     HAS_RANDOM_UNITARY = False
 
 
@@ -70,7 +74,7 @@ def make_circuit_ring(nq, depth, seed):
 
 class BenchRandomCircuitHex:
     params = [2 * i for i in range(2, 8)]
-    param_names = ['n_qubits']
+    param_names = ["n_qubits"]
     version = 3
 
     def setup(self, n):
@@ -80,22 +84,58 @@ class BenchRandomCircuitHex:
 
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
-        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
-                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
-                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
-                        [13, 12]]
-        transpile(self.circuit,
-                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  coupling_map=coupling_map,
-                  **{TRANSPILER_SEED_KEYWORD: self.seed})
+        coupling_map = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [4, 3],
+            [4, 10],
+            [5, 4],
+            [5, 6],
+            [5, 9],
+            [6, 8],
+            [7, 8],
+            [9, 8],
+            [9, 10],
+            [11, 3],
+            [11, 10],
+            [11, 12],
+            [12, 2],
+            [13, 1],
+            [13, 12],
+        ]
+        transpile(
+            self.circuit,
+            basis_gates=["u1", "u2", "u3", "cx", "id"],
+            coupling_map=coupling_map,
+            **{TRANSPILER_SEED_KEYWORD: self.seed},
+        )
 
     def track_depth_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
-        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
-                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
-                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
-                        [13, 12]]
-        return transpile(self.circuit,
-                         basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                         coupling_map=coupling_map,
-                         **{TRANSPILER_SEED_KEYWORD: self.seed}).depth()
+        coupling_map = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [4, 3],
+            [4, 10],
+            [5, 4],
+            [5, 6],
+            [5, 9],
+            [6, 8],
+            [7, 8],
+            [9, 8],
+            [9, 10],
+            [11, 3],
+            [11, 10],
+            [11, 12],
+            [12, 2],
+            [13, 1],
+            [13, 12],
+        ]
+        return transpile(
+            self.circuit,
+            basis_gates=["u1", "u2", "u3", "cx", "id"],
+            coupling_map=coupling_map,
+            **{TRANSPILER_SEED_KEYWORD: self.seed},
+        ).depth()

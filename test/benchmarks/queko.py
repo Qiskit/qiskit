@@ -22,8 +22,7 @@ from qiskit.compiler import transpile
 
 
 class QUEKOTranspilerBench:
-    params = ([0, 1, 2, 3],
-              [None, "sabre"])
+    params = ([0, 1, 2, 3], [None, "sabre"])
     param_names = ["optimization level", "routing/layout method"]
     timeout = 600
 
@@ -145,91 +144,219 @@ class QUEKOTranspilerBench:
             [50, 49],
             [50, 41],
             [51, 44],
-            [52, 48]]
+            [52, 48],
+        ]
 
         self.tokyo_coupling_map = [
-            [0, 1], [1, 2], [2, 3], [3, 4],
-            [0, 5], [1, 6], [1, 7], [2, 6], [2, 7], [3, 8], [3, 9], [4, 8],
-            [4, 9], [5, 6], [6, 7], [7, 8], [8, 9], [5, 10], [5, 11], [6, 10],
-            [6, 11], [7, 12], [7, 13], [8, 12], [8, 13], [9, 14], [10, 11],
-            [11, 12], [12, 13], [13, 14], [10, 15], [11, 16], [11, 17],
-            [12, 16], [12, 17], [13, 18], [13, 19], [14, 18], [14, 19],
-            [15, 16], [16, 17], [17, 18], [18, 19]
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [0, 5],
+            [1, 6],
+            [1, 7],
+            [2, 6],
+            [2, 7],
+            [3, 8],
+            [3, 9],
+            [4, 8],
+            [4, 9],
+            [5, 6],
+            [6, 7],
+            [7, 8],
+            [8, 9],
+            [5, 10],
+            [5, 11],
+            [6, 10],
+            [6, 11],
+            [7, 12],
+            [7, 13],
+            [8, 12],
+            [8, 13],
+            [9, 14],
+            [10, 11],
+            [11, 12],
+            [12, 13],
+            [13, 14],
+            [10, 15],
+            [11, 16],
+            [11, 17],
+            [12, 16],
+            [12, 17],
+            [13, 18],
+            [13, 19],
+            [14, 18],
+            [14, 19],
+            [15, 16],
+            [16, 17],
+            [17, 18],
+            [18, 19],
         ]
         self.sycamore_coupling_map = [
-            [0, 6], [1, 6], [1, 7], [2, 7], [2, 8], [3, 8], [3, 9], [4, 9],
-            [4, 10], [5, 10], [5, 11], [6, 12], [6, 13], [7, 13], [7, 14],
-            [8, 14], [8, 15], [9, 15], [9, 16], [10, 16], [10, 17], [11, 17],
-            [12, 18], [13, 18], [13, 19], [14, 19], [14, 20], [15, 20],
-            [15, 21], [16, 21], [16, 22], [17, 22], [17, 23], [18, 24],
-            [18, 25], [19, 25], [19, 26], [20, 26], [20, 27], [21, 27],
-            [21, 28], [22, 28], [22, 29], [23, 29], [24, 30], [25, 30],
-            [25, 31], [26, 31], [26, 32], [27, 32], [27, 33], [28, 33],
-            [28, 34], [29, 34], [29, 35], [30, 36], [30, 37], [31, 37],
-            [31, 38], [32, 38], [32, 39], [33, 39], [33, 40], [34, 40],
-            [34, 41], [35, 41], [36, 42], [37, 42], [37, 43], [38, 43],
-            [38, 44], [39, 44], [39, 45], [40, 45], [40, 46], [41, 46],
-            [41, 47], [42, 48], [42, 49], [43, 49], [43, 50], [44, 50],
-            [44, 51], [45, 51], [45, 52], [46, 52], [46, 53], [47, 53]
+            [0, 6],
+            [1, 6],
+            [1, 7],
+            [2, 7],
+            [2, 8],
+            [3, 8],
+            [3, 9],
+            [4, 9],
+            [4, 10],
+            [5, 10],
+            [5, 11],
+            [6, 12],
+            [6, 13],
+            [7, 13],
+            [7, 14],
+            [8, 14],
+            [8, 15],
+            [9, 15],
+            [9, 16],
+            [10, 16],
+            [10, 17],
+            [11, 17],
+            [12, 18],
+            [13, 18],
+            [13, 19],
+            [14, 19],
+            [14, 20],
+            [15, 20],
+            [15, 21],
+            [16, 21],
+            [16, 22],
+            [17, 22],
+            [17, 23],
+            [18, 24],
+            [18, 25],
+            [19, 25],
+            [19, 26],
+            [20, 26],
+            [20, 27],
+            [21, 27],
+            [21, 28],
+            [22, 28],
+            [22, 29],
+            [23, 29],
+            [24, 30],
+            [25, 30],
+            [25, 31],
+            [26, 31],
+            [26, 32],
+            [27, 32],
+            [27, 33],
+            [28, 33],
+            [28, 34],
+            [29, 34],
+            [29, 35],
+            [30, 36],
+            [30, 37],
+            [31, 37],
+            [31, 38],
+            [32, 38],
+            [32, 39],
+            [33, 39],
+            [33, 40],
+            [34, 40],
+            [34, 41],
+            [35, 41],
+            [36, 42],
+            [37, 42],
+            [37, 43],
+            [38, 43],
+            [38, 44],
+            [39, 44],
+            [39, 45],
+            [40, 45],
+            [40, 46],
+            [41, 46],
+            [41, 47],
+            [42, 48],
+            [42, 49],
+            [43, 49],
+            [43, 50],
+            [44, 50],
+            [44, 51],
+            [45, 51],
+            [45, 52],
+            [46, 52],
+            [46, 53],
+            [47, 53],
         ]
         self.basis_gates = ["id", "rz", "sx", "x", "cx"]
-        self.qasm_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "qasm"))
+        self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
 
         self.bigd = QuantumCircuit.from_qasm_file(
-            os.path.join(self.qasm_path, "20QBT_45CYC_.0D1_.1D2_3.qasm"))
+            os.path.join(self.qasm_path, "20QBT_45CYC_.0D1_.1D2_3.qasm")
+        )
         self.bss = QuantumCircuit.from_qasm_file(
-            os.path.join(self.qasm_path, "53QBT_100CYC_QSE_3.qasm"))
+            os.path.join(self.qasm_path, "53QBT_100CYC_QSE_3.qasm")
+        )
         self.bntf = QuantumCircuit.from_qasm_file(
-            os.path.join(self.qasm_path, "54QBT_25CYC_QSE_3.qasm"))
+            os.path.join(self.qasm_path, "54QBT_25CYC_QSE_3.qasm")
+        )
 
-    def track_depth_bntf_optimal_depth_25(self, optimization_level,
-                                          routing_method):
-        return transpile(self.bntf, coupling_map=self.sycamore_coupling_map,
-                         basis_gates=self.basis_gates,
-                         routing_method=routing_method,
-                         layout_method=routing_method,
-                         optimization_level=optimization_level,
-                         seed_transpiler=0).depth()
+    def track_depth_bntf_optimal_depth_25(self, optimization_level, routing_method):
+        return transpile(
+            self.bntf,
+            coupling_map=self.sycamore_coupling_map,
+            basis_gates=self.basis_gates,
+            routing_method=routing_method,
+            layout_method=routing_method,
+            optimization_level=optimization_level,
+            seed_transpiler=0,
+        ).depth()
 
-    def track_depth_bss_optimal_depth_100(self, optimization_level,
-                                          routing_method):
-        return transpile(self.bss, coupling_map=self.rochester_coupling_map,
-                         basis_gates=self.basis_gates,
-                         routing_method=routing_method,
-                         layout_method=routing_method,
-                         optimization_level=optimization_level,
-                         seed_transpiler=0).depth()
+    def track_depth_bss_optimal_depth_100(self, optimization_level, routing_method):
+        return transpile(
+            self.bss,
+            coupling_map=self.rochester_coupling_map,
+            basis_gates=self.basis_gates,
+            routing_method=routing_method,
+            layout_method=routing_method,
+            optimization_level=optimization_level,
+            seed_transpiler=0,
+        ).depth()
 
-    def track_depth_bigd_optimal_depth_45(self, optimization_level,
-                                          routing_method):
-        return transpile(self.bigd, coupling_map=self.tokyo_coupling_map,
-                         basis_gates=self.basis_gates,
-                         routing_method=routing_method,
-                         layout_method=routing_method,
-                         optimization_level=optimization_level,
-                         seed_transpiler=0).depth()
+    def track_depth_bigd_optimal_depth_45(self, optimization_level, routing_method):
+        return transpile(
+            self.bigd,
+            coupling_map=self.tokyo_coupling_map,
+            basis_gates=self.basis_gates,
+            routing_method=routing_method,
+            layout_method=routing_method,
+            optimization_level=optimization_level,
+            seed_transpiler=0,
+        ).depth()
 
     def time_transpile_bntf(self, optimization_level, routing_method):
-        transpile(self.bntf, coupling_map=self.sycamore_coupling_map,
-                  basis_gates=self.basis_gates,
-                  routing_method=routing_method,
-                  layout_method=routing_method,
-                  optimization_level=optimization_level,
-                  seed_transpiler=0).depth()
+        transpile(
+            self.bntf,
+            coupling_map=self.sycamore_coupling_map,
+            basis_gates=self.basis_gates,
+            routing_method=routing_method,
+            layout_method=routing_method,
+            optimization_level=optimization_level,
+            seed_transpiler=0,
+        ).depth()
 
     def time_transpile_bss(self, optimization_level, routing_method):
-        transpile(self.bss, coupling_map=self.rochester_coupling_map,
-                  basis_gates=self.basis_gates,
-                  routing_method=routing_method,
-                  layout_method=routing_method,
-                  optimization_level=optimization_level,
-                  seed_transpiler=0).depth()
+        transpile(
+            self.bss,
+            coupling_map=self.rochester_coupling_map,
+            basis_gates=self.basis_gates,
+            routing_method=routing_method,
+            layout_method=routing_method,
+            optimization_level=optimization_level,
+            seed_transpiler=0,
+        ).depth()
 
     def time_transpile_bigd(self, optimization_level, routing_method):
-        transpile(self.bigd, coupling_map=self.tokyo_coupling_map,
-                  basis_gates=self.basis_gates,
-                  routing_method=routing_method,
-                  layout_method=routing_method,
-                  optimization_level=optimization_level,
-                  seed_transpiler=0).depth()
+        transpile(
+            self.bigd,
+            coupling_map=self.tokyo_coupling_map,
+            basis_gates=self.basis_gates,
+            routing_method=routing_method,
+            layout_method=routing_method,
+            optimization_level=optimization_level,
+            seed_transpiler=0,
+        ).depth()

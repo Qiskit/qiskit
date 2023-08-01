@@ -21,16 +21,39 @@ import numpy as np
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Reset
-from qiskit.circuit.library import (IGate, U1Gate, U2Gate, U3Gate, XGate,
-                                    YGate, ZGate, HGate, SGate, SdgGate, TGate,
-                                    TdgGate, RXGate, RYGate, RZGate, CXGate,
-                                    CYGate, CZGate, CHGate, CRZGate, CU1Gate,
-                                    CU3Gate, SwapGate, RZZGate,
-                                    CCXGate, CSwapGate)
+from qiskit.circuit.library import (
+    IGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    XGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    CHGate,
+    CRZGate,
+    CU1Gate,
+    CU3Gate,
+    SwapGate,
+    RZZGate,
+    CCXGate,
+    CSwapGate,
+)
 
 
-def random_circuit(n_qubits, depth, max_operands=3, measure=False,
-                   conditional=False, reset=False, seed=None):
+def random_circuit(
+    n_qubits, depth, max_operands=3, measure=False, conditional=False, reset=False, seed=None
+):
     """Generate random circuit of arbitrary size and form.
 
     Args:
@@ -52,20 +75,34 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
     if max_operands < 1 or max_operands > 3:
         raise Exception("max_operands must be between 1 and 3")
 
-    one_q_ops = [IGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
-                 HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]
+    one_q_ops = [
+        IGate,
+        U1Gate,
+        U2Gate,
+        U3Gate,
+        XGate,
+        YGate,
+        ZGate,
+        HGate,
+        SGate,
+        SdgGate,
+        TGate,
+        TdgGate,
+        RXGate,
+        RYGate,
+        RZGate,
+    ]
     one_param = [U1Gate, RXGate, RYGate, RZGate, RZZGate, CU1Gate, CRZGate]
     two_param = [U2Gate]
     three_param = [U3Gate, CU3Gate]
-    two_q_ops = [CXGate, CYGate, CZGate, CHGate, CRZGate,
-                 CYGate, CU3Gate, SwapGate, RZZGate]
+    two_q_ops = [CXGate, CYGate, CZGate, CHGate, CRZGate, CYGate, CU3Gate, SwapGate, RZZGate]
     three_q_ops = [CCXGate, CSwapGate]
 
-    qr = QuantumRegister(n_qubits, 'q')
+    qr = QuantumRegister(n_qubits, "q")
     qc = QuantumCircuit(n_qubits)
 
     if measure or conditional:
-        cr = ClassicalRegister(n_qubits, 'c')
+        cr = ClassicalRegister(n_qubits, "c")
         qc.add_register(cr)
 
     if reset:
@@ -84,8 +121,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
             num_operands = rng.choice(range(max_possible_operands)) + 1
             rng.shuffle(remaining_qubits)
             operands = remaining_qubits[:num_operands]
-            remaining_qubits = [
-                q for q in remaining_qubits if q not in operands]
+            remaining_qubits = [q for q in remaining_qubits if q not in operands]
             if num_operands == 1:
                 operation = rng.choice(one_q_ops)
             elif num_operands == 2:
@@ -100,7 +136,7 @@ def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                 num_angles = 3
             else:
                 num_angles = 0
-            angles = [rng.uniform(0, 2*np.pi) for x in range(num_angles)]
+            angles = [rng.uniform(0, 2 * np.pi) for x in range(num_angles)]
             register_operands = [qr[i] for i in operands]
             op = operation(*angles)
 
@@ -130,9 +166,9 @@ def build_qv_model_circuit(width, depth, seed=None):
         # Generate uniformly random permutation Pj of [0...n-1]
         perm = np.random.permutation(width)
         # For each pair p in Pj, generate Haar random SU(4)
-        for k in range(int(np.floor(width/2))):
+        for k in range(int(np.floor(width / 2))):
             U = random_unitary(4)
-            pair = int(perm[2*k]), int(perm[2*k+1])
+            pair = int(perm[2 * k]), int(perm[2 * k + 1])
             circuit.append(U, [pair[0], pair[1]])
     return circuit
 
@@ -146,7 +182,7 @@ def build_ripple_adder_circuit(size):
     b = QuantumRegister(n, "b")
     cin = QuantumRegister(1, "cin")
     cout = QuantumRegister(1, "cout")
-    ans = ClassicalRegister(n+1, "ans")
+    ans = ClassicalRegister(n + 1, "ans")
     qc = QuantumCircuit(a, b, cin, cout, ans, name="rippleadd")
 
     def majority(p, a, b, c):
@@ -176,7 +212,7 @@ def build_ripple_adder_circuit(size):
 
     # Set the inputs to the adder
     qc.x(a[0])  # Set input a = 0...0001
-    qc.x(b)   # Set input b = 1...1111
+    qc.x(b)  # Set input b = 1...1111
     # Apply the adder
     qc += adder_subcircuit
 

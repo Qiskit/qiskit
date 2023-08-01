@@ -27,7 +27,7 @@ from .utils import build_qv_model_circuit
 
 class TranspilerLevelBenchmarks:
     params = [0, 1, 2, 3]
-    param_names = ['transpiler optimization level']
+    param_names = ["transpiler optimization level"]
     timeout = 600
 
     def setup(self, _):
@@ -147,71 +147,92 @@ class TranspilerLevelBenchmarks:
             [50, 49],
             [50, 41],
             [51, 44],
-            [52, 48]]
-        self.basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+            [52, 48],
+        ]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.qv_50_x_20 = build_qv_model_circuit(50, 20, 0)
         self.qv_14_x_14 = build_qv_model_circuit(14, 14, 0)
-        self.qasm_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), 'qasm'))
-        large_qasm_path = os.path.join(self.qasm_path, 'test_eoh_qasm.qasm')
+        self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
+        large_qasm_path = os.path.join(self.qasm_path, "test_eoh_qasm.qasm")
         self.large_qasm = QuantumCircuit.from_qasm_file(large_qasm_path)
         self.melbourne = FakeMelbourne()
-        self.durations = InstructionDurations([
-            ("u1", None, 0),
-            ("id", None, 160),
-            ("u2", None, 160),
-            ("u3", None, 320),
-            ("cx", None, 800),
-            ("measure", None, 3200),
-        ], dt=1e-9)
+        self.durations = InstructionDurations(
+            [
+                ("u1", None, 0),
+                ("id", None, 160),
+                ("u2", None, 160),
+                ("u3", None, 320),
+                ("cx", None, 800),
+                ("measure", None, 3200),
+            ],
+            dt=1e-9,
+        )
 
     def time_quantum_volume_transpile_50_x_20(self, transpiler_level):
-        transpile(self.qv_50_x_20, basis_gates=self.basis_gates,
-                  coupling_map=self.rochester_coupling_map,
-                  seed_transpiler=0,
-                  optimization_level=transpiler_level)
+        transpile(
+            self.qv_50_x_20,
+            basis_gates=self.basis_gates,
+            coupling_map=self.rochester_coupling_map,
+            seed_transpiler=0,
+            optimization_level=transpiler_level,
+        )
 
     def track_depth_quantum_volume_transpile_50_x_20(self, transpiler_level):
-        return transpile(self.qv_50_x_20, basis_gates=self.basis_gates,
-                         coupling_map=self.rochester_coupling_map,
-                         seed_transpiler=0,
-                         optimization_level=transpiler_level).depth()
+        return transpile(
+            self.qv_50_x_20,
+            basis_gates=self.basis_gates,
+            coupling_map=self.rochester_coupling_map,
+            seed_transpiler=0,
+            optimization_level=transpiler_level,
+        ).depth()
 
     def time_transpile_from_large_qasm(self, transpiler_level):
-        transpile(self.large_qasm, basis_gates=self.basis_gates,
-                  coupling_map=self.rochester_coupling_map,
-                  seed_transpiler=0,
-                  optimization_level=transpiler_level)
+        transpile(
+            self.large_qasm,
+            basis_gates=self.basis_gates,
+            coupling_map=self.rochester_coupling_map,
+            seed_transpiler=0,
+            optimization_level=transpiler_level,
+        )
 
     def track_depth_transpile_from_large_qasm(self, transpiler_level):
-        return transpile(self.large_qasm, basis_gates=self.basis_gates,
-                         coupling_map=self.rochester_coupling_map,
-                         seed_transpiler=0,
-                         optimization_level=transpiler_level).depth()
+        return transpile(
+            self.large_qasm,
+            basis_gates=self.basis_gates,
+            coupling_map=self.rochester_coupling_map,
+            seed_transpiler=0,
+            optimization_level=transpiler_level,
+        ).depth()
 
-    def time_transpile_from_large_qasm_backend_with_prop(self,
-                                                         transpiler_level):
-        transpile(self.large_qasm, self.melbourne, seed_transpiler=0,
-                  optimization_level=transpiler_level)
+    def time_transpile_from_large_qasm_backend_with_prop(self, transpiler_level):
+        transpile(
+            self.large_qasm, self.melbourne, seed_transpiler=0, optimization_level=transpiler_level
+        )
 
-    def track_depth_transpile_from_large_qasm_backend_with_prop(
-            self, transpiler_level):
-        return transpile(self.large_qasm, self.melbourne, seed_transpiler=0,
-                         optimization_level=transpiler_level).depth()
+    def track_depth_transpile_from_large_qasm_backend_with_prop(self, transpiler_level):
+        return transpile(
+            self.large_qasm, self.melbourne, seed_transpiler=0, optimization_level=transpiler_level
+        ).depth()
 
     def time_transpile_qv_14_x_14(self, transpiler_level):
-        transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
-                  optimization_level=transpiler_level)
+        transpile(
+            self.qv_14_x_14, self.melbourne, seed_transpiler=0, optimization_level=transpiler_level
+        )
 
     def track_depth_transpile_qv_14_x_14(self, transpiler_level):
-        return transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
-                         optimization_level=transpiler_level).depth()
+        return transpile(
+            self.qv_14_x_14, self.melbourne, seed_transpiler=0, optimization_level=transpiler_level
+        ).depth()
 
     def time_schedule_qv_14_x_14(self, transpiler_level):
-        transpile(self.qv_14_x_14, self.melbourne, seed_transpiler=0,
-                  optimization_level=transpiler_level,
-                  scheduling_method="alap",
-                  instruction_durations=self.durations)
+        transpile(
+            self.qv_14_x_14,
+            self.melbourne,
+            seed_transpiler=0,
+            optimization_level=transpiler_level,
+            scheduling_method="alap",
+            instruction_durations=self.durations,
+        )
 
     # limit optimization levels to reduce time
     time_schedule_qv_14_x_14.params = [0, 1]
