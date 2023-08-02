@@ -56,20 +56,30 @@ def sequence(
     Raises:
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
-    if isinstance(backend, BackendV2):
-        target = backend.target
-    elif isinstance(backend, BackendV1):
-        target = convert_to_target(
-            configuration=backend.configuration,
-            properties=backend.properties,
-            defaults=backend.defaults() if hasattr(backend, "defaults") else None,
-        )
-    else:
-        if inst_map:
-            target = Target(meas_map=meas_map)
-            target.update_from_instruction_schedule_map(inst_map=inst_map)
+    if target is None:
+        if isinstance(backend, BackendV2):
+            target = backend.target
+            if inst_map:
+                target.update_from_instruction_schedule_map(inst_map=inst_map)
+        elif isinstance(backend, BackendV1):
+            if backend.configuration() is not None:
+                target = convert_to_target(
+                    configuration=backend.configuration(),
+                    properties=backend.properties(),
+                    defaults=backend.defaults() if hasattr(backend, "defaults") else None,
+                )
+                if inst_map:
+                    target.update_from_instruction_schedule_map(inst_map=inst_map)
+            else:
+                raise QiskitError("Must specify backend that has a configuration.")
         else:
-            raise QiskitError("Must specify either target, backend, or inst_map for sequencing.")
+            if inst_map:
+                target = Target(concurrent_measurements=meas_map)
+                target.update_from_instruction_schedule_map(inst_map=inst_map)
+            else:
+                raise QiskitError(
+                    "Must specify either target, backend, or inst_map for scheduling passes."
+                )
     circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
     schedules = [_sequence(circuit, target=target) for circuit in circuits]
     return schedules[0] if len(schedules) == 1 else schedules

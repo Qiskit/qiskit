@@ -87,7 +87,7 @@ def schedule(
                 if inst_map:
                     target.update_from_instruction_schedule_map(inst_map=inst_map)
             else:
-                raise QiskitError("Must specify backend which has a configuration.")
+                raise QiskitError("Must specify backend that has a configuration.")
         else:
             if inst_map:
                 target = Target(concurrent_measurements=meas_map)
