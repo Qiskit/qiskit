@@ -73,12 +73,13 @@ def sequence(
             else:
                 raise QiskitError("Must specify backend that has a configuration.")
         else:
-            if inst_map:
-                target = Target(concurrent_measurements=meas_map)
+            if meas_map and inst_map:
+                target = Target(concurrent_measurements=meas_map, dt=dt)
                 target.update_from_instruction_schedule_map(inst_map=inst_map)
             else:
                 raise QiskitError(
-                    "Must specify either target, backend, or inst_map for scheduling passes."
+                    "Must specify either target, backend, "
+                    "or both meas_map and inst_map for scheduling passes."
                 )
     circuits = scheduled_circuits if isinstance(scheduled_circuits, list) else [scheduled_circuits]
     schedules = [_sequence(circuit, target=target) for circuit in circuits]

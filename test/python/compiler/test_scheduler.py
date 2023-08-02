@@ -45,7 +45,7 @@ class TestCircuitScheduler(QiskitTestCase):
         """Test instruction map and backend not supplied."""
         with self.assertRaisesRegex(
             QiskitError,
-            r"Must supply either a backend or InstructionScheduleMap for scheduling passes.",
+            r"Must specify either target, backend, or both meas_map and inst_map for scheduling passes.",
         ):
             schedule(self.circ)
 
@@ -61,7 +61,7 @@ class TestCircuitScheduler(QiskitTestCase):
         """Test measurement map and backend not supplied."""
         with self.assertRaisesRegex(
             QiskitError,
-            r"Must supply either a backend or a meas_map for scheduling passes.",
+            r"Must specify either target, backend, or both meas_map and inst_map for scheduling passes.",
         ):
             schedule(self.circ, inst_map=InstructionScheduleMap())
 
