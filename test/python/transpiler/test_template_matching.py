@@ -667,7 +667,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(0, 1)
         circuit_in.rz(0.42, 1)
         circuit_in.cx(0, 1)
-        circuit_in.rz(np.pi/2, 1)
+        circuit_in.rz(np.pi / 2, 1)
 
         pass_ = TemplateOptimization(**rzx_templates(["zz3"]))
         circuit_out = PassManager(pass_).run(circuit_in)
