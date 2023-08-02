@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.quantum_info.operators import Operator
+from qiskit._accelerate.commute import commute_check
 
 
 @lru_cache(maxsize=None)
@@ -156,21 +157,10 @@ class CommutationChecker:
         except KeyError:
             pass
 
-        operator_1 = Operator(op1, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1))
-        operator_2 = Operator(op2, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2))
+        operator_1 = Operator(op1, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1)).data
+        operator_2 = Operator(op2, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2)).data
 
-        if qarg1 == qarg2:
-            # Use full composition if possible to get the fastest matmul paths.
-            op12 = operator_1.compose(operator_2)
-            op21 = operator_2.compose(operator_1)
-        else:
-            # Expand operator_1 to be large enough to contain operator_2 as well; this relies on qargs1
-            # being the lowest possible indices so the identity can be tensored before it.
-            extra_qarg2 = num_qubits - len(qarg1)
-            if extra_qarg2:
-                id_op = _identity_op(extra_qarg2)
-                operator_1 = id_op.tensor(operator_1)
-            op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
-            op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)
-        self.cache[node1_key, node2_key] = self.cache[node2_key, node1_key] = ret = op12 == op21
+        self.cache[node1_key, node2_key] = self.cache[node2_key, node1_key] = ret = commute_check(
+            operator_1, qarg1, operator_2, qarg2
+        )
         return ret
