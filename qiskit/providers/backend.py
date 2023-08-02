@@ -286,8 +286,8 @@ class BackendV2(Backend, ABC):
     something like a ``shots`` field for a backend that runs experiments which
     would contain an int for how many shots to execute.
 
-    If migrating a provider from :class:`~qiskit.providers.BackendV1` or
-    :class:`~qiskit.providers.Backend` one thing to keep in mind is for
+    If migrating a provider from :class:`~qiskit.providers.BackendV1`
+    one thing to keep in mind is for
     backwards compatibility you might need to add a configuration method that
     will build a :class:`~qiskit.providers.models.BackendConfiguration` object
     and :class:`~qiskit.providers.models.BackendProperties` from the attributes
