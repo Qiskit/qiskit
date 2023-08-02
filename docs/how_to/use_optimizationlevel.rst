@@ -2,7 +2,7 @@
 Setting transpiler optimization level
 #####################################
 
-This guide shows you how to use the ``optimization_level``
+This guide describes the effects of the ``optimization_level``
 parameter of :func:`~qiskit.compiler.transpile`.
 
 ``optimization_level`` helps you to optimize your quantum circuit.
@@ -37,7 +37,7 @@ Using backend’s information
 ===========================
 
 The effect of setting the ``optimization_level`` will differ depending on the backend you are using.
-You should adhere to the specific configuration of your backend when utilizing :func:`~qiskit.transpile` . 
+When using :func:`~qiskit.transpile`, make sure you're transpiling for your specific backend. 
 This process entails breaking down your circuit into ``operation_names`` and considering the physical connections specified in the 
 ``coupling_map`` for two qubit gates.
 Given the presence of noise in the backend, it is crucial to optimize your circuit by adjusting the ``optimization_level`` parameter. 
@@ -61,7 +61,7 @@ For example, with :meth:`~qiskit.providers.fake_provider.FakeQuitoV2`, you can l
 What each optimization level does
 =================================
 
-When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and simply mapped to the device, considering a trivial layout and stochastic swap. 
+When setting the ``optimization_level`` to 0, the resulting quantum circuit is not optimized and simply mapped to the device using a trivial layout and stochastic swap.
 The coupling map, represented by the subset ``[(2,1),(1,2),(1,0),(0,1)]``, describes how the backend's physical qubits are connected.
 In this configuration, the quantum circuit is transformed into a combination of one and two-qubit gates,
 represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
@@ -116,7 +116,7 @@ following the connections ``[(2,1),(1,0),(0,1)]``. In this example, the two adja
 
 
 When you set the ``qiskit.transpile`` to 2, the circuit undergoes a medium optimization process. 
-This involves utilizing a noise-adaptive layout and gate cancellation techniques based on commutation relationships, 
+This uses a noise-adaptive layout and gate cancellation techniques based on commutation relationships, 
 while performing the same process as when the ``optimization_level`` is 1, but with an increased number of iterations.
 Depending on the circuit, this level of optimization can occasionally yield the same results as light optimization.
 
