@@ -220,14 +220,23 @@ Special fake backends are fake backends that were created for special testing pu
     FakeOpenPulse2Q
     FakeOpenPulse3Q
     Fake1Q
-    FakeBackend
     FakeBackendV2
     FakeBackend5QV2
-    FakeQasmBackend
-    FakePulseBackend
     FakeMumbaiFractionalCX
     ConfigurableFakeBackend
 
+Fake Backend Base Classes
+=========================
+
+The fake backends based on IBM hardware are based on a set of base classes:
+
+.. currentmodule:: qiskit.providers.fake_provider.fake_backend
+.. autoclass:: qiskit.providers.fake_provider.fake_backend.FakeBackendV2
+
+.. currentmodule:: qiskit.providers.fake_provider
+.. autoclass:: FakeBackend
+.. autoclass:: FakeQasmBackend
+.. autoclass:: FakePulseBackend
 """
 
 # Fake job and qobj classes
@@ -235,7 +244,8 @@ from .fake_job import FakeJob
 from .fake_qobj import FakeQobj
 
 # Base classes for fake backends
-from .fake_backend import FakeBackend, FakeBackendV2
+from . import fake_backend
+from .fake_backend import FakeBackend
 from .fake_qasm_backend import FakeQasmBackend
 from .fake_pulse_backend import FakePulseBackend
 
@@ -250,7 +260,7 @@ from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
 from .fake_1q import Fake1Q
-from .fake_backend_v2 import FakeBackend5QV2
+from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 # Configurable fake backend
