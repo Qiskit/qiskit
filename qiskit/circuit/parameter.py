@@ -90,6 +90,24 @@ class Parameter(ParameterExpression):
             symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
+    def assign(self, parameter, value):
+        if parameter != self:
+            # Corresponds to superclass calls to `subs` and `bind` that would implicitly set
+            # `allow_unknown_parameters=False`.
+            raise CircuitError(
+                f"Cannot bind Parameters ({[str(parameter)]}) not present in expression."
+            )
+        if isinstance(value, ParameterExpression):
+            # This is the `super().subs` case.
+            return value
+        # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
+        # so we need to lift the given value to a symbolic expression.
+        if _optionals.HAS_SYMENGINE:
+            from symengine import sympify
+        else:
+            from sympy import sympify
+        return ParameterExpression({}, sympify(value))
+
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
         if self in parameter_map:
