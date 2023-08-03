@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 from collections.abc import Sequence
-from typing import Optional
 
 import numpy as np
 
@@ -41,7 +40,7 @@ class EvolvedOperatorAnsatz(NLocal):
         name: str = "EvolvedOps",
         parameter_prefix: str | Sequence[str] = "t",
         initial_state: QuantumCircuit | None = None,
-        flatten: Optional[bool] = None,
+        flatten: bool | None = None,
     ):
         """
         Args:
