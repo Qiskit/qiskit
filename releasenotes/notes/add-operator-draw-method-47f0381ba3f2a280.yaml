@@ -1,13 +1,7 @@
 ---
 features:
   - |
-    The :class:`Operator` class now has ``.draw()`` methods allowing it to be displayed as 
-    a text matrix, IPython Latex object or Latex source. The default draw type still is the 
-    ASCII `__repr__` of the operator.
-
-    .. jupyter-execute::
-
-            from qiskit.quantum_info import Operator
-            op = Operator.from_label('XH')
-            op.draw('latex')
+    The :class:`Operator` class now has a :meth:`~.Operator.draw` method allowing it to be displayed as 
+    a text matrix, IPython LaTeX object or LaTeX source. The default draw type still is the ASCII 
+    ``__repr__`` of the operator.
 

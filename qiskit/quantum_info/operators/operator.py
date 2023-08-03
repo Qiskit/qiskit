@@ -181,6 +181,7 @@ class Operator(LinearOp):
             ValueError: when an invalid output method is selected.
 
         """
+        # pylint: disable=cyclic-import
         from qiskit.visualization import array_to_latex
 
         default_output = "repr"
