@@ -346,10 +346,9 @@ Parametric Quantum Circuits
 Random Circuits
 ---------------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   random.random_circuit
+.. currentmodule:: qiskit.circuit.random
+.. autofunction:: random_circuit
+.. currentmodule:: qiskit.circuit
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
