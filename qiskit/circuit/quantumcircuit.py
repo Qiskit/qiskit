@@ -2181,7 +2181,6 @@ class QuantumCircuit:
 
         Args:
           name (str): name to be given to the copied circuit. If None, then the name stays the same.
-                      Raises an error if type of name is not string or None type
 
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
@@ -2219,15 +2218,13 @@ class QuantumCircuit:
 
         Args:
             name (str): Name for the copied circuit. If None, then the name stays the same.
-                        Raises an error if type of name is not string or None type
 
         Returns:
             QuantumCircuit: An empty copy of self.
         """
         if not (name is None or isinstance(name, str)):
-            # Raising error if type of name of copied circuit is not of string or None type
             raise TypeError(
-                f"invalid name for a circuit: '{name}'. The name must be a 'string' or 'None' type."
+                f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
             )
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
