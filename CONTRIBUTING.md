@@ -71,10 +71,11 @@ please ensure that:
 ### Code review
 
 All code merged to Qiskit, even from maintainers, goes through a code-review
-process after a pull request is made.  We only have a small number of
-maintainers who can authorize a merge, and it's useful for everyone if the
-community can take part in helping make sure pull requests are technically
-correct, well tested, and easy to review.
+process after a pull request is made.  There are a small number of
+maintainers who can authorize a final merge, but code review is everyone
+working together to make Qiskit better.  You can review code even if you
+are not a maintainer, which helps make sure pull requests are technically
+correct, well tested, and easier in final review.
 
 The code-review process is a normal part of software development, and nothing to
 be scared of; for very easy changes it can be as simple as a maintainer saying
