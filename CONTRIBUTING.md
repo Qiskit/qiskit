@@ -116,7 +116,7 @@ like it.
   comments on a different file, and so on.  Try to review the whole PR
   thoroughly in one go; it's easier to catch bugs like this, and less
   frustrating to be on the other side of. If that's too much for you, consider
-  asking if the PR could be split into smaller indepedent chunks.
+  asking if the PR could be split into smaller independent chunks.
 * Try to keep the number of comments reasonable.  This depends on the size of
   the PR, but remember that there's somebody who'll read all your comments, and
   it can be demoralizing if you get a PR back and it's got 30 comments on from a
