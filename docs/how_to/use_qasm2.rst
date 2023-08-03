@@ -119,24 +119,54 @@ If you want to parse an OpenQASM 2 program from a string into a :class:`QuantumC
 
 
 .. plot::
-    from qiskit import qasm2
-    example = 'OPENQASM 2.0;\ninclude "qelib1.inc";\ngate custom_X q0 { h q0; rz(pi) q0; h q0; }\nqreg q[4];\ncreg c[4];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\ncx q[2],q[3];\ncustom_X q[1];\nbarrier q[0],q[1],q[2],q[3];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\nmeasure q[2] -> c[2];\nmeasure q[3] -> c[3];\n'
-    qc = qasm2.loads(example)
-    qc.draw("mpl")
 
+    from qiskit import QuantumCircuit
+    import numpy as np
+
+    custom_gate = QuantumCircuit(1) 
+    custom_gate.h(0)
+    custom_gate.rz(np.pi,0)
+    custom_gate.h(0)
+    gate = custom_gate.to_gate()
+    gate.name = 'custom X'
+
+    qc = QuantumCircuit(4,4)
+    qc.h(0)
+    qc.cx(0,1)
+    qc.cx(1,2)
+    qc.cx(2,3)
+    qc.append(gate,[1])
+    qc.barrier()
+    qc.measure(range(4),range(4))
+    qc.draw("mpl")
 
 The case you have an OpenQASM 2 program from a file you need to use :meth:`qiskit.qasm2.load`.
 
 
 .. testcode::
 
-    from qiskit import qasm2
-
-    qc = qasm2.loads(example.qasm)
+    qc = qasm2.loads('example.qasm')
     qc.draw("mpl")
 
 
 .. plot::
-    from qiskit import qasm2
-    qc = qasm2.loads(example.qasm)
+
+    from qiskit import QuantumCircuit
+    import numpy as np
+
+    custom_gate = QuantumCircuit(1) 
+    custom_gate.h(0)
+    custom_gate.rz(np.pi,0)
+    custom_gate.h(0)
+    gate = custom_gate.to_gate()
+    gate.name = 'custom X'
+
+    qc = QuantumCircuit(4,4)
+    qc.h(0)
+    qc.cx(0,1)
+    qc.cx(1,2)
+    qc.cx(2,3)
+    qc.append(gate,[1])
+    qc.barrier()
+    qc.measure(range(4),range(4))
     qc.draw("mpl")
