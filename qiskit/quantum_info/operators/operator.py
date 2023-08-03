@@ -194,7 +194,7 @@ class Operator(LinearOp):
         elif output == "text":
             from qiskit.visualization.state_visualization import TextMatrix
 
-            return TextMatrix(self, dims=True, **drawer_args)
+            return TextMatrix(self, **drawer_args)
 
         elif output == "latex":
             return array_to_latex(self, **drawer_args)

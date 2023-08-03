@@ -1408,7 +1408,11 @@ class TextMatrix:
         self.state = state
         self.max_size = max_size
         if dims is None:  # show dims if state is not only qubits
-            if isinstance(state, (Statevector, DensityMatrix)) and set(state.dims()) == {2}:
+            if (isinstance(state, (Statevector, DensityMatrix)) and set(state.dims()) == {2}) or (
+                isinstance(state, Operator)
+                and len(state.input_dims()) == len(state.output_dims())
+                and set(state.input_dims()) == set(state.output_dims()) == {2}
+            ):
                 dims = False
             else:
                 dims = True
