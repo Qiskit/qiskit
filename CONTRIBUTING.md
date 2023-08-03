@@ -88,17 +88,17 @@ communicate that clearly and politely.
 If you're struggling with code review or a PR on Qiskit, you can ask for help in
 the `#qiskit-pr-help` channel on [the public Qiskit Slack](https://qisk.it/join-slack).
 
-Remember that the PR author is a human, not just a screen name!  It's ok to ask
+Remember that the PR author is a human, not just a username!  It's ok to ask
 questions about the code, but don't be mean or rude about it even if you don't
 like it.
 
 #### What to focus on in review
 
 * Is everything in [the PR checklist](#pull-request-checklist) done?
-* Are any new public APIs easy to use, well documented, and in keeping with
+* Are any new public APIs easy to use, well documented, and consistent with
   other parts of the Qiskit API?
 * Do any changes to the code have knock-on effects for other parts of Qiskit
-  that may be using them, or do the changes imply changes to the assumptions in
+  that may be using them, or do they imply changes to the assumptions in
   our data structures?
 * Are there any edge cases you can think of that the code might not handle well?
 * Is the code reasonably easy for you to understand?  This particular point is
