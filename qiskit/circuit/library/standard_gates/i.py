@@ -13,7 +13,6 @@
 """Identity gate."""
 
 from typing import Optional
-import numpy
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit._utils import with_gate_array
 

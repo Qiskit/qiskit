@@ -12,7 +12,6 @@
 
 """Double-CNOT gate."""
 
-import numpy as np
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array

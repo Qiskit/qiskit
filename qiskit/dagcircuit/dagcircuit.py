@@ -1346,19 +1346,15 @@ class DAGCircuit:
                     label=old_node.op.label,
                 )
             elif getattr(old_node.op, "condition", None) is not None:
-                cond_target, cond_value = old_node.op.condition
                 # Deepcopy needed here in case of singletone gate usage the condition will be sticky
                 # globally
                 m_op = copy.deepcopy(old_node.op)
                 if not isinstance(old_node.op, ControlFlowOp):
-                    m_op = m_op.c_if(
-                        *variable_mapper.map_condition(m_op.condition)
-                    )
+                    new_condition = variable_mapper.map_condition(m_op.condition)
+                    if new_condition is not None:
+                        m_op = m_op.c_if(*new_condition)
                 else:
                     m_op.condition = variable_mapper.map_condition(m_op.condition)
-                        self._map_classical_resource_with_import(cond_target, wire_map, creg_map),
-                        cond_value,
-                    )
             else:
                 m_op = old_node.op
             m_qargs = [wire_map[x] for x in old_node.qargs]
@@ -1432,9 +1428,9 @@ class DAGCircuit:
                 if not isinstance(op, Instruction):
                     raise DAGCircuitError("Cannot add a condition on a generic Operation.")
                 if not isinstance(node.op, ControlFlowOp):
-                    op = node.op.c_if(*save_condition)
+                    op = op.c_if(*old_condition)
                 else:
-                    op.condition = save_condition
+                    op.condition = old_condition
                 new_wires.update(condition_resources(old_condition).clbits)
 
         if new_wires != current_wires:
