@@ -224,3 +224,32 @@ class TestDiscretePulses(QiskitTestCase):
         drag_pulse = library.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, Waveform)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)
+
+    def test_pending_deprecation_warnings(self):
+        """Test that pending deprecation warnings are raised when the discrete library is used."""
+        with self.assertWarns(PendingDeprecationWarning):
+            library.drag(duration=10, amp=0.5, sigma=0.1, beta=0.1)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.gaussian_square(duration=10, amp=0.5, sigma=0.1, risefall=2, width=6)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.gaussian(duration=10, amp=0.5, sigma=0.1)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.sin(duration=10, amp=0.5)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.cos(duration=10, amp=0.5)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.sawtooth(duration=10, amp=0.5)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.zero(duration=10)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.constant(duration=10, amp=0.5)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.triangle(duration=10, amp=0.5)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.gaussian_deriv(duration=10, amp=0.5, sigma=3)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.sech_deriv(duration=10, amp=0.5, sigma=3)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.sech(duration=10, amp=0.5, sigma=3)
+        with self.assertWarns(PendingDeprecationWarning):
+            library.square(duration=10, amp=0.5)

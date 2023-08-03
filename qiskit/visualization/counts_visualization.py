@@ -16,11 +16,11 @@ Visualization functions for measurement counts.
 
 from collections import OrderedDict
 import functools
-import warnings
 
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import QuasiDistribution, ProbDistribution
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
@@ -46,6 +46,28 @@ VALID_SORTS = ["asc", "desc", "hamming", "value", "value_desc"]
 DIST_MEAS = {"hamming": hamming_distance}
 
 
+def _is_deprecated_data_format(data) -> bool:
+    if not isinstance(data, list):
+        data = [data]
+    for dat in data:
+        if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
+            next(iter(dat.values())), float
+        ):
+            return True
+    return False
+
+
+@deprecate_arg(
+    "data",
+    deprecation_description=(
+        "Using plot_histogram() ``data`` argument with QuasiDistribution, ProbDistribution, or a "
+        "distribution dictionary"
+    ),
+    since="0.22.0",
+    additional_msg="Instead, use ``plot_distribution()``.",
+    predicate=_is_deprecated_data_format,
+    pending=True,
+)
 def plot_histogram(
     data,
     figsize=(7, 5),
@@ -63,7 +85,7 @@ def plot_histogram(
 
     Args:
         data (list or dict): This is either a list of dictionaries or a single
-            dict containing the values to represent (ex {'001': 130})
+            dict containing the values to represent (ex ``{'001': 130}``)
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
@@ -134,13 +156,6 @@ def plot_histogram(
         if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
             next(iter(dat.values())), float
         ):
-            warnings.warn(
-                "Using plot histogram with QuasiDistribution, ProbDistribution, or a "
-                "distribution dictionary will be deprecated in 0.23.0 and subsequently "
-                "removed in a future release. You should use plot_distribution() instead.",
-                PendingDeprecationWarning,
-                stacklevel=2,
-            )
             kind = "distribution"
     return _plotting_core(
         data,
@@ -287,8 +302,7 @@ def _plotting_core(
 
     if legend and len(legend) != len(data):
         raise VisualizationError(
-            "Length of legendL (%s) doesn't match "
-            "number of input executions: %s" % (len(legend), len(data))
+            f"Length of legend ({len(legend)}) doesn't match number of input executions ({len(data)})."
         )
 
     # Set bar colors
@@ -302,7 +316,7 @@ def _plotting_core(
     else:
         fig = None
 
-    labels = list(sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
+    labels = sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
     if number_to_keep is not None:
         labels.append("rest")
 
@@ -321,7 +335,7 @@ def _plotting_core(
                 for count in counts:
                     prev_count = combined_counts.get(count, 0)
                     combined_counts[count] = max(prev_count, counts[count])
-        labels = list(sorted(combined_counts.keys(), key=lambda key: combined_counts[key]))
+        labels = sorted(combined_counts.keys(), key=lambda key: combined_counts[key])
 
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars
@@ -329,8 +343,8 @@ def _plotting_core(
     labels_dict, all_pvalues, all_inds = _plot_data(data, labels, number_to_keep, kind=kind)
     rects = []
     for item, _ in enumerate(data):
+        label = None
         for idx, val in enumerate(all_pvalues[item]):
-            label = None
             if not idx and legend:
                 label = legend[item]
             if val > 0:
@@ -344,6 +358,7 @@ def _plotting_core(
                         zorder=2,
                     )
                 )
+                label = None
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
         ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)

@@ -14,20 +14,27 @@
 Matrix Operator class.
 """
 
+from __future__ import annotations
+
 import copy
 import re
 from numbers import Number
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
 from qiskit.circuit.operation import Operation
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
+
+if TYPE_CHECKING:
+    from qiskit.transpiler.layout import Layout
 
 
 class Operator(LinearOp):
@@ -49,7 +56,12 @@ class Operator(LinearOp):
         \rho \mapsto M \rho M^\dagger.
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Operation | BaseOperator | np.ndarray,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
+    ):
         """Initialize an operator object.
 
         Args:
@@ -129,7 +141,7 @@ class Operator(LinearOp):
 
     @property
     def data(self):
-        """Return data."""
+        """The underlying Numpy array."""
         return self._data
 
     @property
@@ -142,7 +154,7 @@ class Operator(LinearOp):
         }
 
     @classmethod
-    def from_label(cls, label):
+    def from_label(cls, label: str) -> Operator:
         """Return a tensor product of single-qubit operators.
 
         Args:
@@ -198,8 +210,93 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
+    def apply_permutation(self, perm: list, front: bool = False) -> Operator:
+        """Modifies operator's data by composing it with a permutation.
+
+        Args:
+            perm (list): permutation pattern, describing which qubits
+                occupy the positions 0, 1, 2, etc. after applying the permutation.
+            front (bool): When set to ``True`` the permutation is applied before the
+                operator, when set to ``False`` the permutation is applied after the
+                operator.
+        Returns:
+            Operator: The modified operator.
+
+        Raises:
+            QiskitError: if the size of the permutation pattern does not match the
+                dimensions of the operator.
+        """
+
+        # See https://github.com/Qiskit/qiskit-terra/pull/9403 for the math
+        # behind the following code.
+
+        inv_perm = np.argsort(perm)
+        raw_shape_l = self._op_shape.dims_l()
+        n_dims_l = len(raw_shape_l)
+        raw_shape_r = self._op_shape.dims_r()
+        n_dims_r = len(raw_shape_r)
+
+        if front:
+            # The permutation is applied first, the operator is applied after;
+            # however, in terms of matrices, we compute [O][P].
+
+            if len(perm) != n_dims_r:
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
+
+            # shape: original on left, permuted on right
+            shape_l = self._op_shape.dims_l()
+            shape_r = tuple(raw_shape_r[n_dims_r - n - 1] for n in reversed(perm))
+
+            # axes order: id on left, inv-permuted on right
+            axes_l = tuple(x for x in range(self._op_shape._num_qargs_l))
+            axes_r = tuple(self._op_shape._num_qargs_l + x for x in (np.argsort(perm[::-1]))[::-1])
+
+            # updated shape: original on left, permuted on right
+            new_shape_l = self._op_shape.dims_l()
+            new_shape_r = tuple(raw_shape_r[n_dims_r - n - 1] for n in reversed(inv_perm))
+
+        else:
+            # The operator is applied first, the permutation is applied after;
+            # however, in terms of matrices, we compute [P][O].
+
+            if len(perm) != n_dims_l:
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
+
+            # shape: inv-permuted on left, original on right
+            shape_l = tuple(raw_shape_l[n_dims_l - n - 1] for n in reversed(inv_perm))
+            shape_r = self._op_shape.dims_r()
+
+            # axes order: permuted on left, id on right
+            axes_l = tuple((np.argsort(inv_perm[::-1]))[::-1])
+            axes_r = tuple(
+                self._op_shape._num_qargs_l + x for x in range(self._op_shape._num_qargs_r)
+            )
+
+            # updated shape: permuted on left, original on right
+            new_shape_l = tuple(raw_shape_l[n_dims_l - n - 1] for n in reversed(perm))
+            new_shape_r = self._op_shape.dims_r()
+
+        # Computing the new operator
+        split_shape = shape_l + shape_r
+        axes_order = axes_l + axes_r
+        new_mat = (
+            self._data.reshape(split_shape).transpose(axes_order).reshape(self._op_shape.shape)
+        )
+        new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
+        return new_op
+
     @classmethod
-    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None, final_layout=None):
+    def from_circuit(
+        cls,
+        circuit: QuantumCircuit,
+        ignore_set_layout: bool = False,
+        layout: Layout | None = None,
+        final_layout: Layout | None = None,
+    ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
         While a :class:`~.QuantumCircuit` object can passed directly as ``data``
@@ -261,14 +358,8 @@ class Operator(LinearOp):
         op._append_instruction(instruction, qargs=qargs)
         # If final layout is set permute output indices based on layout
         if final_layout is not None:
-            # TODO: Do this without the intermediate Permutation object by just
-            # operating directly on the array directly
-            from qiskit.circuit.library import Permutation  # pylint: disable=cyclic-import
-
-            final_physical_to_virtual = final_layout.get_physical_bits()
             perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
-            perm_op = Operator(Permutation(len(final_physical_to_virtual), perm_pattern))
-            op &= perm_op
+            op = op.apply_permutation(perm_pattern, front=False)
         return op
 
     def is_unitary(self, atol=None, rtol=None):
@@ -279,7 +370,7 @@ class Operator(LinearOp):
             rtol = self.rtol
         return is_unitary_matrix(self._data, rtol=rtol, atol=atol)
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert operator to matrix operator class"""
         return self
 
@@ -303,7 +394,7 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, Operator):
@@ -345,7 +436,7 @@ class Operator(LinearOp):
         tensor = np.reshape(self.data, self._op_shape.tensor_shape)
         mat = np.reshape(other.data, other._op_shape.tensor_shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [np.product(output_dims), np.product(input_dims)]
+        final_shape = [int(np.prod(output_dims)), int(np.prod(input_dims))]
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
         )
@@ -353,7 +444,7 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n):
+    def power(self, n: float) -> Operator:
         """Return the matrix power of the operator.
 
         Args:
@@ -372,12 +463,12 @@ class Operator(LinearOp):
         ret._data = np.linalg.matrix_power(self.data, n)
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Operator) -> Operator:
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Operator) -> Operator:
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._tensor(other, self)
@@ -441,7 +532,7 @@ class Operator(LinearOp):
         ret._data = other * self._data
         return ret
 
-    def equiv(self, other, rtol=None, atol=None):
+    def equiv(self, other: Operator, rtol: float | None = None, atol: float | None = None) -> bool:
         """Return True if operators are equivalent up to global phase.
 
         Args:
@@ -465,7 +556,7 @@ class Operator(LinearOp):
             rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True, rtol=rtol, atol=atol)
 
-    def reverse_qargs(self):
+    def reverse_qargs(self) -> Operator:
         r"""Return an Operator with reversed subsystem ordering.
 
         For a tensor product operator this is equivalent to reversing

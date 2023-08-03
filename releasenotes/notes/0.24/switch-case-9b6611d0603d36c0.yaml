@@ -1,0 +1,42 @@
+---
+features:
+  - |
+    Qiskit now supports the representation of ``switch`` statements, using the new :class:`.SwitchCaseOp`
+    instruction and the :meth:`.QuantumCircuit.switch` method.  This allows switching on a numeric
+    input (such as a classical register or bit) and executing the circuit that corresponds to the
+    matching value.  Multiple values can point to the same circuit, and :data:`.CASE_DEFAULT` can be
+    used as an always-matching label.
+
+    You can also use a builder interface, similar to the other control-flow constructs to build up
+    these switch statements::
+
+      from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+      qreg = QuantumRegister(2)
+      creg = ClassicalRegister(2)
+      qc = QuantumCircuit(qreg, creg)
+
+      qc.h([0, 1])
+      qc.measure([0, 1], [0, 1])
+      with qc.switch(creg) as case:
+        with case(0):  # if the register is '00'
+          qc.z(0)
+        with case(1, 2):  # if the register is '01' or '10'
+          qc.cx(0, 1)
+        with case(case.DEFAULT):  # the default case
+          qc.h(0)
+
+      The ``switch`` statement has support throughout the Qiskit compiler stack; you can
+      :func:`.transpile` circuits containing it (if the backend advertises its support for the
+      construct), and it will serialize to QPY.
+
+      The ``switch`` statement is not currently a feature of OpenQASM 3, but `it is under active
+      design and consideration <https://github.com/openqasm/openqasm/pull/463>`__, which is
+      expected to be adopted in the near future.  Qiskit Terra has experimental support for
+      exporting this statement to the OpenQASM 3 syntax proposed in the linked pull request, using
+      an experimental feature flag.  To export a ``switch`` statement circuit (such as the one
+      created above) to OpenQASM 3 using this speculative support, do::
+
+        from qiskit import qasm3
+
+        qasm3.dumps(qc, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1)

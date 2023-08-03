@@ -14,6 +14,8 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
+import sys
+import typing
 from collections.abc import Iterable
 
 import numpy as np
@@ -21,10 +23,12 @@ import numpy as np
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+
+if typing.TYPE_CHECKING:
+    from qiskit.opflow import PauliSumOp
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
@@ -58,9 +62,18 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
         TypeError: If the observable is a :class:`~qiskit.opflow.PauliSumOp` and has a parameterized
             coefficient.
     """
+    # This dance is to avoid importing the deprecated `qiskit.opflow` if the user hasn't already
+    # done so.  They can't hold a `qiskit.opflow.PauliSumOp` if `qiskit.opflow` hasn't been
+    # imported, and we don't want unrelated Qiskit library code to be responsible for the first
+    # import, so the deprecation warnings will show.
+    if "qiskit.opflow" in sys.modules:
+        pauli_sum_check = sys.modules["qiskit.opflow"].PauliSumOp
+    else:
+        pauli_sum_check = ()
+
     if isinstance(observable, SparsePauliOp):
         return observable
-    elif isinstance(observable, PauliSumOp):
+    elif isinstance(observable, pauli_sum_check):
         if isinstance(observable.coeff, ParameterExpression):
             raise TypeError(
                 f"Observable must have numerical coefficient, not {type(observable.coeff)}."
@@ -77,10 +90,6 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
 
     Dict keys label measured qubits, whereas the values indicate the
     classical bit onto which that qubits measurement result is stored.
-
-    Note: this function is a slightly simplified version of a utility function
-    ``_final_measurement_mapping`` of
-    `mthree <https://github.com/Qiskit-Partners/mthree>`_.
 
     Parameters:
         circuit: Input quantum circuit.
@@ -101,7 +110,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
                 mapping[qbit] = cbit
                 active_cbits.remove(cbit)
                 active_qubits.remove(qbit)
-        elif item.operation.name != "barrier":
+        elif item.operation.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:

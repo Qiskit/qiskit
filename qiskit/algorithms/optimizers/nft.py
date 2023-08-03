@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Nakanishi-Fujii-Todo algorithm."""
+from __future__ import annotations
 
-from typing import Optional
 
 import numpy as np
 from scipy.optimize import OptimizeResult
@@ -32,11 +32,11 @@ class NFT(SciPyOptimizer):
     # pylint: disable=unused-argument
     def __init__(
         self,
-        maxiter: Optional[int] = None,
+        maxiter: int | None = None,
         maxfev: int = 1024,
         disp: bool = False,
         reset_interval: int = 32,
-        options: Optional[dict] = None,
+        options: dict | None = None,
         **kwargs,
     ) -> None:
         """
@@ -106,9 +106,10 @@ def nakanishi_fujii_todo(
             `OptimizeResult` for a description of other attributes.
     Notes:
         In this optimization method, the optimization function have to satisfy
-        three conditions written in [1].
+        three conditions written in [2]_.
+
     References:
-        .. [1] K. M. Nakanishi, K. Fujii, and S. Todo. 2019.
+        .. [2] K. M. Nakanishi, K. Fujii, and S. Todo. 2019.
         Sequential minimal optimization for quantum-classical hybrid algorithms.
         arXiv preprint arXiv:1903.12166.
     """

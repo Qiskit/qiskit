@@ -10,12 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" A property set is maintained by the PassManager to keep information
+"""A property set is maintained by the PassManager to keep information
 about the current state of the circuit """
 
 
-class PropertySet(dict):
-    """A default dictionary-like object"""
+from qiskit.passmanager import propertyset as passmanager_propertyset
 
-    def __missing__(self, key):
-        return None
+
+def __getattr__(name):
+    # Just redirect to new module. This will be deprecated.
+    return getattr(passmanager_propertyset, name)

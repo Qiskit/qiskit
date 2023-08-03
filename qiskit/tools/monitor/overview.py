@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" A module for viewing the details of all available devices.
+"""A module for viewing the details of all available devices.
 """
 
 import math

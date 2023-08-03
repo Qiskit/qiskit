@@ -89,19 +89,17 @@ def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     trace = _compute_trace_so3(matrix)
     angle = math.acos((1 / 2) * (trace - 1))
 
+    lhs = math.sin(angle / 2)
+
     def objective(phi):
-        rhs = 2 * math.sin(phi / 2) ** 2
-        rhs *= math.sqrt(1 - math.sin(phi / 2) ** 4)
-        lhs = math.sin(angle / 2)
-        return rhs - lhs
+        sin_sq = np.sin(phi / 2) ** 2
+        return 2 * sin_sq * np.sqrt(1 - sin_sq**2) - lhs
 
     decomposition_angle = fsolve(objective, angle)[0]
     return decomposition_angle
 
 
-def _compute_rotation_from_angle_and_axis(  # pylint: disable=invalid-name
-    angle: float, axis: np.ndarray
-) -> np.ndarray:
+def _compute_rotation_from_angle_and_axis(angle: float, axis: np.ndarray) -> np.ndarray:
     """Computes the SO(3)-matrix corresponding to the rotation of ``angle`` about ``axis``.
 
     Args:

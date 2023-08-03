@@ -15,14 +15,15 @@
 from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class FullAncillaAllocation(AnalysisPass):
-    """Allocate all idle nodes from the coupling map as ancilla on the layout.
+    """Allocate all idle nodes from the coupling map or target as ancilla on the layout.
 
     A pass for allocating all idle physical qubits (those that exist in coupling
-    map but not the dag circuit) as ancilla. It will also choose new virtual
-    qubits to correspond to those physical ancilla.
+    map or target but not the dag circuit) as ancilla. It will also choose new
+    virtual qubits to correspond to those physical ancilla.
 
     Note:
         This is an analysis pass, and only responsible for choosing physical
@@ -35,10 +36,15 @@ class FullAncillaAllocation(AnalysisPass):
         """FullAncillaAllocation initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.ancilla_name = "ancilla"
 
     def run(self, dag):
@@ -75,7 +81,11 @@ class FullAncillaAllocation(AnalysisPass):
 
         idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
-        if self.coupling_map:
+        if self.target:
+            idle_physical_qubits = [
+                q for q in range(self.target.num_qubits) if q not in physical_bits
+            ]
+        elif self.coupling_map:
             idle_physical_qubits = [
                 q for q in self.coupling_map.physical_qubits if q not in physical_bits
             ]

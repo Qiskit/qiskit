@@ -10,22 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Read and write schedule and schedule instructions."""
 import json
 import struct
 import zlib
 import warnings
 
+from io import BytesIO
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import library, channels
+from qiskit.pulse import library, channels, instructions
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
+from qiskit.qpy.exceptions import QpyError
 from qiskit.utils import optionals as _optional
+from qiskit.pulse.configuration import Kernel, Discriminator
 
 if _optional.HAS_SYMENGINE:
     import symengine as sym
@@ -59,6 +61,46 @@ def _read_waveform(file_obj, version):
         epsilon=header.epsilon,
         limit_amplitude=header.amp_limited,
     )
+
+
+def _loads_obj(type_key, binary_data, version, vectors):
+    """Wraps `value.loads_value` to deserialize binary data to dictionary
+    or list objects which are not supported by `value.loads_value`.
+    """
+    if type_key == b"D":
+        with BytesIO(binary_data) as container:
+            return common.read_mapping(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    elif type_key == b"l":
+        with BytesIO(binary_data) as container:
+            return common.read_sequence(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    else:
+        return value.loads_value(type_key, binary_data, version, vectors)
+
+
+def _read_kernel(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=_loads_obj,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Kernel(name=name, **params)
+
+
+def _read_discriminator(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=_loads_obj,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Discriminator(name=name, **params)
 
 
 def _loads_symbolic_expr(expr_bytes):
@@ -230,6 +272,7 @@ def _read_alignment_context(file_obj, version):
     return instance
 
 
+# pylint: disable=too-many-return-statements
 def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
@@ -240,6 +283,20 @@ def _loads_operand(type_key, data_bytes, version):
             return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
+    if type_key == type_keys.ScheduleOperand.OPERAND_STR:
+        return data_bytes.decode(common.ENCODE)
+    if type_key == type_keys.ScheduleOperand.KERNEL:
+        return common.data_from_binary(
+            data_bytes,
+            _read_kernel,
+            version=version,
+        )
+    if type_key == type_keys.ScheduleOperand.DISCRIMINATOR:
+        return common.data_from_binary(
+            data_bytes,
+            _read_discriminator,
+            version=version,
+        )
 
     return value.loads_value(type_key, data_bytes, version, {})
 
@@ -261,6 +318,24 @@ def _read_element(file_obj, version, metadata_deserializer):
     return instance
 
 
+def _loads_reference_item(type_key, data_bytes, version, metadata_deserializer):
+    if type_key == type_keys.Value.NULL:
+        return None
+    if type_key == type_keys.Program.SCHEDULE_BLOCK:
+        return common.data_from_binary(
+            data_bytes,
+            deserializer=read_schedule_block,
+            version=version,
+            metadata_deserializer=metadata_deserializer,
+        )
+
+    raise QpyError(
+        f"Loaded schedule reference item is neither None nor ScheduleBlock. "
+        f"Type key {type_key} is not valid data type for a reference items. "
+        "This data cannot be loaded. Please check QPY version."
+    )
+
+
 def _write_channel(file_obj, data):
     type_key = type_keys.ScheduleChannel.assign(data)
     common.write_type_key(file_obj, type_key)
@@ -279,6 +354,38 @@ def _write_waveform(file_obj, data):
     file_obj.write(header)
     file_obj.write(samples_bytes)
     value.write_value(file_obj, data.name)
+
+
+def _dumps_obj(obj):
+    """Wraps `value.dumps_value` to serialize dictionary and list objects
+    which are not supported by `value.dumps_value`.
+    """
+    if isinstance(obj, dict):
+        with BytesIO() as container:
+            common.write_mapping(file_obj=container, mapping=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"D", binary_data
+    elif isinstance(obj, list):
+        with BytesIO() as container:
+            common.write_sequence(file_obj=container, sequence=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"l", binary_data
+    else:
+        return value.dumps_value(obj)
+
+
+def _write_kernel(file_obj, data):
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
+
+
+def _write_discriminator(file_obj, data):
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
 
 
 def _dumps_symbolic_expr(expr):
@@ -342,6 +449,15 @@ def _dumps_operand(operand):
     elif isinstance(operand, channels.Channel):
         type_key = type_keys.ScheduleOperand.CHANNEL
         data_bytes = common.data_to_binary(operand, _write_channel)
+    elif isinstance(operand, str):
+        type_key = type_keys.ScheduleOperand.OPERAND_STR
+        data_bytes = operand.encode(common.ENCODE)
+    elif isinstance(operand, Kernel):
+        type_key = type_keys.ScheduleOperand.KERNEL
+        data_bytes = common.data_to_binary(operand, _write_kernel)
+    elif isinstance(operand, Discriminator):
+        type_key = type_keys.ScheduleOperand.DISCRIMINATOR
+        data_bytes = common.data_to_binary(operand, _write_discriminator)
     else:
         type_key, data_bytes = value.dumps_value(operand)
 
@@ -361,6 +477,20 @@ def _write_element(file_obj, element, metadata_serializer):
             serializer=_dumps_operand,
         )
         value.write_value(file_obj, element.name)
+
+
+def _dumps_reference_item(schedule, metadata_serializer):
+    if schedule is None:
+        type_key = type_keys.Value.NULL
+        data_bytes = b""
+    else:
+        type_key = type_keys.Program.SCHEDULE_BLOCK
+        data_bytes = common.data_to_binary(
+            obj=schedule,
+            serializer=write_schedule_block,
+            metadata_serializer=metadata_serializer,
+        )
+    return type_key, data_bytes
 
 
 def read_schedule_block(file_obj, version, metadata_deserializer=None):
@@ -384,9 +514,8 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         TypeError: If any of the instructions is invalid data format.
         QiskitError: QPY version is earlier than block support.
     """
-
     if version < 5:
-        QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+        raise QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
     data = formats.SCHEDULE_BLOCK_HEADER._make(
         struct.unpack(
@@ -407,6 +536,22 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
     for _ in range(data.num_elements):
         block_elm = _read_element(file_obj, version, metadata_deserializer)
         block.append(block_elm, inplace=True)
+
+    # Load references
+    if version >= 7:
+        flat_key_refdict = common.read_mapping(
+            file_obj=file_obj,
+            deserializer=_loads_reference_item,
+            version=version,
+            metadata_deserializer=metadata_deserializer,
+        )
+        ref_dict = {}
+        for key_str, schedule in flat_key_refdict.items():
+            if schedule is not None:
+                composite_key = tuple(key_str.split(instructions.Reference.key_delimiter))
+                ref_dict[composite_key] = schedule
+        if ref_dict:
+            block.assign_references(ref_dict, inplace=True)
 
     return block
 
@@ -442,5 +587,20 @@ def write_schedule_block(file_obj, block, metadata_serializer=None):
     file_obj.write(metadata)
 
     _write_alignment_context(file_obj, block.alignment_context)
-    for block_elm in block.blocks:
+    for block_elm in block._blocks:
+        # Do not call block.blocks. This implicitly assigns references to instruction.
+        # This breaks original reference structure.
         _write_element(file_obj, block_elm, metadata_serializer)
+
+    # Write references
+    flat_key_refdict = {}
+    for ref_keys, schedule in block._reference_manager.items():
+        # Do not call block.reference. This returns the reference of most outer program by design.
+        key_str = instructions.Reference.key_delimiter.join(ref_keys)
+        flat_key_refdict[key_str] = schedule
+    common.write_mapping(
+        file_obj=file_obj,
+        mapping=flat_key_refdict,
+        serializer=_dumps_reference_item,
+        metadata_serializer=metadata_serializer,
+    )
