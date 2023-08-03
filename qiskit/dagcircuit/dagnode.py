@@ -13,6 +13,7 @@
 
 """Objects to represent the information at a node in the DAGCircuit."""
 
+import itertools
 import uuid
 from typing import Iterable
 
@@ -258,7 +259,9 @@ class DAGOpNode(DAGNode):
         self.qargs = tuple(qargs)
         self.cargs = tuple(cargs)
         if dag is not None:
-            self.sort_key = str([dag.find_bit(q).index for q in self.qargs])
+            self.sort_key = ",".join(
+                f"{dag.find_bit(q).index:04d}" for q in itertools.chain(self.qargs, self.cargs)
+            )
         else:
             self.sort_key = str(self.qargs)
 
