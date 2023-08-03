@@ -1439,7 +1439,7 @@ class TextMatrix:
             dimstr += " " * len(self.prefix)
             if isinstance(self.state, (Statevector, DensityMatrix)):
                 dimstr += f"dims={self.state._op_shape.dims_l()}"
-            elif isinstance(self.state, Operator):
+            else:
                 dimstr += f"input_dims={self.state.input_dims()}, "
                 dimstr += f"output_dims={self.state.output_dims()}"
 
