@@ -260,10 +260,7 @@ Array/Matrix Visualizations
 Exceptions
 ==========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   VisualizationError
+.. autoexception:: VisualizationError
 """
 
 import os
