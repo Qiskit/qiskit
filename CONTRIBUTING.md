@@ -72,7 +72,7 @@ please ensure that:
 
 All code merged to Qiskit, even from maintainers, goes through a code-review
 process after a pull request is made.  We only have a small number of
-maintainers who can authorise a merge, and it's useful for everyone if the
+maintainers who can authorize a merge, and it's useful for everyone if the
 community can take part in helping make sure pull requests are technically
 correct, well tested, and easy to review.
 
@@ -118,7 +118,7 @@ like it.
   mean that the PR should be split into smaller chunks.
 * Try to keep the number of comments reasonable.  This depends on the size of
   the PR, but remember that there's somebody who'll read all your comments, and
-  it feels rubbish if you get a PR back and it's got 30 comments on from a
+  it can be demoralizing if you get a PR back and it's got 30 comments on from a
   50-line change.  If you feel like you're putting too many comments on,
   consider if you could group several of them into one theme, and ask them as a
   more detailed question with a focus on only one part of the code.  Try not to
