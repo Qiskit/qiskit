@@ -39,7 +39,7 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.doctest"
+    "sphinx.ext.doctest",
 ]
 
 templates_path = ["_templates"]
@@ -123,6 +123,12 @@ autosummary_filename_map = {
 }
 
 autoclass_content = "both"
+
+# We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
+# slows down the build (a little) and can sometimes result in _regular_ section headings in
+# module-level documentation being converted into surprising things.
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
 
 # -- Options for Doctest --------------------------------------------------------
