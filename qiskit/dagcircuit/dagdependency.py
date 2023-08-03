@@ -48,7 +48,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class DAGDependency:
-    """Object to represent a quantum circuit as a directed acyclic graph
+    """Object to represent a quantum circuit as a DAG
     via operation dependencies (i.e. lack of commutation).
 
     The nodes in the graph are operations represented by quantum gates.
@@ -143,7 +143,7 @@ class DAGDependency:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
-            {'gate_name': {(qubits, params): schedule}}
+        ``{'gate_name': {(qubits, params): schedule}}``.
         """
         return dict(self._calibrations)
 
@@ -530,8 +530,7 @@ class DAGDependency:
                          'color' (default): color input/output/op nodes
 
         Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file,
-                otherwise None.
+            Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 

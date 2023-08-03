@@ -17,8 +17,8 @@ DAG Circuits (:mod:`qiskit.dagcircuit`)
 
 .. currentmodule:: qiskit.dagcircuit
 
-DAG Circuits
-============
+DAG (directed acyclic graph) Circuits
+=====================================
 
 .. autosummary::
    :toctree: ../stubs/
