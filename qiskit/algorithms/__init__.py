@@ -280,23 +280,7 @@ Algorithms that compute the fidelity of pairs of quantum states.
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   AlgorithmError
-
-
-Utility methods
----------------
-
-Utility methods used by algorithms.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   eval_observables
-   estimate_observables
-
+.. autoexception:: AlgorithmError
 
 Utility classes
 ---------------
@@ -307,6 +291,14 @@ Utility classes used by algorithms (mainly for type-hinting purposes).
    :toctree: ../stubs/
 
    AlgorithmJob
+
+Utility functions
+-----------------
+
+Utility functions used by algorithms.
+
+.. autofunction:: eval_observables
+.. autofunction:: estimate_observables
 
 """
 import warnings
