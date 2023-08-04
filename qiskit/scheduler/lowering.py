@@ -27,7 +27,10 @@ from qiskit.pulse import instructions as pulse_inst
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
+from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
+from qiskit.utils.deprecation import deprecate_arg
+
 
 CircuitPulseDef = namedtuple(
     "CircuitPulseDef",
@@ -35,7 +38,34 @@ CircuitPulseDef = namedtuple(
 )  # The labels of the qubits involved in the command according to the circuit
 
 
-def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> List[CircuitPulseDef]:
+def convert_to_target(func):
+    """
+    A wrapper function that prepares target instead of scheduleConfig
+    when the ScheduleConfing is specified.
+
+    If the ScheduleConfig is deprecated, this fucntion will be removed.
+    """
+
+    @deprecate_arg(
+        "schedule_config",
+        deprecation_description="Using target instead of schedule_config.",
+        since="0.25.0",
+        pending=True,
+        predicate=lambda schedule_config: schedule_config is not None,
+    )
+    def _wrapped(circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target):
+        if schedule_config is not None:
+            target = Target(schedule_config.meas_map)
+            target.update_from_instruction_schedule_map(schedule_config.inst_map)
+        return func(circuit, target=target)
+
+    return _wrapped
+
+
+@convert_to_target
+def lower_gates(
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
+) -> List[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
     input circuit.
@@ -48,6 +78,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
+        target: Target built from some Backend parameters.
 
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element.
@@ -57,13 +88,16 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
     """
     from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
+    if schedule_config is None and target is None:
+        raise QiskitError("Only one of schedule_config or target must be specified.")
+    meas_map = target.concurrent_measurements
+    dt = target.dt
     circ_pulse_defs = []
 
-    inst_map = schedule_config.inst_map
     qubit_mem_slots = {}  # Map measured qubit index to classical bit index
 
     # convert the unit of durations from SI to dt before lowering
-    circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
+    circuit = convert_durations_to_dt(circuit, dt_in_sec=dt, inplace=False)
 
     def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
@@ -97,8 +131,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             qubit_mem_slots.update(acquire_excludes)
             meas_sched = measure(
                 qubits=qubits,
-                inst_map=inst_map,
-                meas_map=schedule_config.meas_map,
+                target=target,
+                meas_map=meas_map,
                 qubit_mem_slots=qubit_mem_slots,
             )
             meas_sched = target_qobj_transform(meas_sched)
@@ -161,8 +195,8 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                 pass  # Calibration not defined for this operation
 
             try:
-                schedule = inst_map.get(
-                    instruction.operation, inst_qubits, *instruction.operation.params
+                schedule = target.get_calibration(
+                    instruction.operation.name, tuple(inst_qubits), *instruction.operation.params
                 )
                 schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))

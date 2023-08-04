@@ -1134,7 +1134,7 @@ class DAGCircuit:
         block_qargs.sort(key=wire_pos_map.get)
         block_cargs = [bit for bit in block_cargs if bit in wire_pos_map]
         block_cargs.sort(key=wire_pos_map.get)
-        new_node = DAGOpNode(op, block_qargs, block_cargs, dag=self)
+        new_node = DAGOpNode(op, block_qargs, block_cargs)
 
         try:
             new_node._node_id = self._multi_graph.contract_nodes(

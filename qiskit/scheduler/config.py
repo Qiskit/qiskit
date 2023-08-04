@@ -15,7 +15,6 @@
 from typing import List
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.utils import format_meas_map
 
 
 class ScheduleConfig:
@@ -31,5 +30,5 @@ class ScheduleConfig:
             dt: Sample duration.
         """
         self.inst_map = inst_map
-        self.meas_map = format_meas_map(meas_map)
+        self.meas_map = meas_map
         self.dt = dt

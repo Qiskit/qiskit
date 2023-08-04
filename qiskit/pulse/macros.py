@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 def measure(
     qubits: List[int],
     backend=None,
+    target: Optional[Target] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
     qubit_mem_slots: Optional[Dict[int, int]] = None,
@@ -51,6 +52,7 @@ def measure(
         qubits: List of qubits to be measured.
         backend (Union[Backend, BaseBackend]): A backend instance, which contains
             hardware-specific data required for scheduling.
+        target: The :class:`~.Target` representing the target backend.
         inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
                   ``instruction_schedule_map`` of ``backend``.
         meas_map: List of sets of qubits that must be measured together. If None, defaults to
@@ -63,12 +65,14 @@ def measure(
     """
 
     # backend is V2.
-    if isinstance(backend, BackendV2):
+    if isinstance(backend, BackendV2) or target:
+        if hasattr(backend, "meas_map"):
+            meas_map = meas_map or backend.meas_map
 
         return _measure_v2(
             qubits=qubits,
-            target=backend.target,
-            meas_map=meas_map or backend.meas_map,
+            target=target or backend.target,
+            meas_map=meas_map or target.concurrent_measurements,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )

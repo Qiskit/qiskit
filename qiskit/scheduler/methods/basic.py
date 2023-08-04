@@ -20,23 +20,28 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.pulse.schedule import Schedule
 
+from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.scheduler.lowering import lower_gates
+from qiskit.scheduler.lowering import lower_gates, convert_to_target
 
 
-def as_soon_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Schedule:
+@convert_to_target
+def as_soon_as_possible(
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
+) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as soon as possible"
     (asap) scheduling policy.
 
     Circuit instructions are first each mapped to equivalent pulse
-    Schedules according to the command definition given by the schedule_config. Then, this circuit
-    instruction-equivalent Schedule is appended at the earliest time at which all qubits involved
-    in the instruction are available.
+    Schedules according to the command definition given by the schedule_config or target.
+    Then, this circuit instruction-equivalent Schedule is appended at the earliest time
+    at which all qubits involved in the instruction are available.
 
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
+        target: Target built from some Backend parameters.
 
     Returns:
         A schedule corresponding to the input ``circuit`` with pulses occurring as early as
@@ -50,7 +55,7 @@ def as_soon_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig
             qubit_time_available[q] = time
 
     start_times = []
-    circ_pulse_defs = lower_gates(circuit, schedule_config)
+    circ_pulse_defs = lower_gates(circuit, schedule_config, target)
     for circ_pulse_def in circ_pulse_defs:
         start_time = max(qubit_time_available[q] for q in circ_pulse_def.qubits)
         stop_time = start_time
@@ -71,15 +76,19 @@ def as_soon_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig
     return schedule
 
 
-def as_late_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Schedule:
+@convert_to_target
+def as_late_as_possible(
+    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
+) -> Schedule:
     """
     Return the pulse Schedule which implements the input circuit using an "as late as possible"
     (alap) scheduling policy.
 
     Circuit instructions are first each mapped to equivalent pulse
-    Schedules according to the command definition given by the schedule_config. Then, this circuit
-    instruction-equivalent Schedule is appended at the latest time that it can be without allowing
-    unnecessary time between instructions or allowing instructions with common qubits to overlap.
+    Schedules according to the command definition given by the schedule_config or target.
+    Then, this circuit instruction-equivalent Schedule is appended at the latest time that
+    it can be without allowing unnecessary time between instructions or allowing instructions
+    with common qubits to overlap.
 
     This method should improves the outcome fidelity over ASAP scheduling, because we may
     maximize the time that the qubit remains in the ground state.
@@ -87,6 +96,7 @@ def as_late_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
+        target: Target built from some Backend parameters.
 
     Returns:
         A schedule corresponding to the input ``circuit`` with pulses occurring as late as
@@ -100,7 +110,7 @@ def as_late_as_possible(circuit: QuantumCircuit, schedule_config: ScheduleConfig
             qubit_time_available[q] = time
 
     rev_stop_times = []
-    circ_pulse_defs = lower_gates(circuit, schedule_config)
+    circ_pulse_defs = lower_gates(circuit, schedule_config, target)
     for circ_pulse_def in reversed(circ_pulse_defs):
         start_time = max(qubit_time_available[q] for q in circ_pulse_def.qubits)
         stop_time = start_time

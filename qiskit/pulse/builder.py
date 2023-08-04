@@ -103,7 +103,7 @@ automatically lowered to be run as a pulse program:
    d2 = pulse.DriveChannel(2)
 
    with pulse.build(backend) as bell_prep:
-       pulse.u2(0, math.pi, 0)
+       pulse.u3(1.57, 0, math.pi, 0)
        pulse.cx(0, 1)
 
    with pulse.build(backend) as decoupled_bell_prep_and_measure:

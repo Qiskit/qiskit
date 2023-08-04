@@ -13,6 +13,7 @@
 """
 Fake backend supporting OpenPulse.
 """
+import datetime
 
 from qiskit.providers.models import (
     GateConfig,
@@ -21,6 +22,7 @@ from qiskit.providers.models import (
     Command,
     UchannelLO,
 )
+from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
 from qiskit.qobj import PulseQobjInstruction
 
 from .fake_backend import FakeBackend
@@ -326,7 +328,105 @@ class FakeOpenPulse3Q(FakeBackend):
                 ],
             }
         )
+        mock_time = datetime.datetime.now()
+        dt = 1.3333
+        self._properties = BackendProperties(
+            backend_name="fake_openpulse_3q",
+            backend_version="0.0.0",
+            last_update_date=mock_time,
+            qubits=[
+                [
+                    Nduv(date=mock_time, name="T1", unit="µs", value=71.9500421005539),
+                    Nduv(date=mock_time, name="T2", unit="µs", value=69.4240447362455),
+                    Nduv(date=mock_time, name="frequency", unit="MHz", value=4919.96800692),
+                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+                ],
+                [
+                    Nduv(date=mock_time, name="T1", unit="µs", value=81.9500421005539),
+                    Nduv(date=mock_time, name="T2", unit="µs", value=75.5598482446578),
+                    Nduv(date=mock_time, name="frequency", unit="GHz", value=5.01996800692),
+                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+                ],
+                [
+                    Nduv(date=mock_time, name="T1", unit="µs", value=81.9500421005539),
+                    Nduv(date=mock_time, name="T2", unit="µs", value=75.5598482446578),
+                    Nduv(date=mock_time, name="frequency", unit="GHz", value=5.01996800692),
+                    Nduv(date=mock_time, name="readout_error", unit="", value=0.02),
+                ],
+            ],
+            gates=[
+                Gate(
+                    gate="u1",
+                    qubits=[0],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
+                    ],
+                ),
+                Gate(
+                    gate="u1",
+                    qubits=[1],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
+                    ],
+                ),
+                Gate(
+                    gate="u1",
+                    qubits=[2],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=0.0),
+                    ],
+                ),
+                Gate(
+                    gate="u3",
+                    qubits=[0],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="u3",
+                    qubits=[1],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="u3",
+                    qubits=[2],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=0.06),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=2 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="cx",
+                    qubits=[0, 1],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=22 * dt),
+                    ],
+                ),
+                Gate(
+                    gate="cx",
+                    qubits=[1, 2],
+                    parameters=[
+                        Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
+                        Nduv(date=mock_time, name="gate_length", unit="ns", value=22 * dt),
+                    ],
+                ),
+            ],
+            general=[],
+        )
         super().__init__(configuration)
 
     def defaults(self):  # pylint: disable=missing-function-docstring
         return self._defaults
+
+    def properties(self):
+        """Return the measured characteristics of the backend."""
+        return self._properties
