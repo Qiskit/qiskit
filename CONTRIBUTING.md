@@ -79,7 +79,7 @@ correct, well tested, and easier in final review.
 
 The code-review process is a normal part of software development, and nothing to
 be scared of; for very easy changes it can be as simple as a maintainer saying
-"looks good to me!" and merging the PR.  For more complex changes, it's often a
+"looks good to me!" (or in short-form, "LGTM!") and merging the PR.  For more complex changes, it's often a
 back-and-forth where the reviewer may ask a couple of questions about why things
 were done a particular way, and make suggestions for improvement.  You don't
 need to do everything suggested if you've got good reasons to disagree, but
