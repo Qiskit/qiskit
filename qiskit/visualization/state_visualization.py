@@ -24,6 +24,7 @@ import colorsys
 import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
@@ -514,6 +515,9 @@ def plot_state_city(
     min_dzr = min(dzr)
     min_dzi = np.min(dzi)
     max_dzi = np.max(dzi)
+
+    # There seems to be a rounding error in which some zero bars are negative
+    dzr = np.clip(dzr, 0, None)
 
     if ax1 is not None:
         fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
@@ -1404,7 +1408,11 @@ class TextMatrix:
         self.state = state
         self.max_size = max_size
         if dims is None:  # show dims if state is not only qubits
-            if set(state.dims()) == {2}:
+            if (isinstance(state, (Statevector, DensityMatrix)) and set(state.dims()) == {2}) or (
+                isinstance(state, Operator)
+                and len(state.input_dims()) == len(state.output_dims())
+                and set(state.input_dims()) == set(state.output_dims()) == {2}
+            ):
                 dims = False
             else:
                 dims = True
@@ -1429,7 +1437,12 @@ class TextMatrix:
         if self.dims:
             data += ",\n"
             dimstr += " " * len(self.prefix)
-            dimstr += f"dims={self.state._op_shape.dims_l()}"
+            if isinstance(self.state, (Statevector, DensityMatrix)):
+                dimstr += f"dims={self.state._op_shape.dims_l()}"
+            else:
+                dimstr += f"input_dims={self.state.input_dims()}, "
+                dimstr += f"output_dims={self.state.output_dims()}"
+
         return self.prefix + data + dimstr + self.suffix
 
     def __repr__(self):

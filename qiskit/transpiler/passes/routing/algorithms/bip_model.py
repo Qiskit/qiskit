@@ -87,7 +87,6 @@ class BIPMappingModel:
             )
 
         self._index_to_virtual = dict(enumerate(dag.qubits))
-        self._virtual_to_index = {v: i for i, v in self._index_to_virtual.items()}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates
@@ -96,8 +95,8 @@ class BIPMappingModel:
         for lay in dag.layers():
             laygates = []
             for node in lay["graph"].two_qubit_ops():
-                i1 = self._virtual_to_index[node.qargs[0]]
-                i2 = self._virtual_to_index[node.qargs[1]]
+                i1 = self._dag.find_bit(node.qargs[0]).index
+                i2 = self._dag.find_bit(node.qargs[1]).index
                 laygates.append(((i1, i2), node))
             if laygates:
                 self._to_su4layer.append(len(self.su4layers))

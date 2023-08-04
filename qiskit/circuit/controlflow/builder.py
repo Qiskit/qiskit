@@ -30,7 +30,7 @@ from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.circuit.register import Register
 
-from .condition import condition_registers
+from ._builder_utils import condition_resources, node_resources
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -153,8 +153,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The same instruction instance that was passed, but mutated to propagate the tracked
             changes to this class.
         """
-        # In general the tuple creation should be a no-op, because ``tuple(t) is t`` for tuples.
-        instruction.condition = None if self.condition is None else tuple(self.condition)
+        instruction.condition = self.condition
         return instruction
 
     # Provide some better error messages, just in case something goes wrong during development and
@@ -402,7 +401,7 @@ class ControlFlowBuilderBlock:
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
         """
-        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more
         # so _other_ operations, which aren't safe can be forbidden, such as mutating instructions
@@ -447,7 +446,19 @@ class ControlFlowBuilderBlock:
                         self.add_register(register)
                         out.add_register(register)
             if getattr(instruction.operation, "condition", None) is not None:
-                for register in condition_registers(instruction.operation.condition):
+                for register in condition_resources(instruction.operation.condition).cregs:
+                    if register not in self.registers:
+                        self.add_register(register)
+                        out.add_register(register)
+            elif isinstance(instruction.operation, SwitchCaseOp):
+                target = instruction.operation.target
+                if isinstance(target, Clbit):
+                    target_registers = ()
+                elif isinstance(target, ClassicalRegister):
+                    target_registers = (target,)
+                else:
+                    target_registers = node_resources(target).cregs
+                for register in target_registers:
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)

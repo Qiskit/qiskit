@@ -160,8 +160,9 @@ Plugin API
 
    PassManagerStagePlugin
    PassManagerStagePluginManager
-   list_stage_plugins
-   passmanager_stage_plugins
+
+.. autofunction:: list_stage_plugins
+.. autofunction:: passmanager_stage_plugins
 """
 
 import abc
