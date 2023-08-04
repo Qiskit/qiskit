@@ -219,7 +219,7 @@ def generate_unroll_3q(
     )
     unroll_3q.append(
         HighLevelSynthesis(
-            hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
+            hls_config=hls_config, coupling_map=coupling_map, target=target, use_qubit_indices=False
         )
     )
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
