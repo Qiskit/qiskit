@@ -37,7 +37,6 @@ class VersionTable(Magics):
         html += "<tr><th>Software</th><th>Version</th></tr>"
 
         packages = {"qiskit": qiskit.__version__}
-
         qiskit_modules = {module.split(".")[0] for module in modules.keys() if "qiskit" in module}
 
         for qiskit_module in qiskit_modules:

@@ -57,8 +57,13 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 pygments_style = "colorful"
 
-# Whether module names are included in crossrefs of functions, classes, etc.
-add_module_names = False
+# This adds the module name to e.g. function API docs. We use the default of True because our
+# module pages sometimes have functions from submodules on the page, and we want to make clear
+# that you must include the submodule to import it. We should strongly consider reorganizing our
+# code to avoid this, i.e. re-exporting the submodule members from the top-level module. Once fixed
+# and verified by only having a single `.. currentmodule::` in the file, we can turn this back to
+# False.
+add_module_names = True
 
 # A list of prefixes that are ignored for sorting the Python module index
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
@@ -118,6 +123,12 @@ autosummary_filename_map = {
 }
 
 autoclass_content = "both"
+
+# We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
+# slows down the build (a little) and can sometimes result in _regular_ section headings in
+# module-level documentation being converted into surprising things.
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
 
 # -- Options for Doctest --------------------------------------------------------
