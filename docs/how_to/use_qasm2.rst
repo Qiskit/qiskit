@@ -4,16 +4,18 @@ Import and export using QASM 2.0
 
 This guide shows you how to import and export quantum circuits using the ``QASM 2.0`` program.
 
-QASM 2.0 stands for Quantum Assembly Language version 2.0, which is 
-a programming language used to represent universal quantum computing based on 
-the circuit model.
+QASM 2.0 is short for Quantum Assembly Language version 2.0. It's a programming language specifically
+designed for representing universal quantum computing using the circuit model.
 
 You can find more in its repository `OpenQASM 2.0 <https://github.com/openqasm/openqasm/tree/OpenQASM2.x>`_.
 
 Design a quantum circuit
 ==============================
 
-Build a 4 qubits quantum circuit with only CX,H, RZ gates and works with a custom quantum circuit using the method  :meth:`~qiskit.QuantumCircuit.to_gate`.
+Build a 4 qubits quantum circuit using only CX (CNOT), H (Hadamard), and RZ gates.
+This circuit works with a custom quantum circuit, this is possible with the :meth:`~qiskit.QuantumCircuit.to_gate` method.
+The :meth:`~qiskit.QuantumCircuit.to_gate` method allows us to convert a part of the quantum circuit into a single gate,
+which acts like a building block encapsulating the circuit's functionality.
 
 .. plot::
     :include-source:
@@ -21,19 +23,20 @@ Build a 4 qubits quantum circuit with only CX,H, RZ gates and works with a custo
     from qiskit import QuantumCircuit
     import numpy as np
 
-    custom_gate = QuantumCircuit(1) # custom  a X gate using H,Rz,H for this you need another QuantumCircuit.
+    custom_gate = QuantumCircuit(1) # To customize the X gate, one example is by using the H, Rz, and H gates. For this, you'll need another QuantumCircuit.
     custom_gate.h(0)
     custom_gate.rz(np.pi,0)
     custom_gate.h(0)
-    gate = custom_gate.to_gate() # to_gate() convert the circuit custom_gate() in a gate that you need to indicate the posiiton in your quantum circuit.
-    gate.name = 'custom X' # Put a name to the custom gate.
+
+    gate = custom_gate.to_gate() # The to_gate() method converts the custom_gate() quantum circuit into a gate that you need to specify its position in your quantum circuit.
+    gate.name = 'custom X'
 
     qc = QuantumCircuit(4,4)
     qc.h(0)
     qc.cx(0,1)
     qc.cx(1,2)
     qc.cx(2,3)
-    qc.append(gate,[1])  # To add a custom gate you need to use the method append, where you indicate the gate and the QuantumReigsters.
+    qc.append(gate,[1])  # To add a custom gate, you need to use the method append, where you indicate the gate and the QuantumReigsters.
     qc.barrier()
     qc.measure(range(4),range(4))
     qc.draw("mpl")
@@ -43,7 +46,7 @@ Export QuantumCircuit to OpenQASM 2
 ====================================
 
 
-Parsing a quantum circuit in a OpenQASM 2 is support in :meth:`QuantumCircuit.qasm`, convert all in a string with all the information for default. 
+Parsing a quantum circuit in a OpenQASM 2 is supported in the :meth:`QuantumCircuit.qasm`. By default, it converts your quantum circuit into a string representation. 
 
 .. testcode::
 
@@ -53,8 +56,8 @@ Parsing a quantum circuit in a OpenQASM 2 is support in :meth:`QuantumCircuit.qa
 
     'OPENQASM 2.0;\ninclude "qelib1.inc";\ngate custom_X q0 { h q0; rz(pi) q0; h q0; }\nqreg q[4];\ncreg c[4];\nh q[0];\ncx q[0],q[1];\ncx q[1],q[2];\ncx q[2],q[3];\ncustom_X q[1];\nbarrier q[0],q[1],q[2],q[3];\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\nmeasure q[2] -> c[2];\nmeasure q[3] -> c[3];\n'
 
-Is possible formatted the string in a openqasm format, using the boolean parameter `formatted` being  its default value False, 
-You ahould put in True to see the changes.
+It is possible to format the string in an OpenQASM format using the boolean parameter `formatted`,
+with its default value being False. If you set it to True, you will be able to see the changes.
 
 .. testcode::
 
@@ -79,7 +82,8 @@ You ahould put in True to see the changes.
     measure q[3] -> c[3];
 
 
-You can even save the code in a qasm file extension, you need to use the parameter ``filename``, this is a string you need to put the name following with ``.qasm``.
+You can even save the code in a QASM file by using the ``filename`` parameter.
+This parameter should be a string where you specify the name and follow it with the ``.qasm`` extension.
 
 
 .. testcode::
@@ -96,8 +100,7 @@ You can even save the code in a qasm file extension, you need to use the paramet
 Import OpenQASM 2 to QuantumCircuit
 ====================================
 
-Qiskit has a specific module that helps to import the OpenQASM2.0 files called qiskit-qasm2.
-
+Qiskit has a specific module called qiskit-qasm2 that helps to import OpenQASM 2.0 files.
 
 .. note::
     You can install the module using the following command
@@ -105,8 +108,8 @@ Qiskit has a specific module that helps to import the OpenQASM2.0 files called q
     ``pip install qiskit-qasm2``
 
 
-Exist two methods you can use when you can read a string or a specific qasm file.
-If you want to parse an OpenQASM 2 program from a string into a :class:`QuantumCircuit` you need :meth:`qiskit.qasm2.loads`
+There are two methods available for parsing OpenQASM 2 programs. One method can be used to read a string, and the other method can be used to read a qasm file.
+If you want to parse an OpenQASM 2 program from a string into a :class:`QuantumCircuit` you should use :meth:`qiskit.qasm2.loads` method.
 
 
 .. testcode::
@@ -140,7 +143,7 @@ If you want to parse an OpenQASM 2 program from a string into a :class:`QuantumC
     qc.measure(range(4),range(4))
     qc.draw("mpl")
 
-The case you have an OpenQASM 2 program from a file you need to use :meth:`qiskit.qasm2.load`.
+If you have an OpenQASM 2 program from a file, you should use the :meth:`qiskit.qasm2.load` method.
 
 
 .. testcode::
