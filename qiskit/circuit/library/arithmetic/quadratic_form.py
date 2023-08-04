@@ -182,7 +182,7 @@ class QuadraticForm(QuantumCircuit):
 
         bounds = []  # bounds = [minimum value, maximum value]
         for condition in [lambda x: x < 0, lambda x: x > 0]:
-            bound = 0
+            bound = 0.0
             bound += sum(sum(q_ij for q_ij in q_i if condition(q_ij)) for q_i in quadratic)
             bound += sum(l_i for l_i in linear if condition(l_i))
             bound += offset if condition(offset) else 0

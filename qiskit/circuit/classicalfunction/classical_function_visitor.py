@@ -17,11 +17,11 @@ This module is used internally by ``qiskit.transpiler.classicalfunction.Classica
 import ast
 import _ast
 
-from tweedledum.classical import LogicNetwork  # pylint: disable=import-error
-
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
 
+@HAS_TWEEDLEDUM.require_in_instance
 class ClassicalFunctionVisitor(ast.NodeVisitor):
     """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
@@ -57,6 +57,8 @@ class ClassicalFunctionVisitor(ast.NodeVisitor):
 
         # Extend scope with the decorator's names
         scope.update({decorator.id: ("decorator", None) for decorator in node.decorator_list})
+
+        from tweedledum.classical import LogicNetwork  # pylint: disable=import-error
 
         self.scopes.append(scope)
         self._network = LogicNetwork()

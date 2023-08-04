@@ -14,6 +14,7 @@
 
 """Tests for Pauli operator class."""
 
+import re
 import unittest
 import itertools as it
 from functools import lru_cache
@@ -41,7 +42,19 @@ from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator
-from qiskit.quantum_info.operators.symplectic.pauli import _split_pauli_label, _phase_from_label
+
+LABEL_REGEX = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
+PHASE_MAP = {"": 0, "-i": 1, "-": 2, "i": 3}
+
+
+def _split_pauli_label(label):
+    match_ = LABEL_REGEX.fullmatch(label)
+    return match_["pauli"], match_["coeff"]
+
+
+def _phase_from_label(label):
+    coeff = LABEL_REGEX.fullmatch(label)["coeff"] or ""
+    return PHASE_MAP[coeff.replace("+", "").replace("1", "").replace("j", "i")]
 
 
 @lru_cache(maxsize=8)
@@ -461,6 +474,15 @@ class TestPauli(QiskitTestCase):
         circ.y(1)
         value = Pauli(circ)
         self.assertEqual(value, target)
+
+    @data(("", 0), ("-", 2), ("i", 3), ("-1j", 1))
+    @unpack
+    def test_zero_qubit_pauli_construction(self, label, phase):
+        """Test that Paulis of zero qubits can be constructed."""
+        expected = Pauli(label + "X")[0:0]  # Empty slice from a 1q Pauli, which becomes phaseless
+        expected.phase = phase
+        test = Pauli(label)
+        self.assertEqual(expected, test)
 
 
 if __name__ == "__main__":

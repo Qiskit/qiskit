@@ -14,6 +14,7 @@
 Multi-partite matrix and vector shape class
 """
 
+from __future__ import annotations
 import copy
 from functools import reduce
 from operator import mul
@@ -123,6 +124,9 @@ class OpShape:
     @property
     def shape(self):
         """Return a tuple of the matrix shape"""
+        if self._num_qargs_l == self._num_qargs_r == 0:
+            # Scalar shape is op-like
+            return (1, 1)
         if not self._num_qargs_r:
             # Vector shape
             return (self._dim_l,)

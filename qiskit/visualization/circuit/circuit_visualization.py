@@ -28,6 +28,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import shutil
 from warnings import warn
 
 from qiskit import user_config
@@ -72,6 +73,12 @@ def circuit_drawer(
 
     **latex_source**: raw uncompiled latex output.
 
+    .. warning::
+
+        Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target` fields
+        is preliminary and incomplete.  The ``text`` and ``mpl`` drawers will make a best-effort
+        attempt to show data dependencies, but the LaTeX-based drawers will skip these completely.
+
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
         scale (float): scale of image to draw (shrink if < 1.0). Only used by
@@ -100,7 +107,7 @@ def circuit_drawer(
             information on the contents.
         output (str): select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-            By default the `text` drawer is used unless the user config file
+            By default, the `text` drawer is used unless the user config file
             (usually ``~/.qiskit/settings.conf``) has an alternative backend set
             as the default. For example, ``circuit_drawer = latex``. If the output
             kwarg is set, that backend will always be used over the default in
@@ -204,27 +211,38 @@ def circuit_drawer(
         raise VisualizationError(
             "The wire_order option cannot be set when the reverse_bits option is True."
         )
-    if wire_order is not None and len(wire_order) != circuit.num_qubits + circuit.num_clbits:
-        raise VisualizationError(
-            "The wire_order list must be the same "
-            "length as the sum of the number of qubits and clbits in the circuit."
-        )
-    if wire_order is not None and set(wire_order) != set(
-        range(circuit.num_qubits + circuit.num_clbits)
-    ):
-        raise VisualizationError(
-            "There must be one and only one entry in the "
-            "wire_order list for the index of each qubit and each clbit in the circuit."
-        )
 
-    if circuit.clbits and (reverse_bits or wire_order is not None):
+    complete_wire_order = wire_order
+    if wire_order is not None:
+        wire_order_len = len(wire_order)
+        total_wire_len = circuit.num_qubits + circuit.num_clbits
+        if wire_order_len not in [circuit.num_qubits, total_wire_len]:
+            raise VisualizationError(
+                f"The wire_order list (length {wire_order_len}) should as long as "
+                f"the number of qubits ({circuit.num_qubits}) or the "
+                f"total numbers of qubits and classical bits {total_wire_len}."
+            )
+
+        if len(set(wire_order)) != len(wire_order):
+            raise VisualizationError("The wire_order list should not have repeated elements.")
+
+        if wire_order_len == circuit.num_qubits:
+            complete_wire_order = wire_order + list(range(circuit.num_qubits, total_wire_len))
+
+    if (
+        circuit.clbits
+        and (reverse_bits or wire_order is not None)
+        and not set(wire_order or []).issubset(set(range(circuit.num_qubits)))
+    ):
         if cregbundle:
             warn(
-                "cregbundle set to False since either reverse_bits or wire_order has been set.",
+                "cregbundle set to False since either reverse_bits or wire_order "
+                "(over classical bit) has been set.",
                 RuntimeWarning,
                 2,
             )
         cregbundle = False
+
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -238,7 +256,7 @@ def circuit_drawer(
             fold=fold,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
@@ -253,7 +271,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "latex_source":
         return _generate_latex_source(
@@ -268,7 +286,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "mpl":
         image = _matplotlib_circuit_drawer(
@@ -285,7 +303,7 @@ def circuit_drawer(
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     else:
         raise VisualizationError(
@@ -350,7 +368,7 @@ def _text_circuit_drawer(
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
 
     Raises:
-        VisualizationError: When the filename extenstion is not .txt.
+        VisualizationError: When the filename extension is not .txt.
     """
     qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
@@ -495,7 +513,7 @@ def _latex_circuit_drawer(
         image = trim_image(image)
         if filename:
             if filename.endswith(".pdf"):
-                os.rename(base + ".pdf", filename)
+                shutil.move(base + ".pdf", filename)
             else:
                 try:
                     image.save(filename)
@@ -561,12 +579,8 @@ def _generate_latex_source(
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
         circuit=circuit,
     )
@@ -649,20 +663,15 @@ def _matplotlib_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
-        layout=None,
         fold=fold,
         ax=ax,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
-        calibrations=None,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     return qcd.draw(filename)

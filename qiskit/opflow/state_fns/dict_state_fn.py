@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,16 +27,21 @@ from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
 from qiskit.utils import algorithm_globals
+from qiskit.utils.deprecation import deprecate_func
 
 
 class DictStateFn(StateFn):
-    """A class for state functions and measurements which are defined by a lookup table,
+    """Deprecated: A class for state functions and measurements which are defined by a lookup table,
     stored in a dict.
     """
 
     primitive: Dict[str, complex]
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: Union[str, dict, Result] = None,

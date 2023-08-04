@@ -38,11 +38,6 @@ Note that :class:`~Waveform` object can be generated from an instance of
 a :class:`~SymbolicPulse` which will set values for the parameters and
 sample the parametric expression to create the :class:`~Waveform`.
 
-.. note::
-
-    QPY serialization support for :class:`.SymbolicPulse` is currently not available.
-    This feature will be implemented soon in Qiskit terra version 0.21.
-
 
 .. _pulse_models:
 
@@ -62,22 +57,19 @@ Pulse Models
 Waveform Pulse Representation
 =============================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   constant
-   zero
-   square
-   sawtooth
-   triangle
-   cos
-   sin
-   gaussian
-   gaussian_deriv
-   sech
-   sech_deriv
-   gaussian_square
-   drag
+.. autofunction:: constant
+.. autofunction:: zero
+.. autofunction:: square
+.. autofunction:: sawtooth
+.. autofunction:: triangle
+.. autofunction:: cos
+.. autofunction:: sin
+.. autofunction:: gaussian
+.. autofunction:: gaussian_deriv
+.. autofunction:: sech
+.. autofunction:: sech_deriv
+.. autofunction:: gaussian_square
+.. autofunction:: drag
 
 
 .. _symbolic_pulses:
@@ -93,10 +85,15 @@ Parametric Pulse Representation
    Gaussian
    GaussianSquare
    GaussianSquareDrag
+   gaussian_square_echo
+   GaussianDeriv
    Sin
    Cos
    Sawtooth
    Triangle
+   Square
+   Sech
+   SechDeriv
 
 """
 
@@ -122,12 +119,17 @@ from .symbolic_pulses import (
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    gaussian_square_echo,
+    GaussianDeriv,
     Drag,
     Constant,
     Sin,
     Cos,
     Sawtooth,
     Triangle,
+    Square,
+    Sech,
+    SechDeriv,
 )
 from .pulse import Pulse
 from .waveform import Waveform

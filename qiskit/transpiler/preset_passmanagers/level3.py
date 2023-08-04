@@ -15,8 +15,8 @@
 Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules and unitary synthesis.
 """
-
-
+from __future__ import annotations
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
@@ -28,7 +28,7 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
-from qiskit.transpiler.passes import FixedPoint
+from qiskit.transpiler.passes import MinimumPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
@@ -41,7 +41,7 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.runningpassmanager import ConditionalController
+from qiskit.transpiler.runningpassmanager import ConditionalController, FlowController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.preset_passmanagers.plugin import (
@@ -115,7 +115,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return False
 
     # 2a. If layout method is not set, first try VF2Layout
-    _choose_layout_0 = (
+    _choose_layout_0: list[BasePass] | BasePass = (
         []
         if pass_manager_config.layout_method
         else VF2Layout(
@@ -124,18 +124,28 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             call_limit=int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
+            max_trials=250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
         )
     )
+
+    if target is None:
+        coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
+
     # 2b. if VF2 didn't converge on a solution use layout_method (dense).
     if layout_method == "trivial":
-        _choose_layout_1 = TrivialLayout(coupling_map)
+        _choose_layout_1: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        if target is None:
+            _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _choose_layout_1 = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(
-            coupling_map,
+            coupling_map_layout,
             max_iterations=4,
             seed=seed_transpiler,
             swap_trials=20,
@@ -151,13 +161,16 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
-    _depth_check = [Depth(recurse=True), FixedPoint("depth")]
-    _size_check = [Size(recurse=True), FixedPoint("size")]
+    _minimum_point_check: list[BasePass | FlowController] = [
+        Depth(recurse=True),
+        Size(recurse=True),
+        MinimumPoint(["depth", "size"], "optimization_loop"),
+    ]
 
     def _opt_control(property_set):
-        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
+        return not property_set["optimization_loop_minimum_point"]
 
-    _opt = [
+    _opt: list[BasePass | FlowController] = [
         Collect2qBlocks(),
         ConsolidateBlocks(
             basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
@@ -176,8 +189,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     ]
 
     # Build pass manager
-    init = common.generate_error_on_control_flow(
-        "The optimizations in optimization_level=3 do not yet support control flow."
+    init = common.generate_control_flow_options_check(
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        optimization_method=optimization_method,
+        scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(
@@ -211,7 +230,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(
                 [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
             )
-            embed = common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map_layout)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
             )
@@ -244,12 +263,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return not property_set["all_gates_in_basis"]
 
         # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis = [
+        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
             GatesInBasis(basis_gates, target=target),
             ConditionalController(unroll, condition=_unroll_condition),
         ]
 
-        optimization.append(_depth_check + _size_check)
+        optimization.append(_minimum_point_check)
         if (coupling_map and not coupling_map.is_symmetric) or (
             target is not None and target.get_non_global_operation_names(strict_direction=True)
         ):
@@ -261,13 +280,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             ]
             if optimization is not None:
                 optimization.append(
-                    _opt + _unroll_if_out_of_basis + _depth_check + _size_check,
+                    _opt + _unroll_if_out_of_basis + _minimum_point_check,
                     do_while=_opt_control,
                 )
         else:
             pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
             optimization.append(
-                _opt + _unroll_if_out_of_basis + _depth_check + _size_check, do_while=_opt_control
+                _opt + _unroll_if_out_of_basis + _minimum_point_check, do_while=_opt_control
             )
     else:
         optimization = plugin_manager.get_passmanager_stage(

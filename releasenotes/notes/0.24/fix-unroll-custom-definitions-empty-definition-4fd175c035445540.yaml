@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed global-phase handling in the :class:`.UnrollCustomDefinitions` transpiler pass if the
+    instruction in question had a global phase, but no instructions in its definition field.

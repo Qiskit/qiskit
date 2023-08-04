@@ -51,7 +51,9 @@ class VarQTEOdeSolver:
         self._ode_solver = ode_solver
         self._num_timesteps = num_timesteps
 
-    def run(self, evolution_time: float) -> Sequence[float]:
+    def run(
+        self, evolution_time: float
+    ) -> tuple[Sequence[float], Sequence[Sequence[float]], Sequence[float]]:
         """
         Finds numerical solution with ODE Solver.
 

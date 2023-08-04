@@ -16,15 +16,16 @@
 
 # -- General configuration ---------------------------------------------------
 import datetime
+import doctest
 
 project = "Qiskit"
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.24"
+version = "0.45"
 # The full version, including alpha/beta/rc tags
-release = "0.24.0"
+release = "0.45.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -34,11 +35,13 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
-    "sphinx_autodoc_typehints",
+    "sphinx.ext.doctest",
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.doctest",
 ]
+
 templates_path = ["_templates"]
 
 # Number figures, tables and code-blocks if they have a caption.
@@ -54,20 +57,29 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 pygments_style = "colorful"
 
-# Whether module names are included in crossrefs of functions, classes, etc.
-add_module_names = False
+# This adds the module name to e.g. function API docs. We use the default of True because our
+# module pages sometimes have functions from submodules on the page, and we want to make clear
+# that you must include the submodule to import it. We should strongly consider reorganizing our
+# code to avoid this, i.e. re-exporting the submodule members from the top-level module. Once fixed
+# and verified by only having a single `.. currentmodule::` in the file, we can turn this back to
+# False.
+add_module_names = True
 
 # A list of prefixes that are ignored for sorting the Python module index
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
 modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
-    "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "qiskit_sphinx_theme"  # use the theme in subdir 'theme'
+html_theme = "qiskit_sphinx_theme"
 html_last_updated_fmt = "%Y/%m/%d"
 html_theme_options = {
     "logo_only": True,
@@ -75,8 +87,6 @@ html_theme_options = {
     "prev_next_buttons_location": "bottom",
     "style_external_links": True,
 }
-html_static_path = ["_static"]
-html_css_files = []
 
 
 # -- Options for Autosummary and Autodoc -------------------------------------
@@ -85,6 +95,53 @@ html_css_files = []
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
+# Move type hints from signatures to the parameter descriptions (except in overload cases, where
+# that's not possible).
+autodoc_typehints = "description"
+# Only add type hints from signature to description body if the parameter has documentation.  The
+# return type is always added to the description (if in the signature).
+autodoc_typehints_description_target = "documented_params"
+
 autosummary_generate = True
 autosummary_generate_overwrite = False
+
+# The pulse library contains some names that differ only in capitalisation, during the changeover
+# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
+# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
+# from happening.
+autosummary_filename_map = {
+    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
+    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
+    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
+    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
+    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
+    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
+    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
+    "qiskit.pulse.library.Square": "qiskit.pulse.library.Square_fun.rst",
+    "qiskit.pulse.library.Sech": "qiskit.pulse.library.Sech_fun.rst",
+}
+
 autoclass_content = "both"
+
+# We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
+# slows down the build (a little) and can sometimes result in _regular_ section headings in
+# module-level documentation being converted into surprising things.
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+
+
+# -- Options for Doctest --------------------------------------------------------
+
+doctest_default_flags = (
+    doctest.ELLIPSIS
+    | doctest.NORMALIZE_WHITESPACE
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.DONT_ACCEPT_TRUE_FOR_1
+)
+
+# Leaving this string empty disables testing of doctest blocks from docstrings.
+# Doctest blocks are structures like this one:
+# >> code
+# output
+doctest_test_doctest_blocks = ""
