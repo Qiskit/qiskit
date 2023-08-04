@@ -15,7 +15,7 @@ Initialize the quantum circuit
 ==============================
 
 For this example, you will explore the `CSWAP <https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.cswap.html>`_ gate,
-which is a three qubit gate which will be transpiled into one and two qubit gates.
+which is a three-qubit gate which will be transpiled into one and two-qubit gates.
 
 .. plot::
     :include-source:
@@ -38,13 +38,12 @@ Using backend’s information
 
 The effect of setting the ``optimization_level`` will differ depending on the backend you are using.
 When using :func:`~qiskit.transpile`, make sure you're transpiling for your specific backend. 
-This process entails breaking down your circuit into ``operation_names`` and considering the physical connections specified in the 
-``coupling_map`` for two qubit gates.
+This process entails breaking down your circuit into basis gates and considering the physical connections specified in the 
+coupling map for two-qubit gates.
 Given the presence of noise in the backend, it is crucial to optimize your circuit by adjusting the ``optimization_level`` parameter. 
 This will help minimize the number of circuit operations and enhance the overall performance.
 
-When using a backend, you can access its properties through the instruction  :meth:`backend.configuration()`.
-These properties, such as operation names, the coupling map connection, and init layout, play a crucial role in shaping the behavior of the quantum circuit.
+When using a backend, you can access its properties, such as operation names, the coupling map connection, and initial layout, play a crucial role in shaping the behavior of the quantum circuit.
 
 For example, with :meth:`~qiskit.providers.fake_provider.FakeQuitoV2`, you can learn about its qubit connections and the gates it uses to generate your quantum circuits.
 
@@ -144,8 +143,8 @@ Depending on the circuit, this level of optimization can occasionally yield the 
 
 When you set the ``optimization_level`` to 3, it enables heavy optimization. 
 This level of optimization uses techniques from level 2, and also resynthesizes blocks of two-qubit gates in the circuit. 
-The result of multiple seeds for different trials is a reduction in the number of quantum gates and the determination of the a coupling map connection, such as **[(2,1),(0,1),(1,0)]**.
-Based on the operation names, results in one less :class:`.CXGate` and the addition of eight one qubit gates.
+The result of level 3 is the reduction in two-qubit gates and uses at the same inital layout as in previous levels.
+Based on the operation names, results in one less :class:`.CXGate` and the addition of eight one-qubit gates.
 
 .. testcode::
 
@@ -175,7 +174,7 @@ Plotting the Results
 You can visualize the results of your previous examples by generating a plot that show the depth, number of gates, and number of CX gates of your quantum circuits. 
 
 .. note::
-    When you set the ``optimization_level`` to 3, it is important to consider that the number of two-qubit gates decreases, while the number of one-qubit gates increases. 
+    When you set the ``optimization_level`` to 3, even if the number of one-qubit gate increases the number of two-qubit gate decreases.
     You can observe that the number of two-qubit gates (:class:`.CXGate` gates) is significantly reduced compared to other optimization levels.
 
 .. testcode::
@@ -207,7 +206,7 @@ You can visualize the results of your previous examples by generating a plot tha
             qc_b2.num_nonlocal_gates(),
             qc_b3.num_nonlocal_gates(),
         ],
-        label="Number of non local gates",
+        label="Number of two-qubit gates",
         marker="o",
         color="green",
     )
@@ -265,7 +264,7 @@ You can visualize the results of your previous examples by generating a plot tha
             qc2.num_nonlocal_gates(),
             qc3.num_nonlocal_gates(),
         ],    
-        label="Number of non local gates",
+        label="Number of two-qubit gates",
         marker="o",
 
         )
