@@ -1,0 +1,19 @@
+---
+prelude: >
+    New feature to display sign of a Parameter
+features:
+  - |
+    Introduced a new feature that adds support for displaying the sign of the Parameter of the value of an expression of a Parameter class.
+    Instead of using numpy or other libraries, the user can use the instance of the ParameterExpression class to display the sign.
+
+    It can be used as follows:
+
+    from qiskit.circuit import ParameterExpression
+
+    v = ParameterExpression(symbol_map={}, expr=-6)
+    print("Sign is: ", v.sign())
+
+    Note that the value passed to the 'expr' argument to ParameterExpression() must be an integer.
+
+    Refer to <https://github.com/Qiskit/qiskit-terra/issues/10360> for more details.
+
