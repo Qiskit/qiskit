@@ -696,25 +696,33 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         try:
             keys = target.operation_names_for_qargs(qubits_tuple)
-            for key in keys:
+        except KeyError:
+            keys = {}
+        for key in keys:
+            try:
                 op = target.operation_from_name(key)
+            except KeyError:
+                continue
+            if not isinstance(op, Gate):
+                continue
+            available_2q_basis[key] = _replace_parameterized_gate(op)
+            available_2q_props[key] = target[key].get(qubits_tuple, None)
+
+        try:
+            keys = target.operation_names_for_qargs(reverse_tuple)
+        except KeyError:
+            keys = {}
+        for key in keys:
+            if key not in available_2q_basis:
+                try:
+                    op = target.operation_from_name(key)
+                except KeyError:
+                    continue
                 if not isinstance(op, Gate):
                     continue
                 available_2q_basis[key] = _replace_parameterized_gate(op)
-                available_2q_props[key] = target[key][qubits_tuple]
-        except KeyError:
-            pass
-        try:
-            keys = target.operation_names_for_qargs(reverse_tuple)
-            for key in keys:
-                if key not in available_2q_basis:
-                    op = target.operation_from_name(key)
-                    if not isinstance(op, Gate):
-                        continue
-                    available_2q_basis[key] = _replace_parameterized_gate(op)
-                    available_2q_props[key] = target[key][reverse_tuple]
-        except KeyError:
-            pass
+                available_2q_props[key] = target[key].get(reverse_tuple, None)
+
         if not available_2q_basis:
             raise TranspilerError(
                 f"Target has no gates available on qubits {qubits} to synthesize over."
