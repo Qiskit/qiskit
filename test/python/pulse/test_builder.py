@@ -901,7 +901,6 @@ class TestBuilderComposition(TestBuilder):
                 pulse.u2(0, pi / 2, 1)
                 pulse.u2(0, pi / 2, 0)
             pulse.measure(0)
-        print(schedule.instructions)
         # prepare and schedule circuits that will be used.
         single_u2_qc = circuit.QuantumCircuit(2)
         single_u2_qc.append(circuit.library.U2Gate(0, pi / 2), [1])
@@ -914,7 +913,6 @@ class TestBuilderComposition(TestBuilder):
         sequential_reference.insert(delay_dur, single_u2_sched, inplace=True)
 
         # align right
-        print(single_u2_sched.duration)
         align_right_reference = pulse.Schedule()
         align_right_reference += pulse.Play(library.Constant(long_dur, 0.1), d2)
         align_right_reference.insert(
