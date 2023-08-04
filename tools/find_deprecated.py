@@ -113,7 +113,7 @@ class DeprecationCollection:
         """List of deprecation :class:~.Deprecation"""
         if self._deprecations is None:
             self.collect_deprecations()
-        return cast(list[Deprecation], self._deprecations)
+        return cast(list, self._deprecations)
 
     def collect_deprecations(self) -> None:
         """Run the :class:~.DecoratorVisitor on `self.dirname` (in place)"""
