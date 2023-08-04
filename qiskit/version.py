@@ -102,14 +102,11 @@ class QiskitVersion(Mapping):
             category=DeprecationWarning,
         )
         self._version_dict = {
-            "qiskit-terra": __version__,
-            "qiskit": None,
+            "qiskit": __version__,
         }
         self._loaded = False
 
     def _load_versions(self):
-        from importlib.metadata import version
-
         try:
             # TODO: Update to use qiskit_aer instead when we remove the
             # namespace redirect
@@ -154,10 +151,7 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
         except Exception:
             self._version_dict["qiskit-machine-learning"] = None
-        try:
-            self._version_dict["qiskit"] = version("qiskit")
-        except Exception:
-            self._version_dict["qiskit"] = None
+
         self._loaded = True
 
     def __repr__(self):
