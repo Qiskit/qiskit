@@ -13,23 +13,10 @@ Before You Start
 If you are new to Qiskit contributing we recommend you do the following before diving into the code:
 
 #. Read the `Code of Conduct <https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md>`__
-#. :ref:`Decide what to work on <decide-what-to-work-on>`
 #. Read the repo-specific :ref:`Contributing Guidelines <contributing_links>` for the repo you have decided to contribute to.
 #. :ref:`Set up your development environment <dev-env-setup>`
 #. Familiarize yourself with the Qiskit community (via `Slack <https://qisk.it/join-slack>`__,
    `Stack Exchange <https://quantumcomputing.stackexchange.com/>`__, `GitHub <https://github.com/qiskit-community/feedback/discussions>`__ etc.)
-
-
-.. _decide-what-to-work-on:
-
-************************
-Decide What to Work on
-************************
-
-If you're not sure what type of contribution is right for you, take a look at the following flowchart to help you:
-
-.. raw:: html
-   :file: images/contributor-flowchart.svg
 
 .. _contributing_links:
 

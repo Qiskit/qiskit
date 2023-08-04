@@ -25,7 +25,6 @@ import sphinx.ext.doctest
 sys.path.insert(0, os.path.abspath("."))
 
 import custom_extensions
-import versionutils
 
 # -- General configuration ---------------------------------------------------
 
@@ -213,5 +212,5 @@ doctest_test_doctest_blocks = ""
 def setup(app):
     custom_extensions.load_terra_docs(app)
     custom_extensions.load_tutorials(app)
-    versionutils.setup(app)
+    app.connect("config-inited", custom_extensions.add_versions_to_config)
     app.connect("build-finished", custom_extensions.clean_docs)

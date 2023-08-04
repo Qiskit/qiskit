@@ -230,5 +230,5 @@ interest:
   physics-based introduction written by some of the founders of quantum computation that makes use
   of the interactive circuit composer.
 
-- `Qiskit textbook <https://qiskit.org/textbook>`_ : A university quantum algorithms/computation
+- `Qiskit textbook <https://qiskit.org/learn/>`_ : A university quantum algorithms/computation
   course supplement based on Qiskit.

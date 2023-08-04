@@ -136,7 +136,7 @@ Consider the following three lines of code:
 
 The gates are added to the circuit one-by-one to form the Bell state
 
-.. math:: |\psi\rangle = \left(|00\rangle+|11\rangle\right)/\sqrt{2}.
+.. math:: \lvert\psi\rangle = \left(\lvert00\rangle+\lvert11\rangle\right)/\sqrt{2}.
 
 The code above applies the following gates:
 
@@ -190,13 +190,12 @@ text, mpl, latex, and latex_source.
 Step 5 : Simulate the Experiment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Qiskit Aer is a high performance simulator framework for quantum circuits. It
-provides `several backends <apidoc/aer_provider.html>`__
-to achieve different simulation goals.
+`Qiskit Aer <https://qiskit.org/ecosystem/aer>`_ is a high performance
+simulator framework for quantum circuits. It provides several backends to
+achieve different simulation goals.
 
 If you have issues installing Aer, you can alternatively use the Basic Aer
-provider by replacing `Aer` with `BasicAer`. Basic Aer is included in Qiskit
-Terra.
+provider by replacing `Aer` with `BasicAer`. Basic Aer is included in Qiskit.
 
 .. code-block:: python
 
@@ -258,6 +257,6 @@ Next Steps
 
 Now that you have learnt the basics, consider these learning resources:
 
-- :ref:`Qiskit tutorials<tutorials>`
-- `Textbook: Learn Quantum Computing using Qiskit <https://qiskit.org/textbook>`_
+- :ref:`Qiskit tutorials <tutorials>`
+- `Textbook: Learn Quantum Computing using Qiskit <https://qiskit.org/learn/>`_
 - `Video series: Coding with Qiskit <https://www.youtube.com/playlist?list=PLOFEBzvs-Vvp2xg9-POLJhQwtVktlYGbY>`_

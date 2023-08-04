@@ -79,12 +79,12 @@ behavior of Qiskit.
    the use of
    `Python multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`__
    to parallelize certain operations (for example transpilation over multiple
-   circuits) in Qiskit Terra.
+   circuits) in Qiskit.
  * ``QISKIT_NUM_PROCS``: Specifies the maximum number of parallel processes to
    launch for parallel operations if parallel execution is enabled. It takes an
    integer > 0 as the expected value.
  * ``RAYON_NUM_THREADS``: Specifies the number of threads to run multithreaded
-   operations in Qiskit Terra. By default this multithreaded code will launch
+   operations in Qiskit. By default this multithreaded code will launch
    a thread for each logical CPU, if you'd like to adjust the number of threads
    Qiskit will use you can set this to an integer value. For example, setting
    ``RAYON_NUM_THREADS=4`` will only launch 4 threads for multithreaded
@@ -96,16 +96,3 @@ behavior of Qiskit.
    This is done to avoid potentially overloading limited CPU resources. However,
    if you would like to force the use of multiple threads even when in a
    multiprocess context you can set ``QISKIT_FORCE_THREADS=TRUE`` to do this.
- * ``QISKIT_IBMQ_PROVIDER_LOG_LEVEL``: Specifies the log level to use, for the
-   ``qiskit-ibmq-provider`` modules. If an invalid level is set, the log level
-   defaults to WARNING. The valid log levels are ``DEBUG``, ``INFO``,
-   ``WARNING``, ``ERROR``, and ``CRITICAL`` (case-insensitive). If the
-   environment variable is not set, then the parent logger’s level is used,
-   which also defaults to ``WARNING``.
- * ``QISKIT_IBMQ_PROVIDER_LOG_FILE``: Specifies the name of the log file to
-   use from log messages originating from ``qiskit-ibmq-provider``. If
-   specified, messages will be logged to the file only. Otherwise messages will
-   be logged to the standard error (usually the screen).
- * ``QISKIT_AQUA_MAX_GATES_PER_JOB``: An optional parameter to set a threshold
-   for splitting Aqua generated circuits up into multiple jobs submitted to a
-   backend based on the number of gates.

@@ -143,7 +143,7 @@ Usually, you should set ``additional_msg: str `` with the format ``"Instead, use
 people know how to migrate. Read those functions' docstrings for additional arguments like
 ``pending: bool`` and ``predicate``.
 
-If you are deprecating in a non-Terra repo, set ``package_name``, e.g. to ``qiskit-nature``.
+If you are deprecating outside the main Qiskit repo, set ``package_name`` to match your package.
 Alternatively, if you prefer to use your own decorator helpers, then have them call
 ``add_deprecation_to_docstring`` from ``qiskit.utils.deprecation``.
 

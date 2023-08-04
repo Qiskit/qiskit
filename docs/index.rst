@@ -79,10 +79,3 @@ Main Qiskit-related projects
    contributing_to_qiskit
    deprecation_policy
    maintainers_guide
-
-.. toctree::
-   :caption: Other API References
-   :hidden:
-
-   Qiskit Aer <https://qiskit.org/ecosystem/aer>
-   Qiskit IBM Quantum Provider (deprecated) <https://qiskit.org/ecosystem/ibmq-provider>
