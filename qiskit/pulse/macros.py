@@ -66,8 +66,7 @@ def measure(
 
     # backend is V2.
     if isinstance(backend, BackendV2) or target:
-        if hasattr(backend, "meas_map"):
-            meas_map = meas_map or backend.meas_map
+        meas_map = meas_map or getattr(backend, "meas_map", None)
 
         return _measure_v2(
             qubits=qubits,
