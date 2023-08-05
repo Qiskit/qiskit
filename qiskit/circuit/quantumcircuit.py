@@ -2180,7 +2180,7 @@ class QuantumCircuit:
         """Copy the circuit.
 
         Args:
-          name (str): name to be given to the copied circuit. If None, then the name stays the same
+          name (str): name to be given to the copied circuit. If None, then the name stays the same.
 
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
@@ -2222,6 +2222,10 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: An empty copy of self.
         """
+        if not (name is None or isinstance(name, str)):
+            raise TypeError(
+                f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
+            )
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
