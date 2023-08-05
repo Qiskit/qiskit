@@ -496,10 +496,10 @@ def plot_state_city(
         if figsize is None:
             figsize = (16, 8)
 
-        fig = plt.figure(figsize=figsize,facecolor='w')
+        fig = plt.figure(figsize=figsize, facecolor="w")
         ax1 = fig.add_subplot(1, 2, 1, projection="3d", computed_zorder=False)
         ax2 = fig.add_subplot(1, 2, 2, projection="3d", computed_zorder=False)
-        
+
     elif ax_real is not None:
         fig = ax_real.get_figure()
         ax1 = ax_real
@@ -511,24 +511,24 @@ def plot_state_city(
 
     fig.tight_layout()
 
-    max_dzr = max(dzr)
-    min_dzr = min(dzr)
-    min_dzi = np.min(dzi)
+    max_dzr = np.max(dzr)
     max_dzi = np.max(dzi)
 
     # There seems to be a rounding error in which some zero bars are negative
     dzr = np.clip(dzr, 0, None)
 
-    
     # Figure scaling variables since fig.tight_layout won't work
     fig_width, fig_height = fig.get_size_inches()
-    max_plot_size = min(fig_width/2.25, fig_height)
-    max_font_size = int(3*max_plot_size)
-    max_zoom = 10/(10+np.sqrt(max_plot_size))
+    max_plot_size = min(fig_width / 2.25, fig_height)
+    max_font_size = int(3 * max_plot_size)
+    max_zoom = 10 / (10 + np.sqrt(max_plot_size))
 
     print(real_color, imag_color)
 
-    for (ax, dz, col, zlabel) in ((ax1,dzr,real_color,"Real"),(ax2,dzi,imag_color,"Imaginary")):
+    for (ax, dz, col, zlabel) in (
+        (ax1, dzr, real_color, "Real"),
+        (ax2, dzi, imag_color, "Imaginary"),
+    ):
 
         if ax is None:
             continue
@@ -536,12 +536,14 @@ def plot_state_city(
         max_dz = np.max(dz)
         min_dz = np.min(dz)
 
-        if type(col) is str and col.startswith('#'):
+        if isinstance(col, str) and col.startswith("#"):
             col = mcolors.to_rgba_array(col)
 
         dzn = dz < 0
         if np.any(dzn):
-            fc = generate_facecolors(xpos[dzn], ypos[dzn], zpos[dzn], dx[dzn], dy[dzn], dz[dzn], col)
+            fc = generate_facecolors(
+                xpos[dzn], ypos[dzn], zpos[dzn], dx[dzn], dy[dzn], dz[dzn], col
+            )
             negative_bars = ax.bar3d(
                 xpos[dzn],
                 ypos[dzn],
@@ -550,20 +552,22 @@ def plot_state_city(
                 dy[dzn],
                 dz[dzn],
                 alpha=alpha,
-                zorder=.625
+                zorder=0.625,
             )
             negative_bars.set_facecolor(fc)
 
         if min_dz < 0 < max_dz:
-            xlim, ylim = [0,lx], [0,ly]
-            verts = [list(zip(xlim + xlim[::-1], np.repeat(ylim,2), [0]*4))]
-            plane = Poly3DCollection(verts, alpha=.25, facecolor="k", linewidths=1)
-            plane.set_zorder(.75)
+            xlim, ylim = [0, lx], [0, ly]
+            verts = [list(zip(xlim + xlim[::-1], np.repeat(ylim, 2), [0] * 4))]
+            plane = Poly3DCollection(verts, alpha=0.25, facecolor="k", linewidths=1)
+            plane.set_zorder(0.75)
             ax.add_collection3d(plane)
 
         dzp = dz >= 0
         if np.any(dzp):
-            fc = generate_facecolors(xpos[dzp], ypos[dzp], zpos[dzp], dx[dzp], dy[dzp], dz[dzp], col)
+            fc = generate_facecolors(
+                xpos[dzp], ypos[dzp], zpos[dzp], dx[dzp], dy[dzp], dz[dzp], col
+            )
             positive_bars = ax.bar3d(
                 xpos[dzp],
                 ypos[dzp],
@@ -572,7 +576,7 @@ def plot_state_city(
                 dy[dzp],
                 dz[dzp],
                 alpha=alpha,
-                zorder=.875
+                zorder=0.875,
             )
             positive_bars.set_facecolor(fc)
 
@@ -589,20 +593,24 @@ def plot_state_city(
                 ax.axes.set_zlim3d(auto=True)
         ax.get_autoscalez_on()
 
-        ax.xaxis.set_ticklabels(row_names, fontsize=max_font_size, rotation=45, ha="right", va="top")
-        ax.yaxis.set_ticklabels(column_names, fontsize=max_font_size, rotation=-22.5, ha="left", va="center")
+        ax.xaxis.set_ticklabels(
+            row_names, fontsize=max_font_size, rotation=45, ha="right", va="top"
+        )
+        ax.yaxis.set_ticklabels(
+            column_names, fontsize=max_font_size, rotation=-22.5, ha="left", va="center"
+        )
 
         for tick in ax.zaxis.get_major_ticks():
             tick.label1.set_fontsize(max_font_size)
             tick.label1.set_horizontalalignment("left")
             tick.label1.set_verticalalignment("bottom")
 
-        ax.set_box_aspect(aspect=(4,4,4), zoom=max_zoom)
+        ax.set_box_aspect(aspect=(4, 4, 4), zoom=max_zoom)
         ax.set_xmargin(0)
         ax.set_ymargin(0)
 
-    fig.suptitle(title, fontsize=max_font_size*1.25)
-    fig.subplots_adjust(top=.9,bottom=0,left=0,right=1,hspace=0,wspace=0)
+    fig.suptitle(title, fontsize=max_font_size * 1.25)
+    fig.subplots_adjust(top=0.9, bottom=0, left=0, right=1, hspace=0, wspace=0)
     if ax_real is None and ax_imag is None:
         matplotlib_close_if_inline(fig)
     if filename is None:

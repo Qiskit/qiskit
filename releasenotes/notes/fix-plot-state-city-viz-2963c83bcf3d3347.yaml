@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Adjusted zoom, fontsize, and margins to fit the plot better for more figure
+    sizes.
+  - |
+    Corrected the Z-ordering behavior of bars and the zero-amplitude plane.
