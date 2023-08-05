@@ -1223,7 +1223,6 @@ Fenced Objects
    :toctree: ../stubs/
 
    FencedDAGCircuit
-   FencedPropertySet
 
 Abstract Passes
 ---------------
