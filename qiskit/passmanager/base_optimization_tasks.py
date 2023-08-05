@@ -169,7 +169,7 @@ class BaseFlowController(OptimizerTask, ABC):
             passes: A list of optimization tasks or flow controller instance.
             options: Option for this flow controller.
         """
-        self._options = options or dict()
+        self._options = options or {}
         self._state = None
 
         self.pipeline: list[OptimizerTask] = []
