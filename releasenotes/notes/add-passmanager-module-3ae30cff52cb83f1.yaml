@@ -10,18 +10,35 @@ features:
     The :mod:`qiskit.transpiler` module is also reorganized to rebuild the existing
     quantum circuit pass manager based off of new generic pass manager.
     See upgrade notes for more details.
-  - |
-    Flow controllers conditioned on the :class:`~qiskit.passmanager.PropertySet` can be
-    instantiated without binding to a particular :class:`qiskit.passmanager.BasePassRunner`
-    instance. You can partial bind :class:`~qiskit.passmanager.FuturePropertySet`
-    to a callable instead of :class:`~qiskit.transpiler.FencedPropertySet`.
-    New FuturePropertySet class returns a handler to the property set that defined
-    in the thread that the flow controller will be evaluated.
 upgrade:
   - |
-    :class:`qiskit.transpiler.PassManager` is now a subclass of
-    :class:`qiskit.passmanager.BasePassManager`. There is no functional modification
-    due to this class hierarchy change.
+    A base class of pass :class:`.GenericPass` and flow controller
+    :class:`.BaseFlowController` are reimplemented with the common base class
+    :class:`.OptimizerTask` that defines a :mod:`.~OptimizerTask.execute`
+    method that inputs and outputs IR with analysis and optimization.
+    The execute method takes new portable data structure :class:`.~PassState`
+    along with the IR, which involves the conventional :class:`.~PropertySet`
+    with information of several compilation status.
+
+    The composite-like pattern of pass and flow controller allows
+    simplification of conventional machinery of pass execution.
+    Namely, the responsibility of execution of a pass is delegated to the
+    pass itself. In addition, the internal pass chain representation in the
+    :class:`.~BasePassManager` is also overhauled. In new representation,
+    a list of passes are consolidated into a single linear flow controller,
+    and the pass manager becomes a wrapper of it with extra responsibilities
+    for input and output data conversion and pass scheduling.
+    With this upgrade, the intermediate running pass manager is removed
+    from the framework, and the pass manager directly runs the
+    inset linear flow controller at execution.
+
+    Note that if you monkey patch or subclass the conventional pass manager
+    to modify any of `protected` methods, there is no guarantee
+    your custom pass manager continue to work with this version.
+  - |
+    Transpiler :class:`qiskit.transpiler.PassManager` is now a subclass of
+    the :class:`qiskit.passmanager.BasePassManager`.
+    There is no API break at public member level due to this class hierarchy change.
   - |
     New error baseclass :class:`~qiskit.passmanager.PassManagerError` is introduced.
     This will replace :class:`~qiskit.transpiler.TranspilerError` raised in the
@@ -32,5 +49,7 @@ upgrade:
     :class:`qiskit.transpiler.PassManager` catches PassManagerError and
     re-raises the TranspilerError. This error replacement will be dropped in future.
   - |
-    Pass manager base pass :class:`~qiskit.passmanager.GenericPass` becomes
-    an iterable of length 1 by itself for simplification of the internal logic.
+    :class:`.RunningPassManager` becomes a subclass of :class:`.FlowControllerLiner`.
+    In future this class will be dropped and just replaced with the
+    liner flow controller. Stop directly dealing with or subclassing
+    the running pass manager.
