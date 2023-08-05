@@ -14,7 +14,6 @@
 import unittest
 
 from io import BytesIO
-from PIL import Image
 from ddt import ddt, data
 from qiskit.providers.fake_provider import (
     FakeProvider,
@@ -36,9 +35,14 @@ from .visualization import path_to_diagram_reference, QiskitVisualizationTestCas
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
+if optionals.HAS_PIL:
+    from PIL import Image
 
 
 @ddt
+@unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+@unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
+@unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 class TestGateMap(QiskitVisualizationTestCase):
     """visual tests for plot_gate_map"""
 
@@ -51,7 +55,6 @@ class TestGateMap(QiskitVisualizationTestCase):
     )
 
     @data(*backends)
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map(self, backend):
         """tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
         n = backend.configuration().n_qubits
@@ -64,7 +67,6 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @data(*backends)
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_circuit_layout(self, backend):
         """tests plot_circuit_layout for each device"""
         layout_length = int(backend._configuration.n_qubits / 2)
@@ -84,7 +86,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map_no_backend(self):
         """tests plotting of gate map without a device"""
         n_qubits = 8
@@ -100,7 +101,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_backend_v1(self):
         """Test plotting error map with fake backend v1."""
         backend = FakeKolkata()
@@ -112,7 +112,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_backend_v2(self):
         """Test plotting error map with fake backend v2."""
         backend = FakeKolkataV2()
@@ -124,7 +123,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_over_100_qubit(self):
         """Test plotting error map with large fake backend."""
         backend = FakeWashington()
@@ -136,7 +134,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_over_100_qubit_backend_v2(self):
         """Test plotting error map with large fake backendv2."""
         backend = FakeWashingtonV2()
