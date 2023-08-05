@@ -989,6 +989,15 @@ class MatplotlibDrawer:
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
+                    print(op.condition)
+                    x = condition_resources(
+                        op.condition
+                        if not isinstance(op, SwitchCaseOp)
+                        else (op.target, 2**op.target.size)
+                    )
+                    print(x)
+                    print(x.clbits)
+                    print(x.cregs)
                     cond_xy = [
                         self._plot_coord(
                             node_data[node].x_index,
@@ -1132,6 +1141,11 @@ class MatplotlibDrawer:
             label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
             cond_bit_reg = condition[0]
             cond_bit_val = int(condition[1])
+            # override_fc = (
+            #     cond_bit_val != 0
+            #     and isinstance(cond_bit_reg, ClassicalRegister)
+            #     and self._cregbundle
+            # )
             override_fc = cond_bit_val != 0
 
             # In the first case, multiple bits are indicated on the drawing. In all
