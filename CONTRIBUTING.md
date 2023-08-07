@@ -72,10 +72,10 @@ please ensure that:
 
 All code merged to Qiskit, even from maintainers, goes through a code-review
 process after a pull request is made.  There are a small number of
-maintainers who can authorize a final merge, but code review is everyone
+maintainers who can authorize a final merge, but code review involves everyone
 working together to make Qiskit better.  You can review code even if you
 are not a maintainer, which helps make sure pull requests are technically
-correct, well tested, and easier in final review.
+correct, well tested, and easier to tackle in their final maintainer review.
 
 The code-review process is a normal part of software development, and nothing to
 be scared of; for very easy changes it can be as simple as a maintainer saying
@@ -90,7 +90,8 @@ the `#qiskit-pr-help` channel on [the public Qiskit Slack](https://qisk.it/join-
 
 Remember that the PR author is a human, not just a username!  It's ok to ask
 questions about the code, but don't be mean or rude about it even if you don't
-like it.
+like it.  It's also fine to provide comments that are just compliments with no
+suggested changes, if you particularly like something!
 
 #### What to focus on in review
 
@@ -101,6 +102,8 @@ like it.
   that may be using them, or do they imply changes to the assumptions in
   our data structures?
 * Are there any edge cases you can think of that the code might not handle well?
+  Could the PR benefit from extra tests to cover these, or to verify other edge
+  cases that it *does* handle successfully?
 * Is the code reasonably easy for you to understand?  This particular point is
   tricky; the more you review code, the easier it will be for you to understand
   more code, so don't worry about this as much if you're getting started.
@@ -169,7 +172,7 @@ like it.
   my_first_variable = 123 if my_condition else 456
   my_second_variable = 456 if my_condition else 123
   ```
-  Both are perfectly legible, and focussing on small details like this is
+  Both are perfectly legible, and focusing on small details like this is
   frustrating for everybody.
 
 
