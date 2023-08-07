@@ -35,8 +35,3 @@ Operators
    :glob:
 
    tutorials/operators/*
-
-.. Hiding - Indices and tables
-   :ref:`genindex`
-   :ref:`modindex`
-   :ref:`search`
