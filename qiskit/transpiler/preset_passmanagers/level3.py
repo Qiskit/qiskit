@@ -28,20 +28,10 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
-from qiskit.transpiler.passes import MinimumPoint
-from qiskit.transpiler.passes import Depth
-from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import RemoveResetInZeroState
-from qiskit.transpiler.passes import Optimize1qGatesDecomposition
-from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
-from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.transpiler.passes import ConsolidateBlocks
-from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.runningpassmanager import ConditionalController, FlowController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.preset_passmanagers.plugin import (
@@ -81,7 +71,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     layout_method = pass_manager_config.layout_method or "sabre"
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
-    optimization_method = pass_manager_config.optimization_method
+    optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
@@ -159,35 +149,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         "routing", routing_method, pass_manager_config, optimization_level=3
     )
 
-    # 8. Optimize iteratively until no more change in depth. Removes useless gates
-    # after reset and before measure, commutes gates and optimizes contiguous blocks.
-    _minimum_point_check: list[BasePass | FlowController] = [
-        Depth(recurse=True),
-        Size(recurse=True),
-        MinimumPoint(["depth", "size"], "optimization_loop"),
-    ]
-
-    def _opt_control(property_set):
-        return not property_set["optimization_loop_minimum_point"]
-
-    _opt: list[BasePass | FlowController] = [
-        Collect2qBlocks(),
-        ConsolidateBlocks(
-            basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
-        ),
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
-            method=unitary_synthesis_method,
-            plugin_config=unitary_synthesis_plugin_config,
-            target=target,
-        ),
-        Optimize1qGatesDecomposition(basis=basis_gates, target=target),
-        CommutativeCancellation(target=target),
-    ]
-
     # Build pass manager
     init = common.generate_control_flow_options_check(
         layout_method=layout_method,
@@ -255,49 +216,20 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             hls_config,
         )
 
-    if optimization_method is None:
-        optimization = PassManager()
-        unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
-        # Build nested Flow controllers
-        def _unroll_condition(property_set):
-            return not property_set["all_gates_in_basis"]
-
-        # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
-            GatesInBasis(basis_gates, target=target),
-            ConditionalController(unroll, condition=_unroll_condition),
+    optimization = plugin_manager.get_passmanager_stage(
+        "optimization", optimization_method, pass_manager_config, optimization_level=3
+    )
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
+        pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
+        _direction = [
+            pass_
+            for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
+            for pass_ in x["passes"]
         ]
-
-        optimization.append(_minimum_point_check)
-        if (coupling_map and not coupling_map.is_symmetric) or (
-            target is not None and target.get_non_global_operation_names(strict_direction=True)
-        ):
-            pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
-            _direction = [
-                pass_
-                for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
-                for pass_ in x["passes"]
-            ]
-            if optimization is not None:
-                optimization.append(
-                    _opt + _unroll_if_out_of_basis + _minimum_point_check,
-                    do_while=_opt_control,
-                )
-        else:
-            pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
-            optimization.append(
-                _opt + _unroll_if_out_of_basis + _minimum_point_check, do_while=_opt_control
-            )
     else:
-        optimization = plugin_manager.get_passmanager_stage(
-            "optimization", optimization_method, pass_manager_config, optimization_level=3
-        )
-        if (coupling_map and not coupling_map.is_symmetric) or (
-            target is not None and target.get_non_global_operation_names(strict_direction=True)
-        ):
-            pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
-        else:
-            pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
+        pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
 
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(

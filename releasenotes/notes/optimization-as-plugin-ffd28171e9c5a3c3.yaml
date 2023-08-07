@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added :class:`qiskit.transpiler.preset_passmanagers.builtin_plugins.OptimizationPassManager`.
+    as the plugin representation of the `optimization` stage of the transpiler.
