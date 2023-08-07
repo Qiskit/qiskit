@@ -79,7 +79,7 @@ correct, well tested, and easier to tackle in their final maintainer review.
 
 The code-review process is a normal part of software development, and nothing to
 be scared of; for very easy changes it can be as simple as a maintainer saying
-"looks good to me!" (or in short-form, "LGTM!") and merging the PR.  For more complex changes, it's often a
+"looks good to me!" (or in short, "LGTM!") and merging the PR.  For more complex changes, it's often a
 back-and-forth where the reviewer may ask a couple of questions about why things
 were done a particular way, and make suggestions for improvement.  You don't
 need to do everything suggested if you've got good reasons to disagree, but
@@ -88,7 +88,7 @@ communicate that clearly and politely.
 If you're struggling with code review or a PR on Qiskit, you can ask for help in
 the `#qiskit-pr-help` channel on [the public Qiskit Slack](https://qisk.it/join-slack).
 
-Remember that the PR author is a human, not just a username!  It's ok to ask
+Remember that the PR author is a human, not just a username!  It's OK to ask
 questions about the code, but don't be mean or rude about it even if you don't
 like it.  It's also fine to provide comments that are just compliments with no
 suggested changes, if you particularly like something!
@@ -106,19 +106,19 @@ suggested changes, if you particularly like something!
   cases that it *does* handle successfully?
 * Is the code reasonably easy for you to understand?  This particular point is
   tricky; the more you review code, the easier it will be for you to understand
-  more code, so don't worry about this as much if you're getting started.
+  other code, so don't worry about this as much if you're getting started.
 
 #### Writing review comments
 
 * Make concrete suggestions when you think something should be changed, but
   remember that the author might have already thought about it and have a
-  reason.  Try "what do you think about us raising a `TypeError` here instead of
-  returning `None`?", rather than "you should raise an exception here".
+  reason.  Try "What do you think about us raising a `TypeError` here instead of
+  returning `None`?", rather than "You should raise an exception here".
 * Try to make each round of review thorough.  Don't add one or two comments on
   one file, then come back a day later and add a couple of other unrelated
   comments on a different file, and so on.  Try to review the whole PR
   thoroughly in one go; it's easier to catch bugs like this, and less
-  frustrating to be on the other side of. If that's too much for you, consider
+  frustrating for the PR creator. If that's too much for you, consider
   asking if the PR could be split into smaller independent chunks.
 * Try to keep the number of comments reasonable.  This depends on the size of
   the PR, but remember that there's somebody who'll read all your comments, and
@@ -135,7 +135,7 @@ suggested changes, if you particularly like something!
 #### Responding to review comments
 
 * Ask questions if you don't understand what a reviewer is saying, or if you're
-  not certain if they're suggesting changes or not.
+  not certain whether they're suggesting changes.
 * Feel free to respond to suggestions or questions with your reasoning for doing
   things a different way, if you don't fully agree with the review comment.
   Code review is a collaborative two-way process.
@@ -156,7 +156,7 @@ suggested changes, if you particularly like something!
 * Anything about the formatting of the code.  We have automated code formatters
   that enforce a uniform style, and CI requires them to have been run.
 * Minor stylistic changes in _how_ people code, except where they might be
-  seriously affecting performance or legibility.  There's lots of ways to
+  seriously affecting performance or legibility.  There are lots of ways to
   program, especially in Python, and lots of ways that achieve the same thing.
   For example, if somebody has written
   ```python
