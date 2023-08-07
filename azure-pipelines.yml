@@ -103,14 +103,17 @@ stages:
               testQPY: false
               testImages: false
               testRust: false
+              installOptionals: true
 
           - template: ".azure/test-macos.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
           - template: ".azure/test-windows.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
     - stage: "Nightly_Failure"
       displayName: "Comment on nightly failure"
@@ -150,9 +153,15 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            # A PR is more likely to fail CI because it introduces a logic error
+            # into an existing test than because it adds a new test / optional
+            # dependency that isn't accounted for in the test-skipping logic
+            # (and such a failure would need fewer iterations to fix).  We want
+            # to fail fast in the first CI stage.
+            installOptionals: true
             testRust: true
             testQPY: true
-            testImages: false
+            testImages: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -172,24 +181,29 @@ stages:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             testRust: false
             testQPY: false
-            testImages: true
+            testImages: false
             installFromSdist: true
+            installOptionals: false
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
   # Push to main or the stable branches.  The triggering branches also need to
   # be in the triggers at the top of this file.
@@ -202,6 +216,7 @@ stages:
             testRust: true
             testQPY: true
             testImages: true
+            installOptionals: false
 
   # Push to a tag.  The triggering tags are set in the triggers at the top of
   # this file.

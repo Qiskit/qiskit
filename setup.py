@@ -32,7 +32,6 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
-
 # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
@@ -41,7 +40,6 @@ with open("extras.json") as fd:
     extras_dict = json.load(fd)
 
 extras_dict["all"] = [pkg for requirements in extras_dict.values() for pkg in requirements]
-
 
 setup(
     name="qiskit-terra",
