@@ -31,12 +31,12 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
-
 # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
-
+# If modifying these optional extras, make sure to sync with `requirements-optional.txt` and
+# `qiskit.utils.optionals` as well.
 qasm3_import_extras = [
     "qiskit-qasm3-import>=0.1.0",
 ]
