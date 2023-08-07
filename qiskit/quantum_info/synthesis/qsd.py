@@ -22,6 +22,7 @@ from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit.exceptions import QiskitError
 
+from qiskit.quantum_info import Operator
 
 def qs_decomposition(
     mat, opt_a1=True, opt_a2=True, decomposer_1q=None, decomposer_2q=None, *, _depth=0
@@ -96,6 +97,10 @@ def qs_decomposition(
             else:
                 decomposer_2q = two_qubit_decompose.two_qubit_cnot_decompose
         circ = decomposer_2q(mat)
+        circ_mat = Operator(circ).data
+        max_error = _check_matrix_error(circ_mat, mat)
+        if max_error != 0:
+            raise QSDError(f"two_qubit_cnot_decompose error of order {max_error}")
     else:
         if _is_block_diagonal(mat, dim_o2):
             # this about halves CX count over standard qsd for this special case
@@ -112,8 +117,9 @@ def qs_decomposition(
         smat = np.diag(np.sin(vtheta))
         csmat = np.block([[cmat, -smat], [smat, cmat]])
         vmat = np.block([[v1h, zmat], [zmat, v2h]])
-        if not np.allclose(mat, umat @ csmat @ vmat):
-            raise QSDError("CS decomposition error")
+        max_error = _check_matrix_error(mat, umat @ csmat @ vmat)
+        if max_error != 0:
+            raise QSDError(f"CS decomposition error of order {max_error}")
         # left circ
         left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
@@ -182,6 +188,9 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     else:
         evals, vmat = scipy.linalg.schur(um0um1, output="complex")
         eigvals = evals.diagonal()
+    max_error = _check_matrix_error(um0um1, vmat @ np.diag(eigvals) @ np.linalg.inv(vmat))
+    if max_error != 0:
+        raise QSDError(f"Error in eigen decomposition of order {max_error}")
     dvals = np.lib.scimath.sqrt(eigvals)
     dmat = np.diag(dvals)
     wmat = dmat @ vmat.T.conjugate() @ um1
@@ -204,8 +213,13 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     ).to_instruction()
     circ.append(right_gate, range(nqubits - 1))
 
-    return circ
+    zmat = np.zeros((dim//2, dim//2))
+    max_error = _check_matrix_error(Operator(circ).data,
+                                    Operator(np.block([[um0, zmat], [zmat, um1]])).data)
+    if max_error != 0:
+        raise QSDError(f"qs_decomposition error of order {max_error}")
 
+    return circ
 
 def _get_ucry_cz(nqubits, angles):
     """
@@ -239,8 +253,6 @@ def _get_ucry_cz(nqubits, angles):
 def _apply_a2(circ):
     from qiskit import transpile
     from qiskit.quantum_info import Operator
-
-    # from qiskit.extensions.unitary import UnitaryGate
     import qiskit.extensions.unitary
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
@@ -261,11 +273,12 @@ def _apply_a2(circ):
         mat2 = Operator(instr2).data
         # rollover
         dmat, qc2cx = decomposer(mat1)
+        max_error = _check_matrix_error(mat1, dmat @ Operator(qc2cx).data)
+        if max_error != 0:
+            raise QSDError(f"diagonal decomposition error of order {max_error}")
         ccirc.data[ind1] = (qc2cx.to_gate(), qargs, cargs)
         mat2 = mat2 @ dmat
         ccirc.data[ind2] = (qiskit.extensions.unitary.UnitaryGate(mat2), qargs, cargs)
-    qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
-    ccirc.data[ind2] = (qc3.to_gate(), qargs, cargs)
     return ccirc
 
 
@@ -277,6 +290,18 @@ def _is_block_diagonal(mat, dim_o2):
     """
     return np.allclose(mat[:dim_o2, dim_o2:], 0) and np.allclose(mat[dim_o2:, :dim_o2], 0)
 
+def _check_matrix_error(mat1, mat2):
+    """
+    Checks whether the two matrices are considered nearly equal. If they are nearly equal,
+    as determined by numpy.allclose, this returns 0 otherwise it returns the maximum absolute
+    difference between the matrices.
+    """
+    if not np.allclose(mat1, mat2):
+        diff = np.abs(mat1 - mat2)
+        max_error = diff[np.unravel_index(diff.argmax(), diff.shape)]
+        return max_error
+    else:
+        return 0
 
 class QSDError(QiskitError):
     """Quantum Shannon Decomposition Error"""

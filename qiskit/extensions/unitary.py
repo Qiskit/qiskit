@@ -160,10 +160,13 @@ class UnitaryGate(Gate):
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
         try:
-            cmat_def = qs_decomposition(cmat)
-        except QSDError:
+            cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=True)
+        except QSDError as err:
+            import warnings
             from qiskit.extensions.quantum_initializer.isometry import Isometry
 
+            warnings.warn(f"Error in qs_decomposition. Trying isometry decomposition.\n{err}",
+                          UserWarning)
             cmat_def = Isometry(cmat, 0, 0).definition
         return ControlledGate(
             "c-unitary",

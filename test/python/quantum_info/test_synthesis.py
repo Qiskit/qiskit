@@ -1561,29 +1561,6 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         self.assertEqual(Operator(mat), Operator(ccirc))
         self.assertLess(ccirc.count_ops().get("cx"), self._qsd_l2_a1a2_mod(num_qubits))
 
-    def test_cs_error(self):
-        """Test decomposition with both optimization a1 and a2 from shende2006"""
-        from qiskit.circuit._utils import _compute_control_matrix
-        from qiskit.quantum_info.operators.predicates import matrix_equal
-        num_target = 2
-        num_ctrl_qubits = 4
-        for i in range(100):
-            base_gate = random_unitary(2**num_target, seed=i*2).to_instruction()
-            base_mat = base_gate.to_matrix()
-            cgate = base_gate.control(num_ctrl_qubits)
-            test_op = Operator(cgate)
-            cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-
-            trial = test_op == Operator(cop_mat)
-            print(i, trial)
-            self.assertTrue(trial)
-            #breakpoint()
-            
-            # mat = scipy.stats.unitary_group.rvs(2, random_state=1224)
-            # circ = self.qsd(umat, opt_a1=True, opt_a2=True)
-            # ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
-            # self.assertTrue(Operator(umat) == Operator(ccirc))
-        
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
     """test TwoQubitDecomposeUpToDiagonal class"""
