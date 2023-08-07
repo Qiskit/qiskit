@@ -1125,7 +1125,10 @@ class MatplotlibDrawer:
             for bit in condition_bits:
                 registers[get_bit_register(self._circuit, bit)].append(bit)
             # Registerless bits don't care whether cregbundle is set.
+            print("\n", registers)
+            #print(registers.pop(None, ()))
             cond_pos.extend(cond_xy[wire_map[bit] - first_clbit] for bit in registers.pop(None, ()))
+            print("COND POS", cond_pos)
             if self._cregbundle:
                 cond_pos.extend(
                     cond_xy[wire_map[register[0]] - first_clbit] for register in registers
@@ -1133,20 +1136,18 @@ class MatplotlibDrawer:
             else:
                 cond_pos.extend(
                     cond_xy[wire_map[bit] - first_clbit]
-                    for register, bits in registers.items()
-                    for bit in bits
+                    for bit in itertools.chain.from_iterable(registers.values())
                 )
             val_bits = ["1"] * len(cond_pos)
         else:
             label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
             cond_bit_reg = condition[0]
             cond_bit_val = int(condition[1])
-            # override_fc = (
-            #     cond_bit_val != 0
-            #     and isinstance(cond_bit_reg, ClassicalRegister)
-            #     and self._cregbundle
-            # )
-            override_fc = cond_bit_val != 0
+            override_fc = (
+                cond_bit_val != 0
+                and isinstance(cond_bit_reg, ClassicalRegister)
+                and self._cregbundle
+            )
 
             # In the first case, multiple bits are indicated on the drawing. In all
             # other cases, only one bit is shown.
