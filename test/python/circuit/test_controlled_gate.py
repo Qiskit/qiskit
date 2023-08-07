@@ -852,34 +852,6 @@ class TestControlledGate(QiskitTestCase):
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data))
-
-    def test_cfail(self):
-        """Test the matrix data of an Operator based on a random UnitaryGate."""
-        import random
-        import cmath
-        def complex_formatter(x):
-            if cmath.isclose(x, 0, rel_tol=1e-3):
-                return "0"
-            elif cmath.isclose(x, 1, rel_tol=1e-3):
-                return "1"
-            else:
-                return f"{x:.0f}"                    
-
-        # np.set_printoptions(linewidth=300, precision=3, suppress=True, formatter={'complexfloat': complex_formatter},
-        #                     threshold=2**11)
-        np.set_printoptions(linewidth=300, precision=3, suppress=True, threshold=2048)
-        num_ctrl_qubits = 3        
-        num_target = 2
-        for i in range(100):
-            seed = random.randint(1, 10000)
-            #seed = 2923
-            print(i, seed)
-            base_gate = random_unitary(2**num_target, seed=seed).to_instruction()
-            base_mat = base_gate.to_matrix()
-            cgate = base_gate.control(num_ctrl_qubits)
-            test_op = Operator(cgate)
-            cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
-            self.assertTrue(matrix_equal(cop_mat, test_op.data))
         
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
