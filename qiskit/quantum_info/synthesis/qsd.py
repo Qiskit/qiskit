@@ -21,8 +21,8 @@ from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompo
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit.exceptions import QiskitError
-
 from qiskit.quantum_info import Operator
+
 
 def qs_decomposition(
     mat, opt_a1=True, opt_a2=True, decomposer_1q=None, decomposer_2q=None, *, _depth=0
@@ -213,13 +213,15 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     ).to_instruction()
     circ.append(right_gate, range(nqubits - 1))
 
-    zmat = np.zeros((dim//2, dim//2))
-    max_error = _check_matrix_error(Operator(circ).data,
-                                    Operator(np.block([[um0, zmat], [zmat, um1]])).data)
+    zmat = np.zeros((dim // 2, dim // 2))
+    max_error = _check_matrix_error(
+        Operator(circ).data, Operator(np.block([[um0, zmat], [zmat, um1]])).data
+    )
     if max_error != 0:
         raise QSDError(f"qs_decomposition error of order {max_error}")
 
     return circ
+
 
 def _get_ucry_cz(nqubits, angles):
     """
@@ -252,7 +254,6 @@ def _get_ucry_cz(nqubits, angles):
 
 def _apply_a2(circ):
     from qiskit import transpile
-    from qiskit.quantum_info import Operator
     import qiskit.extensions.unitary
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
@@ -290,6 +291,7 @@ def _is_block_diagonal(mat, dim_o2):
     """
     return np.allclose(mat[:dim_o2, dim_o2:], 0) and np.allclose(mat[dim_o2:, :dim_o2], 0)
 
+
 def _check_matrix_error(mat1, mat2):
     """
     Checks whether the two matrices are considered nearly equal. If they are nearly equal,
@@ -302,6 +304,7 @@ def _check_matrix_error(mat1, mat2):
         return max_error
     else:
         return 0
+
 
 class QSDError(QiskitError):
     """Quantum Shannon Decomposition Error"""

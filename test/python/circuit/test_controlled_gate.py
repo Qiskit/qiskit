@@ -852,7 +852,7 @@ class TestControlledGate(QiskitTestCase):
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data))
-        
+
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
         """Test that UnitaryGate with control returns params."""
