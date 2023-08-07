@@ -42,9 +42,10 @@ def worker(
         # Run the notebook with the working  directory set to the folder it resides in.
         processor.preprocess(notebook, {"metadata": {"path": f"{notebook_path.parent}/"}})
 
-        # Ensure the output directory exists, and write to it.
+        # Ensure the output directory exists, and write to it.  This overwrites the notebook with
+        # its executed form unless the '--out' flag was set.
         out_root = in_root if out_root is None else out_root
-        out_path = out_root / notebook_path.relative_to(in_root).with_suffix(".nbconvert.ipynb")
+        out_path = out_root / notebook_path.relative_to(in_root)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as fptr:
             nbformat.write(notebook, fptr)
@@ -61,7 +62,7 @@ def main() -> int:
     parser.add_argument(
         "--out",
         type=pathlib.Path,
-        help="Output directory for files. Defaults to same location as input file.",
+        help="Output directory for files. Defaults to same location as input file, overwriting it.",
     )
     args = parser.parse_args()
     notebooks = sorted(
