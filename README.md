@@ -50,7 +50,7 @@ gates: Hadamard gate, Phase gate and CNOT.
 
 Once you've made your first quantum circuit, you need to decide on which primtive function you will use. Starting with the sampler 
 we use the `compose` funtion to add a measurement circuit to the example circuit. In this example we simply map the qubits to
-the classical registers in asending order. 
+the classical registers in ascending order. 
 
 ```python
 qc_measure = QuantumCircuit(3,3)
