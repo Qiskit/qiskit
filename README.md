@@ -31,7 +31,7 @@ Now that Qiskit is installed, it's time to begin working with Qiskit. The essent
 2. Define the classical output by measurements or a set of observable operators
 3. Depending on the output, use the primitive function `sampler` to sample outcomes or the `estimaor` to estimate values.
 
-Usign the `QuantumCircuit` object a example quantum circuit can be created using:
+Using the `QuantumCircuit` class, an example quantum circuit can be created:
 
 ```python
 import numpy as np
