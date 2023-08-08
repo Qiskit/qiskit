@@ -63,7 +63,7 @@ job = sampler.run(qc_compose, shots=1000)
 result = job.result()
 print(f" > Quasi probability distribution: {result.quasi_dists}")
 ```
-Running this will give the outcome `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time upto statistical errors.  
+Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.  
 To illustrate the power of estimator we now use the quantum information toolbox to create the operator `XXY+XYX+YXX-YYY`.
 
 ```python
