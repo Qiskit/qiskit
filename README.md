@@ -83,7 +83,7 @@ and see if you can acheive this outcome. This is not possible!
 Using the Qiskit provided sampler and estimator will not take you very far. The power of quantum computing cannot be simulated 
 on classical computers and you need to use real quantum hardware to scale to larger quantum circuits. However, running a quantum 
 circuit on hardware requires rewriting them to the basis gates and connectivity of the quantum hardware.
-We call this the [transpiler](https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html) 
+The tool that does this is the [transpiler](https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html) 
 and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling. However, it also includes a
 default compiler which works very well in most examples and as a example the following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits with the `coupling_map =[[0, 1], [1, 2]]`.
 
