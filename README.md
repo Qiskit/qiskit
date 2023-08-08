@@ -105,7 +105,7 @@ The default way for using Qiskit is to have a runtime environment that provides 
 
 * https://github.com/Qiskit/qiskit-ibm-runtime
 
-However, as Qiskit transitions to the runtime enviroment some hardware is only supported with the ``providers`` interface, however each provider may perform different types of pre and post processing and the return outcomes that are vendor defined:
+However, as Qiskit transitions to the runtime enviroment some hardware is only supported with the ``providers`` interface, however each provider may perform different types of pre and post processing and return outcomes that are vendor defined:
 
 * https://github.com/Qiskit/qiskit-ibmq-provider
 * https://github.com/Qiskit-Partners/qiskit-ionq
