@@ -42,7 +42,7 @@ qc_example = QuantumCircuit(3)
 qc_example.h(0) # generate superpostion
 qc_example.p(np.pi/2,0) # add quantum phase
 qc_example.cx(0,1) # condition 1st qubit on 0th qubit
-qc_example.cx(0,2) # condition 2st qubit on 0th qubit
+qc_example.cx(0,2) # condition 2nd qubit on 0th qubit
 ```
 
 This simple example makes an entangled state known as a GHZ state `(|000> + i |111>)/rt(2)`. It uses the standard quantum 
