@@ -28,7 +28,7 @@ To install from source, follow the instructions in the [documentation](https://q
 
 Now that Qiskit is installed, it's time to begin working with Qiskit. The essential parts of a quantum program are 
 1. Define and build a quantum circuit that represents the quantum state
-2. Define the classical output by a measurements circuit or a set of observable operators
+2. Define the classical output by measurements or a set of observable operators
 3. Depending on the output use the primitive function `sampler` to sample outcomes or the `estimaor` to estimate values.
 
 Usign the `QuantumCircuit` object a example quantum circuit can be created using:
