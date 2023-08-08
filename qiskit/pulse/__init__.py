@@ -54,7 +54,7 @@ Configuration
 Exceptions
 ==========
 
-.. autoclass:: PulseError
+.. autoexception:: PulseError
 """
 
 # Builder imports.
@@ -147,6 +147,10 @@ from qiskit.pulse.library import (
     Cos,
     Sawtooth,
     Triangle,
+    Square,
+    GaussianDeriv,
+    Sech,
+    SechDeriv,
     ParametricPulse,
     SymbolicPulse,
     ScalableSymbolicPulse,

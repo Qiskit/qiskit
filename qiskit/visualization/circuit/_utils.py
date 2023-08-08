@@ -25,8 +25,9 @@ from qiskit.circuit import (
     Instruction,
     Measure,
 )
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister, QuantumCircuit
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -361,7 +362,7 @@ def generate_latex_label(label):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -390,7 +391,10 @@ def _get_layered_instructions(
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    qubits = circuit.qubits.copy()
+    if wire_map is not None:
+        qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
+    else:
+        qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()
     nodes = []
 
@@ -424,7 +428,7 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, justify, measure_map)
+        nodes = _LayerSpooler(dag, justify, measure_map, wire_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -450,7 +454,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node):
+def _get_gate_span(qubits, node, wire_map):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -464,26 +468,32 @@ def _get_gate_span(qubits, node):
         if index > max_index:
             max_index = index
 
-    if node.cargs or getattr(node.op, "condition", None):
-        return qubits[min_index : len(qubits)]
+    # Because of wrapping boxes for mpl control flow ops, this
+    # type of op must be the only op in the layer
+    if wire_map is not None and isinstance(node.op, ControlFlowOp):
+        span = qubits
+    elif node.cargs or getattr(node.op, "condition", None):
+        span = qubits[min_index : len(qubits)]
+    else:
+        span = qubits[min_index : max_index + 1]
 
-    return qubits[min_index : max_index + 1]
+    return span
 
 
-def _any_crossover(qubits, node, nodes):
+def _any_crossover(qubits, node, nodes, wire_map):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node)
+    gate_span = _get_gate_span(qubits, node, wire_map)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
+            all_indices += _get_gate_span(qubits, check_node, wire_map)
     return any(i in gate_span for i in all_indices)
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, justification, measure_map, wire_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -491,6 +501,7 @@ class _LayerSpooler(list):
         self.clbits = dag.clbits
         self.justification = justification
         self.measure_map = measure_map
+        self.wire_map = wire_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == "left":
@@ -523,7 +534,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes, self.wire_map)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
@@ -539,16 +550,11 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if getattr(node.op, "condition", None):
-                if isinstance(node.op.condition[0], Clbit):
-                    cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
-                    index_stop = self.measure_map[cond_bit[0]]
-                else:
-                    for bit in node.op.condition[0]:
-                        max_index = -1
-                        if bit in self.measure_map:
-                            if self.measure_map[bit] > max_index:
-                                index_stop = max_index = self.measure_map[bit]
+            if (condition := getattr(node.op, "condition", None)) is not None:
+                index_stop = max(
+                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                    default=index_stop,
+                )
             if node.cargs:
                 for carg in node.cargs:
                     try:

@@ -14,6 +14,7 @@ Quantum Shannon Decomposition.
 
 Method is described in arXiv:quant-ph/0406176.
 """
+from __future__ import annotations
 import scipy
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -25,7 +26,13 @@ from qiskit.quantum_info import Operator
 
 
 def qs_decomposition(
-    mat, opt_a1=True, opt_a2=True, decomposer_1q=None, decomposer_2q=None, *, _depth=0
+    mat: np.ndarray,
+    opt_a1: bool = True,
+    opt_a2: bool = True,
+    decomposer_1q=None,
+    decomposer_2q=None,
+    *,
+    _depth=0,
 ):
     """
     Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
@@ -260,26 +267,29 @@ def _apply_a2(circ):
     ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)
     ind2q = []
     # collect 2q instrs
-    for i, instr_context in enumerate(ccirc.data):
-        instr, _, _ = instr_context
-        if instr.name == "qsd2q":
+    for i, instruction in enumerate(ccirc.data):
+        if instruction.operation.name == "qsd2q":
             ind2q.append(i)
+    if not ind2q:
+        return ccirc
     # rolling over diagonals
     ind2 = None  # lint
     for ind1, ind2 in zip(ind2q[0:-1:], ind2q[1::]):
         # get neigboring 2q gates separated by controls
-        instr1, qargs, cargs = ccirc.data[ind1]
-        mat1 = Operator(instr1).data
-        instr2, _, _ = ccirc.data[ind2]
-        mat2 = Operator(instr2).data
+        instr1 = ccirc.data[ind1]
+        mat1 = Operator(instr1.operation).data
+        instr2 = ccirc.data[ind2]
+        mat2 = Operator(instr2.operation).data
         # rollover
         dmat, qc2cx = decomposer(mat1)
         max_error = _check_matrix_error(mat1, dmat @ Operator(qc2cx).data)
         if max_error != 0:
             raise QSDError(f"diagonal decomposition error of order {max_error}")
-        ccirc.data[ind1] = (qc2cx.to_gate(), qargs, cargs)
+        ccirc.data[ind1] = instr1.replace(operation=qc2cx.to_gate())
         mat2 = mat2 @ dmat
-        ccirc.data[ind2] = (qiskit.extensions.unitary.UnitaryGate(mat2), qargs, cargs)
+        ccirc.data[ind2] = instr2.replace(qiskit.extensions.unitary.UnitaryGate(mat2))
+    qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
+    ccirc.data[ind2] = ccirc.data[ind2].replace(operation=qc3.to_gate())
     return ccirc
 
 

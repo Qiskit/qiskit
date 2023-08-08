@@ -14,6 +14,7 @@
 
 """Binary IO for circuit objects."""
 
+from collections import defaultdict
 import io
 import json
 import struct
@@ -25,6 +26,7 @@ import numpy as np
 from qiskit import circuit as circuit_mod
 from qiskit import extensions
 from qiskit.circuit import library, controlflow, CircuitInstruction
+from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
@@ -36,6 +38,7 @@ from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
+from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
 def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
@@ -147,7 +150,9 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
-        param = value.loads_value(type_key, data_bytes, version, vectors)
+        param = value.loads_value(
+            type_key, data_bytes, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+        )
 
     return param
 
@@ -181,11 +186,17 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     qargs = []
     cargs = []
     params = []
-    condition_tuple = None
-    if instruction.has_condition:
-        condition_tuple = (
+    condition = None
+    if (version < 5 and instruction.has_condition) or (
+        version >= 5 and instruction.conditional_key == type_keys.Condition.TWO_TUPLE
+    ):
+        condition = (
             _loads_register_param(condition_register, circuit, registers),
             instruction.condition_value,
+        )
+    elif version >= 5 and instruction.conditional_key == type_keys.Condition.EXPRESSION:
+        condition = value.read_value(
+            file_obj, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
         )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
@@ -230,7 +241,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         inst_obj = _parse_custom_operation(
             custom_operations, gate_name, params, version, vectors, registers
         )
-        inst_obj.condition = condition_tuple
+        inst_obj.condition = condition
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -241,7 +252,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         inst_obj = _parse_custom_operation(
             custom_operations, gate_name, params, version, vectors, registers
         )
-        inst_obj.condition = condition_tuple
+        inst_obj.condition = condition
         if instruction.label_size > 0:
             inst_obj.label = label
         if circuit is None:
@@ -262,7 +273,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
-        gate = gate_class(condition_tuple, *params)
+        gate = gate_class(condition, *params)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -277,9 +288,16 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             gate = gate_class(*params)
             gate.num_ctrl_qubits = instruction.num_ctrl_qubits
             gate.ctrl_state = instruction.ctrl_state
-        gate.condition = condition_tuple
+        gate.condition = condition
     else:
-        if gate_name in {"Initialize", "StatePreparation", "UCRXGate", "UCRYGate", "UCRZGate"}:
+        if gate_name in {
+            "Initialize",
+            "StatePreparation",
+            "UCRXGate",
+            "UCRYGate",
+            "UCRZGate",
+            "DiagonalGate",
+        }:
             gate = gate_class(params)
         else:
             if gate_name == "Barrier":
@@ -287,7 +305,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             elif gate_name in {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
             gate = gate_class(*params)
-        gate.condition = condition_tuple
+        gate.condition = condition
     if instruction.label_size > 0:
         gate.label = label
     if circuit is None:
@@ -503,7 +521,7 @@ def _dumps_instruction_parameter(param, index_map):
         type_key = type_keys.Value.REGISTER
         data_bytes = _dumps_register(param, index_map)
     else:
-        type_key, data_bytes = value.dumps_value(param)
+        type_key, data_bytes = value.dumps_value(param, index_map=index_map)
 
     return type_key, data_bytes
 
@@ -535,13 +553,16 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
-    has_condition = False
+    condition_type = type_keys.Condition.NONE
     condition_register = b""
     condition_value = 0
-    if getattr(instruction.operation, "condition", None):
-        has_condition = True
-        condition_register = _dumps_register(instruction.operation.condition[0], index_map)
-        condition_value = int(instruction.operation.condition[1])
+    if (op_condition := getattr(instruction.operation, "condition", None)) is not None:
+        if isinstance(op_condition, expr.Expr):
+            condition_type = type_keys.Condition.EXPRESSION
+        else:
+            condition_type = type_keys.Condition.TWO_TUPLE
+            condition_register = _dumps_register(instruction.operation.condition[0], index_map)
+            condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label")
@@ -569,7 +590,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         len(instruction_params),
         instruction.operation.num_qubits,
         instruction.operation.num_clbits,
-        has_condition,
+        condition_type.value,
         len(condition_register),
         condition_value,
         num_ctrl_qubits,
@@ -578,7 +599,10 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
     file_obj.write(label_raw)
-    file_obj.write(condition_register)
+    if condition_type is type_keys.Condition.EXPRESSION:
+        value.write_value(file_obj, op_condition, index_map=index_map)
+    else:
+        file_obj.write(condition_register)
     # Encode instruciton args
     for qbit in instruction.qubits:
         instruction_arg_raw = struct.pack(
@@ -761,6 +785,136 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
     return len(in_circ_regs) + len(out_circ_regs)
 
 
+def _write_layout(file_obj, circuit):
+    if circuit.layout is None:
+        # Write a null header if there is no layout present
+        file_obj.write(struct.pack(formats.LAYOUT_PACK, False, -1, -1, -1, 0))
+        return
+    initial_size = -1
+    input_qubit_mapping = {}
+    initial_layout_array = []
+    extra_registers = defaultdict(list)
+    if circuit.layout.initial_layout is not None:
+        initial_size = len(circuit.layout.initial_layout)
+        layout_mapping = circuit.layout.initial_layout.get_physical_bits()
+        for i in range(circuit.num_qubits):
+            qubit = layout_mapping[i]
+            input_qubit_mapping[qubit] = i
+            if qubit._register is not None or qubit._index is not None:
+                if qubit._register not in circuit.qregs:
+                    extra_registers[qubit._register].append(qubit)
+                initial_layout_array.append((qubit._index, qubit._register))
+            else:
+                initial_layout_array.append((None, None))
+    input_qubit_size = -1
+    input_qubit_mapping_array = []
+    if circuit.layout.input_qubit_mapping is not None:
+        input_qubit_size = len(circuit.layout.input_qubit_mapping)
+        input_qubit_mapping_array = [None] * input_qubit_size
+        layout_mapping = circuit.layout.initial_layout.get_virtual_bits()
+        for qubit, index in circuit.layout.input_qubit_mapping.items():
+            if (
+                getattr(qubit, "_register", None) is not None
+                and getattr(qubit, "_index", None) is not None
+            ):
+                if qubit._register not in circuit.qregs:
+                    extra_registers[qubit._register].append(qubit)
+                input_qubit_mapping_array[index] = layout_mapping[qubit]
+            else:
+                input_qubit_mapping_array[index] = layout_mapping[qubit]
+    final_layout_size = -1
+    final_layout_array = []
+    if circuit.layout.final_layout is not None:
+        final_layout_size = len(circuit.layout.final_layout)
+        final_layout_physical = circuit.layout.final_layout.get_physical_bits()
+        for i in range(circuit.num_qubits):
+            virtual_bit = final_layout_physical[i]
+            final_layout_array.append(circuit.find_bit(virtual_bit).index)
+
+    file_obj.write(
+        struct.pack(
+            formats.LAYOUT_PACK,
+            True,
+            initial_size,
+            input_qubit_size,
+            final_layout_size,
+            len(extra_registers),
+        )
+    )
+    _write_registers(
+        file_obj, list(extra_registers), [x for bits in extra_registers.values() for x in bits]
+    )
+    for index, register in initial_layout_array:
+        reg_name_bytes = None if register is None else register.name.encode(common.ENCODE)
+        file_obj.write(
+            struct.pack(
+                formats.INITIAL_LAYOUT_BIT_PACK,
+                -1 if index is None else index,
+                -1 if reg_name_bytes is None else len(reg_name_bytes),
+            )
+        )
+        if reg_name_bytes is not None:
+            file_obj.write(reg_name_bytes)
+    for i in input_qubit_mapping_array:
+        file_obj.write(struct.pack("!I", i))
+    for i in final_layout_array:
+        file_obj.write(struct.pack("!I", i))
+
+
+def _read_layout(file_obj, circuit):
+    header = formats.LAYOUT._make(
+        struct.unpack(formats.LAYOUT_PACK, file_obj.read(formats.LAYOUT_SIZE))
+    )
+    if not header.exists:
+        return
+    registers = {
+        name: QuantumRegister(len(v[1]), name)
+        for name, v in _read_registers_v4(file_obj, header.extra_registers)["q"].items()
+    }
+    initial_layout = None
+    initial_layout_virtual_bits = []
+    for _ in range(header.initial_layout_size):
+        virtual_bit = formats.INITIAL_LAYOUT_BIT._make(
+            struct.unpack(
+                formats.INITIAL_LAYOUT_BIT_PACK,
+                file_obj.read(formats.INITIAL_LAYOUT_BIT_SIZE),
+            )
+        )
+        if virtual_bit.index == -1 and virtual_bit.register_size == -1:
+            qubit = Qubit()
+        else:
+            register_name = file_obj.read(virtual_bit.register_size).decode(common.ENCODE)
+            if register_name in registers:
+                qubit = registers[register_name][virtual_bit.index]
+            else:
+                register = next(filter(lambda x, name=register_name: x.name == name, circuit.qregs))
+                qubit = register[virtual_bit.index]
+        initial_layout_virtual_bits.append(qubit)
+    if initial_layout_virtual_bits:
+        initial_layout = Layout.from_qubit_list(initial_layout_virtual_bits)
+    input_qubit_mapping = None
+    input_qubit_mapping_array = []
+    for _ in range(header.input_mapping_size):
+        input_qubit_mapping_array.append(
+            struct.unpack("!I", file_obj.read(struct.calcsize("!I")))[0]
+        )
+    if input_qubit_mapping_array:
+        input_qubit_mapping = {}
+        physical_bits = initial_layout.get_physical_bits()
+        for index, bit in enumerate(input_qubit_mapping_array):
+            input_qubit_mapping[physical_bits[bit]] = index
+    final_layout = None
+    final_layout_array = []
+    for _ in range(header.final_layout_size):
+        final_layout_array.append(struct.unpack("!I", file_obj.read(struct.calcsize("!I")))[0])
+
+    if final_layout_array:
+        layout_dict = {circuit.qubits[bit]: index for index, bit in enumerate(final_layout_array)}
+        final_layout = Layout(layout_dict)
+
+    circuit._layout = TranspileLayout(initial_layout, input_qubit_mapping, final_layout)
+
+
 def write_circuit(file_obj, circuit, metadata_serializer=None):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -816,10 +970,13 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
         new_custom_operations = list(custom_operations.keys())
         while new_custom_operations:
             operations_to_serialize = new_custom_operations.copy()
+            new_custom_operations = []
             for name in operations_to_serialize:
                 operation = custom_operations[name]
-                new_custom_operations = _write_custom_operation(
-                    custom_operations_buffer, name, operation, custom_operations
+                new_custom_operations.extend(
+                    _write_custom_operation(
+                        custom_operations_buffer, name, operation, custom_operations
+                    )
                 )
 
         file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_operations)))
@@ -830,6 +987,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
 
     # Write calibrations
     _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
+    _write_layout(file_obj, circuit)
 
 
 def read_circuit(file_obj, version, metadata_deserializer=None):
@@ -947,5 +1105,6 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
                 f"as they weren't used in the circuit: {circ.name}",
                 UserWarning,
             )
-
+    if version >= 8:
+        _read_layout(file_obj, circ)
     return circ

@@ -474,6 +474,8 @@ class FakeBackend(BackendV1):
     def properties(self):
         """Return backend properties"""
         coupling_map = self.configuration().coupling_map
+        if coupling_map is None:
+            return None
         unique_qubits = list(set().union(*coupling_map))
 
         properties = {

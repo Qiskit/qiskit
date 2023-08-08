@@ -87,6 +87,10 @@ External Python Libraries
       - Some methods of gradient calculation within :mod:`.opflow.gradients` require `JAX
         <https://github.com/google/jax>`__ for autodifferentiation.
 
+    * - .. py:data:: HAS_JUPYTER
+      - Some of the tests require a complete `Jupyter <https://jupyter.org/>`__ installation to test
+        interactivity features.
+
     * - .. py:data:: HAS_MATPLOTLIB
       - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.
         Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
@@ -112,6 +116,11 @@ External Python Libraries
     * - .. py:data:: HAS_PYDOT
       - For some graph visualisations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
         interface to GraphViz (see :data:`HAS_GRAPHVIZ`).
+
+    * - .. py:data:: HAS_PYGMENTS
+      - Pygments is a code highlighter and formatter used by many environments that involve rich
+        display of code blocks, including Sphinx and Jupyter.  Qiskit uses this when producing rich
+        output for these environments.
 
     * - .. py:data:: HAS_PYLATEX
       - Various LaTeX-based visualizations, especially the circuit drawers, need access to the
@@ -200,6 +209,9 @@ from :mod:`.utils` directly if required, such as::
 .. autoclass:: qiskit.utils.LazySubprocessTester
 """
 
+# NOTE: If you're changing this file, sync it with `requirements-optional.txt` and potentially
+# `setup.py` as well.
+
 import logging as _logging
 
 from .lazy_tester import (
@@ -251,6 +263,7 @@ HAS_JAX = _LazyImportTester(
     name="jax",
     install="pip install jax",
 )
+HAS_JUPYTER = _LazyImportTester(["jupyter", "nbformat", "nbconvert"], install="pip install jupyter")
 HAS_MATPLOTLIB = _LazyImportTester(
     ("matplotlib.patches", "matplotlib.pyplot"),
     name="matplotlib",
@@ -261,6 +274,7 @@ HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 HAS_NLOPT = _LazyImportTester("nlopt", name="NLopt Optimizer", install="pip install nlopt")
 HAS_PIL = _LazyImportTester("PIL.Image", name="pillow", install="pip install pillow")
 HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
+HAS_PYGMENTS = _LazyImportTester("pygments", install="pip install pygments")
 HAS_PYLATEX = _LazyImportTester(
     {
         "pylatexenc.latex2text": ("LatexNodes2Text",),

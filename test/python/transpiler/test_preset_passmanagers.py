@@ -322,6 +322,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn("TrivialLayout", self.passes)
         self.assertNotIn("ApplyLayout", self.passes)
         self.assertNotIn("StochasticSwap", self.passes)
+        self.assertNotIn("SabreSwap", self.passes)
         self.assertNotIn("CheckGateDirection", self.passes)
 
     @data(0, 1, 2, 3)
@@ -568,13 +569,11 @@ class TestPassesInspection(QiskitTestCase):
         # Expected call path for layout and routing is:
         # 1. TrivialLayout (no perfect match)
         # 2. VF2Layout (no perfect match)
-        # 3. DenseLayout (heuristic layout)
-        # 4. StochasticSwap
+        # 3. SabreLayout (heuristic layout)
         # 4. VF2PostLayout (applies a better layout)
         self.assertIn("TrivialLayout", self.passes)
         self.assertIn("VF2Layout", self.passes)
-        self.assertIn("DenseLayout", self.passes)
-        self.assertIn("StochasticSwap", self.passes)
+        self.assertIn("SabreLayout", self.passes)
         self.assertIn("VF2PostLayout", self.passes)
 
     def test_level1_not_runs_vf2post_layout_when_layout_method_set_control_flow(self):
@@ -599,7 +598,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertNotIn("SabreLayout", self.passes)
         self.assertNotIn("VF2PostLayout", self.passes)
         self.assertIn("DenseLayout", self.passes)
-        self.assertIn("StochasticSwap", self.passes)
+        self.assertIn("SabreSwap", self.passes)
 
     def test_level1_not_run_vf2post_layout_when_trivial_is_perfect_control_flow(self):
         """Test that if we find a trivial perfect layout we don't run vf2post."""
@@ -615,8 +614,8 @@ class TestPassesInspection(QiskitTestCase):
         _ = transpile(qc, target, optimization_level=1, callback=self.callback)
         self.assertIn("TrivialLayout", self.passes)
         self.assertNotIn("VF2Layout", self.passes)
-        self.assertNotIn("DenseLayout", self.passes)
-        self.assertNotIn("StochasticSwap", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("SabreSwap", self.passes)
         self.assertNotIn("VF2PostLayout", self.passes)
 
     def test_level1_not_run_vf2post_layout_when_vf2layout_is_perfect_control_flow(self):
@@ -635,9 +634,9 @@ class TestPassesInspection(QiskitTestCase):
         _ = transpile(qc, target, optimization_level=1, callback=self.callback)
         self.assertIn("TrivialLayout", self.passes)
         self.assertIn("VF2Layout", self.passes)
-        self.assertNotIn("DenseLayout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
         self.assertNotIn("VF2PostLayout", self.passes)
-        self.assertNotIn("StochasticSwap", self.passes)
+        self.assertNotIn("SabreSwap", self.passes)
 
 
 @ddt
@@ -1428,7 +1427,7 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
 class TestIntegrationControlFlow(QiskitTestCase):
     """Integration tests for control-flow circuits through the preset pass managers."""
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_default_compilation(self, optimization_level):
         """Test that a simple circuit with each type of control-flow passes a full transpilation
         pipeline with the defaults."""
@@ -1504,7 +1503,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
         # Assert routing ran.
         _visit_block(transpiled)
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_allow_overriding_defaults(self, optimization_level):
         """Test that the method options can be overridden."""
         circuit = QuantumCircuit(3, 1)
@@ -1542,33 +1541,19 @@ class TestIntegrationControlFlow(QiskitTestCase):
         self.assertNotIn("SabreLayout", calls)
         self.assertNotIn("BasisTranslator", calls)
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_invalid_methods_raise_on_control_flow(self, optimization_level):
         """Test that trying to use an invalid method with control flow fails."""
         qc = QuantumCircuit(1)
         with qc.for_loop((1,)):
             qc.x(0)
 
-        with self.assertRaisesRegex(TranspilerError, "Got layout_method="):
-            transpile(qc, layout_method="sabre", optimization_level=optimization_level)
         with self.assertRaisesRegex(TranspilerError, "Got routing_method="):
             transpile(qc, routing_method="lookahead", optimization_level=optimization_level)
-        with self.assertRaisesRegex(TranspilerError, "Got translation_method="):
-            transpile(qc, translation_method="synthesis", optimization_level=optimization_level)
         with self.assertRaisesRegex(TranspilerError, "Got scheduling_method="):
             transpile(qc, scheduling_method="alap", optimization_level=optimization_level)
 
-    @data(2, 3)
-    def test_unsupported_levels_raise(self, optimization_level):
-        """Test that trying to use an invalid method with control flow fails."""
-        qc = QuantumCircuit(1)
-        with qc.for_loop((1,)):
-            qc.x(0)
-
-        with self.assertRaisesRegex(TranspilerError, "The optimizations in optimization_level="):
-            transpile(qc, optimization_level=optimization_level)
-
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_unsupported_basis_gates_raise(self, optimization_level):
         """Test that trying to transpile a control-flow circuit for a backend that doesn't support
         the necessary operations in its `basis_gates` will raise a sensible error."""
@@ -1594,7 +1579,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
         with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
             transpile(qc, backend, optimization_level=optimization_level)
 
-    @data(0, 1)
+    @data(0, 1, 2, 3)
     def test_unsupported_targets_raise(self, optimization_level):
         """Test that trying to transpile a control-flow circuit for a backend that doesn't support
         the necessary operations in its `Target` will raise a more sensible error."""
