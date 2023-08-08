@@ -54,7 +54,7 @@ the classical registers in ascending order.
 
 ```python
 qc_measure = QuantumCircuit(3,3)
-qc_measure.measure([0,1,2], [0,1,2])
+qc_measure.measure_all(add_bits=False)
 qc_compose = qc_example.compose(qc_measure)
 
 from qiskit.primitives.sampler import Sampler
