@@ -64,7 +64,6 @@ def measure(
 
     # backend is V2.
     if isinstance(backend, BackendV2):
-
         return _measure_v2(
             qubits=qubits,
             target=backend.target,

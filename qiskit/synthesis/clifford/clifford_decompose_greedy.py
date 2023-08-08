@@ -219,7 +219,6 @@ def _calc_decoupling(pauli_x, pauli_z, qubit_list, min_qubit, num_qubits, cliff)
     # Reduce the pair of Paulis to a representative in the equivalence class
     # ['XZ', 'XX', 'XI', 'IZ', 'II'] by adding single-qubit gates
     for qubit in qubit_list:
-
         typeq = _from_pair_paulis_to_type(pauli_x, pauli_z, qubit)
 
         if typeq in [

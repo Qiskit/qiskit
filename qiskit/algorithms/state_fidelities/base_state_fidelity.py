@@ -42,7 +42,6 @@ class BaseStateFidelity(ABC):
     """
 
     def __init__(self) -> None:
-
         # use cache for preventing unnecessary circuit compositions
         self._circuit_cache: Mapping[tuple[int, int], QuantumCircuit] = {}
 
@@ -81,7 +80,6 @@ class BaseStateFidelity(ABC):
                     )
             return [[]]
         else:
-
             # Support ndarray
             if isinstance(values, np.ndarray):
                 values = values.tolist()
@@ -168,8 +166,7 @@ class BaseStateFidelity(ABC):
             )
 
         circuits = []
-        for (circuit_1, circuit_2) in zip(circuits_1, circuits_2):
-
+        for circuit_1, circuit_2 in zip(circuits_1, circuits_2):
             # TODO: improve caching, what if the circuit is modified without changing the id?
             circuit = self._circuit_cache.get((id(circuit_1), id(circuit_2)))
 
@@ -226,7 +223,7 @@ class BaseStateFidelity(ABC):
         elif len(values_1[0]) == 0:
             values = list(values_2)
         else:
-            for (val_1, val_2) in zip(values_1, values_2):
+            for val_1, val_2 in zip(values_1, values_2):
                 values.append(val_1 + val_2)
 
         return values

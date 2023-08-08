@@ -121,7 +121,6 @@ class CircuitOp(PrimitiveOp):
     def compose(
         self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
     ) -> OperatorBase:
-
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         new_self = cast(CircuitOp, new_self)
 

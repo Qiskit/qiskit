@@ -582,9 +582,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         operator: OperatorBase,
         return_expectation: bool = False,
-    ) -> Callable[[np.ndarray], float | list[float]] | tuple[
-        Callable[[np.ndarray], float | list[float]], ExpectationBase
-    ]:
+    ) -> (
+        Callable[[np.ndarray], float | list[float]]
+        | tuple[Callable[[np.ndarray], float | list[float]], ExpectationBase]
+    ):
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.

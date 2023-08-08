@@ -179,7 +179,6 @@ class GSLS(Optimizer):
         x_value = obj_fun(x)
         n_evals += 1
         while iter_count < self._options["maxiter"] and n_evals < self._options["max_eval"]:
-
             # Determine set of sample points
             directions, sample_set_x = self.sample_set(n, x, var_lb, var_ub, sample_set_size)
 

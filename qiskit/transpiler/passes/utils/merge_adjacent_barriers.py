@@ -113,10 +113,8 @@ class MergeAdjacentBarriers(TransformationPass):
         barrier_to_add = Barrier(len(current_qubits))
 
         for next_barrier in barriers[1:]:
-
             # Ensure barriers are adjacent before checking if they are mergeable.
             if dag._multi_graph.has_edge(end_of_barrier._node_id, next_barrier._node_id):
-
                 # Remove all barriers that have already been included in this new barrier from the
                 # set of ancestors/descendants as they will be removed from the new DAG when it is
                 # created.
@@ -133,7 +131,6 @@ class MergeAdjacentBarriers(TransformationPass):
                     and current_ancestors.isdisjoint(next_descendants)
                     and current_descendants.isdisjoint(next_ancestors)
                 ):
-
                     # can be merged
                     current_ancestors = current_ancestors | next_ancestors
                     current_descendants = current_descendants | next_descendants

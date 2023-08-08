@@ -176,7 +176,6 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         circuit.ry(x, 0)
 
         with self.assertWarns(DeprecationWarning):
-
             expr1 = ~StateFn(H) @ StateFn(circuit)
             expr2 = ~StateFn(X) @ StateFn(circuit)
             sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"), caching=caching)

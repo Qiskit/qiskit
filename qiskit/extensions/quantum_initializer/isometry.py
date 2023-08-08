@@ -103,7 +103,6 @@ class Isometry(Instruction):
         super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):
-
         # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)
         #  an isometry, but not for generating its decomposition. It would be cheaper to do the
         #  later here instead.
@@ -292,7 +291,6 @@ class Isometry(Instruction):
         return mcg_up_to_diag._get_diagonal()
 
     def _define_qubit_role(self, q):
-
         n = int(np.log2(self.iso_data.shape[0]))
         m = int(np.log2(self.iso_data.shape[1]))
 
@@ -502,7 +500,7 @@ def _get_binary_rep_as_list(n, num_digits):
 
 
 def _merge_UCGate_and_diag(single_qubit_gates, diag):
-    for (i, gate) in enumerate(single_qubit_gates):
+    for i, gate in enumerate(single_qubit_gates):
         single_qubit_gates[i] = np.array([[diag[2 * i], 0.0], [0.0, diag[2 * i + 1]]]).dot(gate)
     return single_qubit_gates
 

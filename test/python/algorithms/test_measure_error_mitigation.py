@@ -242,7 +242,6 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             )
 
         with self.assertWarns(DeprecationWarning):
-
             qaoa = QAOA(
                 optimizer=COBYLA(maxiter=3),
                 quantum_instance=quantum_instance,

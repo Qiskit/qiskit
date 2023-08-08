@@ -130,7 +130,6 @@ class FindCommutingPauliEvolutions(TransformationPass):
         }
 
         for edge, (pauli, coeff) in required_paulis.items():
-
             qubits = [dag.qubits[edge[0]], dag.qubits[edge[1]]]
 
             simple_pauli = Pauli(pauli.to_label().replace("I", ""))

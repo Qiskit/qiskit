@@ -171,7 +171,6 @@ class Gradient(GradientBase):
         # circuits were applied. Additionally, all coefficients within ComposedOps were collected
         # and moved out front.
         if isinstance(operator, ComposedOp):
-
             # Gradient of an expectation value
             if not is_coeff_c_abs(operator._coeff, 1.0):
                 raise OpflowError(

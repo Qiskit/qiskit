@@ -181,7 +181,6 @@ class CompleteMeasFitter:
         # do a partial trace
         for i in range(len(new_state_labels)):
             for j in range(len(new_state_labels)):
-
                 for q_q_i_map in q_q_mapping[i]:
                     for q_q_j_map in q_q_mapping[j]:
                         new_cal_matrix[i, j] += self.cal_matrix[q_q_i_map, q_q_j_map]
@@ -421,7 +420,6 @@ class TensoredMeasFitter:
                 for measured_state, counts in state_cnts.items():
                     end_index = self.nqubits
                     for cal_ind, cal_mat in enumerate(self._cal_matrices):
-
                         start_index = end_index - self._qubit_list_sizes[cal_ind]
 
                         substate_index = self._indices_list[cal_ind][state[start_index:end_index]]

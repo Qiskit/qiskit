@@ -31,7 +31,6 @@ class AlgorithmResult(ABC):
                 and not inspect.isfunction(value)
                 and hasattr(self, name)
             ):
-
                 result[name] = value
 
         return pprint.pformat(result, indent=4)

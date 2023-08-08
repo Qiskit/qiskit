@@ -1477,7 +1477,6 @@ class Layer:
         """
 
         for label, affected_bits in self.connections:
-
             if not affected_bits:
                 continue
 

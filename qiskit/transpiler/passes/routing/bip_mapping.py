@@ -217,7 +217,7 @@ class BIPMapping(TransformationPass):
                 from_steps = max(interval * (su4dep - 1), 0)
                 to_steps = min(interval * su4dep, model.depth - 1)
                 for t in range(from_steps, to_steps):  # pylint: disable=invalid-name
-                    for (i, j) in model.get_swaps(t):
+                    for i, j in model.get_swaps(t):
                         mapped_dag.apply_operation_back(
                             op=SwapGate(),
                             qargs=[canonical_qreg[i], canonical_qreg[j]],

@@ -273,7 +273,6 @@ class Z2Symmetries:
         symm_shape = stacked_symmetries.shape
 
         for row in range(symm_shape[0]):
-
             pauli_symmetries.append(
                 Pauli(
                     (

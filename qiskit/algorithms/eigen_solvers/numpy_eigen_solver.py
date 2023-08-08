@@ -176,7 +176,6 @@ class NumPyEigensolver(Eigensolver):
     def _eval_aux_operators(
         aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
     ) -> ListOrDict[tuple[complex, complex]]:
-
         values: ListOrDict[tuple[complex, complex]]
 
         # As a list, aux_operators can contain None operators for which None values are returned.
@@ -241,7 +240,6 @@ class NumPyEigensolver(Eigensolver):
 
         # if a filter is set, loop over the given values and only keep
         if self._filter_criterion:
-
             eigvecs = []
             eigvals = []
             aux_ops = []

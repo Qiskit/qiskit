@@ -155,7 +155,6 @@ def _reduce_cost(clifford, inv_circuit, cost):
     for qubit0 in range(num_qubits):
         for qubit1 in range(qubit0 + 1, num_qubits):
             for n0, n1 in product(range(3), repeat=2):
-
                 # Apply a 2-qubit block
                 reduced = clifford.copy()
                 for qubit, n in [(qubit0, n0), (qubit1, n1)]:

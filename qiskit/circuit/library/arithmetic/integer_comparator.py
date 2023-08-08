@@ -198,7 +198,6 @@ class IntegerComparator(BlueprintCircuit):
                 circuit.x(q_compare)
         # condition never satisfied for values larger than or equal to 2^n
         elif self.value < pow(2, self.num_state_qubits):
-
             if self.num_state_qubits > 1:
                 twos = self._get_twos_complement()
                 for i in range(self.num_state_qubits):
@@ -239,7 +238,6 @@ class IntegerComparator(BlueprintCircuit):
                         else:
                             circuit.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
             else:
-
                 # num_state_qubits == 1 and value == 1:
                 circuit.cx(qr_state[0], q_compare)
 

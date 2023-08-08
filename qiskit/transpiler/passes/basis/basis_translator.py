@@ -587,7 +587,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             ]
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-
                 logger.debug(
                     "Updating transform for mapped instr %s %s from \n%s",
                     mapped_instr_name,
@@ -596,7 +595,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
             for node in doomed_nodes:
-
                 replacement = equiv.assign_parameters(
                     dict(zip_longest(equiv_params, node.op.params))
                 )
@@ -606,7 +604,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 dag.substitute_node_with_dag(node, replacement_dag)
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-
                 logger.debug(
                     "Updated transform for mapped instr %s %s to\n%s",
                     mapped_instr_name,

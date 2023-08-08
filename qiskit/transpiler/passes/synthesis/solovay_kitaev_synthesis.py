@@ -263,7 +263,6 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         return False
 
     def run(self, unitary, **options):
-
         # Runtime imports to avoid the overhead of these imports for
         # plugin discovery and only use them if the plugin is run/used
         config = options.get("config") or {}

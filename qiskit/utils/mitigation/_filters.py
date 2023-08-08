@@ -149,7 +149,6 @@ class MeasurementFilter:
                 )
 
         elif isinstance(raw_data, qiskit.result.result.Result):
-
             # extract out all the counts, re-call the function with the
             # counts and push back into the new result
             new_result = deepcopy(raw_data)
@@ -173,7 +172,6 @@ class MeasurementFilter:
 
         # Apply the correction
         for data_idx, _ in enumerate(raw_data2):
-
             if method == "pseudo_inverse":
                 raw_data2[data_idx] = np.dot(pinv_cal_mat, raw_data2[data_idx])
 
@@ -279,7 +277,6 @@ class TensoredFilter:
         # get the indices in the calibration matrix
         self._indices_list = []
         for _, sub_labels in enumerate(self._substate_labels_list):
-
             self._indices_list.append({lab: ind for ind, lab in enumerate(sub_labels)})
 
     @property
@@ -382,7 +379,6 @@ class TensoredFilter:
                 raw_data2[0][stateidx] = count
 
         elif isinstance(raw_data, qiskit.result.result.Result):
-
             # extract out all the counts, re-call the function with the
             # counts and push back into the new result
             new_result = deepcopy(raw_data)
@@ -413,7 +409,6 @@ class TensoredFilter:
 
         # Apply the correction
         for data_idx, _ in enumerate(raw_data2):
-
             if method == "pseudo_inverse":
                 for pinv_cal_mat, pos_qubits, indices in zip(
                     pinv_cal_matrices, self._mit_pattern, self._indices_list

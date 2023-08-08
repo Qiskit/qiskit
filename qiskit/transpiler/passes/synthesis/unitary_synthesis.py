@@ -76,7 +76,6 @@ def _choose_euler_basis(basis_gates):
     basis_set = set(basis_gates or [])
 
     for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-
         if set(gates).issubset(basis_set):
             return basis
 

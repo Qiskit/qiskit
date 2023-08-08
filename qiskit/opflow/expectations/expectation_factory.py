@@ -71,7 +71,6 @@ class ExpectationFactory:
         # pylint: disable=cyclic-import
         primitives = operator.primitive_strings()
         if primitives in ({"Pauli"}, {"SparsePauliOp"}):
-
             if backend_to_check is None:
                 # If user has Aer but didn't specify a backend, use the Aer fast expectation
                 if optionals.HAS_AER:

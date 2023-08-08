@@ -212,7 +212,6 @@ class LinComb(CircuitGradient):
                         isinstance(params, list)
                         and all(isinstance(param, ParameterExpression) for param in params)
                     ):
-
                         return self._gradient_states(
                             state_op,
                             meas_op=(2 * meas),

@@ -86,7 +86,6 @@ class TestMatrixExpectation(QiskitOpflowTestCase):
         converted_meas = self.expect.convert(~StateFn(paulis_op))
 
         with self.assertWarns(DeprecationWarning):
-
             plus_mean = converted_meas @ Plus
             np.testing.assert_array_almost_equal(plus_mean.eval(), [1, 0, 0, 1], decimal=1)
             sampled_plus = self.sampler.convert(plus_mean)

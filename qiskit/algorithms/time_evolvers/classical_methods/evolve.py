@@ -97,7 +97,6 @@ def _evaluate_aux_ops(
 
 
 def _operator_to_matrix(operator: BaseOperator | PauliSumOp):
-
     if isinstance(operator, PauliSumOp):
         op_matrix = operator.to_spmatrix()
     else:

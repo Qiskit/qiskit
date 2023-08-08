@@ -109,7 +109,6 @@ class TestUtils(QiskitTestCase):
             return perm, inv_perm, p_mat, q_mat
 
         for n in range(1, self.max_nqubits_perms + 1):
-
             dim = 2**n
             for _ in range(100):
                 perm1, inv_perm1, p1_mat, q1_mat = _permutation_and_matrix(dim)

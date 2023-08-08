@@ -17,6 +17,7 @@ from collections.abc import Iterable
 
 from qiskit.circuit import QuantumCircuit, Parameter
 
+
 # pylint: disable=inconsistent-return-statements
 def bind(
     circuits: QuantumCircuit | Iterable[QuantumCircuit],

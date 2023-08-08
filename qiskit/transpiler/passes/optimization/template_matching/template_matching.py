@@ -256,7 +256,6 @@ class TemplateMatching:
                 if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
                     self.template_dag_dep.get_node(template_index).op
                 ):
-
                     qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
                     carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
 

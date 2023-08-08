@@ -213,7 +213,6 @@ class UMDA(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
-
         not_better_count = 0
         result = OptimizerResult()
 

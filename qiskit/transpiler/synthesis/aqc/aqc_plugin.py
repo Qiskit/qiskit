@@ -101,7 +101,6 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         return False
 
     def run(self, unitary, **options):
-
         # Runtime imports to avoid the overhead of these imports for
         # plugin discovery and only use them if the plugin is run/used
         from qiskit.algorithms.optimizers import L_BFGS_B

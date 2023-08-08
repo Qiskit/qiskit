@@ -231,7 +231,6 @@ class PauliSumOp(PrimitiveOp):
         permutation: Optional[List[int]] = None,
         front: bool = False,
     ) -> OperatorBase:
-
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         new_self = cast(PauliSumOp, new_self)
 
@@ -318,7 +317,6 @@ class PauliSumOp(PrimitiveOp):
             )
 
         else:
-
             if self.num_qubits != front.num_qubits:
                 raise ValueError(
                     "eval does not support operands with differing numbers of qubits, "

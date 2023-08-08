@@ -191,7 +191,6 @@ class Hessian(HessianBase):
         # circuits were applied. Additionally, all coefficients within ComposedOps were collected
         # and moved out front.
         if isinstance(operator, ComposedOp):
-
             if not is_coeff_c(operator.coeff, 1.0):
                 raise OpflowError(
                     "Operator pre-processing failed. Coefficients were not properly "

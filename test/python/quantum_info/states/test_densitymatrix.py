@@ -620,7 +620,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 3-qubit qargs
         target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-
             with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
@@ -628,7 +627,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 2-qubit qargs
         target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-
             with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
@@ -636,7 +634,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 1-qubit qargs
         target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
-
             with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
@@ -657,7 +654,6 @@ class TestDensityMatrix(QiskitTestCase):
 
         target = {"001": shots / 3, "010": shots / 3, "100": shots / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
@@ -665,7 +661,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 2-qubit qargs
         target = {"00": shots / 3, "01": shots / 3, "10": shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
@@ -673,7 +668,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 1-qubit qargs
         target = {"0": 2 * shots / 3, "1": shots / 3}
         for qargs in [[0], [1], [2]]:
-
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
@@ -764,7 +758,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 3-qubit qargs
         target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-
             with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
@@ -773,7 +766,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 2-qubit qargs
         target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-
             with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
@@ -782,7 +774,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 1-qubit qargs
         target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
-
             with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
@@ -803,7 +794,6 @@ class TestDensityMatrix(QiskitTestCase):
 
         target = {"001": shots / 3, "010": shots / 3, "100": shots / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-
             with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
@@ -812,7 +802,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 2-qubit qargs
         target = {"00": shots / 3, "01": shots / 3, "10": shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-
             with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
@@ -821,7 +810,6 @@ class TestDensityMatrix(QiskitTestCase):
         # 1-qubit qargs
         target = {"0": 2 * shots / 3, "1": shots / 3}
         for qargs in [[0], [1], [2]]:
-
             with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)

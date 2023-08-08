@@ -222,7 +222,6 @@ def _assemble_instructions(
 
     acquire_instruction_map = defaultdict(list)
     for time, instruction in sched.instructions:
-
         if isinstance(instruction, instructions.Play):
             if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
                 is_backend_supported = True

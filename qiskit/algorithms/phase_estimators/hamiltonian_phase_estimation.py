@@ -140,7 +140,6 @@ class HamiltonianPhaseEstimation:
         """
 
         if self._phase_estimation._sampler is not None:
-
             evo = PauliEvolutionGate(hamiltonian, -pe_scale.scale, synthesis=evolution)
             unitary = QuantumCircuit(evo.num_qubits)
             unitary.append(evo, unitary.qubits)

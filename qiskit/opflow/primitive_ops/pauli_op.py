@@ -153,7 +153,6 @@ class PauliOp(PrimitiveOp):
     def compose(
         self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
     ) -> OperatorBase:
-
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         new_self = cast(PauliOp, new_self)
 
@@ -233,7 +232,6 @@ class PauliOp(PrimitiveOp):
             )
 
         else:
-
             if self.num_qubits != front.num_qubits:
                 raise ValueError(
                     "eval does not support operands with differing numbers of qubits, "
@@ -241,7 +239,6 @@ class PauliOp(PrimitiveOp):
                 )
 
             if isinstance(front, DictStateFn):
-
                 new_dict: Dict[str, complex] = {}
                 corrected_x_bits = self.primitive.x[::-1]
                 corrected_z_bits = self.primitive.z[::-1]
@@ -320,7 +317,6 @@ class PauliOp(PrimitiveOp):
             return EvolvedOp(self)
 
     def to_circuit(self) -> QuantumCircuit:
-
         pauli = self.primitive.to_label()[-self.num_qubits :]
         phase = self.primitive.phase
 

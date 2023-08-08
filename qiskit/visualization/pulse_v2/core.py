@@ -290,7 +290,6 @@ class DrawerCanvas:
         for name, chans in mapper(
             channels=program.channels, formatter=self.formatter, device=self.device
         ):
-
             chart = Chart(parent=self, name=name)
 
             # add standard pulse instructions

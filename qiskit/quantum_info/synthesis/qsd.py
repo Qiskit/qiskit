@@ -214,7 +214,7 @@ def _get_ucry_cz(nqubits, angles):
     else:
         angles = angles.copy()
         UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
-        for (i, angle) in enumerate(angles):
+        for i, angle in enumerate(angles):
             if np.abs(angle) > _EPS:
                 qc.ry(angle, q_target)
             if not i == len(angles) - 1:

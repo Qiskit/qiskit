@@ -154,7 +154,6 @@ class Bloch:
     def __init__(
         self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=20
     ):
-
         # Figure and axes
         self._ext_fig = False
         if fig is not None:
@@ -587,7 +586,6 @@ class Bloch:
         """Plot vector"""
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.vectors)):
-
             xs3d = self.vectors[k][1] * np.array([0, 1])
             ys3d = -self.vectors[k][0] * np.array([0, 1])
             zs3d = self.vectors[k][2] * np.array([0, 1])

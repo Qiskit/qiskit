@@ -172,7 +172,6 @@ class NumPyEigensolver(Eigensolver):
         wavefn: np.ndarray,
         threshold: float = 1e-12,
     ) -> ListOrDict[tuple[complex, complex]]:
-
         values: ListOrDict[tuple[complex, complex]]
 
         # As a list, aux_operators can contain None operators for which None values are returned.
@@ -232,7 +231,6 @@ class NumPyEigensolver(Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> NumPyEigensolverResult:
-
         super().compute_eigenvalues(operator, aux_operators)
 
         if operator.num_qubits is None or operator.num_qubits < 1:

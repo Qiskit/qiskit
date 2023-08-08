@@ -134,7 +134,6 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> SamplerResult:
-
         # This line does the actual transpilation
         transpiled_circuits = self.transpiled_circuits
         bound_circuits = [

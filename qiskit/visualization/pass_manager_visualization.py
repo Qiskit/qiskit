@@ -200,7 +200,6 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
     component_id += 1
 
     for pass_ in controller_group["passes"]:
-
         # label is the name of the pass
         node = pydot.Node(
             str(component_id),

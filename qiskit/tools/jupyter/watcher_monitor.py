@@ -51,7 +51,6 @@ def _job_checker(job, status, watcher):
             if status.name == "QUEUED":
                 queue_pos = job.queue_position()
                 if queue_pos != prev_queue_pos:
-
                     update_info = (job.job_id(), status.name, queue_pos, status.value)
 
                     watcher.update_single_job(update_info)
