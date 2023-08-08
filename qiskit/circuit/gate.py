@@ -100,14 +100,14 @@ class Gate(Instruction):
         """Return controlled version of gate. See :class:`.ControlledGate` for usage.
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default: 1)
+            num_ctrl_qubits: number of controls to add to gate (default:: 1)
             label: optional gate label
             ctrl_state: The control state in decimal or as a bitstring
                 (e.g. ``'111'``). If None, use 2**``num_ctrl_qubits``-1.
 
         Returns:
             qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
-            uses ``num_ctrl_qubits``-1 ancillae qubits so returns a gate of size
+            uses ``num_ctrl_qubits``-1 ancilla qubits so returns a gate of size
             ``num_qubits`` + 2``*num_ctrl_qubits`` - 1.
 
         Raises:
