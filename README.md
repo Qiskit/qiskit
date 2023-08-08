@@ -5,7 +5,7 @@
 
 This library is the core component of Qiskit, **Terra**, which contains the building blocks for creating
 and working with quantum circuits, quantum operators, and primitive functions (sampler and estimator).
-It also contains a transpiler that supports optimizing quantum circutis and a quantum information toolbox for creating advanced quantum operators. 
+It also contains a transpiler that supports optimizing quantum circuits and a quantum information toolbox for creating advanced quantum operators. 
 
 For more details on how to use Qiskit you can refer to the documentation located here:
 
