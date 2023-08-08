@@ -68,7 +68,7 @@ To illustrate the power of estimator we now use the quantum information toolbox 
 
 ```python
 from qiskit.quantum_info import SparsePauliOp
-operator = SparsePauliOp('XXY')+SparsePauliOp('XYX')+SparsePauliOp('YXX')-SparsePauliOp('YYY')
+operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
 
 from qiskit.primitives.estimator import Estimator
 estimator = Estimator()
