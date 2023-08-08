@@ -1,4 +1,6 @@
-"""Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates."""
+"""Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
+Convert RX(pi/2) to SX, and RX(pi) to X if the calibrations exist in the target.
+"""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -12,9 +14,12 @@ class NormalizeRXAngle(TransformationPass):
     """Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
     This will help reducing the size of calibration data,
     as we don't have to keep separate, phase-flipped calibrations for negative rotation angles.
+    Moreover, convert RX(pi/2) to SX, and RX(pi) to X 
+    if the calibrations exist in the target.
+    This will let us exploit the hardware-calibrated pulses.
     """
 
-    def __init__(self, target=None):
+    def __init__(self, target=None, resolution_in_radian=0):
         """NormalizeRXAngle initializer.
 
         Args:
@@ -26,7 +31,7 @@ class NormalizeRXAngle(TransformationPass):
         self.target = target
 
     def run(self, dag):
-        """Run the WrapRXAngleFromZeroPi pass on `dag`.
+        """Run the NormalizeRXAngle pass on `dag`.
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.

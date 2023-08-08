@@ -26,22 +26,18 @@ class RXCalibrationBuilder(CalibrationBuilder):
     def __init__(
         self,
         target: Target = None,
-        resolution_in_radian=0.001,
     ):
         """Bootstrap single-pulse RX gate calibrations from the (hardware-calibrated) SX gate calibration.
 
         Args:
             target (Target): should contain a SX calibration that will be used for bootstrapping RX calibrations.
-            resolution_in_radian (float): if set to 0, this pass generates arbitary angle RX.
-        
         """
         from qiskit.transpiler.passes.optimization import NormalizeRXAngle
-        
+
         super().__init__()
         self.target = target
-        self.resolution_in_radian = resolution_in_radian
         self.already_generated = {}
-        self.requires = [NormalizeRXAngle()]
+        self.requires = [NormalizeRXAngle()]  # TODO create a passmanager and test
 
         if self.target.instruction_schedule_map() is None:
             raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
@@ -72,8 +68,6 @@ class RXCalibrationBuilder(CalibrationBuilder):
             angle = float(
                 angles[np.where(np.abs(angles - wrapped_theta) < (self.resolution_in_radian / 2))]
             )
-            # OVERWRITE THE RX ROTATION ANGLE IN THE CIRCUIT
-            node_op.params[0] = angle
         except KeyError:
             # there's no calibration at all for the given "qubits"
             angle = wrapped_theta
