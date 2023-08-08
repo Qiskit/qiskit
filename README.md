@@ -37,7 +37,7 @@ Create an example quantum circuit using the `QuantumCircuit` class:
 import numpy as np
 from qiskit import QuantumCircuit
 
-# A quantum circuit for preparing the quantum state |000> + i |111>
+# 1. A quantum circuit for preparing the quantum state |000> + i |111>
 qc_example = QuantumCircuit(3)
 qc_example.h(0) # generate superpostion
 qc_example.p(np.pi/2,0) # add quantum phase
@@ -53,10 +53,12 @@ we use the `compose` function to add a measurement circuit to the example circui
 the classical registers in ascending order. 
 
 ```python
+# 2. define the classical output to be measurement 
 qc_measure = QuantumCircuit(3,3)
 qc_measure.measure_all(add_bits=False)
 qc_compose = qc_example.compose(qc_measure)
 
+# 3. Execute using the Sampler primitive
 from qiskit.primitives.sampler import Sampler
 sampler = Sampler()
 job = sampler.run(qc_compose, shots=1000)
@@ -67,9 +69,11 @@ Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `00
 To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator `XXY+XYX+YXX-YYY`.
 
 ```python
+# 2. define the observable to be measured 
 from qiskit.quantum_info import SparsePauliOp
 operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
 
+# 3. Execute using the Sampler primitive
 from qiskit.primitives import Estimator
 estimator = Estimator()
 job = estimator.run(qc_example, operator, shots=1000)
