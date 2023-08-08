@@ -47,7 +47,7 @@ use swap_map::SwapMap;
 
 const BEST_EPSILON: f64 = 1e-10; // Epsilon used in minimum-score calculations.
 
-const EXTENDED_SET_SIZE: usize = 20; // Size of lookahead window.
+const EXTENDED_SET_SIZE: usize = 72; // Size of lookahead window.
 const DECAY_RATE: f64 = 0.001; // Decay coefficient for penalizing serial swaps.
 const DECAY_RESET_INTERVAL: u8 = 5; // How often to reset all decay rates to 1.
 const EXTENDED_SET_WEIGHT: f64 = 0.5; // Weight of lookahead window compared to front_layer.

@@ -140,10 +140,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(
             coupling_map_layout,
-            max_iterations=2,
+            max_iterations=10,
             seed=seed_transpiler,
-            swap_trials=10,
-            layout_trials=10,
+            swap_trials=50,
+            layout_trials=50,
             skip_routing=pass_manager_config.routing_method is not None
             and routing_method != "sabre",
             vf2_call_limit=int(5e6),
