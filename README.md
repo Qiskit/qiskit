@@ -1,11 +1,11 @@
 # Qiskit Terra
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)<!--- long-description-skip-begin -->[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)[![Minimum rustc 1.64.0](https://img.shields.io/badge/rustc-1.64.0+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)<!--- long-description-skip-end -->
 
-**Qiskit** is an open-source framework for working with noisy quantum computers at the level of pulses, circuits, and algorithms.
+**Qiskit**  is an open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and functions.
 
 This library is the core component of Qiskit, **Terra**, which contains the building blocks for creating
-and working with quantum circuits, programs, and algorithms. It also contains a compiler that supports
-different quantum computers and a common interface for running programs on different quantum computer architectures.
+and working with quantum circuits, quantum operators, and primitive functions (sampler and estimator).
+It also contains a transpiler that supports optimizing quantum circutis and a quantum information toolbox for creating advance quantum operators. 
 
 For more details on how to use Qiskit you can refer to the documentation located here:
 
@@ -26,59 +26,91 @@ To install from source, follow the instructions in the [documentation](https://q
 
 ## Creating Your First Quantum Program in Qiskit Terra
 
-Now that Qiskit is installed, it's time to begin working with Qiskit. To do this
-we create a `QuantumCircuit` object to define a basic quantum program.
+Now that Qiskit is installed, it's time to begin working with Qiskit. The essential parts of a quantum program are 
+1. Define and build a quantum circuit that represents the quantum state
+2. Define the classical output by a measurements circuit or a set of observable operators
+3. Depending on the output use the primitive function `sampler` to sample outcomes or the `estimaor` to estimate values.
+
+Usign the `QuantumCircuit` object a example quantum circuit can be created using:
 
 ```python
+import numpy as np
 from qiskit import QuantumCircuit
-qc = QuantumCircuit(2, 2)
-qc.h(0)
-qc.cx(0, 1)
-qc.measure([0,1], [0,1])
+
+# A quantum circuit for preparing the quantum state |000> + i |111>
+qc_example = QuantumCircuit(3)
+qc_example.h(0) # generate superpostion
+qc_example.p(np.pi/2,0) # add quantum phase
+qc_example.cx(0,1) # condition 1st qubit on 0th qubit
+qc_example.cx(0,2) # condition 2st qubit on 0th qubit
 ```
 
-This simple example makes an entangled state, also called a [Bell state](https://qiskit.org/textbook/ch-gates/multiple-qubits-entangled-states.html#3.2-Entangled-States-).
+This simple example makes an entangled state known as a GHZ state `(|000> + i |111>)/rt(2)`. It uses the standard quantum 
+gates: Hadamard gate, Phase gate and CNOT. 
 
-Once you've made your first quantum circuit, you can then simulate it.
-To do this, first we need to compile your circuit for the target backend we're going to run
-on. In this case we are leveraging the built-in `BasicAer` simulator. However, this
-simulator is primarily for testing and is limited in performance and functionality (as the name
-implies). You should consider more sophisticated simulators, such as [`qiskit-aer`](https://github.com/Qiskit/qiskit-aer/),
-for any real simulation work.
+Once you've made your first quantum circuit, you need to decide on which primtive function you will use. Starting with the sampler 
+we use the `compose` funtion to add a measurement circuit to the example circuit. In this example we simply map the qubits to
+the classical registers in asending order. 
+
+```python
+qc_measure = QuantumCircuit(3,3)
+qc_measure.measure([0,1,2], [0,1,2])
+qc_compose = qc_example.compose(qc_measure)
+
+from qiskit.primitives.sampler import Sampler
+sampler = Sampler()
+job = sampler.run(qc_compose, shots=1000)
+result = job.result()
+print(f" > Quasi probability distribution: {result.quasi_dists}")
+```
+Running this will give the outcome `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time upto statistical errors.  
+To illustrate the power of estimator we now use the quantum information toolbox to create the set of operators `[XXY, XYX, YXX, YYY]` which represents four different multi-qubit 
+observables.
+
+```python
+from qiskit.quantum_info import SparsePauliOp
+XXY = SparsePauliOp('XXY')
+XYX = SparsePauliOp('XYX')
+YXX = SparsePauliOp('YXX')
+YYY = SparsePauliOp('YYY')
+operators = [XXY,XYX,YXX,YYY]
+
+from qiskit.primitives.estimator import Estimator
+estimator = Estimator()
+job = estimator.run([qc_example]*4, operators, shots=1000)
+result = job.result()
+print(f" > Expectation values: {result.values}")
+```
+
+Running this will give the outcome `[1,1,1,-1]`. For fun try to assign a value of +/- 1 to each single qubit operator X and Y 
+and see if you can acheive this outcome. This is not possible!. 
+
+Using the Qiskit provided sampler and estimator will not take you very far. The power of quantum computing can not be simulated 
+on classical computers and you need to use real quantum hardware to scale to larger quantum circuits. However, running a quantum 
+circuit on hardware requires rewriting them to the basis gates and connectivity of the quantum hardware.
+We call this the [transpiler](https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html) 
+and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling. However, it also includes a
+default compiler which works very well in most examples and as a example the following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits with the `coupling_map =[[0, 1], [1, 2]]`.
 
 ```python
 from qiskit import transpile
-from qiskit.providers.basicaer import QasmSimulatorPy
-backend_sim = QasmSimulatorPy()
-transpiled_qc = transpile(qc, backend_sim)
+qc_ibm = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling_map =[[0, 1], [1, 2]] , optimization_level=3)
 ```
 
-After compiling the circuit we can then run this on the ``backend`` object with:
-
-```python
-result = backend_sim.run(transpiled_qc).result()
-print(result.get_counts(qc))
-```
-
-The output from this execution will look similar to this:
-
-```python
-{'00': 513, '11': 511}
-```
-
-For further examples of using Qiskit you can look at the example scripts in **examples/python**. You can start with
-[using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in the levels. Also
-you can refer to the tutorials in the documentation here:
+For further examples of using Qiskit you can look at the example scripts in **examples/python** and the tutorials 
+in the documentation here:
 
 https://qiskit.org/documentation/tutorials.html
 
 
-### Executing your code on a real quantum chip
+### Executing your code on a real quantum hardware
 
-You can also use Qiskit to execute your code on a **real quantum processor**.
-Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any
-vendor that provides an interface to their systems through Qiskit. Using these ``providers`` you can run any Qiskit code against
-real quantum computers. Some examples of published provider packages for running on real hardware are:
+Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides an interface. 
+The default way for using Qiskit is to have a runtime environment that provides optimal implementations of `sampler` and `estimator` for a given hardware. This runtime may invole using pre and post processing such as optimized transpiler passes with error supression, error mitigation and eventually error correction built in. The runtime must provide a promise to the user that these primitives functions exist
+
+* https://github.com/Qiskit/qiskit-ibm-runtime
+
+However, as Qiskit transitions to the runtime enviroment some hardware is only supported with the ``providers`` interface, however each provider may perform different types of pre and post processing and the return outcomes that are vendor defined:
 
 * https://github.com/Qiskit/qiskit-ibmq-provider
 * https://github.com/Qiskit-Partners/qiskit-ionq
