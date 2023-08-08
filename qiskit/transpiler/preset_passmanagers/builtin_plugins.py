@@ -21,6 +21,7 @@ from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 
 class BasicSwapPassManager(PassManagerStagePlugin):
@@ -343,6 +344,23 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
+        inst_map = pass_manager_config.inst_map
+        target = pass_manager_config.target
+
+        return common.generate_scheduling(
+            instruction_durations, scheduling_method, timing_constraints, inst_map, target
+        )
+
+
+class DefaultSchedulingPassManager(PassManagerStagePlugin):
+    """Plugin class for alap scheduling stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        """Build scheduling stage PassManager"""
+
+        instruction_durations = pass_manager_config.instruction_durations
+        scheduling_method = None
+        timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
         inst_map = pass_manager_config.inst_map
         target = pass_manager_config.target
 

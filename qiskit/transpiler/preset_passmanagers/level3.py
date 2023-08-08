@@ -82,7 +82,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
-    scheduling_method = pass_manager_config.scheduling_method
+    scheduling_method = pass_manager_config.scheduling_method or "default"
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
@@ -301,14 +301,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     if isinstance(scheduling_method, PassManager):
         sched = scheduling_method
-    elif scheduling_method is None:
-        sched = common.generate_scheduling(
-            instruction_durations,
-            scheduling_method,
-            timing_constraints,
-            inst_map,
-            target=target,
-        )
+
     else:
         sched = plugin_manager.get_passmanager_stage(
             "scheduling", scheduling_method, pass_manager_config, optimization_level=3
