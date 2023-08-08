@@ -1,22 +1,23 @@
 """Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
 Convert RX(pi/2) to SX, and RX(pi) to X if the calibrations exist in the target.
+Quantize the RX rotation angles with a resolution provided by the user.
 """
+
+import numpy as np
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit import QuantumRegister
 from qiskit.circuit.library.standard_gates import RXGate, RZGate, SXGate, XGate
-
-import numpy as np
 
 
 class NormalizeRXAngle(TransformationPass):
     """Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
     This will help reducing the size of calibration data,
     as we don't have to keep separate, phase-flipped calibrations for negative rotation angles.
-    Moreover, convert RX(pi/2) to SX, and RX(pi) to X 
+    Moreover, convert RX(pi/2) to SX, and RX(pi) to X
     if the calibrations exist in the target.
     This will let us exploit the hardware-calibrated pulses.
+    Lastly, quantize the RX rotation angles with a resolution provided by the user.
     """
 
     def __init__(self, target=None, resolution_in_radian=0):
@@ -26,12 +27,46 @@ class NormalizeRXAngle(TransformationPass):
             target (Target): The :class:`~.Target` representing the target backend.
                 If the target contains SX and X calibrations, this pass will replace the
                 corresponding RX gates with SX and X gates.
+            resolution_in_radian (float): Resolution for RX rotation angle quantization.
+                If set to zero, the pass doesn't change anything.
+                (=Provides aribitary-angle RX)
         """
         super().__init__()
         self.target = target
+        self.resolution_in_radian = resolution_in_radian
+        self.already_generated = {}
+
+    def quantize_angles(self, qubit, original_angle):
+        """Quantize the RX rotation angles with a resolution provided by the user.
+
+        Args:
+            qubit (Qubit): This will be the dict key to access the list of quantized rotation angles.
+            original_angle (float): Original rotation angle, before quantization.
+
+        Returns:
+            float: Quantized angle.
+        """
+
+        # check if there is already a calibration for a simliar angle
+        try:
+            angles = self.already_generated[qubit]  # 1d ndarray of already generated angles
+            quantized_angle = float(
+                angles[np.where(np.abs(angles - original_angle) < (self.resolution_in_radian / 2))]
+            )
+        except KeyError:
+            quantized_angle = original_angle
+            self.already_generated[qubit] = np.array([quantized_angle])
+        except TypeError:
+            quantized_angle = original_angle
+            self.already_generated[qubit] = np.append(
+                self.already_generated[qubit], quantized_angle
+            )
+
+        return quantized_angle
 
     def run(self, dag):
-        """Run the NormalizeRXAngle pass on `dag`.
+        """Run the NormalizeRXAngle pass on `dag`. This pass consists of three parts:
+        normalize_rx_angles(), convert_to_hardware_sx_x(), quantize_rx_angles().
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
@@ -48,6 +83,9 @@ class NormalizeRXAngle(TransformationPass):
             raw_theta = op_node.op.params[0]
             wrapped_theta = np.arctan2(np.sin(raw_theta), np.cos(raw_theta))  # [-pi, pi]
 
+            if self.resolution_in_radian:
+                wrapped_theta = self.quantize_angles(op_node.qargs[0], wrapped_theta)
+
             half_pi_rotation = np.isclose(abs(wrapped_theta), np.pi / 2)
             pi_rotation = np.isclose(abs(wrapped_theta), np.pi)
 
@@ -56,7 +94,7 @@ class NormalizeRXAngle(TransformationPass):
             try:
                 qubit = int(qubit)
                 find_bit_succeeded = True
-            except TypeError as e:
+            except TypeError:
                 find_bit_succeeded = False
 
             should_modify_node = (
@@ -68,22 +106,29 @@ class NormalizeRXAngle(TransformationPass):
 
             if should_modify_node:
                 mini_dag = DAGCircuit()
-                temp_qreg = QuantumRegister(1, "temp_qreg")
-                mini_dag.add_qreg(temp_qreg)
+                mini_dag.add_qubits(op_node.qargs)
 
                 # new X-rotation gate with angle in [0, pi]
-                if half_pi_rotation and find_bit_succeeded and self.target.has_calibration("sx", (qubit,)):
-                    mini_dag.apply_operation_back(SXGate(), qargs=temp_qreg)
-                elif pi_rotation and find_bit_succeeded and self.target.has_calibration("x", (qubit,)):
-                    mini_dag.apply_operation_back(XGate(), qargs=temp_qreg)
+                if (
+                    half_pi_rotation
+                    and find_bit_succeeded
+                    and self.target.has_calibration("sx", (qubit,))
+                ):
+                    mini_dag.apply_operation_back(SXGate(), qargs=op_node.qargs)
+                elif (
+                    pi_rotation
+                    and find_bit_succeeded
+                    and self.target.has_calibration("x", (qubit,))
+                ):
+                    mini_dag.apply_operation_back(XGate(), qargs=op_node.qargs)
                 else:
-                    mini_dag.apply_operation_back(RXGate(np.abs(wrapped_theta)), qargs=temp_qreg)
+                    mini_dag.apply_operation_back(RXGate(np.abs(wrapped_theta)), qargs=op_node.qargs)
 
                 # sandwich with RZ if the intended rotation angle was negative
                 if wrapped_theta < 0:
-                    mini_dag.apply_operation_front(RZGate(np.pi), qargs=temp_qreg)
-                    mini_dag.apply_operation_back(RZGate(-np.pi), qargs=temp_qreg)
+                    mini_dag.apply_operation_front(RZGate(np.pi), qargs=op_node.qargs)
+                    mini_dag.apply_operation_back(RZGate(-np.pi), qargs=op_node.qargs)
 
-                dag.substitute_node_with_dag(node=op_node, input_dag=mini_dag, wires=temp_qreg)
+                dag.substitute_node_with_dag(node=op_node, input_dag=mini_dag, wires=op_node.qargs)
 
         return dag

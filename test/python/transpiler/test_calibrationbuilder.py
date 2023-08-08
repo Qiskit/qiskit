@@ -42,7 +42,7 @@ from qiskit.transpiler.passes.calibration.builders import (
     RZXCalibrationBuilderNoEcho,
     RXCalibrationBuilder,
 )
-from qiskit.transpiler import Target
+from qiskit.transpiler import Target, InstructionProperties
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit.library.standard_gates import RXGate, RZGate
 from qiskit.circuit import Parameter
@@ -467,76 +467,54 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         with self.assertRaises(QiskitError):
             tp.get_calibration(rx, qubits)
 
-    @named_data(
-        {
-            "name": "angles within resolution",
-            "resolution": 0.1,
-            "rx_angles": [0.3, 0.303],
-            "correct_num_of_cals": 1,
-        },
-        {
-            "name": "angles not within resolution",
-            "resolution": 0.1,
-            "rx_angles": [0.2, 0.4],
-            "correct_num_of_cals": 2,
-        },
-        {
-            "name": "same angle three times",
-            "resolution": 0.1,
-            "rx_angles": [0.2, 0.2, 0.2],
-            "correct_num_of_cals": 1,
-        },
-    )
-    def test_get_calibration(self, resolution, rx_angles, correct_num_of_cals):
-        """Test that get_calibration() adds a new calibration only if
-        the requested angle is not in the vicinity of the angles already generated.
-        """
-        backend = FakeBelemV2()
-        tp = RXCalibrationBuilder(backend.target, resolution_in_radian=resolution)
-
-        qc = QuantumCircuit(1)
-        for rx_angle in rx_angles:
-            qc.rx(rx_angle, 0)
-        transpiled_circuit = tp(qc)
-
-        self.assertEqual(len(transpiled_circuit.calibrations["rx"]), correct_num_of_cals)
-
     # Note: these data values should be within [0, pi] because
     # the required NormalizeRXAngles pass ensures that.
     @data(0, np.pi / 3, (2 / 3) * np.pi)
-    def test_pulse_amplitude(self, theta: float):
+    def test_pulse_schedule(self, theta: float):
         """Test that get_calibration() returns a schedule with correct amplitude."""
         backend = FakeBelemV2()
-        tp = RXCalibrationBuilder(backend.target, resolution_in_radian=0)
-        qubits = (0,)
-        sx_params = (
-            backend.target.get_calibration("sx", qubits).instructions[0][1].pulse.parameters.copy()
-        )
-        rx = RXGate(theta)
-        test = tp.get_calibration(rx, qubits=qubits)
-
-        # with builder.build(backend=backend) as correct_rx_schedule:
-        #     builder.play(Drag(amp=self.compute_correct_rx_amplitude(rx_theta=theta, \
-        #                                                             sx_amp=sx_params["amp"]),\
-        #                     beta=sx_params["beta"],
-        #                     sigma=sx_params["sigma"],
-        #                     duration=sx_params["duration"],
-        #                     angle=0,
-        #                       ),
-        #                     channel=DriveChannel(qubits[0]))
-
-        # self.assertEqual(test, correct_rx_schedule)
-        self.assertTrue(
-            np.isclose(
-                self.compute_correct_rx_amplitude(rx_theta=theta, sx_amp=sx_params["amp"]),
-                test.instructions[0][1].pulse.parameters["amp"],
+        dummy_target = Target()
+        sx_amp, sx_beta, sx_sigma, sx_duration, sx_angle = 0.6, 2, 40, 160, 0.5
+        with builder.build(backend=backend) as dummy_sx_cal:
+            builder.play(
+                Drag(
+                    amp=sx_amp, beta=sx_beta, sigma=sx_sigma, duration=sx_duration, angle=sx_angle
+                ),
+                DriveChannel(0),
             )
+        dummy_target.add_instruction(
+            SXGate(), {(0,): InstructionProperties(calibration=dummy_sx_cal)}
         )
 
-    def test_normalizerxangles(self):
+        tp = RXCalibrationBuilder(dummy_target)
+        test = tp.get_calibration(RXGate(theta), qubits=(0,))
+
+        with builder.build(backend=backend) as correct_rx_schedule:
+            builder.play(
+                Drag(
+                    amp=self.compute_correct_rx_amplitude(rx_theta=theta, sx_amp=sx_amp),
+                    beta=sx_beta,
+                    sigma=sx_sigma,
+                    duration=sx_duration,
+                    angle=0,
+                ),
+                channel=DriveChannel(0),
+            )
+
+        self.assertEqual(test, correct_rx_schedule)
+
+    def test_with_normalizerxangles(self):
         """Checks that this pass works well with the NormalizeRXAngles pass"""
         backend = FakeBelemV2()
+        # NormalizeRXAngle pass should also be included because it's required
         pm = PassManager(RXCalibrationBuilder(backend.target))
-        # quantum circuit (pi/2, pi, pi/3)
-        # check that only pi/3 gets a rx calibration
-        # the others should be converted to SX and X
+
+        qc = QuantumCircuit(1)
+        qc.rx(np.pi / 3, 0)
+        qc.rx(np.pi / 2, 0)
+        qc.rx(np.pi, 0)
+
+        # Only RX(pi/3) should get a rx calibration.
+        # The others should be converted to SX and X
+        tc = pm.run(qc)
+        self.assertEqual(len(tc.calibrations["rx"]), 1)

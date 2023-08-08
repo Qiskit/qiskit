@@ -75,10 +75,11 @@ class TestNormalizeRXAngle(QiskitTestCase):
 
         self.assertQuantumCircuitEqual(transpiled_circ, qc_ref)
 
-    @named_data({"name": "-0.3pi", "raw_theta": -0.3 * np.pi, "correct_wrapped_theta": 0.3 * np.pi},
-                {"name": "1.7pi", "raw_theta": 1.7 * np.pi, "correct_wrapped_theta": 0.3 * np.pi},
-                {"name": "2.2pi", "raw_theta": 2.2 * np.pi, "correct_wrapped_theta": 0.2 * np.pi},
-                )
+    @named_data(
+        {"name": "-0.3pi", "raw_theta": -0.3 * np.pi, "correct_wrapped_theta": 0.3 * np.pi},
+        {"name": "1.7pi", "raw_theta": 1.7 * np.pi, "correct_wrapped_theta": 0.3 * np.pi},
+        {"name": "2.2pi", "raw_theta": 2.2 * np.pi, "correct_wrapped_theta": 0.2 * np.pi},
+    )
     def test_angle_wrapping_works(self, raw_theta, correct_wrapped_theta):
         backend = FakeBelemV2()
         tp = NormalizeRXAngle(target=backend.target)
@@ -88,8 +89,49 @@ class TestNormalizeRXAngle(QiskitTestCase):
         qc.rx(raw_theta, 0)
 
         transpiled_circuit = tp(qc)
-        wrapped_theta = transpiled_circuit.get_instructions('rx')[0].operation.params[0]
+        wrapped_theta = transpiled_circuit.get_instructions("rx")[0].operation.params[0]
         self.assertAlmostEqual(wrapped_theta, correct_wrapped_theta)
+
+    @named_data(
+        {
+            "name": "angles within resolution",
+            "resolution": 0.1,
+            "rx_angles": [0.3, 0.303],
+            "correct_num_of_cals": 1,
+        },
+        {
+            "name": "angles not within resolution",
+            "resolution": 0.1,
+            "rx_angles": [0.2, 0.4],
+            "correct_num_of_cals": 2,
+        },
+        {
+            "name": "same angle three times",
+            "resolution": 0.1,
+            "rx_angles": [0.2, 0.2, 0.2],
+            "correct_num_of_cals": 1,
+        },
+    )
+    def test_quantize_angles(self, resolution, rx_angles, correct_num_of_cals):
+        """Test that quantize_angles() adds a new calibration only if
+        the requested angle is not in the vicinity of the angles already generated.
+        """
+        backend = FakeBelemV2()
+        tp = NormalizeRXAngle(backend.target, resolution_in_radian=resolution)
+
+        qc = QuantumCircuit(1)
+        for rx_angle in rx_angles:
+            qc.rx(rx_angle, 0)
+        transpiled_circuit = tp(qc)
+
+        angles = [
+            inst.operation.params[0]
+            for inst in transpiled_circuit.data
+            if inst.operation.name == "rx"
+        ]
+        angles_without_duplicate = list(dict.fromkeys(angles))
+        self.assertEqual(len(angles_without_duplicate), correct_num_of_cals)
+
 
 if __name__ == "__main__":
     unittest.main()
