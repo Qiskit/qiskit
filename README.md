@@ -64,25 +64,20 @@ result = job.result()
 print(f" > Quasi probability distribution: {result.quasi_dists}")
 ```
 Running this will give the outcome `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time upto statistical errors.  
-To illustrate the power of estimator we now use the quantum information toolbox to create the set of operators `[XXY, XYX, YXX, YYY]` which represents four different multi-qubit 
-observables.
+To illustrate the power of estimator we now use the quantum information toolbox to create the operator `XXY+XYX+YXX-YYY`.
 
 ```python
 from qiskit.quantum_info import SparsePauliOp
-XXY = SparsePauliOp('XXY')
-XYX = SparsePauliOp('XYX')
-YXX = SparsePauliOp('YXX')
-YYY = SparsePauliOp('YYY')
-operators = [XXY,XYX,YXX,YYY]
+operator = SparsePauliOp('XXY')+SparsePauliOp('XYX')+SparsePauliOp('YXX')-SparsePauliOp('YYY')
 
 from qiskit.primitives.estimator import Estimator
 estimator = Estimator()
-job = estimator.run([qc_example]*4, operators, shots=1000)
+job = estimator.run(qc_example, operator, shots=1000)
 result = job.result()
 print(f" > Expectation values: {result.values}")
 ```
 
-Running this will give the outcome `[1,1,1,-1]`. For fun try to assign a value of +/- 1 to each single qubit operator X and Y 
+Running this will give the outcome `4`. For fun try to assign a value of +/- 1 to each single qubit operator X and Y 
 and see if you can acheive this outcome. This is not possible!. 
 
 Using the Qiskit provided sampler and estimator will not take you very far. The power of quantum computing can not be simulated 
