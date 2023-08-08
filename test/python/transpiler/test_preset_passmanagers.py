@@ -47,6 +47,7 @@ from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 
 
 def mock_get_passmanager_stage(
@@ -71,6 +72,8 @@ def mock_get_passmanager_stage(
         return pm
     elif stage_name == "routing":
         return PassManager([])
+    elif stage_name == "optimization":
+        return OptimizationPassManager().pass_manager(pm_config, optimization_level)
     else:
         raise Exception("Failure, unexpected stage plugin combo for test")
 
