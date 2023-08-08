@@ -802,14 +802,15 @@ class TestTranspile(QiskitTestCase):
             )
             self.assertTrue(is_last_measure)
 
-    def test_initialize_reset_should_be_removed(self):
-        """The reset in front of initializer should be removed when zero state"""
+    def test_initialize_reset_is_not_removed(self):
+        """The reset in front of initializer should NOT be removed at beginning"""
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
+        expected.reset(qr[0])
         expected.append(U3Gate(np.pi / 2, 0, 0), [qr[0]])
         expected.reset(qr[0])
         expected.append(U3Gate(np.pi / 2, -np.pi, 0), [qr[0]])
@@ -828,7 +829,7 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
-        self.assertEqual(reset_nodes, [])
+        self.assertEqual(len(reset_nodes), 3)
 
     def test_non_standard_basis(self):
         """Test a transpilation with a non-standard basis"""

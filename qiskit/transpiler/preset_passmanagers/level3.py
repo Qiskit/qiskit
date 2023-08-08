@@ -272,7 +272,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         if (coupling_map and not coupling_map.is_symmetric) or (
             target is not None and target.get_non_global_operation_names(strict_direction=True)
         ):
-            pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, True)
+            pre_optimization = common.generate_pre_op_passmanager(target, coupling_map, False)
             _direction = [
                 pass_
                 for x in common.generate_pre_op_passmanager(target, coupling_map).passes()
@@ -284,7 +284,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                     do_while=_opt_control,
                 )
         else:
-            pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
+            pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=False)
             optimization.append(
                 _opt + _unroll_if_out_of_basis + _minimum_point_check, do_while=_opt_control
             )
