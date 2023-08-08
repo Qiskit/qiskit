@@ -17,7 +17,6 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 from qiskit.transpiler.basepasses import BasePass
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
 
@@ -53,7 +52,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     """
     plugin_manager = PassManagerStagePluginManager()
     basis_gates = pass_manager_config.basis_gates
-    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method
@@ -62,11 +60,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
     scheduling_method = pass_manager_config.scheduling_method or "default"
-    instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
-    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
