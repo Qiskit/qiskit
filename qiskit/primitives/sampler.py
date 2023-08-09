@@ -98,7 +98,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
             qargs_list.append(self._qargs_list[i])
         probabilities = [
             Statevector(bound_circuit_to_instruction(circ)).probabilities_dict(
-                qargs=qargs, decimals=16
+                qargs=qargs, decimals=15
             )
             for circ, qargs in zip(bound_circuits, qargs_list)
         ]
