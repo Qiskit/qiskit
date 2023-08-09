@@ -83,7 +83,7 @@ print(f" > Expectation values: {result.values}")
 Running this will give the outcome `4`. For fun, try to assign a value of +/- 1 to each single-qubit operator X and Y 
 and see if you can achieve this outcome. (Spoiler alert: this is not possible!)
 
-Using the Qiskit-provided Sampler and Estimator will not take you very far. The power of quantum computing cannot be simulated 
+Using the Qiskit-provided `qiskit.primitives.Sampler` and `qiskit.primitives.Estimator` will not take you very far. The power of quantum computing cannot be simulated 
 on classical computers and you need to use real quantum hardware to scale to larger quantum circuits. However, running a quantum 
 circuit on hardware requires rewriting them to the basis gates and connectivity of the quantum hardware.
 The tool that does this is the [transpiler](https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html) 
