@@ -88,7 +88,7 @@ on classical computers and you need to use real quantum hardware to scale to lar
 circuit on hardware requires rewriting them to the basis gates and connectivity of the quantum hardware.
 The tool that does this is the [transpiler](https://qiskit.org/documentation/tutorials/circuits_advanced/04_transpiler_passes_and_passmanager.html) 
 and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling. However, it also includes a
-default compiler which works very well in most examples. The following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits with the `coupling_map =[[0, 1], [1, 2]]`.
+default compiler which works very well in most examples. The following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map =[[0, 1], [1, 2]]`.
 
 ```python
 from qiskit import transpile
