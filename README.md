@@ -46,7 +46,7 @@ qc_example.cx(0,2)  # 0th-qubit-Controlled-NOT gate on 2nd qubit
 ```
 
 This simple example makes an entangled state known as a GHZ state `(|000> + i |111>)/rt(2)`. It uses the standard quantum 
-gates: Hadamard gate, Phase gate and CNOT. 
+gates: Hadamard gate (`h`), Phase gate (`p`), and CNOT gate (`cx`). 
 
 Once you've made your first quantum circuit, choose which primitive function you will use. Starting with Sampler,
 we use the `compose` function to add a measurement circuit to the example circuit. In this example we simply map the qubits to
