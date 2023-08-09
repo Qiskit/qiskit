@@ -19,6 +19,7 @@ If nbconvert starts offering built-in parallelisation this script can likely be 
 """
 
 import argparse
+import functools
 import multiprocessing
 import os
 import pathlib
@@ -30,13 +31,16 @@ from nbconvert.preprocessors import ExecutePreprocessor
 
 
 def worker(
-    notebook_path: pathlib.Path, in_root: pathlib.Path, out_root: typing.Optional[pathlib.Path]
+    notebook_path: pathlib.Path,
+    in_root: pathlib.Path,
+    out_root: typing.Optional[pathlib.Path],
+    timeout: int = -1,
 ) -> typing.Optional[Exception]:
     """Single parallel worker that spawns a Jupyter executor node, executes the given notebook
     within it, and writes out the output."""
     try:
         print(f"({os.getpid()}) Processing '{str(notebook_path)}'", flush=True)
-        processor = ExecutePreprocessor(timeout=300, kernel_name="python3")
+        processor = ExecutePreprocessor(timeout=timeout, kernel_name="python3")
         with open(notebook_path, "r") as fptr:
             notebook = nbformat.read(fptr, as_version=4)
         # Run the notebook with the working  directory set to the folder it resides in.
@@ -60,9 +64,17 @@ def main() -> int:
         "notebook_dirs", type=pathlib.Path, nargs="*", help="Folders containing Jupyter notebooks."
     )
     parser.add_argument(
+        "-o",
         "--out",
         type=pathlib.Path,
         help="Output directory for files. Defaults to same location as input file, overwriting it.",
+    )
+    parser.add_argument(
+        "-j",
+        "--num-processes",
+        type=int,
+        default=os.cpu_count(),
+        help="Number of processes to use.",
     )
     args = parser.parse_args()
     notebooks = sorted(
@@ -72,10 +84,10 @@ def main() -> int:
             for notebook_path in in_root.glob("**/*.ipynb")
         }
     )
-    cpus = os.cpu_count()
-    print(f"Using {cpus} processes.")
-    with multiprocessing.Pool(cpus) as pool:
-        failures = pool.starmap(worker, notebooks)
+    timeout = int(os.getenv("QISKIT_CELL_TIMEOUT", "300"))
+    print(f"Using {args.num_processes} process{'' if args.num_processes == 1 else 'es'}.")
+    with multiprocessing.Pool(args.num_processes) as pool:
+        failures = pool.starmap(functools.partial(worker, timeout=timeout), notebooks)
     num_failures = 0
     for path, failure in zip(notebooks, failures):
         if failure is not None:

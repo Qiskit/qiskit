@@ -156,7 +156,7 @@ doctest_test_doctest_blocks = ""
 # Nbsphinx
 # ----------------------------------------------------------------------------------
 
-nbsphinx_timeout = 300
+nbsphinx_timeout = int(os.getenv("QISKIT_CELL_TIMEOUT", "300"))
 nbsphinx_execute = os.getenv("QISKIT_DOCS_BUILD_TUTORIALS", "never")
 nbsphinx_widgets_path = ""
 nbsphinx_thumbnails = {"**": "_static/images/logo.png"}
