@@ -49,8 +49,7 @@ This simple example makes an entangled state known as a GHZ state `(|000> + i |1
 gates: Hadamard gate (`h`), Phase gate (`p`), and CNOT gate (`cx`). 
 
 Once you've made your first quantum circuit, choose which primitive function you will use. Starting with Sampler,
-we use the `compose` function to add a measurement circuit to the example circuit. In this example we simply map the qubits to
-the classical registers in ascending order. 
+we use `measure_all(inplace=False)` to get a copy of the circuit in which all the qubits are measured:
 
 ```python
 # 2. define the classical output to be measurement 
