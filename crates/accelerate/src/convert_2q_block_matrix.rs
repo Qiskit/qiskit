@@ -26,9 +26,16 @@ pub fn blocks_to_matrix(
     py: Python,
     op_list: Vec<(PyReadonlyArray2<Complex64>, Vec<usize>)>,
 ) -> PyResult<Py<PyArray2<Complex64>>> {
-    let mut matrix: Array2<Complex64> = Array::eye(4);
     let identity: Array2<Complex64> = Array::eye(2);
-    for (op_matrix, q_list) in op_list {
+    let input_matrix = op_list[0].0.as_array();
+    let mut matrix: Array2<Complex64> = match op_list[0].1.as_slice() {
+        [0] => kron(&identity, &input_matrix),
+        [1] => kron(&input_matrix, &identity),
+        [0, 1] => input_matrix.to_owned(),
+        [1, 0] => change_basis(input_matrix),
+        _ => unreachable!(),
+    };
+    for (op_matrix, q_list) in op_list.into_iter().skip(1) {
         let op_matrix = op_matrix.as_array();
         let q_list = q_list.as_slice();
         let result = match q_list {
