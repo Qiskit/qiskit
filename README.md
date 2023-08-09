@@ -92,7 +92,7 @@ default compiler which works very well in most examples. The following code will
 
 ```python
 from qiskit import transpile
-qc_ibm = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling_map =[[0, 1], [1, 2]] , optimization_level=3)
+qc_transpiled = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling_map =[[0, 1], [1, 2]] , optimization_level=3)
 ```
 
 For further examples of using Qiskit, look at the example scripts in **examples/python** and the tutorials 
