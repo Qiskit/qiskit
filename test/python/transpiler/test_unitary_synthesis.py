@@ -50,6 +50,7 @@ from qiskit.circuit.library import (
     IGate,
     CXGate,
     RZGate,
+    RXGate,
     SXGate,
     XGate,
     iSwapGate,
@@ -808,6 +809,38 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
         self.assertEqual(qc_uni1_mat, Operator(cbody))
 
+    def test_mapping_control_flow(self):
+        """Test that inner dags use proper qubit mapping."""
+        qr = QuantumRegister(3, "q")
+        qc = QuantumCircuit(qr)
+
+        # Create target that supports CX only between 0 and 2.
+        fake_target = Target()
+        fake_target.add_instruction(CXGate(), {(0, 2): None})
+        fake_target.add_instruction(
+            UGate(Parameter("t"), Parameter("p"), Parameter("l")),
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+            },
+        )
+
+        qc_uni1 = QuantumCircuit(2)
+        qc_uni1.swap(0, 1)
+        qc_uni1_mat = Operator(qc_uni1)
+
+        loop_body = QuantumCircuit(2)
+        loop_body.unitary(qc_uni1_mat, [0, 1])
+
+        # Loop body uses qubits 0 and 2, mapped to 0 and 1 in the block.
+        # If synthesis doesn't handle recursive mapping, it'll incorrectly
+        # look for a CX on (0, 1) instead of on (0, 2).
+        qc.for_loop((0,), None, loop_body, [0, 2], [])
+
+        dag = circuit_to_dag(qc)
+        UnitarySynthesis(basis_gates=["u", "cx"], target=fake_target).run(dag)
+
     def test_single_qubit_with_target(self):
         """Test input circuit with only 1q works with target."""
         qc = QuantumCircuit(1)
@@ -913,6 +946,21 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertTrue(np.allclose(Operator(result_qc.to_gate()).to_matrix(), cxmat))
+
+    def test_parameterized_basis_gate_in_target(self):
+        """Test synthesis with parameterized RXX gate."""
+        theta = Parameter("θ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(RZGate(lam))
+        target.add_instruction(RXGate(theta))
+        target.add_instruction(RXXGate(theta))
+        qc = QuantumCircuit(2)
+        qc.cp(np.pi / 2, 0, 1)
+        qc_transpiled = transpile(qc, target=target, optimization_level=3, seed_transpiler=42)
+        opcount = qc_transpiled.count_ops()
+        self.assertTrue(set(opcount).issubset({"rz", "rx", "rxx"}))
+        self.assertTrue(np.allclose(Operator(qc_transpiled), Operator(qc)))
 
 
 if __name__ == "__main__":

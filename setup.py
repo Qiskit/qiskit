@@ -31,12 +31,12 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
-
 # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
-
+# If modifying these optional extras, make sure to sync with `requirements-optional.txt` and
+# `qiskit.utils.optionals` as well.
 qasm3_import_extras = [
     "qiskit-qasm3-import>=0.1.0",
 ]
@@ -58,7 +58,7 @@ toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.25.0",
+    version="0.45.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -110,9 +110,13 @@ setup(
             debug=rust_debug,
         ),
         RustExtension(
-            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
         ),
     ],
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
@@ -141,6 +145,11 @@ setup(
             "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
+        "qiskit.transpiler.scheduling": [
+            "alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager",
+            "asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager",
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager",
         ],
     },
 )

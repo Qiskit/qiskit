@@ -180,7 +180,7 @@ class XXDecomposer:
 
         return {"point": best_point, "cost": best_cost, "sequence": best_sequence}
 
-    def num_basis_gates(self, unitary):
+    def num_basis_gates(self, unitary: Operator | np.ndarray):
         """
         Counts the number of gates that would be emitted during re-synthesis.
 

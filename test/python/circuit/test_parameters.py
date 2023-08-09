@@ -21,7 +21,7 @@ from operator import add, mul, sub, truediv
 from test import combine
 
 import numpy
-from ddt import data, ddt
+from ddt import data, ddt, named_data
 
 import qiskit
 import qiskit.circuit.library as circlib
@@ -193,6 +193,18 @@ class TestParameters(QiskitTestCase):
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
 
+    @data(QuantumCircuit.assign_parameters, QuantumCircuit.bind_parameters)
+    def test_bind_parameters_custom_definition_global_phase(self, assigner):
+        """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
+        x = Parameter("x")
+        custom = QuantumCircuit(1, global_phase=x).to_gate()
+        base = QuantumCircuit(1)
+        base.append(custom, [0], [])
+
+        test = Operator(assigner(base, {x: math.pi}))
+        expected = Operator(numpy.array([[-1, 0], [0, -1]]))
+        self.assertEqual(test, expected)
+
     def test_bind_half_single_precision(self):
         """Test binding with 16bit and 32bit floats."""
         phase = Parameter("phase")
@@ -346,6 +358,23 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(theta.name, "θ")
         self.assertEqual(qc.parameters, {theta, x})
 
+    @named_data(
+        ["int", 2, int],
+        ["float", 2.5, float],
+        ["float16", numpy.float16(2.5), float],
+        ["float32", numpy.float32(2.5), float],
+        ["float64", numpy.float64(2.5), float],
+    )
+    def test_circuit_assignment_to_numeric(self, value, type_):
+        """Test binding a numeric value to a circuit instruction"""
+        x = Parameter("x")
+        qc = QuantumCircuit(1)
+        qc.append(Instruction("inst", 1, 0, [x]), (0,))
+        qc.assign_parameters({x: value}, inplace=True)
+        bound = qc.data[0].operation.params[0]
+        self.assertIsInstance(bound, type_)
+        self.assertEqual(bound, value)
+
     def test_partial_binding(self):
         """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
         theta = Parameter("θ")
@@ -401,10 +430,10 @@ class TestParameters(QiskitTestCase):
                 self.assertTrue(isinstance(pqc.data[0].operation.params[0], ParameterExpression))
                 self.assertEqual(str(pqc.data[0].operation.params[0]), "phi + 2")
 
-                fbqc = getattr(pqc, assign_fun)({phi: 1})
+                fbqc = getattr(pqc, assign_fun)({phi: 1.0})
 
                 self.assertEqual(fbqc.parameters, set())
-                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], ParameterExpression))
+                self.assertIsInstance(fbqc.data[0].operation.params[0], float)
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 3)
 
     def test_two_parameter_expression_binding(self):
@@ -448,7 +477,7 @@ class TestParameters(QiskitTestCase):
                 fbqc = getattr(pqc, assign_fun)({phi: 1})
 
                 self.assertEqual(fbqc.parameters, set())
-                self.assertTrue(isinstance(fbqc.data[0].operation.params[0], ParameterExpression))
+                self.assertIsInstance(fbqc.data[0].operation.params[0], int)
                 self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
 
     def test_raise_if_assigning_params_not_in_circuit(self):
@@ -505,8 +534,15 @@ class TestParameters(QiskitTestCase):
         circ.add_calibration("rxt", [0], rxt_q0, [theta])
         circ = circ.assign_parameters({theta: 3.14})
 
-        self.assertTrue(((0,), (3.14,)) in circ.calibrations["rxt"])
-        sched = circ.calibrations["rxt"][((0,), (3.14,))]
+        instruction = circ.data[0]
+        cal_key = (
+            tuple(circ.find_bit(q).index for q in instruction.qubits),
+            tuple(instruction.operation.params),
+        )
+        self.assertEqual(cal_key, ((0,), (3.14,)))
+        # Make sure that key from instruction data matches the calibrations dictionary
+        self.assertIn(cal_key, circ.calibrations["rxt"])
+        sched = circ.calibrations["rxt"][cal_key]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
 
     def test_calibration_assignment_doesnt_mutate(self):
@@ -531,11 +567,11 @@ class TestParameters(QiskitTestCase):
         self.assertNotEqual(assigned_circ.calibrations, circ.calibrations)
 
     def test_calibration_assignment_w_expressions(self):
-        """That calibrations with multiple parameters and more expressions."""
+        """That calibrations with multiple parameters are assigned correctly"""
         theta = Parameter("theta")
         sigma = Parameter("sigma")
         circ = QuantumCircuit(3, 3)
-        circ.append(Gate("rxt", 1, [theta, sigma]), [0])
+        circ.append(Gate("rxt", 1, [theta / 2, sigma]), [0])
         circ.measure(0, 0)
 
         rxt_q0 = pulse.Schedule(
@@ -548,8 +584,15 @@ class TestParameters(QiskitTestCase):
         circ.add_calibration("rxt", [0], rxt_q0, [theta / 2, sigma])
         circ = circ.assign_parameters({theta: 3.14, sigma: 4})
 
-        self.assertTrue(((0,), (3.14 / 2, 4)) in circ.calibrations["rxt"])
-        sched = circ.calibrations["rxt"][((0,), (3.14 / 2, 4))]
+        instruction = circ.data[0]
+        cal_key = (
+            tuple(circ.find_bit(q).index for q in instruction.qubits),
+            tuple(instruction.operation.params),
+        )
+        self.assertEqual(cal_key, ((0,), (3.14 / 2, 4)))
+        # Make sure that key from instruction data matches the calibrations dictionary
+        self.assertIn(cal_key, circ.calibrations["rxt"])
+        sched = circ.calibrations["rxt"][cal_key]
         self.assertEqual(sched.instructions[0][1].pulse.amp, 0.2)
         self.assertEqual(sched.instructions[0][1].pulse.sigma, 16)
 
@@ -789,7 +832,7 @@ class TestParameters(QiskitTestCase):
         for qc in results:
             circuit.compose(qc, inplace=True)
 
-        parameter_values = [{x: 1 for x in parameters}]
+        parameter_values = [{x: 1.0 for x in parameters}]
 
         qobj = assemble(
             circuit,
@@ -802,7 +845,7 @@ class TestParameters(QiskitTestCase):
         self.assertTrue(
             all(
                 len(inst.params) == 1
-                and isinstance(inst.params[0], ParameterExpression)
+                and isinstance(inst.params[0], float)
                 and float(inst.params[0]) == 1
                 for inst in qobj.experiments[0].instructions
             )
@@ -1258,6 +1301,22 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(abs(x) * abs(y), abs(x * y))
         self.assertEqual(abs(x) / abs(y), abs(x / y))
 
+    def test_cast_to_complex_when_bound(self):
+        """Verify that the cast to complex works for bound objects."""
+        x = Parameter("x")
+        y = Parameter("y")
+        bound_expr = (x + y).bind({x: 1.0, y: 1j})
+        self.assertEqual(complex(bound_expr), 1 + 1j)
+
+    def test_raise_if_cast_to_complex_when_not_fully_bound(self):
+        """Verify raises if casting to complex and not fully bound."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+        bound_expr = (x + y).bind({x: 1j})
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            complex(bound_expr)
+
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
 
@@ -1271,6 +1330,22 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         expr = x - x + 2.3
         self.assertEqual(float(expr), 2.3)
+
+    def test_cast_to_float_intermediate_complex_value(self):
+        """Verify expression can be cast to a float when it is fully bound, but an intermediate part
+        of the expression evaluation involved complex types.  Sympy is generally more permissive
+        than symengine here, and sympy's tends to be the expected behaviour for our users."""
+        x = Parameter("x")
+        bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
+        self.assertEqual(float(bound_expr), 1.0)
+
+    def test_cast_to_float_of_complex_fails(self):
+        """Test that an attempt to produce a float from a complex value fails if there is an
+        imaginary part, with a sensible error message."""
+        x = Parameter("x")
+        bound_expr = (x + 1.0j).bind({x: 1.0})
+        with self.assertRaisesRegex(TypeError, "could not cast expression to float"):
+            float(bound_expr)
 
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
         """Verify raises if casting to float and not fully bound."""
