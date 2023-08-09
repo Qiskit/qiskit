@@ -104,7 +104,7 @@ https://qiskit.org/documentation/tutorials.html
 ### Executing your code on real quantum hardware
 
 Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides a compatible interface. 
-The default way to use Qiskit is to have a runtime environment that provides optimal implementations of `sampler` and `estimator` for a given hardware. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. The runtime must provide a promise to the user that these primitives functions exist.
+The default way to use Qiskit is to have a runtime environment that provides optimal implementations of `sampler` and `estimator` for a given hardware. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements `qiskit.primitives.BaseSampler` and `qiskit.primitives.BaseEstimator` interfaces.
 
 * https://github.com/Qiskit/qiskit-ibm-runtime
 
