@@ -26,12 +26,6 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.m
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
-EXTRAS_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "extras.json")
-with open(EXTRAS_PATH) as fd:
-    extras_dict = json.load(fd)
-
-extras_dict["all"] = [pkg for requirements in extras_dict.values() for pkg in requirements]
-
 requirements = ["qiskit-terra==0.45.0"]
 
 setup(
@@ -69,5 +63,11 @@ setup(
     },
     include_package_data=True,
     python_requires=">=3.8",
-    extras_require=extras_dict,
+    extras_require={
+        "qasm3-import": ["qiskit-terra[qasm3-import]"],
+        "visualization": ["qiskit-terra[visualization]"],
+        "crosstalk-pass": ["qiskit-terra[crosstalk-pass]"],
+        "csp-layout-pass": ["qiskit-terra[csp-layout-pass]"],
+        "all": ["qiskit-terra[all]"],
+    },
 )
