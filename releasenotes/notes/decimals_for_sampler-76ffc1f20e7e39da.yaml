@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The :class:`~.Sampler` used to round quasi-probability values to 16 decimal positions. That rounding parameter was changed to 15.
+    This might slightly change the primitive output with respect to previous versions. The change have an amplified impact in some algorithms context,
+    like in QAOA, affecting the number of iterations and, potentially, their result.
