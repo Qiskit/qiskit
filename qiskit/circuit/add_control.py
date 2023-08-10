@@ -247,8 +247,7 @@ def control(
 
 
 def _gate_to_circuit(operation):
-    """Converts a gate instance to a QuantumCircuit
-    """
+    """Converts a gate instance to a QuantumCircuit"""
     if hasattr(operation, "definition") and operation.definition is not None:
         return operation.definition
     else:
@@ -259,10 +258,13 @@ def _gate_to_circuit(operation):
 
 
 def _unroll_gate(operation, basis_gates):
-    """Unrolls a gate, possibly composite, to the target basis
-    """
+    """Unrolls a gate, possibly composite, to the target basis"""
     circ = _gate_to_circuit(operation)
-    pm = PassManager([UnrollCustomDefinitions(sel, basis_gates=basis_gates),
-                      BasisTranslator(sel, target_basis=basis_gates)])
+    pm = PassManager(
+        [
+            UnrollCustomDefinitions(sel, basis_gates=basis_gates),
+            BasisTranslator(sel, target_basis=basis_gates),
+        ]
+    )
     opqc = pm.run(circ)
     return opqc.to_gate()
