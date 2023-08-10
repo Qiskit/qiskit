@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Replace each block of consecutive gates by a single Unitary node."""
+from __future__ import annotations
 
 import numpy as np
 

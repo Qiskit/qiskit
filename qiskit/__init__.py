@@ -40,6 +40,9 @@ sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
 sys.modules[
     "qiskit._accelerate.euler_one_qubit_decomposer"
 ] = qiskit._accelerate.euler_one_qubit_decomposer
+sys.modules[
+    "qiskit._accelerate.convert_2q_block_matrix"
+] = qiskit._accelerate.convert_2q_block_matrix
 
 
 # Extend namespace for backwards compat
