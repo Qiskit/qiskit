@@ -33,15 +33,16 @@ pub fn blocks_to_matrix(
         [1] => kron(&input_matrix, &identity),
         [0, 1] => input_matrix.to_owned(),
         [1, 0] => change_basis(input_matrix),
+        [] => Array::eye(4),
         _ => unreachable!(),
     };
     for (op_matrix, q_list) in op_list.into_iter().skip(1) {
         let op_matrix = op_matrix.as_array();
-        let q_list = q_list.as_slice();
-        let result = match q_list {
+        let result = match q_list.as_slice() {
             [0] => Some(kron(&identity, &op_matrix)),
             [1] => Some(kron(&op_matrix, &identity)),
             [1, 0] => Some(change_basis(op_matrix)),
+            [] => Some(Array::eye(4)),
             _ => None,
         };
         matrix = match result {
