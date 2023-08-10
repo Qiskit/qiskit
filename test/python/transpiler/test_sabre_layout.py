@@ -158,7 +158,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [13, 10, 11, 12, 17, 14, 22, 26, 5, 16, 25, 19, 7, 8]
+            [layout[q] for q in qc.qubits], [8, 12, 14, 13, 7, 5, 22, 21, 18, 16, 23, 19, 11, 3]
         )
 
     # pylint: disable=line-too-long
