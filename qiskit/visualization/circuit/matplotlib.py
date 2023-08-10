@@ -511,7 +511,7 @@ class MatplotlibDrawer:
                         # Update the wire_map with the qubits from the inner circuit
                         flow_wire_map = {
                             inner: wire_map[outer]
-                            for outer, inner in zip(self._qubits, circuit.qubits)
+                            for outer, inner in zip(node.qargs, circuit.qubits)
                             if inner not in wire_map
                         }
                         if not flow_wire_map:
