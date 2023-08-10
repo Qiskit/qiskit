@@ -17,7 +17,6 @@
 # and cleanly upgrade from one to the other, there needs to be a separate
 # package always needs
 
-import json
 import os
 
 from setuptools import setup

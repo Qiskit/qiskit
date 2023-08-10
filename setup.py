@@ -12,7 +12,6 @@
 
 "The Qiskit Terra setup file."
 
-import json
 import os
 import re
 from setuptools import setup, find_packages
