@@ -104,7 +104,8 @@ class TestPassCall(QiskitTestCase):
         with self.assertRaises(QiskitError) as cm:
             unroller(circuit)
         exp_msg = (
-            "Error decomposing node of instruction 'u': 'NoneType' object has no"
-            " attribute 'global_phase'. Unable to define instruction 'u' in the basis."
+            "Error decomposing node of instruction 'u': "
+            "'NoneType' object has no attribute 'global_phase'. "
+            "Unable to define instruction 'u' in the given basis."
         )
         self.assertEqual(exp_msg, cm.exception.message)
