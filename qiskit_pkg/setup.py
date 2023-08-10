@@ -15,7 +15,8 @@
 # This file is the setup.py file for the qiskit package. Because python
 # packaging doesn't offer a mechanism to have qiskit supersede qiskit-terra
 # and cleanly upgrade from one to the other, there needs to be a separate
-# package always needs
+# package shim to ensure no matter how people installed qiskit < 0.45.0 the
+# upgrade works.
 
 import os
 
