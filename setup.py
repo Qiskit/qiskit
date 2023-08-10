@@ -149,5 +149,10 @@ setup(
         "qiskit.transpiler.optimization": [
             "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager",
         ],
+        "qiskit.transpiler.scheduling": [
+            "alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager",
+            "asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager",
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager",
+        ],
     },
 )
