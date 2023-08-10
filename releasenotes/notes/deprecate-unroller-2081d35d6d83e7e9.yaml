@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Deprecates the `Unroller` basis translation pass in favor of using
+    a combination of `UnrollCustomDefinitions` and `BasisTranslator`.
