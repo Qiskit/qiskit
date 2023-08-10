@@ -99,7 +99,8 @@ class TestPassCall(QiskitTestCase):
         of a gate."""
         circuit = ZGate().control(2).definition
         basis = ["u1", "u2", "u3", "cx"]
-        unroller = Unroller(basis)
+        with self.assertWarns(DeprecationWarning):
+            unroller = Unroller(basis)
         with self.assertRaises(QiskitError) as cm:
             unroller(circuit)
         exp_msg = (

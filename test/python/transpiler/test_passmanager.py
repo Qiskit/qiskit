@@ -55,7 +55,8 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(Unroller(["u2"]))
+        with self.assertWarns(DeprecationWarning):
+            passmanager.append(Unroller(["u2"]))
         passmanager.append(Optimize1qGates())
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)

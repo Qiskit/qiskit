@@ -36,7 +36,8 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(["u2"])
+        with self.assertWarns(DeprecationWarning):
+            pass_ = Unroller(["u2"])
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
@@ -51,7 +52,8 @@ class TestUnroller(QiskitTestCase):
         lam = Parameter("lam")
         target.add_instruction(U2Gate(phi, lam))
         dag = circuit_to_dag(qc)
-        pass_ = Unroller(target=target)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = Unroller(target=target)
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
@@ -64,7 +66,8 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(["h", "t", "tdg", "cx"])
+        with self.assertWarns(DeprecationWarning):
+            pass_ = Unroller(["h", "t", "tdg", "cx"])
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
@@ -88,7 +91,8 @@ class TestUnroller(QiskitTestCase):
         circuit.y(qr).c_if(cr, 1)
         circuit.z(qr).c_if(cr, 1)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(["u1", "u2", "u3"])
+        with self.assertWarns(DeprecationWarning):
+            pass_ = Unroller(["u1", "u2", "u3"])
         unrolled_dag = pass_.run(dag)
 
         # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
@@ -115,7 +119,8 @@ class TestUnroller(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr)
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(basis=[])
+        with self.assertWarns(DeprecationWarning):
+            pass_ = Unroller(basis=[])
 
         with self.assertRaises(QiskitError):
             pass_.run(dag)
@@ -129,8 +134,8 @@ class TestUnroller(QiskitTestCase):
 
         qc.rz(theta, qr[0])
         dag = circuit_to_dag(qc)
-
-        unrolled_dag = Unroller(["u1", "u3", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            unrolled_dag = Unroller(["u1", "u3", "cx"]).run(dag)
 
         expected = QuantumCircuit(qr, global_phase=-theta / 2)
         expected.append(U1Gate(theta), [qr[0]])
@@ -148,8 +153,8 @@ class TestUnroller(QiskitTestCase):
 
         qc.rz(sum_, qr[0])
         dag = circuit_to_dag(qc)
-
-        unrolled_dag = Unroller(["u1", "u3", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            unrolled_dag = Unroller(["u1", "u3", "cx"]).run(dag)
 
         expected = QuantumCircuit(qr, global_phase=-sum_ / 2)
         expected.append(U1Gate(sum_), [qr[0]])
@@ -166,8 +171,8 @@ class TestUnroller(QiskitTestCase):
         qc.append(CU1Gate(theta), [qr[1], qr[0]])
         qc.append(CU1Gate(theta * theta), [qr[0], qr[1]])
         dag = circuit_to_dag(qc)
-
-        out_dag = Unroller(["u1", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["u1", "cx"]).run(dag)
 
         self.assertEqual(out_dag.count_ops(), {"u1": 6, "cx": 4})
 
@@ -190,7 +195,8 @@ class TestUnroller(QiskitTestCase):
         qc.append(subqc.to_instruction(), [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(["u1", "u3", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["u1", "u3", "cx"]).run(dag)
 
         # Pick up -1 * theta / 2 global phase four twice (once for each RZ -> P
         # in each of the two sub_instr instructions).
@@ -214,7 +220,8 @@ class TestUnroller(QiskitTestCase):
         qc.append(subqc.to_instruction({theta: gamma}), [qr2[2], qr2[3]])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(["u1", "u3", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["u1", "u3", "cx"]).run(dag)
 
         expected = QuantumCircuit(qr2, global_phase=-1 * (2 * phi + 2 * gamma) / 2.0)
         expected.append(U1Gate(phi), [qr2[0]])
@@ -239,7 +246,8 @@ class TestUnroller(QiskitTestCase):
         qc2.append(gate, qr2)
 
         dag = circuit_to_dag(qc2)
-        out_dag = Unroller(["cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["cx"]).run(dag)
 
         expected = QuantumCircuit(qr2)
         expected.cx(1, 0)
@@ -270,7 +278,8 @@ class TestUnroller(QiskitTestCase):
         qc4.append(gate_level_3, [0, 1])
 
         dag = circuit_to_dag(qc4)
-        out_dag = Unroller(["cx", "cp", "cu"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["cx", "cp", "cu"]).run(dag)
 
         expected = QuantumCircuit(qr4)
         expected.cx(1, 0)
@@ -290,7 +299,8 @@ class TestUnroller(QiskitTestCase):
         qc.append(v, [0])
 
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(["cx", "x", "h"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["cx", "x", "h"]).run(dag)
         qcd = dag_to_circuit(out_dag)
 
         self.assertEqual(Operator(qc), Operator(qcd))
@@ -308,7 +318,8 @@ class TestUnroller(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(gate, [0])
         dag = circuit_to_dag(qc)
-        out_dag = Unroller(["x", "u"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            out_dag = Unroller(["x", "u"]).run(dag)
         qcd = dag_to_circuit(out_dag)
 
         self.assertEqual(Operator(qc), Operator(qcd))
@@ -329,7 +340,8 @@ class TestUnroller(QiskitTestCase):
             qc.h(1)
             qc.cx(1, 0)
         dag = circuit_to_dag(qc)
-        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            unrolled_dag = Unroller(["u", "cx"]).run(dag)
 
         expected = QuantumCircuit(qubits, clbits)
         expected.u(pi / 2, 0, pi, 0)
@@ -365,7 +377,8 @@ class TestUnroller(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
         dag = circuit_to_dag(qc)
-        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            unrolled_dag = Unroller(["u", "cx"]).run(dag)
 
         expected = QuantumCircuit(qubits, clbits)
         expected.u(pi / 2, 0, pi, 0)
@@ -400,7 +413,8 @@ class TestUnroller(QiskitTestCase):
             with qc.while_loop((cr3, 0)):
                 qc.z(0)
         dag = circuit_to_dag(qc)
-        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            unrolled_dag = Unroller(["u", "cx"]).run(dag)
 
         expected = QuantumCircuit(qr, cr1, cr2, cr3)
         with expected.for_loop(range(3)):
@@ -420,7 +434,8 @@ class TestUnroller(QiskitTestCase):
         with qc.for_loop((0, 0.5 * pi), index) as param:
             qc.rx(param, 0)
         dag = circuit_to_dag(qc)
-        unrolled_dag = Unroller(["u", "cx"]).run(dag)
+        with self.assertWarns(DeprecationWarning):
+            unrolled_dag = Unroller(["u", "cx"]).run(dag)
 
         expected = QuantumCircuit(1)
         with expected.for_loop((0, 0.5 * pi), index) as param:
@@ -438,7 +453,8 @@ class TestUnrollAllInstructions(QiskitTestCase):
         cr = self.cr = ClassicalRegister(3, "cr")
         self.circuit = QuantumCircuit(qr, cr)
         self.ref_circuit = QuantumCircuit(qr, cr)
-        self.pass_ = Unroller(basis=["u3", "cx", "id"])
+        with self.assertWarns(DeprecationWarning):
+            self.pass_ = Unroller(basis=["u3", "cx", "id"])
 
     def compare_dags(self):
         """compare dags in class tests"""
