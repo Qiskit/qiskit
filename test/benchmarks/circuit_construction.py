@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,15 +26,15 @@ def build_circuit(width, gates):
     while len(qc) < gates:
         for k in range(width):
             qc.h(qr[k])
-        for k in range(width-1):
-            qc.cx(qr[k], qr[k+1])
+        for k in range(width - 1):
+            qc.cx(qr[k], qr[k + 1])
 
     return qc
 
 
 class CircuitConstructionBench:
     params = ([1, 2, 5, 8, 14, 20], [8, 128, 2048, 8192, 32768, 131072])
-    param_names = ['width', 'gates']
+    param_names = ["width", "gates"]
     timeout = 600
 
     def setup(self, width, gates):
@@ -54,7 +52,7 @@ class CircuitConstructionBench:
 
 
 def build_parameterized_circuit(width, gates, param_count):
-    params = [Parameter('param-%s' % x) for x in range(param_count)]
+    params = [Parameter("param-%s" % x) for x in range(param_count)]
     param_iter = itertools.cycle(params)
 
     qr = QuantumRegister(width)
@@ -64,17 +62,16 @@ def build_parameterized_circuit(width, gates, param_count):
         for k in range(width):
             param = next(param_iter)
             qc.u2(0, param, qr[k])
-        for k in range(width-1):
+        for k in range(width - 1):
             param = next(param_iter)
-            qc.crx(param, qr[k], qr[k+1])
+            qc.crx(param, qr[k], qr[k + 1])
 
     return qc, params
 
 
 class ParameterizedCircuitConstructionBench:
-    params = ([20], [8, 128, 2048, 8192, 32768, 131072],
-              [8, 128, 2048, 8192, 32768, 131072])
-    param_names = ['width', 'gates', 'number of params']
+    params = ([20], [8, 128, 2048, 8192, 32768, 131072], [8, 128, 2048, 8192, 32768, 131072])
+    param_names = ["width", "gates", "number of params"]
     timeout = 600
 
     def setup(self, _, gates, params):
@@ -86,17 +83,14 @@ class ParameterizedCircuitConstructionBench:
 
 
 class ParameterizedCircuitBindBench:
-    params = ([20], [8, 128, 2048, 8192, 32768, 131072],
-              [8, 128, 2048, 8192, 32768, 131072])
-    param_names = ['width', 'gates', 'number of params']
+    params = ([20], [8, 128, 2048, 8192, 32768, 131072], [8, 128, 2048, 8192, 32768, 131072])
+    param_names = ["width", "gates", "number of params"]
     timeout = 600
 
     def setup(self, width, gates, params):
         if params > gates:
             raise NotImplementedError
-        self.circuit, self.params = build_parameterized_circuit(width,
-                                                                gates,
-                                                                params)
+        self.circuit, self.params = build_parameterized_circuit(width, gates, params)
 
     def time_bind_params(self, _, __, ___):
         self.circuit.bind_parameters({x: 3.14 for x in self.params})

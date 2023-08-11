@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,4 +21,4 @@ from subprocess import call
 
 class QiskitImport:
     def time_qiskit_import(self):
-        call((executable, '-c', 'import qiskit'))
+        call((executable, "-c", "import qiskit"))

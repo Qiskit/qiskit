@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,6 +20,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreSwap
+
 try:
     from qiskit.compiler import transpile
 except ImportError:
@@ -39,7 +38,7 @@ def build_model_circuit(qreg, circuit=None):
         for j in range(i):
             # Using negative exponents so we safely underflow to 0 rather than
             # raise `OverflowError`.
-            circuit.cp(math.pi * (2.0 ** (j-i)), qreg[i], qreg[j])
+            circuit.cp(math.pi * (2.0 ** (j - i)), qreg[i], qreg[j])
         circuit.h(qreg[i])
 
     return circuit
@@ -54,14 +53,32 @@ class QftTranspileBench:
 
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
-        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
-                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
-                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
-                        [13, 12]]
-        transpile(self.circuit,
-                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  coupling_map=coupling_map,
-                  seed_transpiler=20220125)
+        coupling_map = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [4, 3],
+            [4, 10],
+            [5, 4],
+            [5, 6],
+            [5, 9],
+            [6, 8],
+            [7, 8],
+            [9, 8],
+            [9, 10],
+            [11, 3],
+            [11, 10],
+            [11, 12],
+            [12, 2],
+            [13, 1],
+            [13, 12],
+        ]
+        transpile(
+            self.circuit,
+            basis_gates=["u1", "u2", "u3", "cx", "id"],
+            coupling_map=coupling_map,
+            seed_transpiler=20220125,
+        )
 
 
 class LargeQFTMappingTimeBench:
@@ -74,9 +91,7 @@ class LargeQFTMappingTimeBench:
     def setup(self, n_qubits, _heuristic):
         qr = QuantumRegister(n_qubits, name="q")
         self.dag = circuit_to_dag(build_model_circuit(qr))
-        self.coupling = CouplingMap.from_heavy_hex(
-            self.heavy_hex_size[n_qubits]
-        )
+        self.coupling = CouplingMap.from_heavy_hex(self.heavy_hex_size[n_qubits])
 
     def time_sabre_swap(self, _n_qubits, heuristic):
         pass_ = SabreSwap(self.coupling, heuristic, seed=2022_10_27, trials=1)
@@ -100,9 +115,7 @@ class LargeQFTMappingTrackBench:
         def setup(n_qubits, heuristic):
             qr = QuantumRegister(n_qubits, name="q")
             dag = circuit_to_dag(build_model_circuit(qr))
-            coupling = CouplingMap.from_heavy_hex(
-                self.heavy_hex_size[n_qubits]
-            )
+            coupling = CouplingMap.from_heavy_hex(self.heavy_hex_size[n_qubits])
             pass_ = SabreSwap(coupling, heuristic, seed=2022_10_27, trials=1)
             return pass_.run(dag)
 

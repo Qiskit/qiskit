@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,64 +23,62 @@ from .utils import random_circuit
 
 
 class Collect2QPassBenchmarks:
-    params = ([5, 14, 20],
-              [1024])
+    params = ([5, 14, 20], [1024])
 
-    param_names = ['n_qubits', 'depth']
+    param_names = ["n_qubits", "depth"]
     timeout = 300
 
     def setup(self, n_qubits, depth):
         seed = 42
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, reset=True, seed=seed)
+        self.circuit = random_circuit(
+            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
+        )
         self.dag = circuit_to_dag(self.circuit)
         collect_blocks = Collect2qBlocks()
         collect_blocks.run(self.dag)
-        self.block_list = collect_blocks.property_set['block_list']
+        self.block_list = collect_blocks.property_set["block_list"]
 
     def time_consolidate_blocks(self, _, __):
         _pass = ConsolidateBlocks()
-        _pass.property_set['block_list'] = self.block_list
+        _pass.property_set["block_list"] = self.block_list
         _pass.run(self.dag)
 
 
 class CommutativeAnalysisPassBenchmarks:
-    params = ([5, 14, 20],
-              [1024])
+    params = ([5, 14, 20], [1024])
 
-    param_names = ['n_qubits', 'depth']
+    param_names = ["n_qubits", "depth"]
     timeout = 300
 
     def setup(self, n_qubits, depth):
         seed = 42
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, reset=True, seed=seed)
+        self.circuit = random_circuit(
+            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
+        )
         self.dag = circuit_to_dag(self.circuit)
         commutative_analysis = CommutationAnalysis()
-        commutative_analysis.run(
-            self.dag)
-        self.commutation_set = commutative_analysis.property_set[
-            'commutation_set']
+        commutative_analysis.run(self.dag)
+        self.commutation_set = commutative_analysis.property_set["commutation_set"]
 
     def time_commutative_cancellation(self, _, __):
         _pass = CommutativeCancellation()
-        _pass.property_set['commutation_set'] = self.commutation_set
+        _pass.property_set["commutation_set"] = self.commutation_set
         _pass.run(self.dag)
 
 
 class UnrolledPassBenchmarks:
-    params = ([5, 14, 20],
-              [1024])
+    params = ([5, 14, 20], [1024])
 
-    param_names = ['n_qubits', 'depth']
+    param_names = ["n_qubits", "depth"]
     timeout = 300
 
     def setup(self, n_qubits, depth):
         seed = 42
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, reset=True, seed=seed)
+        self.circuit = random_circuit(
+            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
+        )
         self.dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.unrolled_dag = Unroller(self.basis_gates).run(self.dag)
 
     def time_optimize_1q(self, _, __):
@@ -90,12 +86,13 @@ class UnrolledPassBenchmarks:
 
 
 class MultipleBasisPassBenchmarks:
-    params = ([5, 14, 20],
-              [1024],
-              [['u', 'cx', 'id'], ['rx', 'ry', 'rz', 'r', 'rxx', 'id'],
-               ['rz', 'x', 'sx', 'cx', 'id']])
+    params = (
+        [5, 14, 20],
+        [1024],
+        [["u", "cx", "id"], ["rx", "ry", "rz", "r", "rxx", "id"], ["rz", "x", "sx", "cx", "id"]],
+    )
 
-    param_names = ['n_qubits', 'depth', 'basis_gates']
+    param_names = ["n_qubits", "depth", "basis_gates"]
     timeout = 300
 
     def setup(self, n_qubits, depth, basis_gates):
@@ -115,18 +112,18 @@ class MultipleBasisPassBenchmarks:
 
 
 class PassBenchmarks:
-    params = ([5, 14, 20],
-              [1024])
+    params = ([5, 14, 20], [1024])
 
-    param_names = ['n_qubits', 'depth']
+    param_names = ["n_qubits", "depth"]
     timeout = 300
 
     def setup(self, n_qubits, depth):
         seed = 42
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, reset=True, seed=seed)
+        self.circuit = random_circuit(
+            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
+        )
         self.dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
 
     def time_unroller(self, _, __):
         Unroller(self.basis_gates).run(self.dag)
@@ -189,7 +186,7 @@ class PassBenchmarks:
         RemoveFinalMeasurements().run(self.dag)
 
     def time_contains_instruction(self, _, __):
-        ContainsInstruction('cx').run(self.dag)
+        ContainsInstruction("cx").run(self.dag)
 
     def time_gates_in_basis(self, _, __):
         GatesInBasis(self.basis_gates).run(self.dag)
@@ -199,16 +196,16 @@ class PassBenchmarks:
 
 
 class MultiQBlockPassBenchmarks:
-    params = ([5, 14, 20],
-              [1024], [1, 2, 3, 4, 5])
+    params = ([5, 14, 20], [1024], [1, 2, 3, 4, 5])
 
-    param_names = ['n_qubits', 'depth', 'max_block_size']
+    param_names = ["n_qubits", "depth", "max_block_size"]
     timeout = 300
 
     def setup(self, n_qubits, depth, _):
         seed = 42
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, reset=True, seed=seed)
+        self.circuit = random_circuit(
+            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
+        )
         self.dag = circuit_to_dag(self.circuit)
 
     def time_collect_multiq_block(self, _, __, max_block_size):
