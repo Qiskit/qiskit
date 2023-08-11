@@ -104,14 +104,14 @@ https://qiskit.org/documentation/tutorials.html
 ### Executing your code on real quantum hardware
 
 Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides a compatible interface. 
-The default way to use Qiskit is to have a runtime environment that provides optimal implementations of `sampler` and `estimator` for a given hardware. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements `qiskit.primitives.BaseSampler` and `qiskit.primitives.BaseEstimator` interfaces. For example,
+The best way to use Qiskit is with a runtime environment that provides optimized implementations of `sampler` and `estimator` for a given hardware platform. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements `qiskit.primitives.BaseSampler` and `qiskit.primitives.BaseEstimator` interfaces. For example,
 some packages that provide implementations of a runtime primitive implementation are:
 
 * https://github.com/Qiskit/qiskit-ibm-runtime
 
 Qiskit also provides a lower-level abstract interface for describing quantum backends. This interface, located in
 ``qiskit.providers``, defines an abstract `BackendV2` class that providers can implement to represent their
-hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface for will real hardware are:
+hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface with real hardware are:
 
 * https://github.com/Qiskit/qiskit-ibm-provider
 * https://github.com/qiskit-community/qiskit-ionq
