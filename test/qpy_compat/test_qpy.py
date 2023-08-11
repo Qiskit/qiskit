@@ -537,7 +537,6 @@ def generate_controlled_gates():
     custom_definition = QuantumCircuit(1)
     custom_definition.h(0)
     custom_definition.rz(1.5, 0)
-    custom_definition.sdg(0)
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
@@ -563,7 +562,6 @@ def generate_open_controlled_gates():
     custom_definition = QuantumCircuit(1)
     custom_definition.h(0)
     custom_definition.rz(1.5, 0)
-    custom_definition.sdg(0)
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="open_controls_nested")
     nested_qc.append(custom_gate, [0])
