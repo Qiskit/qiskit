@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -49,24 +47,20 @@ def gen_source(num_random_gate):
                         "label": "Y90p_d0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.0022743565483134 + 0.14767107967944j
-                            ),
+                            "amp": (0.0022743565483134 + 0.14767107967944j),
                             "beta": 0.5218372954777448,
                             "duration": 96,
                             "sigma": 24,
                         },
                         "pulse_shape": "drag",
-                        "t0": 0
+                        "t0": 0,
                     },
                     {
                         "ch": "d0",
                         "label": "CR90p_d0_u1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.03583301328943 - 0.0006486874906466j
-                            ),
+                            "amp": (0.03583301328943 - 0.0006486874906466j),
                             "duration": 1104,
                             "sigma": 64,
                             "width": 848,
@@ -79,9 +73,7 @@ def gen_source(num_random_gate):
                         "label": "CR90m_d0_u1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                -0.03583301328943 + 0.000648687490646j
-                            ),
+                            "amp": (-0.03583301328943 + 0.000648687490646j),
                             "duration": 1104,
                             "sigma": 64,
                             "width": 848,
@@ -100,9 +92,7 @@ def gen_source(num_random_gate):
                         "label": "X90p_d0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.14766707017470 - 0.002521280908868j
-                            ),
+                            "amp": (0.14766707017470 - 0.002521280908868j),
                             "beta": 0.5218372954777448,
                             "duration": 96,
                             "sigma": 24,
@@ -121,9 +111,7 @@ def gen_source(num_random_gate):
                         "label": "X90p_d1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.19074973504459 + 0.004525711677119j
-                            ),
+                            "amp": (0.19074973504459 + 0.004525711677119j),
                             "beta": -1.2815198779814807,
                             "duration": 96,
                             "sigma": 24,
@@ -149,9 +137,7 @@ def gen_source(num_random_gate):
                         "label": "Y90m_d1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.00285052543950 - 0.19078212177897j
-                            ),
+                            "amp": (0.00285052543950 - 0.19078212177897j),
                             "beta": -1.2815198779814807,
                             "duration": 96,
                             "sigma": 24,
@@ -176,9 +162,7 @@ def gen_source(num_random_gate):
                         "label": "CR90p_u1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                -0.1629668182698 - 0.8902610676540j
-                            ),
+                            "amp": (-0.1629668182698 - 0.8902610676540j),
                             "duration": 1104,
                             "sigma": 64,
                             "width": 848,
@@ -191,9 +175,7 @@ def gen_source(num_random_gate):
                         "label": "CR90m_u1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.16296681826986 + 0.8902610676540j
-                            ),
+                            "amp": (0.16296681826986 + 0.8902610676540j),
                             "duration": 1104,
                             "sigma": 64,
                             "width": 848,
@@ -254,9 +236,7 @@ def gen_source(num_random_gate):
                         "label": "X90p_d0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.14766707017470 - 0.002521280908868j
-                            ),
+                            "amp": (0.14766707017470 - 0.002521280908868j),
                             "beta": 0.5218372954777448,
                             "duration": 96,
                             "sigma": 24,
@@ -275,9 +255,7 @@ def gen_source(num_random_gate):
                         "label": "X90p_d0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.19074973504459 + 0.004525711677119j
-                            ),
+                            "amp": (0.19074973504459 + 0.004525711677119j),
                             "beta": -1.2815198779814807,
                             "duration": 96,
                             "sigma": 24,
@@ -302,9 +280,7 @@ def gen_source(num_random_gate):
                         "label": "X90p_d0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.14766707017470 - 0.002521280908868j
-                            ),
+                            "amp": (0.14766707017470 - 0.002521280908868j),
                             "beta": 0.5218372954777448,
                             "duration": 96,
                             "sigma": 24,
@@ -323,9 +299,7 @@ def gen_source(num_random_gate):
                         "label": "X90m_d0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                -0.14767107967944 + 0.002274356548313j
-                            ),
+                            "amp": (-0.14767107967944 + 0.002274356548313j),
                             "beta": 0.5218372954777448,
                             "duration": 96,
                             "sigma": 24,
@@ -374,9 +348,7 @@ def gen_source(num_random_gate):
                         "label": "X90p_d1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.19074973504459 + 0.004525711677119j
-                            ),
+                            "amp": (0.19074973504459 + 0.004525711677119j),
                             "beta": -1.2815198779814807,
                             "duration": 96,
                             "sigma": 24,
@@ -395,9 +367,7 @@ def gen_source(num_random_gate):
                         "label": "X90m_d1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                -0.19078212177897 - 0.002850525439509j
-                            ),
+                            "amp": (-0.19078212177897 - 0.002850525439509j),
                             "beta": -1.2815198779814807,
                             "duration": 96,
                             "sigma": 24,
@@ -440,9 +410,7 @@ def gen_source(num_random_gate):
                         "label": "M_m0",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                -0.3003200790496 + 0.3069634566518j
-                            ),
+                            "amp": (-0.3003200790496 + 0.3069634566518j),
                             "duration": 1792,
                             "sigma": 64,
                             "width": 1536,
@@ -455,9 +423,7 @@ def gen_source(num_random_gate):
                         "label": "M_m1",
                         "name": "parametric_pulse",
                         "parameters": {
-                            "amp": (
-                                0.26292757124962 + 0.14446138680205j
-                            ),
+                            "amp": (0.26292757124962 + 0.14446138680205j),
                             "duration": 1792,
                             "sigma": 64,
                             "width": 1536,
@@ -486,7 +452,7 @@ def gen_source(num_random_gate):
                     },
                 ],
             },
-        ]
+        ],
     }
 
     # add random waveform gate entries to increase overhead
@@ -535,8 +501,10 @@ def gen_source(num_random_gate):
 
 class PulseDefaultsBench:
 
-    params = ([0, 10, 100, 1000], )
-    param_names = ["number of random gates", ]
+    params = ([0, 10, 100, 1000],)
+    param_names = [
+        "number of random gates",
+    ]
 
     def setup(self, num_random_gate):
         self.source = gen_source(num_random_gate)
@@ -547,8 +515,10 @@ class PulseDefaultsBench:
 
 class CircuitSchedulingBench:
 
-    params = ([1, 2, 3, 15], )
-    param_names = ["number of unit cell repetition", ]
+    params = ([1, 2, 3, 15],)
+    param_names = [
+        "number of unit cell repetition",
+    ]
 
     def setup(self, repeat_unit_cell):
         source = gen_source(1)

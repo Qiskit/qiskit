@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,17 +20,14 @@ from .utils import random_circuit
 
 
 class AssemblerBenchmarks:
-    params = ([8],
-              [4096],
-              [1, 100])
-    param_names = ['n_qubits', 'depth', 'number of circuits']
+    params = ([8], [4096], [1, 100])
+    param_names = ["n_qubits", "depth", "number of circuits"]
     timeout = 600
     version = 2
 
     def setup(self, n_qubits, depth, number_of_circuits):
         seed = 42
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, seed=seed)
+        self.circuit = random_circuit(n_qubits, depth, measure=True, conditional=True, seed=seed)
         self.circuits = [self.circuit] * number_of_circuits
 
     def time_assemble_circuit(self, _, __, ___):
@@ -40,16 +35,13 @@ class AssemblerBenchmarks:
 
 
 class DisassemblerBenchmarks:
-    params = ([8],
-              [4096],
-              [1, 100])
-    param_names = ['n_qubits', 'depth', 'number of circuits']
+    params = ([8], [4096], [1, 100])
+    param_names = ["n_qubits", "depth", "number of circuits"]
     timeout = 600
 
     def setup(self, n_qubits, depth, number_of_circuits):
         seed = 424242
-        self.circuit = random_circuit(n_qubits, depth, measure=True,
-                                      conditional=True, seed=seed)
+        self.circuit = random_circuit(n_qubits, depth, measure=True, conditional=True, seed=seed)
         self.circuits = [self.circuit] * number_of_circuits
         self.qobj = assemble(self.circuits)
 

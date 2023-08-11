@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,7 +20,6 @@ from qiskit.pulse import builder, library, channels
 
 
 class EchoedCrossResonanceConstructionBench:
-
     def setup(self):
 
         with builder.build() as x_ctrl:
@@ -61,9 +58,9 @@ class EchoedCrossResonanceConstructionBench:
                     channels.DriveChannel(0),
                 )
                 with builder.phase_offset(
-                        np.pi,
-                        channels.ControlChannel(0),
-                        channels.DriveChannel(1),
+                    np.pi,
+                    channels.ControlChannel(0),
+                    channels.DriveChannel(1),
                 ):
                     with builder.align_left():
                         builder.play(
@@ -86,9 +83,9 @@ class EchoedCrossResonanceConstructionBench:
                 builder.call(self.cr45p)
                 builder.call(self.x_ctrl)
                 with builder.phase_offset(
-                        np.pi,
-                        channels.ControlChannel(0),
-                        channels.DriveChannel(1),
+                    np.pi,
+                    channels.ControlChannel(0),
+                    channels.DriveChannel(1),
                 ):
                     builder.call(self.cr45p)
                 builder.call(self.x_ctrl)
@@ -100,9 +97,9 @@ class EchoedCrossResonanceConstructionBench:
                 builder.reference("cr45p", "q0", "q1")
                 builder.reference("x", "q0")
                 with builder.phase_offset(
-                        np.pi,
-                        channels.ControlChannel(0),
-                        channels.DriveChannel(1),
+                    np.pi,
+                    channels.ControlChannel(0),
+                    channels.DriveChannel(1),
                 ):
                     builder.reference("cr45p", "q0", "q1")
                 builder.reference("x", "q0")
@@ -134,9 +131,7 @@ class ParameterizedScheduleBench:
 
         with builder.build() as outer_schedule:
             builder.reference("subroutine")
-        outer_schedule.assign_references(
-            {("subroutine", ): schedule}, inplace=True
-        )
+        outer_schedule.assign_references({("subroutine",): schedule}, inplace=True)
         self.outer_schedule = outer_schedule
 
         gate = Gate("my_gate", 1, [self.p0, self.p1, self.p2])
