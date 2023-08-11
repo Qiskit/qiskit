@@ -14,6 +14,7 @@
 
 """mpl circuit visualization backend."""
 
+import collections
 import itertools
 import re
 from warnings import warn
@@ -33,6 +34,8 @@ from qiskit.circuit import (
     ForLoopOp,
     SwitchCaseOp,
 )
+from qiskit.circuit.controlflow import condition_resources
+from qiskit.circuit.classical import expr
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -1090,45 +1093,70 @@ class MatplotlibDrawer:
         # For SwitchCaseOp convert the target to a fully closed Clbit or register
         # in condition format
         if isinstance(node.op, SwitchCaseOp):
-            if isinstance(node.op.target, Clbit):
+            if isinstance(node.op.target, expr.Expr):
+                condition = node.op.target
+            elif isinstance(node.op.target, Clbit):
                 condition = (node.op.target, 1)
             else:
                 condition = (node.op.target, 2 ** (node.op.target.size) - 1)
         else:
             condition = node.op.condition
-        label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
-        cond_bit_reg = condition[0]
-        cond_bit_val = int(condition[1])
 
+        override_fc = False
         first_clbit = len(self._qubits)
         cond_pos = []
 
-        # In the first case, multiple bits are indicated on the drawing. In all
-        # other cases, only one bit is shown.
-        if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
-            for idx in range(cond_bit_reg.size):
-                cond_pos.append(cond_xy[wire_map[cond_bit_reg[idx]] - first_clbit])
+        if isinstance(condition, expr.Expr):
+            # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
+            # `visualization.circuit_drawer` to remove warnings.
+            condition_bits = condition_resources(condition).clbits
+            label = "[expression]"
+            override_fc = True
+            registers = collections.defaultdict(list)
+            for bit in condition_bits:
+                registers[get_bit_register(self._circuit, bit)].append(bit)
+            # Registerless bits don't care whether cregbundle is set.
+            cond_pos.extend(cond_xy[wire_map[bit] - first_clbit] for bit in registers.pop(None, ()))
+            if self._cregbundle:
+                cond_pos.extend(
+                    cond_xy[wire_map[register[0]] - first_clbit] for register in registers
+                )
+            else:
+                cond_pos.extend(
+                    cond_xy[wire_map[bit] - first_clbit]
+                    for register, bits in registers.items()
+                    for bit in bits
+                )
+            val_bits = ["1"] * len(cond_pos)
+        else:
+            label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
+            cond_bit_reg = condition[0]
+            cond_bit_val = int(condition[1])
+            override_fc = (
+                cond_bit_val != 0
+                and self._cregbundle
+                and isinstance(cond_bit_reg, ClassicalRegister)
+            )
 
-        # If it's a register bit and cregbundle, need to use the register to find the location
-        elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-            register = get_bit_register(self._circuit, cond_bit_reg)
-            if register is not None:
-                cond_pos.append(cond_xy[wire_map[register] - first_clbit])
+            # In the first case, multiple bits are indicated on the drawing. In all
+            # other cases, only one bit is shown.
+            if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
+                for idx in range(cond_bit_reg.size):
+                    cond_pos.append(cond_xy[wire_map[cond_bit_reg[idx]] - first_clbit])
+
+            # If it's a register bit and cregbundle, need to use the register to find the location
+            elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
+                register = get_bit_register(self._circuit, cond_bit_reg)
+                if register is not None:
+                    cond_pos.append(cond_xy[wire_map[register] - first_clbit])
+                else:
+                    cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
             else:
                 cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
-        else:
-            cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
 
         xy_plot = []
-        for idx, xy in enumerate(cond_pos):
-            if val_bits[idx] == "1" or (
-                isinstance(cond_bit_reg, ClassicalRegister)
-                and cond_bit_val != 0
-                and self._cregbundle
-            ):
-                fc = self._style["lc"]
-            else:
-                fc = self._style["bg"]
+        for val_bit, xy in zip(val_bits, cond_pos):
+            fc = self._style["lc"] if override_fc or val_bit == "1" else self._style["bg"]
             box = glob_data["patches_mod"].Circle(
                 xy=xy,
                 radius=WID * 0.15,
