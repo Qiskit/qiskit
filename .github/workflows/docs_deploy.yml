@@ -183,6 +183,9 @@ jobs:
           ssh_key=$(openssl enc -aes-256-cbc -d -in qiskit/tools/github_poBranch_update_key.enc -K $SSH_UPDATE_KEY -iv $SSH_UPDATE_IV)
           echo "::add-mask::${ssh_key}"
           echo "ssh_key=${ssh_key}" >> "$GITHUB_OUTPUT"
+        env:
+          SSH_UPDATE_KEY: ${{ secrets.encrypted_ssh_translatables_key }}
+          SSH_UPDATE_IV: ${{ secrets.encrypted_ssh_translatables_iv }}
 
       - uses: actions/checkout@v3
         with:
