@@ -3,9 +3,9 @@ on:
   push:
     branches:
       - main
-      - 'stable/*'
     tags:
-      - '*'
+      # Only match non-prerelease tags.
+      - '[0-9]+.[0-9]+.[0-9]'
   workflow_dispatch:
     inputs:
       deploy_prefix:
@@ -27,11 +27,22 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
+    outputs:
+      latest_tag: ${{ steps.latest_tag.outputs.latest_tag }}
+
     steps:
       - uses: actions/checkout@v3
         with:
-          # We need to fetch the whole history so 'reno' can do its job.
+          # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
+
+      - name: Determine latest full release tag
+        id: latest_tag
+        run: |
+          set -e
+          latest_tag=$(git tag --list --sort=-version:refname | sed -n '/^[0-9]\+\.[0-9]\+\.[0-9]\+$/p' | head -n 1)
+          echo "Latest release tag: '$latest_tag'"
+          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -107,42 +118,61 @@ jobs:
           path: deploy
 
       - id: choose
-        name: Choose deployment location
+        name: Choose deployment location(s)
         run: |
           set -e
+          declare -a prefixes
           case ${{ github.event_name }} in
             push)
-              case ${{ github.ref_name }} in
-                main)
-                  echo "deploy_prefix=dev" >> "$GITHUB_OUTPUT"
+              case ${{ github.ref_type }} in
+                branch)
+                  if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+                    echo "Push to unhandled branch '$GITHUB_REF_NAME'" >&2
+                    exit 1
+                  fi
+
+                  prefixes+=( "dev" )
                   ;;
-                # This currently deploys to the documentation root on a push to _any_ stable branch;
-                # when we're supporting more than one version at once, it will need revisiting.
-                stable/*)
-                  echo "deploy_prefix=" >> "$GITHUB_OUTPUT"
+                tag)
+                  tag=$GITHUB_REF_NAME
+                  echo "Full tag: ${tag}"
+                  IFS=. read -ra version <<< "$tag"
+                  minor_version="${version[0]}.${version[1]}"
+                  echo "Minor version: ${minor_version}"
+                  prefixes+=( "stable/${minor_version}" )
+                  if [[ "$tag" == "$LATEST_TAG" ]]; then
+                    # Deploy to the root as well.
+                    prefixes+=( "" )
+                  fi
                   ;;
                 *)
-                  echo "Push to unhandled branch ${{ github.ref_name }}" >&2
+                  echo "Unhandled reference type '${{ github.ref_type }}'" >&2
                   exit 1
                   ;;
               esac
               ;;
-            tag)
-              tag=${{ github.ref_name }}
-              echo "Full tag: ${tag}"
-              IFS=. read -ra version <<< "$tag"
-              minor_version="${version[0]}.${version[1]}"
-              echo "Minor version: ${minor_version}"
-              echo "deploy_prefix=stable/${minor_version}" >> "$GITHUB_OUTPUT"
-              ;;
             workflow_dispatch)
-              echo "deploy_prefix=${{ inputs.deploy_prefix }}" >> "$GITHUB_OUTPUT"
+              prefixes+=( "$WORKFLOW_DISPATCH_PREFIX" )
               ;;
             *)
               echo "Unhandled GitHub event ${{ github.event_name }}" >&2
               exit 1
               ;;
           esac
+          # Join the array of prefixes into a colon-delimited list for
+          # serialisation.  This includes a trailing colon, so we can detect
+          # the presence of the empty string, even if it's the only prefix.
+          if [[ "${#prefixes[@]}" -gt 0 ]]; then
+            joined_prefixes=$(printf "%s:" "${prefixes[@]}")
+            echo "Chosen deployment prefixes: '$joined_prefixes'"
+            echo "joined_prefixes=$joined_prefixes" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing to deploy to."
+          fi
+        env:
+          LATEST_TAG: ${{ needs.build.outputs.latest_tag }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_DISPATCH_PREFIX: ${{ inputs.deploy_prefix }}
 
       - name: Install rclone
         run: |
@@ -151,17 +181,29 @@ jobs:
           sudo apt-get install -y ./rclone.deb
 
       - name: Deploy to qiskit.org
+        if: ${{ steps.choose.outputs.joined_prefixes != '' }}
         run: |
           set -e
           RCLONE_CONFIG=$(rclone config file | tail -1)
           openssl aes-256-cbc -K "$RCLONE_KEY" -iv "$RCLONE_IV" -in qiskit/tools/rclone.conf.enc -out "$RCLONE_CONFIG" -d
-          rclone sync --progress --exclude-from qiskit/tools/docs_exclude.txt deploy "IBMCOS:qiskit-org-web-resources/documentation/${{ steps.choose.outputs.deploy_prefix }}"
+          IFS=: read -ra prefixes <<< "$JOINED_PREFIXES"
+          for prefix in "${prefixes[@]}"; do
+            # The 'documentation' bit of the prefix is hard-coded in this step
+            # rather than being chosen during the prefix-choosing portion
+            # because we don't want to allow the 'workflow_dispatch' event
+            # trigger to accidentally allow a deployment to a dodgy prefix that
+            # wipes out _everything_ on qiskit.org.
+            location=documentation/$prefix
+            echo "Deploying to 'qiskit.org/$location'"
+            rclone sync --progress --exclude-from qiskit/tools/docs_exclude.txt deploy "IBMCOS:qiskit-org-web-resources/$location"
+          done
         env:
-          RCLONE_KEY: ${{ secrets.encrypted_rclone_key }}
-          RCLONE_IV: ${{ secrets.encrypted_rclone_iv }}
+          JOINED_PREFIXES: ${{ steps.choose.outputs.joined_prefixes }}
+          RCLONE_KEY: ${{ secrets.ENCRYPTED_RCLONE_KEY}}
+          RCLONE_IV: ${{ secrets.ENCRYPTED_RCLONE_IV }}
 
   deploy_translatables:
-    if: (github.event_name == 'workflow_dispatch' && inputs.do_translatables) || (github.event_name == 'push' && startsWith(github.ref_name.startsWith, 'stable/'))
+    if: (github.event_name == 'workflow_dispatch' && inputs.do_translatables) || (github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name == needs.build.outputs.latest_tag)
     name: Push translatable strings
     needs: [build]
     runs-on: ubuntu-latest
@@ -184,8 +226,8 @@ jobs:
           echo "::add-mask::${ssh_key}"
           echo "ssh_key=${ssh_key}" >> "$GITHUB_OUTPUT"
         env:
-          SSH_UPDATE_KEY: ${{ secrets.encrypted_ssh_translatables_key }}
-          SSH_UPDATE_IV: ${{ secrets.encrypted_ssh_translatables_iv }}
+          SSH_UPDATE_KEY: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_KEY }}
+          SSH_UPDATE_IV: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_IV }}
 
       - uses: actions/checkout@v3
         with:
