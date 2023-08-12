@@ -762,7 +762,9 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_list(obj: Iterable[tuple[str, complex]], dtype: type = complex) -> SparsePauliOp:
+    def from_list(
+        obj: Iterable[tuple[str, complex]], num_qubits: int = None, dtype: type = complex
+    ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
         For example, the 5-qubit Hamiltonian

@@ -229,7 +229,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
 
-    @combine(iterable=[list(), tuple(), zip()], num_qubits=[1, 2, 3])
+    @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
     def test_from_empty_iterable(self, iterable, num_qubits):
         """Test from_list method for empty iterable input."""
         with self.assertRaises(QiskitError):
@@ -238,7 +238,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
         np.testing.assert_array_equal(spp_op.coeffs, [0])
 
-    @combine(iterable=[list(), tuple(), zip()], num_qubits=[1, 2, 3])
+    @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
     def test_from_sparse_empty_iterable(self, iterable, num_qubits):
         """Test from_sparse_list method for empty iterable input."""
         spp_op = SparsePauliOp.from_sparse_list(iterable, num_qubits)
