@@ -26,6 +26,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
 from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.utils import optionals
 
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
@@ -1200,6 +1201,8 @@ class TestStatevector(QiskitTestCase):
         state2 = Statevector.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFT(5)
