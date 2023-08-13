@@ -13,9 +13,7 @@
 
 """Synthesize higher-level objects."""
 
-from typing import Optional
-
-from typing import Union
+from typing import Optional, Union, List
 
 from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -207,7 +205,10 @@ class HighLevelSynthesis(TransformationPass):
         dag_op_nodes = dag.op_nodes()
 
         for node in dag_op_nodes:
-            decomposition = self._recursively_handle_op(node.op)
+            qubits = (
+                [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
+            )
+            decomposition = self._recursively_handle_op(node.op, qubits)
 
             if not isinstance(decomposition, (QuantumCircuit, Operation)):
                 raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {node.op}.")
@@ -219,7 +220,9 @@ class HighLevelSynthesis(TransformationPass):
 
         return dag
 
-    def _recursively_handle_op(self, op: Operation) -> Union[Operation, QuantumCircuit]:
+    def _recursively_handle_op(
+        self, op: Operation, qubits: Optional[List] = None
+    ) -> Union[Operation, QuantumCircuit]:
         """Recursively synthesizes a single operation.
 
         The result can be either another operation or a quantum circuit.
@@ -236,11 +239,12 @@ class HighLevelSynthesis(TransformationPass):
         """
 
         # First, try to apply plugin mechanism
-        decomposition = self._synthesize_op_using_plugins(op)
+        decomposition = self._synthesize_op_using_plugins(op, qubits)
         if decomposition:
             return decomposition
 
         # Second, handle annotated operations
+        # For now ignore the qubits over which the annotated operation is defined.
         decomposition = self._synthesize_annotated_op(op)
         if decomposition:
             return decomposition
@@ -265,7 +269,9 @@ class HighLevelSynthesis(TransformationPass):
 
         return op
 
-    def _synthesize_op_using_plugins(self, op: Operation) -> Union[QuantumCircuit, None]:
+    def _synthesize_op_using_plugins(
+        self, op: Operation, qubits: List
+    ) -> Union[QuantumCircuit, None]:
         """
         Attempts to synthesize op using plugin mechanism.
         Returns either the synthesized circuit or None (which occurs when no
@@ -316,13 +322,9 @@ class HighLevelSynthesis(TransformationPass):
                 plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
             else:
                 plugin_method = plugin_specifier
-                
-            qubits = (
-                [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
-            )
 
             decomposition = plugin_method.run(
-                node.op,
+                op,
                 coupling_map=self._coupling_map,
                 target=self._target,
                 qubits=qubits,
@@ -343,7 +345,8 @@ class HighLevelSynthesis(TransformationPass):
         is not an annotated operation).
         """
         if isinstance(op, AnnotatedOperation):
-            synthesized_op = self._recursively_handle_op(op.base_op)
+            # Currently, we ignore the qubits when recursively synthesizing the base operation.
+            synthesized_op = self._recursively_handle_op(op.base_op, qubits=None)
 
             # Currently, we depend on recursive synthesis producing either a QuantumCircuit or a Gate.
             # If in the future we will want to allow HighLevelSynthesis to synthesize, say,
