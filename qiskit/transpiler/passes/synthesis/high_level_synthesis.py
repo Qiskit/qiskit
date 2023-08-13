@@ -214,9 +214,9 @@ class HighLevelSynthesis(TransformationPass):
                 raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {node.op}.")
 
             if isinstance(decomposition, QuantumCircuit):
-                dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
+                dag.substitute_node_with_dag(node, circuit_to_dag(decomposition), propagate_condition=False)
             elif isinstance(decomposition, Operation):
-                dag.substitute_node(node, decomposition)
+                dag.substitute_node(node, decomposition, propagate_condition=False)
 
         return dag
 
