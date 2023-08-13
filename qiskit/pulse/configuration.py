@@ -14,9 +14,29 @@
 Configurations for pulse experiments.
 """
 from typing import Dict, Union, Tuple, Optional
+import numpy as np
 
 from .channels import PulseChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
+
+
+def _assert_nested_dict_equal(a, b):
+    if len(a) != len(b):
+        return False
+    for key in a:
+        if key in b:
+            if isinstance(a[key], dict):
+                if not _assert_nested_dict_equal(a[key], b[key]):
+                    return False
+            elif isinstance(a[key], np.ndarray):
+                if not np.all(a[key] == b[key]):
+                    return False
+            else:
+                if a[key] != b[key]:
+                    return False
+        else:
+            return False
+    return True
 
 
 class Kernel:
@@ -41,6 +61,11 @@ class Kernel:
             ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items()),
         )
 
+    def __eq__(self, other):
+        if isinstance(other, Kernel):
+            return _assert_nested_dict_equal(self.__dict__, other.__dict__)
+        return False
+
 
 class Discriminator:
     """Setting for this Discriminator, which is responsible for classifying kerneled IQ points
@@ -63,6 +88,11 @@ class Discriminator:
             "'" + self.name + "', " or "",
             ", ".join(f"{str(k)}={str(v)}" for k, v in self.params.items()),
         )
+
+    def __eq__(self, other):
+        if isinstance(other, Discriminator):
+            return _assert_nested_dict_equal(self.__dict__, other.__dict__)
+        return False
 
 
 class LoRange:

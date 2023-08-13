@@ -20,6 +20,7 @@ from warnings import warn
 
 import numpy as np
 from qiskit.circuit import Clbit, Qubit, ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.circuit.classical import expr
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
@@ -416,7 +417,10 @@ class QCircuitImage:
                 num_cols_op = 1
                 wire_list = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
                 if getattr(op, "condition", None):
-                    self._add_condition(op, wire_list, column)
+                    if isinstance(op.condition, expr.Expr):
+                        warn("ignoring expression condition, which is not supported yet")
+                    else:
+                        self._add_condition(op, wire_list, column)
 
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
@@ -619,7 +623,6 @@ class QCircuitImage:
         # cwire - the wire number for the first wire for the condition register
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
-
         label, val_bits = get_condition_label_val(op.condition, self._circuit, self._cregbundle)
         cond_is_bit = isinstance(op.condition[0], Clbit)
         cond_reg = op.condition[0]

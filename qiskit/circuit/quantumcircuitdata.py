@@ -58,7 +58,7 @@ class CircuitInstruction:
         of distinct items, with no duplicates.
     """
 
-    __slots__ = ("operation", "qubits", "clbits", "_legacy_format_cache")
+    __slots__ = ("operation", "qubits", "clbits")
 
     operation: Operation
     """The logical operation that this instruction represents an execution of."""
@@ -76,7 +76,6 @@ class CircuitInstruction:
         self.operation = operation
         self.qubits = tuple(qubits)
         self.clbits = tuple(clbits)
-        self._legacy_format_cache = None
 
     def copy(self) -> "CircuitInstruction":
         """Return a shallow copy of the :class:`CircuitInstruction`."""
@@ -117,7 +116,7 @@ class CircuitInstruction:
                 and self.operation == other.operation
             )
         if isinstance(other, tuple):
-            return self._legacy_format == other
+            return self._legacy_format() == other
         return NotImplemented
 
     # Legacy tuple-like interface support.
@@ -127,19 +126,16 @@ class CircuitInstruction:
     # like that via unpacking or similar.  That means that the `parameters` field is completely
     # absent, and the qubits and clbits must be converted to lists.
 
-    @property
     def _legacy_format(self):
-        if self._legacy_format_cache is None:
-            # The qubits and clbits were generally stored as lists in the old format, and various
-            # places assume that they will certainly be lists.
-            self._legacy_format_cache = (self.operation, list(self.qubits), list(self.clbits))
-        return self._legacy_format_cache
+        # The qubits and clbits were generally stored as lists in the old format, and various
+        # places assume that they will certainly be lists.
+        return (self.operation, list(self.qubits), list(self.clbits))
 
     def __getitem__(self, key):
-        return self._legacy_format[key]
+        return self._legacy_format()[key]
 
     def __iter__(self):
-        return iter(self._legacy_format)
+        return iter(self._legacy_format())
 
     def __len__(self):
         return 3

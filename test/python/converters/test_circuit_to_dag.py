@@ -14,7 +14,9 @@
 
 import unittest
 
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Clbit
+from qiskit.circuit.library import HGate, Measure
 from qiskit.circuit.classical import expr
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -103,6 +105,50 @@ class TestCircuitToDag(QiskitTestCase):
         roundtripped = dag_to_circuit(dag)
         for original, test in zip(outer, roundtripped):
             self.assertEqual(original.operation.target, test.operation.target)
+
+    def test_wire_order(self):
+        """Test that the `qubit_order` and `clbit_order` parameters are respected."""
+        permutation = [2, 3, 1, 4, 0, 5]  # Arbitrary.
+        qr = QuantumRegister(len(permutation), "qr")
+        cr = ClassicalRegister(len(permutation), "cr")
+
+        qubits_permuted = [qr[i] for i in permutation]
+        clbits_permuted = [cr[i] for i in permutation]
+
+        qc = QuantumCircuit(qr, cr)
+        for q, c in zip(qr, cr):
+            qc.h(q)
+            qc.measure(q, c)
+
+        dag = circuit_to_dag(qc, qubit_order=qubits_permuted, clbit_order=clbits_permuted)
+
+        expected = DAGCircuit()
+        expected.add_qubits(qubits_permuted)
+        expected.add_clbits(clbits_permuted)
+        expected.add_qreg(qr)
+        expected.add_creg(cr)
+        for q, c in zip(qr, cr):
+            expected.apply_operation_back(HGate(), [q], [])
+            expected.apply_operation_back(Measure(), [q], [c])
+
+        self.assertEqual(dag, expected)
+        self.assertEqual(list(dag.qubits), qubits_permuted)
+        self.assertEqual(list(dag.clbits), clbits_permuted)
+
+    def test_wire_order_failures(self):
+        """Test that the `qubit_order` and `clbit_order` parameters raise on bad inputs."""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        qc = QuantumCircuit(qr, cr)
+
+        with self.assertRaisesRegex(ValueError, "does not contain exactly the same"):
+            circuit_to_dag(qc, qubit_order=qc.qubits[:-1])
+        with self.assertRaisesRegex(ValueError, "does not contain exactly the same"):
+            circuit_to_dag(qc, qubit_order=qr[[0, 1, 1]])
+        with self.assertRaisesRegex(ValueError, "does not contain exactly the same"):
+            circuit_to_dag(qc, clbit_order=qc.clbits[:-1])
+        with self.assertRaisesRegex(ValueError, "does not contain exactly the same"):
+            circuit_to_dag(qc, clbit_order=cr[[0, 1, 1]])
 
 
 if __name__ == "__main__":
