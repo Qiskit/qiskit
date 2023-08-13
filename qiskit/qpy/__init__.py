@@ -71,11 +71,8 @@ and then loading that file will return a list with all the circuits
 API documentation
 =================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   load
-   dump
+.. autofunction:: load
+.. autofunction:: dump
 
 QPY Compatibility
 =================
@@ -125,6 +122,151 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+
+.. _qpy_version_9:
+
+Version 9
+=========
+
+Version 9 addds support for classical :class:`~.expr.Expr` nodes and their associated
+:class:`~.types.Type`\\ s.
+
+
+EXPRESSION
+----------
+
+An :class:`~.expr.Expr` node is represented by a stream of variable-width data.  A node itself is
+represented by (in order in the byte stream):
+
+#. a one-byte type code discriminator;
+#. an EXPR_TYPE object;
+#. a type-code-specific additional payload;
+#. a type-code-specific number of child EXPRESSION payloads (the number of these is implied by the
+   type code and not explicitly stored).
+
+Each of these are described in the following table:
+
+======================  =========  =======================================================  ========
+Qiskit class            Type code  Payload                                                  Children
+======================  =========  =======================================================  ========
+:class:`~.expr.Var`     ``x``      One EXPR_VAR.                                            0
+
+:class:`~.expr.Value`   ``v``      One EXPR_VALUE.                                          0
+
+:class:`~.expr.Cast`    ``c``      One ``_Bool``  that corresponds to the value of          1
+                                   ``implicit``.
+
+:class:`~.expr.Unary`   ``u``      One ``uint8_t`` with the same numeric value as the       1
+                                   :class:`.Unary.Op`.
+
+:class:`~.expr.Binary`  ``b``      One ``uint8_t`` with the same numeric value as the       2
+                                   :class:`.Binary.Op`.
+======================  =========  =======================================================  ========
+
+
+EXPR_TYPE
+---------
+
+A :class:`~.types.Type` is encoded by a single-byte ASCII ``char`` that encodes the kind of type,
+followed by a payload that varies depending on the type.  The defined codes are:
+
+======================  =========  =================================================================
+Qiskit class            Type code  Payload
+======================  =========  =================================================================
+:class:`~.types.Bool`   ``b``      None.
+
+:class:`~.types.Uint`   ``u``      One ``uint32_t width``.
+======================  =========  =================================================================
+
+
+EXPR_VAR
+--------
+
+This represents a runtime variable of a :class:`~.expr.Var` node.  These are a type code, followed
+by a type-code-specific payload:
+
+===========================  =========  ============================================================
+Python class                 Type code  Payload
+===========================  =========  ============================================================
+:class:`.Clbit`              ``C``      One ``uint32_t index`` that is the index of the
+                                        :class:`.Clbit` in the containing circuit.
+
+:class:`.ClassicalRegister`  ``R``      One ``uint16_t reg_name_size``, followed by that many bytes
+                                        of UTF-8 string data of the register name.
+===========================  =========  ============================================================
+
+
+EXPR_VALUE
+----------
+
+This represents a literal object in the classical type system, such as an integer.  Currently there
+are very few such literals.  These are encoded as a type code, followed by a type-code-specific
+payload.
+
+===========  =========  ============================================================================
+Python type  Type code  Payload
+===========  =========  ============================================================================
+``bool``     ``b``      One ``_Bool value``.
+
+``int``      ``i``      One ``uint8_t num_bytes``, followed by the integer encoded into that many
+                        many bytes (network order) in a two's complement representation.
+===========  =========  ============================================================================
+
+
+
+Changes to INSTRUCTION
+----------------------
+
+To support the use of :class:`~.expr.Expr` nodes in the fields :attr:`.IfElseOp.condition`,
+:attr:`.WhileLoopOp.condition` and :attr:`.SwitchCaseOp.target`, the INSTRUCTION struct is changed
+in an ABI compatible-manner to :ref:`its previous definition <qpy_instruction_v5>`.  The new struct
+is the C struct:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        uint16_t label_size;
+        uint16_t num_parameters;
+        uint32_t num_qargs;
+        uint32_t num_cargs;
+        uint8_t conditional_key;
+        uint16_t conditional_reg_name_size;
+        int64_t conditional_value;
+        uint32_t num_ctrl_qubits;
+        uint32_t ctrl_state;
+    }
+
+where the only change is that a ``uint8_t conditional_key`` entry has replaced ``_Bool
+has_conditional``.  This new ``conditional_key`` takes the following numeric values, with these
+effects:
+
+=====  =============================================================================================
+Value  Effects
+=====  =============================================================================================
+0      The instruction has its ``.condition`` field set to ``None``.  The
+       ``conditional_reg_name_size`` and ``conditional_value`` fields should be ignored.
+
+1      The instruction has its ``.condition`` field set to a 2-tuple of either a :class:`.Clbit`
+       or a :class:`.ClassicalRegister`, and a integer of value ``conditional_value``.  The
+       INSTRUCTION payload, including its trailing data is parsed exactly as it would be in QPY
+       versions less than 8.
+
+2      The instruction has its ``.condition`` field set to a :class:`~.expr.Expr` node.  The
+       ``conditional_reg_name_size`` and ``conditional_value`` fields should be ignored.  The data
+       following the struct is followed (as in QPY versions less than 8) by ``name_size`` bytes of
+       UTF-8 string data for the class name and ``label_size`` bytes of UTF-8 string data for the
+       label (if any). Then, there is one INSTRUCTION_PARAM, which will contain an EXPRESSION. After
+       that, parsing continues with the INSTRUCTION_ARG structs, as in previous versions of QPY.
+=====  =============================================================================================
+
+
+Changes to INSTRUCTION_PARAM
+----------------------------
+
+A new type code ``x`` is added that defines an EXPRESSION parameter.
+
 
 .. _qpy_version_8:
 
@@ -524,6 +666,8 @@ The ``type`` indicates the class of pulse program which is either, in pricinple,
 :class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
 only :class:`~.ScheduleBlock` payload is supported.
 Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
+
+.. _qpy_instruction_v5:
 
 INSTRUCTION
 -----------

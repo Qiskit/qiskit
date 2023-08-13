@@ -20,11 +20,7 @@ Qasm (:mod:`qiskit.qasm`)
 QASM Routines
 =============
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   Qasm
-   QasmError
+.. autoclass:: Qasm
 
 
 Pygments

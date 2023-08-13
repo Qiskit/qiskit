@@ -13,6 +13,7 @@
 
 """Synthesize higher-level objects."""
 
+from typing import Optional
 
 from typing import Union
 
@@ -21,6 +22,8 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -143,7 +146,27 @@ class HighLevelSynthesis(TransformationPass):
     synthesis methods for creating inverted, controlled, or powered versions of that).
     """
 
-    def __init__(self, hls_config=None):
+    def __init__(
+        self,
+        hls_config: Optional[HLSConfig] = None,
+        coupling_map: Optional[CouplingMap] = None,
+        target: Optional[Target] = None,
+        use_qubit_indices: bool = False,
+    ):
+        """
+        HighLevelSynthesis initializer.
+
+        Args:
+            hls_config: Optional, the high-level-synthesis config that specifies synthesis methods
+                and parameters for various high-level-objects in the circuit. If it is not specified,
+                the default synthesis methods and parameters will be used.
+            coupling_map: Optional, directed graph represented as a coupling map.
+            target: Optional, the backend target to use for this pass. If it is specified,
+                it will be used instead of the coupling map.
+            use_qubit_indices: a flag indicating whether this synthesis pass is running before or after
+                the layout is set, that is, whether the qubit indices of higher-level-objects correspond
+                to qubit indices on the target backend.
+        """
         super().__init__()
 
         if hls_config is not None:
@@ -154,6 +177,11 @@ class HighLevelSynthesis(TransformationPass):
             self.hls_config = HLSConfig(True)
 
         self.hls_plugin_manager = HighLevelSynthesisPluginManager()
+        self._coupling_map = coupling_map
+        self._target = target
+        self._use_qubit_indices = use_qubit_indices
+        if target is not None:
+            self._coupling_map = self._target.build_coupling_map()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -288,11 +316,18 @@ class HighLevelSynthesis(TransformationPass):
                 plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
             else:
                 plugin_method = plugin_specifier
+                
+            qubits = (
+                [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
+            )
 
-            # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
-            #       e.g. coupling_map to the synthesis algorithm.
-            # print(f"{plugin_method = }, {op = }, {plugin_args = }")
-            decomposition = plugin_method.run(op, **plugin_args)
+            decomposition = plugin_method.run(
+                node.op,
+                coupling_map=self._coupling_map,
+                target=self._target,
+                qubits=qubits,
+                **plugin_args,
+            )
 
             # The synthesis methods that are not suited for the given higher-level-object
             # will return None, in which case the next method in the list will be used.
@@ -360,7 +395,7 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
         decomposition = synth_clifford_full(high_level_object)
         return decomposition
@@ -373,7 +408,7 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
         decomposition = synth_clifford_ag(high_level_object)
         return decomposition
@@ -390,7 +425,7 @@ class BMSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
         if high_level_object.num_qubits <= 3:
             decomposition = synth_clifford_bm(high_level_object)
@@ -407,7 +442,7 @@ class GreedySynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
         decomposition = synth_clifford_greedy(high_level_object)
         return decomposition
@@ -421,7 +456,7 @@ class LayerSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
         decomposition = synth_clifford_layers(high_level_object)
         return decomposition
@@ -436,7 +471,7 @@ class LayerLnnSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Clifford."""
         decomposition = synth_clifford_depth_lnn(high_level_object)
         return decomposition
@@ -449,7 +484,7 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
         decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
@@ -462,7 +497,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
         decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
         return decomposition
@@ -475,7 +510,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
         decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
@@ -488,7 +523,7 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
         return decomposition
@@ -501,7 +536,7 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_basic(high_level_object.pattern)
         return decomposition
@@ -514,7 +549,7 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, **options):
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_acg(high_level_object.pattern)
         return decomposition
