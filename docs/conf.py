@@ -14,18 +14,18 @@
 
 """Sphinx documentation builder."""
 
-# -- General configuration ---------------------------------------------------
 import datetime
 import doctest
+import os
 
 project = "Qiskit"
-copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
+project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.25"
+version = "0.45"
 # The full version, including alpha/beta/rc tags
-release = "0.25.0"
+release = "0.45.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -39,7 +39,8 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.doctest"
+    "qiskit_sphinx_theme",
+    "nbsphinx",
 ]
 
 templates_path = ["_templates"]
@@ -57,8 +58,13 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
 pygments_style = "colorful"
 
-# Whether module names are included in crossrefs of functions, classes, etc.
-add_module_names = False
+# This adds the module name to e.g. function API docs. We use the default of True because our
+# module pages sometimes have functions from submodules on the page, and we want to make clear
+# that you must include the submodule to import it. We should strongly consider reorganizing our
+# code to avoid this, i.e. re-exporting the submodule members from the top-level module. Once fixed
+# and verified by only having a single `.. currentmodule::` in the file, we can turn this back to
+# False.
+add_module_names = True
 
 # A list of prefixes that are ignored for sorting the Python module index
 # (e.g., if this is set to ['foo.'], then foo.bar is shown under B, not F).
@@ -72,7 +78,9 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
-# -- Options for HTML output -------------------------------------------------
+# ----------------------------------------------------------------------------------
+# HTML theme
+# ----------------------------------------------------------------------------------
 
 html_theme = "qiskit_sphinx_theme"
 html_last_updated_fmt = "%Y/%m/%d"
@@ -83,8 +91,9 @@ html_theme_options = {
     "style_external_links": True,
 }
 
-
-# -- Options for Autosummary and Autodoc -------------------------------------
+# ----------------------------------------------------------------------------------
+# Autodoc
+# ----------------------------------------------------------------------------------
 
 # Note that setting autodoc defaults here may not have as much of an effect as you may expect; any
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
@@ -119,8 +128,16 @@ autosummary_filename_map = {
 
 autoclass_content = "both"
 
+# We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
+# slows down the build (a little) and can sometimes result in _regular_ section headings in
+# module-level documentation being converted into surprising things.
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
-# -- Options for Doctest --------------------------------------------------------
+
+# ----------------------------------------------------------------------------------
+# Doctest
+# ----------------------------------------------------------------------------------
 
 doctest_default_flags = (
     doctest.ELLIPSIS
@@ -134,3 +151,27 @@ doctest_default_flags = (
 # >> code
 # output
 doctest_test_doctest_blocks = ""
+
+# ----------------------------------------------------------------------------------
+# Nbsphinx
+# ----------------------------------------------------------------------------------
+
+nbsphinx_timeout = int(os.getenv("QISKIT_CELL_TIMEOUT", "300"))
+nbsphinx_execute = os.getenv("QISKIT_DOCS_BUILD_TUTORIALS", "never")
+nbsphinx_widgets_path = ""
+nbsphinx_thumbnails = {"**": "_static/images/logo.png"}
+
+nbsphinx_prolog = """
+{% set docname = env.doc2path(env.docname, base=None) %}
+
+.. only:: html
+
+    .. role:: raw-html(raw)
+        :format: html
+
+    .. note::
+        This page was generated from `{{ docname }}`__.
+
+    __ https://github.com/Qiskit/qiskit-terra/blob/main/{{ docname }}
+
+"""

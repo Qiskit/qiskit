@@ -167,12 +167,11 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
                 str_out = f"{neg_str}{numer}/{denom}{pi}"
             return str_out
 
-        # Nothing found
-        if ndigits is None:
-            str_out = "{}".format(single_inpt)
-        else:
-            str_out = "{:.{}g}".format(single_inpt, ndigits)
-        return str_out
+        # Nothing found.  The '#' forces a decimal point to be included, which OQ2 needs, but other
+        # formats don't really.
+        if output == "qasm":
+            return f"{single_inpt:#}" if ndigits is None else f"{single_inpt:#.{ndigits}g}"
+        return f"{single_inpt}" if ndigits is None else f"{single_inpt:.{ndigits}g}"
 
     complex_inpt = complex(inpt)
     real, imag = map(normalize, [complex_inpt.real, complex_inpt.imag])

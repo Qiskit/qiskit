@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.circuit.library.standard_gates import UGate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -29,7 +29,7 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecom
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
-_DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
+_DECOMPOSER1Q = OneQubitEulerDecomposer("U")
 
 
 class UnitaryGate(Gate):
@@ -125,7 +125,7 @@ class UnitaryGate(Gate):
             q = QuantumRegister(1, "q")
             qc = QuantumCircuit(q, name=self.name)
             theta, phi, lam, global_phase = _DECOMPOSER1Q.angles_and_phase(self.to_matrix())
-            qc._append(U3Gate(theta, phi, lam), [q[0]], [])
+            qc._append(UGate(theta, phi, lam), [q[0]], [])
             qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:

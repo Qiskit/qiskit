@@ -25,6 +25,7 @@ from qiskit.circuit import (
     Instruction,
     Measure,
 )
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
 from qiskit.circuit.tools import pi_check
@@ -391,7 +392,7 @@ def _get_layered_instructions(
     justify = justify if justify in ("right", "none") else "left"
 
     if wire_map is not None:
-        qubits = [bit for bit in list(wire_map.keys()).copy() if isinstance(bit, Qubit)]
+        qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
     else:
         qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()
@@ -467,6 +468,8 @@ def _get_gate_span(qubits, node, wire_map):
         if index > max_index:
             max_index = index
 
+    # Because of wrapping boxes for mpl control flow ops, this
+    # type of op must be the only op in the layer
     if wire_map is not None and isinstance(node.op, ControlFlowOp):
         span = qubits
     elif node.cargs or getattr(node.op, "condition", None):
@@ -547,16 +550,11 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if getattr(node.op, "condition", None):
-                if isinstance(node.op.condition[0], Clbit):
-                    cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
-                    index_stop = self.measure_map[cond_bit[0]]
-                else:
-                    for bit in node.op.condition[0]:
-                        max_index = -1
-                        if bit in self.measure_map:
-                            if self.measure_map[bit] > max_index:
-                                index_stop = max_index = self.measure_map[bit]
+            if (condition := getattr(node.op, "condition", None)) is not None:
+                index_stop = max(
+                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                    default=index_stop,
+                )
             if node.cargs:
                 for carg in node.cargs:
                     try:
