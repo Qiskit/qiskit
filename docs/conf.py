@@ -28,7 +28,7 @@ version = "0.45"
 # The full version, including alpha/beta/rc tags
 release = "0.45.0"
 
-# For 'qiskit_sphinx_theme' tells it we're based at 'https://qiskit.org/<docs_url_prefix>'.
+# This tells 'qiskit_sphinx_theme' that we're based at 'https://qiskit.org/<docs_url_prefix>'.
 # Should not include the subdirectory for the stable version.
 docs_url_prefix = "documentation"
 
@@ -39,15 +39,15 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
-    "reno.sphinxext",
-    "sphinx_design",
+    "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
     "qiskit_sphinx_theme",
-    "nbsphinx",
+    "reno.sphinxext",
+    "sphinx_design",
+    "sphinx_remove_toctrees",
 ]
 
 templates_path = ["_templates"]
@@ -115,6 +115,11 @@ html_context = {
     "analytics_enabled": os.getenv("QISKIT_ENABLE_ANALYTICS", False)
 }  # enable segment analytics for qiskit.org/documentation
 html_static_path = ["_static"]
+
+# This speeds up the docs build because it works around the Furo theme's slowdown from the left
+# sidebar when the site has lots of HTML pages. But, it results in a much worse user experience,
+# so we only use it in dev/CI builds.
+remove_from_toctrees = ["stubs/*"]
 
 # ----------------------------------------------------------------------------------
 # Autodoc
@@ -209,6 +214,20 @@ nbsphinx_prolog = """
 
 """
 
+# ---------------------------------------------------------------------------------------
+# Prod changes
+# ---------------------------------------------------------------------------------------
+
+if os.getenv("DOCS_PROD_BUILD"):
+    # `viewcode` slows down docs build by about 14 minutes.
+    extensions.append("sphinx.ext.viewcode")
+    # Include all pages in the left sidebar in prod.
+    remove_from_toctrees = []
+
+
+# ---------------------------------------------------------------------------------------
+# Custom extensions
+# ---------------------------------------------------------------------------------------
 
 def add_versions_to_config(_app, config):
     """Add a list of old documentation versions that should have links generated to them into the
