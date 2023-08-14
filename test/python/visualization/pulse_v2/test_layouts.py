@@ -108,6 +108,9 @@ class TestChannelArrangement(QiskitTestCase):
 
     def test_channel_index_sort(self):
         """Test channel_index_grouped_sort."""
+        # Add an unusual channel number to stress test the channel ordering
+        self.channels.append(pulse.DriveChannel(100))
+        self.channels.reverse()
         out_layout = layouts.channel_index_grouped_sort(
             self.channels, formatter=self.formatter, device=self.device
         )
@@ -123,9 +126,10 @@ class TestChannelArrangement(QiskitTestCase):
             [pulse.MeasureChannel(2)],
             [pulse.AcquireChannel(2)],
             [pulse.ControlChannel(5)],
+            [pulse.DriveChannel(100)],
         ]
 
-        ref_names = ["D0", "U0", "D1", "M1", "A1", "D2", "U2", "M2", "A2", "U5"]
+        ref_names = ["D0", "U0", "D1", "M1", "A1", "D2", "U2", "M2", "A2", "U5", "D100"]
 
         ref = list(zip(ref_names, ref_channels))
 

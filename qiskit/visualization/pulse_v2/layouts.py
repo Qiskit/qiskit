@@ -178,7 +178,7 @@ def channel_index_grouped_sort(
 
     ordered_channels = []
 
-    for ind in inds:
+    for ind in sorted(inds):
         # drive channel
         if len(d_chans) > 0 and d_chans[-1].index == ind:
             ordered_channels.append(d_chans.pop())
@@ -241,7 +241,7 @@ def channel_index_grouped_sort_u(
 
     ordered_channels = []
 
-    for ind in inds:
+    for ind in sorted(inds):
         # drive channel
         if len(d_chans) > 0 and d_chans[-1].index == ind:
             ordered_channels.append(d_chans.pop())

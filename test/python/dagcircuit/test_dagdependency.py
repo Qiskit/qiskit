@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
 
 try:
-    import retworkx as rx
+    import rustworkx as rx
 except ImportError:
     pass
 
@@ -318,6 +318,12 @@ class TestDagProperties(QiskitTestCase):
         qc = QuantumCircuit(q)
         dag = circuit_to_dagdependency(qc)
         self.assertEqual(dag.depth(), 0)
+
+    def test_default_metadata_value(self):
+        """Test that the default DAGDependency metadata is valid QuantumCircuit metadata."""
+        qc = QuantumCircuit(1)
+        qc.metadata = self.dag.metadata
+        self.assertEqual(qc.metadata, {})
 
 
 if __name__ == "__main__":

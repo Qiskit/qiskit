@@ -18,12 +18,14 @@ import numpy as np
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.optimization.commutation_analysis import CommutationAnalysis
 from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGOutNode
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.rx import RXGate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit import ControlFlowOp
 
 
 _CUTOFF_PRECISION = 1e-5
@@ -38,7 +40,7 @@ class CommutativeCancellation(TransformationPass):
         H, X, Y, Z, CX, CY, CZ
     """
 
-    def __init__(self, basis_gates=None):
+    def __init__(self, basis_gates=None, target=None):
         """
         CommutativeCancellation initializer.
 
@@ -47,12 +49,17 @@ class CommutativeCancellation(TransformationPass):
                 ``['u3', 'cx']``. For the effects of this pass, the basis is
                 the set intersection between the ``basis_gates`` parameter
                 and the gates in the dag.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis_gates`` and this are specified then this argument will take
+                precedence and ``basis_gates`` will be ignored.
         """
         super().__init__()
         if basis_gates:
             self.basis = set(basis_gates)
         else:
             self.basis = set()
+        if target is not None:
+            self.basis = set(target.operation_names)
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
         self.requires.append(CommutationAnalysis())
@@ -92,7 +99,6 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-
         for wire in dag.wires:
             wire_commutation_set = self.property_set["commutation_set"][wire]
 
@@ -181,4 +187,21 @@ class CommutativeCancellation(TransformationPass):
                 if np.mod(total_angle, (2 * np.pi)) < _CUTOFF_PRECISION:
                     dag.remove_op_node(run[0])
 
+        dag = self._handle_control_flow_ops(dag)
+
+        return dag
+
+    def _handle_control_flow_ops(self, dag):
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        commutation analysis is redone for the control flow blocks.
+        """
+
+        pass_manager = PassManager([CommutationAnalysis(), self])
+        for node in dag.op_nodes(ControlFlowOp):
+            mapped_blocks = []
+            for block in node.op.blocks:
+                new_circ = pass_manager.run(block)
+                mapped_blocks.append(new_circ)
+            node.op = node.op.replace_blocks(mapped_blocks)
         return dag

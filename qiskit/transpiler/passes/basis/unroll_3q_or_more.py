@@ -56,6 +56,11 @@ class Unroll3qOrMore(TransformationPass):
         for node in dag.multi_qubit_ops():
             if dag.has_calibration_for(node):
                 continue
+
+            if isinstance(node.op, ControlFlowOp):
+                node.op = control_flow.map_blocks(self.run, node.op)
+                continue
+
             if self.target is not None:
                 # Treat target instructions as global since this pass can be run
                 # prior to layout and routing we don't have phsyical qubits from
@@ -63,10 +68,6 @@ class Unroll3qOrMore(TransformationPass):
                 if node.name in self.target:
                     continue
             elif self.basis_gates is not None and node.name in self.basis_gates:
-                continue
-
-            if isinstance(node.op, ControlFlowOp):
-                node.op = control_flow.map_blocks(self.run, node.op)
                 continue
 
             # TODO: allow choosing other possible decompositions

@@ -180,3 +180,80 @@ class TestUnroll3qOrMore(QiskitTestCase):
         expected.if_else(range(2), pass_(expected_if_body), None, [0, 1, 2], [0])
 
         self.assertEqual(pass_(test), expected)
+
+    def test_if_else_in_basis(self):
+        """Test that a simple if-else over 3+ qubits unrolls correctly."""
+        pass_ = Unroll3qOrMore(basis_gates=["u", "cx", "if_else", "for_loop", "while_loop"])
+
+        true_body = QuantumCircuit(3, 1)
+        true_body.h(0)
+        true_body.ccx(0, 1, 2)
+        false_body = QuantumCircuit(3, 1)
+        false_body.rccx(2, 1, 0)
+
+        test = QuantumCircuit(3, 1)
+        test.h(0)
+        test.measure(0, 0)
+        test.if_else((0, True), true_body, false_body, [0, 1, 2], [0])
+
+        expected = QuantumCircuit(3, 1)
+        expected.h(0)
+        expected.measure(0, 0)
+        expected.if_else((0, True), pass_(true_body), pass_(false_body), [0, 1, 2], [0])
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow_in_basis(self):
+        """Test that the unroller recurses into nested control flow."""
+        pass_ = Unroll3qOrMore(basis_gates=["u", "cx", "if_else", "for_loop", "while_loop"])
+        qubits = [Qubit() for _ in [None] * 3]
+        clbit = Clbit()
+
+        for_body = QuantumCircuit(qubits, [clbit])
+        for_body.ccx(0, 1, 2)
+
+        while_body = QuantumCircuit(qubits, [clbit])
+        while_body.rccx(0, 1, 2)
+
+        true_body = QuantumCircuit(qubits, [clbit])
+        true_body.while_loop((clbit, True), while_body, [0, 1, 2], [0])
+
+        test = QuantumCircuit(qubits, [clbit])
+        test.for_loop(range(2), None, for_body, [0, 1, 2], [0])
+        test.if_else((clbit, True), true_body, None, [0, 1, 2], [0])
+
+        expected_if_body = QuantumCircuit(qubits, [clbit])
+        expected_if_body.while_loop((clbit, True), pass_(while_body), [0, 1, 2], [0])
+        expected = QuantumCircuit(qubits, [clbit])
+        expected.for_loop(range(2), None, pass_(for_body), [0, 1, 2], [0])
+        expected.if_else(range(2), pass_(expected_if_body), None, [0, 1, 2], [0])
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_custom_block_over_3q(self):
+        """Test a custom instruction is unrolled in a control flow block."""
+        pass_ = Unroll3qOrMore(basis_gates=["u", "cx", "if_else", "for_loop", "while_loop"])
+        ghz = QuantumCircuit(5, 5)
+        ghz.h(0)
+        ghz.cx(0, 1)
+        ghz.cx(0, 2)
+        ghz.cx(0, 3)
+        ghz.cx(0, 4)
+        ghz.measure(0, 0)
+        ghz.measure(1, 1)
+        ghz.measure(2, 2)
+        ghz.measure(3, 3)
+        ghz.measure(4, 4)
+        ghz.reset(0)
+        ghz.reset(1)
+        ghz.reset(2)
+        ghz.reset(3)
+        ghz.reset(4)
+        for_block = QuantumCircuit(5, 5, name="ghz")
+        for_block.append(ghz, list(range(5)), list(range(5)))
+        qc = QuantumCircuit(5, 5)
+        qc.for_loop((1,), None, for_block, [2, 4, 1, 3, 0], [0, 1, 2, 3, 4])
+        result = pass_(qc)
+        expected = QuantumCircuit(5, 5)
+        expected.for_loop((1,), None, ghz, [2, 4, 1, 3, 0], [0, 1, 2, 3, 4])
+        self.assertEqual(result, expected)

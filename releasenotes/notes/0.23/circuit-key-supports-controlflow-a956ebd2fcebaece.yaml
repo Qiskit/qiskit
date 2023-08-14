@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Primitives may now support dynamic circuits with control flow, if the particular
+    provider's implementation can support them.  Previously, the
+    :class:`~BaseSampler` and :class:`~BaseEstimator` base classes could not correctly
+    normalize such circuits.  This change does not automatically make all
+    primitives support dynamic circuits, but it does make it possible for them
+    to be supported by downstream providers.

@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=attribute-defined-outside-init,invalid-name,missing-type-doc
-# pylint: disable=unused-argument,broad-except,bad-staticmethod-argument
-# pylint: disable=inconsistent-return-statements
+# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
@@ -32,6 +30,7 @@ from unittest.util import safe_repr
 
 from qiskit.tools.parallel import get_platform_parallel_default
 from qiskit.utils import optionals as _optionals
+from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
 
@@ -43,7 +42,7 @@ __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
 # stderr, and pylogging to attach the output to stestr's result stream.
 if _optionals.HAS_TESTTOOLS:
-    import testtools  # pylint: disable=import-error
+    import testtools
 
     class BaseTestCase(testtools.TestCase):
         """Base test class."""
@@ -79,6 +78,7 @@ class BaseQiskitTestCase(BaseTestCase):
 
     def setUp(self):
         super().setUp()
+        self.addTypeEqualityFunc(QuantumCircuit, self.assertQuantumCircuitEqual)
         if self.__setup_called:
             raise ValueError(
                 "In File: %s\n"
@@ -111,6 +111,20 @@ class BaseQiskitTestCase(BaseTestCase):
             str: the absolute path to the resource.
         """
         return os.path.normpath(os.path.join(path.value, filename))
+
+    def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
+        """Extra assertion method to give a better error message when two circuits are unequal."""
+        if qc1 == qc2:
+            return
+        if msg is None:
+            msg = "The two circuits are not equal."
+        msg += f"""
+Left circuit:
+{qc1}
+
+Right circuit:
+{qc2}"""
+        raise self.failureException(msg)
 
     def assertDictAlmostEqual(
         self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
@@ -210,29 +224,29 @@ class QiskitTestCase(BaseQiskitTestCase):
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r".*QuantumCircuit\.combine.*",
-            r".*QuantumCircuit\.__add__.*",
-            r".*QuantumCircuit\.__iadd__.*",
-            r".*QuantumCircuit\.extend.*",
-            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
-            r"Back-references to from Bit instances.*",
-            r"The QuantumCircuit.u. method.*",
-            r"The QuantumCircuit.cu.",
+            r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
-            # TODO: remove the following ignore after seaborn 0.12.0 releases
-            r"distutils Version classes are deprecated. Use packaging\.version",
-            # Internal deprecation warning emitted by jupyter client when
-            # calling nbconvert in python 3.10
-            r"There is no current event loop",
             # Caused by internal scikit-learn scipy usage
             r"The 'sym_pos' keyword is deprecated and should be replaced by using",
+            # jupyter_client 7.4.8 uses deprecated shims in pyzmq that raise warnings with pyzmq 25.
+            # These are due to be fixed by jupyter_client 8, see:
+            #   - https://github.com/jupyter/jupyter_client/issues/913
+            #   - https://github.com/jupyter/jupyter_client/pull/842
+            r"zmq\.eventloop\.ioloop is deprecated in pyzmq .*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
+        # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            module="qiskit_aer.*",
+            message="Setting metadata to None.*",
+        )
 
 
 class FullQiskitTestCase(QiskitTestCase):

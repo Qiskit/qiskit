@@ -12,7 +12,7 @@
 
 """The Random Pauli circuit class."""
 
-from typing import Optional
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -51,11 +51,12 @@ class PauliTwoDesign(TwoLocal):
 
     Examples:
 
-        .. jupyter-execute:
+        .. plot::
+           :include-source:
 
-            from qiskit.circuit.library import PauliTwoDesign
-            circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
-            print(circuit.draw())
+           from qiskit.circuit.library import PauliTwoDesign
+           circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
+           circuit.draw('mpl')
 
     References:
 
@@ -68,9 +69,9 @@ class PauliTwoDesign(TwoLocal):
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
+        num_qubits: int | None = None,
         reps: int = 3,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         insert_barriers: bool = False,
         name: str = "PauliTwoDesign",
     ):
@@ -81,7 +82,7 @@ class PauliTwoDesign(TwoLocal):
         self._rng = np.random.default_rng(seed)
 
         # store a dict to keep track of the random gates
-        self._gates = {}
+        self._gates: dict[int, list[str]] = {}
 
         super().__init__(
             num_qubits,

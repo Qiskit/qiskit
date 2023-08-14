@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -208,26 +208,27 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_with_two_qubit_reduction(self):
         """Test the VQE using TwoQubitReduction."""
-        qubit_op = PauliSumOp.from_list(
-            [
-                ("IIII", -0.8105479805373266),
-                ("IIIZ", 0.17218393261915552),
-                ("IIZZ", -0.22575349222402472),
-                ("IZZI", 0.1721839326191556),
-                ("ZZII", -0.22575349222402466),
-                ("IIZI", 0.1209126326177663),
-                ("IZZZ", 0.16892753870087912),
-                ("IXZX", -0.045232799946057854),
-                ("ZXIX", 0.045232799946057854),
-                ("IXIX", 0.045232799946057854),
-                ("ZXZX", -0.045232799946057854),
-                ("ZZIZ", 0.16614543256382414),
-                ("IZIZ", 0.16614543256382414),
-                ("ZZZZ", 0.17464343068300453),
-                ("ZIZI", 0.1209126326177663),
-            ]
-        )
-        tapered_qubit_op = TwoQubitReduction(num_particles=2).convert(qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            qubit_op = PauliSumOp.from_list(
+                [
+                    ("IIII", -0.8105479805373266),
+                    ("IIIZ", 0.17218393261915552),
+                    ("IIZZ", -0.22575349222402472),
+                    ("IZZI", 0.1721839326191556),
+                    ("ZZII", -0.22575349222402466),
+                    ("IIZI", 0.1209126326177663),
+                    ("IZZZ", 0.16892753870087912),
+                    ("IXZX", -0.045232799946057854),
+                    ("ZXIX", 0.045232799946057854),
+                    ("IXIX", 0.045232799946057854),
+                    ("ZXZX", -0.045232799946057854),
+                    ("ZZIZ", 0.16614543256382414),
+                    ("IZIZ", 0.16614543256382414),
+                    ("ZZZZ", 0.17464343068300453),
+                    ("ZIZI", 0.1209126326177663),
+                ]
+            )
+            tapered_qubit_op = TwoQubitReduction(num_particles=2).convert(qubit_op)
         vqe = VQE(
             Estimator(),
             self.ry_wavefunction,
@@ -299,6 +300,35 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace."):
             vqe.optimizer = L_BFGS_B()
             run_check()
+
+    def test_default_batch_evaluation_on_spsa(self):
+        """Test the default batching works."""
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+
+        wrapped_estimator = Estimator()
+        inner_estimator = Estimator()
+
+        callcount = {"estimator": 0}
+
+        def wrapped_estimator_run(*args, **kwargs):
+            kwargs["callcount"]["estimator"] += 1
+            return inner_estimator.run(*args, **kwargs)
+
+        wrapped_estimator.run = partial(wrapped_estimator_run, callcount=callcount)
+
+        spsa = SPSA(maxiter=5)
+
+        vqe = VQE(wrapped_estimator, ansatz, spsa)
+        _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
+
+        # 1 calibration + 5 loss + 1 return loss
+        expected_estimator_runs = 1 + 5 + 1
+
+        with self.subTest(msg="check callcount"):
+            self.assertEqual(callcount["estimator"], expected_estimator_runs)
+
+        with self.subTest(msg="check reset to original max evals grouped"):
+            self.assertIsNone(spsa._max_evals_grouped)
 
     def test_batch_evaluate_with_qnspsa(self):
         """Test batch evaluating with QNSPSA works."""
@@ -377,10 +407,14 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(len(result.aux_operators_evaluated), 0)
 
         with self.subTest("Test with two auxiliary operators."):
-            aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-            aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
-            aux_ops = [aux_op1, aux_op2]
-            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+            with self.assertWarns(DeprecationWarning):
+                aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+                aux_op2 = PauliSumOp.from_list(
+                    [("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]
+                )
+                aux_ops = [aux_op1, aux_op2]
+                result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
             # expectation values
@@ -415,10 +449,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(len(result.aux_operators_evaluated), 0)
 
         with self.subTest("Test with two auxiliary operators."):
-            aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-            aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
-            aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+            with self.assertWarns(DeprecationWarning):
+                aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+                aux_op2 = PauliSumOp.from_list(
+                    [("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]
+                )
+                aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+                result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
 

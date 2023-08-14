@@ -18,6 +18,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import Target
 
 
 class TimeUnitConversion(TransformationPass):
@@ -35,14 +36,21 @@ class TimeUnitConversion(TransformationPass):
     * raise error: if they are a mix of SI units and 'dt'.
     """
 
-    def __init__(self, inst_durations: InstructionDurations):
+    def __init__(self, inst_durations: InstructionDurations = None, target: Target = None):
         """TimeUnitAnalysis initializer.
 
         Args:
             inst_durations (InstructionDurations): A dictionary of durations of instructions.
+            target: The :class:`~.Target` representing the target backend, if both
+                  ``inst_durations`` and this are specified then this argument will take
+                  precedence and ``inst_durations`` will be ignored.
+
+
         """
         super().__init__()
         self.inst_durations = inst_durations or InstructionDurations()
+        if target is not None:
+            self.inst_durations = target.durations()
 
     def run(self, dag: DAGCircuit):
         """Run the TimeUnitAnalysis pass on `dag`.
@@ -86,12 +94,11 @@ class TimeUnitConversion(TransformationPass):
                 )
 
         # Make units consistent
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.op_nodes():
             try:
                 node.op = node.op.copy()
                 node.op.duration = self.inst_durations.get(
-                    node.op, [bit_indices[qarg] for qarg in node.qargs], unit=time_unit
+                    node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
                 )
                 node.op.unit = time_unit
             except TranspilerError:

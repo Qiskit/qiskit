@@ -24,8 +24,9 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT
+from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
 from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.utils import optionals
 
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
@@ -166,11 +167,30 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
+        target = Statevector([1, 0, 1, 0]) / np.sqrt(2)
+        circuit = QuantumCircuit(2)
+        circuit.initialize("+", [1])
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        target = Statevector([1, 0, 0, 0])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(0, [0, 1])  # initialize from int
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
         # Test reset instruction
         target = Statevector([1, 0])
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.reset(0)
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test 0q instruction
+        target = Statevector([1j, 0])
+        circuit = QuantumCircuit(1)
+        circuit.append(GlobalPhaseGate(np.pi / 2), [], [])
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -309,6 +329,20 @@ class TestStatevector(QiskitTestCase):
             op_full = op0.tensor(op1).tensor(op2)
             target = Statevector(np.dot(op_full.data, vec))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
+
+    def test_evolve_qudit_subsystems(self):
+        """Test nested evolve calls on qudit subsystems."""
+        dims = (3, 4, 5)
+        init = self.rand_vec(np.prod(dims))
+        ops = [random_unitary((dim,)) for dim in dims]
+        state = Statevector(init, dims)
+        for i, op in enumerate(ops):
+            state = state.evolve(op, [i])
+        target_op = np.eye(1)
+        for op in ops:
+            target_op = np.kron(op.data, target_op)
+        target = Statevector(np.dot(target_op, init), dims)
+        self.assertEqual(state, target)
 
     def test_evolve_global_phase(self):
         """Test evolve circuit with global phase."""
@@ -695,6 +729,67 @@ class TestStatevector(QiskitTestCase):
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_probabilities_dict_unequal_dims(self):
+        """Test probabilities_dict for a state with unequal subsystem dimensions."""
+
+        vec = np.zeros(60, dtype=float)
+        vec[15:20] = np.ones(5)
+        vec[40:46] = np.ones(6)
+        state = Statevector(vec / np.sqrt(11.0), dims=[3, 4, 5])
+
+        p = 1.0 / 11.0
+
+        self.assertDictEqual(
+            state.probabilities_dict(),
+            {
+                s: p
+                for s in [
+                    "110",
+                    "111",
+                    "112",
+                    "120",
+                    "121",
+                    "311",
+                    "312",
+                    "320",
+                    "321",
+                    "322",
+                    "330",
+                ]
+            },
+        )
+
+        # differences due to rounding
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0]), {"0": 4 * p, "1": 4 * p, "2": 3 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1]), {"1": 5 * p, "2": 5 * p, "3": p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[2]), {"1": 5 * p, "3": 6 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 1]),
+            {"10": p, "11": 2 * p, "12": 2 * p, "20": 2 * p, "21": 2 * p, "22": p, "30": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1, 0]),
+            {"01": p, "11": 2 * p, "21": 2 * p, "02": 2 * p, "12": 2 * p, "22": p, "03": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 2]),
+            {"10": 2 * p, "11": 2 * p, "12": p, "31": 2 * p, "32": 2 * p, "30": 2 * p},
+            delta=1e-10,
+        )
 
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
@@ -1106,6 +1201,8 @@ class TestStatevector(QiskitTestCase):
         state2 = Statevector.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFT(5)
@@ -1169,6 +1266,60 @@ class TestStatevector(QiskitTestCase):
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
 
+    def test_state_to_latex_with_max_size_limit(self):
+        """Test limit the maximum number of non-zero terms in the expression"""
+        sv = Statevector(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 - 0.35355339j,
+                0.0 + 0.35355339j,
+                0.0 + 0.35355339j,
+                0.0 - 0.35355339j,
+            ],
+            dims=(2, 2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv, max_size=5)
+        self.assertEqual(
+            latex_representation,
+            "\\frac{\\sqrt{2}}{4} |0000\\rangle+"
+            "\\frac{\\sqrt{2}}{4} |0001\\rangle + "
+            "\\ldots +"
+            "\\frac{\\sqrt{2} i}{4} |1110\\rangle- "
+            "\\frac{\\sqrt{2} i}{4} |1111\\rangle",
+        )
+
+    def test_state_to_latex_with_decimals_round(self):
+        """Test rounding of decimal places in the expression"""
+        sv = Statevector(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 - 0.35355339j,
+                0.0 + 0.35355339j,
+            ],
+            dims=(2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv, decimals=3)
+        self.assertEqual(
+            latex_representation,
+            "0.354 |000\\rangle+0.354 |001\\rangle- 0.354 i |110\\rangle+0.354 i |111\\rangle",
+        )
+
     def test_number_to_latex_terms(self):
         """Test conversions of complex numbers to latex terms"""
 
@@ -1182,13 +1333,14 @@ class TestStatevector(QiskitTestCase):
             ([-1, 1j], ["-", "+i"]),
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
             ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
-        for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers, 15)
-            self.assertListEqual(terms, latex_terms)
+        with self.assertWarns(DeprecationWarning):
+            for numbers, latex_terms in cases:
+                terms = numbers_to_latex_terms(numbers, 15)
+                self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""
@@ -1219,6 +1371,24 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector(dummy_vector)
         self.assertEqual(len(empty_vector), len(empty_sv))
         self.assertEqual(len(dummy_vector), len(sv))
+
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        sv = Statevector([1.1, 0])
+
+        self.assertEqual(list(sv.probabilities()), [1.0, 0.0])
+        # The "1" key should be zero and therefore omitted.
+        self.assertEqual(sv.probabilities_dict(), {"0": 1.0})
+
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        sv = Statevector([p, p, p, 0])
+        expected = [0.33, 0.33, 0.33, 0]
+        self.assertEqual(list(sv.probabilities(decimals=2)), expected)
 
 
 if __name__ == "__main__":

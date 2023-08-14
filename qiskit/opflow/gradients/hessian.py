@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,12 +13,12 @@
 """The module to compute Hessians."""
 
 from typing import Union, List, Tuple, Optional
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.circuit._utils import sort_parameters
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..state_fns.state_fn import StateFn
@@ -33,10 +33,18 @@ from .derivative_base import _coeff_derivative
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
 from ...utils.arithmetic import triu_to_dense
+from .circuit_gradients.circuit_gradient import CircuitGradient
 
 
 class Hessian(HessianBase):
-    """Compute the Hessian of an expected value."""
+    """Deprecated: Compute the Hessian of an expected value."""
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self, hess_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
+        super().__init__(hess_method=hess_method, **kwargs)
 
     def convert(
         self,
@@ -106,7 +114,7 @@ class Hessian(HessianBase):
         if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = sort_parameters(operator.parameters)
         # if input is a tuple instead of a list, wrap it into a list
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs
@@ -236,7 +244,7 @@ class Hessian(HessianBase):
             )
 
             _optionals.HAS_JAX.require_now("automatic differentiation")
-            from jax import grad, jit  # pylint: disable=import-error
+            from jax import grad, jit
 
             if operator.grad_combo_fn:
                 first_partial_combo_fn = operator.grad_combo_fn

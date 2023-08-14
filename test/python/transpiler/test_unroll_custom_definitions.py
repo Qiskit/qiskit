@@ -15,10 +15,12 @@
 from qiskit.transpiler.passes.basis import UnrollCustomDefinitions
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import EquivalenceLibrary, Gate, Qubit, Clbit
+from qiskit.circuit import EquivalenceLibrary, Gate, Qubit, Clbit, Parameter
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
+from qiskit.transpiler import Target
+from qiskit.circuit.library import CXGate, U3Gate
 
 
 class TestGate(Gate):
@@ -192,16 +194,126 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         while_body.append(TestCompositeGate(), [0], [])
 
         true_body = QuantumCircuit([qubit, clbit])
-        true_body.while_loop((clbit, True), while_body, [0], [0])
+        true_body.while_loop((clbit, True), while_body, [0], [])
 
         test = QuantumCircuit([qubit, clbit])
-        test.for_loop(range(2), None, for_body, [0], [0])
+        test.for_loop(range(2), None, for_body, [0], [])
         test.if_else((clbit, True), true_body, None, [0], [0])
 
         expected_if_body = QuantumCircuit([qubit, clbit])
-        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [0])
+        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [])
         expected = QuantumCircuit([qubit, clbit])
-        expected.for_loop(range(2), None, pass_(for_body), [0], [0])
+        expected.for_loop(range(2), None, pass_(for_body), [0], [])
         expected.if_else(range(2), pass_(expected_if_body), None, [0], [0])
 
         self.assertEqual(pass_(test), expected)
+
+    def test_dont_unroll_a_gate_in_basis_gates_with_target(self):
+        """Verify we don't unroll a gate in basis_gates."""
+        eq_lib = EquivalenceLibrary()
+
+        gate = TestGate()
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+
+        dag = circuit_to_dag(qc)
+        target = Target(num_qubits=1)
+        target.add_instruction(U3Gate(Parameter("a"), Parameter("b"), Parameter("c")))
+        target.add_instruction(CXGate())
+        target.add_instruction(TestGate())
+
+        out = UnrollCustomDefinitions(eq_lib, target=target).run(dag)
+
+        expected = qc.copy()
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out, expected_dag)
+
+    def test_raise_for_opaque_not_in_eq_lib_target_with_target(self):
+        """Verify we raise for an opaque gate not in basis_gates or eq_lib."""
+        eq_lib = EquivalenceLibrary()
+
+        gate = TestGate()
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        target = Target(num_qubits=1)
+        target.add_instruction(U3Gate(Parameter("a"), Parameter("b"), Parameter("c")))
+        target.add_instruction(CXGate())
+
+        dag = circuit_to_dag(qc)
+        with self.assertRaisesRegex(QiskitError, "Cannot unroll"):
+            UnrollCustomDefinitions(eq_lib, target=target).run(dag)
+
+    def test_unroll_gate_until_reach_basis_gates_with_target(self):
+        """Verify we unroll gates until we hit basis_gates."""
+        eq_lib = EquivalenceLibrary()
+
+        gate = TestCompositeGate()
+        q = QuantumRegister(1, "q")
+        gate.definition = QuantumCircuit(q)
+        gate.definition.append(TestGate(), [q[0]], [])
+
+        qc = QuantumCircuit(q)
+        qc.append(gate, [0])
+
+        target = Target(num_qubits=1)
+        target.add_instruction(U3Gate(Parameter("a"), Parameter("b"), Parameter("c")))
+        target.add_instruction(CXGate())
+        target.add_instruction(TestGate())
+
+        dag = circuit_to_dag(qc)
+        out = UnrollCustomDefinitions(eq_lib, target=target).run(dag)
+
+        expected = QuantumCircuit(1)
+        expected.append(TestGate(), [0])
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out, expected_dag)
+
+    def test_unroll_twice_until_we_get_to_eqlib_with_target(self):
+        """Verify we unroll gates until we hit basis_gates."""
+        eq_lib = EquivalenceLibrary()
+
+        base_gate = TestGate()
+        equiv = QuantumCircuit(1)
+        equiv.h(0)
+
+        eq_lib.add_equivalence(base_gate, equiv)
+
+        gate = TestCompositeGate()
+
+        q = QuantumRegister(1, "q")
+        gate.definition = QuantumCircuit(q)
+        gate.definition.append(TestGate(), [q[0]], [])
+
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+
+        target = Target(num_qubits=1)
+        target.add_instruction(U3Gate(Parameter("a"), Parameter("b"), Parameter("c")))
+        target.add_instruction(CXGate())
+
+        dag = circuit_to_dag(qc)
+        out = UnrollCustomDefinitions(eq_lib, target=target).run(dag)
+
+        expected = QuantumCircuit(1)
+        expected.append(TestGate(), [0])
+        expected_dag = circuit_to_dag(expected)
+
+        self.assertEqual(out, expected_dag)
+
+    def test_unroll_empty_definition(self):
+        """Test that a gate with no operations can be unrolled."""
+        qc = QuantumCircuit(2)
+        qc.append(QuantumCircuit(2).to_gate(), [0, 1], [])
+        pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), ["u"])
+        expected = QuantumCircuit(2)
+        self.assertEqual(pass_(qc), expected)
+
+    def test_unroll_empty_definition_with_phase(self):
+        """Test that a gate with no operations but with a global phase can be unrolled."""
+        qc = QuantumCircuit(2)
+        qc.append(QuantumCircuit(2, global_phase=0.5).to_gate(), [0, 1], [])
+        pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), ["u"])
+        expected = QuantumCircuit(2, global_phase=0.5)
+        self.assertEqual(pass_(qc), expected)

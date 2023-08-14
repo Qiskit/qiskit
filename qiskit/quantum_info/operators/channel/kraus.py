@@ -14,6 +14,7 @@
 Kraus representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -28,6 +29,7 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Kraus(QuantumChannel):
@@ -58,7 +60,12 @@ class Kraus(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
+    ):
         """Initialize a quantum channel Kraus operator.
 
         Args:
@@ -86,10 +93,12 @@ class Kraus(QuantumChannel):
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus
         # operator
+        # TODO properly handle array construction from ragged data (like tuple(np.ndarray, None))
+        # and document these accepted input cases. See also Qiskit/qiskit-terra#9307.
         if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
-            if isinstance(data, np.ndarray) or np.array(data).ndim == 2:
+            if _is_matrix(data):
                 # Convert single Kraus op to general Kraus pair
                 kraus = ([np.asarray(data, dtype=complex)], None)
                 shape = kraus[0][0].shape
@@ -218,7 +227,7 @@ class Kraus(QuantumChannel):
         ret._data = (kraus_l, kraus_r)
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Kraus, qargs: list | None = None, front: bool = False) -> Kraus:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -250,12 +259,12 @@ class Kraus(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Kraus) -> Kraus:
         if not isinstance(other, Kraus):
             other = Kraus(other)
         return self._tensor(other, self)
@@ -318,6 +327,14 @@ class Kraus(QuantumChannel):
             kraus_r = [val * k for k in self._data[1]]
         ret._data = (kraus_l, kraus_r)
         return ret
+
+
+def _is_matrix(data):
+    # return True if data is a 2-d array/tuple/list
+    if not isinstance(data, np.ndarray):
+        data = np.array(data, dtype=object)
+
+    return data.ndim == 2
 
 
 # Update docstrings for API docs

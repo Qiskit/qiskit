@@ -11,13 +11,18 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler type checker."""
+import unittest
+
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.classicalfunction import ClassicalFunctionCompilerTypeError
-from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
-from . import examples, bad_examples
+if HAS_TWEEDLEDUM:
+    from . import examples, bad_examples
+    from qiskit.circuit.classicalfunction import ClassicalFunctionCompilerTypeError
+    from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestTypeCheck(QiskitTestCase):
     """Tests classicalfunction compiler type checker (good examples)."""
 
@@ -66,6 +71,7 @@ class TestTypeCheck(QiskitTestCase):
         )
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestTypeCheckFail(QiskitTestCase):
     """Tests classicalfunction compiler type checker (bad examples)."""
 

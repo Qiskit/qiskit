@@ -10,7 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Events
+"""
+===================================
+Events (:mod:`qiskit.tools.events`)
+===================================
+
+A helper component for publishing and subscribing to events.
+
+.. currentmodule:: qiskit.tools.events
+
+.. autoclass:: TextProgressBar
 """
 
 from .progressbar import TextProgressBar

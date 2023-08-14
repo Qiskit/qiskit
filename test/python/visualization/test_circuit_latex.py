@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
 
 """Tests for visualization of circuit with Latex drawer."""
 
@@ -27,11 +26,13 @@ from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
+from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
 pi = np.pi
 
 
+@unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
 class TestLatexSourceGenerator(QiskitVisualizationTestCase):
     """Qiskit latex source generator tests."""
 

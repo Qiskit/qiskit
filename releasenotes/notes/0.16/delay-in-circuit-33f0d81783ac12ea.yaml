@@ -7,7 +7,7 @@ features:
     appending delays to circuits. This makes it possible to describe
     timing-sensitive experiments (e.g. T1/T2 experiment) in the circuit level.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
 

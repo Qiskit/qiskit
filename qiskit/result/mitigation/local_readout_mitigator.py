@@ -113,7 +113,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         Args:
             data: Counts object
             diagonal: Optional, the vector of diagonal values for summing the
-                      expectation value. If ``None`` the the default value is
+                      expectation value. If ``None`` the default value is
                       :math:`[1, -1]^\otimes n`.
             qubits: Optional, the measured physical qubits the count
                     bitstrings correspond to. If None qubits are assumed to be
@@ -169,7 +169,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        shots: Optional[bool] = False,
+        shots: Optional[int] = None,
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -177,7 +177,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
-            shots: the number of shots.
+            shots: Optional, the total number of shots, if None shots will
+                be calculated as the sum of all counts.
 
         Returns:
             QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
@@ -193,9 +194,11 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         num_qubits = len(qubits)
 
-        probs_vec, shots = counts_probability_vector(
+        probs_vec, calculated_shots = counts_probability_vector(
             data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits
         )
+        if shots is None:
+            shots = calculated_shots
 
         # Get qubit mitigation matrix and mitigate probs
         qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
@@ -214,7 +217,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             probs_dict[index] = probs_vec[index]
 
         quasi_dist = QuasiDistribution(
-            probs_dict, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
+            probs_dict, shots=shots, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
         )
         return quasi_dist
 
@@ -272,7 +275,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         else:
             qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
             gammas = self._gammas[qubit_indices]
-        return np.product(gammas)
+        return np.prod(gammas)
 
     def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
         """Return an upper bound on standard deviation of expval estimator.

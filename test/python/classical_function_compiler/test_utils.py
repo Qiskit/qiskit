@@ -10,16 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Tests .utils.get_truthtable_from_function function"""
+import unittest
 
 from qiskit.test import QiskitTestCase
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .utils import get_truthtable_from_function
-from .examples import grover_oracle
+from . import examples
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestGetTruthtableFromFunction(QiskitTestCase):
     """Tests .utils.get_truthtable_from_function function"""
 
     def test_grover_oracle(self):
         """Tests get_truthtable_from_function with examples.grover_oracle"""
-        truth_table = get_truthtable_from_function(grover_oracle)
+        truth_table = get_truthtable_from_function(examples.grover_oracle)
         self.assertEqual(truth_table, "0000010000000000")

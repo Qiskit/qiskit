@@ -59,6 +59,7 @@ Basis Change
    Decompose
    UnrollCustomDefinitions
    BasisTranslator
+   TranslateParameterizedGates
 
 Optimizations
 =============
@@ -72,6 +73,7 @@ Optimizations
    Collect2qBlocks
    CollectMultiQBlocks
    CollectLinearFunctions
+   CollectCliffords
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -133,7 +135,7 @@ Circuit Analysis
    DAGLongestPath
 
 Synthesis
-=============
+=========
 
 .. autosummary::
    :toctree: ../stubs/
@@ -142,6 +144,8 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   SolovayKitaev
+   SolovayKitaevSynthesis
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -168,9 +172,11 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
+   UnrollForLoops
 """
 
 # layout selection (placement)
@@ -202,6 +208,7 @@ from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import TranslateParameterizedGates
 
 # optimization
 from .optimization import Optimize1qGates
@@ -224,6 +231,7 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 
@@ -243,6 +251,8 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import SolovayKitaev
+from .synthesis import SolovayKitaevSynthesis
 
 # calibration
 from .calibration import PulseGates
@@ -275,8 +285,10 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
+from .utils import UnrollForLoops

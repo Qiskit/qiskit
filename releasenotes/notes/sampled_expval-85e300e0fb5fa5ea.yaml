@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Adds the ``sampled_expectation_value`` function that allows for computing expectation values
-    for diagonal operators from distributions such as ``Counts`` and ``QuasiDistribution``.
-    Valid operators are: ``str``, ``Pauli``, ``PauliOp``, ``PauliSumOp``, and ``SparsePauliOp``.

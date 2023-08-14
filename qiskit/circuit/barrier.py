@@ -21,7 +21,12 @@ from .instruction import Instruction
 
 
 class Barrier(Instruction):
-    """Barrier instruction."""
+    """Barrier instruction.
+
+    A barrier is a visual indicator of the grouping of a circuit section.
+    It also acts as a directive for circuit compilation to separate pieces
+    of a circuit so that any optimizations or re-writes are constrained
+    to only act between barriers."""
 
     _directive = True
 

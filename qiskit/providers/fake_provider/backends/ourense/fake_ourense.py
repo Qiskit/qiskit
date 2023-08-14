@@ -31,7 +31,7 @@ class FakeOurenseV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_ourense.json"
     props_filename = "props_ourense.json"
-    backend_name = "fake_ourense_v2"
+    backend_name = "fake_ourense"
 
 
 class FakeOurense(fake_qasm_backend.FakeQasmBackend):

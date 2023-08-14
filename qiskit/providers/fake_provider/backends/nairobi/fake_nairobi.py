@@ -25,7 +25,7 @@ class FakeNairobiV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_nairobi.json"
     props_filename = "props_nairobi.json"
     defs_filename = "defs_nairobi.json"
-    backend_name = "fake_nairobi_v2"
+    backend_name = "fake_nairobi"
 
 
 class FakeNairobi(fake_pulse_backend.FakePulseBackend):
