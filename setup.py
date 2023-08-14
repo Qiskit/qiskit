@@ -139,6 +139,11 @@ setup(
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
         ],
+        "qiskit.transpiler.translation": [
+            "translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager",
+            "unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager",
+            "synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager",
+        ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
             "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
