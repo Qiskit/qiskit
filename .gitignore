@@ -76,8 +76,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
 
 # PyBuilder
 target/
@@ -119,10 +117,6 @@ tutorial/rst/_build/*
 
 test/python/test_qasm_python_simulator.pdf
 
-doc/_build/*
-
-doc/**/_autodoc
-
 qiskit/bin/*
 
 test/python/test_save.json
@@ -143,8 +137,11 @@ src/qasm-simulator-cpp/test/qubit_vector_tests
 qiskit/transpiler/passes/**/cython/**/*.cpp
 qiskit/quantum_info/states/cython/*.cpp
 
-docs/stubs/*
-executed_tutorials/
+# Sphinx documentation
+/docs/_build
+/docs/stubs
+/docs/locale
+/executed_tutorials
 
 # Notebook testing images
 test/visual/mpl/circuit/circuit_results/*.png
