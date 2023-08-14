@@ -1574,4 +1574,4 @@ def _paulivec_data(state):
     rho = SparsePauliOp.from_operator(DensityMatrix(state))
     if rho.num_qubits is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    return rho.paulis.to_labels(), np.real(rho.coeffs*2**rho.num_qubits)
+    return rho.paulis.to_labels(), np.real(rho.coeffs * 2**rho.num_qubits)
