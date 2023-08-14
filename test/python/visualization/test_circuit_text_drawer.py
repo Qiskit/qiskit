@@ -22,7 +22,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -32,6 +32,8 @@ from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
 from qiskit.extensions.quantum_initializer import UCGate
+from qiskit.compiler import transpile
+from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -5531,6 +5533,41 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with case(case.DEFAULT):
                 circuit.cx(0, 1)
         circuit.h(0)
+        self.assertEqual(str(_text_circuit_drawer(circuit, fold=78, initial_state=False)), expected)
+
+    def test_inner_wire_map_control_op(self):
+        """Test that the gates inside ControlFlowOps land on correct qubits when transpiled"""
+        expected = "\n".join(
+            [
+                "                                           ",
+                "     qr_1 -> 0 ────────────────────────────",
+                "                                           ",
+                "ancilla_0 -> 1 ────────────────────────────",
+                "                                           ",
+                "ancilla_1 -> 2 ────────────────────────────",
+                "                                           ",
+                "ancilla_2 -> 3 ────────────────────────────",
+                "               ┌────── ┌────────┐ ───────┐ ",
+                "     qr_0 -> 4 ┤ If-0  ┤ Rz(-π) ├  End-0 ├─",
+                "               └──╥─── └────────┘ ───────┘ ",
+                "         cr_0: ═══o════════════════════════",
+                "                  ║                        ",
+                "         cr_1: ═══■════════════════════════",
+                "                 0x2                       ",
+            ]
+        )
+
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qreg, creg)
+
+        with qc.if_test((creg, 2)):
+            qc.z(0)
+
+        backend = FakeBelemV2()
+        backend.target.add_instruction(IfElseOp, name="if_else")
+
+        circuit = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         self.assertEqual(str(_text_circuit_drawer(circuit, fold=78, initial_state=False)), expected)
 
 

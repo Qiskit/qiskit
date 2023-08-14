@@ -782,8 +782,13 @@ class TextDrawing:
         Returns:
             str: The lines joined by a newline (``\\n``)
         """
+        # Because jupyter calls both __repr__ and __repr_html__, this prevents the code
+        # from running twice.
         if self._single_string:
             return self._single_string
+        else:
+            # In case there is an exception, this prevents it from printing twice.
+            self._single_string = " "
         try:
             self._single_string = (
                 "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
@@ -1108,9 +1113,10 @@ class TextDrawing:
                 gates.append(OpenBullet(conditional=conditional, label=ctrl_text, bottom=bottom))
         return gates
 
-    def _node_to_gate(self, node, layer):
+    def _node_to_gate(self, node, layer, gate_wire_map):
         """Convert a dag op node into its corresponding Gate object, and establish
-        any connections it introduces between qubits"""
+        any connections it introduces between qubits. gate_wire_map is the flow_wire_map
+        if gate is inside a ControlFlowOp, else it's self._wire_map"""
         op = node.op
         current_cons = []
         current_cons_cond = []
@@ -1130,9 +1136,9 @@ class TextDrawing:
             conditional = True
 
         # add in a gate that operates over multiple qubits
-        def add_connected_gate(node, gates, layer, current_cons):
+        def add_connected_gate(node, gates, layer, current_cons, gate_wire_map):
             for i, gate in enumerate(gates):
-                actual_index = self.qubits.index(node.qargs[i])
+                actual_index = gate_wire_map[node.qargs[i]]
                 if actual_index not in [i for i, j in current_cons]:
                     layer.set_qubit(node.qargs[i], gate)
                     current_cons.append((actual_index, gate))
@@ -1162,7 +1168,7 @@ class TextDrawing:
         elif isinstance(op, SwapGate):
             # swap
             gates = [Ex(conditional=conditional) for _ in range(len(node.qargs))]
-            add_connected_gate(node, gates, layer, current_cons)
+            add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif isinstance(op, Reset):
             # reset
@@ -1172,7 +1178,7 @@ class TextDrawing:
             # rzz
             connection_label = "ZZ%s" % params
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-            add_connected_gate(node, gates, layer, current_cons)
+            add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif len(node.qargs) == 1 and not node.cargs:
             # unitary gate
@@ -1192,7 +1198,7 @@ class TextDrawing:
             elif base_gate.name == "swap":
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
-                add_connected_gate(node, gates, layer, current_cons)
+                add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
             elif base_gate.name == "rzz":
                 # crzz
                 connection_label = "ZZ%s" % params
@@ -1213,7 +1219,7 @@ class TextDrawing:
                     current_cons.append((index, DrawElement("")))
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
-            add_connected_gate(node, gates, layer, current_cons)
+            add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif len(node.qargs) >= 2 and not node.cargs:
             layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
@@ -1261,7 +1267,7 @@ class TextDrawing:
                     self.add_control_flow(node, layers)
                 else:
                     layer, current_cons, current_cons_cond, connection_label = self._node_to_gate(
-                        node, layer
+                        node, layer, self._wire_map
                     )
                     layer.connections.append((connection_label, current_cons))
                     layer.connections.append((None, current_cons_cond))
@@ -1293,7 +1299,7 @@ class TextDrawing:
             # Update the wire_map with the qubits from the inner circuit
             flow_wire_map = {
                 inner: self._wire_map[outer]
-                for outer, inner in zip(self.qubits, circuit.qubits)
+                for outer, inner in zip(node.qargs, circuit.qubits)
                 if inner not in self._wire_map
             }
             if not flow_wire_map:
@@ -1322,7 +1328,7 @@ class TextDrawing:
                             current_cons,
                             current_cons_cond,
                             connection_label,
-                        ) = self._node_to_gate(if_node, if_layer2)
+                        ) = self._node_to_gate(if_node, if_layer2, flow_wire_map)
                         if_layer2.connections.append((connection_label, current_cons))
                         if_layer2.connections.append((None, current_cons_cond))
 
