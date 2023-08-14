@@ -222,10 +222,21 @@ class VF2PostLayout(AnalysisPass):
             # mode the node matcher will not match since none of the circuit ops
             # will match the cmap ops.
             if not self.strict_direction:
-                has_operations = set(itertools.chain.from_iterable(self.target.qargs))
-                to_remove = set(cm_graph.node_indices()).difference(has_operations)
+                has_none = False
+            has_operations = set()
+            for qarg in self.target.qargs:
+                if qarg is None:
+                    has_none = True
+                else:
+                    has_operations.update(qarg)
+            # If there are defined operations or if has_operations is empty and there are
+            # no globally defined gates. If has_none was true and there are no operations
+            # defined that means all operations are supported on all qubits and there is
+            # nothing to remove.
+            if has_operations or not has_none:
+                to_remove = set(range(len(cm_nodes))).difference(has_operations)
                 if to_remove:
-                    cm_graph.remove_nodes_from(list(to_remove))
+                    cm_graph.remove_nodes_from([cm_nodes[i] for i in to_remove])
         else:
             cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
                 self.coupling_map, self.seed, self.strict_direction
