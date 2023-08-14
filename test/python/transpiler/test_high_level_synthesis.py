@@ -18,9 +18,10 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import unittest.mock
 
 from qiskit.circuit import QuantumCircuit, Operation
+from qiskit.circuit.library import PermutationGate, LinearFunction
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap
-from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
+from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin, HighLevelSynthesisPluginManager
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
 
@@ -460,6 +461,66 @@ class TestHighLeverSynthesisInterface(QiskitTestCase):
             # HighLevelSynthesis is initialized with use_qubit_indices=True, which means synthesis
             # plugin should see qubits and complete without errors.
             pm_use_qubits_true.run(qc)
+
+
+class TestTokenSwapperPermutationPlugin(QiskitTestCase):
+    """Tests for the token swapper plugin for synthesizing permutation gates."""
+
+    def test_token_swapper_in_known_plugin_names(self):
+        """Test that "token_swapper" is an available synthesis plugin for permutation gates."""
+        self.assertIn("token_swapper", HighLevelSynthesisPluginManager().method_names("permutation"))
+
+    def test_abstract_synthesis(self):
+        """Test abstract synthesis of a permutation gate (either the coupling map or the set
+        of qubits over which the permutation is defined is not specified).
+        """
+
+        # Permutation gate
+        # 4->0, 6->1, 3->2, 7->3, 1->4, 2->5, 0->6, 5->7
+        perm = PermutationGate([4, 6, 3, 7, 1, 2, 0, 5])
+
+        # Circuit with permutation gate
+        qc = QuantumCircuit(8)
+        qc.append(perm, range(8))
+
+        # Synthesize circuit using the token swapper plugin
+        synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10})])
+        qc_transpiled = PassManager(HighLevelSynthesis(synthesis_config)).run(qc)
+        print(qc_transpiled)
+
+        # Construct the expected quantum circuit
+        # From the description below we can see that
+        #   0->6, 1->4, 2->5, 3->2, 4->0, 5->2->3->7, 6->0->4->1, 7->3
+        qc_expected = QuantumCircuit(8)
+        qc_expected.swap(2, 5)
+        qc_expected.swap(0, 6)
+        qc_expected.swap(2, 3)
+        qc_expected.swap(0, 4)
+        qc_expected.swap(1, 4)
+        qc_expected.swap(3, 7)
+        print(qc_expected)
+
+        self.assertEqual(qc_transpiled, qc_expected)
+
+    def test_concrete_synthesis(self):
+        """Test concrete synthesis of a permutation gate (we have both the coupling map and the
+        set of qubits over which the permutation gate is defined; moreover, the coupling map may
+        have more qubits than the permutation gate).
+        """
+
+        # Permutation gate
+        perm = PermutationGate([4, 3, 2, 1, 0])
+
+        # Circuit with permutation gate
+        qc = QuantumCircuit(10)
+        qc.append(perm, [0, 2, 4, 6, 8])
+
+        coupling_map = CouplingMap.from_ring(10)
+
+        synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10})])
+        qc_transpiled = PassManager(HighLevelSynthesis(synthesis_config, coupling_map=coupling_map, target=None, use_qubit_indices=True)).run(qc)
+
+        print(qc_transpiled)
 
 
 if __name__ == "__main__":

@@ -138,6 +138,7 @@ setup(
             "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
+            "permutation.token_swapper = qiskit.transpiler.passes.synthesis.high_level_synthesis:TokenSwapperSynthesisPermutation",
         ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",

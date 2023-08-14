@@ -14,13 +14,16 @@
 """Synthesize higher-level objects."""
 
 from typing import Optional
+import rustworkx as rx
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -403,4 +406,61 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_acg(high_level_object.pattern)
+        return decomposition
+
+
+class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
+    """The permutation synthesis plugin based on the token swapper algorithm.
+    For more details you can refer to the paper describing the algorithm:
+    `arXiv:1809.03452 <https://arxiv.org/abs/1809.03452>`__.
+
+    This plugin name is :``permutation.token_swapper`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following plugin-specific options:
+
+    * trials: The number of trials for the token swapper to perform the mapping. The
+      circuit with the smallest number of SWAPs is returned.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given Permutation."""
+
+        print(f"Running token_swapper plugin with {coupling_map = }, {qubits = }, {options = }")
+
+        pattern = high_level_object.pattern
+        trials = options.get("trials", 5)
+
+        # The plugin considers two different cases: if either the coupling map
+        # or the set of qubits over which the permutation is defined is None, then it
+        # performs the abstract synthesis; otherwise it performs the concrete synthesis.
+
+        if coupling_map is None or qubits is None:
+            pattern_as_dict = {j: i for i, j in enumerate(pattern)}
+            used_coupling_map = CouplingMap.from_full(len(pattern))
+            graph = rx.PyGraph()
+            graph.extend_from_edge_list(list(used_coupling_map.get_edges()))
+            swapper = ApproximateTokenSwapper(graph, seed=1)
+            out = list(swapper.map(pattern_as_dict, trials))
+            decomposition = QuantumCircuit(len(graph.node_indices()))
+            for swap in out:
+                decomposition.swap(*swap)
+        else:
+            if len(pattern) != len(qubits):
+                raise TranspilerError(
+                    "The permutation pattern and the set of qubits over which the "
+                    "permutation is defined have different lengths"
+                )
+
+            pattern_as_dict = {qubits[j]: qubits[i] for i, j in enumerate(pattern)}
+            graph = rx.PyGraph()
+            graph.extend_from_edge_list(list(coupling_map.get_edges()))
+            swapper = ApproximateTokenSwapper(graph, seed=1)
+            out = list(swapper.map(pattern_as_dict, trials))
+            decomposition = QuantumCircuit(len(graph.node_indices()))
+            for swap in out:
+                decomposition.swap(*swap)
+        print(f"GOT DECOMPOSITION")
+        print(decomposition)
         return decomposition
