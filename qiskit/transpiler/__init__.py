@@ -1241,19 +1241,23 @@ Abstract Passes
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   TranspilerError
-   TranspilerAccessError
+.. autoexception:: TranspilerError
+.. autoexception:: TranspilerAccessError
+.. autoexception:: CouplingError
+.. autoexception:: LayoutError
 """
 
 from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
+<<<<<<< HEAD
 from .passmanager import StagedPassManager
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
+=======
+from .propertyset import PropertySet  # pylint: disable=no-name-in-module
+from .exceptions import TranspilerError, TranspilerAccessError, CouplingError, LayoutError
+>>>>>>> 982807e5b (Add exceptions to API documentation (#10522))
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap

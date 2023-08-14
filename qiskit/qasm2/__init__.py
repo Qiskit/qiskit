@@ -98,6 +98,11 @@ file it occurred.
 
 .. autoexception:: QASM2ParseError
 
+Similarly, a failure during the export of an OpenQASM 2 program will raise its own subclass of
+:exc:`QASM2Error`:
+
+.. autoexception:: QASM2ExportError
+
 .. _qasm2-examples:
 
 Examples

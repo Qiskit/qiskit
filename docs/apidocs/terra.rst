@@ -45,3 +45,4 @@ Qiskit Terra API Reference
    utils_mitigation
    opflow
    algorithms
+   exceptions

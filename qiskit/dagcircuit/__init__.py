@@ -34,6 +34,7 @@ DAG Circuits
 Exceptions
 ==========
 
+<<<<<<< HEAD
 .. autosummary::
    :toctree: ../stubs/
 
@@ -48,10 +49,14 @@ Utilities
    BlockCollapser
    BlockCollector
    BlockSplitter
+=======
+.. autoexception:: DAGCircuitError
+.. autoexception:: DAGDependencyError
+>>>>>>> 982807e5b (Add exceptions to API documentation (#10522))
 """
 from .collect_blocks import BlockCollapser, BlockCollector, BlockSplitter
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
-from .exceptions import DAGCircuitError
+from .exceptions import DAGCircuitError, DAGDependencyError
 from .dagdependency import DAGDependency
