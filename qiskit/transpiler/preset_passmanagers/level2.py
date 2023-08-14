@@ -21,23 +21,13 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
 from qiskit.transpiler import ConditionalController, FlowController
-
-from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import VF2Layout
-from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler.passes import DenseLayout
-from qiskit.transpiler.passes import NoiseAdaptiveLayout
-from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import GatesInBasis
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.preset_passmanagers import common
-from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
-
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
 )
@@ -71,78 +61,17 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method
-    layout_method = pass_manager_config.layout_method or "sabre"
+    layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
     scheduling_method = pass_manager_config.scheduling_method or "default"
-    seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
     hls_config = pass_manager_config.hls_config
-
-    # Search for a perfect layout, or choose a dense layout, if no layout given
-    _given_layout = SetLayout(initial_layout)
-
-    def _choose_layout_condition(property_set):
-        # layout hasn't been set yet
-        return not property_set["layout"]
-
-    def _vf2_match_not_found(property_set):
-        # If a layout hasn't been set by the time we run vf2 layout we need to
-        # run layout
-        if property_set["layout"] is None:
-            return True
-        # if VF2 layout stopped for any reason other than solution found we need
-        # to run layout since VF2 didn't converge.
-        if (
-            property_set["VF2Layout_stop_reason"] is not None
-            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
-        ):
-            return True
-        return False
-
-    # Try using VF2 layout to find a perfect layout
-    _choose_layout_0: list[BasePass] | BasePass = (
-        []
-        if pass_manager_config.layout_method
-        else VF2Layout(
-            coupling_map,
-            seed=seed_transpiler,
-            call_limit=int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
-            properties=backend_properties,
-            target=target,
-            max_trials=25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
-        )
-    )
-
-    if target is None:
-        coupling_map_layout = coupling_map
-    else:
-        coupling_map_layout = target
-
-    if layout_method == "trivial":
-        _choose_layout_1: BasePass = TrivialLayout(coupling_map_layout)
-    elif layout_method == "dense":
-        _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
-    elif layout_method == "noise_adaptive":
-        if target is None:
-            _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
-        else:
-            _choose_layout_1 = NoiseAdaptiveLayout(target)
-    elif layout_method == "sabre":
-        _choose_layout_1 = SabreLayout(
-            coupling_map_layout,
-            max_iterations=2,
-            seed=seed_transpiler,
-            swap_trials=10,
-            layout_trials=10,
-            skip_routing=pass_manager_config.routing_method is not None
-            and routing_method != "sabre",
-        )
 
     # Choose routing pass
     routing_pm = plugin_manager.get_passmanager_stage(
@@ -173,25 +102,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             unitary_synthesis_plugin_config,
             hls_config,
         )
-        if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
-            layout = plugin_manager.get_passmanager_stage(
-                "layout", layout_method, pass_manager_config, optimization_level=2
-            )
-        else:
-
-            def _swap_mapped(property_set):
-                return property_set["final_layout"] is None
-
-            layout = PassManager()
-            layout.append(_given_layout)
-            layout.append(_choose_layout_0, condition=_choose_layout_condition)
-            layout.append(
-                [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
-            )
-            embed = common.generate_embed_passmanager(coupling_map_layout)
-            layout.append(
-                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
-            )
+        layout = plugin_manager.get_passmanager_stage(
+            "layout", layout_method, pass_manager_config, optimization_level=2
+        )
         routing = routing_pm
     else:
         layout = None
