@@ -1,23 +1,21 @@
-:orphan:
+.. _release-notes:
 
-.. _legacy-release-notes:
+%%%%%%%%%%%%%
+Release Notes
+%%%%%%%%%%%%%
 
-%%%%%%%%%%%%%%%%%%%%
-Legacy Release Notes
-%%%%%%%%%%%%%%%%%%%%
+Up until version 0.44, ``qiskit`` was a "metapackage" that contained several different "elements", such as the
+``Aer`` simulator. What is called "Qiskit Terra" within this document is principally what is now just called "Qiskit",
+i.e. the SDK.
 
-This page contains the full history of the release notes from when ``qiskit`` was a "meta-package",
-which contained several different "elements".  It is maintained here for historical interest.  The
-main release notes can be found at :ref:`release-notes`.
+Starting with ``qiskit`` 0.45, ``qiskit`` and ``qiskit-terra`` will have the same version and will not include
+any additional "elements".
 
-What is called "Qiskit Terra" within this document is principally what is now just called "Qiskit".
+###############################
+Metapackage Version Equivalency
+###############################
 
-
-###############
-Version History
-###############
-
-This table tracks the meta-package versions and the version of each legacy Qiskit element installed:
+This table tracks the metapackage versions and the version of each legacy Qiskit element installed:
 
 ==========================  ============  ==========  ============  ====================  ===========  ============
 Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-provider  qiskit-aqua  Release Date
