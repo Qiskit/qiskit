@@ -135,7 +135,8 @@ class MatplotlibDrawer:
         self._calibrations = self._circuit.calibrations
 
         for node in itertools.chain.from_iterable(self._nodes):
-            if node.cargs and node.op.name != "measure":
+            if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
+                print("Cargs", node.op)
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -508,6 +509,7 @@ class MatplotlibDrawer:
                     # Now process the circuits inside the ControlFlowOps
                     for circ_num, circuit in enumerate(circuit_list):
                         raw_gate_width = 0.0
+                        expr_width = 0.0
 
                         # Depth of nested ControlFlowOp used for color of box
                         if self._flow_parent is not None:
@@ -555,14 +557,18 @@ class MatplotlibDrawer:
                             BasicPrinter(stream, indent="  ").visit(builder.build_expression(op.condition))
                             node_data[node].expr_condition = stream.getvalue()
                             expr_width =  self._get_text_width(node_data[node].expr_condition,
-                                glob_data, fontsize=self._style["fs"]
+                                glob_data, fontsize=self._style["sfs"]
                             )
-                            raw_gate_width += expr_width
+                            print(node_data[node].expr_condition)
+                            print(expr_width)
+                            if expr_width > 1.0:
+                                raw_gate_width = float(round(expr_width - 0.5))
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
                         layer_widths.update(flow_widths)
 
+                        print(flow_widths)
                         # Gates within a SwitchCaseOp need to know which case they are in
                         for flow_layer in nodes:
                             for flow_node in flow_layer:
@@ -581,7 +587,12 @@ class MatplotlibDrawer:
                         # Minor adjustment so else and case section gates align with indexes
                         if circ_num > 0:
                             raw_gate_width += 0.045
+                        node_data[node].x_index = round(expr_width + 0.5)
                         node_data[node].width.append(raw_gate_width)
+                        print(node_data[node].width)
+                        print(node_data[node].x_index)
+                        print(node_data[flow_drawer._flow_parent].x_index)
+                        print(flow_drawer._flow_parent)
 
                 # Otherwise, standard gate or multiqubit gate
                 else:
@@ -696,12 +707,16 @@ class MatplotlibDrawer:
         prev_x_index = -1
         for layer in self._nodes:
             curr_x_index = prev_x_index + 1
+            print("curr", curr_x_index)
             l_width = []
             for node in layer:
                 # For gates inside if, else, while, or case set the x_index and if it's an
                 # else or case increment by if width. For additional cases increment by
                 # width of previous cases.
                 if flow_parent is not None:
+                    print(flow_parent.op)
+                    print(flow_parent)
+                    print("flow x", node_data[flow_parent].x_index)
                     node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
                     if is_not_first_block:
                         # Add index space for else or first case if switch/case
@@ -711,6 +726,7 @@ class MatplotlibDrawer:
                         if node_data[node].case_num > 1:
                             for width in node_data[flow_parent].width[1 : node_data[node].case_num]:
                                 node_data[node].x_index += int(width) + 1
+                    print("flow x after", node_data[node].x_index)
 
                 # get qubit indexes
                 q_indxs = []
@@ -763,7 +779,9 @@ class MatplotlibDrawer:
                 if flow_parent is None:
                     curr_x_index = glob_data["next_x_index"]
                 l_width.append(layer_widths[node][0])
-                node_data[node].x_index = x_index
+                print("node reset", node, x_index)
+                if flow_parent is not None:
+                    node_data[node].x_index = x_index
 
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0
@@ -1141,6 +1159,7 @@ class MatplotlibDrawer:
             builder.build_classical_declarations()
             BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
             print(stream.getvalue())
+            return
             condition_bits = condition_resources(condition).clbits
             label = "[expression]"
             override_fc = True
@@ -1476,6 +1495,7 @@ class MatplotlibDrawer:
 
         if_width = node_data[node].width[0] + WID
         box_width = if_width
+        print("box", box_width)
         # Add the else and case widths to the if_width
         for ewidth in node_data[node].width[1:]:
             if ewidth > 0.0:
@@ -1531,6 +1551,17 @@ class MatplotlibDrawer:
                 ha="left",
                 va="center",
                 fontsize=self._style["fs"],
+                color=node_data[node].tc,
+                clip_on=True,
+                zorder=PORDER_FLOW,
+            )
+            self._ax.text(
+                xpos - x_shift - 0.08,
+                ypos_max + 0.2 - y_shift - 0.4,
+                " " + node_data[node].expr_condition,
+                ha="left",
+                va="center",
+                fontsize=self._style["sfs"],
                 color=node_data[node].tc,
                 clip_on=True,
                 zorder=PORDER_FLOW,
@@ -1929,6 +1960,8 @@ class NodeData:
 
         # Special values stored for ControlFlowOps
         self.nest_depth = 0
+        self.expr_width = 0.0
+        self.expr_condtion = ""
         self.inside_flow = False
         self.indexset = ()  # List of indices used for ForLoopOp
         self.jump_values = []  # List of jump values used for SwitchCaseOp
