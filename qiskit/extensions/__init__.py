@@ -53,12 +53,21 @@ Uniformly Controlled Rotations
    UCRXGate
    UCRYGate
    UCRZGate
+
+Exceptions
+==========
+
+The additional gates in this module will tend to raise a custom exception when they encounter
+problems.
+
+.. autoexception:: ExtensionError
 """
 
 # import all standard gates
 from qiskit.circuit.library.standard_gates import *
 from qiskit.circuit.barrier import Barrier
 
+from .exceptions import ExtensionError
 from .quantum_initializer import (
     Initialize,
     SingleQubitUnitary,

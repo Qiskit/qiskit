@@ -71,11 +71,13 @@ and then loading that file will return a list with all the circuits
 API documentation
 =================
 
-.. autosummary::
-   :toctree: ../stubs/
+.. autofunction:: load
+.. autofunction:: dump
 
-   load
-   dump
+These functions will raise a custom subclass of :exc:`.QiskitError` if they encounter problems
+during serialization or deserialization.
+
+.. autoexception:: QpyError
 
 QPY Compatibility
 =================
@@ -1268,6 +1270,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 
+from .exceptions import QpyError
 from .interface import dump, load
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.

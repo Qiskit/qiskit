@@ -14,6 +14,7 @@
 
 """mpl circuit visualization backend."""
 
+import collections
 import itertools
 import re
 from warnings import warn
@@ -33,6 +34,8 @@ from qiskit.circuit import (
     ForLoopOp,
     SwitchCaseOp,
 )
+from qiskit.circuit.controlflow import condition_resources
+from qiskit.circuit.classical import expr
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -294,9 +297,7 @@ class MatplotlibDrawer:
         # load the wire map
         wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
 
-        # node_data per node with "width", "gate_text", "raw_gate_text", "ctrl_text",
-        # "param_text", "nest_depth", "inside_flow", "x_index", "indexset", "jump_values",
-        # "case_num", "q_xy", "c_xy", and colors "fc", "ec", "lc", "sc", "gt", and "tc"
+        # node_data per node filled with class NodeData attributes
         node_data = {}
 
         # dicts for the names and locations of register/bit labels
@@ -412,23 +413,23 @@ class MatplotlibDrawer:
                 layer_widths[node] = [1, layer_num, self._flow_parent]
 
                 op = node.op
-                node_data[node] = {}
-                node_data[node]["width"] = WID
+                node_data[node] = NodeData()
+                node_data[node].width = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
                 if (
                     getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
                 ) or isinstance(op, Measure):
-                    node_data[node]["raw_gate_text"] = op.name
+                    node_data[node].raw_gate_text = op.name
                     continue
 
                 base_type = None if not hasattr(op, "base_gate") else op.base_gate
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
                     op, "mpl", style=self._style, calibrations=self._calibrations
                 )
-                node_data[node]["gate_text"] = gate_text
-                node_data[node]["ctrl_text"] = ctrl_text
-                node_data[node]["raw_gate_text"] = raw_gate_text
-                node_data[node]["param_text"] = ""
+                node_data[node].gate_text = gate_text
+                node_data[node].ctrl_text = ctrl_text
+                node_data[node].raw_gate_text = raw_gate_text
+                node_data[node].param_text = ""
 
                 # if single qubit, no params, and no labels, layer_width is 1
                 if (
@@ -457,7 +458,7 @@ class MatplotlibDrawer:
                     param_text = get_param_str(op, "mpl", ndigits=3)
                     if isinstance(op, Initialize):
                         param_text = f"$[{param_text.replace('$', '')}]$"
-                    node_data[node]["param_text"] = param_text
+                    node_data[node].param_text = param_text
                     raw_param_width = self._get_text_width(
                         param_text, glob_data, fontsize=self._style["sfs"], param=True
                     )
@@ -480,8 +481,8 @@ class MatplotlibDrawer:
                 # Check if a ControlFlowOp - node_data load for these gates is done here
                 elif isinstance(node.op, ControlFlowOp):
                     self._flow_drawers[node] = []
-                    node_data[node]["width"] = []
-                    node_data[node]["nest_depth"] = 0
+                    node_data[node].width = []
+                    node_data[node].nest_depth = 0
                     gate_width = 0.0
 
                     # Get the list of circuits to iterate over from the blocks
@@ -490,15 +491,15 @@ class MatplotlibDrawer:
                     # params is [indexset, loop_param, circuit] for for_loop,
                     # op.cases_specifier() returns jump tuple and circuit for switch/case
                     if isinstance(op, ForLoopOp):
-                        node_data[node]["indexset"] = op.params[0]
+                        node_data[node].indexset = op.params[0]
                     elif isinstance(op, SwitchCaseOp):
-                        node_data[node]["jump_values"] = []
+                        node_data[node].jump_values = []
                         cases = list(op.cases_specifier())
 
                         # Create an empty circuit at the head of the circuit_list if a Switch box
                         circuit_list.insert(0, cases[0][1].copy_empty_like())
                         for jump_values, _ in cases:
-                            node_data[node]["jump_values"].append(jump_values)
+                            node_data[node].jump_values.append(jump_values)
 
                     # Now process the circuits inside the ControlFlowOps
                     for circ_num, circuit in enumerate(circuit_list):
@@ -506,9 +507,7 @@ class MatplotlibDrawer:
 
                         # Depth of nested ControlFlowOp used for color of box
                         if self._flow_parent is not None:
-                            node_data[node]["nest_depth"] = (
-                                node_data[self._flow_parent]["nest_depth"] + 1
-                            )
+                            node_data[node].nest_depth = node_data[self._flow_parent].nest_depth + 1
                         # Update the wire_map with the qubits from the inner circuit
                         flow_wire_map = {
                             inner: wire_map[outer]
@@ -547,7 +546,7 @@ class MatplotlibDrawer:
                         for flow_layer in nodes:
                             for flow_node in flow_layer:
                                 if isinstance(node.op, SwitchCaseOp):
-                                    node_data[flow_node]["case_num"] = circ_num
+                                    node_data[flow_node].case_num = circ_num
 
                         # Add up the width values of the same flow_parent that are not -1
                         # to get the raw_gate_width
@@ -561,7 +560,7 @@ class MatplotlibDrawer:
                         # Minor adjustment so else and case section gates align with indexes
                         if circ_num > 0:
                             raw_gate_width += 0.045
-                        node_data[node]["width"].append(raw_gate_width)
+                        node_data[node].width.append(raw_gate_width)
 
                 # Otherwise, standard gate or multiqubit gate
                 else:
@@ -577,7 +576,7 @@ class MatplotlibDrawer:
                 if box_width > widest_box:
                     widest_box = box_width
                 if not isinstance(node.op, ControlFlowOp):
-                    node_data[node]["width"] = max(raw_gate_width, raw_param_width)
+                    node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
                 layer_widths[node][0] = int(widest_box) + 1
 
@@ -682,19 +681,15 @@ class MatplotlibDrawer:
                 # else or case increment by if width. For additional cases increment by
                 # width of previous cases.
                 if flow_parent is not None:
-                    node_data[node]["x_index"] = (
-                        node_data[flow_parent]["x_index"] + curr_x_index + 1
-                    )
+                    node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
                     if is_not_first_block:
                         # Add index space for else or first case if switch/case
-                        node_data[node]["x_index"] += int(node_data[flow_parent]["width"][0]) + 1
+                        node_data[node].x_index += int(node_data[flow_parent].width[0]) + 1
 
                         # Add index space for remaining cases for switch/case
-                        if "case_num" in node_data[node] and node_data[node]["case_num"] > 1:
-                            for width in node_data[flow_parent]["width"][
-                                1 : node_data[node]["case_num"]
-                            ]:
-                                node_data[node]["x_index"] += int(width) + 1
+                        if node_data[node].case_num > 1:
+                            for width in node_data[flow_parent].width[1 : node_data[node].case_num]:
+                                node_data[node].x_index += int(width) + 1
 
                 # get qubit indexes
                 q_indxs = []
@@ -714,14 +709,14 @@ class MatplotlibDrawer:
 
                 flow_op = isinstance(node.op, ControlFlowOp)
                 if flow_parent is not None:
-                    node_data[node]["inside_flow"] = True
-                    x_index = node_data[node]["x_index"]
+                    node_data[node].inside_flow = True
+                    x_index = node_data[node].x_index
                 else:
-                    node_data[node]["inside_flow"] = False
+                    node_data[node].inside_flow = False
                     x_index = curr_x_index
 
                 # qubit coordinates
-                node_data[node]["q_xy"] = [
+                node_data[node].q_xy = [
                     self._plot_coord(
                         x_index,
                         qubits_dict[ii]["y"],
@@ -732,7 +727,7 @@ class MatplotlibDrawer:
                     for ii in q_indxs
                 ]
                 # clbit coordinates
-                node_data[node]["c_xy"] = [
+                node_data[node].c_xy = [
                     self._plot_coord(
                         x_index,
                         clbits_dict[ii]["y"],
@@ -747,7 +742,7 @@ class MatplotlibDrawer:
                 if flow_parent is None:
                     curr_x_index = glob_data["next_x_index"]
                 l_width.append(layer_widths[node][0])
-                node_data[node]["x_index"] = x_index
+                node_data[node].x_index = x_index
 
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0
@@ -996,7 +991,7 @@ class MatplotlibDrawer:
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
                     cond_xy = [
                         self._plot_coord(
-                            node_data[node]["x_index"],
+                            node_data[node].x_index,
                             clbits_dict[ii]["y"],
                             layer_widths[node][0],
                             glob_data,
@@ -1020,7 +1015,7 @@ class MatplotlibDrawer:
                     self._flow_op_gate(node, node_data, glob_data)
 
                 # draw single qubit gates
-                elif len(node_data[node]["q_xy"]) == 1 and not node.cargs:
+                elif len(node_data[node].q_xy) == 1 and not node.cargs:
                     self._gate(node, node_data, glob_data)
 
                 # draw controlled gates
@@ -1032,7 +1027,7 @@ class MatplotlibDrawer:
                     self._multiqubit_gate(node, node_data, glob_data)
 
                 # Determine the max width of the circuit only at the top level
-                if not node_data[node]["inside_flow"]:
+                if not node_data[node].inside_flow:
                     l_width.append(layer_widths[node][0])
 
             # adjust the column if there have been barriers encountered, but not plotted
@@ -1050,8 +1045,8 @@ class MatplotlibDrawer:
         op = node.op
         base_name = None if not hasattr(op, "base_gate") else op.base_gate.name
         color = None
-        if node_data[node]["raw_gate_text"] in self._style["dispcol"]:
-            color = self._style["dispcol"][node_data[node]["raw_gate_text"]]
+        if node_data[node].raw_gate_text in self._style["dispcol"]:
+            color = self._style["dispcol"][node_data[node].raw_gate_text]
         elif op.name in self._style["dispcol"]:
             color = self._style["dispcol"][op.name]
         if color is not None:
@@ -1085,12 +1080,12 @@ class MatplotlibDrawer:
             lc = fc
         # Subtext needs to be same color as gate text
         sc = gt
-        node_data[node]["fc"] = fc
-        node_data[node]["ec"] = ec
-        node_data[node]["gt"] = gt
-        node_data[node]["tc"] = self._style["tc"]
-        node_data[node]["sc"] = sc
-        node_data[node]["lc"] = lc
+        node_data[node].fc = fc
+        node_data[node].ec = ec
+        node_data[node].gt = gt
+        node_data[node].tc = self._style["tc"]
+        node_data[node].sc = sc
+        node_data[node].lc = lc
 
     def _condition(self, node, node_data, wire_map, cond_xy, glob_data):
         """Add a conditional to a gate"""
@@ -1098,45 +1093,70 @@ class MatplotlibDrawer:
         # For SwitchCaseOp convert the target to a fully closed Clbit or register
         # in condition format
         if isinstance(node.op, SwitchCaseOp):
-            if isinstance(node.op.target, Clbit):
+            if isinstance(node.op.target, expr.Expr):
+                condition = node.op.target
+            elif isinstance(node.op.target, Clbit):
                 condition = (node.op.target, 1)
             else:
                 condition = (node.op.target, 2 ** (node.op.target.size) - 1)
         else:
             condition = node.op.condition
-        label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
-        cond_bit_reg = condition[0]
-        cond_bit_val = int(condition[1])
 
+        override_fc = False
         first_clbit = len(self._qubits)
         cond_pos = []
 
-        # In the first case, multiple bits are indicated on the drawing. In all
-        # other cases, only one bit is shown.
-        if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
-            for idx in range(cond_bit_reg.size):
-                cond_pos.append(cond_xy[wire_map[cond_bit_reg[idx]] - first_clbit])
+        if isinstance(condition, expr.Expr):
+            # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
+            # `visualization.circuit_drawer` to remove warnings.
+            condition_bits = condition_resources(condition).clbits
+            label = "[expression]"
+            override_fc = True
+            registers = collections.defaultdict(list)
+            for bit in condition_bits:
+                registers[get_bit_register(self._circuit, bit)].append(bit)
+            # Registerless bits don't care whether cregbundle is set.
+            cond_pos.extend(cond_xy[wire_map[bit] - first_clbit] for bit in registers.pop(None, ()))
+            if self._cregbundle:
+                cond_pos.extend(
+                    cond_xy[wire_map[register[0]] - first_clbit] for register in registers
+                )
+            else:
+                cond_pos.extend(
+                    cond_xy[wire_map[bit] - first_clbit]
+                    for register, bits in registers.items()
+                    for bit in bits
+                )
+            val_bits = ["1"] * len(cond_pos)
+        else:
+            label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
+            cond_bit_reg = condition[0]
+            cond_bit_val = int(condition[1])
+            override_fc = (
+                cond_bit_val != 0
+                and self._cregbundle
+                and isinstance(cond_bit_reg, ClassicalRegister)
+            )
 
-        # If it's a register bit and cregbundle, need to use the register to find the location
-        elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-            register = get_bit_register(self._circuit, cond_bit_reg)
-            if register is not None:
-                cond_pos.append(cond_xy[wire_map[register] - first_clbit])
+            # In the first case, multiple bits are indicated on the drawing. In all
+            # other cases, only one bit is shown.
+            if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
+                for idx in range(cond_bit_reg.size):
+                    cond_pos.append(cond_xy[wire_map[cond_bit_reg[idx]] - first_clbit])
+
+            # If it's a register bit and cregbundle, need to use the register to find the location
+            elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
+                register = get_bit_register(self._circuit, cond_bit_reg)
+                if register is not None:
+                    cond_pos.append(cond_xy[wire_map[register] - first_clbit])
+                else:
+                    cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
             else:
                 cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
-        else:
-            cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
 
         xy_plot = []
-        for idx, xy in enumerate(cond_pos):
-            if val_bits[idx] == "1" or (
-                isinstance(cond_bit_reg, ClassicalRegister)
-                and cond_bit_val != 0
-                and self._cregbundle
-            ):
-                fc = self._style["lc"]
-            else:
-                fc = self._style["bg"]
+        for val_bit, xy in zip(val_bits, cond_pos):
+            fc = self._style["lc"] if override_fc or val_bit == "1" else self._style["bg"]
             box = glob_data["patches_mod"].Circle(
                 xy=xy,
                 radius=WID * 0.15,
@@ -1148,7 +1168,7 @@ class MatplotlibDrawer:
             self._ax.add_patch(box)
             xy_plot.append(xy)
 
-        qubit_b = min(node_data[node]["q_xy"], key=lambda xy: xy[1])
+        qubit_b = min(node_data[node].q_xy, key=lambda xy: xy[1])
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
 
         # For IfElseOp, WhileLoopOp or SwitchCaseOp, place the condition
@@ -1175,8 +1195,8 @@ class MatplotlibDrawer:
 
     def _measure(self, node, node_data, glob_data):
         """Draw the measure symbol and the line to the clbit"""
-        qx, qy = node_data[node]["q_xy"][0]
-        cx, cy = node_data[node]["c_xy"][0]
+        qx, qy = node_data[node].q_xy[0]
+        cx, cy = node_data[node].c_xy[0]
         register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
 
         # draw gate box
@@ -1190,7 +1210,7 @@ class MatplotlibDrawer:
             theta1=0,
             theta2=180,
             fill=False,
-            ec=node_data[node]["gt"],
+            ec=node_data[node].gt,
             linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
@@ -1198,13 +1218,13 @@ class MatplotlibDrawer:
         self._ax.plot(
             [qx, qx + 0.35 * WID],
             [qy - 0.15 * HIG, qy + 0.20 * HIG],
-            color=node_data[node]["gt"],
+            color=node_data[node].gt,
             linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
         # arrow
         self._line(
-            node_data[node]["q_xy"][0],
+            node_data[node].q_xy[0],
             [cx, cy + 0.35 * WID],
             lc=self._style["cc"],
             ls=self._style["cline"],
@@ -1235,7 +1255,7 @@ class MatplotlibDrawer:
 
     def _barrier(self, node, node_data, glob_data):
         """Draw a barrier"""
-        for i, xy in enumerate(node_data[node]["q_xy"]):
+        for i, xy in enumerate(node_data[node].q_xy):
             xpos, ypos = xy
             # For the topmost barrier, reduce the rectangle if there's a label to allow for the text.
             if i == 0 and node.op.label is not None:
@@ -1272,7 +1292,7 @@ class MatplotlibDrawer:
                     ha="center",
                     va="top",
                     fontsize=self._style["fs"],
-                    color=node_data[node]["tc"],
+                    color=node_data[node].tc,
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
@@ -1280,44 +1300,44 @@ class MatplotlibDrawer:
     def _gate(self, node, node_data, glob_data, xy=None):
         """Draw a 1-qubit gate"""
         if xy is None:
-            xy = node_data[node]["q_xy"][0]
+            xy = node_data[node].q_xy[0]
         xpos, ypos = xy
-        wid = max(node_data[node]["width"], WID)
+        wid = max(node_data[node].width, WID)
 
         box = glob_data["patches_mod"].Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
             width=wid,
             height=HIG,
-            fc=node_data[node]["fc"],
-            ec=node_data[node]["ec"],
+            fc=node_data[node].fc,
+            ec=node_data[node].ec,
             linewidth=self._lwidth15,
             zorder=PORDER_GATE,
         )
         self._ax.add_patch(box)
 
-        if "gate_text" in node_data[node]:
+        if node_data[node].gate_text:
             gate_ypos = ypos
-            if "param_text" in node_data[node] and node_data[node]["param_text"] != "":
+            if node_data[node].param_text:
                 gate_ypos = ypos + 0.15 * HIG
                 self._ax.text(
                     xpos,
                     ypos - 0.3 * HIG,
-                    node_data[node]["param_text"],
+                    node_data[node].param_text,
                     ha="center",
                     va="center",
                     fontsize=self._style["sfs"],
-                    color=node_data[node]["sc"],
+                    color=node_data[node].sc,
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
             self._ax.text(
                 xpos,
                 gate_ypos,
-                node_data[node]["gate_text"],
+                node_data[node].gate_text,
                 ha="center",
                 va="center",
                 fontsize=self._style["fs"],
-                color=node_data[node]["gt"],
+                color=node_data[node].gt,
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
@@ -1326,11 +1346,11 @@ class MatplotlibDrawer:
         """Draw a gate covering more than one qubit"""
         op = node.op
         if xy is None:
-            xy = node_data[node]["q_xy"]
+            xy = node_data[node].q_xy
 
         # Swap gate
         if isinstance(op, SwapGate):
-            self._swap(xy, node, node_data, node_data[node]["lc"])
+            self._swap(xy, node, node_data, node_data[node].lc)
             return
 
         # RZZ Gate
@@ -1338,7 +1358,7 @@ class MatplotlibDrawer:
             self._symmetric_gate(node, node_data, RZZGate, glob_data)
             return
 
-        c_xy = node_data[node]["c_xy"]
+        c_xy = node_data[node].c_xy
         xpos = min(x[0] for x in xy)
         ypos = min(y[1] for y in xy)
         ypos_max = max(y[1] for y in xy)
@@ -1347,7 +1367,7 @@ class MatplotlibDrawer:
             cypos = min(y[1] for y in c_xy)
             ypos = min(ypos, cypos)
 
-        wid = max(node_data[node]["width"] + 0.21, WID)
+        wid = max(node_data[node].width + 0.21, WID)
         qubit_span = abs(ypos) - abs(ypos_max)
         height = HIG + qubit_span
 
@@ -1355,8 +1375,8 @@ class MatplotlibDrawer:
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
             width=wid,
             height=height,
-            fc=node_data[node]["fc"],
-            ec=node_data[node]["ec"],
+            fc=node_data[node].fc,
+            ec=node_data[node].ec,
             linewidth=self._lwidth15,
             zorder=PORDER_GATE,
         )
@@ -1371,7 +1391,7 @@ class MatplotlibDrawer:
                 ha="left",
                 va="center",
                 fontsize=self._style["fs"],
-                color=node_data[node]["gt"],
+                color=node_data[node].gt,
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
@@ -1385,48 +1405,48 @@ class MatplotlibDrawer:
                     ha="left",
                     va="center",
                     fontsize=self._style["fs"],
-                    color=node_data[node]["gt"],
+                    color=node_data[node].gt,
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
-        if "gate_text" in node_data[node] and node_data[node]["gate_text"] != "":
+        if node_data[node].gate_text:
             gate_ypos = ypos + 0.5 * qubit_span
-            if "param_text" in node_data[node] and node_data[node]["param_text"] != "":
+            if node_data[node].param_text:
                 gate_ypos = ypos + 0.4 * height
                 self._ax.text(
                     xpos + 0.11,
                     ypos + 0.2 * height,
-                    node_data[node]["param_text"],
+                    node_data[node].param_text,
                     ha="center",
                     va="center",
                     fontsize=self._style["sfs"],
-                    color=node_data[node]["sc"],
+                    color=node_data[node].sc,
                     clip_on=True,
                     zorder=PORDER_TEXT,
                 )
             self._ax.text(
                 xpos + 0.11,
                 gate_ypos,
-                node_data[node]["gate_text"],
+                node_data[node].gate_text,
                 ha="center",
                 va="center",
                 fontsize=self._style["fs"],
-                color=node_data[node]["gt"],
+                color=node_data[node].gt,
                 clip_on=True,
                 zorder=PORDER_TEXT,
             )
 
     def _flow_op_gate(self, node, node_data, glob_data):
         """Draw the box for a flow op circuit"""
-        xy = node_data[node]["q_xy"]
+        xy = node_data[node].q_xy
         xpos = min(x[0] for x in xy)
         ypos = min(y[1] for y in xy)
         ypos_max = max(y[1] for y in xy)
 
-        if_width = node_data[node]["width"][0] + WID
+        if_width = node_data[node].width[0] + WID
         box_width = if_width
         # Add the else and case widths to the if_width
-        for ewidth in node_data[node]["width"][1:]:
+        for ewidth in node_data[node].width[1:]:
             if ewidth > 0.0:
                 box_width += ewidth + WID + 0.3
 
@@ -1458,7 +1478,7 @@ class MatplotlibDrawer:
                 height=height,
                 boxstyle="round, pad=0.1",
                 fc="none",
-                ec=colors[node_data[node]["nest_depth"] % 4],
+                ec=colors[node_data[node].nest_depth % 4],
                 linewidth=self._lwidth3,
                 zorder=PORDER_FLOW,
             )
@@ -1480,12 +1500,12 @@ class MatplotlibDrawer:
                 ha="left",
                 va="center",
                 fontsize=self._style["fs"],
-                color=node_data[node]["tc"],
+                color=node_data[node].tc,
                 clip_on=True,
                 zorder=PORDER_FLOW,
             )
             if isinstance(node.op, ForLoopOp):
-                idx_set = str(node_data[node]["indexset"])
+                idx_set = str(node_data[node].indexset)
                 # If a range was used display 'range' and grab the range value
                 # to be displayed below
                 if "range" in idx_set:
@@ -1498,13 +1518,13 @@ class MatplotlibDrawer:
                         ha="left",
                         va="center",
                         fontsize=self._style["sfs"],
-                        color=node_data[node]["tc"],
+                        color=node_data[node].tc,
                         clip_on=True,
                         zorder=PORDER_FLOW,
                     )
                 else:
                     # If a tuple, show first 4 elements followed by '...'
-                    idx_set = str(node_data[node]["indexset"])[1:-1].split(",")[:5]
+                    idx_set = str(node_data[node].indexset)[1:-1].split(",")[:5]
                     if len(idx_set) > 4:
                         idx_set[4] = "..."
                     idx_set = f"{', '.join(idx_set)}"
@@ -1515,19 +1535,19 @@ class MatplotlibDrawer:
                     ha="left",
                     va="center",
                     fontsize=self._style["sfs"],
-                    color=node_data[node]["tc"],
+                    color=node_data[node].tc,
                     clip_on=True,
                     zorder=PORDER_FLOW,
                 )
             # If there's an else or a case draw the vertical line and the name
             else_case_text = "Else" if isinstance(node.op, IfElseOp) else "Case"
             ewidth_incr = if_width
-            for case_num, ewidth in enumerate(node_data[node]["width"][1:]):
+            for case_num, ewidth in enumerate(node_data[node].width[1:]):
                 if ewidth > 0.0:
                     self._ax.plot(
                         [xpos + ewidth_incr + 0.3 - x_shift, xpos + ewidth_incr + 0.3 - x_shift],
                         [ypos - 0.5 * HIG - 0.08 - y_shift, ypos + height - 0.22 - y_shift],
-                        color=colors[node_data[node]["nest_depth"] % 4],
+                        color=colors[node_data[node].nest_depth % 4],
                         linewidth=3.0,
                         linestyle="solid",
                         zorder=PORDER_FLOW,
@@ -1539,12 +1559,12 @@ class MatplotlibDrawer:
                         ha="left",
                         va="center",
                         fontsize=self._style["fs"],
-                        color=node_data[node]["tc"],
+                        color=node_data[node].tc,
                         clip_on=True,
                         zorder=PORDER_FLOW,
                     )
                     if isinstance(node.op, SwitchCaseOp):
-                        jump_val = node_data[node]["jump_values"][case_num]
+                        jump_val = node_data[node].jump_values[case_num]
                         # If only one value, e.g. (0,)
                         if len(str(jump_val)) == 4:
                             jump_text = str(jump_val)[1]
@@ -1563,7 +1583,7 @@ class MatplotlibDrawer:
                             ha="left",
                             va="center",
                             fontsize=self._style["sfs"],
-                            color=node_data[node]["tc"],
+                            color=node_data[node].tc,
                             clip_on=True,
                             zorder=PORDER_FLOW,
                         )
@@ -1574,7 +1594,7 @@ class MatplotlibDrawer:
     def _control_gate(self, node, node_data, glob_data):
         """Draw a controlled gate"""
         op = node.op
-        xy = node_data[node]["q_xy"]
+        xy = node_data[node].q_xy
         base_type = None if not hasattr(op, "base_gate") else op.base_gate
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
@@ -1585,12 +1605,12 @@ class MatplotlibDrawer:
             num_ctrl_qubits,
             xy,
             glob_data,
-            ec=node_data[node]["ec"],
-            tc=node_data[node]["tc"],
-            text=node_data[node]["ctrl_text"],
+            ec=node_data[node].ec,
+            tc=node_data[node].tc,
+            text=node_data[node].ctrl_text,
             qargs=node.qargs,
         )
-        self._line(qubit_b, qubit_t, lc=node_data[node]["lc"])
+        self._line(qubit_b, qubit_t, lc=node_data[node].lc)
 
         if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, ZGate, RZZGate)):
             self._symmetric_gate(node, node_data, base_type, glob_data)
@@ -1598,13 +1618,13 @@ class MatplotlibDrawer:
         elif num_qargs == 1 and isinstance(base_type, XGate):
             tgt_color = self._style["dispcol"]["target"]
             tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
-            self._x_tgt_qubit(xy[num_ctrl_qubits], glob_data, ec=node_data[node]["ec"], ac=tgt)
+            self._x_tgt_qubit(xy[num_ctrl_qubits], glob_data, ec=node_data[node].ec, ac=tgt)
 
         elif num_qargs == 1:
             self._gate(node, node_data, glob_data, xy[num_ctrl_qubits:][0])
 
         elif isinstance(base_type, SwapGate):
-            self._swap(xy[num_ctrl_qubits:], node, node_data, node_data[node]["lc"])
+            self._swap(xy[num_ctrl_qubits:], node, node_data, node_data[node].lc)
 
         else:
             self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
@@ -1707,13 +1727,13 @@ class MatplotlibDrawer:
     def _symmetric_gate(self, node, node_data, base_type, glob_data):
         """Draw symmetric gates for cz, cu1, cp, and rzz"""
         op = node.op
-        xy = node_data[node]["q_xy"]
+        xy = node_data[node].q_xy
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         base_type = None if not hasattr(op, "base_gate") else op.base_gate
-        ec = node_data[node]["ec"]
-        tc = node_data[node]["tc"]
-        lc = node_data[node]["lc"]
+        ec = node_data[node].ec
+        tc = node_data[node].tc
+        lc = node_data[node].lc
 
         # cz and mcz gates
         if not isinstance(op, ZGate) and isinstance(base_type, ZGate):
@@ -1724,7 +1744,7 @@ class MatplotlibDrawer:
         # cu1, cp, rzz, and controlled rzz gates (sidetext gates)
         elif isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
             num_ctrl_qubits = 0 if isinstance(op, RZZGate) else op.num_ctrl_qubits
-            gate_text = "P" if isinstance(base_type, PhaseGate) else node_data[node]["gate_text"]
+            gate_text = "P" if isinstance(base_type, PhaseGate) else node_data[node].gate_text
 
             self._ctrl_qubit(xy[num_ctrl_qubits], glob_data, fc=ec, ec=ec, tc=tc)
             if not isinstance(base_type, (U1Gate, PhaseGate)):
@@ -1735,7 +1755,7 @@ class MatplotlibDrawer:
                 node_data,
                 qubit_b,
                 tc=tc,
-                text=f"{gate_text} ({node_data[node]['param_text']})",
+                text=f"{gate_text} ({node_data[node].param_text})",
             )
             self._line(qubit_b, qubit_t, lc=lc)
 
@@ -1746,8 +1766,8 @@ class MatplotlibDrawer:
         self._line(xy[0], xy[1], lc=color)
 
         # add calibration text
-        gate_text = node_data[node]["gate_text"].split("\n")[-1]
-        if node_data[node]["raw_gate_text"] in self._calibrations:
+        gate_text = node_data[node].gate_text.split("\n")[-1]
+        if node_data[node].raw_gate_text in self._calibrations:
             xpos, ypos = xy[0]
             self._ax.text(
                 xpos,
@@ -1785,7 +1805,7 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         # 0.11 = the initial gap, add 1/2 text width to place on the right
-        xp = xpos + 0.11 + node_data[node]["width"] / 2
+        xp = xpos + 0.11 + node_data[node].width / 2
         self._ax.text(
             xp,
             ypos + HIG,
@@ -1855,3 +1875,30 @@ class MatplotlibDrawer:
         # x_index could have been updated, so need to store
         glob_data["next_x_index"] = x_index
         return x_pos, y_pos
+
+
+class NodeData:
+    """Class containing drawing data on a per node basis"""
+
+    def __init__(self):
+        # Node data for positioning
+        self.width = 0.0
+        self.x_index = 0
+        self.q_xy = []
+        self.c_xy = []
+
+        # Node data for text
+        self.gate_text = ""
+        self.raw_gate_text = ""
+        self.ctrl_text = ""
+        self.param_text = ""
+
+        # Node data for color
+        self.fc = self.ec = self.lc = self.sc = self.gt = self.tc = 0
+
+        # Special values stored for ControlFlowOps
+        self.nest_depth = 0
+        self.inside_flow = False
+        self.indexset = ()  # List of indices used for ForLoopOp
+        self.jump_values = []  # List of jump values used for SwitchCaseOp
+        self.case_num = 0  # Used for SwitchCaseOp

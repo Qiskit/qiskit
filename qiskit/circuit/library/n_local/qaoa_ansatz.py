@@ -14,7 +14,6 @@
 
 # pylint: disable=cyclic-import
 from __future__ import annotations
-from typing import Optional
 
 import numpy as np
 
@@ -41,7 +40,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         initial_state: QuantumCircuit | None = None,
         mixer_operator=None,
         name: str = "QAOA",
-        flatten: Optional[bool] = None,
+        flatten: bool | None = None,
     ):
         r"""
         Args:
