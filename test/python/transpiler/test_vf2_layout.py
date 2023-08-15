@@ -753,9 +753,12 @@ class TestMultipleTrials(QiskitTestCase):
         self.assertEqual(res.num_qubits, 16)
 
     def test_target_with_None_qargs(self):
+        """Test vf2layout with a target that has an ideal gate on all qubits."""
         backend = FakeGuadalupeV2()
 
         class CustomGate(Gate):
+            """A custom gate."""
+
             def __init__(self):
                 super().__init__("custom_gate", 1, [])
 

@@ -14,7 +14,6 @@
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 import os
 from enum import Enum
-import itertools
 import logging
 import time
 

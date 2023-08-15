@@ -16,7 +16,6 @@ import os
 from enum import Enum
 import logging
 import inspect
-import itertools
 import time
 
 from rustworkx import PyDiGraph, vf2_mapping, PyGraph
