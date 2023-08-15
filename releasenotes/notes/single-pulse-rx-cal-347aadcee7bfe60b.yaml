@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    Two new transpiler passes are added to generate single-pulse RX gate calibrations on the fly.
+    These single-pulse RX calibrations will reduce the gate time in half, as described in 
+    P.Gokhale et al, Optimized Quantum Compilation for Near-Term Algorithms with OpenPulse 
+    (2020), arXiv:2004.11205.
+
+    To reduce the amount of RX calibration data that needs to be generated,
+    :class:`qiskit.transpiler.passes.optimization.normalize_rx_angle.NormalizeRXAngle`
+    performs three optimizations: wrapping RX gate rotation angles to [0, pi], 
+    replacing RX(pi/2) and RX(pi) with SX and X gates, and quantizing the rotation angles.
+    This pass is required to be run before 
+    :class:`qiskit.transpiler.passes.calibration.rx_builder.RXCalibrationBuilder`,
+    which generates RX calibrations on the fly.
+
+    The details of the transpiler passes are as follows:
+    :class:`qiskit.transpiler.passes.optimization.normalize_rx_angle.NormalizeRXAngle` wraps
+    RX gate rotation angles to [0, pi] by replacing an RX gate with negative rotation angle, RX(-theta),
+    with a sequence: RZ(pi)-RX(theta)-RZ(-pi). Moreover, the pass replaces RX(pi/2) with SX gate,
+    and RX(pi) with X gate. This will enable us to exploit the more accurate, hardware-calibrated
+    pulses. Lastly, the pass quantizes the rotation angles using a user-provided resolution.
+    If the resolution is set to 0, this pass will not perform any quantization.
+    :class:`qiskit.transpiler.passes.calibration.rx_builder.RXCalibrationBuilder`
+    generates RX calibrations on the fly. The pulse calibrations are bootstrapped from 
+    the SX gate calibration in the target.
+    The amplitude is linearly scaled to achieve the desired arbitrary rotation angle.
+    Such single-pulse calibrations reduces the gate time in half, compared to the 
+    conventional sequence that consists of two SX pulses.
+    There could be an improvement in fidelity due to this reduction in gate time.
