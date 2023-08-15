@@ -124,14 +124,9 @@ Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-
    For the ``0.7.0``, ``0.7.1``, and ``0.7.2`` meta-package releases the
    meta-package versioning strategy was not formalized yet.
 
-
-###############
-Notable Changes
-###############
-
-*************
+#############
 Qiskit 0.44.0
-*************
+#############
 
 This release officially marks the end of support for the Qiskit IBMQ Provider
 package and the removal of Qiskit Aer from the Qiskit metapackage. After this
@@ -1453,9 +1448,9 @@ Bug Fixes
   errors when calling :func:`~qiskit.visualization.state_visualization.state_drawer`.
   Fixed `#9297 <https://github.com/Qiskit/qiskit-terra/issues/9297>`__.
 
-*************
+#############
 Qiskit 0.43.3
-*************
+#############
 
 Terra 0.24.2
 ============
@@ -1672,9 +1667,9 @@ IBM Q Provider 0.20.2
 
 No change.
 
-*************
+#############
 Qiskit 0.43.2
-*************
+#############
 
 As a reminder, `Qiskit Aer <https://qiskit.org/ecosystem/aer/>`__'s inclusion in the ``qiskit``
 package is deprecated.  The next minor version of Qiskit Aer (0.13) will not be included in any
@@ -1874,9 +1869,9 @@ IBM Q Provider 0.20.2
 No change.
 
 
-*************
+#############
 Qiskit 0.43.1
-*************
+#############
 
 .. _Release Notes_Terra_0.24.1:
 
@@ -2016,9 +2011,9 @@ IBM Q Provider 0.20.2
 
 No change
 
-*************
+#############
 Qiskit 0.43.0
-*************
+#############
 
 .. _release Notes_Terra_0.24.0:
 
@@ -3644,9 +3639,9 @@ IBM Q Provider 0.20.2
 
 No change
 
-*************
+#############
 Qiskit 0.42.1
-*************
+#############
 
 .. _Release Notes_Terra_0.23.3:
 
@@ -3780,9 +3775,9 @@ IBM Q Provider 0.20.2
 
 No change
 
-*************
+#############
 Qiskit 0.42.0
-*************
+#############
 
 Terra 0.23.2
 ============
@@ -4181,9 +4176,9 @@ the ``qiskit-ibmq-provider`` package incompatible with the dependency versions
 used in other packages.
 
 
-*************
+#############
 Qiskit 0.41.1
-*************
+#############
 
 .. _Release Notes_Terra_0.23.2:
 
@@ -4299,9 +4294,9 @@ latest working versions. There was an issue with the latest version of the ``req
 which caused some end to end tests to fail.
 
 
-*************
+#############
 Qiskit 0.41.0
-*************
+#############
 
 Terra 0.23.1
 ============
@@ -4419,9 +4414,9 @@ Bug Fixes
 - Calls to run a quantum circuit with ``dynamic=True`` now raise an error
   that asks the user to install the new ``qiskit-ibm-provider``.
 
-*************
+#############
 Qiskit 0.40.0
-*************
+#############
 This release officially deprecates the Qiskit IBMQ provider project as part of the Qiskit metapackage.
 This means that in a future release, ``pip install qiskit`` will no longer automatically include ``qiskit-ibmq-provider``.
 If you're currently installing or listing ``qiskit`` as a dependency to get ``qiskit-ibmq-provider``, you
@@ -6400,9 +6395,9 @@ IBM Q Provider 0.19.2
 
 No change
 
-*************
+#############
 Qiskit 0.39.5
-*************
+#############
 
 .. _Release Notes_Terra_0.22.4:
 
@@ -6487,9 +6482,9 @@ IBM Q Provider 0.19.2
 
 No change
 
-*************
+#############
 Qiskit 0.39.4
-*************
+#############
 
 Terra 0.22.3
 ============
@@ -6638,9 +6633,9 @@ IBM Q Provider 0.19.2
 No change
 
 
-*************
+#############
 Qiskit 0.39.3
-*************
+#############
 
 .. _Release Notes_Terra_0.22.3:
 
@@ -6714,9 +6709,9 @@ IBM Q Provider 0.19.2
 No change
 
 
-*************
+#############
 Qiskit 0.39.2
-*************
+#############
 
 .. _Release Notes_Terra_0.22.2:
 
@@ -6771,9 +6766,9 @@ IBM Q Provider 0.19.2
 No change
 
 
-*************
+#############
 Qiskit 0.39.1
-*************
+#############
 
 .. _Release Notes_0.22.1:
 
@@ -7085,9 +7080,9 @@ IBM Q Provider 0.19.2
 No change
 
 
-*************
+#############
 Qiskit 0.39.0
-*************
+#############
 
 This release also officially deprecates the Qiskit Aer project as part of the Qiskit metapackage.
 This means that in a future release ``pip install qiskit`` will no longer include ``qiskit-aer``.
@@ -9167,9 +9162,9 @@ IBM Q Provider 0.19.2
 No change
 
 
-*************
+#############
 Qiskit 0.38.0
-*************
+#############
 
 Terra 0.21.2
 ============
@@ -9495,9 +9490,9 @@ IBM Q Provider 0.19.2
 
 No change
 
-*************
+#############
 Qiskit 0.37.2
-*************
+#############
 
 .. _Release Notes_Terra_0.21.2:
 
@@ -9581,9 +9576,9 @@ IBM Q Provider 0.19.2
 
 No change
 
-*************
+#############
 Qiskit 0.37.1
-*************
+#############
 
 .. _Release Notes_Terra_0.21.1:
 
@@ -9712,9 +9707,9 @@ IBM Q Provider 0.19.2
 No change
 
 
-*************
+#############
 Qiskit 0.37.0
-*************
+#############
 
 This release officially marks the end of support for the Qiskit Ignis project
 from Qiskit. It was originally deprecated in the 0.33.0 release and as was
@@ -10691,9 +10686,9 @@ Bug Fixes
   with ``threading.current_thread``, ``notify_all`` added in Python 2.6 (October 2008).
 
 
-*************
+#############
 Qiskit 0.36.2
-*************
+#############
 
 .. _Release Notes_Terra_0.20.2:
 
@@ -10802,9 +10797,9 @@ IBM Q Provider 0.19.1
 
 No change
 
-*************
+#############
 Qiskit 0.36.1
-*************
+#############
 
 Terra 0.20.1
 ============
@@ -10963,9 +10958,9 @@ Bug Fixes
   input or output type since it has been long deprecated in qiskit-terra and has recently
   been removed.
 
-*************
+#############
 Qiskit 0.36.0
-*************
+#############
 
 Terra 0.20.0
 ============
@@ -11116,9 +11111,9 @@ Bug Fixes
   :class:`qiskit.providers.ibmq.runtime.RuntimeDecoder` have been updated
   to handle these ndarrays.
 
-*************
+#############
 Qiskit 0.35.0
-*************
+#############
 
 .. _Release Notes_0.20.0:
 
@@ -12814,9 +12809,9 @@ IBM Q Provider 0.18.3
 
 No change
 
-*************
+#############
 Qiskit 0.34.2
-*************
+#############
 
 .. _Release Notes_0.19.2:
 
@@ -13229,9 +13224,9 @@ IBM Q Provider 0.18.3
 
 No change
 
-*************
+#############
 Qiskit 0.34.1
-*************
+#############
 
 Terra 0.19.1
 ============
@@ -13286,9 +13281,9 @@ IBM Q Provider 0.18.3
 
 No change
 
-*************
+#############
 Qiskit 0.34.0
-*************
+#############
 
 Qiskit 0.34.0 includes a point release of Qiskit Aer: version 0.10.1, which
 patches performance regressions in version 0.10.0 that were discovered
@@ -13730,9 +13725,9 @@ Bug Fixes
   output would have different unique identifiers, causing them to seem unequal
   to the input.  They will now have the correct backing identities.
 
-*************
+#############
 Qiskit 0.33.1
-*************
+#############
 
 .. _Release Notes_0.19.1_Terra:
 
@@ -13939,9 +13934,9 @@ Bug Fixes
   the issue wherein :class:`qiskit.providers.ibmq.runtime.RuntimeEncoder`
   does an extra `decompose()` if the circuit being serialized is a ``BlueprintCircuit``.
 
-*************
+#############
 Qiskit 0.33.0
-*************
+#############
 
 This release officially marks the end of support for the Qiskit Aqua project
 in Qiskit. It was originally deprecated in the 0.25.0 release and as was documented
@@ -16582,9 +16577,9 @@ Deprecation Notes
   https://github.com/Qiskit/qiskit-ignis#migration-guide
 
 
-*************
+#############
 Qiskit 0.32.1
-*************
+#############
 
 Terra 0.18.3
 ============
@@ -16620,9 +16615,9 @@ Bug Fixes
   connection kept timing out when streaming results for a runtime job, due to inactivity,
   when the job is in a pending state for a long time.
 
-*************
+#############
 Qiskit 0.32.0
-*************
+#############
 
 Terra 0.18.3
 ============
@@ -16722,9 +16717,9 @@ Bug Fixes
 - Fixes the issue wherein a runtime job result cannot be retrieved multiple
   times if the result contains a numpy array.
 
-*************
+#############
 Qiskit 0.31.0
-*************
+#############
 
 Terra 0.18.3
 ============
@@ -16843,9 +16838,9 @@ Bug Fixes
   in optimizer settings from a JSON string representation dumped by the
   :class:`qiskit.providers.ibmq.runtime.RuntimeEncoder`.
 
-*************
+#############
 Qiskit 0.30.1
-*************
+#############
 
 .. _Release Notes_0.18.3:
 
@@ -16899,9 +16894,9 @@ IBM Q Provider 0.16.0
 
 No change
 
-*************
+#############
 Qiskit 0.30.0
-*************
+#############
 
 Terra 0.18.2
 ============
@@ -17186,9 +17181,9 @@ IBM Q Provider 0.16.0
 
 No change
 
-*************
+#############
 Qiskit 0.29.1
-*************
+#############
 
 .. _Release Notes_0.18.2:
 
@@ -17242,9 +17237,9 @@ IBM Q Provider 0.16.0
 No change
 
 
-*************
+#############
 Qiskit 0.29.0
-*************
+#############
 
 .. _Release Notes_0.18.1:
 
@@ -17390,9 +17385,9 @@ Upgrade Notes
   from the `Qiskit/ibm-quantum-schemas <https://github.com/Qiskit/ibm-quantum-schemas>`_
   and directly validate your payloads with that.
 
-*************
+#############
 Qiskit 0.28.0
-*************
+#############
 
 .. _Release Notes_0.18.0:
 
@@ -18698,9 +18693,9 @@ Deprecation Notes
   equivalent ``delay`` instruction.
 
 
-*************
+#############
 Qiskit 0.27.0
-*************
+#############
 
 Terra 0.17.4
 ============
@@ -18787,9 +18782,9 @@ Bug Fixes
     provider = IBMQ.enable_account(API_TOKEN, proxies=proxies)
 
 
-*************
+#############
 Qiskit 0.26.1
-*************
+#############
 
 .. _Release Notes_0.17.4:
 
@@ -18828,9 +18823,9 @@ IBM Q Provider 0.13.1
 
 No change
 
-*************
+#############
 Qiskit 0.26.0
-*************
+#############
 
 .. _Release Notes_0.17.3:
 
@@ -18988,9 +18983,9 @@ Other Notes
   ``fit`` attribute is now optional.
 
 
-*************
+#############
 Qiskit 0.25.4
-*************
+#############
 
 .. _Release Notes_0.17.2:
 
@@ -19089,9 +19084,9 @@ IBM Q Provider 0.12.3
 
 No change
 
-*************
+#############
 Qiskit 0.25.3
-*************
+#############
 
 Terra 0.17.1
 ============
@@ -19160,9 +19155,9 @@ IBM Q Provider 0.12.3
 No change
 
 
-*************
+#############
 Qiskit 0.25.2
-*************
+#############
 
 Terra 0.17.1
 ============
@@ -19195,9 +19190,9 @@ Other Notes
 - The :class:`qiskit.providers.ibmq.experiment.analysis_result.AnalysisResult` ``fit``
   attribute is now optional.
 
-*************
+#############
 Qiskit 0.25.1
-*************
+#############
 
 .. _Release Notes_0.17.1:
 
@@ -19329,9 +19324,9 @@ IBM Q Provider 0.12.2
 
 No change
 
-*************
+#############
 Qiskit 0.25.0
-*************
+#############
 
 This release officially deprecates the Qiskit Aqua project. Accordingly, in a
 future release the ``qiskit-aqua`` package will be removed from the Qiskit
@@ -22066,9 +22061,9 @@ IBM Q Provider 0.12.2
 
 No change
 
-*************
+#############
 Qiskit 0.24.1
-*************
+#############
 
 Terra 0.16.4
 ============
@@ -22103,9 +22098,9 @@ Upgrade Notes
   even if the backend does. The ``open_pulse`` flag in backend configuration indicates
   whether the provider supports it.
 
-*************
+#############
 Qiskit 0.24.0
-*************
+#############
 
 Terra 0.16.4
 ============
@@ -22354,9 +22349,9 @@ Bug Fixes
 - Fixes the issue wherein a ``TypeError`` is raised if the server returns
   an error code but the response data is not in the expected format.
 
-*************
+#############
 Qiskit 0.23.6
-*************
+#############
 
 Terra 0.16.4
 ============
@@ -22392,9 +22387,9 @@ IBM Q Provider 0.11.1
 
 No change
 
-*************
+#############
 Qiskit 0.23.5
-*************
+#############
 
 Terra 0.16.4
 ============
@@ -22465,9 +22460,9 @@ IBM Q Provider 0.11.1
 
 No change
 
-*************
+#############
 Qiskit 0.23.4
-*************
+#############
 
 Terra 0.16.3
 ============
@@ -22503,9 +22498,9 @@ IBM Q Provider 0.11.1
 
 No change
 
-*************
+#############
 Qiskit 0.23.3
-*************
+#############
 
 Terra 0.16.2
 ============
@@ -22666,9 +22661,9 @@ IBM Q Provider 0.11.1
 
 No change
 
-*************
+#############
 Qiskit 0.23.2
-*************
+#############
 
 Terra 0.16.1
 ============
@@ -22715,9 +22710,9 @@ IBM Q Provider 0.11.1
 No change
 
 
-*************
+#############
 Qiskit 0.23.1
-*************
+#############
 
 .. _Release Notes_0.16.1:
 
@@ -22942,9 +22937,9 @@ Bug Fixes
   to a child process.
 
 
-*************
+#############
 Qiskit 0.23.0
-*************
+#############
 
 Terra 0.16.0
 ============
@@ -24748,9 +24743,9 @@ Upgrade Notes
   The package requirements have been updated to reflect this.
 
 
-*************
+#############
 Qiskit 0.22.0
-*************
+#############
 
 Terra 0.15.2
 ============
@@ -24822,9 +24817,9 @@ Upgrade Notes
   release 0.15 or above. The package metadata has been updated to reflect
   the new dependency.
 
-*************
+#############
 Qiskit 0.21.0
-*************
+#############
 
 Terra 0.15.2
 ============
@@ -24876,9 +24871,9 @@ Bug Fixes
   `#737 <https://github.com/Qiskit/qiskit-ibmq-provider/issues/737>`_
 
 
-*************
+#############
 Qiskit 0.20.1
-*************
+#############
 
 Terra 0.15.2
 ============
@@ -24963,9 +24958,9 @@ IBM Q Provider 0.8.0
 No change
 
 
-*************
+#############
 Qiskit 0.20.0
-*************
+#############
 
 Terra 0.15.1
 ============
@@ -26656,9 +26651,9 @@ Bug Fixes
   version of ``qiskit-terra`` which was too old. Fixes
   `#677 <https://github.com/Qiskit/qiskit-ibmq-provider/issues/677>`_
 
-*************
+#############
 Qiskit 0.19.6
-*************
+#############
 
 Terra 0.14.2
 ============
@@ -26707,9 +26702,9 @@ IBM Q Provider 0.7.2
 No Change
 
 
-*************
+#############
 Qiskit 0.19.5
-*************
+#############
 
 Terra 0.14.2
 ============
@@ -26787,9 +26782,9 @@ IBM Q Provider 0.7.2
 No Change
 
 
-*************
+#############
 Qiskit 0.19.4
-*************
+#############
 
 Terra 0.14.2
 ============
@@ -26896,9 +26891,9 @@ IBM Q Provider 0.7.2
 
 No Change
 
-*************
+#############
 Qiskit 0.19.3
-*************
+#############
 
 Terra 0.14.1
 ============
@@ -26956,9 +26951,9 @@ Bug Fixes
   version of ``qiskit-terra`` which was too old. Fixes
   `#677 <https://github.com/Qiskit/qiskit-ibmq-provider/issues/677>`_
 
-*************
+#############
 Qiskit 0.19.0
-*************
+#############
 
 Terra 0.14.0
 ============
@@ -27470,9 +27465,9 @@ Bug Fixes
   no asyncio loop due to threading.
 
 
-*************
+#############
 Qiskit 0.18.3
-*************
+#############
 
 Terra 0.13.0
 ============
@@ -27568,9 +27563,9 @@ IBM Q Provider 0.6.1
 No Change
 
 
-*************
+#############
 Qiskit 0.18.0
-*************
+#############
 
 .. _Release Notes_0.13.0:
 
@@ -29125,9 +29120,9 @@ IBM Q Provider 0.6.0
 
 No Change
 
-*************
+#############
 Qiskit 0.17.0
-*************
+#############
 
 Terra 0.12.0
 ============
@@ -29179,9 +29174,9 @@ Changed
   :class:`qiskit.providers.ibmq.IBMQBackendApiProtocolError` exception
   if there was an issue with validating the status.
 
-*************
+#############
 Qiskit 0.16.0
-*************
+#############
 
 Terra 0.12.0
 ============
@@ -29225,9 +29220,9 @@ Changed
   server side, and invalid Qobjs will continue to raise exceptions. To force local
   validation, set ``validate_qobj=True`` when you invoke ``run()``.
 
-*************
+#############
 Qiskit 0.15.0
-*************
+#############
 
 Terra 0.12.0
 ============
@@ -29977,9 +29972,9 @@ Deprecated
 - The use of proxy urls without a protocol (e.g. ``http://``) is deprecated
   due to recent Python changes.
 
-*************
+#############
 Qiskit 0.14.0
-*************
+#############
 
 Terra 0.11.0
 ============
@@ -30643,9 +30638,9 @@ Other changes
 * Some ``warnings`` have been toned down to ``logger.warning`` messages.
 
 
-*************
+#############
 Qiskit 0.13.0
-*************
+#############
 
 Terra 0.10.0
 ============
@@ -31053,9 +31048,9 @@ IBM Q Provider 0.3
 
 No Change
 
-*************
+#############
 Qiskit 0.12.0
-*************
+#############
 
 .. _Release Notes_0.9.0:
 
@@ -31906,9 +31901,9 @@ IBM Q Provider 0.3
 No change
 
 
-*************
+#############
 Qiskit 0.11.1
-*************
+#############
 
 We have bumped up Qiskit micro version to 0.11.1 because IBM Q Provider has
 bumped its micro version as well.
@@ -31942,9 +31937,9 @@ backward compatibility issues and work with the default 10 job
 limit in single calls to the IBM Q API v2.
 
 
-***********
+##########*
 Qiskit 0.11
-***********
+##########*
 
 We have bumped up Qiskit minor version to 0.11 because IBM Q Provider has bumped up
 its minor version too.
@@ -32055,9 +32050,9 @@ Would be equivalent to the following program in the current version::
 You can find more information and details in the `IBM Q Provider documentation <https://github.com/Qiskit/qiskit-ibmq-provider>`__.
 
 
-***********
+##########*
 Qiskit 0.10
-***********
+##########*
 
 Terra 0.8
 =========
@@ -32097,9 +32092,9 @@ Bug Fixes
 - Fixed noise model handling for remote simulators :pull_ibmq-provider:`84`.
 
 
-**********
+##########
 Qiskit 0.9
-**********
+##########
 
 Terra 0.8
 =========
@@ -32468,9 +32463,9 @@ New Features
 
 
 
-**********
+##########
 Qiskit 0.8
-**********
+##########
 
 In Qiskit 0.8 we introduced the Qiskit Ignis element. It also includes the
 Qiskit Terra element 0.7.1 release which contains a bug fix for the BasicAer
@@ -32493,9 +32488,9 @@ This is the first release of Qiskit Ignis.
 
 
 
-**********
+##########
 Qiskit 0.7
-**********
+##########
 
 In Qiskit 0.7 we introduced Qiskit Aer and combined it with Qiskit Terra.
 
@@ -32870,9 +32865,9 @@ Compatibility Considerations
   Chemistry
 
 
-**********
+##########
 Qiskit 0.6
-**********
+##########
 
 Terra 0.6
 =========
@@ -33078,9 +33073,9 @@ keep track of the progress of compilation/execution.
 
 
 
-**********
+##########
 Qiskit 0.5
-**********
+##########
 
 Terra 0.5
 =========
