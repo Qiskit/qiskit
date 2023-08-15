@@ -77,12 +77,14 @@ jobs:
           QISKIT_ENABLE_ANALYTICS: "true"
           # We've already built them.
           QISKIT_DOCS_BUILD_TUTORIALS: "never"
+          DOCS_PROD_BUILD: "true"
 
       - name: Build translatable strings
-        run: tox -e gettext
+        run: tox run -e gettext
         env:
           # We've already built them.
           QISKIT_DOCS_BUILD_TUTORIALS: "never"
+          DOCS_PROD_BUILD: "true"
 
       - name: Store built documentation artifact
         uses: actions/upload-artifact@v3
