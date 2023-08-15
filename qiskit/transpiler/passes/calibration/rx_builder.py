@@ -1,4 +1,4 @@
-"""Add single-pulse RX calibrations that's bootstrapped from the SX calibration."""
+"""Add single-pulse RX calibrations that are bootstrapped from the SX calibration."""
 
 from typing import List, Union
 from functools import lru_cache
@@ -15,7 +15,7 @@ from qiskit.exceptions import QiskitError
 
 
 class RXCalibrationBuilder(CalibrationBuilder):
-    """Add single-pulse RX calibrations that's bootstrapped from the SX calibration.
+    """Add single-pulse RX calibrations that are bootstrapped from the SX calibration.
 
     .. note:
         Requirement: NormalizeRXAngles pass (one of the optimization passes).
@@ -34,7 +34,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
         (hardware-calibrated) SX gate calibration.
 
         Args:
-            target (Target): should contain a SX calibration that will be
+            target (Target): Should contain a SX calibration that will be
             used for bootstrapping RX calibrations.
         """
         from qiskit.transpiler.passes.optimization import NormalizeRXAngle
@@ -49,13 +49,13 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
     def supported(self, node_op: Instruction, qubits: list) -> bool:
         """
-        Check if the calibration for SX gate exists
+        Check if the calibration for SX gate exists.
         """
         return isinstance(node_op, RXGate) and self.target.has_calibration("sx", tuple(qubits))
 
     def get_calibration(self, node_op: Instruction, qubits: list) -> Union[Schedule, ScheduleBlock]:
         """
-        Generate RX calibrations and cache them
+        Generate RX calibration for the rotation angle specified in node_op.
         """
         # already within [0, pi] by NormalizeRXAngles pass
         angle = node_op.params[0]

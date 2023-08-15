@@ -1,6 +1,8 @@
-"""Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
+"""Performs three optimizations to reduce the number of pulse calibrations for
+the single-pulse RX gates:
+Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
 Convert RX(pi/2) to SX, and RX(pi) to X if the calibrations exist in the target.
-Quantize the RX rotation angles with a resolution provided by the user.
+Quantize the RX rotation angles using a resolution provided by the user.
 """
 
 import numpy as np
@@ -12,12 +14,11 @@ from qiskit.circuit.library.standard_gates import RXGate, RZGate, SXGate, XGate
 
 class NormalizeRXAngle(TransformationPass):
     """Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
-    This will help reducing the size of calibration data,
-    as we don't have to keep separate, phase-flipped calibrations for negative rotation angles.
-    Moreover, convert RX(pi/2) to SX, and RX(pi) to X
-    if the calibrations exist in the target.
-    This will let us exploit the hardware-calibrated pulses.
-    Lastly, quantize the RX rotation angles with a resolution provided by the user.
+    This will help reduce the size of calibration data,
+    as we won't have to keep separate, phase-flipped calibrations for negative rotation angles.
+    Moreover, if the calibrations exist in the target, convert RX(pi/2) to SX, and RX(pi) to X.
+    This will allow us to exploit the more accurate, hardware-calibrated pulses.
+    Lastly, quantize the RX rotation angles using a resolution provided by the user.
     """
 
     def __init__(self, target=None, resolution_in_radian=0):
@@ -28,7 +29,7 @@ class NormalizeRXAngle(TransformationPass):
                 If the target contains SX and X calibrations, this pass will replace the
                 corresponding RX gates with SX and X gates.
             resolution_in_radian (float): Resolution for RX rotation angle quantization.
-                If set to zero, the pass doesn't change anything.
+                If set to zero, this pass won't modify the rotation angles in the given DAG.
                 (=Provides aribitary-angle RX)
         """
         super().__init__()
@@ -37,7 +38,7 @@ class NormalizeRXAngle(TransformationPass):
         self.already_generated = {}
 
     def quantize_angles(self, qubit, original_angle):
-        """Quantize the RX rotation angles with a resolution provided by the user.
+        """Quantize the RX rotation angles using a resolution provided by the user.
 
         Args:
             qubit (Qubit): This will be the dict key to access the list of quantized rotation angles.
@@ -69,10 +70,10 @@ class NormalizeRXAngle(TransformationPass):
         normalize_rx_angles(), convert_to_hardware_sx_x(), quantize_rx_angles().
 
         Args:
-            dag (DAGCircuit): the DAG to be optimized.
+            dag (DAGCircuit): The DAG to be optimized.
 
         Returns:
-            DAGCircuit: the DAG where all RX rotation angles are within [0, pi].
+            DAGCircuit: A DAG where all RX rotation angles are within [0, pi].
         """
 
         # Iterate over all op_nodes and replace RX if eligible for modification.

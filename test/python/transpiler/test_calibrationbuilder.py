@@ -457,7 +457,8 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         self.assertFalse(tp.supported(node_op, qubits))
 
     def test_raises_error_when_rotation_angle_not_assigned(self):
-        """Test that get_calibration() fails when the RX gate's rotation angle is an unassigned Parameter, not a number.
+        """Test that get_calibration() fails when the RX gate's rotation angle is 
+        an unassigned Parameter, not a number.
         The QiskitError occurs while trying to typecast the Parameter into a float.
         """
         backend = FakeBelemV2()
@@ -467,7 +468,7 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         with self.assertRaises(QiskitError):
             tp.get_calibration(rx, qubits)
 
-    # Note: these data values should be within [0, pi] because
+    # Note: These input data values should be within [0, pi] because
     # the required NormalizeRXAngles pass ensures that.
     @data(0, np.pi / 3, (2 / 3) * np.pi)
     def test_pulse_schedule(self, theta: float):
@@ -504,9 +505,9 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         self.assertEqual(test, correct_rx_schedule)
 
     def test_with_normalizerxangles(self):
-        """Checks that this pass works well with the NormalizeRXAngles pass"""
+        """Checks that this pass works well with the NormalizeRXAngles pass."""
         backend = FakeBelemV2()
-        # NormalizeRXAngle pass should also be included because it's required
+        # NormalizeRXAngle pass should also be included because it's a required pass.
         pm = PassManager(RXCalibrationBuilder(backend.target))
 
         qc = QuantumCircuit(1)
