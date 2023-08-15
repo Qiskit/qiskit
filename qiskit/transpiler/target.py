@@ -501,9 +501,8 @@ class Target(Mapping):
                     props = None
 
                 entry = get_calibration(inst_name, qargs)
-                if entry.user_provided and getattr(props, "_calibration", None) != entry:
-                    # It only copies user-provided calibration from the inst map.
-                    # Backend defined entry must already exist in Target.
+
+                if getattr(props, "_calibration", None) != entry:
                     if self.dt is not None:
                         try:
                             duration = entry.get_schedule().duration * self.dt
@@ -516,11 +515,6 @@ class Target(Mapping):
                         duration=duration,
                         calibration=entry,
                     )
-                else:
-                    if props is None:
-                        # Edge case. Calibration is backend defined, but this is not
-                        # registered in the backend target. Ignore this entry.
-                        continue
                 try:
                     # Update gate error if provided.
                     props.error = error_dict[inst_name][qargs]
