@@ -19,7 +19,7 @@ from itertools import product
 from functools import partial
 import numpy as np
 
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -41,7 +41,6 @@ from qiskit.circuit.library.standard_gates import (
     ECRGate,
 )
 from qiskit.transpiler.passes.synthesis import plugin
-from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
     Optimize1qGatesDecomposition,
 )
@@ -313,7 +312,7 @@ class UnitarySynthesis(TransformationPass):
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises :class:`~TranspileError`. If set to None, no
+                determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
@@ -442,29 +441,40 @@ class UnitarySynthesis(TransformationPass):
         if self.method == "default":
             # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
-        return self._run_main_loop(
-            dag, plugin_method, plugin_kwargs, default_method, default_kwargs
-        )
 
-    def _run_main_loop(self, dag, plugin_method, plugin_kwargs, default_method, default_kwargs):
-        """Inner loop for the optimizer, after all DAG-independent set-up has been completed."""
-
-        def _recurse(dag):
-            # This isn't quite a trivially recursive call because we need to close over the
-            # arguments to the function.  The loop is sufficiently long that it's cleaner to do it
-            # in a separate method rather than define a helper closure within `self.run`.
-            return self._run_main_loop(
-                dag, plugin_method, plugin_kwargs, default_method, default_kwargs
-            )
-
-        for node in dag.op_nodes(ControlFlowOp):
-            node.op = control_flow.map_blocks(_recurse, node.op)
-
-        dag_bit_indices = (
+        qubit_indices = (
             {bit: i for i, bit in enumerate(dag.qubits)}
             if plugin_method.supports_coupling_map or default_method.supports_coupling_map
             else {}
         )
+        return self._run_main_loop(
+            dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+        )
+
+    def _run_main_loop(
+        self, dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+    ):
+        """Inner loop for the optimizer, after all DAG-independent set-up has been completed."""
+        for node in dag.op_nodes(ControlFlowOp):
+            node.op = node.op.replace_blocks(
+                [
+                    dag_to_circuit(
+                        self._run_main_loop(
+                            circuit_to_dag(block),
+                            {
+                                inner: qubit_indices[outer]
+                                for inner, outer in zip(block.qubits, node.qargs)
+                            },
+                            plugin_method,
+                            plugin_kwargs,
+                            default_method,
+                            default_kwargs,
+                        ),
+                        copy_operations=False,
+                    )
+                    for block in node.op.blocks
+                ]
+            )
 
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
@@ -481,7 +491,7 @@ class UnitarySynthesis(TransformationPass):
             if method.supports_coupling_map:
                 kwargs["coupling_map"] = (
                     self._coupling_map,
-                    [dag_bit_indices[x] for x in node.qargs],
+                    [qubit_indices[x] for x in node.qargs],
                 )
             synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:

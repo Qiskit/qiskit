@@ -125,13 +125,11 @@ Job Status
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   QiskitBackendNotFoundError
-   BackendPropertyError
-   JobError
-   JobTimeoutError
+.. autoexception:: QiskitBackendNotFoundError
+.. autoexception:: BackendPropertyError
+.. autoexception:: JobError
+.. autoexception:: JobTimeoutError
+.. autoexception:: BackendConfigurationError
 
 ======================
 Writing a New Provider

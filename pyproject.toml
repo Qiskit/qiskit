@@ -32,11 +32,14 @@ repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict -
 
 [tool.ruff]
 select = [
+  # Rules in alphabetic order
+  "C4",    # category: flake8-comprehensions
+  "EXE",   # Category: flake8-executable
+  "F631",  # assert-tuple
+  "F632",  # is-literal
+  "F634",  # if-tuple
+  "F823",  # undefined-local
   "C4",  # category: flake8-comprehensions
-  "F631",
-  "F632",
-  "F634",
-  "F823",
 ]
 
 [tool.pylint.main]

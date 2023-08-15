@@ -14,7 +14,9 @@ Optimized list of Pauli operators
 """
 # pylint: disable=invalid-name
 
+from __future__ import annotations
 import copy
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
@@ -24,6 +26,9 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+
+if TYPE_CHECKING:
+    from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 # utility for _to_matrix
@@ -36,7 +41,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     Base class for Pauli and PauliList.
     """
 
-    def __init__(self, z, x, phase):
+    def __init__(self, z: np.ndarray, x: np.ndarray, phase: np.ndarray):
         """Initialize the BasePauli.
 
         This is an array of M N-qubit Paulis defined as
@@ -91,7 +96,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    def compose(self, other, qargs=None, front=False, inplace=False):
+    def compose(self, other, qargs: list | None = None, front: bool = False, inplace=False):
         """Return the composition of Paulis.
 
         Args:
@@ -193,7 +198,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return self
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
 
-    def commutes(self, other, qargs=None):
+    def commutes(self, other: BasePauli, qargs: list | None = None) -> np.ndarray:
         """Return ``True`` if Pauli commutes with ``other``.
 
         Args:
@@ -226,7 +231,12 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         b_dot_a = np.mod(_count_y(other._x, z1), 2)
         return a_dot_b == b_dot_a
 
-    def evolve(self, other, qargs=None, frame="h"):
+    def evolve(
+        self,
+        other: BasePauli | QuantumCircuit | Clifford,
+        qargs: list | None = None,
+        frame: Literal["h", "s"] = "h",
+    ) -> BasePauli:
         r"""Performs either Heisenberg (default) or Schrödinger picture
         evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
@@ -484,7 +494,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Returns:
             str: the Pauli label from the full Pauli group (if ``full_group=True``) or
                 from the unsigned Pauli group (if ``full_group=False``).
-            Tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
+            tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
                             label (from either the full or unsigned Pauli group) and
                             the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
                             for the label from the full Pauli group.

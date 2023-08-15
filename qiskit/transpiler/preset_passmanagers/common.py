@@ -61,16 +61,14 @@ _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not
 # without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
     "layout_method": _ControlFlowState(
-        working={"trivial", "dense"}, not_working={"sabre", "noise_adaptive"}
+        working={"trivial", "dense", "sabre"}, not_working={"noise_adaptive"}
     ),
     "routing_method": _ControlFlowState(
-        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic"}
+        working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
-    # 'synthesis' is not a supported translation method because of the block-collection passes
-    # involved; we currently don't have a neat way to pass the information about nested blocks - the
-    # `UnitarySynthesis` pass itself is control-flow aware.
     "translation_method": _ControlFlowState(
-        working={"translator", "unroller"}, not_working={"synthesis"}
+        working={"translator", "synthesis", "unroller"},
+        not_working=set(),
     ),
     "optimization_method": _ControlFlowState(working=set(), not_working=set()),
     "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
@@ -219,7 +217,11 @@ def generate_unroll_3q(
             target=target,
         )
     )
-    unroll_3q.append(HighLevelSynthesis(hls_config=hls_config))
+    unroll_3q.append(
+        HighLevelSynthesis(
+            hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
+        )
+    )
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
@@ -424,7 +426,12 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+            ),
             UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -442,7 +449,12 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+            ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
@@ -458,7 +470,12 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)

@@ -39,6 +39,7 @@ from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
+from qiskit.pulse.configuration import Kernel, Discriminator
 
 
 if _optional.HAS_SYMENGINE:
@@ -275,6 +276,26 @@ class TestLoadFromQPY(QpyScheduleTestCase):
 
         self.assert_roundtrip_equal(test_sched)
 
+    def test_with_acquire_instruction_with_kernel(self):
+        """Test a schedblk with acquire instruction with kernel."""
+        kernel = Kernel(
+            name="my_kernel", kernel={"real": np.ones(10), "imag": np.zeros(10)}, bias=[0, 0]
+        )
+        with builder.build() as test_sched:
+            builder.acquire(100, AcquireChannel(0), MemorySlot(0), kernel=kernel)
+
+        self.assert_roundtrip_equal(test_sched)
+
+    def test_with_acquire_instruction_with_discriminator(self):
+        """Test a schedblk with acquire instruction with a discriminator."""
+        discriminator = Discriminator(
+            name="my_discriminator", discriminator_type="linear", params=[1, 0]
+        )
+        with builder.build() as test_sched:
+            builder.acquire(100, AcquireChannel(0), MemorySlot(0), discriminator=discriminator)
+
+        self.assert_roundtrip_equal(test_sched)
+
 
 class TestPulseGate(QpyScheduleTestCase):
     """Test loading and saving pulse gate attached circuit to qpy file."""
@@ -350,5 +371,33 @@ class TestPulseGate(QpyScheduleTestCase):
         qc.append(mygate, [1])
         qc.add_calibration("rx", (0,), caldef1, [amp1])
         qc.add_calibration(mygate, (1,), caldef2)
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_with_acquire_instruction_with_kernel(self):
+        """Test a pulse gate with acquire instruction with kernel."""
+        kernel = Kernel(
+            name="my_kernel", kernel={"real": np.zeros(10), "imag": np.zeros(10)}, bias=[0, 0]
+        )
+
+        with builder.build() as sched:
+            builder.acquire(10, AcquireChannel(0), MemorySlot(0), kernel=kernel)
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.add_calibration("measure", (0,), sched)
+
+        self.assert_roundtrip_equal(qc)
+
+    def test_with_acquire_instruction_with_discriminator(self):
+        """Test a pulse gate with acquire instruction with discriminator."""
+        discriminator = Discriminator("my_discriminator")
+
+        with builder.build() as sched:
+            builder.acquire(10, AcquireChannel(0), MemorySlot(0), discriminator=discriminator)
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.add_calibration("measure", (0,), sched)
 
         self.assert_roundtrip_equal(qc)
