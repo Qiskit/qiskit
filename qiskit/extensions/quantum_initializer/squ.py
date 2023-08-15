@@ -32,6 +32,7 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 class SingleQubitUnitary(Gate):
     """Single-qubit unitary.
+
     Args:
             unitary_matrix: 2*2 unitary (given as a (complex) ``numpy.ndarray``).
             mode: determines the used decomposition by providing the rotation axes.
