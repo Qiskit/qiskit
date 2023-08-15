@@ -14,6 +14,7 @@
 
 """mpl circuit visualization backend."""
 
+from io import StringIO
 import collections
 import itertools
 import re
@@ -36,6 +37,9 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.classical import expr
+from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
+from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3.printer import BasicPrinter
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -538,6 +542,23 @@ class MatplotlibDrawer:
                         flow_drawer._flow_wire_map = flow_wire_map
                         self._flow_drawers[node].append(flow_drawer)
 
+                        if op.condition is not None and isinstance(op.condition, expr.Expr):
+                            builder = QASM3Builder(
+                                self._circuit,
+                                includeslist=("stdgates.inc",),
+                                basis_gates=("U",),
+                                disable_constants=False,
+                                allow_aliasing=False,
+                            )
+                            stream = StringIO()
+                            builder.build_classical_declarations()
+                            BasicPrinter(stream, indent="  ").visit(builder.build_expression(op.condition))
+                            node_data[node].expr_condition = stream.getvalue()
+                            expr_width =  self._get_text_width(node_data[node].expr_condition,
+                                glob_data, fontsize=self._style["fs"]
+                            )
+                            raw_gate_width += expr_width
+
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
                         layer_widths.update(flow_widths)
@@ -989,15 +1010,6 @@ class MatplotlibDrawer:
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
-                    print(op.condition)
-                    x = condition_resources(
-                        op.condition
-                        if not isinstance(op, SwitchCaseOp)
-                        else (op.target, 2**op.target.size)
-                    )
-                    print(x)
-                    print(x.clbits)
-                    print(x.cregs)
                     cond_xy = [
                         self._plot_coord(
                             node_data[node].x_index,
@@ -1118,6 +1130,17 @@ class MatplotlibDrawer:
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
+            builder = QASM3Builder(
+                self._circuit,
+                includeslist=("stdgates.inc",),
+                basis_gates=("U",),
+                disable_constants=False,
+                allow_aliasing=False,
+            )
+            stream = StringIO()
+            builder.build_classical_declarations()
+            BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
+            print(stream.getvalue())
             condition_bits = condition_resources(condition).clbits
             label = "[expression]"
             override_fc = True
@@ -1125,10 +1148,7 @@ class MatplotlibDrawer:
             for bit in condition_bits:
                 registers[get_bit_register(self._circuit, bit)].append(bit)
             # Registerless bits don't care whether cregbundle is set.
-            print("\n", registers)
-            #print(registers.pop(None, ()))
             cond_pos.extend(cond_xy[wire_map[bit] - first_clbit] for bit in registers.pop(None, ()))
-            print("COND POS", cond_pos)
             if self._cregbundle:
                 cond_pos.extend(
                     cond_xy[wire_map[register[0]] - first_clbit] for register in registers
