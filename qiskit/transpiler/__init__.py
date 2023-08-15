@@ -1241,11 +1241,10 @@ Abstract Passes
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   TranspilerError
-   TranspilerAccessError
+.. autoexception:: TranspilerError
+.. autoexception:: TranspilerAccessError
+.. autoexception:: CouplingError
+.. autoexception:: LayoutError
 """
 
 from .runningpassmanager import FlowController, ConditionalController, DoWhileController
@@ -1253,7 +1252,7 @@ from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
 from .passmanager import StagedPassManager
 from .propertyset import PropertySet
-from .exceptions import TranspilerError, TranspilerAccessError
+from .exceptions import TranspilerError, TranspilerAccessError, CouplingError, LayoutError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap

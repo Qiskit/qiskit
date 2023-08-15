@@ -34,10 +34,8 @@ DAG Circuits
 Exceptions
 ==========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   DAGCircuitError
+.. autoexception:: DAGCircuitError
+.. autoexception:: DAGDependencyError
 
 Utilities
 =========
@@ -53,5 +51,5 @@ from .collect_blocks import BlockCollapser, BlockCollector, BlockSplitter
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
-from .exceptions import DAGCircuitError
+from .exceptions import DAGCircuitError, DAGDependencyError
 from .dagdependency import DAGDependency
