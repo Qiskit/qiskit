@@ -3,18 +3,16 @@
 import unittest
 from math import pi
 import numpy as np
-from ddt import data, ddt, named_data
+from ddt import ddt, named_data
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumCircuit
 
 from qiskit.transpiler.passes.optimization.normalize_rx_angle import (
     NormalizeRXAngle,
 )
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.transpiler import Target
-from qiskit.circuit.library.standard_gates import XGate
 
 
 @ddt
@@ -81,6 +79,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
         {"name": "2.2pi", "raw_theta": 2.2 * np.pi, "correct_wrapped_theta": 0.2 * np.pi},
     )
     def test_angle_wrapping_works(self, raw_theta, correct_wrapped_theta):
+        """Check that RX rotation angles are correctly wrapped to [0, pi]"""
         backend = FakeBelemV2()
         tp = NormalizeRXAngle(target=backend.target)
 
@@ -94,13 +93,13 @@ class TestNormalizeRXAngle(QiskitTestCase):
 
     @named_data(
         {
-            "name": "angles within resolution",
+            "name": "angles are within resolution",
             "resolution": 0.1,
             "rx_angles": [0.3, 0.303],
             "correct_num_of_cals": 1,
         },
         {
-            "name": "angles not within resolution",
+            "name": "angles are not within resolution",
             "resolution": 0.1,
             "rx_angles": [0.2, 0.4],
             "correct_num_of_cals": 2,
@@ -114,7 +113,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
     )
     def test_quantize_angles(self, resolution, rx_angles, correct_num_of_cals):
         """Test that quantize_angles() adds a new calibration only if
-        the requested angle is not in the vicinity of the angles already generated.
+        the requested angle is not in the vicinity of the already generated angles.
         """
         backend = FakeBelemV2()
         tp = NormalizeRXAngle(backend.target, resolution_in_radian=resolution)
