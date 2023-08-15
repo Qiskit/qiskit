@@ -60,6 +60,7 @@ parameters:
     type: string
     default: "3.8"
 
+  # Sync with 'python-version' in '.github/workflows/docs_deploy.yml'.
   - name: "documentationPythonVersion"
     displayName: "Version of Python to use to build Sphinx documentation"
     type: string
@@ -268,6 +269,24 @@ stages:
                 python -m pip install --upgrade pip
                 python -m pip install --upgrade setuptools_rust
                 python setup.py sdist
+            - task: PublishBuildArtifacts@1
+              inputs: {pathtoPublish: 'dist'}
+              condition: succeededOrFailed()
+            - bash: |
+                python -m pip install --upgrade twine
+                twine upload dist/*
+              env:
+                TWINE_USERNAME: "qiskit"
+                TWINE_PASSWORD: $(TWINE_PASSWORD)
+        - job: 'qiskit-pkg'
+          pool: {vmImage: 'ubuntu-latest'}
+          steps:
+            - task: UsePythonVersion@0
+            - bash: |
+                set -e
+                python -m pip install --upgrade pip build
+                cd qiskit_pkg
+                python -m build .
             - task: PublishBuildArtifacts@1
               inputs: {pathtoPublish: 'dist'}
               condition: succeededOrFailed()
