@@ -80,7 +80,7 @@ from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ControlFlowOp, Measure, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 
@@ -159,7 +159,6 @@ class BaseSampler(BasePrimitive, Generic[T]):
     ) -> T:
         raise NotImplementedError("The subclass of BaseSampler must implment `_run` method.")
 
-    # TODO: validate measurement gates are present
     @classmethod
     def _validate_circuits(
         cls,
@@ -172,6 +171,11 @@ class BaseSampler(BasePrimitive, Generic[T]):
                     f"The {i}-th circuit does not have any classical bit. "
                     "Sampler requires classical bits, plus measurements "
                     "on the desired qubits."
+                )
+            if not _has_measure(circuit):
+                raise ValueError(
+                    f"The {i}-th circuit does not have Measure instruction. "
+                    "If there is no measurement, the execution results should be meaningless."
                 )
         return circuits
 
@@ -192,3 +196,14 @@ class BaseSampler(BasePrimitive, Generic[T]):
             List of the parameters in each quantum circuit.
         """
         return tuple(self._parameters)
+
+
+def _has_measure(circuit: QuantumCircuit) -> bool:
+    for instruction in circuit:
+        if isinstance(instruction.operation, Measure):
+            return True
+        elif isinstance(instruction.operation, ControlFlowOp):
+            for block in instruction.operation.blocks:
+                if _has_measure(block):
+                    return True
+    return False
