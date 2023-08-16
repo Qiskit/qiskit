@@ -31937,9 +31937,9 @@ backward compatibility issues and work with the default 10 job
 limit in single calls to the IBM Q API v2.
 
 
-##########*
+###########
 Qiskit 0.11
-##########*
+###########
 
 We have bumped up Qiskit minor version to 0.11 because IBM Q Provider has bumped up
 its minor version too.
@@ -32050,9 +32050,9 @@ Would be equivalent to the following program in the current version::
 You can find more information and details in the `IBM Q Provider documentation <https://github.com/Qiskit/qiskit-ibmq-provider>`__.
 
 
-##########*
+###########
 Qiskit 0.10
-##########*
+###########
 
 Terra 0.8
 =========
