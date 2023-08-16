@@ -134,16 +134,8 @@ jobs:
                   prefixes+=( "dev" )
                   ;;
                 tag)
-                  tag=$GITHUB_REF_NAME
-                  echo "Full tag: ${tag}"
-                  IFS=. read -ra version <<< "$tag"
-                  minor_version="${version[0]}.${version[1]}"
-                  echo "Minor version: ${minor_version}"
-                  prefixes+=( "stable/${minor_version}" )
-                  if [[ "$tag" == "$LATEST_TAG" ]]; then
-                    # Deploy to the root as well.
-                    prefixes+=( "" )
-                  fi
+                  prefixes+=( "stable/0.44" )
+                  prefixes+=( "" )
                   ;;
                 *)
                   echo "Unhandled reference type '${{ github.ref_type }}'" >&2
