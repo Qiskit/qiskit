@@ -116,7 +116,7 @@ hardware or simulators to Qiskit. The backend class includes a common interface 
 
 * https://github.com/Qiskit/qiskit-ibm-provider
 * https://github.com/qiskit-community/qiskit-ionq
-* https://github.com/Qiskit-Partners/qiskit-aqt-provider
+* https://github.com/qiskit-community/qiskit-aqt-provider
 * https://github.com/qiskit-community/qiskit-braket-provider
 * https://github.com/qiskit-community/qiskit-quantinuum-provider
 * https://github.com/rigetti/qiskit-rigetti
