@@ -57,7 +57,7 @@ Once you've made your first quantum circuit, choose which primitive function you
 we use `measure_all(inplace=False)` to get a copy of the circuit in which all the qubits are measured:
 
 ```python
-# 2. Add the classical output to be measurement in a different circuit
+# 2. Add the classical output in the form of measurement of all qubits
 qc_measured = qc_example.measure_all(inplace=False)
 
 # 3. Execute using the Sampler primitive
