@@ -45,10 +45,10 @@ from qiskit import QuantumCircuit
 
 # 1. A quantum circuit for preparing the quantum state |000> + i |111>
 qc_example = QuantumCircuit(3)
-qc_example.h(0) # generate superpostion
-qc_example.p(np.pi/2,0) # add quantum phase
-qc_example.cx(0,1)  # 0th-qubit-Controlled-NOT gate on 1st qubit
-qc_example.cx(0,2)  # 0th-qubit-Controlled-NOT gate on 2nd qubit
+qc_example.h(0)          # generate superpostion
+qc_example.p(np.pi/2,0)  # add quantum phase
+qc_example.cx(0,1)       # 0th-qubit-Controlled-NOT gate on 1st qubit
+qc_example.cx(0,2)       # 0th-qubit-Controlled-NOT gate on 2nd qubit
 ```
 
 This simple example makes an entangled state known as a [GHZ state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state) $(|000\rangle + |111\rangle)/\sqrt{2}$. It uses the standard quantum gates: Hadamard gate (`h`), Phase gate (`p`), and CNOT gate (`cx`). 
@@ -57,15 +57,13 @@ Once you've made your first quantum circuit, choose which primitive function you
 we use `measure_all(inplace=False)` to get a copy of the circuit in which all the qubits are measured:
 
 ```python
-# 2. define the classical output to be measurement 
-qc_measure = QuantumCircuit(3,3)
-qc_measure.measure_all(add_bits=False)
-qc_compose = qc_example.compose(qc_measure)
+# 2. Add the classical output to be measurement in a different circuit
+qc_measured = qc_example.measure_all(inplace=False)
 
 # 3. Execute using the Sampler primitive
 from qiskit.primitives.sampler import Sampler
 sampler = Sampler()
-job = sampler.run(qc_compose, shots=1000)
+job = sampler.run(qc_measured, shots=1000)
 result = job.result()
 print(f" > Quasi probability distribution: {result.quasi_dists}")
 ```
