@@ -132,6 +132,10 @@ Qiskit documentation here:
 
 https://qiskit.org/documentation/release_notes.html#terra-0-9
 
+## Acknowledgements
+
+We acknowledge partial support for Qiskit development from the DOE Office of Science National Quantum Information Science Research Centers, Co-design Center for Quantum Advantage (C2QA) under contract number DE-SC0012704.
+
 ## License
 
 [Apache License 2.0](LICENSE.txt)
