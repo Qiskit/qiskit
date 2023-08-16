@@ -930,12 +930,21 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
 
-    @combine(parameterized=[True, False])
-    def test_group_commuting(self, parameterized):
+    @combine(parameterized=[True, False], qubit_wise=[True, False])
+    def test_group_commuting(self, parameterized, qubit_wise):
         """Test general grouping commuting operators"""
 
-        def commutes(left: Pauli, right: Pauli) -> bool:
-            return len(left) == len(right) and left.commutes(right)
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
 
         input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "YX", "ZX", "ZY", "XZ", "YZ"]
         np.random.shuffle(input_labels)
@@ -944,7 +953,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         else:
             coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
         sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
-        groups = sparse_pauli_list.group_commuting()
+        groups = sparse_pauli_list.group_commuting(qubit_wise)
         # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
         output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
@@ -957,14 +966,17 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         # Within each group, every operator commutes with every other operator.
         for group in groups:
             self.assertTrue(
-                all(commutes(pauli1, pauli2) for pauli1, pauli2 in it.combinations(group.paulis, 2))
+                all(
+                    commutes(pauli1, pauli2, qubit_wise)
+                    for pauli1, pauli2 in it.combinations(group.paulis, 2)
+                )
             )
         # For every pair of groups, at least one element from one group does not commute with
         # at least one element of the other.
         for group1, group2 in it.combinations(groups, 2):
             self.assertFalse(
                 all(
-                    commutes(group1_pauli, group2_pauli)
+                    commutes(group1_pauli, group2_pauli, qubit_wise)
                     for group1_pauli, group2_pauli in it.product(group1.paulis, group2.paulis)
                 )
             )
