@@ -60,6 +60,7 @@ parameters:
     type: string
     default: "3.8"
 
+  # Sync with 'python-version' in '.github/workflows/docs_deploy.yml'.
   - name: "documentationPythonVersion"
     displayName: "Version of Python to use to build Sphinx documentation"
     type: string
