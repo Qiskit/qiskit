@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Previously the `control` method of UnitaryGate was utilizing `Isometry` for decomposition. This improvement switches the synthesis to `qs_decomposition` which approximately halves the gate count.
+  - |
+    An improvement to the Quantum Shannon Decomposition was added which reduces the CNOT gate count in the special case that the input unitary appears to be a controlled unitary where the control is on the topmost qubit.
