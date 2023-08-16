@@ -12,7 +12,7 @@ them on real quantum computers or classical simulators. Qiskit is already in use
 around the world by beginners, hobbyists, educators, researchers, and commercial companies.
 
 .. qiskit-card::
-  :header: Qiskit is getting a new documentation experience
+  :header: Qiskit is getting a new documentation experience →
   :card_description: We are reorganizing Qiskit documentation on IBM Quantum to better support your research and development workflows.
   :image: _static/images/1xp.png
   :link: https://quantum-computing.ibm.com/
