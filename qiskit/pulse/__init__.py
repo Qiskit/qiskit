@@ -55,6 +55,10 @@ Exceptions
 ==========
 
 .. autoexception:: PulseError
+.. autoexception:: BackendNotSet
+.. autoexception:: NoActiveBuilder
+.. autoexception:: UnassignedDurationError
+.. autoexception:: UnassignedReferenceError
 """
 
 # Builder imports.
@@ -122,7 +126,13 @@ from qiskit.pulse.configuration import (
     LoConfig,
     LoRange,
 )
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import (
+    PulseError,
+    BackendNotSet,
+    NoActiveBuilder,
+    UnassignedDurationError,
+    UnassignedReferenceError,
+)
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,

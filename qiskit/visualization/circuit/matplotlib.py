@@ -1132,7 +1132,11 @@ class MatplotlibDrawer:
             label, val_bits = get_condition_label_val(condition, self._circuit, self._cregbundle)
             cond_bit_reg = condition[0]
             cond_bit_val = int(condition[1])
-            override_fc = cond_bit_val != 0
+            override_fc = (
+                cond_bit_val != 0
+                and self._cregbundle
+                and isinstance(cond_bit_reg, ClassicalRegister)
+            )
 
             # In the first case, multiple bits are indicated on the drawing. In all
             # other cases, only one bit is shown.
