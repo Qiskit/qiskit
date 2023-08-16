@@ -348,7 +348,7 @@ ecr q[1],q[0];
         qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
-gate unitary q0 { u3(0,0,0) q0; }
+gate unitary q0 { u(0,0,0) q0; }
 qreg q[1];
 unitary q[0];
 """
@@ -367,9 +367,9 @@ unitary q[0];
         expected = re.compile(
             r"""OPENQASM 2.0;
 include "qelib1.inc";
-gate unitary q0 { u3\(0,0,0\) q0; }
-gate (?P<u1>unitary_[0-9]*) q0 { u3\(pi,-pi/2,pi/2\) q0; }
-gate (?P<u2>unitary_[0-9]*) q0 { u3\(0,pi/2,pi/2\) q0; }
+gate unitary q0 { u\(0,0,0\) q0; }
+gate (?P<u1>unitary_[0-9]*) q0 { u\(pi,-pi/2,pi/2\) q0; }
+gate (?P<u2>unitary_[0-9]*) q0 { u\(0,pi/2,pi/2\) q0; }
 gate custom q0 { (?P=u2) q0; }
 qreg q\[2\];
 unitary q\[0\];
