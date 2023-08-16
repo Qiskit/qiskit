@@ -12,6 +12,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use ndarray::prelude::*;
+use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -24,10 +25,12 @@ use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
 use crate::sabre_swap::neighbor_table::NeighborTable;
 use crate::sabre_swap::sabre_dag::SabreDAG;
-use crate::sabre_swap::{build_swap_map_inner, Heuristic, SabreResult};
+use crate::sabre_swap::swap_map::SwapMap;
+use crate::sabre_swap::{build_swap_map_inner, Heuristic, NodeBlockResults, SabreResult};
 
 #[pyfunction]
 pub fn sabre_layout_and_routing(
+    py: Python,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
@@ -36,7 +39,7 @@ pub fn sabre_layout_and_routing(
     num_swap_trials: usize,
     num_layout_trials: usize,
     seed: Option<u64>,
-) -> ([NLayout; 2], SabreResult) {
+) -> ([NLayout; 2], (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -47,7 +50,7 @@ pub fn sabre_layout_and_routing(
         .take(num_layout_trials)
         .collect();
     let dist = distance_matrix.as_array();
-    if run_in_parallel && num_layout_trials > 1 {
+    let res = if run_in_parallel && num_layout_trials > 1 {
         seed_vec
             .into_par_iter()
             .enumerate()
@@ -91,7 +94,15 @@ pub fn sabre_layout_and_routing(
             })
             .min_by_key(|(_, result)| result.map.map.values().map(|x| x.len()).sum::<usize>())
             .unwrap()
-    }
+    };
+    (
+        res.0,
+        (
+            res.1.map,
+            res.1.node_order.into_pyarray(py).into(),
+            res.1.node_block_results,
+        ),
+    )
 }
 
 fn layout_trial(
