@@ -40,8 +40,10 @@ class RVGate(Gate):
         \newcommand{\sinc}{\text{sinc}}
             R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
                 \begin{pmatrix}
-                    \cos{\th} -i v_z \sinc(\th) & -(i v_x + v_y) \sinc(\th) \\
-                    -(i v_x - v_y) \sinc(\th) & \cos(\th) + i v_z \sinc(\th)
+                    \cos\left(\th\right) -i v_z \sinc\left(\th\right)
+                    & -(i v_x + v_y) \sinc\left(\th\right) \\
+                    -(i v_x - v_y) \sinc\left(\th\right)
+                    & \cos\left(\th\right) + i v_z \sinc\left(\th\right)
                 \end{pmatrix}
     """
 

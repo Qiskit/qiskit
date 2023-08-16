@@ -17,14 +17,44 @@ Preset Passmanagers (:mod:`qiskit.transpiler.preset_passmanagers`)
 
 .. currentmodule:: qiskit.transpiler.preset_passmanagers
 
-.. autosummary::
-   :toctree: ../stubs/
+This module contains functions for generating the preset pass managers
+for the transpiler. The preset pass managers are instances of
+:class:`~.StagedPassManager` which are used to execute the circuit
+transformations as part of Qiskit's compiler inside the
+:func:`~.transpile` function at the different optimization levels.
+The functionality here is divided into two parts, the first includes the
+functions used generate the entire pass manager which is used by
+:func:`~.transpile` (:ref:`preset_pass_manager_generators`) and the
+second includes functions which are used to build (either entirely or in
+part) the stages which the preset pass managers are composed of
+(:ref:`stage_generators`).
 
-   generate_preset_pass_manager
-   level_0_pass_manager
-   level_1_pass_manager
-   level_2_pass_manager
-   level_3_pass_manager
+.. _preset_pass_manager_generators:
+
+Preset Pass Manager Generation
+------------------------------
+
+.. autofunction:: generate_preset_pass_manager
+.. autofunction:: level_0_pass_manager
+.. autofunction:: level_1_pass_manager
+.. autofunction:: level_2_pass_manager
+.. autofunction:: level_3_pass_manager
+
+.. _stage_generators:
+
+Stage Generator Functions
+-------------------------
+
+.. currentmodule:: qiskit.transpiler.preset_passmanagers.common
+.. autofunction:: generate_control_flow_options_check
+.. autofunction:: generate_error_on_control_flow
+.. autofunction:: generate_unroll_3q
+.. autofunction:: generate_embed_passmanager
+.. autofunction:: generate_routing_passmanager
+.. autofunction:: generate_pre_op_passmanager
+.. autofunction:: generate_translation_passmanager
+.. autofunction:: generate_scheduling
+.. currentmodule:: qiskit.transpiler.preset_passmanagers
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -58,6 +88,8 @@ def generate_preset_pass_manager(
     hls_config=None,
     init_method=None,
     optimization_method=None,
+    *,
+    _skip_target=False,
 ):
     """Generate a preset :class:`~.PassManager`
 
@@ -138,9 +170,8 @@ def generate_preset_pass_manager(
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler.
         unitary_synthesis_method (str): The name of the unitary synthesis
-            method to use. By default 'default' is used, which is the only
-            method included with qiskit. If you have installed any unitary
-            synthesis plugins you can use the name exported by the plugin.
+            method to use. By default ``'default'`` is used. You can see a list of
+            installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary
@@ -185,33 +216,33 @@ def generate_preset_pass_manager(
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
 
-    pm_options = dict(
-        target=target,
-        basis_gates=basis_gates,
-        inst_map=inst_map,
-        coupling_map=coupling_map,
-        instruction_durations=instruction_durations,
-        backend_properties=backend_properties,
-        timing_constraints=timing_constraints,
-        layout_method=layout_method,
-        routing_method=routing_method,
-        translation_method=translation_method,
-        scheduling_method=scheduling_method,
-        approximation_degree=approximation_degree,
-        seed_transpiler=seed_transpiler,
-        unitary_synthesis_method=unitary_synthesis_method,
-        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-        initial_layout=initial_layout,
-        hls_config=hls_config,
-        init_method=init_method,
-        optimization_method=optimization_method,
-    )
+    pm_options = {
+        "target": target,
+        "basis_gates": basis_gates,
+        "inst_map": inst_map,
+        "coupling_map": coupling_map,
+        "instruction_durations": instruction_durations,
+        "backend_properties": backend_properties,
+        "timing_constraints": timing_constraints,
+        "layout_method": layout_method,
+        "routing_method": routing_method,
+        "translation_method": translation_method,
+        "scheduling_method": scheduling_method,
+        "approximation_degree": approximation_degree,
+        "seed_transpiler": seed_transpiler,
+        "unitary_synthesis_method": unitary_synthesis_method,
+        "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
+        "initial_layout": initial_layout,
+        "hls_config": hls_config,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
+    }
 
     if backend is not None:
+        pm_options["_skip_target"] = _skip_target
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
-
     if optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:

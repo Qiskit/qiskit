@@ -1,0 +1,8 @@
+
+fixes:
+  - |
+    Fixed a regression in the LaTeX drawer of :meth:`.QuantumCircuit.draw`
+    when temporary files are placed on a separate filesystem to the working
+    directory.  See
+    `#10211 <https://github.com/Qiskit/qiskit-terra/issues/10211>`__.
+

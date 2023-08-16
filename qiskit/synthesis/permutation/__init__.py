@@ -14,3 +14,4 @@
 
 
 from .permutation_lnn import synth_permutation_depth_lnn_kms
+from .permutation_full import synth_permutation_basic, synth_permutation_acg

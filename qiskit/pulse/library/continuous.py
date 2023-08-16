@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-doc, invalid-unary-operand-type
+# pylint: disable=invalid-unary-operand-type
 
 """Module for builtin continuous pulse functions."""
 
@@ -222,7 +222,7 @@ def gaussian_deriv(
         rescale_amp=rescale_amp,
         ret_x=True,
     )
-    gauss_deriv = -x / sigma * gauss
+    gauss_deriv = -x / sigma * gauss  # Note that x is shifted and normalized by sigma
     if ret_gaussian:
         return gauss_deriv, gauss
     return gauss_deriv

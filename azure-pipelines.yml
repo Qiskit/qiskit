@@ -8,6 +8,7 @@ trigger:
     include:
       - 'main'
       - 'stable/*'
+      - 'gh-readonly-queue/*'
   tags:
     include:
       - '*'
@@ -33,22 +34,17 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+    default: ["3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
     type: string
-    default: "3.7"
+    default: "3.8"
 
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
     default: "3.11"
-
-  - name: "minimumRustVersion"
-    displayName: "Minimum supported version of Rust"
-    type: string
-    default: "1.56.1"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -64,6 +60,7 @@ parameters:
     type: string
     default: "3.8"
 
+  # Sync with 'python-version' in '.github/workflows/docs_deploy.yml'.
   - name: "documentationPythonVersion"
     displayName: "Version of Python to use to build Sphinx documentation"
     type: string
@@ -106,14 +103,18 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
+              testRust: false
+              installOptionals: true
 
           - template: ".azure/test-macos.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
           - template: ".azure/test-windows.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
     - stage: "Nightly_Failure"
       displayName: "Comment on nightly failure"
@@ -130,8 +131,10 @@ stages:
                 id: 7864
                 comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
 
-  # Full PR suite.
-  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+  # Full PR suite.  This also needs to apply to the merge queue, which appears
+  # as a push event.  The queue won't get cron triggered because the schedule
+  # trigger doesn't have it as a target.
+  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.SourceBranch'], 'gh-readonly-queue')) }}:
     # The preliminary stage should be small in both total runtime (including
     # provisioning) and resources required.  About half of PR commits result in
     # a CI failure, and over 90% of these are in linting, documention or a test
@@ -151,9 +154,15 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            # A PR is more likely to fail CI because it introduces a logic error
+            # into an existing test than because it adds a new test / optional
+            # dependency that isn't accounted for in the test-skipping logic
+            # (and such a failure would need fewer iterations to fix).  We want
+            # to fail fast in the first CI stage.
+            installOptionals: true
+            testRust: true
             testQPY: true
-            testImages: false
-            rustVersion: ${{ parameters.minimumRustVersion }}
+            testImages: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -171,36 +180,44 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testRust: false
             testQPY: false
-            testImages: true
+            testImages: false
             installFromSdist: true
+            installOptionals: false
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
-  # Push to main or the stable branches.  The triggering branches are set in the
-  # triggers at the top of this file.
-  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/heads/')) }}:
+  # Push to main or the stable branches.  The triggering branches also need to
+  # be in the triggers at the top of this file.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/stable/'))) }}:
     - stage: "Push"
       jobs:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testRust: true
             testQPY: true
             testImages: true
+            installOptionals: false
 
   # Push to a tag.  The triggering tags are set in the triggers at the top of
   # this file.
@@ -252,6 +269,24 @@ stages:
                 python -m pip install --upgrade pip
                 python -m pip install --upgrade setuptools_rust
                 python setup.py sdist
+            - task: PublishBuildArtifacts@1
+              inputs: {pathtoPublish: 'dist'}
+              condition: succeededOrFailed()
+            - bash: |
+                python -m pip install --upgrade twine
+                twine upload dist/*
+              env:
+                TWINE_USERNAME: "qiskit"
+                TWINE_PASSWORD: $(TWINE_PASSWORD)
+        - job: 'qiskit-pkg'
+          pool: {vmImage: 'ubuntu-latest'}
+          steps:
+            - task: UsePythonVersion@0
+            - bash: |
+                set -e
+                python -m pip install --upgrade pip build
+                cd qiskit_pkg
+                python -m build .
             - task: PublishBuildArtifacts@1
               inputs: {pathtoPublish: 'dist'}
               condition: succeededOrFailed()

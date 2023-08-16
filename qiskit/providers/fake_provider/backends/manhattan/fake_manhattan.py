@@ -25,7 +25,7 @@ class FakeManhattanV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_manhattan.json"
     props_filename = "props_manhattan.json"
     defs_filename = "defs_manhattan.json"
-    backend_name = "fake_manhattan_v2"
+    backend_name = "fake_manhattan"
 
 
 class FakeManhattan(fake_pulse_backend.FakePulseBackend):

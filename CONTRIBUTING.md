@@ -237,16 +237,15 @@ building and installing from source you will need a rust compiler installed. You
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
-exist too. For windows users besides rustup you will also need install
-the Visual C++ build tools so that rust can link against the system c/c++
+exist too. For Windows users, besides rustup, you will also need install
+the Visual C++ build tools so that Rust can link against the system c/c++
 libraries. You can see more details on this in the
 [rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
 
-Qiskit Terra has a minimum supported Rust version (MSRV) of 1.56.1. This means
-to build Qiskit Terra from source you must have at least rustc version 1.56.1
-installed, older versions will not be able to compile Qiskit.
+If you use Rustup, it will automatically install the correct Rust version
+currently used by the project.
 
-Once you have a rust compiler installed you can rely on the normal Python
+Once you have a Rust compiler installed, you can rely on the normal Python
 build/install steps to install Qiskit Terra. This means you just run
 `pip install .` in your local git clone to build and install Qiskit Terra.
 
@@ -255,6 +254,10 @@ without any optimizations enabled. This will result in poor runtime performance.
 If you'd like to use an editable install with an optimized binary you can
 run `python setup.py build_rust --release --inplace` after you install in
 editable mode to recompile the rust extensions in release mode.
+
+Note that in order to run `python setup.py ...` commands you need have build
+dependency packages installed in your environment, which are listed in the
+`pyproject.toml` file under the `[build-system]` section.
 
 
 ## Test
@@ -273,12 +276,12 @@ environment that tox sets up matches the CI environment more closely and it
 runs the tests in parallel (resulting in much faster execution). To run tests
 on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy37` (or replace py37 with the python version you want to use,
-py35 or py36).
+version: `tox -epy310` (or replace py310 with the python version you want to use,
+py39 or py311).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy37 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -288,21 +291,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy37 -- -n test.python.test_examples
+tox -epy310 -- -n test.python.test_examples
 ```
 or to run the same module by path:
 
 ```
-tox -epy37 -- -n test/python/test_examples.py
+tox -epy310 -- -n test/python/test_examples.py
 ```
 to run a class:
 
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples
+tox -epy310 -- -n test.python.test_examples.TestPythonExamples
 ```
 to run a method:
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy310 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -419,25 +422,34 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ## Style and lint
 
-Qiskit Terra uses 2 tools for verify code formatting and lint checking. The
+Qiskit Terra uses three tools for verify code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
 The second tool is [pylint](https://www.pylint.org/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
-potential bugs and other common issues in Python.
+potential bugs and other common issues in Python. The third tool is the linter
+[ruff](https://github.com/charliermarsh/ruff), which has been recently
+introduced into Qiskit Terra on an experimental basis. Only a very small number
+of rules are enabled.
 
-You can check that your local modifications conform to the style rules
-by running `tox -elint` which will run `black` and `pylint` to check the local
-code formatting and lint. If black returns a code formatting error you can
-run `tox -eblack` to automatically update the code formatting to conform to
-the style. However, if `pylint` returns any error you will have to fix these
-issues by manually updating your code.
+You can check that your local modifications conform to the style rules by
+running `tox -elint` which will run `black`, `ruff`, and `pylint` to check the
+local code formatting and lint. If black returns a code formatting error you can
+run `tox -eblack` to automatically update the code formatting to conform to the
+style. However, if `ruff` or `pylint` return any error you will have to fix
+these issues by manually updating your code.
 
-Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target, which only applies
-`pylint` to files which have changed from the source github. On rare occasions this will miss some
-issues that would have been caught by checking the complete source tree, but makes up for this by
-being much faster (and those rare oversights will still be caught by the CI after you open a pull
-request).
+Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target,
+which runs `black` and `ruff` just as `tox -elint` does, but only applies
+`pylint` to files which have changed from the source github. On rare occasions
+this will miss some issues that would have been caught by checking the complete
+source tree, but makes up for this by being much faster (and those rare
+oversights will still be caught by the CI after you open a pull request).
+
+Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
+rather than via `tox`. If you have installed the development packages in your python environment via
+`pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
+the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ## Development Cycle
 

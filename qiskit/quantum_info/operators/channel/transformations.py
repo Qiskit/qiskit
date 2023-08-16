@@ -17,6 +17,7 @@
 Transformations between QuantumChannel representations.
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -396,7 +397,7 @@ def _reravel(mat1, mat2, shape1, shape2):
     left_dims = shape1[:2] + shape2[:2]
     right_dims = shape1[2:] + shape2[2:]
     tensor_shape = left_dims + right_dims
-    final_shape = (np.product(left_dims), np.product(right_dims))
+    final_shape = (np.prod(left_dims), np.prod(right_dims))
     # Tensor product matrices
     data = np.kron(mat1, mat2)
     data = np.reshape(

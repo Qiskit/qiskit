@@ -38,8 +38,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
             q_n: ─┤ RY(offset) ├──┤ RY(2^0 slope) ├  ...  ┤ RY(2^(n-1) slope) ├
                   └────────────┘  └───────────────┘       └───────────────────┘
 
-    This can for example be used to approximate linear functions, with :math:`a/2 =` ``slope``
-    and :math:`b/2 =` ``offset`` and the basis ``'Y'``:
+    This can for example be used to approximate linear functions, with :math:`a =` ``slope``:math:`/2`
+    and :math:`b =` ``offset``:math:`/2` and the basis ``'Y'``:
 
     .. math::
 
