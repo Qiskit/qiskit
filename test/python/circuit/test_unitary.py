@@ -218,7 +218,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "gate unitary q0 { u3(0,0,0) q0; }\n"
+            "gate unitary q0 { u(0,0,0) q0; }\n"
             "qreg q0[2];\ncreg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0];\n"
@@ -242,7 +242,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "gate unitary q0 { u3(0,0,0) q0; }\n"
+            "gate unitary q0 { u(0,0,0) q0; }\n"
             "qreg q0[2];\ncreg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0];\n"
