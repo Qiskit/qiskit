@@ -175,7 +175,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
             if not _has_measure(circuit):
                 raise ValueError(
                     f"The {i}-th circuit does not have Measure instruction. "
-                    "If there is no measurement, the execution results should be meaningless."
+                    "Without measurements, the circuit cannot be sampled from."
                 )
         return circuits
 
