@@ -24,6 +24,7 @@ from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 class DynamicalDecoupling(TransformationPass):
@@ -274,7 +275,7 @@ class DynamicalDecoupling(TransformationPass):
                 if gate is not None:
                     new_dag.apply_operation_back(gate, [dag_qubit], check=False)
 
-            if isinstance(angle, ParameterExpression):
+            if isinstance(new_dag.global_phase, ParameterExpression):
                 new_dag.global_phase = new_dag.global_phase + sequence_gphase
             else:
                 new_dag.global_phase = _mod_2pi(new_dag.global_phase + sequence_gphase)
