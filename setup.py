@@ -53,11 +53,13 @@ z3_requirements = [
     "z3-solver>=4.7",
 ]
 csp_requirements = ["python-constraint>=1.4"]
+bip_requirements = ["cplex", "docplex"]
+toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 
 setup(
     name="qiskit-terra",
-    version="0.25.0",
+    version="0.25.1",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -88,8 +90,10 @@ setup(
     extras_require={
         "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
+        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
         "csp-layout-pass": csp_requirements,
+        "toqm": toqm_requirements,
         "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={

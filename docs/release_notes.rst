@@ -125,6 +125,96 @@ Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-
    meta-package versioning strategy was not formalized yet.
 
 #############
+Qiskit 0.44.1
+#############
+
+.. _Release Notes_0.25.1:
+
+Terra 0.25.1
+============
+
+.. _Release Notes_0.25.1_Prelude:
+
+Prelude
+-------
+
+Qiskit Terra 0.25.1 is a bugfix release, addressing some issues identified since the 0.25.1 release.
+
+.. _Release Notes_0.25.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-qpy-nested-custom-controlled-2a23dfe828bc46c8.yaml @ b'3ba0b74b89d206b99d09fdec2b833f13394b4a36'
+
+- Fixed a bug in QPY serialization (:mod:`qiskit.qpy`) where multiple controlled custom gates in
+  a circuit could result in an invalid QPY file that could not be parsed.  Fixed `#9746
+  <https://github.com/Qiskit/qiskit-terra/issues/9746>`__.
+
+.. releasenotes/notes/fix_9363-445db8fde1244e57.yaml @ b'c1ee9744e1be10ca2e78958fb91308777a668b44'
+
+- Fixed `#9363 <https://github.com/Qiskit/qiskit-terra/issues/9363>`__.
+  by labeling the non-registerless synthesis in the order that Tweedledum
+  returns. For example, compare this example before and after the fix::
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.classicalfunction import BooleanExpression
+
+    boolean_exp = BooleanExpression.from_dimacs_file("simple_v3_c2.cnf")
+    circuit = QuantumCircuit(boolean_exp.num_qubits)
+    circuit.append(boolean_exp, range(boolean_exp.num_qubits))
+    circuit.draw("text")
+
+    from qiskit.circuit.classicalfunction import classical_function
+    from qiskit.circuit.classicalfunction.types import Int1
+
+    @classical_function
+    def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
+        return (a and b and not c)
+
+    quantum_circuit = grover_oracle.synth(registerless=False)
+    print(quantum_circuit.draw())
+
+  Which would print
+
+  .. parsed-literal::
+
+         Before             After
+
+         c: ──■──           a: ──■──
+              │                  │
+         b: ──■──           b: ──■──
+              │                  │
+         a: ──o──           c: ──o──
+            ┌─┴─┐              ┌─┴─┐
+    return: ┤ X ├      return: ┤ X ├
+            └───┘              └───┘
+
+.. releasenotes/notes/paulivecplot-normalization-5dd3cf3393c75afb.yaml @ b'91ca2c408b4c4f1d02060c859dbca2f6d6a8bfe8'
+
+- Fixed :func:`plot_state_paulivec`, which previously damped the state coefficients by a factor of
+  :math:`2^n`, where :math:`n` is the number of qubits. Now the bar graph correctly displays
+  the coefficients as :math:`\mathrm{Tr}(\sigma\rho)`, where :math:`\rho` is the state to
+  be plotted and :math:`\sigma` iterates over all possible tensor products of single-qubit Paulis.
+
+.. releasenotes/notes/qasm2-float-decimal-76b44281d9249f7a.yaml @ b'f42e881cff435fffb83c65eb442924e2aec17aab'
+
+- Angles in the OpenQASM 2 exporter (:func:`.QuantumCircuit.qasm`) will now always include a
+  decimal point, for example in the case of ``1.e-5``.  This is required by a strict interpretation of the
+  floating-point-literal specification in OpenQASM 2.  Qiskit's OpenQASM 2 parser
+  (:func:`.qasm2.load` and :func:`~.qasm2.loads`) is more permissive by default, and will allow
+  ``1e-5`` without the decimal point unless in ``strict`` mode.
+
+.. releasenotes/notes/sparse-pauli-op-constraint-pauli-setter-52f6f89627d1937c.yaml @ b'48a7b821e00fd61f94a0ac878cb3a7b41eb4a8dc'
+
+- The setter for :attr:`.SparsePauliOp.paulis` will now correctly reject attempts to set the
+  attribute with incorrectly shaped data, rather than silently allowing an invalid object to be
+  created.  See `#10384 <https://github.com/Qiskit/qiskit-terra/issues/10384>`__.
+
+- Fixed a performance regression in the :class:`~.SabreLayout` and :class:`~.SabreSwap` transpiler passes.
+  Fixed `#10650 <https://github.com/Qiskit/qiskit-terra/issues/10650>`__
+
+#############
 Qiskit 0.44.0
 #############
 
