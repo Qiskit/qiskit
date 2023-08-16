@@ -2525,10 +2525,10 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
-        """Take in an OpenQASM 2.0 string and generate a QuantumCircuit object.
+        """Convert a string containing an OpenQASM 2.0 program to a ``QuantumCircuit``.
 
         Args:
-          qasm_str (str): An OpenQASM 2.0 program string
+          qasm_str (str): A string containing an OpenQASM 2.0 program.
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2
 
