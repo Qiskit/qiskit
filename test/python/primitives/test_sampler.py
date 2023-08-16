@@ -275,6 +275,9 @@ class TestSampler(QiskitTestCase):
         qc2.measure_all()
         qc3 = QuantumCircuit(1)
         qc4 = QuantumCircuit(1, 1)
+        qc5 = QuantumCircuit(1, 1)
+        with qc5.for_loop(range(5)):
+            qc5.h(0)
 
         sampler = Sampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -295,6 +298,9 @@ class TestSampler(QiskitTestCase):
         with self.subTest("no measurement"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc4], [[]])
+        with self.subTest("no measurement in control flow"):
+            with self.assertRaises(ValueError):
+                _ = sampler.run([qc5], [[]])
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
