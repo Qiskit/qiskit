@@ -195,7 +195,7 @@ class UchannelLO:
 
 
 class QasmBackendConfiguration:
-    """Class representing a OpenQASM Backend Configuration.
+    """Class representing an OpenQASM 2.0 Backend Configuration.
 
     Attributes:
         backend_name: backend name.

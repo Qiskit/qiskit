@@ -60,7 +60,7 @@ _BINDING_POWER = {
 
 
 class BasicPrinter:
-    """A OpenQASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
+    """An OpenQASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
     formatting is simple block indentation."""
 
     _CONSTANT_LOOKUP = {

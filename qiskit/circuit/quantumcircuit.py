@@ -2501,7 +2501,7 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_file(path: str) -> "QuantumCircuit":
-        """Take in a OpenQASM2 file and generate a QuantumCircuit object.
+        """Take in an OpenQASM 2.0 file and generate a QuantumCircuit object.
 
         Args:
           path (str): Path to the file for an OpenQASM 2 program
@@ -2525,10 +2525,10 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
-        """Take in a OpenQASM2 string and generate a QuantumCircuit object.
+        """Take in an OpenQASM 2.0 string and generate a QuantumCircuit object.
 
         Args:
-          qasm_str (str): A OpenQASM2 program string
+          qasm_str (str): An OpenQASM 2.0 program string
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2
 

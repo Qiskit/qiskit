@@ -276,7 +276,7 @@ class QasmQobjExperiment:
 
 
 class QasmQobjConfig(SimpleNamespace):
-    """A configuration for a OpenQASM2 Qobj."""
+    """A configuration for an OpenQASM2 Qobj."""
 
     def __init__(
         self,
@@ -541,7 +541,7 @@ class GateCalibration:
 
 
 class QasmQobj:
-    """A OpenQASM2 Qobj."""
+    """An OpenQASM2 Qobj."""
 
     def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Instantiate a new OpenQASM2 Qobj Object.

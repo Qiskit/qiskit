@@ -195,7 +195,7 @@ def dumps(circuit, **kwargs) -> str:
 
 
 def dump(circuit, stream, **kwargs) -> None:
-    """Serialize a :class:`~qiskit.circuit.QuantumCircuit` object as a OpenQASM3 stream to file-like
+    """Serialize a :class:`~qiskit.circuit.QuantumCircuit` object as an OpenQASM3 stream to file-like
     object.
 
     Args:
