@@ -9,12 +9,12 @@ parameter of :func:`~qiskit.compiler.transpile`.
 This parameter takes an integer which can be a value between 0 and 3,
 where the higher the number, the more optimized the result.
 You can find more information about this parameter's value and its meaning for
-the internals of the :mod:`~.transpiler` in: :ref:`working_with_preset_pass_managers`.
+the internals of the :mod:`~.transpiler` in :ref:`working_with_preset_pass_managers`.
 
 Initialize the quantum circuit
 ==============================
 
-For this example, you will explore the `CSWAP <https://qiskit.org/documentation/stubs/qiskit.circuit.QuantumCircuit.cswap.html>`_ gate,
+For this example, you will explore the :class:`.CSwapGate` gate,
 which is a three-qubit gate which will be transpiled into one and two-qubit gates.
 
 .. plot::
@@ -86,7 +86,7 @@ represented by the ``['id', 'rz', 'sx', 'x', 'cx', 'reset']``.
     qc_b0.draw("mpl")                          
 
 When you set the ``optimization_level`` to 1, the circuit undergoes a light optimization process that focuses on collapsing adjacent gates 
-with the goal to find a heuristic layout and swap insertion algorithm, 
+and using heuristic algorithms to find a layout and insert swaps, with the goal to
 improving the overall performance of the circuit. This results in a reduction in :class:`.CXGate` count and changes in the positions of qubits, 
 following the connections ``[(2,1),(1,0),(0,1)]``. In this example, the two adjacent gates :math:`RZ(\pi/4)` and :math:`RZ(\pi/2)` are replaced with a single :math:`RZ(3\pi/4)` operation. 
 
@@ -115,8 +115,9 @@ following the connections ``[(2,1),(1,0),(0,1)]``. In this example, the two adja
 
 
 When you set the ``qiskit.transpile`` to 2, the circuit undergoes a medium optimization process. 
-This uses a noise-adaptive layout and gate cancellation techniques based on commutation relationships, 
-while performing the same process as when the ``optimization_level`` is 1, but with an increased number of iterations.
+This adds gate cancellation techniques based on commutation relationships to the optimization 
+techniques used in ``optimization_level`` is 1.
+Additionally, the same heuristic layout and swap insertion technique is used, but with an increased number of iterations.
 Depending on the circuit, this level of optimization can occasionally yield the same results as light optimization.
 
 
