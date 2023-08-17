@@ -23,7 +23,7 @@ on:
 
 jobs:
   build:
-    if: github.repository_owner == "Qiskit"
+    if: github.repository_owner == 'Qiskit'
     name: Build
     runs-on: ubuntu-latest
 
