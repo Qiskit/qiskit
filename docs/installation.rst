@@ -1,11 +1,6 @@
-:orphan:
-
-###############
-Getting started
-###############
-
 .. _installation:
 
+============
 Installation
 ============
 
@@ -251,7 +246,7 @@ Ready to get going?...
    .. qiskit-call-to-action-item::
       :description: Learn how to build, execute, and post-process quantum circuits with Qiskit.
       :header: Qiskit from the ground up
-      :button_link:  intro_tutorial1.html
+      :button_link: get_started_with_qiskit.html
       :button_text: Start learning Qiskit
 
    .. qiskit-call-to-action-item::

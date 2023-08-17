@@ -61,9 +61,8 @@ Main Qiskit-related projects
    :hidden:
 
    Documentation Home <self>
-   qc_intro
-   getting_started
-   intro_tutorial1
+   installation
+   get_started_with_qiskit
    tutorials
    API Reference <apidoc/index>
    How-to Guides <how_to/index>
