@@ -56,12 +56,17 @@ class UnitaryGate(Gate):
             circuit.append(gate, [0, 1])
     """
 
-    def __init__(self, data, label=None):
+    def __init__(self, data, label=None, skip_check=False):
         """Create a gate from a numeric unitary matrix.
 
         Args:
             data (matrix or Operator): unitary operator.
             label (str): unitary name for backend [Default: None].
+            skip_check (bool): If set to ``True`` this asserts the input
+                is known to be unitary and the checking to validate this will
+                be skipped. This should only ever be used if you know the
+                input is unitary, setting this to ``True`` and passing in
+                a non-unitary matrix will result unexpected behavior and errors.
 
         Raises:
             ExtensionError: if input data is not an N-qubit unitary operator.
@@ -76,15 +81,16 @@ class UnitaryGate(Gate):
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
         # Convert to numpy array in case not already an array
-        data = numpy.array(data, dtype=complex)
-        # Check input is unitary
-        if not is_unitary_matrix(data):
-            raise ExtensionError("Input matrix is not unitary.")
-        # Check input is N-qubit matrix
+        data = numpy.asarray(data, dtype=complex)
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2**num_qubits != input_dim:
-            raise ExtensionError("Input matrix is not an N-qubit operator.")
+        if not skip_check:
+            # Check input is unitary
+            if not is_unitary_matrix(data):
+                raise ExtensionError("Input matrix is not unitary.")
+            # Check input is N-qubit matrix
+            if input_dim != output_dim or 2**num_qubits != input_dim:
+                raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
         super().__init__("unitary", num_qubits, [data], label=label)
