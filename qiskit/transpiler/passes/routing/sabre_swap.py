@@ -35,7 +35,6 @@ from qiskit._accelerate.sabre_swap import (
     Heuristic,
     NeighborTable,
     SabreDAG,
-    SabreResult,
 )
 from qiskit._accelerate.nlayout import NLayout
 
@@ -342,14 +341,9 @@ def _apply_sabre_result(
         return out
 
     def apply_inner(out_dag, current_layout, qubit_indices_inner, result, id_to_node):
-        if isinstance(result, SabreResult):
-            node_order = result.node_order
-            swap_map = result.map
-            node_block_results = result.node_block_results
-        else:
-            node_order = result[1]
-            swap_map = result[0]
-            node_block_results = result[2]
+        node_order = result[1]
+        swap_map = result[0]
+        node_block_results = result[2]
         for node_id in node_order:
             node = id_to_node[node_id]
             if isinstance(node.op, ControlFlowOp):
@@ -369,7 +363,11 @@ def _apply_sabre_result(
                         mapped_block_dag,
                         mapped_block_layout,
                         block_qubit_indices,
-                        block_result.result,
+                        (
+                            block_result.result.map,
+                            block_result.result.node_order,
+                            block_result.result.node_block_results,
+                        ),
                         block_id_to_node,
                     )
 
