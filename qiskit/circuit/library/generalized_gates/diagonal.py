@@ -71,21 +71,22 @@ class Diagonal(QuantumCircuit):
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
     """
 
-    def __init__(self, diag: list[complex] | np.ndarray) -> None:
+    def __init__(self, diag_dict: dict) -> None:
         """Create a new Diagonal circuit.
 
         Args:
-            diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+            diag: dict of the diagonal entries which are not 1.
 
         Raises:
-            CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
-                if the number of diagonal entries is not 2^k, where k denotes the number of qubits
+            CircuitError: if the dictionary of the diagonal entries are in bad format;
+                          if absolute value of any entry is not 1.
         """
-        if not isinstance(diag, (list, np.ndarray)):
-            raise CircuitError("Diagonal entries must be in a list or numpy array.")
+        diag = _dict_to_list(diag_dict)
+        if not isinstance(diag_dict, dict):
+            raise CircuitError("Diagonal entries must be dictionary.")
         num_qubits = np.log2(len(diag))
-        if num_qubits < 1 or not num_qubits.is_integer():
-            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
+        # if num_qubits < 1 or not num_qubits.is_integer():
+        # raise CircuitError("The number of diagonal entries is not a positive power of 2.")
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
 
@@ -121,3 +122,20 @@ def _extract_rz(phi1, phi2):
     phase = (phi1 + phi2) / 2.0
     z_angle = phi2 - phi1
     return phase, z_angle
+
+
+# Returns size of Diagonal or 2^k
+def _exp_two(n: int) -> int:
+    i = 1
+    while i <= n:
+        i *= 2
+    return i
+
+
+# Convert dictionary to list
+def _dict_to_list(d: dict) -> list:
+    diag_list = [1] * _exp_two(max(d))
+    for i in range(len(diag_list)):
+        if i in d:
+            diag_list[i] = d[i]
+    return diag_list
