@@ -34,11 +34,11 @@ class SingleQubitUnitary(Gate):
     """Single-qubit unitary.
 
     Args:
-            unitary_matrix: 2*2 unitary (given as a (complex) ``numpy.ndarray``).
+            unitary_matrix: :math:`2 \times 2` unitary (given as a (complex) ``numpy.ndarray``).
             mode: determines the used decomposition by providing the rotation axes.
             up_to_diagonal: the single-qubit unitary is decomposed up to a diagonal matrix,
-                     i.e. a unitary u' is implemented such that there exists a 2*2 diagonal
-                     gate d with u = d.dot(u').
+                     i.e. a unitary :math:`U'` is implemented such that there exists a diagonal
+                     matrix :math:`D` with :math:`U = D U'`.
     """
 
     def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False):
