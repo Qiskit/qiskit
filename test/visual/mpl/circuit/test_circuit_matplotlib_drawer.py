@@ -39,7 +39,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter, Qubit, Clbit, SwitchCaseOp
+from qiskit.circuit import Parameter, Qubit, Clbit, SwitchCaseOp, IfElseOp
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
@@ -1919,6 +1919,39 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         fname = "layout_control_flow.png"
+        self.circuit_drawer(tqc, filename=fname)
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_control_flow_nested_layout(self):
+        """Test nested control flow with a layout set."""
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(qreg, creg)
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.measure([0, 1], [0, 1])
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.z(0)
+            with case(1, 2):
+                with qc.if_test((creg[0], 0)):
+                    qc.cx(0, 1)
+            with case(case.DEFAULT):
+                with qc.if_test((creg[1], 0)):
+                    qc.h(0)
+        backend = FakeBelemV2()
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+        fname = "nested_layout_control_flow.png"
         self.circuit_drawer(tqc, filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
