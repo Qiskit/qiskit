@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.circuit import  QuantumCircuit, transpile
+from qiskit.circuit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 
 
@@ -28,5 +28,5 @@ class TestResetsTranspiler(QiskitTestCase):
         qc.reset(range(N))
 
         for level in range(4):
-            num_resets = transpile(qc, optimization_level=level).count_ops()['reset']
+            num_resets = transpile(qc, optimization_level=level).count_ops()["reset"]
             self.assertEqual(num_resets, N)
