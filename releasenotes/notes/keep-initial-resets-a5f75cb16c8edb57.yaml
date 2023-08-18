@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Disables the use of `RemoveResetInZeroState` in the preset passmanagers.
+    This better aligns circuits to the notion of arbitrary initital states
+    unless explicilty set to zeros with resets.
