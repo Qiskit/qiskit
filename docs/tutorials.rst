@@ -11,7 +11,7 @@ Introductory
    :header: Qiskit warmup
    :card_description: An introduction to Qiskit and the primary user workflow.
    :image: _static/images/logo.png
-   :link: intro_tutorial1.html
+   :link: get_started_with_qiskit.html
 
 Quantum circuits
 ================
