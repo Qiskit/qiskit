@@ -17,7 +17,7 @@ import itertools
 import unittest.mock
 
 from qiskit.circuit import QuantumCircuit, Operation
-from qiskit.circuit.library import PermutationGate, LinearFunction
+from qiskit.circuit.library import PermutationGate
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap
 from qiskit.transpiler.passes.synthesis.plugin import (
@@ -613,7 +613,7 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
             self.assertEqual(Operator(qc), Operator(qc_transpiled))
 
             for inst in qc_transpiled:
-                qubits = tuple([q.index for q in inst.qubits])
+                qubits = tuple(q.index for q in inst.qubits)
                 self.assertIn(qubits, edges)
 
 
