@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    2pi wrapping cannot be applied on a parameterized global phase.Use the 
-    DAGCircuit global_phase setter to wrap the phase for floats only.Refer to
-    `#10569 <https://github.com/Qiskit/qiskit-terra/issues/10569>` for more
-    details.
+    Fixed compatibility of :class:`.DynamicalDecoupling` and 
+    :class:`.PadDynamicalDecoupling` with circuits that have a parameterized 
+    global phase. 
+    Fixed `#10569 <https://github.com/Qiskit/qiskit-terra/issues/10569>`__.
