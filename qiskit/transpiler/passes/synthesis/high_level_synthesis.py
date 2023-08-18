@@ -432,6 +432,9 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     * trials: The number of trials for the token swapper to perform the mapping. The
       circuit with the smallest number of SWAPs is returned.
+    * seed: The argument to the token swapper specifying the seed for random trials.
+    * parallel_threshold: The argument to the token swapper specifying the number of nodes
+      in the graph beyond which the algorithm will use parallel processing.
 
     For more details on the token swapper algorithm, see to the paper:
     `arXiv:1809.03452 <https://arxiv.org/abs/1809.03452>`__.
@@ -441,9 +444,11 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
 
-        pattern = high_level_object.pattern
         trials = options.get("trials", 5)
+        seed = options.get("seed", 0)
+        parallel_threshold = options.get("parallel_threshold", 50)
 
+        pattern = high_level_object.pattern
         pattern_as_dict = {j: i for i, j in enumerate(pattern)}
 
         if coupling_map is None or qubits is None:
@@ -464,8 +469,8 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
         graph = rx.PyGraph()
         graph.extend_from_edge_list(list(used_coupling_map.get_edges()))
-        swapper = ApproximateTokenSwapper(graph, seed=1)
-        out = list(swapper.map(pattern_as_dict, trials))
+        swapper = ApproximateTokenSwapper(graph, seed=seed)
+        out = swapper.map(pattern_as_dict, trials, parallel_threshold=parallel_threshold)
         decomposition = QuantumCircuit(len(graph.node_indices()))
         for swap in out:
             decomposition.swap(*swap)

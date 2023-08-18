@@ -489,7 +489,7 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
         qc.append(perm, range(8))
 
         # Synthesize circuit using the token swapper plugin
-        synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10})])
+        synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10, "seed": 1})])
         qc_transpiled = PassManager(HighLevelSynthesis(synthesis_config)).run(qc)
 
         # Construct the expected quantum circuit
