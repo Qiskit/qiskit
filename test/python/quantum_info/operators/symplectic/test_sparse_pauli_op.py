@@ -234,7 +234,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         """Test from_list method for empty iterable input."""
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_list(iterable)
-        spp_op = SparsePauliOp.from_list(iterable, num_qubits)
+        spp_op = SparsePauliOp.from_list(iterable, num_qubits=num_qubits)
         self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
         np.testing.assert_array_equal(spp_op.coeffs, [0])
 

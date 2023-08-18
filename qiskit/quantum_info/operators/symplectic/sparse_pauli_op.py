@@ -771,7 +771,7 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(
-        obj: Iterable[tuple[str, complex]], num_qubits: int = None, dtype: type = complex
+        obj: Iterable[tuple[str, complex]], dtype: type = complex, *, num_qubits: int = None
     ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
@@ -790,8 +790,8 @@ class SparsePauliOp(LinearOp):
 
         Args:
             obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            num_qubits (int): The number of qubits of the operator (Default: None).
             dtype (type): The dtype of coeffs (Default: complex).
+            num_qubits (int): The number of qubits of the operator (Default: None).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -801,22 +801,23 @@ class SparsePauliOp(LinearOp):
             QiskitError: If num_qubits and the objects in the input list do not match.
         """
         obj = list(obj)  # To convert zip or other iterable
+        size = len(obj)
 
-        if len(obj) == 0 and num_qubits is None:
+        if size == 0 and num_qubits is None:
             raise QiskitError(
                 "Could not determine the number of qubits from an empty list. Try passing num_qubits."
             )
-        if len(obj) > 0 and num_qubits is not None:
+        if size > 0 and num_qubits is not None:
             if len(obj[0][0]) != num_qubits:
                 raise QiskitError(
                     f"num_qubits ({num_qubits}) and the objects in the input list do not match."
                 )
         if num_qubits is None:
             num_qubits = len(obj[0][0])
-        if len(obj) == 0:
+        if size == 0:
             obj = [("I" * num_qubits, 0)]
+            size = len(obj)
 
-        size = len(obj)
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
@@ -869,11 +870,12 @@ class SparsePauliOp(LinearOp):
             QiskitError: If the designated qubit is already assigned.
         """
         obj = list(obj)  # To convert zip or other iterable
-
-        if len(obj) == 0:
-            obj = [("I" * num_qubits, range(num_qubits), 0)]
-
         size = len(obj)
+
+        if size == 0:
+            obj = [("I" * num_qubits, range(num_qubits), 0)]
+            size = len(obj)
+
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
 
