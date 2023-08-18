@@ -211,7 +211,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             unitary_synthesis_plugin_config,
             hls_config,
         )
-    init.append(RemoveResetInZeroState())
     init.append(OptimizeSwapBeforeMeasure())
     init.append(RemoveDiagonalGatesBeforeMeasure())
     if coupling_map or initial_layout:
