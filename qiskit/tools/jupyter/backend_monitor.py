@@ -480,6 +480,7 @@ def job_history(backend):
 
 
 def _build_job_history(tabs, backend):
+
     past_year_date = datetime.datetime.now() - datetime.timedelta(days=365)
     date_filter = {"creationDate": {"gt": past_year_date.isoformat()}}
     jobs = backend.jobs(limit=None, db_filter=date_filter)

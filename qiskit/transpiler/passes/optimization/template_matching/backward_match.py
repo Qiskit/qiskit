@@ -256,6 +256,7 @@ class BackwardMatch:
         """
         # If the gate is controlled, then the control qubits have to be compared as sets.
         if isinstance(node_circuit.op, ControlledGate):
+
             c_template = node_template.op.num_ctrl_qubits
 
             if c_template == 1:
@@ -266,6 +267,7 @@ class BackwardMatch:
                 control_qubits_circuit = qarg_circuit[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
+
                     target_qubits_template = node_template.qindices[c_template::]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
@@ -422,6 +424,7 @@ class BackwardMatch:
 
         # While the scenario stack is not empty.
         while self.matching_list.matching_scenarios_list:
+
             # If parameters are given, the heuristics is applied.
             if self.heuristics_backward_param:
                 self._backward_heuristics(
@@ -487,6 +490,7 @@ class BackwardMatch:
 
             # Loop over the template candidates.
             for template_id in candidates_indices:
+
                 node_template = self.template_dag_dep.get_node(template_id)
                 qarg2 = self.template_dag_dep.get_node(template_id).qindices
 
@@ -505,6 +509,7 @@ class BackwardMatch:
                     and self._is_same_c_conf(node_circuit, node_template, carg1)
                     and self._is_same_op(node_circuit, node_template)
                 ):
+
                     # If there is a match the attributes are copied.
                     circuit_matched_match = circuit_matched.copy()
                     circuit_blocked_match = circuit_blocked.copy()
@@ -620,6 +625,7 @@ class BackwardMatch:
                 # Third option: if blocking the succesors breaks a match, we consider
                 # also the possibility to block all predecessors (push the gate to the left).
                 if broken_matches and all(global_broken):
+
                     circuit_matched_block_p = circuit_matched.copy()
                     circuit_blocked_block_p = circuit_blocked.copy()
 
@@ -645,6 +651,7 @@ class BackwardMatch:
 
             # If there is no match then there are three options.
             if not global_match:
+
                 circuit_blocked[circuit_id] = True
 
                 following_matches = []
@@ -659,6 +666,7 @@ class BackwardMatch:
                 predecessors = self.circuit_dag_dep.get_node(circuit_id).predecessors
 
                 if not predecessors or not following_matches:
+
                     matching_scenario = MatchingScenarios(
                         circuit_matched,
                         circuit_blocked,
@@ -670,6 +678,7 @@ class BackwardMatch:
                     self.matching_list.append_scenario(matching_scenario)
 
                 else:
+
                     circuit_matched_nomatch = circuit_matched.copy()
                     circuit_blocked_nomatch = circuit_blocked.copy()
 

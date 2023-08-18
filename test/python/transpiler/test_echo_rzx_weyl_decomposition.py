@@ -162,6 +162,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuits = [circuit_rxx, circuit_ryy, circuit_rzz]
 
         for circuit in circuits:
+
             unitary_circuit = qi.Operator(circuit).data
 
             dag = circuit_to_dag(circuit)

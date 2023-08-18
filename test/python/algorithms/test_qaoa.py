@@ -282,6 +282,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         self.assertEqual(len(zero_circuits), len(custom_circuits))
 
         for zero_circ, custom_circ in zip(zero_circuits, custom_circuits):
+
             z_length = len(zero_circ.data)
             c_length = len(custom_circ.data)
 

@@ -1098,6 +1098,7 @@ class TestGradients(QiskitOpflowTestCase):
                 operator=op, bind_params=params, backend=q_instance
             )
         else:
+
             with self.assertWarns(DeprecationWarning):
                 prob_grad = Gradient(grad_method=method).gradient_wrapper(
                     operator=op, bind_params=params, backend=q_instance
@@ -1515,6 +1516,7 @@ class TestQFI(QiskitOpflowTestCase):
             ]
 
         for backend_type in ["qasm_simulator", "statevector_simulator"]:
+
             for j, value_dict in enumerate(value_dicts):
                 with self.assertWarns(DeprecationWarning):
                     q_instance = QuantumInstance(

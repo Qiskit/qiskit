@@ -368,6 +368,7 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
             qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
 
         with self.assertWarns(DeprecationWarning):
+
             if phase_estimator == IterativePhaseEstimation:
                 p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
             elif phase_estimator == PhaseEstimation:

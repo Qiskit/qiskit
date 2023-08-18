@@ -396,7 +396,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """Unrolls the ParameterVectors in a param_dict into separate Parameters, and unrolls
         parameterization value lists into separate param_dicts without list nesting."""
         unrolled_value_dict = {}
-        for param, value in value_dict.items():
+        for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector) and isinstance(value, (list, np.ndarray)):

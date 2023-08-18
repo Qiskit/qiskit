@@ -556,6 +556,7 @@ def _expand_parameters(circuits, run_config):
     parameter_binds = run_config.parameter_binds
 
     if parameter_binds and any(parameter_binds) or any(circuit.parameters for circuit in circuits):
+
         # Unroll params here in order to handle ParamVects
         all_bind_parameters = [
             QuantumCircuit()._unroll_param_dict(bind).keys() for bind in parameter_binds

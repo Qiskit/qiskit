@@ -231,6 +231,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
+
         # Transpile
         self._grouping = list(zip(circuits, observables))
         transpiled_circuits = self.transpiled_circuits
@@ -360,6 +361,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         shots_list = []
 
         for i, j in zip(accum, accum[1:]):
+
             combined_expval = 0.0
             combined_var = 0.0
 

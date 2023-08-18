@@ -102,7 +102,7 @@ class UCPauliRotGate(Gate):
             angles = self.params.copy()
             UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
             # Now, it is easy to place the C-NOT gates to get back the full decomposition.
-            for i, angle in enumerate(angles):
+            for (i, angle) in enumerate(angles):
                 if self.rot_axes == "X":
                     if np.abs(angle) > _EPS:
                         circuit.rx(angle, q_target)

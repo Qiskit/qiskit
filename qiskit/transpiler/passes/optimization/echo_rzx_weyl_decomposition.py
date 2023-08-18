@@ -136,6 +136,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         decomposer = TwoQubitControlledUDecomposer(RZXGate)
 
         for node in dag.two_qubit_ops():
+
             unitary = Operator(node.op).data
             dag_weyl = circuit_to_dag(decomposer(unitary))
             dag.substitute_node_with_dag(node, dag_weyl)

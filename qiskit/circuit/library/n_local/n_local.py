@@ -285,17 +285,9 @@ class NLocal(BlueprintCircuit):
     @property
     def entanglement(
         self,
-    ) -> (
-        str
-        | list[str]
-        | list[list[str]]
-        | list[int]
-        | list[list[int]]
-        | list[list[list[int]]]
-        | list[list[list[list[int]]]]
-        | Callable[[int], str]
-        | Callable[[int], list[list[int]]]
-    ):
+    ) -> str | list[str] | list[list[str]] | list[int] | list[list[int]] | list[
+        list[list[int]]
+    ] | list[list[list[list[int]]]] | Callable[[int], str] | Callable[[int], list[list[int]]]:
         """Get the entanglement strategy.
 
         Returns:

@@ -420,11 +420,13 @@ class CircuitSampler(ConverterBase):
     def _prepare_parameterized_run_config(
         self, param_bindings: List[Dict[Parameter, float]]
     ) -> List[Any]:
+
         self.quantum_instance._run_config.parameterizations = []
 
         if self._transpiled_circ_templates is None or len(self._transpiled_circ_templates) != len(
             self._transpiled_circ_cache
         ):
+
             # temporally resolve parameters of self._transpiled_circ_cache
             # They will be overridden in Aer from the next iterations
             self._transpiled_circ_templates = [

@@ -180,6 +180,7 @@ class SwapStrategy:
 
             for i in range(len(self._swap_layers) + 1):
                 for j, k in self.swapped_coupling_map(i).get_edges():
+
                     # This if ensures that the smallest distance is used.
                     if self._distance_matrix[j, k] == -1:
                         self._distance_matrix[j, k] = i

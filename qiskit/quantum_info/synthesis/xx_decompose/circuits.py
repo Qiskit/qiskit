@@ -169,6 +169,7 @@ def xx_circuit_step(source, strength, target, embodiment):
             # check for overlap, back out permutation
             source_shared, target_shared = None, None
             for i, j in [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)]:
+
                 if (
                     abs(np.mod(abs(shifted_source_coord[i] - target[j]), np.pi)) < EPSILON
                     or abs(np.mod(abs(shifted_source_coord[i] - target[j]), np.pi) - np.pi)

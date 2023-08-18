@@ -268,6 +268,7 @@ class ForwardMatch:
         """
 
         if isinstance(node_circuit.op, ControlledGate):
+
             c_template = node_template.op.num_ctrl_qubits
 
             if c_template == 1:
@@ -278,6 +279,7 @@ class ForwardMatch:
                 control_qubits_circuit = self.qarg_indices[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
+
                     target_qubits_template = node_template.qindices[c_template::]
                     target_qubits_circuit = self.qarg_indices[c_template::]
 
@@ -345,6 +347,7 @@ class ForwardMatch:
 
         # While the list of matched nodes is not empty
         while self.matched_nodes_list:
+
             # Return first element of the matched_nodes_list and removes it from the list
             v_first = self._get_node_forward(0)
             self._remove_node_forward(0)
@@ -383,6 +386,7 @@ class ForwardMatch:
 
             # For loop over the candidates (template) to find a match.
             for i in self.candidates:
+
                 # Break the for loop if a match is found.
                 if match:
                     break
@@ -407,6 +411,7 @@ class ForwardMatch:
                     and self._is_same_c_conf(node_circuit, node_template)
                     and self._is_same_op(node_circuit, node_template)
                 ):
+
                     v[1].matchedwith = [i]
 
                     self.template_dag_dep.get_node(i).matchedwith = [label]

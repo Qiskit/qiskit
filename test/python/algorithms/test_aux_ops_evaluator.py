@@ -86,6 +86,7 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[OperatorBase],
         quantum_instance: Union[QuantumInstance, Backend],
     ):
+
         with self.assertWarns(DeprecationWarning):
             result = eval_observables(
                 quantum_instance, quantum_state, observables, expectation, self.threshold

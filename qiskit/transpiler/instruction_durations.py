@@ -130,6 +130,7 @@ class InstructionDurations:
             )
         else:
             for i, items in enumerate(inst_durations):
+
                 if not isinstance(items[-1], str):
                     items = (*items, "dt")  # set default unit
 

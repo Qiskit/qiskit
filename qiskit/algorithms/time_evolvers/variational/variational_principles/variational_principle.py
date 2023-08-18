@@ -70,6 +70,7 @@ class VariationalPrinciple(ABC):
         try:
             metric_tensor = self.qgt.run([ansatz], [param_values], [None]).result().qgts[0]
         except Exception as exc:
+
             raise AlgorithmError("The QFI primitive job failed!") from exc
         return metric_tensor
 

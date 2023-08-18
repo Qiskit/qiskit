@@ -1777,6 +1777,7 @@ class DAGCircuit:
             return
 
         for graph_layer in graph_layers:
+
             # Get the op nodes from the layer, removing any input and output nodes.
             op_nodes = [node for node in graph_layer if isinstance(node, DAGOpNode)]
 

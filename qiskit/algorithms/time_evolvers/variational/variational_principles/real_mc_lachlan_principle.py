@@ -150,6 +150,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     @staticmethod
     def _validate_grad_settings(gradient):
+
         if gradient is not None:
             if not hasattr(gradient, "_derivative_type"):
                 raise ValueError(

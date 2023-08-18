@@ -142,6 +142,7 @@ class WhileLoopContext:
         *,
         label: str | None = None,
     ):
+
         self._circuit = circuit
         self._condition = validate_condition(condition)
         self._label = label

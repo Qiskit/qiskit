@@ -113,6 +113,7 @@ class ADAM(Optimizer):
             self._v_eff = np.zeros(1)
 
         if self._snapshot_dir:
+
             with open(os.path.join(self._snapshot_dir, "adam_params.csv"), mode="w") as csv_file:
                 if self._amsgrad:
                     fieldnames = ["v", "v_eff", "m", "t"]

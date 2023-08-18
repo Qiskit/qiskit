@@ -45,6 +45,7 @@ class TestLayer2q(QiskitTestCase):
         _eps = 100.0 * np.finfo(float).eps
         max_rel_err = 0.0
         for n in range(2, self.max_num_qubits + 1):
+
             dim = 2**n
             iden = tut.eye_int(n)
             for j in range(n):
@@ -94,6 +95,7 @@ class TestLayer2q(QiskitTestCase):
         mat_kind = "complex"
         max_rel_err = 0.0
         for n in range(2, self.max_num_qubits + 1):
+
             dim = 2**n
             tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
             tmp2 = tmp1.copy()

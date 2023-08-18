@@ -580,6 +580,7 @@ class Schedule:
             raise PulseError("Schedule start time must be an integer.")
 
         for channel in schedule.channels:
+
             if channel not in self._timeslots:
                 raise PulseError(f"The channel {channel} is not present in the schedule")
 

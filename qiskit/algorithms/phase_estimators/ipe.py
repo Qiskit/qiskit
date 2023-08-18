@@ -140,6 +140,7 @@ class IterativePhaseEstimation(PhaseEstimator):
             omega_coef /= 2
 
             if self._sampler is not None:
+
                 qc = self.construct_circuit(
                     unitary, state_preparation, k, -2 * numpy.pi * omega_coef, True
                 )

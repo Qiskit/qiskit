@@ -387,6 +387,7 @@ class TestBackendSampler(QiskitTestCase):
         """Test bound pass manager."""
 
         with self.subTest("Test single circuit"):
+
             dummy_pass = DummyTP()
 
             with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
@@ -396,6 +397,7 @@ class TestBackendSampler(QiskitTestCase):
                 self.assertEqual(mock_pass.call_count, 1)
 
         with self.subTest("Test circuit batch"):
+
             dummy_pass = DummyTP()
 
             with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:

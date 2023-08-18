@@ -224,6 +224,7 @@ def tensored_meas_cal(
 
         end_index = nqubits
         for qubit_list, list_size in zip(mit_pattern, qubits_list_sizes):
+
             start_index = end_index - list_size
             substate = basis_state[start_index:end_index]
 
@@ -238,6 +239,7 @@ def tensored_meas_cal(
         # add measurements
         end_index = nqubits
         for qubit_list, list_size in zip(mit_pattern, qubits_list_sizes):
+
             for qind in range(list_size):
                 qc_circuit.measure(qr[qubit_list[qind]], cr[nqubits - (end_index - qind)])
 

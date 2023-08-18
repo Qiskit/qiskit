@@ -225,6 +225,7 @@ class ConstrainedReschedule(AnalysisPass):
         node_start_time = self.property_set["node_start_time"]
 
         for node in dag.topological_op_nodes():
+
             start_time = node_start_time.get(node)
 
             if start_time is None:

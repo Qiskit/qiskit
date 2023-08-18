@@ -30,6 +30,7 @@ class AbstractOdeFunction(ABC):
         param_dict: Mapping[Parameter, float],
         t_param: Parameter | None = None,
     ) -> None:
+
         self._varqte_linear_solver = varqte_linear_solver
         self._param_dict = param_dict
         self._t_param = t_param

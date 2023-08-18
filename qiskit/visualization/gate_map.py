@@ -1411,6 +1411,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     directed = False
     line_colors = []
     if cmap:
+
         # Convert to percent
         cx_errors = 100 * np.asarray(cx_errors)
         avg_cx_err = np.mean(cx_errors)

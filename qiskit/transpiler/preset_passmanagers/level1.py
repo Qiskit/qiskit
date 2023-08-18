@@ -239,7 +239,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     if optimization_method is None:
         optimization = PassManager()
         unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
-
         # Build nested Flow controllers
         def _unroll_condition(property_set):
             return not property_set["all_gates_in_basis"]

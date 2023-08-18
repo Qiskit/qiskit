@@ -365,6 +365,7 @@ class GradientDescent(SteppableOptimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> None:
+
         self.state = GradientDescentState(
             fun=fun,
             jac=jac,

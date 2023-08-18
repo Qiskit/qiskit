@@ -149,6 +149,7 @@ class LinCombFull(CircuitQFI):
                             break
 
                     for grad_coeff_i, grad_gate_i in zip(grad_coeffs_i, grad_gates_i):
+
                         # Get the gates of the quantum state which are parameterized by param_j
                         param_gates_j = state_qc._parameter_table[param_j]
                         for gate_j, idx_j in param_gates_j:
@@ -162,6 +163,7 @@ class LinCombFull(CircuitQFI):
                                     break
 
                             for grad_coeff_j, grad_gate_j in zip(grad_coeffs_j, grad_gates_j):
+
                                 grad_coeff_ij = np.conj(grad_coeff_i) * grad_coeff_j
                                 qfi_circuit = LinComb.apply_grad_gate(
                                     state_qc,

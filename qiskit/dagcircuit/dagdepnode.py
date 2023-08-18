@@ -59,6 +59,7 @@ class DAGDepNode:
         cindices=None,
         nid=-1,
     ):
+
         self.type = type
         self._op = op
         self.name = name

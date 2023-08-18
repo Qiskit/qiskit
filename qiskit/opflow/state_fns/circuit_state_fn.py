@@ -102,7 +102,7 @@ class CircuitStateFn(StateFn):
             for bstr, prob in density_dict.items():
                 qc = QuantumCircuit(len(bstr))
                 # NOTE: Reversing endianness!!
-                for index, bit in enumerate(reversed(bstr)):
+                for (index, bit) in enumerate(reversed(bstr)):
                     if bit == "1":
                         qc.x(index)
                 sf_circuit = CircuitStateFn(qc, coeff=prob)

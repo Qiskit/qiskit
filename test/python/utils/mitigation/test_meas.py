@@ -274,6 +274,7 @@ class TestMeasCal(QiskitTestCase):
         """Test ideal execution, without noise."""
         for nq in self.nq_list:
             for pattern_type in range(1, 2**nq):
+
                 # Generate the quantum register according to the pattern
                 qubits, weight = self.choose_calibration(nq, pattern_type)
 

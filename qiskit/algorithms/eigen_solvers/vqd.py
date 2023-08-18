@@ -572,6 +572,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             aux_values = []
 
         for step in range(1, self.k + 1):
+
             self._eval_count = 0
             energy_evaluation, expectation = self.get_energy_evaluation(
                 step, operator, return_expectation=True, prev_states=result.optimal_parameters
@@ -626,6 +627,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 aux_values.append(aux_value)
 
             if step == 1:
+
                 logger.info(
                     "Ground state optimization complete in %s seconds.\n"
                     "Found opt_params %s in %s evals",
@@ -664,10 +666,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: OperatorBase,
         return_expectation: bool = False,
         prev_states: list[np.ndarray] | None = None,
-    ) -> (
-        Callable[[np.ndarray], float | list[float]]
-        | tuple[Callable[[np.ndarray], float | list[float]], ExpectationBase]
-    ):
+    ) -> Callable[[np.ndarray], float | list[float]] | tuple[
+        Callable[[np.ndarray], float | list[float]], ExpectationBase
+    ]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This return value is the objective function to be passed to the optimizer for evaluation.
@@ -713,6 +714,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         )
 
         for state in range(step - 1):
+
             prev_circ = self.ansatz.bind_parameters(prev_states[state])
             overlap_op.append(~CircuitStateFn(prev_circ) @ CircuitStateFn(self.ansatz))
 

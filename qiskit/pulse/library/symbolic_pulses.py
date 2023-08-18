@@ -544,6 +544,7 @@ class SymbolicPulse(Pulse):
         return params
 
     def __eq__(self, other: "SymbolicPulse") -> bool:
+
         if not isinstance(other, SymbolicPulse):
             return NotImplemented
 

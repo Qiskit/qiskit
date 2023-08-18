@@ -253,6 +253,7 @@ class TemplateSubstitution:
             index = self.substitution_list.index(scenario)
             for scenario_b in self.substitution_list[index::]:
                 if set(scenario_b.circuit_config) & predecessors:
+
                     index1 = self.substitution_list.index(scenario)
                     index2 = self.substitution_list.index(scenario_b)
 
@@ -305,6 +306,7 @@ class TemplateSubstitution:
         """
 
         while self.match_stack:
+
             # Get the first match scenario of the list
             current = self.match_stack.pop(0)
 
@@ -384,6 +386,7 @@ class TemplateSubstitution:
         if self.substitution_list:
             # Loop over the different matches.
             for group in self.substitution_list:
+
                 circuit_sub = group.circuit_config
                 template_inverse = group.template_config
 

@@ -333,6 +333,7 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1)])
 
         with self.subTest("Test single circuit"):
+
             dummy_pass = DummyTP()
 
             with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
@@ -342,6 +343,7 @@ class TestBackendEstimator(QiskitTestCase):
                 self.assertEqual(mock_pass.call_count, 1)
 
         with self.subTest("Test circuit batch"):
+
             dummy_pass = DummyTP()
 
             with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:

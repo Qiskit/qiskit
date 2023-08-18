@@ -208,6 +208,7 @@ def _partition_circuit(circuit):
                 # without becoming the descendant of a parameterized gate,
                 # then do it.
                 if not any(ledger[x] for x in indices):
+
                     apply_node_op(next_node, layer)
                     next_layer.remove_op_node(next_node)
 
@@ -249,6 +250,7 @@ def _get_generators(params, circuit):
 
         for param in params:
             if param in param_value.parameters:
+
                 if isinstance(instr, RYGate):
                     generator = Y
                 elif isinstance(instr, RZGate):

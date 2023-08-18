@@ -593,6 +593,7 @@ class MatplotlibDrawer:
         idx = 0
         pos = y_off = -len(self._qubits) + 1
         for ii, wire in enumerate(wire_map):
+
             # if it's a creg, register is the key and just load the index
             if isinstance(wire, ClassicalRegister):
                 # If wire came from ControlFlowOp and not in clbits, don't draw it

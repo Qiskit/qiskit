@@ -211,8 +211,8 @@ class BIPMappingModel:
         # Add y variables
         y = {}
         for t in range(self.depth):
-            for (p, q), _ in self.gates[t]:
-                for i, j in self._arcs:
+            for ((p, q), _) in self.gates[t]:
+                for (i, j) in self._arcs:
                     y[t, p, q, i, j] = mdl.binary_var(name=f"y_{t}_{p}_{q}_{i}_{j}")
         # Add x variables
         x = {}
@@ -239,15 +239,15 @@ class BIPMappingModel:
                 )
         # Each gate must be implemented
         for t in range(self.depth):
-            for (p, q), _ in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 mdl.add_constraint(
                     sum(y[t, p, q, i, j] for (i, j) in self._arcs) == 1,
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
         for t in range(self.depth - 1):
-            for (p, q), _ in self.gates[t]:
-                for i, j in self._arcs:
+            for ((p, q), _) in self.gates[t]:
+                for (i, j) in self._arcs:
                     # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
                     mdl.add_constraint(
                         y[t, p, q, i, j] >= w[t, p, i] + w[t, q, j] - 1,
@@ -264,8 +264,8 @@ class BIPMappingModel:
                         ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_{t}",
                     )
         # For last time step, use regular McCormick
-        for (p, q), _ in self.gates[self.depth - 1]:
-            for i, j in self._arcs:
+        for ((p, q), _) in self.gates[self.depth - 1]:
+            for (i, j) in self._arcs:
                 # Apply McCormick to y[self.depth - 1, p, q, i, j]
                 # == w[self.depth - 1, p, i] * w[self.depth - 1, q, j]
                 mdl.add_constraint(
@@ -302,18 +302,18 @@ class BIPMappingModel:
                     )
         # If a gate is implemented, involved qubits cannot swap with other positions
         for t in range(self.depth - 1):
-            for (p, q), _ in self.gates[t]:
-                for i, j in self._arcs:
+            for ((p, q), _) in self.gates[t]:
+                for (i, j) in self._arcs:
                     mdl.add_constraint(
                         x[t, p, i, j] == x[t, q, j, i], ctname=f"swap_{p}_{q}_{i}_{j}_at_{t}"
                     )
         # Qubit not in gates can flip with their neighbors
         for t in range(self.depth - 1):
             q_no_gate = list(range(self.num_vqubits))
-            for (p, q), _ in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 q_no_gate.remove(p)
                 q_no_gate.remove(q)
-            for i, j in self._arcs:
+            for (i, j) in self._arcs:
                 mdl.add_constraint(
                     sum(x[t, q, i, j] for q in q_no_gate) == sum(x[t, p, j, i] for p in q_no_gate),
                     ctname=f"swap_no_gate_{i}_{j}_at_{t}",
@@ -356,7 +356,7 @@ class BIPMappingModel:
             objexr = sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
             for t in range(self.depth - 1):
                 for q in range(self.num_vqubits):
-                    for i, j in self._arcs:
+                    for (i, j) in self._arcs:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
         elif objective in ("gate_error", "balanced"):
@@ -364,7 +364,7 @@ class BIPMappingModel:
             objexr = 0
             for t in range(self.depth - 1):
                 for (p, q), node in self.gates[t]:
-                    for i, j in self._arcs:
+                    for (i, j) in self._arcs:
                         # We pay the cost for gate implementation.
                         pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
                         objexr += y[t, p, q, i, j] * pbest_fid
@@ -381,7 +381,7 @@ class BIPMappingModel:
                                 objexr += x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
             # Cost for the last layer (x variables are not defined for depth-1)
             for (p, q), node in self.gates[self.depth - 1]:
-                for i, j in self._arcs:
+                for (i, j) in self._arcs:
                     pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
                     objexr += y[self.depth - 1, p, q, i, j] * pbest_fid
             if objective == "balanced":
@@ -488,7 +488,7 @@ class BIPMappingModel:
             List of swaps (pairs of physical qubits (integers))
         """
         swaps = []
-        for i, j in self._arcs:
+        for (i, j) in self._arcs:
             if i >= j:
                 continue
             for q in range(self.num_vqubits):
