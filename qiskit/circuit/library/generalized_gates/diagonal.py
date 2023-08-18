@@ -17,6 +17,7 @@ from __future__ import annotations
 import cmath
 import numpy as np
 
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
@@ -83,15 +84,8 @@ class Diagonal(QuantumCircuit):
             CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
                 if the number of diagonal entries is not 2^k, where k denotes the number of qubits
         """
-        if not isinstance(diag, (list, np.ndarray)):
-            raise CircuitError("Diagonal entries must be in a list or numpy array.")
-        num_qubits = np.log2(len(diag))
-        if num_qubits < 1 or not num_qubits.is_integer():
-            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
-        if not np.allclose(np.abs(diag), 1, atol=_EPS):
-            raise CircuitError("A diagonal element does not have absolute value one.")
-
-        num_qubits = int(num_qubits)
+        self.check_input(diag)
+        num_qubits = int(np.log2(len(diag)))
 
         circuit = QuantumCircuit(num_qubits, name="Diagonal")
 
@@ -117,12 +111,52 @@ class Diagonal(QuantumCircuit):
         super().__init__(num_qubits, name="Diagonal")
         self.append(circuit.to_gate(), self.qubits)
 
+    @staticmethod
+    def _check_input(diag):
+        """Check if ``diag`` is in valid format."""
+        if not isinstance(diag, (list, np.ndarray)):
+            raise CircuitError("Diagonal entries must be in a list or numpy array.")
+        num_qubits = np.log2(len(diag))
+        if num_qubits < 1 or not num_qubits.is_integer():
+            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
+        if not np.allclose(np.abs(diag), 1, atol=_EPS):
+            raise CircuitError("A diagonal element does not have absolute value one.")
 
-# extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
-# is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2)
+
+class DiagonalGate(Gate):
+    """Gate implementing a diagonal transformation."""
+
+    def __init__(self, diag):
+        """
+        Args:
+            diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+        """
+        Diagonal._check_input(diag)
+        num_qubits = int(np.log2(len(diag)))
+
+        super().__init__("diagonal", num_qubits, diag)
+
+    def _define(self):
+        self.definition = Diagonal(self.params).decompose()
+
+    def validate_parameter(self, parameter):
+        """Diagonal Gate parameter should accept complex
+        (in addition to the Gate parameter types) and always return build-in complex."""
+        if isinstance(parameter, complex):
+            return complex(parameter)
+        else:
+            return complex(super().validate_parameter(parameter))
+
+    def inverse(self):
+        """Return the inverse of the diagonal gate."""
+        return DiagonalGate([np.conj(entry) for entry in self.params])
 
 
 def _extract_rz(phi1, phi2):
+    """
+    Extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
+    is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2).
+    """
     phase = (phi1 + phi2) / 2.0
     z_angle = phi2 - phi1
     return phase, z_angle

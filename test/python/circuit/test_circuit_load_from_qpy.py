@@ -1419,7 +1419,9 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
         qc = QuantumCircuit(2)
-        qc.diagonal([1, -1, -1, 1], [0, 1])
+        with self.assertWarns(DeprecationWarning):
+            qc.diagonal([1, -1, -1, 1], [0, 1])
+
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)

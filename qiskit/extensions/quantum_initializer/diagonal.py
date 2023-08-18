@@ -23,64 +23,28 @@ Decomposes a diagonal matrix into elementary gates using the method described in
 import math
 import warnings
 
-import numpy as np
-
-from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library.generalized_gates.diagonal import Diagonal
+from qiskit.circuit.library.generalized_gates.diagonal import DiagonalGate as NewDiagonalGate
 from qiskit.exceptions import QiskitError
 from qiskit.utils.deprecation import deprecate_func
 
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
 
-
-class DiagonalGate(Gate):
+class DiagonalGate(NewDiagonalGate):
     """
     diag = list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at
     least two entries.
     """
 
     @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, use qiskit.circuit.library.Diagonal as a replacement.",
+        since="0.45.0", additional_msg="This object moved to qiskit.circuit.library.DiagonalGate."
     )
     def __init__(self, diag):
-        """Check types"""
-
-        # Check if diag has type "list"
-        if not isinstance(diag, list):
-            raise QiskitError("The diagonal entries are not provided in a list.")
-        # Check if the right number of diagonal entries is provided and if the diagonal entries
-        # have absolute value one.
-        num_action_qubits = math.log2(len(diag))
-        if num_action_qubits < 1 or not num_action_qubits.is_integer():
-            raise QiskitError("The number of diagonal entries is not a positive power of 2.")
-        for z in diag:
-            try:
-                complex(z)
-            except TypeError as ex:
-                raise QiskitError(
-                    "Not all of the diagonal entries can be converted to complex numbers."
-                ) from ex
-            if not np.abs(np.abs(z) - 1) < _EPS:
-                raise QiskitError("A diagonal entry has not absolute value one.")
-        # Create new gate.
-        super().__init__("diagonal", int(num_action_qubits), diag)
-
-    def _define(self):
-        self.definition = Diagonal(self.params).decompose()
-
-    def validate_parameter(self, parameter):
-        """Diagonal Gate parameter should accept complex
-        (in addition to the Gate parameter types) and always return build-in complex."""
-        if isinstance(parameter, complex):
-            return complex(parameter)
-        else:
-            return complex(super().validate_parameter(parameter))
-
-    def inverse(self):
-        """Return the inverse of the diagonal gate."""
-        return DiagonalGate([np.conj(entry) for entry in self.params])
+        """
+        Args:
+            diag (list): list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+                Must contain at least two entries
+        """
+        super().__init__(diag)
 
 
 @deprecate_func(

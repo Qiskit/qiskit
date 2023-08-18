@@ -21,6 +21,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 
 
@@ -121,7 +122,8 @@ def qs_decomposition(
             # merge final cz with right-side generic multiplexer
             u2[:, half_size:] = np.negative(u2[:, half_size:])
         else:
-            circ.ucry((2 * vtheta).tolist(), qr[:-1], qr[-1])
+            ucry = UCRYGate((2 * vtheta).tolist())
+            circ.append(ucry, [qr[-1]] + qr[:-1])
         # right circ
         right_circ = _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(right_circ.to_instruction(), qr)

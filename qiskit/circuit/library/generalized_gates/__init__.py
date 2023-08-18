@@ -12,7 +12,7 @@
 
 """The circuit library module on generalized gates."""
 
-from .diagonal import Diagonal
+from .diagonal import Diagonal, DiagonalGate
 from .permutation import Permutation, PermutationGate
 from .mcmt import MCMT, MCMTVChain
 from .gms import GMS, MSGate

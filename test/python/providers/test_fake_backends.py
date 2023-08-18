@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     UCGate,
     Initialize,
+    DiagonalGate,
 )
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -426,6 +427,7 @@ class TestFakeBackends(QiskitTestCase):
                 "quantum_channel": QuantumChannel,
                 "initialize": Initialize,
                 "save_expval": SaveExpectationValue,
+                "diagonal": DiagonalGate,
                 "save_amplitudes": SaveAmplitudes,
                 "roerror": ReadoutError,
                 "mcrx": MCRXGate,

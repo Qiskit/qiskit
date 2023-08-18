@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
+   DiagonalGate
    MCMT
    MCMTVChain
    Permutation
@@ -502,6 +503,7 @@ from ..reset import Reset
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
+    DiagonalGate,
     MCMT,
     MCMTVChain,
     Permutation,
