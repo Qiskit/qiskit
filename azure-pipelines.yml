@@ -260,6 +260,7 @@ stages:
                     versionSpec: ${{ version }}
                     architecture: x64
     - stage: "sdist"
+      dependsOn: "Deploy"
       jobs:
         - job: 'sdist'
           pool: {vmImage: 'ubuntu-latest'}
@@ -281,7 +282,6 @@ stages:
                 TWINE_PASSWORD: $(TWINE_PASSWORD)
         - job: 'qiskit_pkg'
           pool: {vmImage: 'ubuntu-latest'}
-          dependsOn: "Deploy"
           steps:
             - task: UsePythonVersion@0
             - bash: |
