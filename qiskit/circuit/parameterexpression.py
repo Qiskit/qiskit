@@ -452,10 +452,15 @@ class ParameterExpression:
             return self._call(_log)
         
     def sign(self):
-        from sympy import sign
-        val = self._symbol_expr
-        sign_value = sign(val)
-        return sign_value
+        """"Sign of a ParameterExpression"""
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
+            return self._call(symengine.sign)
+        else:
+            from sympy import sign as _sign
+
+            return self._call(_sign)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
