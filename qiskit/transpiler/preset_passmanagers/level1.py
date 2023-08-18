@@ -17,7 +17,6 @@ Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 from __future__ import annotations
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
 from qiskit.transpiler import ConditionalController, FlowController
@@ -67,7 +66,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     """
     plugin_manager = PassManagerStagePluginManager()
     basis_gates = pass_manager_config.basis_gates
-    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method
@@ -77,14 +75,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
-    scheduling_method = pass_manager_config.scheduling_method
-    instruction_durations = pass_manager_config.instruction_durations
+    scheduling_method = pass_manager_config.scheduling_method or "default"
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
-    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     target = pass_manager_config.target
     hls_config = pass_manager_config.hls_config
 
@@ -256,14 +252,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config, optimization_level=1
         )
-    if scheduling_method is None or scheduling_method in {"alap", "asap"}:
-        sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
-        )
-    else:
-        sched = plugin_manager.get_passmanager_stage(
-            "scheduling", scheduling_method, pass_manager_config, optimization_level=1
-        )
+
+    sched = plugin_manager.get_passmanager_stage(
+        "scheduling", scheduling_method, pass_manager_config, optimization_level=1
+    )
+
     init = common.generate_control_flow_options_check(
         layout_method=layout_method,
         routing_method=routing_method,
