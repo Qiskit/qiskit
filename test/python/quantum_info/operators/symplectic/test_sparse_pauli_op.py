@@ -1015,6 +1015,14 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         with self.subTest(msg="fully bound"):
             self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
 
+    def test_paulis_setter_rejects_bad_inputs(self):
+        """Test that the setter for `paulis` rejects different-sized inputs."""
+        op = SparsePauliOp(["XY", "ZX"], coeffs=[1, 1j])
+        with self.assertRaisesRegex(ValueError, "incorrect number of qubits"):
+            op.paulis = PauliList([Pauli("X"), Pauli("Y")])
+        with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
+            op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
+
 
 if __name__ == "__main__":
     unittest.main()
