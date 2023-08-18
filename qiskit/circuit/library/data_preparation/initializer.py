@@ -15,15 +15,16 @@ Initialize qubit registers to desired arbitrary state.
 """
 import numpy as np
 
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.data_preparation.initializer import Initialize as NewInitialize
-from qiskit.utils.deprecation import deprecate_func
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import Instruction
+from qiskit.circuit import Qubit
+from qiskit.circuit.library.data_preparation import StatePreparation
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Initialize(NewInitialize):
+class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that initializes some flexible collection of qubit registers, implemented by calling
@@ -32,9 +33,6 @@ class Initialize(NewInitialize):
     which is not unitary.
     """
 
-    @deprecate_func(
-        since="0.45.0", additional_msg="This object moved to qiskit.circuit.library.Initialize."
-    )
     def __init__(self, params, num_qubits=None, normalize=False):
         r"""Create new initialize composite.
 
@@ -57,7 +55,37 @@ class Initialize(NewInitialize):
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
             normalize (bool): Whether to normalize an input array to a unit vector.
         """
-        super().__init__(params, num_qubits, normalize)
+        self._stateprep = StatePreparation(params, num_qubits, normalize=normalize)
+
+        super().__init__("initialize", self._stateprep.num_qubits, 0, self._stateprep.params)
+
+    def _define(self):
+        q = QuantumRegister(self.num_qubits, "q")
+        initialize_circuit = QuantumCircuit(q, name="init_def")
+        initialize_circuit.reset(q)
+        initialize_circuit.append(self._stateprep, q)
+        self.definition = initialize_circuit
+
+    def gates_to_uncompute(self):
+        """Call to create a circuit with gates that take the desired vector to zero.
+
+        Returns:
+            QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
+        """
+        return self._stateprep._gates_to_uncompute()
+
+    @property
+    def params(self):
+        """Return initialize params."""
+        return self._stateprep.params
+
+    @params.setter
+    def params(self, parameters):
+        """Set initialize params."""
+        self._stateprep.params = parameters
+
+    def broadcast_arguments(self, qargs, cargs):
+        return self._stateprep.broadcast_arguments(qargs, cargs)
 
 
 def initialize(self, params, qubits=None, normalize=False):

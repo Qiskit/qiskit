@@ -24,10 +24,11 @@ from typing import List, Sequence
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QubitSpecifier
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
+from qiskit.circuit.library.generalized_gates.ucrx import UCRXGate as NewUCRXGate
+from qiskit.utils.deprecation import deprecate_func
 
 
-class UCRXGate(UCPauliRotGate):
+class UCRXGate(NewUCRXGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -35,10 +36,17 @@ class UCRXGate(UCPauliRotGate):
     (https://arxiv.org/pdf/quant-ph/0406176.pdf)
     """
 
+    @deprecate_func(
+        since="0.45.0", additional_msg="This object moved to qiskit.circuit.library.UCRXGate."
+    )
     def __init__(self, angle_list):
-        super().__init__(angle_list, "X")
+        super().__init__(angle_list)
 
 
+@deprecate_func(
+    since="0.45.0",
+    additional_msg="Instead, append a qiskit.circuit.library.UCRXGate to the circuit.",
+)
 def ucrx(
     self, angle_list: List[float], q_controls: Sequence[QubitSpecifier], q_target: QubitSpecifier
 ):

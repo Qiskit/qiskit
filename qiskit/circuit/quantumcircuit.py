@@ -47,6 +47,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
+
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .classical import expr
@@ -68,6 +69,7 @@ from .tools import pi_check
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
     from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+    from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -4215,6 +4217,152 @@ class QuantumCircuit:
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 
         return self.append(PauliGate(pauli_string), qubits, [])
+
+    def initialize(
+        self,
+        params: Sequence[complex] | str | int,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        normalize: bool = False,
+    ):
+        r"""Initialize qubits in a specific state.
+
+        Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
+        followed by calling :class:`qiskit.extensions.StatePreparation`
+        class to prepare the qubits in a specified state.
+        Both these steps are included in the
+        :class:`qiskit.extensions.Initialize` instruction.
+
+        Args:
+            params: Can be either of
+                * vector of complex amplitudes to initialize to.
+                * labels of basis states of the Pauli eigenstates Z, X, Y. See
+                :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
+                to the qubit index to be applied to. Example label '01' initializes the qubit zero to
+                :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
+                * an integer that is used as a bitmap indicating which qubits to initialize
+                to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
+                to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+
+            qubits: Qubits to initialize. If ``None`` the initialization is applied to all qubits in
+                the circuit.
+
+            normalize: Whether to normalize an input array to a unit vector.
+
+        Returns:
+            A handle to the instructions created.
+
+        Examples:
+            Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
+
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(1)
+                circuit.initialize([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                    ┌──────────────────────────────┐
+                q_0: ┤ Initialize(0.70711,-0.70711) ├
+                    └──────────────────────────────┘
+
+
+            Initialize from a string two qubits in the state :math:`|10\rangle`.
+            The order of the labels is reversed with respect to qubit index.
+            More information about labels for basis states are in
+            :meth:`.Statevector.from_label`.
+
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.initialize('01', circuit.qubits)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                    ┌──────────────────┐
+                q_0: ┤0                 ├
+                    │  Initialize(0,1) │
+                q_1: ┤1                 ├
+                    └──────────────────┘
+
+            Initialize two qubits from an array of complex amplitudes.
+
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.initialize([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                    ┌────────────────────────────────────┐
+                q_0: ┤0                                   ├
+                    │  Initialize(0,0.70711,-0.70711j,0) │
+                q_1: ┤1                                   ├
+                    └────────────────────────────────────┘
+        """
+        from qiskit.circuit.library.data_preparation.initializer import Initialize
+
+        if qubits is None:
+            qubits = self.qubits
+
+        num_qubits = len(qubits) if isinstance(params, int) else None
+
+        return self.append(Initialize(params, num_qubits, normalize), qubits)
+
+    def unitary(
+        self,
+        obj: np.ndarray | Gate | BaseOperator,
+        qubits: Sequence[QubitSpecifier],
+        label: str | None = None,
+    ):
+        """Apply unitary gate specified by ``obj`` to ``qubits``.
+
+        Args:
+            obj: Unitary operator.
+            qubits: The circuit qubits to apply the transformation to.
+            label: Unitary name for backend [Default: None].
+
+        Returns:
+            QuantumCircuit: The quantum circuit.
+
+        Raises:
+            ExtensionError: if input data is not an N-qubit unitary operator.
+
+        Example:
+
+            Apply a gate specified by a unitary matrix to a quantum circuit
+
+            .. code-block:: python
+
+                from qiskit import QuantumCircuit
+                matrix = [[0, 0, 0, 1],
+                        [0, 0, 1, 0],
+                        [1, 0, 0, 0],
+                        [0, 1, 0, 0]]
+                circuit = QuantumCircuit(2)
+                circuit.unitary(matrix, [0, 1])
+        """
+        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
+
+        gate = UnitaryGate(obj, label=label)
+        return self.append(gate, qubits, [])
 
     def _push_scope(
         self,

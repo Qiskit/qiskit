@@ -20,26 +20,32 @@
 Decomposes a diagonal matrix into elementary gates using the method described in Theorem 7 in
 "Synthesis of Quantum Logic Circuits" by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 """
-import cmath
 import math
 
 import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library.generalized_gates.diagonal import Diagonal
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
 class DiagonalGate(Gate):
     """
-    diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at
+    diag = list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at
     least two entries.
     """
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, use qiskit.circuit.library.Diagonal as a replacement.",
+    )
     def __init__(self, diag):
         """Check types"""
+
         # Check if diag has type "list"
         if not isinstance(diag, list):
             raise QiskitError("The diagonal entries are not provided in a list.")
@@ -61,12 +67,7 @@ class DiagonalGate(Gate):
         super().__init__("diagonal", int(num_action_qubits), diag)
 
     def _define(self):
-        diag_circuit = self._dec_diag()
-        gate = diag_circuit.to_instruction()
-        q = QuantumRegister(self.num_qubits)
-        diag_circuit = QuantumCircuit(q)
-        diag_circuit.append(gate, q[:])
-        self.definition = diag_circuit
+        self.definition = Diagonal(self.params).decompose()
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
@@ -80,38 +81,11 @@ class DiagonalGate(Gate):
         """Return the inverse of the diagonal gate."""
         return DiagonalGate([np.conj(entry) for entry in self.params])
 
-    def _dec_diag(self):
-        """
-        Call to create a circuit implementing the diagonal gate.
-        """
-        q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
-        # Since the diagonal is a unitary, all its entries have absolute value one and the diagonal
-        # is fully specified by the phases of its entries
-        diag_phases = [cmath.phase(z) for z in self.params]
-        n = len(self.params)
-        while n >= 2:
-            angles_rz = []
-            for i in range(0, n, 2):
-                diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
-                angles_rz.append(rz_angle)
-            num_act_qubits = int(np.log2(n))
-            contr_qubits = q[self.num_qubits - num_act_qubits + 1 : self.num_qubits]
-            target_qubit = q[self.num_qubits - num_act_qubits]
-            circuit.ucrz(angles_rz, contr_qubits, target_qubit)
-            n //= 2
-        circuit.global_phase += diag_phases[0]
-        return circuit
 
-
-# extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
-# is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2)
-def _extract_rz(phi1, phi2):
-    phase = (phi1 + phi2) / 2.0
-    z_angle = phi2 - phi1
-    return phase, z_angle
-
-
+@deprecate_func(
+    since="0.45.0",
+    additional_msg="Instead, compose the circuit with a qiskit.circuit.library.Diagonal circuit.",
+)
 def diagonal(self, diag, qubit):
     """Attach a diagonal gate to a circuit.
 

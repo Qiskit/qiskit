@@ -195,9 +195,17 @@ set the amount of qubits involved at instantiation time.
    MCXGrayCode
    MCXRecursive
    MCXVChain
+   MGCupDiag
    RVGate
    PauliGate
    LinearFunction
+   Isometry
+   UnitaryGate
+   UCGate
+   UCPauliRotGate
+   UCRXGate
+   UCRYGate
+   UCRZGate
 
 Boolean Logic Circuits
 ======================
@@ -324,6 +332,7 @@ Particular Quantum Circuits
    PhaseOracle
    EvolvedOperatorAnsatz
    PauliEvolutionGate
+   HamiltonianGate
 
 
 N-local circuits
@@ -360,6 +369,7 @@ data in quantum states and are used as feature maps for classification.
    ZFeatureMap
    ZZFeatureMap
    StatePreparation
+   Initialize
 
 Template circuits
 =================
@@ -505,8 +515,17 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
     LinearFunction,
+    Isometry,
+    UnitaryGate,
+    UCGate,
+    UCPauliRotGate,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
+    MCGupDiag,
 )
 from .pauli_evolution import PauliEvolutionGate
+from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
     OR,
@@ -542,7 +561,13 @@ from .n_local import (
     ExcitationPreserving,
     QAOAAnsatz,
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap,
+    StatePreparation,
+    Initialize,
+)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
