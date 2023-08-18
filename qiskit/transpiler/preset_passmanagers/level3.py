@@ -30,7 +30,6 @@ from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import MinimumPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
-from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
