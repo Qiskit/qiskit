@@ -451,9 +451,11 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
         pattern = high_level_object.pattern
         pattern_as_dict = {j: i for i, j in enumerate(pattern)}
 
+        # When the plugin is called from the HighLevelSynthesis transpiler pass,
+        # the coupling map already takes target into account.
         if coupling_map is None or qubits is None:
             # The abstract synthesis uses a fully connected coupling map, allowing
-            # arbitrary connections between qubits
+            # arbitrary connections between qubits.
             used_coupling_map = CouplingMap.from_full(len(pattern))
         else:
             # The concrete synthesis uses the coupling map restricted to the set of
