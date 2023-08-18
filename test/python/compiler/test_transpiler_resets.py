@@ -20,10 +20,10 @@ class TestResetsTranspiler(QiskitTestCase):
 
     def test_init_resets_kept_preset_passmanagers(self):
         """Test initial resets kept at all preset transpilation levels"""
-        N = 5
-        qc = QuantumCircuit(N)
-        qc.reset(range(N))
+        num_qubits = 5
+        qc = QuantumCircuit(num_qubits)
+        qc.reset(range(num_qubits))
 
         for level in range(4):
             num_resets = transpile(qc, optimization_level=level).count_ops()["reset"]
-            self.assertEqual(num_resets, N)
+            self.assertEqual(num_resets, num_qubits)
