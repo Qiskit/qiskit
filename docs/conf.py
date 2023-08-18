@@ -130,7 +130,7 @@ html_context = {
     # Enable segment analytics for qiskit.org/documentation
     "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
     "theme_announcement": "🎉 Qiskit is getting a new documentation experience on IBM Quantum!",
-    "announcement_url": "https://quantum-computing.ibm.com/",
+    "announcement_url": "https://docs.quantum-computing.ibm.com/",
     "announcement_url_text": "Check it out",
 }
 html_static_path = ["_static"]
