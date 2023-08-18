@@ -1280,7 +1280,7 @@ class TextDrawing:
         """Add control flow ops to the circuit drawing."""
 
         # Draw a left box such as If, While, For, and Switch
-        flow_layer = self.draw_flow_box(node, CF_LEFT)
+        flow_layer = self.draw_flow_box(node, self._wire_map, CF_LEFT)
         layers.append(flow_layer.full_layer)
 
         # Get the list of circuits in the ControlFlowOp from the node blocks
@@ -1291,12 +1291,10 @@ class TextDrawing:
             circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
-            if circ_num > 0:
-                # Draw a middle box such as Else and Case
-                flow_layer = self.draw_flow_box(node, CF_MID, circ_num - 1)
-                layers.append(flow_layer.full_layer)
-
             # Update the wire_map with the qubits from the inner circuit
+            # print("\nwire_map", wire_map)
+            print("\ncirc qubits", circuit.qubits)
+            print(node.qargs)
             flow_wire_map = {
                 inner: self._wire_map[outer]
                 for outer, inner in zip(node.qargs, circuit.qubits)
@@ -1334,11 +1332,15 @@ class TextDrawing:
 
                 if_layer2.connect_with("│")
                 layers.append(if_layer2.full_layer)
+            if circ_num > 0:
+                # Draw a middle box such as Else and Case
+                flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
+                layers.append(flow_layer.full_layer)
         # Draw the right box for End
-        flow_layer = self.draw_flow_box(node, CF_RIGHT)
+        flow_layer = self.draw_flow_box(node, flow_wire_map, CF_RIGHT)
         layers.append(flow_layer.full_layer)
 
-    def draw_flow_box(self, node, section, circ_num=0):
+    def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
         conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
@@ -1375,16 +1377,18 @@ class TextDrawing:
         else:
             label = "End-" + depth
 
-        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, self._wire_map)
+        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map)
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
+            print("\nflow_wire_map", flow_wire_map)
+            print(node.qargs)
             flow_layer.set_qubit(
-                self.qubits[self._wire_map[node.qargs[0]]],
+                self.qubits[flow_wire_map[node.qargs[0]]],
                 FlowOnQuWire(label=label, conditional=conditional, section=section),
             )
         else:
             # If multiple qubits, must use wire_map to handle wire_order changes.
-            idx_list = [self._wire_map[qarg] for qarg in node.qargs]
+            idx_list = [flow_wire_map[qarg] for qarg in node.qargs]
             min_idx = min(idx_list)
             max_idx = max(idx_list)
             box_height = max_idx - min_idx + 1
