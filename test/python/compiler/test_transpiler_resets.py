@@ -11,9 +11,6 @@
 # that they have been altered from the originals.
 
 """Tests for resets in the transpiler"""
-
-import unittest
-
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 
