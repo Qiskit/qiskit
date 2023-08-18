@@ -21,6 +21,7 @@ Decomposes a diagonal matrix into elementary gates using the method described in
 "Synthesis of Quantum Logic Circuits" by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 """
 import math
+import warnings
 
 import numpy as np
 
@@ -125,7 +126,12 @@ def diagonal(self, diag, qubit):
         raise QiskitError(
             "The number of diagonal entries does not correspond to the number of qubits."
         )
-    return self.append(DiagonalGate(diag), qubit)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        gate = DiagonalGate(diag)
+
+    return self.append(gate, qubit)
 
 
 QuantumCircuit.diagonal = diagonal

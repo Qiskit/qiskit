@@ -175,7 +175,7 @@ class EvolvedOperatorAnsatz(NLocal):
 
     def _evolve_operator(self, operator, time):
         from qiskit.opflow import OperatorBase, EvolutionBase
-        from qiskit.extensions import HamiltonianGate
+        from qiskit.circuit.library import HamiltonianGate
 
         if isinstance(operator, OperatorBase):
             if not isinstance(self.evolution, EvolutionBase):

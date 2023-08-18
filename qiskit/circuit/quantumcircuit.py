@@ -4328,7 +4328,7 @@ class QuantumCircuit:
 
     def unitary(
         self,
-        obj: np.ndarray | Gate | BaseOperator,
+        obj: np.ndarray | Gate | BaseOperator | int,
         qubits: Sequence[QubitSpecifier],
         label: str | None = None,
     ):
@@ -4341,9 +4341,6 @@ class QuantumCircuit:
 
         Returns:
             QuantumCircuit: The quantum circuit.
-
-        Raises:
-            ExtensionError: if input data is not an N-qubit unitary operator.
 
         Example:
 
@@ -4362,6 +4359,13 @@ class QuantumCircuit:
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         gate = UnitaryGate(obj, label=label)
+
+        # correctly treat as single-qubit gate if it only acts as 1 qubit, i.e.
+        # allow a single qubit specifier and enable broadcasting
+        if gate.num_qubits == 1:
+            if isinstance(qubits, (int, Qubit)) or len(qubits) > 1:
+                qubits = [qubits]
+
         return self.append(gate, qubits, [])
 
     def _push_scope(

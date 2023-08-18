@@ -43,7 +43,7 @@ class UnitaryGate(Gate):
         .. code-block:: python
 
             from qiskit import QuantumCircuit
-            from qiskit.extensions import UnitaryGate
+            from qiskit.circuit.library import UnitaryGate
 
             matrix = [[0, 0, 0, 1],
                       [0, 0, 1, 0],

@@ -59,13 +59,14 @@ from qiskit.circuit.library import (
     RYGate,
     CZGate,
     ECRGate,
+    UnitaryGate,
+    UCGate,
+    Initialize,
 )
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
-from qiskit.extensions import Initialize, UnitaryGate
-from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
 from qiskit.circuit.controlflow import (
     IfElseOp,
     WhileLoopOp,
@@ -425,7 +426,6 @@ class TestFakeBackends(QiskitTestCase):
                 "quantum_channel": QuantumChannel,
                 "initialize": Initialize,
                 "save_expval": SaveExpectationValue,
-                "diagonal": DiagonalGate,
                 "save_amplitudes": SaveAmplitudes,
                 "roerror": ReadoutError,
                 "mcrx": MCRXGate,

@@ -48,6 +48,8 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 
+from .diagonal import Diagonal
+
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
@@ -176,7 +178,8 @@ class UCGate(Gate):
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
             # where q[i] are the control qubits and t denotes the target qubit.
-            circuit.diagonal(diag.tolist(), q)
+            diagonal = Diagonal(diag)
+            circuit.append(diagonal, q)
         return circuit, diag
 
     def _dec_ucg_help(self):

@@ -20,7 +20,8 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
 
 
 def qs_decomposition(
@@ -89,7 +90,7 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+                from qiskit.circuit.library import UnitaryGate  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
@@ -189,7 +190,8 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
 
     # multiplexed Rz
     angles = 2 * np.angle(np.conj(dvals))
-    circ.ucrz(angles.tolist(), list(range(nqubits - 1)), [nqubits - 1])
+    ucrz = UCRZGate(angles.tolist())
+    circ.append(ucrz, [nqubits - 1] + list(range(nqubits - 1)))
 
     # right gate
     right_gate = qs_decomposition(
@@ -232,9 +234,7 @@ def _get_ucry_cz(nqubits, angles):
 def _apply_a2(circ):
     from qiskit import transpile
     from qiskit.quantum_info import Operator
-
-    # from qiskit.extensions.unitary import UnitaryGate
-    import qiskit.extensions.unitary
+    from qiskit.circuit.library.generalized_gates import UnitaryGate
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
     ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)
@@ -257,7 +257,7 @@ def _apply_a2(circ):
         dmat, qc2cx = decomposer(mat1)
         ccirc.data[ind1] = instr1.replace(operation=qc2cx.to_gate())
         mat2 = mat2 @ dmat
-        ccirc.data[ind2] = instr2.replace(qiskit.extensions.unitary.UnitaryGate(mat2))
+        ccirc.data[ind2] = instr2.replace(UnitaryGate(mat2))
     qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
     ccirc.data[ind2] = ccirc.data[ind2].replace(operation=qc3.to_gate())
     return ccirc

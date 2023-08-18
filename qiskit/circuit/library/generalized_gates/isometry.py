@@ -28,6 +28,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
 
+from .diagonal import Diagonal
 from .uc import UCGate
 from .mcg_up_to_diagonal import MCGupDiag
 
@@ -150,7 +151,8 @@ class Isometry(Instruction):
             # remove first column (which is now stored in diag)
             remaining_isometry = remaining_isometry[:, 1:]
         if len(diag) > 1 and not _diag_is_identity_up_to_global_phase(diag, self._epsilon):
-            circuit.diagonal(np.conj(diag).tolist(), q_input)
+            diagonal = Diagonal(np.conj(diag))
+            circuit.append(diagonal, q_input)
         return circuit
 
     def _decompose_column(self, circuit, q, diag, remaining_isometry, column_index):

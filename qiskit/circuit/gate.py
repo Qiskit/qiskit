@@ -66,7 +66,9 @@ class Gate(Instruction):
             CircuitError: If Gate is not unitary
         """
         from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        from qiskit.circuit.library.generalized_gates import (
+            UnitaryGate,
+        )  # pylint: disable=cyclic-import
         from scipy.linalg import schur
 
         # Should be diagonalized because it's a unitary.

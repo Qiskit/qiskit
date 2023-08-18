@@ -19,7 +19,7 @@ import math
 import numpy as np
 
 from qiskit.circuit import Gate, QuantumCircuit, Qubit
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
 
 class GateSequence:

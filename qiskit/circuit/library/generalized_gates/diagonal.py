@@ -20,6 +20,8 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
+from .ucrz import UCRZGate
+
 _EPS = 1e-10
 
 
@@ -105,7 +107,10 @@ class Diagonal(QuantumCircuit):
             num_act_qubits = int(np.log2(n))
             ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
             target_qubit = num_qubits - num_act_qubits
-            circuit.ucrz(angles_rz, ctrl_qubits, target_qubit)
+
+            ucrz = UCRZGate(angles_rz)
+            circuit.append(ucrz, [target_qubit] + ctrl_qubits)
+
             n //= 2
         circuit.global_phase += diag_phases[0]
 

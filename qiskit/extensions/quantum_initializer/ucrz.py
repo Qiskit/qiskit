@@ -96,6 +96,8 @@ def ucrz(
         raise QiskitError(
             "Number of controlled rotations does not correspond to the number of control-qubits."
         )
+
+    print([q_target] + q_controls)
     return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
 
