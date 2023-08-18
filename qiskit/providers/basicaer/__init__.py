@@ -20,11 +20,11 @@ BasicAer: Python-based Simulators (:mod:`qiskit.providers.basicaer`)
 A module of Python-based quantum simulators.  Simulators are accessed
 via the `BasicAer` provider, e.g.:
 
-.. jupyter-execute::
+.. code-block::
 
-            from qiskit import BasicAer
+   from qiskit import BasicAer
 
-            backend = BasicAer.get_backend('qasm_simulator')
+   backend = BasicAer.get_backend('qasm_simulator')
 
 
 Simulators

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,11 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PauliOp Class """
+"""PauliOp Class"""
 
 from math import pi
 from typing import Dict, List, Optional, Set, Union, cast
-
 import numpy as np
 from scipy.sparse import spmatrix
 
@@ -28,13 +27,18 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``Pauli`` module."""
+    """Deprecated: Class for Operators backed by Terra's ``Pauli`` module."""
 
     primitive: Pauli
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, primitive: Pauli, coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
@@ -46,6 +50,7 @@ class PauliOp(PrimitiveOp):
         """
         if not isinstance(primitive, Pauli):
             raise TypeError(f"PauliOp can only be instantiated with Paulis, not {type(primitive)}")
+
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
@@ -84,7 +89,7 @@ class PauliOp(PrimitiveOp):
         return SummedOp([self, other])
 
     def adjoint(self) -> "PauliOp":
-        return PauliOp(self.primitive, coeff=self.coeff.conjugate())
+        return PauliOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         if isinstance(other, PauliOp) and self.coeff == other.coeff:
@@ -154,9 +159,6 @@ class PauliOp(PrimitiveOp):
 
         if front:
             return other.compose(new_self)
-        # If self is identity, just return other.
-        if not any(new_self.primitive.x + new_self.primitive.z):
-            return other * new_self.coeff
 
         # Both Paulis
         if isinstance(other, PauliOp):
@@ -248,8 +250,8 @@ class PauliOp(PrimitiveOp):
                     bitstr = np.fromiter(bstr, dtype=int).astype(bool)
                     new_b_str = np.logical_xor(bitstr, corrected_x_bits)
                     new_str = "".join(map(str, 1 * new_b_str))
-                    z_factor = np.product(1 - 2 * np.logical_and(bitstr, corrected_z_bits))
-                    y_factor = np.product(
+                    z_factor = np.prod(1 - 2 * np.logical_and(bitstr, corrected_z_bits))
+                    y_factor = np.prod(
                         np.sqrt(1 - 2 * np.logical_and(corrected_x_bits, corrected_z_bits) + 0j)
                     )
                     new_dict[new_str] = (v * z_factor * y_factor) + new_dict.get(new_str, 0)

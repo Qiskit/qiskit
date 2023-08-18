@@ -102,15 +102,7 @@ not. To install the `scikit-quant` dependent package you can use
 Global Optimizers
 =================
 The global optimizers here all use NLopt for their core function and can only be
-used if their dependent NLopt package is manually installed. See the following
-section for installation instructions.
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    nlopts
-
-The global optimizers are as follows:
+used if their dependent NLopt package is manually installed.
 
 .. autosummary::
    :toctree: ../stubs/

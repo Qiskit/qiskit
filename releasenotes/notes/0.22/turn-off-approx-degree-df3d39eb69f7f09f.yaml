@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The implicit use of ``approximation_degree!=1.0`` by default in
+    in the :func:`~.transpile` function when ``optimization_level=3`` is set has been disabled.  The transpiler should, by default,
+    preserve unitarity of the input up to known transformations such as one-sided permutations
+    and similarity transformations.  This was broken by the previous use of ``approximation_degree=None``
+    leading to incorrect results in cases such as Trotterized evolution with many time steps where
+    unitaries were being overly approximated leading to incorrect results.  It was decided that
+    transformations that break unitary equivalence should be explicitly activated by the user.
+    If you desire the previous default behavior where synthesized :class:`~UnitaryGate` instructions
+    are approximated up to the error rates of the target backend's native instructions you can explicitly
+    set ``approximation_degree=None`` when calling :func:`~.transpile` with ``optimization_level=3``, for
+    example::
+    
+        transpile(circuit, backend, approximation_degree=None, optimization_level=3)

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.Statevector.probabilities_dict` and :meth:`.DensityMatrix.probabilities_dict`
+    method where it would return incorrect results for non-qubit systems when the ``qargs`` argument was
+    specified.
+    Fixed `#9210 <https://github.com/Qiskit/qiskit-terra/issues/9210>`__

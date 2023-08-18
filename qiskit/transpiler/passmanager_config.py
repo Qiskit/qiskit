@@ -39,9 +39,9 @@ class PassManagerConfig:
         unitary_synthesis_method="default",
         unitary_synthesis_plugin_config=None,
         target=None,
+        hls_config=None,
         init_method=None,
         optimization_method=None,
-        optimization_level=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -75,12 +75,15 @@ class PassManagerConfig:
             timing_constraints (TimingConstraints): Hardware time alignment restrictions.
             unitary_synthesis_method (str): The string method to use for the
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
-                search installed plugins for a valid method.
+                search installed plugins for a valid method. You can see a list of
+                installed plugins with :func:`.unitary_synthesis_plugin_names`.
             target (Target): The backend target
+            hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
-            optimization_level (int): The optimization level being used for compilation.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -100,10 +103,10 @@ class PassManagerConfig:
         self.unitary_synthesis_method = unitary_synthesis_method
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
-        self.optimization_level = optimization_level
+        self.hls_config = hls_config
 
     @classmethod
-    def from_backend(cls, backend, **pass_manager_options):
+    def from_backend(cls, backend, _skip_target=False, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
         This method automatically gererates a PassManagerConfig object based on the backend's
@@ -125,7 +128,6 @@ class PassManagerConfig:
             backend_version = 0
         if backend_version < 2:
             config = backend.configuration()
-
         if res.basis_gates is None:
             if backend_version < 2:
                 res.basis_gates = getattr(config, "basis_gates", None)
@@ -134,12 +136,16 @@ class PassManagerConfig:
         if res.inst_map is None:
             if backend_version < 2:
                 if hasattr(backend, "defaults"):
-                    res.inst_map = backend.defaults().instruction_schedule_map
+                    defaults = backend.defaults()
+                    if defaults is not None:
+                        res.inst_map = defaults.instruction_schedule_map
             else:
                 res.inst_map = backend.instruction_schedule_map
         if res.coupling_map is None:
             if backend_version < 2:
-                res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+                cmap_edge_list = getattr(config, "coupling_map", None)
+                if cmap_edge_list is not None:
+                    res.coupling_map = CouplingMap(cmap_edge_list)
             else:
                 res.coupling_map = backend.coupling_map
         if res.instruction_durations is None:
@@ -149,9 +155,13 @@ class PassManagerConfig:
                 res.instruction_durations = backend.instruction_durations
         if res.backend_properties is None and backend_version < 2:
             res.backend_properties = backend.properties()
-        if res.target is None:
+        if res.target is None and not _skip_target:
             if backend_version >= 2:
                 res.target = backend.target
+        if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
+            res.scheduling_method = backend.get_scheduling_stage_plugin()
+        if res.translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
+            res.translation_method = backend.get_translation_stage_plugin()
         return res
 
     def __str__(self):

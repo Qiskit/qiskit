@@ -14,24 +14,26 @@
 
 This implementation allows both, standard first-order as well as second-order SPSA.
 """
+from __future__ import annotations
 
-from typing import Iterator, Optional, Union, Callable, Tuple, Dict, List, Any
+from collections import deque
+from collections.abc import Iterator
+from typing import Callable, Any, SupportsFloat
 import logging
 import warnings
 from time import time
 
-from collections import deque
 import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 # number of function evaluations, parameters, loss, stepsize, accepted
-CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
-TERMINATIONCHECKER = Callable[[int, np.ndarray, float, float, bool], bool]
+CALLBACK = Callable[[int, np.ndarray, float, SupportsFloat, bool], None]
+TERMINATIONCHECKER = Callable[[int, np.ndarray, float, SupportsFloat, bool], bool]
 
 logger = logging.getLogger(__name__)
 
@@ -163,20 +165,20 @@ class SPSA(Optimizer):
         self,
         maxiter: int = 100,
         blocking: bool = False,
-        allowed_increase: Optional[float] = None,
+        allowed_increase: float | None = None,
         trust_region: bool = False,
-        learning_rate: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
-        perturbation: Optional[Union[float, np.array, Callable[[], Iterator]]] = None,
+        learning_rate: float | np.ndarray | Callable[[], Iterator] | None = None,
+        perturbation: float | np.ndarray | Callable[[], Iterator] | None = None,
         last_avg: int = 1,
-        resamplings: Union[int, Dict[int, int]] = 1,
-        perturbation_dims: Optional[int] = None,
+        resamplings: int | dict[int, int] = 1,
+        perturbation_dims: int | None = None,
         second_order: bool = False,
-        regularization: Optional[float] = None,
+        regularization: float | None = None,
         hessian_delay: int = 0,
-        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        initial_hessian: Optional[np.ndarray] = None,
-        callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[TERMINATIONCHECKER] = None,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
+        initial_hessian: np.ndarray | None = None,
+        callback: CALLBACK | None = None,
+        termination_checker: TERMINATIONCHECKER | None = None,
     ) -> None:
         r"""
         Args:
@@ -275,8 +277,8 @@ class SPSA(Optimizer):
         self.initial_hessian = initial_hessian
 
         # runtime arguments
-        self._nfev = None  # the number of function evaluations
-        self._smoothed_hessian = None  # smoothed average of the Hessians
+        self._nfev: int | None = None  # the number of function evaluations
+        self._smoothed_hessian: np.ndarray | None = None  # smoothed average of the Hessians
 
     @staticmethod
     def calibrate(
@@ -284,12 +286,12 @@ class SPSA(Optimizer):
         initial_point: np.ndarray,
         c: float = 0.2,
         stability_constant: float = 0,
-        target_magnitude: Optional[float] = None,  # 2 pi / 10
+        target_magnitude: float | None = None,  # 2 pi / 10
         alpha: float = 0.602,
         gamma: float = 0.101,
         modelspace: bool = False,
         max_evals_grouped: int = 1,
-    ) -> Tuple[Iterator[float], Iterator[float]]:
+    ) -> tuple[Callable, Callable]:
         r"""Calibrate SPSA parameters with a powerseries as learning rate and perturbation coeffs.
 
         The powerseries are:
@@ -332,7 +334,7 @@ class SPSA(Optimizer):
 
         losses = _batch_evaluate(loss, points, max_evals_grouped)
 
-        avg_magnitudes = 0
+        avg_magnitudes = 0.0
         for i in range(steps):
             delta = losses[2 * i] - losses[2 * i + 1]
             avg_magnitudes += np.abs(delta / (2 * c))
@@ -379,7 +381,7 @@ class SPSA(Optimizer):
         return np.std(losses)
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
@@ -503,8 +505,8 @@ class SPSA(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
@@ -647,11 +649,13 @@ class SPSA(Optimizer):
         }
 
     # pylint: disable=bad-docstring-quotes
-    @deprecate_function(
-        "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
-        "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
-        "which supports the same arguments but follows the interface of scipy.optimize and returns "
-        "a complete result object containing additional information."
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use ``SPSA.minimize`` as a replacement, which supports the same arguments "
+            "but follows the interface of scipy.optimize and returns a complete result object "
+            "containing additional information."
+        ),
+        since="0.21.0",
     )
     def optimize(
         self,
@@ -711,9 +715,15 @@ def constant(eta=0.01):
         yield eta
 
 
-def _batch_evaluate(function, points, max_evals_grouped):
+def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
+    """Evaluate a function on all points with batches of max_evals_grouped.
+
+    The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
+    inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
+    """
+
     # if the function cannot handle lists of points as input, cover this case immediately
-    if max_evals_grouped == 1:
+    if max_evals_grouped is None or max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
         return [
             function(*point) if isinstance(point, tuple) else function(point) for point in points
@@ -731,9 +741,30 @@ def _batch_evaluate(function, points, max_evals_grouped):
 
     results = []
     for batch in batched_points:
-        results += function(batch).tolist()
+        if unpack_points:
+            batch = _repack_points(batch)
+            results += _as_list(function(*batch))
+        else:
+            results += _as_list(function(batch))
 
     return results
+
+
+def _as_list(obj):
+    """Convert a list or numpy array into a list."""
+    return obj.tolist() if isinstance(obj, np.ndarray) else obj
+
+
+def _repack_points(points):
+    """Turn a list of tuples of points into a tuple of lists of points.
+    E.g. turns
+        [(a1, a2, a3), (b1, b2, b3)]
+    into
+        ([a1, b1], [a2, b2], [a3, b3])
+    where all elements are np.ndarray.
+    """
+    num_sets = len(points[0])  # length of (a1, a2, a3)
+    return ([x[i] for x in points] for i in range(num_sets))
 
 
 def _make_spd(matrix, bias=0.01):

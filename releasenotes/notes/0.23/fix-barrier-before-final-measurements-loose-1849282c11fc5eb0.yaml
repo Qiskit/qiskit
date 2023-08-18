@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the :class:`.BarrierBeforeFinalMeasurements` transpiler pass when there
+    are conditions on loose :class:`.Clbit`\ s immediately before the final measurement
+    layer.  Previously, this would fail claiming that the bit was not present
+    in an internal temporary circuit.

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue where :meth:`.Pauli.evolve` and :meth:`.PauliList.evolve` would
+    raise a dtype error when evolving by certain Clifford gates which
+    modified the Pauli's phase.
+    Fixed `#8438 <https://github.com/Qiskit/qiskit-terra/issues/8438>`__

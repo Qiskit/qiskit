@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add the new gates :class:`~qiskit.circuit.library.CSGate`,
-    :class:`~qiskit.circuit.library.CSdgGate` and :class:`~qiskit.circuit.library.CCZGate`
-    to the operator class:`~qiskit.quantum_info.CNOTDihedral` class.

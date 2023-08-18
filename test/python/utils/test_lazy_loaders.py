@@ -21,8 +21,6 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.test import QiskitTestCase
 from qiskit.utils import LazyImportTester, LazySubprocessTester
 
-# pylint: disable=no-member
-
 
 def available_importer(**kwargs):
     """A LazyImportTester that should succeed."""

@@ -13,6 +13,8 @@
 A definition of the approximate circuit compilation optimization problem based on CNOT unit
 definition.
 """
+from __future__ import annotations
+import typing
 from abc import ABC
 
 import numpy as np
@@ -68,13 +70,13 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         super().__init__(num_qubits, cnots)
 
         # last objective computations to be re-used by gradient
-        self._last_thetas = None
-        self._cnot_right_collection = None
-        self._cnot_left_collection = None
-        self._rotation_matrix = None
-        self._cnot_matrix = None
+        self._last_thetas: np.ndarray | None = None
+        self._cnot_right_collection: np.ndarray | None = None
+        self._cnot_left_collection: np.ndarray | None = None
+        self._rotation_matrix: int | np.ndarray | None = None
+        self._cnot_matrix: np.ndarray | None = None
 
-    def objective(self, param_values: np.ndarray) -> float:
+    def objective(self, param_values: np.ndarray) -> typing.SupportsFloat:
         # rename parameters just to make shorter and make use of our dictionary
         thetas = param_values
         n = self._num_qubits
@@ -143,7 +145,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
 
         # this is the matrix corresponding to the initial rotations
         # we start with 1 and kronecker product each qubit's rotations
-        rotation_matrix = 1
+        rotation_matrix: int | np.ndarray = 1
         for q in range(n):
             theta_index = 4 * num_cnots + 3 * q
             rz0 = rz_matrix(thetas[0 + theta_index])
@@ -178,9 +180,9 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # the partial derivative of the circuit with respect to an angle
         # is the same circuit with the corresponding pauli gate, multiplied
         # by a global phase of -1j / 2, next to the rotation gate (it commutes)
-        pauli_x = np.multiply(-1j / 2, np.array([[0, 1], [1, 0]]))
-        pauli_y = np.multiply(-1j / 2, np.array([[0, -1j], [1j, 0]]))
-        pauli_z = np.multiply(-1j / 2, np.array([[1, 0], [0, -1]]))
+        pauli_x = np.multiply(-1j / 2, np.asarray([[0, 1], [1, 0]]))
+        pauli_y = np.multiply(-1j / 2, np.asarray([[0, -1j], [1j, 0]]))
+        pauli_z = np.multiply(-1j / 2, np.asarray([[1, 0], [0, -1]]))
 
         n = self._num_qubits
         d = int(2**n)
@@ -268,7 +270,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # now we compute the partial derivatives in the rotation part
         # we start with 1 and kronecker product each qubit's rotations
         for i in range(3 * n):
-            der_rotation_matrix = 1
+            der_rotation_matrix: int | np.ndarray = 1
             for q in range(n):
                 theta_index = 4 * num_cnots + 3 * q
                 rz0 = rz_matrix(thetas[0 + theta_index])

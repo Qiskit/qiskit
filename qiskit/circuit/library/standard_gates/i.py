@@ -13,10 +13,11 @@
 """Identity gate."""
 
 from typing import Optional
-import numpy
 from qiskit.circuit.gate import Gate
+from qiskit.circuit._utils import with_gate_array
 
 
+@with_gate_array([[1, 0], [0, 1]])
 class IGate(Gate):
     r"""Identity gate.
 
@@ -52,6 +53,6 @@ class IGate(Gate):
         """Invert this gate."""
         return IGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the identity gate."""
-        return numpy.array([[1, 0], [0, 1]], dtype=dtype)
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return IGate()

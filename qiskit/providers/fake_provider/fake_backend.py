@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,import-error
+# pylint: disable=no-name-in-module
 
 """
 Base class for dummy backends.
@@ -25,20 +25,20 @@ import re
 from typing import List, Iterable
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models import BackendProperties, BackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
 from qiskit.transpiler import Target
+from qiskit.providers.backend_compat import convert_to_target
 
 from .utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from .utils.backend_converter import convert_to_target
 
 
 class _Credentials:
@@ -121,7 +121,7 @@ class FakeBackendV2(BackendV2):
             from qiskit.providers import aer
 
             self.sim = aer.AerSimulator()
-            if self._props_dict:
+            if self.target and self._props_dict:
                 noise_model = self._get_noise_model_from_backend_v2()
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default too to avoid overwriting
@@ -168,10 +168,16 @@ class FakeBackendV2(BackendV2):
                 self._set_props_dict_from_json()
             if self._defs_dict is None:
                 self._set_defs_dict_from_json()
+            conf = BackendConfiguration.from_dict(self._conf_dict)
+            props = None
+            if self._props_dict is not None:
+                props = BackendProperties.from_dict(self._props_dict)
+            defaults = None
+            if self._defs_dict is not None:
+                defaults = PulseDefaults.from_dict(self._defs_dict)
+
             self._target = convert_to_target(
-                conf_dict=self._conf_dict,
-                props_dict=self._props_dict,
-                defs_dict=self._defs_dict,
+                conf, props, defaults, add_delay=True, filter_faulty=True
             )
 
         return self._target
@@ -360,7 +366,6 @@ class FakeBackendV2(BackendV2):
         temperature=0,
         gate_lengths=None,
         gate_length_units="ns",
-        standard_gates=None,
     ):
         """Build noise model from BackendV2.
 
@@ -406,7 +411,6 @@ class FakeBackendV2(BackendV2):
                 gate_lengths=gate_lengths,
                 gate_length_units=gate_length_units,
                 temperature=temperature,
-                standard_gates=standard_gates,
             )
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits)
@@ -459,7 +463,7 @@ class FakeBackend(BackendV1):
 
             self.sim = aer.AerSimulator()
             if self.properties():
-                noise_model = NoiseModel.from_backend(self, warnings=False)
+                noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default options too to avoid overwriting
                 # it when run() is called
@@ -470,6 +474,8 @@ class FakeBackend(BackendV1):
     def properties(self):
         """Return backend properties"""
         coupling_map = self.configuration().coupling_map
+        if coupling_map is None:
+            return None
         unique_qubits = list(set().union(*coupling_map))
 
         properties = {

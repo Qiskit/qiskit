@@ -20,21 +20,23 @@ Transpiler Stage Plugin Interface (:mod:`qiskit.transpiler.preset_passmanagers.p
 This module defines the plugin interface for providing custom stage
 implementations for the preset pass managers and the :func:`~.transpile`
 function. This enables external Python packages to provide
-:class:`~.PassManager` objects that can be used for each stage.
+:class:`~.PassManager` objects that can be used for each named stage.
 
 The plugin interfaces are built using setuptools
 `entry points <https://setuptools.readthedocs.io/en/latest/userguide/entry_point.html>`__
-which enable packages external to Qiskit to advertise they include a transpiler stage.
+which enable packages external to Qiskit to advertise they include a transpiler stage(s).
 
-See :mod:`qiskit.transpiler.passes.synthesis.plugin` for details on how to
-write plugins for synthesis methods which are used by the transpiler.
+For details on how to instead write plugins for transpiler synthesis methods,
+see :mod:`qiskit.transpiler.passes.synthesis.plugin`.
+
 
 .. _stage_table:
 
 Plugin Stages
 =============
 
-Currently there are 6 stages in the preset pass managers used by and corresponding entrypoints.
+Currently, there are 6 stages in the preset pass managers, all of which actively
+load external plugins via corresponding entry points.
 
 .. list-table:: Stages
    :header-rows: 1
@@ -91,9 +93,10 @@ Writing Plugins
 
 To write a pass manager stage plugin there are 2 main steps. The first step is
 to create a subclass of the abstract plugin class
-:class:`~.PassManagerStagePluginManager` which is used to define how the :class:`~.PassManager`
+:class:`~.PassManagerStagePlugin` which is used to define how the :class:`~.PassManager`
 for the stage will be constructed. For example, to create a ``layout`` stage plugin that just
-runs :class:`~.VF2Layout` and will fallback to use :class:`~.TrivialLayout` if
+runs :class:`~.VF2Layout` (with increasing amount of trials, depending on the optimization level)
+and falls back to using :class:`~.TrivialLayout` if
 :class:`~VF2Layout` is unable to find a perfect layout::
 
     from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
@@ -111,12 +114,13 @@ runs :class:`~.VF2Layout` and will fallback to use :class:`~.TrivialLayout` if
 
     class VF2LayoutPlugin(PassManagerStagePlugin):
 
-        def pass_manager(self, pass_manager_config):
+        def pass_manager(self, pass_manager_config, optimization_level):
             layout_pm = PassManager(
                 [
                     VF2Layout(
                         coupling_map=pass_manager_config.coupling_map,
                         properties=pass_manager_config.backend_properties,
+                        max_trials=optimization_level * 10 + 1
                         target=pass_manager_config.target
                     )
                 ]
@@ -128,12 +132,12 @@ runs :class:`~.VF2Layout` and will fallback to use :class:`~.TrivialLayout` if
             layout_pm += common.generate_embed_passmanager(pass_manager_config.coupling_map)
             return layout_pm
 
-The second step is to expose the :class:`~.PassManagerStagePluginManager`
+The second step is to expose the :class:`~.PassManagerStagePlugin`
 subclass as a setuptools entry point in the package metadata. This can be done
 by simply adding an ``entry_points`` entry to the ``setuptools.setup`` call in
 the ``setup.py`` or the plugin package with the necessary entry points under the
 appropriate namespace for the stage your plugin is for. You can see the list
-of stages, entrypoints, and expectations from the stage in :ref:`stage_table`.
+of stages, entry points, and expectations from the stage in :ref:`stage_table`.
 For example, continuing from the example plugin above::
 
     entry_points = {
@@ -142,8 +146,8 @@ For example, continuing from the example plugin above::
         ]
     },
 
-(note that the entry point ``name = path`` is a single string not a Python
-expression). There isn't a limit to the number of plugins a single package can
+Note that the entry point ``name = path`` is a single string not a Python
+expression. There isn't a limit to the number of plugins a single package can
 include as long as each plugin has a unique name. So a single package can
 expose multiple plugins if necessary. Refer to :ref:`stage_table` for a list
 of reserved names for each stage.
@@ -156,11 +160,13 @@ Plugin API
 
    PassManagerStagePlugin
    PassManagerStagePluginManager
-   list_stage_plugins
+
+.. autofunction:: list_stage_plugins
+.. autofunction:: passmanager_stage_plugins
 """
 
 import abc
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import stevedore
 
@@ -174,7 +180,7 @@ class PassManagerStagePlugin(abc.ABC):
     stages in :func:`~.transpile`.
 
     A ``PassManagerStagePlugin`` object can be added to an external package and
-    integrated into the :func:`~.transpile` function with an entrypoint. This
+    integrated into the :func:`~.transpile` function with an entry point. This
     will enable users to use the output of :meth:`.pass_manager` to implement
     a stage in the compilation process.
     """
@@ -297,3 +303,47 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         return plugin_mgr.scheduling_plugins.names()
     else:
         raise TranspilerError(f"Invalid stage name: {stage_name}")
+
+
+def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
+    """Return a dict with, for each stage name, the class type of the plugin.
+
+    This function is useful for getting more information about a plugin:
+
+    .. code-block:: python
+
+        from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
+        routing_plugins = passmanager_stage_plugins('routing')
+        basic_plugin = routing_plugins['basic']
+        help(basic_plugin)
+
+    .. code-block:: text
+
+        Help on BasicSwapPassManager in module ...preset_passmanagers.builtin_plugins object:
+
+        class BasicSwapPassManager(...preset_passmanagers.plugin.PassManagerStagePlugin)
+         |  Plugin class for routing stage with :class:`~.BasicSwap`
+         |
+         |  Method resolution order:
+         |      BasicSwapPassManager
+         |      ...preset_passmanagers.plugin.PassManagerStagePlugin
+         |      abc.ABC
+         |      builtins.object
+         ...
+
+    Args:
+        stage: The stage name to get
+
+    Returns:
+        dict: the key is the name of the plugin and the value is the class type for each.
+
+    Raises:
+       TranspilerError: If an invalid stage name is specified.
+    """
+    plugin_mgr = PassManagerStagePluginManager()
+    try:
+        manager = getattr(plugin_mgr, f"{stage}_plugins")
+    except AttributeError as exc:
+        raise TranspilerError(f"Passmanager stage {stage} not found") from exc
+
+    return {name: manager[name].obj for name in manager.names()}

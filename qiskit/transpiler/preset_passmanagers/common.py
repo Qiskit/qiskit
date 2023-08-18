@@ -10,15 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Common preset passmanager generators."""
 
+import collections
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.utils.deprecation import deprecate_func
 
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import UnrollCustomDefinitions
@@ -51,6 +53,130 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
+_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
+
+_ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
+
+# Any method neither known good nor known bad (i.e. not a Terra-internal pass) is passed through
+# without error, since it is being supplied by a plugin and we don't have any knowledge of these.
+_CONTROL_FLOW_STATES = {
+    "layout_method": _ControlFlowState(
+        working={"trivial", "dense", "sabre"}, not_working={"noise_adaptive"}
+    ),
+    "routing_method": _ControlFlowState(
+        working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
+    ),
+    "translation_method": _ControlFlowState(
+        working={"translator", "synthesis", "unroller"},
+        not_working=set(),
+    ),
+    "optimization_method": _ControlFlowState(working=set(), not_working=set()),
+    "scheduling_method": _ControlFlowState(working=set(), not_working={"alap", "asap"}),
+}
+
+
+def _has_control_flow(property_set):
+    return any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
+
+
+def _without_control_flow(property_set):
+    return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
+
+
+class _InvalidControlFlowForBackend:
+    # Explicitly stateful closure to allow pickling.
+
+    def __init__(self, basis_gates=(), target=None):
+        if target is not None:
+            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in target]
+        else:
+            basis_gates = set(basis_gates) if basis_gates is not None else set()
+            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in basis_gates]
+
+    def message(self, property_set):
+        """Create an error message for the given property set."""
+        fails = [x for x in self.unsupported if property_set[f"contains_{x}"]]
+        if len(fails) == 1:
+            return f"The control-flow construct '{fails[0]}' is not supported by the backend."
+        return (
+            f"The control-flow constructs [{', '.join(repr(op) for op in fails)}]"
+            " are not supported by the backend."
+        )
+
+    def condition(self, property_set):
+        """Checkable condition for the given property set."""
+        return any(property_set[f"contains_{x}"] for x in self.unsupported)
+
+
+def generate_control_flow_options_check(
+    layout_method=None,
+    routing_method=None,
+    translation_method=None,
+    optimization_method=None,
+    scheduling_method=None,
+    basis_gates=(),
+    target=None,
+):
+    """Generate a pass manager that, when run on a DAG that contains control flow, fails with an
+    error message explaining the invalid options, and what could be used instead.
+
+    Returns:
+        PassManager: a pass manager that populates the ``contains_x`` properties for each of the
+        control-flow operations, and raises an error if any of the given options do not support
+        control flow, but a circuit with control flow is given.
+    """
+    bad_options = []
+    message = "Some options cannot be used with control flow."
+    for stage, given in [
+        ("layout", layout_method),
+        ("routing", routing_method),
+        ("translation", translation_method),
+        ("optimization", optimization_method),
+        ("scheduling", scheduling_method),
+    ]:
+        option = stage + "_method"
+        method_states = _CONTROL_FLOW_STATES[option]
+        if given is not None and given in method_states.not_working:
+            if method_states.working:
+                message += (
+                    f" Got {option}='{given}', but valid values are {list(method_states.working)}."
+                )
+            else:
+                message += (
+                    f" Got {option}='{given}', but the entire {stage} stage is not supported."
+                )
+            bad_options.append(option)
+    out = PassManager()
+    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    if bad_options:
+        out.append(Error(message), condition=_has_control_flow)
+    backend_control = _InvalidControlFlowForBackend(basis_gates, target)
+    out.append(Error(backend_control.message), condition=backend_control.condition)
+    return out
+
+
+def generate_error_on_control_flow(message):
+    """Get a pass manager that always raises an error if control flow is present in a given
+    circuit."""
+    out = PassManager()
+    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(Error(message), condition=_has_control_flow)
+    return out
+
+
+def if_has_control_flow_else(if_present, if_absent):
+    """Generate a pass manager that will run the passes in ``if_present`` if the given circuit
+    has control-flow operations in it, and those in ``if_absent`` if it doesn't."""
+    if isinstance(if_present, PassManager):
+        if_present = if_present.to_flow_controller()
+    if isinstance(if_absent, PassManager):
+        if_absent = if_absent.to_flow_controller()
+    out = PassManager()
+    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(if_present, condition=_has_control_flow)
+    out.append(if_absent, condition=_without_control_flow)
+    return out
+
 
 def generate_unroll_3q(
     target,
@@ -58,6 +184,7 @@ def generate_unroll_3q(
     approximation_degree=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
@@ -65,12 +192,16 @@ def generate_unroll_3q(
         target (Target): the :class:`~.Target` object representing the backend
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can see
+            a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
-            documenation for how to use.
+            documentation for how to use.
+        hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -86,7 +217,11 @@ def generate_unroll_3q(
             target=target,
         )
     )
-    unroll_3q.append(HighLevelSynthesis())
+    unroll_3q.append(
+        HighLevelSynthesis(
+            hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
+        )
+    )
     unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
     return unroll_3q
 
@@ -98,7 +233,7 @@ def generate_embed_passmanager(coupling_map):
     that can be used to expand and apply an initial layout to a circuit
 
     Args:
-        coupling_map (CouplingMap): The coupling map for the backend to embed
+        coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
             the circuit to.
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
@@ -107,14 +242,10 @@ def generate_embed_passmanager(coupling_map):
     return PassManager([FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()])
 
 
-def _trivial_not_perfect(property_set):
-    # Verify that a trivial layout is perfect. If trivial_layout_score > 0
-    # the layout is not perfect. The layout is unconditionally set by trivial
-    # layout so we need to clear it before contuing.
-    return (
-        property_set["trivial_layout_score"] is not None
-        and property_set["trivial_layout_score"] != 0
-    )
+def _layout_not_perfect(property_set):
+    """Return ``True`` if the first attempt at layout has been checked and found to be imperfect.
+    In this case, perfection means "does not require any swap routing"."""
+    return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
 
 def _apply_post_layout_condition(property_set):
@@ -135,6 +266,7 @@ def generate_routing_passmanager(
     seed_transpiler=None,
     check_trivial=False,
     use_barrier_before_measurement=True,
+    vf2_max_trials=None,
 ):
     """Generate a routing :class:`~qiskit.transpiler.PassManager`
 
@@ -145,7 +277,8 @@ def generate_routing_passmanager(
         coupling_map (CouplingMap): The coupling map of the backend to route
             for
         vf2_call_limit (int): The internal call limit for the vf2 post layout
-            pass. If this is ``None`` the vf2 post layout will not be run.
+            pass. If this is ``None`` or ``0`` the vf2 post layout will not be
+            run.
         backend_properties (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
@@ -159,6 +292,9 @@ def generate_routing_passmanager(
         use_barrier_before_measurement (bool): If true (the default) the
             :class:`~.BarrierBeforeFinalMeasurements` transpiler pass will be run prior to the
             specified pass in the ``routing_pass`` argument.
+        vf2_max_trials (int): The maximum number of trials to run VF2 when
+            evaluating the vf2 post layout
+            pass. If this is ``None`` or ``0`` the vf2 post layout will not be run.
     Returns:
         PassManager: The routing pass manager
     """
@@ -166,24 +302,28 @@ def generate_routing_passmanager(
     def _run_post_layout_condition(property_set):
         # If we check trivial layout and the found trivial layout was not perfect also
         # ensure VF2 initial layout was not used before running vf2 post layout
-        if not check_trivial or _trivial_not_perfect(property_set):
+        if not check_trivial or _layout_not_perfect(property_set):
             vf2_stop_reason = property_set["VF2Layout_stop_reason"]
             if vf2_stop_reason is None or vf2_stop_reason != VF2LayoutStopReason.SOLUTION_FOUND:
                 return True
         return False
 
     routing = PassManager()
-    routing.append(CheckMap(coupling_map))
+    if target is not None:
+        routing.append(CheckMap(target, property_set_field="routing_not_needed"))
+    else:
+        routing.append(CheckMap(coupling_map, property_set_field="routing_not_needed"))
 
     def _swap_condition(property_set):
-        return not property_set["is_swap_mapped"]
+        return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
         routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
     else:
         routing.append([routing_pass], condition=_swap_condition)
 
-    if (target is not None or backend_properties is not None) and vf2_call_limit is not None:
+    is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+    if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
         routing.append(
             VF2PostLayout(
                 target,
@@ -191,6 +331,7 @@ def generate_routing_passmanager(
                 backend_properties,
                 seed_transpiler,
                 call_limit=vf2_call_limit,
+                max_trials=vf2_max_trials,
                 strict_direction=False,
             ),
             condition=_run_post_layout_condition,
@@ -237,6 +378,7 @@ def generate_translation_passmanager(
     backend_props=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
+    hls_config=None,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
@@ -245,7 +387,7 @@ def generate_translation_passmanager(
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
         method (str): The basis translation method to use
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
         coupling_map (CouplingMap): the coupling map of the backend
             in case synthesis is done on a physical circuit. The
@@ -254,10 +396,14 @@ def generate_translation_passmanager(
             is True/None.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
-            documenation for how to use.
+            documentation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can
+            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
+        hls_config (HLSConfig): An optional configuration class to use for
+            :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+            Specifies how to synthesize various high-level objects.
 
     Returns:
         PassManager: The basis translation pass manager
@@ -266,7 +412,7 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "unroller":
-        unroll = [Unroller(basis_gates)]
+        unroll = [Unroller(basis=basis_gates, target=target)]
     elif method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
@@ -280,8 +426,13 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(),
-            UnrollCustomDefinitions(sel, basis_gates),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+            ),
+            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
@@ -298,11 +449,18 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
-            HighLevelSynthesis(),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+            ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
-            ConsolidateBlocks(basis_gates=basis_gates, target=target),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
             UnitarySynthesis(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
@@ -312,14 +470,21 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)
     return PassManager(unroll)
 
 
-def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, inst_map):
+def generate_scheduling(
+    instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
+):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -329,6 +494,7 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
+        target (Target): The :class:`~.Target` object representing the backend
 
     Returns:
         PassManager: The scheduling pass manager
@@ -338,7 +504,7 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
     """
     scheduling = PassManager()
     if inst_map and inst_map.has_custom_gate():
-        scheduling.append(PulseGates(inst_map=inst_map))
+        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
@@ -347,9 +513,9 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             "asap": ASAPScheduleAnalysis,
             "as_soon_as_possible": ASAPScheduleAnalysis,
         }
-        scheduling.append(TimeUnitConversion(instruction_durations))
+        scheduling.append(TimeUnitConversion(instruction_durations, target=target))
         try:
-            scheduling.append(scheduler[scheduling_method](instruction_durations))
+            scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
@@ -358,7 +524,9 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             return property_set["contains_delay"]
 
         scheduling.append(ContainsInstruction("delay"))
-        scheduling.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+        scheduling.append(
+            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+        )
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1
@@ -391,11 +559,15 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
         )
     if scheduling_method:
         # Call padding pass if circuit is scheduled
-        scheduling.append(PadDelay())
+        scheduling.append(PadDelay(target=target))
 
     return scheduling
 
 
+@deprecate_func(
+    additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
+    since="0.25.0",
+)
 def get_vf2_call_limit(
     optimization_level: int,
     layout_method: Optional[str] = None,
@@ -405,9 +577,43 @@ def get_vf2_call_limit(
     vf2_call_limit = None
     if layout_method is None and initial_layout is None:
         if optimization_level == 1:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
+            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with rustworkx 0.10.2
         elif optimization_level == 2:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
+            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with rustworkx 0.10.2
         elif optimization_level == 3:
-            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with retworkx 0.10.2
+            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with rustworkx 0.10.2
     return vf2_call_limit
+
+
+VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
+
+
+def get_vf2_limits(
+    optimization_level: int,
+    layout_method: Optional[str] = None,
+    initial_layout: Optional[Layout] = None,
+) -> VF2Limits:
+    """Get the VF2 limits for VF2-based layout passes.
+
+    Returns:
+        VF2Limits: An namedtuple with optional elements
+        ``call_limit`` and ``max_trials``.
+    """
+    limits = VF2Limits(None, None)
+    if layout_method is None and initial_layout is None:
+        if optimization_level == 1:
+            limits = VF2Limits(
+                int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
+                2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+            )
+        elif optimization_level == 2:
+            limits = VF2Limits(
+                int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
+                25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
+            )
+        elif optimization_level == 3:
+            limits = VF2Limits(
+                int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
+                250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+            )
+    return limits

@@ -14,27 +14,34 @@
 
 import re
 from collections import OrderedDict
-from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit import (
-    BooleanExpression,
     Clbit,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
-    ControlFlowOp,
 )
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_arg
 
 from ..exceptions import VisualizationError
+
+
+def _is_boolean_expression(gate_text, op):
+    if not _optionals.HAS_TWEEDLEDUM:
+        return False
+    from qiskit.circuit.classicalfunction import BooleanExpression
+
+    return isinstance(op, BooleanExpression) and gate_text == op.name
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
@@ -76,9 +83,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
 
     elif drawer == "latex":
         # Special formatting for Booleans in latex (due to '~' causing crash)
-        if (gate_text == op.name and op_type is BooleanExpression) or (
-            gate_text == base_name and base_type is BooleanExpression
-        ):
+        if _is_boolean_expression(gate_text, op):
             gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Capitalize if not a user-created gate or instruction
@@ -114,10 +119,11 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
 
 def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
-    if not hasattr(op, "params") or any(isinstance(param, np.ndarray) for param in op.params):
-        return ""
-
-    if isinstance(op, ControlFlowOp):
+    if (
+        not hasattr(op, "params")
+        or any(isinstance(param, np.ndarray) for param in op.params)
+        or any(isinstance(param, QuantumCircuit) for param in op.params)
+    ):
         return ""
 
     if isinstance(op, Delay):
@@ -191,6 +197,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -205,15 +212,7 @@ def get_bit_reg_index(circuit, bit, reverse_bits=None):
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
     """
-    if reverse_bits is not None:
-        warn(
-            "The 'reverse_bits' kwarg to the function "
-            "~qiskit.visualization.utils.get_bit_reg_index "
-            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
-            "after the release date.",
-            DeprecationWarning,
-            2,
-        )
+    del reverse_bits
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
     register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
@@ -286,6 +285,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 
@@ -299,15 +299,7 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
     """
-    if reverse_bits is not None:
-        warn(
-            "The 'reverse_bits' kwarg to the function "
-            "~qiskit.visualization.utils.get_condition_label_val "
-            "is deprecated as of 0.22.0 and will be removed no earlier than 3 months "
-            "after the release date.",
-            DeprecationWarning,
-            2,
-        )
+    del reverse_bits
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
@@ -370,7 +362,7 @@ def generate_latex_label(label):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None
+    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -399,7 +391,10 @@ def _get_layered_instructions(
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    qubits = circuit.qubits.copy()
+    if wire_map is not None:
+        qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
+    else:
+        qubits = circuit.qubits.copy()
     clbits = circuit.clbits.copy()
     nodes = []
 
@@ -433,7 +428,7 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, justify, measure_map)
+        nodes = _LayerSpooler(dag, justify, measure_map, wire_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -459,7 +454,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node):
+def _get_gate_span(qubits, node, wire_map):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -473,26 +468,32 @@ def _get_gate_span(qubits, node):
         if index > max_index:
             max_index = index
 
-    if node.cargs or getattr(node.op, "condition", None):
-        return qubits[min_index : len(qubits)]
+    # Because of wrapping boxes for mpl control flow ops, this
+    # type of op must be the only op in the layer
+    if wire_map is not None and isinstance(node.op, ControlFlowOp):
+        span = qubits
+    elif node.cargs or getattr(node.op, "condition", None):
+        span = qubits[min_index : len(qubits)]
+    else:
+        span = qubits[min_index : max_index + 1]
 
-    return qubits[min_index : max_index + 1]
+    return span
 
 
-def _any_crossover(qubits, node, nodes):
+def _any_crossover(qubits, node, nodes, wire_map):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node)
+    gate_span = _get_gate_span(qubits, node, wire_map)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node)
+            all_indices += _get_gate_span(qubits, check_node, wire_map)
     return any(i in gate_span for i in all_indices)
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map):
+    def __init__(self, dag, justification, measure_map, wire_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -500,6 +501,7 @@ class _LayerSpooler(list):
         self.clbits = dag.clbits
         self.justification = justification
         self.measure_map = measure_map
+        self.wire_map = wire_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == "left":
@@ -532,7 +534,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes, self.wire_map)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
@@ -548,16 +550,11 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
-                if isinstance(node.op.condition[0], Clbit):
-                    cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
-                    index_stop = self.measure_map[cond_bit[0]]
-                else:
-                    for bit in node.op.condition[0]:
-                        max_index = -1
-                        if bit in self.measure_map:
-                            if self.measure_map[bit] > max_index:
-                                index_stop = max_index = self.measure_map[bit]
+            if (condition := getattr(node.op, "condition", None)) is not None:
+                index_stop = max(
+                    (self.measure_map[bit] for bit in condition_resources(condition).clbits),
+                    default=index_stop,
+                )
             if node.cargs:
                 for carg in node.cargs:
                     try:

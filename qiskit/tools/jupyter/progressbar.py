@@ -69,7 +69,7 @@ class HTMLProgressBar(BaseProgressBar):
             """When an event of compilation starts, this function will be called, and
             will initialize the progress bar.
 
-            Args
+            Args:
                 num_tasks: Number of compilation tasks the progress bar will track
             """
             self.start(num_tasks)
@@ -80,7 +80,7 @@ class HTMLProgressBar(BaseProgressBar):
             """When an event of compilation completes, this function will be called, and
             will update the progress bar indication.
 
-            Args
+            Args:
                 progress: Number of tasks completed
             """
             self.update(progress)

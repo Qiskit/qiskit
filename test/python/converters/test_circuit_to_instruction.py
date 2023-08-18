@@ -12,12 +12,16 @@
 
 """Tests for the converters."""
 
+import math
 import unittest
+
+import numpy as np
 
 from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
@@ -202,6 +206,17 @@ class TestCircuitToInstruction(QiskitTestCase):
         expected_instruction = expected.data[0]
         self.assertIs(type(test_instruction.operation), type(expected_instruction.operation))
         self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
+
+    def test_zero_operands(self):
+        """Test that an instruction can be created, even if it has zero operands."""
+        base = QuantumCircuit(global_phase=math.pi)
+        instruction = base.to_instruction()
+        self.assertEqual(instruction.num_qubits, 0)
+        self.assertEqual(instruction.num_clbits, 0)
+        self.assertEqual(instruction.definition, base)
+        compound = QuantumCircuit(1)
+        compound.append(instruction, [], [])
+        np.testing.assert_allclose(-np.eye(2), Operator(compound), atol=1e-16)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,8 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
-from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
+from qiskit.pulse.utils import instruction_duration_validation
+from qiskit.utils.deprecation import deprecate_func
 
 
 class AlignmentKind(abc.ABC):
@@ -44,7 +45,7 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
-    @deprecated_functionality
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__}
@@ -329,7 +330,7 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
-    @deprecated_functionality
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__, "duration": self.duration}
@@ -408,12 +409,14 @@ class AlignFunc(AlignmentKind):
             _t_center = self.duration * self.func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
-                PulseError("Invalid schedule position t=%d is specified at index=%d" % (_t0, ind))
+                raise PulseError(
+                    "Invalid schedule position t=%d is specified at index=%d" % (_t0, ind)
+                )
             aligned.insert(_t0, child, inplace=True)
 
         return aligned
 
-    @deprecated_functionality
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment.
 

@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Added the ability for analysis passes to set custom heuristic weights
+    for the :class:`~.VF2Layout` and :class:`~.VF2PostLayout` transpiler
+    passes. If an analysis pass sets the ``vf2_avg_error_map`` key in the
+    property set, its value is used for the error weights instead of
+    the error rates from the backend's :class:`~.Target` (or
+    :class:`~.BackendProperties` for :class:`~.BackendV1`). The value should be
+    an :class:`~.ErrorMap` instance, where each value represents the avg error rate
+    for all 1 or 2 qubit operation on those qubits. If a value is ``NaN``, the
+    corresponding edge is treated as an ideal edge (or qubit for 1q operations).
+    For example, an error map created as::
+
+        from qiskit.transpiler.passes.layout.vf2_utils import ErrorMap
+
+        error_map = ErrorMap(3)
+        error_map.add_error((0, 0), 0.0024)
+        error_map.add_error((0, 1), 0.01)
+        error_map.add_error((1, 1), 0.0032)
+
+    describes a 2 qubit target, where the avg 1q error
+    rate is ``0.0024`` on qubit 0 and ``0.0032`` on qubit 1, the avg 2q
+    error rate for gates that operate on (0, 1) is 0.01, and (1, 0) is not
+    supported by the target. This will be used for scoring if it's set for the
+    ``vf2_avg_error_map`` key in the property set when :class:`~.VF2Layout` and
+    :class:`~.VF2PostLayout` are run.

@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    Added some error checks to :meth:`~qiskit.primitives.BaseSampler.run`.
-    It raises an error if there is no classical bit or some classical bits
-    are not used for measurements.
-

@@ -12,10 +12,8 @@
 
 """A test for visualizing device coupling maps"""
 import unittest
-import sys
 
 from io import BytesIO
-from PIL import Image
 from ddt import ddt, data
 from qiskit.providers.fake_provider import (
     FakeProvider,
@@ -32,20 +30,19 @@ from qiskit.visualization import (
 )
 from qiskit.utils import optionals
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout, TranspileLayout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
+if optionals.HAS_PIL:
+    from PIL import Image
 
 
-@unittest.skipIf(
-    sys.version_info < (3, 7),
-    "Skipping image comparison tests on python 3.6 as they "
-    "depend on the local matplotlib environment matching the "
-    "environment for the reference images which is only >=3.7",
-)
 @ddt
+@unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+@unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
+@unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 class TestGateMap(QiskitVisualizationTestCase):
     """visual tests for plot_gate_map"""
 
@@ -58,7 +55,6 @@ class TestGateMap(QiskitVisualizationTestCase):
     )
 
     @data(*backends)
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map(self, backend):
         """tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
         n = backend.configuration().n_qubits
@@ -71,14 +67,16 @@ class TestGateMap(QiskitVisualizationTestCase):
         plt.close(fig)
 
     @data(*backends)
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_circuit_layout(self, backend):
         """tests plot_circuit_layout for each device"""
         layout_length = int(backend._configuration.n_qubits / 2)
         qr = QuantumRegister(layout_length, "qr")
         circuit = QuantumCircuit(qr)
-        circuit._layout = Layout({qr[i]: i * 2 for i in range(layout_length)})
-        circuit._layout.add_register(qr)
+        circuit._layout = TranspileLayout(
+            Layout({qr[i]: i * 2 for i in range(layout_length)}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        circuit._layout.initial_layout.add_register(qr)
         n = backend.configuration().n_qubits
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         fig = plot_circuit_layout(circuit, backend)
@@ -88,7 +86,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_gate_map_no_backend(self):
         """tests plotting of gate map without a device"""
         n_qubits = 8
@@ -104,7 +101,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_backend_v1(self):
         """Test plotting error map with fake backend v1."""
         backend = FakeKolkata()
@@ -116,7 +112,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_backend_v2(self):
         """Test plotting error map with fake backend v2."""
         backend = FakeKolkataV2()
@@ -128,7 +123,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_over_100_qubit(self):
         """Test plotting error map with large fake backend."""
         backend = FakeWashington()
@@ -140,7 +134,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
         plt.close(fig)
 
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_plot_error_map_over_100_qubit_backend_v2(self):
         """Test plotting error map with large fake backendv2."""
         backend = FakeWashingtonV2()

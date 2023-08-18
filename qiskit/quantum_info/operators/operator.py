@@ -14,20 +14,27 @@
 Matrix Operator class.
 """
 
+from __future__ import annotations
+
 import copy
 import re
 from numbers import Number
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
 from qiskit.circuit.operation import Operation
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
+
+if TYPE_CHECKING:
+    from qiskit.transpiler.layout import Layout
 
 
 class Operator(LinearOp):
@@ -49,7 +56,12 @@ class Operator(LinearOp):
         \rho \mapsto M \rho M^\dagger.
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Operation | BaseOperator | np.ndarray,
+        input_dims: tuple | None = None,
+        output_dims: tuple | None = None,
+    ):
         """Initialize an operator object.
 
         Args:
@@ -129,7 +141,7 @@ class Operator(LinearOp):
 
     @property
     def data(self):
-        """Return data."""
+        """The underlying Numpy array."""
         return self._data
 
     @property
@@ -141,8 +153,72 @@ class Operator(LinearOp):
             "output_dims": self.output_dims(),
         }
 
+    def draw(self, output=None, **drawer_args):
+        """Return a visualization of the Operator.
+
+        **repr**: String of the state's ``__repr__``.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                Default is `repr`.
+            drawer_args: Arguments to be passed directly to the relevant drawing
+                function or constructor (`TextMatrix()`, `array_to_latex()`).
+                See the relevant function under `qiskit.visualization` for that function's
+                documentation.
+
+        Returns:
+            :class:`str` or :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the Operator.
+
+        Raises:
+            ValueError: when an invalid output method is selected.
+
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import array_to_latex
+
+        default_output = "repr"
+        if output is None:
+            output = default_output
+
+        if output == "repr":
+            return self.__repr__()
+
+        elif output == "text":
+            from qiskit.visualization.state_visualization import TextMatrix
+
+            return TextMatrix(self, **drawer_args)
+
+        elif output == "latex":
+            return array_to_latex(self, **drawer_args)
+
+        elif output == "latex_source":
+            return array_to_latex(self, source=True, **drawer_args)
+
+        else:
+            raise ValueError(
+                f"""'{output}' is not a valid option for drawing {type(self).__name__} objects. 
+            Please choose from: 'text', 'latex', or 'latex_source'."""
+            )
+
+    def _ipython_display_(self):
+        out = self.draw()
+        if isinstance(out, str):
+            print(out)
+        else:
+            from IPython.display import display
+
+            display(out)
+
     @classmethod
-    def from_label(cls, label):
+    def from_label(cls, label: str) -> Operator:
         """Return a tensor product of single-qubit operators.
 
         Args:
@@ -198,11 +274,96 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
-    @classmethod
-    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None):
-        """Create a new Operator object from a :class`.QuantumCircuit`
+    def apply_permutation(self, perm: list, front: bool = False) -> Operator:
+        """Modifies operator's data by composing it with a permutation.
 
-        While a :class:`.QuantumCircuit` object can passed directly as ``data``
+        Args:
+            perm (list): permutation pattern, describing which qubits
+                occupy the positions 0, 1, 2, etc. after applying the permutation.
+            front (bool): When set to ``True`` the permutation is applied before the
+                operator, when set to ``False`` the permutation is applied after the
+                operator.
+        Returns:
+            Operator: The modified operator.
+
+        Raises:
+            QiskitError: if the size of the permutation pattern does not match the
+                dimensions of the operator.
+        """
+
+        # See https://github.com/Qiskit/qiskit-terra/pull/9403 for the math
+        # behind the following code.
+
+        inv_perm = np.argsort(perm)
+        raw_shape_l = self._op_shape.dims_l()
+        n_dims_l = len(raw_shape_l)
+        raw_shape_r = self._op_shape.dims_r()
+        n_dims_r = len(raw_shape_r)
+
+        if front:
+            # The permutation is applied first, the operator is applied after;
+            # however, in terms of matrices, we compute [O][P].
+
+            if len(perm) != n_dims_r:
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
+
+            # shape: original on left, permuted on right
+            shape_l = self._op_shape.dims_l()
+            shape_r = tuple(raw_shape_r[n_dims_r - n - 1] for n in reversed(perm))
+
+            # axes order: id on left, inv-permuted on right
+            axes_l = tuple(x for x in range(self._op_shape._num_qargs_l))
+            axes_r = tuple(self._op_shape._num_qargs_l + x for x in (np.argsort(perm[::-1]))[::-1])
+
+            # updated shape: original on left, permuted on right
+            new_shape_l = self._op_shape.dims_l()
+            new_shape_r = tuple(raw_shape_r[n_dims_r - n - 1] for n in reversed(inv_perm))
+
+        else:
+            # The operator is applied first, the permutation is applied after;
+            # however, in terms of matrices, we compute [P][O].
+
+            if len(perm) != n_dims_l:
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
+
+            # shape: inv-permuted on left, original on right
+            shape_l = tuple(raw_shape_l[n_dims_l - n - 1] for n in reversed(inv_perm))
+            shape_r = self._op_shape.dims_r()
+
+            # axes order: permuted on left, id on right
+            axes_l = tuple((np.argsort(inv_perm[::-1]))[::-1])
+            axes_r = tuple(
+                self._op_shape._num_qargs_l + x for x in range(self._op_shape._num_qargs_r)
+            )
+
+            # updated shape: permuted on left, original on right
+            new_shape_l = tuple(raw_shape_l[n_dims_l - n - 1] for n in reversed(perm))
+            new_shape_r = self._op_shape.dims_r()
+
+        # Computing the new operator
+        split_shape = shape_l + shape_r
+        axes_order = axes_l + axes_r
+        new_mat = (
+            self._data.reshape(split_shape).transpose(axes_order).reshape(self._op_shape.shape)
+        )
+        new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
+        return new_op
+
+    @classmethod
+    def from_circuit(
+        cls,
+        circuit: QuantumCircuit,
+        ignore_set_layout: bool = False,
+        layout: Layout | None = None,
+        final_layout: Layout | None = None,
+    ) -> Operator:
+        """Create a new Operator object from a :class:`.QuantumCircuit`
+
+        While a :class:`~.QuantumCircuit` object can passed directly as ``data``
         to the class constructor this provides no options on how the circuit
         is used to create an :class:`.Operator`. This constructor method lets
         you control how the :class:`.Operator` is created so it can be adjusted
@@ -221,7 +382,12 @@ class Operator(LinearOp):
             layout (Layout): If specified this kwarg can be used to specify a
                 particular layout to use to permute the qubits in the created
                 :class:`.Operator`. If this is specified it will be used instead
-                of a layout contained in the ``circuit`` input.
+                of a layout contained in the ``circuit`` input. If specified
+                the virtual bits in the :class:`~.Layout` must be present in the
+                ``circuit`` input.
+            final_layout (Layout): If specified this kwarg can be used to represent the
+                output permutation caused by swap insertions during the routing stage
+                of the transpiler.
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -230,18 +396,34 @@ class Operator(LinearOp):
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
+        else:
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
+        if final_layout is None:
+            if not ignore_set_layout and layout is not None:
+                final_layout = getattr(layout, "final_layout", None)
+
         qargs = None
         # If there was a layout specified (either from the circuit
         # or via user input) use that to set qargs to permute qubits
         # based on that layout
         if layout is not None:
-            qargs = {
-                phys: circuit.find_bit(bit).index
-                for phys, bit in layout.get_physical_bits().items()
-            }
+            physical_to_virtual = layout.initial_layout.get_physical_bits()
+            qargs = [
+                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
+                for physical_bit in range(len(physical_to_virtual))
+            ]
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
+        # If final layout is set permute output indices based on layout
+        if final_layout is not None:
+            perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
+            op = op.apply_permutation(perm_pattern, front=False)
         return op
 
     def is_unitary(self, atol=None, rtol=None):
@@ -252,7 +434,7 @@ class Operator(LinearOp):
             rtol = self.rtol
         return is_unitary_matrix(self._data, rtol=rtol, atol=atol)
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert operator to matrix operator class"""
         return self
 
@@ -276,7 +458,7 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.transpose()
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Operator, qargs: list | None = None, front: bool = False) -> Operator:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, Operator):
@@ -318,7 +500,7 @@ class Operator(LinearOp):
         tensor = np.reshape(self.data, self._op_shape.tensor_shape)
         mat = np.reshape(other.data, other._op_shape.tensor_shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
-        final_shape = [np.product(output_dims), np.product(input_dims)]
+        final_shape = [int(np.prod(output_dims)), int(np.prod(input_dims))]
         data = np.reshape(
             Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
         )
@@ -326,7 +508,7 @@ class Operator(LinearOp):
         ret._op_shape = new_shape
         return ret
 
-    def power(self, n):
+    def power(self, n: float) -> Operator:
         """Return the matrix power of the operator.
 
         Args:
@@ -345,12 +527,12 @@ class Operator(LinearOp):
         ret._data = np.linalg.matrix_power(self.data, n)
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: Operator) -> Operator:
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Operator) -> Operator:
         if not isinstance(other, Operator):
             other = Operator(other)
         return self._tensor(other, self)
@@ -414,7 +596,7 @@ class Operator(LinearOp):
         ret._data = other * self._data
         return ret
 
-    def equiv(self, other, rtol=None, atol=None):
+    def equiv(self, other: Operator, rtol: float | None = None, atol: float | None = None) -> bool:
         """Return True if operators are equivalent up to global phase.
 
         Args:
@@ -438,7 +620,7 @@ class Operator(LinearOp):
             rtol = self.rtol
         return matrix_equal(self.data, other.data, ignore_phase=True, rtol=rtol, atol=atol)
 
-    def reverse_qargs(self):
+    def reverse_qargs(self) -> Operator:
         r"""Return an Operator with reversed subsystem ordering.
 
         For a tensor product operator this is equivalent to reversing
@@ -459,6 +641,10 @@ class Operator(LinearOp):
         )
         ret._op_shape = self._op_shape.reverse()
         return ret
+
+    def to_matrix(self):
+        """Convert operator to NumPy matrix."""
+        return self.data
 
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):

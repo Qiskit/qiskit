@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`.generate_basic_approximations` where the inverse of the 
+    :class:`.SdgGate` was not correctly recognized as :class:`.SGate`.
+    Fixed `#9585 <https://github.com/Qiskit/qiskit-terra/issues/9585>`__.
