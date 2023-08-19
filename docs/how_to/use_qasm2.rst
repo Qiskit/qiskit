@@ -23,7 +23,7 @@ which acts like a building block encapsulating the circuit's functionality.
     from qiskit import QuantumCircuit
     import numpy as np
 
-    custom_gate = QuantumCircuit(1) # Adds a custom gate to qubit 1
+    custom_gate = QuantumCircuit(1)
     custom_gate.h(0)
     custom_gate.rz(np.pi,0)
     custom_gate.h(0)
@@ -36,7 +36,7 @@ which acts like a building block encapsulating the circuit's functionality.
     qc.cx(0,1)
     qc.cx(1,2)
     qc.cx(2,3)
-    qc.append(gate,[1])  # To add a custom gate, you need to use the method append.
+    qc.append(gate,[1])  # Adds a custom gate to qubit 1
     qc.barrier()
     qc.measure(range(4),range(4))
     qc.draw("mpl")
