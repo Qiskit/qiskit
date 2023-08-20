@@ -505,17 +505,30 @@ class MatplotlibDrawer:
                     for circ_num, circuit in enumerate(circuit_list):
                         raw_gate_width = 0.0
 
+                        print("\nwire map", wire_map)
+                        print("\ncirc qubits", circuit.qubits)
+                        print(node.qargs)
                         # Depth of nested ControlFlowOp used for color of box
                         if self._flow_parent is not None:
                             node_data[node].nest_depth = node_data[self._flow_parent].nest_depth + 1
-                        # Update the wire_map with the qubits from the inner circuit
+
+                        # Update the wire_map with the qubits and clbits from the inner circuit
                         flow_wire_map = {
                             inner: wire_map[outer]
-                            for outer, inner in zip(self._qubits, circuit.qubits)
+                            for outer, inner in zip(node.qargs, circuit.qubits)
                             if inner not in wire_map
                         }
+                        flow_wire_map.update(
+                            {
+                                inner: wire_map[outer]
+                                for outer, inner in zip(node.cargs, circuit.clbits)
+                                if inner not in wire_map
+                            }
+                        )
                         if not flow_wire_map:
                             flow_wire_map = wire_map
+                        else:
+                            flow_wire_map.update(wire_map)
 
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
@@ -536,10 +549,13 @@ class MatplotlibDrawer:
                         # flow_parent is the parent of the new class instance
                         flow_drawer._flow_parent = node
                         flow_drawer._flow_wire_map = flow_wire_map
+                        node_data[node].flow_wire_map = flow_wire_map
                         self._flow_drawers[node].append(flow_drawer)
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
-                        flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
+                        flow_widths = flow_drawer._get_layer_widths(
+                            node_data, flow_wire_map, glob_data
+                        )
                         layer_widths.update(flow_widths)
 
                         # Gates within a SwitchCaseOp need to know which case they are in
@@ -999,7 +1015,12 @@ class MatplotlibDrawer:
                         )
                         for ii in clbits_dict
                     ]
-                    self._condition(node, node_data, wire_map, cond_xy, glob_data)
+                    flow_parent = layer_widths[node][2]
+                    if not flow_parent or not node_data[flow_parent].flow_wire_map:
+                        wmap = wire_map
+                    else:
+                        wmap = node_data[flow_parent].flow_wire_map
+                    self._condition(node, node_data, wmap, cond_xy, glob_data)
 
                 # draw measure
                 if isinstance(op, Measure):
@@ -1897,6 +1918,7 @@ class NodeData:
         self.fc = self.ec = self.lc = self.sc = self.gt = self.tc = 0
 
         # Special values stored for ControlFlowOps
+        self.flow_wire_map = {}
         self.nest_depth = 0
         self.inside_flow = False
         self.indexset = ()  # List of indices used for ForLoopOp
