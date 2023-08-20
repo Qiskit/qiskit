@@ -627,14 +627,17 @@ def plot_state_city(
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
 ):
-    r"""Plot the paulivec representation of a quantum state.
+    r"""Plot the Pauli-vector representation of a quantum state as bar graph.
 
-    Plot a bargraph of the density matrix of a quantum state using as a basis all
-    possible tensor products of Pauli operators and identities, that is,
-    :math:`\{\bigotimes_{i=0}^{N-1}P_i\}_{P_i\in \{I,X,Y,Z\}}`, where
-    :math:`N` is the number of qubits.
+    The Pauli-vector of a density matrix :math:`\rho` is defined by the expectation of each
+    possible tensor product of single-qubit Pauli operators (including the identity), that is
 
+    .. math ::
 
+        \rho = \frac{1}{2^n} \sum_{\sigma \in \{I, X, Y, Z\}^{\otimes n}}
+               \mathrm{Tr}(\sigma \rho) \sigma.
+
+    This function plots the coefficients :math:`\mathrm{Tr}(\sigma\rho)` as bar graph.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
@@ -1574,4 +1577,4 @@ def _paulivec_data(state):
     rho = SparsePauliOp.from_operator(DensityMatrix(state))
     if rho.num_qubits is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    return rho.paulis.to_labels(), np.real(rho.coeffs)
+    return rho.paulis.to_labels(), np.real(rho.coeffs * 2**rho.num_qubits)

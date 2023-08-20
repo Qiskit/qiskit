@@ -208,12 +208,13 @@ fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
 /// Run sabre swap on a circuit
 ///
 /// Returns:
-///     (SwapMap, gate_order): A tuple where the first element is a mapping of
+///     (SwapMap, gate_order, node_block_results): A tuple where the first element is a mapping of
 ///     DAGCircuit node ids to a list of virtual qubit swaps that should be
 ///     added before that operation. The second element is a numpy array of
 ///     node ids that represents the traversal order used by sabre.
 #[pyfunction]
 pub fn build_swap_map(
+    py: Python,
     num_qubits: usize,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
@@ -223,9 +224,9 @@ pub fn build_swap_map(
     num_trials: usize,
     seed: Option<u64>,
     run_in_parallel: Option<bool>,
-) -> SabreResult {
+) -> (SwapMap, PyObject, NodeBlockResults) {
     let dist = distance_matrix.as_array();
-    build_swap_map_inner(
+    let res = build_swap_map_inner(
         num_qubits,
         dag,
         neighbor_table,
@@ -235,6 +236,11 @@ pub fn build_swap_map(
         layout,
         num_trials,
         run_in_parallel,
+    );
+    (
+        res.map,
+        res.node_order.into_pyarray(py).into(),
+        res.node_block_results,
     )
 }
 
