@@ -5277,8 +5277,6 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         with circuit.if_test((cr[1], 1)):
             circuit.h(0)
             circuit.cx(0, 1)
-        print("\n\n", str(_text_circuit_drawer(circuit, initial_state=False)))
-        print("\n", expected)
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_if_else_with_body_specified(self):

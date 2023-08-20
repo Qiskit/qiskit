@@ -1318,7 +1318,7 @@ class TextDrawing:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
                     qubits[: len(self.qubits)],
-                    clbits,
+                    self.clbits,
                     self.cregbundle,
                     circuit,
                     flow_wire_map,
@@ -1494,7 +1494,6 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        print("\nCLBIT", clbit, element)
         register = get_bit_register(self._circuit, clbit)
         if self.cregbundle and register is not None:
             self.clbit_layer[self._wire_map[register] - len(self.qubits)] = element
@@ -1685,7 +1684,7 @@ class Layer:
             cond_bits = []
 
             if isinstance(condition[0], Clbit):
-                for i, bit in enumerate(self.clbits):
+                for i, bit in enumerate(wire_map.keys()):
                     if bit == condition[0]:
                         clbits.append(bit)
                         reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
@@ -1722,17 +1721,17 @@ class Layer:
             if bit == clbits[-1]:
                 bot_connect = label
             if val_bits[i] == "1":
-                self.clbit_layer[self.clbits.index(bit)] = ClBullet(
+                self.clbit_layer[wire_map[bit] - len(self.qubits)] = ClBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
             elif val_bits[i] == "0":
-                self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
+                self.clbit_layer[wire_map[bit] - len(self.qubits)] = ClOpenBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
-            actual_index = self.clbits.index(bit) + len(self.qubits)
+            actual_index = wire_map[bit]
             if actual_index not in [i for i, j in current_cons]:
                 current_cons.append(
-                    (actual_index, self.clbit_layer[self.clbits.index(bit)])
+                    (actual_index, self.clbit_layer[wire_map[bit] - len(self.qubits)])
                 )
         return current_cons
 
