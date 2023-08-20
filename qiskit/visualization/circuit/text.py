@@ -1280,8 +1280,7 @@ class TextDrawing:
         """Add control flow ops to the circuit drawing."""
 
         # # Draw a left box such as If, While, For, and Switch
-        flow_layer, current_cons_cond = self.draw_flow_box(node, wire_map, CF_LEFT)
-        flow_layer.connections.append((None, current_cons_cond))
+        flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT)
         layers.append(flow_layer.full_layer)
 
         # Get the list of circuits in the ControlFlowOp from the node blocks
@@ -1306,11 +1305,10 @@ class TextDrawing:
                 }
             )
             flow_wire_map.update(wire_map)
-            print(flow_wire_map)
 
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
-                flow_layer, current_cons_cond = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
+                flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
             qubits, clbits, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
@@ -1329,8 +1327,6 @@ class TextDrawing:
                         self._nest_depth += 1
                         self.add_control_flow(layer_node, layers, flow_wire_map)
                         self._nest_depth -= 1
-                        flow_layer2.connections.append((connection_label, current_cons))
-                        flow_layer2.connections.append((None, current_cons_cond))
                     else:
                         (
                             flow_layer2,
@@ -1345,7 +1341,7 @@ class TextDrawing:
                 layers.append(flow_layer2.full_layer)
 
         # Draw the right box for End
-        flow_layer, _ = self.draw_flow_box(node, flow_wire_map, CF_RIGHT)
+        flow_layer = self.draw_flow_box(node, flow_wire_map, CF_RIGHT)
         layers.append(flow_layer.full_layer)
 
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
@@ -1372,7 +1368,7 @@ class TextDrawing:
         elif section == CF_MID:
             if isinstance(node.op, IfElseOp):
                 label = "Else-" + depth
-            elif isinstance(node.op, SwitchCaseOp):
+            else:
                 jump_list = []
                 for jump_values, _ in list(node.op.cases_specifier()):
                     jump_list.append(jump_values)
@@ -1382,22 +1378,19 @@ class TextDrawing:
                 else:
                     jump_str = str(jump_list[circ_num])
                 label = "Case-" + depth + " " + jump_str
+
         else:
             label = "End-" + depth
 
         flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map)
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
-            print("\nflow_wire_map", flow_wire_map)
-            print(node.qargs)
             flow_layer.set_qubit(
                 self.qubits[flow_wire_map[node.qargs[0]]],
                 FlowOnQuWire(label=label, conditional=conditional, section=section),
             )
         else:
             # If multiple qubits, must use wire_map to handle wire_order changes.
-            print("\nflow_wire_map", flow_wire_map)
-            print(node.qargs)
             idx_list = [flow_wire_map[qarg] for qarg in node.qargs]
             min_idx = min(idx_list)
             max_idx = max(idx_list)
@@ -1427,7 +1420,6 @@ class TextDrawing:
                     section=section,
                 ),
             )
-        current_cons_cond = []
         if conditional:
             if isinstance(node.op, SwitchCaseOp):
                 if isinstance(node.op.target, Clbit):
@@ -1436,9 +1428,9 @@ class TextDrawing:
                     condition = (node.op.target, 2 ** (node.op.target.size) - 1)
             else:
                 condition = node.op.condition
-            current_cons_cond = flow_layer.set_cl_multibox(condition, flow_wire_map, top_connect="╨")
+            _ = flow_layer.set_cl_multibox(condition, flow_wire_map, top_connect="╨")
 
-        return flow_layer, current_cons_cond
+        return flow_layer
 
 
 class Layer:
@@ -1684,7 +1676,7 @@ class Layer:
             cond_bits = []
 
             if isinstance(condition[0], Clbit):
-                for i, bit in enumerate(wire_map.keys()):
+                for i, bit in enumerate(self.clbits):
                     if bit == condition[0]:
                         clbits.append(bit)
                         reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
