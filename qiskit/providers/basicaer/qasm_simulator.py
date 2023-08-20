@@ -75,7 +75,7 @@ class QasmSimulatorPy(BackendV1):
             {
                 "name": "h",
                 "parameters": [],
-                "qasm_def": "gate h q { UU(pi/2,0,pi) q; }",
+                "qasm_def": "gate h q { U(pi/2,0,pi) q; }",
             },
             {
                 "name": "p",
