@@ -29,14 +29,6 @@ Advanced circuits
 
    tutorials/circuits_advanced/*
 
-Algorithms
-==========
-
-.. nbgallery::
-   :glob:
-
-   tutorials/algorithms/*
-
 Operators
 =========
 
