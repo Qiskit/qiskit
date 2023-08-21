@@ -5568,21 +5568,21 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         """Test that the gates inside ControlFlowOps land on correct qubits when transpiled"""
         expected = "\n".join(
             [
-                "                                           ",
-                "     qr_1 -> 0 ────────────────────────────",
-                "                                           ",
-                "ancilla_0 -> 1 ────────────────────────────",
-                "                                           ",
-                "ancilla_1 -> 2 ────────────────────────────",
-                "                                           ",
-                "ancilla_2 -> 3 ────────────────────────────",
-                "               ┌────── ┌────────┐ ───────┐ ",
-                "     qr_0 -> 4 ┤ If-0  ┤ Rz(-π) ├  End-0 ├─",
-                "               └──╥─── └────────┘ ───────┘ ",
-                "         cr_0: ═══o════════════════════════",
-                "                  ║                        ",
-                "         cr_1: ═══■════════════════════════",
-                "                 0x2                       ",
+                "                                                                  ",
+                "     qr_1 -> 0 ───────────────────────────────────────────────────",
+                "                                                                  ",
+                "ancilla_0 -> 1 ───────────────────────────────────────────────────",
+                "                                                                  ",
+                "ancilla_1 -> 2 ───────────────────────────────────────────────────",
+                "                                                                  ",
+                "ancilla_2 -> 3 ───────────────────────────────────────────────────",
+                "               ┌────── ┌────────┐┌────── ┌───┐ ───────┐  ───────┐ ",
+                "     qr_0 -> 4 ┤ If-0  ┤ Rz(-π) ├┤ If-1  ┤ X ├  End-1 ├─  End-0 ├─",
+                "               └──╥─── └────────┘└──╥─── └───┘ ───────┘  ───────┘ ",
+                "         cr_0: ═══o═════════════════╬═════════════════════════════",
+                "                  ║                 ║                             ",
+                "         cr_1: ═══■═════════════════■═════════════════════════════",
+                "                 0x2                                              ",
             ]
         )
 
@@ -5592,12 +5592,51 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         with qc.if_test((creg, 2)):
             qc.z(0)
+            with qc.if_test((creg[1], 1)):
+                qc.x(0)
 
         backend = FakeBelemV2()
         backend.target.add_instruction(IfElseOp, name="if_else")
 
         circuit = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         self.assertEqual(str(_text_circuit_drawer(circuit, fold=78, initial_state=False)), expected)
+
+    def test_if_else_op_from_circuit_with_conditions(self):
+        """Test an IfElseOp built from circuit with conditions inside the if using inner creg"""
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─────  ┌────┐        ──────┐ ",
+                " q_0: ┤ H ├┤       ┤ X1 ├──────        ├─",
+                "      └───┘│       └─╥──┘┌────┐        │ ",
+                " q_1: ─────┤ If-0  ──╫───┤ X2 ├  End-0 ├─",
+                "      ┌───┐│         ║   └─╥──┘        │ ",
+                " q_2: ┤ X ├┤       ──╫─────╫───        ├─",
+                "      └─╥─┘└──╥──    ║     ║     ──────┘ ",
+                " q_3: ──╫─────╫──────╫─────╫─────────────",
+                "        ║     ║      ║     ║             ",
+                "cr_0: ══╬═════╬══════o═════╬═════════════",
+                "        ║     ║      ║     ║             ",
+                "cr_1: ══■═════■══════o═════■═════════════",
+                "                     ║                   ",
+                "cr_2: ═══════════════■═══════════════════",
+                "                    0x4                  ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(0)
+        circuit.x(2).c_if(cr[1], 2)
+
+        qr2 = QuantumRegister(3, "qr2")
+        cr2 = ClassicalRegister(3, "cr2")
+        qc2 = QuantumCircuit(qr2, cr2)
+        qc2.x(0, label="X1").c_if(cr2, 4)
+        qc2.x(1, label="X2").c_if(cr2[1], 1)
+
+        circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
 
 if __name__ == "__main__":

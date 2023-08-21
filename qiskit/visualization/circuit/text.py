@@ -1311,7 +1311,7 @@ class TextDrawing:
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
-            qubits, clbits, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            qubits, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
@@ -1627,6 +1627,7 @@ class Layer:
 
         Args:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
+            wire_map (dict): Map of bits to indices
             top_connect (char): The char to connect the box on the top.
 
         Returns:
@@ -1672,28 +1673,11 @@ class Layer:
                 self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
             return []
         else:
-            clbits = []
-            cond_bits = []
-
             if isinstance(condition[0], Clbit):
-                for i, bit in enumerate(self.clbits):
-                    if bit == condition[0]:
-                        clbits.append(bit)
-                        reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
-                        cond_bits.append(reg_index)
-                        return self.set_cond_bullets(label, val_bits, clbits, wire_map)
-                return []# self.set_cond_bullets(label, val_bits, clbits, wire_map)
+                clbits = [condition[0]]
             else:
-                for i, bit in enumerate(self.clbits):
-                    if isinstance(bit, ClassicalRegister):
-                        reg = bit
-                    else:
-                        reg, _, reg_index = get_bit_reg_index(self._circuit, bit)
-                    if reg == cond_reg:
-                        cond_bits.append(reg_index)
-                        clbits.append(self.clbits[i])
-                val_bits_sorted = [bit for _, bit in sorted(zip(cond_bits, val_bits))]
-                return self.set_cond_bullets(label, val_bits_sorted, clbits, wire_map)
+                clbits = [cond_reg[idx] for idx in range(cond_reg.size)]
+            return self.set_cond_bullets(label, val_bits, clbits, wire_map)
 
     def set_cond_bullets(self, label, val_bits, clbits, wire_map):
         """Sets bullets for classical conditioning when cregbundle=False.
@@ -1703,14 +1687,16 @@ class Layer:
             val_bits (list(int)): A list of bit values
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
+            wire_map (dict): Map of bits to indices
 
         Returns:
             List: list of tuples of open or closed bullets for condition bits
         """
         current_cons = []
+        wire_max = max(wire_map[bit] for bit in clbits)
         for i, bit in enumerate(clbits):
             bot_connect = " "
-            if bit == clbits[-1]:
+            if wire_map[bit] == wire_max:
                 bot_connect = label
             if val_bits[i] == "1":
                 self.clbit_layer[wire_map[bit] - len(self.qubits)] = ClBullet(
