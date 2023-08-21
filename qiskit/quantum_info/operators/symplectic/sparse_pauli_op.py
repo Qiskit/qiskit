@@ -114,7 +114,7 @@ class SparsePauliOp(LinearOp):
             QiskitError: If the input data or coeffs are invalid.
         """
         if ignore_pauli_phase and not isinstance(data, PauliList):
-            raise QiskitError("ignore_pauli_list=True is only valid with PauliList data")
+            raise QiskitError("ignore_pauli_phase=True is only valid with PauliList data")
 
         if isinstance(data, SparsePauliOp):
             if coeffs is None:
