@@ -129,6 +129,7 @@ Exceptions
 .. autoexception:: BackendPropertyError
 .. autoexception:: JobError
 .. autoexception:: JobTimeoutError
+.. autoexception:: BackendConfigurationError
 
 ======================
 Writing a New Provider
