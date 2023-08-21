@@ -109,22 +109,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         layout = None
         routing = None
-    if translation_method not in {"translator", "synthesis", "unroller"}:
-        translation = plugin_manager.get_passmanager_stage(
-            "translation", translation_method, pass_manager_config, optimization_level=2
-        )
-    else:
-        translation = common.generate_translation_passmanager(
-            target,
-            basis_gates,
-            translation_method,
-            approximation_degree,
-            coupling_map,
-            backend_properties,
-            unitary_synthesis_method,
-            unitary_synthesis_plugin_config,
-            hls_config,
-        )
+    translation = plugin_manager.get_passmanager_stage(
+        "translation", translation_method, pass_manager_config, optimization_level=2
+    )
 
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
