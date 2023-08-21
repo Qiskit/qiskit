@@ -15,12 +15,12 @@
 Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules.
 """
-
+from __future__ import annotations
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler import ConditionalController
+from qiskit.transpiler import ConditionalController, FlowController
 
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
@@ -68,7 +68,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     """
     plugin_manager = PassManagerStagePluginManager()
     basis_gates = pass_manager_config.basis_gates
-    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method
@@ -76,13 +75,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
-    scheduling_method = pass_manager_config.scheduling_method
-    instruction_durations = pass_manager_config.instruction_durations
+    scheduling_method = pass_manager_config.scheduling_method or "default"
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
-    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
     hls_config = pass_manager_config.hls_config
@@ -109,7 +106,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return False
 
     # Try using VF2 layout to find a perfect layout
-    _choose_layout_0 = (
+    _choose_layout_0: list[BasePass] | BasePass = (
         []
         if pass_manager_config.layout_method
         else VF2Layout(
@@ -118,18 +115,27 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             call_limit=int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
+            max_trials=25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
         )
     )
 
+    if target is None:
+        coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
+
     if layout_method == "trivial":
-        _choose_layout_1 = TrivialLayout(coupling_map)
+        _choose_layout_1: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        if target is None:
+            _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _choose_layout_1 = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(
-            coupling_map,
+            coupling_map_layout,
             max_iterations=2,
             seed=seed_transpiler,
             swap_trials=10,
@@ -151,9 +157,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
-    _opt = [
+    _opt: list[BasePass] = [
         Optimize1qGatesDecomposition(basis=basis_gates, target=target),
-        CommutativeCancellation(basis_gates=basis_gates),
+        CommutativeCancellation(basis_gates=basis_gates, target=target),
     ]
 
     unroll_3q = None
@@ -182,7 +188,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(
                 [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
             )
-            embed = common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map_layout)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
             )
@@ -221,7 +227,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return not property_set["all_gates_in_basis"]
 
         # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis = [
+        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
             GatesInBasis(basis_gates, target=target),
             ConditionalController(unroll, condition=_unroll_condition),
         ]
@@ -232,16 +238,19 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         optimization = plugin_manager.get_passmanager_stage(
             "optimization", optimization_method, pass_manager_config, optimization_level=2
         )
-    if scheduling_method is None or scheduling_method in {"alap", "asap"}:
-        sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map
-        )
-    else:
-        sched = plugin_manager.get_passmanager_stage(
-            "scheduling", scheduling_method, pass_manager_config, optimization_level=2
-        )
-    init = common.generate_error_on_control_flow(
-        "The optimizations in optimization_level=2 do not yet support control flow."
+
+    sched = plugin_manager.get_passmanager_stage(
+        "scheduling", scheduling_method, pass_manager_config, optimization_level=2
+    )
+
+    init = common.generate_control_flow_options_check(
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        optimization_method=optimization_method,
+        scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(

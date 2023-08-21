@@ -14,8 +14,7 @@ Symplectic Pauli Table Class
 """
 # pylint: disable=invalid-name
 
-from typing import Dict
-from warnings import warn
+from __future__ import annotations
 
 import numpy as np
 
@@ -25,10 +24,11 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliTable(BaseOperator, AdjointMixin):
-    r"""Symplectic representation of a list Pauli matrices.
+    r"""DEPRECATED: Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
 
@@ -127,7 +127,8 @@ class PauliTable(BaseOperator, AdjointMixin):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    def __init__(self, data):
+    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.24.0")
+    def __init__(self, data: np.ndarray | str | ScalarOp | PauliTable):
         """Initialize the PauliTable.
 
         Args:
@@ -140,12 +141,6 @@ class PauliTable(BaseOperator, AdjointMixin):
             The input array is not copied so multiple Pauli tables
             can share the same underlying array.
         """
-        warn(
-            "The PauliTable class has been superseded by PauliList and is pending deprecation. "
-            "This class will be deprecated in the future release and subsequently removed after that.",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
         if isinstance(data, (np.ndarray, list)):
             self._array = np.asarray(data, dtype=bool)
         elif isinstance(data, str):
@@ -191,7 +186,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         return False
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict:
         """Return settings."""
         return {"data": self._array}
 
@@ -266,7 +261,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             value = PauliTable(value)
         self._array[key] = value.array
 
-    def delete(self, ind, qubit=False):
+    def delete(self, ind: int | list, qubit: bool = False) -> PauliTable:
         """Return a copy with Pauli rows deleted from table.
 
         When deleting qubits the qubit index is the same as the
@@ -305,7 +300,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         cols = ind + [self.num_qubits + i for i in ind]
         return PauliTable(np.delete(self._array, cols, axis=1))
 
-    def insert(self, ind, value, qubit=False):
+    def insert(self, ind: int, value: PauliTable, qubit: bool = False) -> PauliTable:
         """Insert Pauli's into the table.
 
         When inserting qubits the qubit index is the same as the
@@ -373,7 +368,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             )
         )
 
-    def argsort(self, weight=False):
+    def argsort(self, weight: bool = False) -> np.ndarray:
         """Return indices for sorting the rows of the table.
 
         The default sort method is lexicographic sorting by qubit number.
@@ -414,7 +409,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             indices = indices[weights.argsort(kind="stable")]
         return indices
 
-    def sort(self, weight=False):
+    def sort(self, weight: bool = False) -> PauliTable:
         """Sort the rows of the table.
 
         The default sort method is lexicographic sorting by qubit number.
@@ -477,7 +472,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """
         return self[self.argsort(weight=weight)]
 
-    def unique(self, return_index=False, return_counts=False):
+    def unique(self, return_index: bool = False, return_counts: bool = False) -> PauliTable:
         """Return unique Paulis from the table.
 
         **Example**
@@ -535,7 +530,7 @@ class PauliTable(BaseOperator, AdjointMixin):
     # BaseOperator methods
     # ---------------------------------------------------------------------
 
-    def tensor(self, other):
+    def tensor(self, other: PauliTable) -> PauliTable:
         """Return the tensor output product of two tables.
 
         This returns the combination of the tensor product of all Paulis
@@ -570,7 +565,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             other = PauliTable(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: PauliTable) -> PauliTable:
         """Return the expand output product of two tables.
 
         This returns the combination of the tensor product of all Paulis
@@ -605,7 +600,9 @@ class PauliTable(BaseOperator, AdjointMixin):
             other = PauliTable(other)
         return self._tensor(other, self)
 
-    def compose(self, other, qargs=None, front=True):
+    def compose(
+        self, other: PauliTable, qargs: None | list = None, front: bool = True
+    ) -> PauliTable:
         """Return the compose output product of two tables.
 
         This returns the combination of the dot product of all Paulis
@@ -663,7 +660,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             pauli = np.hstack((x1 ^ x2, z1 ^ z2))
         return PauliTable(pauli)
 
-    def dot(self, other, qargs=None):
+    def dot(self, other: PauliTable, qargs: None | list = None) -> PauliTable:
         """Return the dot output product of two tables.
 
         This returns the combination of the dot product of all Paulis
@@ -749,7 +746,7 @@ class PauliTable(BaseOperator, AdjointMixin):
     # Utility methods
     # ---------------------------------------------------------------------
 
-    def commutes(self, pauli):
+    def commutes(self, pauli: PauliTable) -> np.ndarray:
         """Return list of commutation properties for each row with a Pauli.
 
         The returned vector is the same length as the size of the table and
@@ -771,7 +768,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             raise QiskitError("Input is not a single Pauli.")
         return self._commutes(self, pauli)
 
-    def commutes_with_all(self, other):
+    def commutes_with_all(self, other: PauliTable) -> np.ndarray:
         """Return indexes of rows that commute other.
 
         If other is a multi-row Pauli table the returned vector indexes rows
@@ -786,7 +783,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """
         return self._commutes_with_all(other)
 
-    def anticommutes_with_all(self, other):
+    def anticommutes_with_all(self, other: PauliTable) -> np.ndarray:
         """Return indexes of rows that commute other.
 
         If other is a multi-row Pauli table the returned vector indexes rows
@@ -898,7 +895,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             array[i] = cls._from_label(labels[i])
         return cls(array)
 
-    def to_labels(self, array=False):
+    def to_labels(self, array: bool = False):
         r"""Convert a PauliTable to a list Pauli string labels.
 
         For large PauliTables converting using the ``array=True``
@@ -938,7 +935,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             return ret
         return ret.tolist()
 
-    def to_matrix(self, sparse=False, array=False):
+    def to_matrix(self, sparse: bool = False, array: bool = False) -> list:
         r"""Convert to a list or array of Pauli matrices.
 
         For large PauliTables converting using the ``array=True``
@@ -1034,7 +1031,9 @@ class PauliTable(BaseOperator, AdjointMixin):
         return "".join(paulis)
 
     @staticmethod
-    def _to_matrix(pauli, sparse=False, real_valued=False):
+    def _to_matrix(
+        pauli: np.ndarray, sparse: bool = False, real_valued: bool = False
+    ) -> np.ndarray:
         """Return the Pauli matrix from symplectic representation.
 
         Args:
@@ -1111,7 +1110,7 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         return LabelIterator(self)
 
-    def matrix_iter(self, sparse=False):
+    def matrix_iter(self, sparse: bool = False):
         """Return a matrix representation iterator.
 
         This is a lazy iterator that converts each row into the Pauli matrix

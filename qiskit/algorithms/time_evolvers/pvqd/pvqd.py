@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -74,17 +74,16 @@ class PVQD(RealTimeEvolver):
             import numpy as np
 
             from qiskit.algorithms.state_fidelities import ComputeUncompute
-            from qiskit.algorithms.time_evolvers.pvqd import PVQD
-            from qiskit.primitives import Estimator
-            from qiskit import BasicAer
+            from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, PVQD
+            from qiskit.primitives import Estimator, Sampler
             from qiskit.circuit.library import EfficientSU2
-            from qiskit.quantum_info import Pauli, SparsePauliOp
+            from qiskit.quantum_info import SparsePauliOp, Pauli
             from qiskit.algorithms.optimizers import L_BFGS_B
 
             sampler = Sampler()
             fidelity = ComputeUncompute(sampler)
             estimator = Estimator()
-            hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
+            hamiltonian = 0.1 * SparsePauliOp(["ZZ", "IX", "XI"])
             observable = Pauli("ZZ")
             ansatz = EfficientSU2(2, reps=1)
             initial_parameters = np.zeros(ansatz.num_parameters)
@@ -96,14 +95,14 @@ class PVQD(RealTimeEvolver):
             pvqd = PVQD(
                 fidelity,
                 ansatz,
-                estimator,
                 initial_parameters,
+                estimator,
                 num_timesteps=100,
                 optimizer=optimizer,
             )
 
             # specify the evolution problem
-            problem = EvolutionProblem(
+            problem = TimeEvolutionProblem(
                 hamiltonian, time, aux_operators=[hamiltonian, observable]
             )
 
@@ -217,7 +216,6 @@ class PVQD(RealTimeEvolver):
         dt: float,
         current_parameters: np.ndarray,
     ) -> tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
-
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
         Args:
@@ -244,7 +242,7 @@ class PVQD(RealTimeEvolver):
         x = ParameterVector("w", ansatz.num_parameters)
         shifted = ansatz.assign_parameters(current_parameters + x)
 
-        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | list[float]:
+        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | np.ndarray:
             """Evaluate the overlap of the ansatz with the Trotterized evolution.
 
             Args:
@@ -370,7 +368,7 @@ class PVQD(RealTimeEvolver):
             )
             observable_values = [evaluate_observables(self.initial_parameters)]
 
-        fidelities = [1]
+        fidelities = [1.0]
         parameters = [self.initial_parameters]
         times = np.linspace(0, time, num_timesteps + 1).tolist()  # +1 to include initial time 0
 

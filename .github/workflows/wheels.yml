@@ -13,24 +13,22 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
+        uses: pypa/cibuildwheel@v2.13.0
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
       - name: Install twine
@@ -48,24 +46,22 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
+        uses: pypa/cibuildwheel@v2.13.0
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
       - name: Install twine
@@ -83,23 +79,21 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.11.2
+        uses: pypa/cibuildwheel@v2.13.0
         env:
           CIBW_ARCHS_LINUX: aarch64
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
       - name: Install twine

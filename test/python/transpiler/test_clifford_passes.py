@@ -16,6 +16,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.library import LinearFunction, PauliGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.passes import HighLevelSynthesis
@@ -83,14 +84,14 @@ class TestCliffordPasses(QiskitTestCase):
 
         # Check that there are indeed two Clifford objects in the circuit,
         # and that these are not gates.
-        cliffords = [inst for inst, _, _ in qc.data if isinstance(inst, Clifford)]
-        gates = [inst for inst, _, _ in qc.data if isinstance(inst, Gate)]
+        cliffords = [inst.operation for inst in qc.data if isinstance(inst.operation, Clifford)]
+        gates = [inst.operation for inst in qc.data if isinstance(inst.operation, Gate)]
         self.assertEqual(len(cliffords), 2)
         self.assertEqual(len(gates), 4)
 
         # Check that calling QuantumCircuit's decompose(), no Clifford objects remain
         qc2 = qc.decompose()
-        cliffords2 = [inst for inst, _, _ in qc2.data if isinstance(inst, Clifford)]
+        cliffords2 = [inst.operation for inst in qc2.data if isinstance(inst.operation, Clifford)]
         self.assertEqual(len(cliffords2), 0)
 
     def test_can_construct_operator(self):
@@ -166,8 +167,10 @@ class TestCliffordPasses(QiskitTestCase):
         # Add this Clifford to a Quantum Circuit, and check that it remains a Clifford
         circ0 = QuantumCircuit(4)
         circ0.append(cliff, [0, 1, 2])
-        circ0_cliffords = [inst for inst, _, _ in circ0.data if isinstance(inst, Clifford)]
-        circ0_gates = [inst for inst, _, _ in circ0.data if isinstance(inst, Gate)]
+        circ0_cliffords = [
+            inst.operation for inst in circ0.data if isinstance(inst.operation, Clifford)
+        ]
+        circ0_gates = [inst.operation for inst in circ0.data if isinstance(inst.operation, Gate)]
         self.assertEqual(len(circ0_cliffords), 1)
         self.assertEqual(len(circ0_gates), 0)
 
@@ -182,8 +185,10 @@ class TestCliffordPasses(QiskitTestCase):
 
         # Check that converted DAG to a circuit also preserves Clifford.
         circ1 = dag_to_circuit(dag0)
-        circ1_cliffords = [inst for inst, _, _ in circ1.data if isinstance(inst, Clifford)]
-        circ1_gates = [inst for inst, _, _ in circ1.data if isinstance(inst, Gate)]
+        circ1_cliffords = [
+            inst.operation for inst in circ1.data if isinstance(inst.operation, Clifford)
+        ]
+        circ1_gates = [inst.operation for inst in circ1.data if isinstance(inst.operation, Gate)]
         self.assertEqual(len(circ1_cliffords), 1)
         self.assertEqual(len(circ1_gates), 0)
 
@@ -243,18 +248,12 @@ class TestCliffordPasses(QiskitTestCase):
 
         test = QuantumCircuit(cliff1.num_qubits, 1)
         test.measure(0, 0)
-        test.if_else(
-            (test.clbits[0], True), inner_test.copy(), inner_test.copy(), test.qubits, test.clbits
-        )
+        test.if_else((test.clbits[0], True), inner_test.copy(), inner_test.copy(), test.qubits, [])
 
         expected = QuantumCircuit(combined.num_qubits, 1)
         expected.measure(0, 0)
         expected.if_else(
-            (expected.clbits[0], True),
-            inner_expected,
-            inner_expected,
-            expected.qubits,
-            expected.clbits,
+            (expected.clbits[0], True), inner_expected, inner_expected, expected.qubits, []
         )
 
         self.assertEqual(OptimizeCliffords()(test), expected)
@@ -515,6 +514,104 @@ class TestCliffordPasses(QiskitTestCase):
         qct = PassManager(CollectCliffords(min_block_size=4)).run(qc)
         self.assertNotIn("clifford", qct.count_ops())
 
+    def test_collect_from_back_corectness(self):
+        """Test the option collect_from_back for collecting Clifford gates."""
+
+        # original circuit (with non-Clifford gate on the first qubit in the middle
+        # of the circuit)
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(0)
+        qc.x(1)
+        qc.h(1)
+        qc.rx(np.pi / 2, 0)
+        qc.y(0)
+        qc.h(1)
+
+        qct1 = PassManager(CollectCliffords(collect_from_back=False)).run(qc)
+        qct2 = PassManager(CollectCliffords(collect_from_back=True)).run(qc)
+        self.assertEqual(Operator(qct1), Operator(qct2))
+
+    def test_collect_from_back_as_expected(self):
+        """Test the option collect_from_back for collecting Clifford gates."""
+        # original circuit (with non-Clifford gate on the first qubit in the middle
+        # of the circuit)
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(0)
+        qc.x(1)
+        qc.h(1)
+        qc.rx(np.pi / 2, 0)
+        qc.y(0)
+        qc.h(1)
+
+        qct = PassManager(
+            CollectCliffords(collect_from_back=True, split_blocks=False, min_block_size=1)
+        ).run(qc)
+
+        self.assertIsInstance(qct.data[0].operation, Clifford)
+        self.assertIsInstance(qct.data[2].operation, Clifford)
+
+        collected_clifford1 = qct.data[0].operation
+        collected_clifford2 = qct.data[2].operation
+
+        # The first Clifford is over qubit {0}, the second is over qubits {0, 1}.
+        expected_clifford_circuit1 = QuantumCircuit(1)
+        expected_clifford_circuit1.x(0)
+        expected_clifford_circuit1.h(0)
+
+        expected_clifford_circuit2 = QuantumCircuit(2)
+        expected_clifford_circuit2.x(1)
+        expected_clifford_circuit2.h(1)
+        expected_clifford_circuit2.y(0)
+        expected_clifford_circuit2.h(1)
+
+        expected_clifford1 = Clifford(expected_clifford_circuit1)
+        expected_clifford2 = Clifford(expected_clifford_circuit2)
+
+        # Check that collected and expected cliffords are equal
+        self.assertEqual(collected_clifford1, expected_clifford1)
+        self.assertEqual(collected_clifford2, expected_clifford2)
+
+    def test_collect_split_layers(self):
+        """Test the option split_layers for collecting Clifford gates."""
+
+        # original circuit (consisting of Clifford gates only)
+        qc = QuantumCircuit(3)
+        qc.y(2)
+        qc.z(2)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.swap(0, 2)
+
+        # When split_layers=True, we should get three layers:
+        #   cx(0, 1), y(2)
+        #   h(0), z(2)
+        #   swap(0, 2)
+        qct = PassManager(
+            CollectCliffords(
+                split_blocks=False,
+                min_block_size=1,
+                split_layers=True,
+                do_commutative_analysis=False,
+            )
+        ).run(qc)
+
+        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(qct.size(), 3)
+
+        qct = PassManager(
+            CollectCliffords(
+                split_blocks=False,
+                min_block_size=1,
+                split_layers=True,
+                do_commutative_analysis=True,
+            )
+        ).run(qc)
+
+        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(qct.size(), 3)
+
     def test_do_not_merge_conditional_gates(self):
         """Test that collecting Cliffords works properly when there the circuit
         contains conditional gates."""
@@ -535,6 +632,122 @@ class TestCliffordPasses(QiskitTestCase):
 
         # Make sure that the condition on the middle gate is not lost
         self.assertIsNotNone(qct.data[1].operation.condition)
+
+    def test_collect_with_cliffords(self):
+        """Make sure that collecting Clifford gates and replacing them by Clifford
+        works correctly when the gates include other cliffords."""
+
+        # Create a Clifford over 2 qubits
+        cliff_circuit = QuantumCircuit(2)
+        cliff_circuit.cx(0, 1)
+        cliff_circuit.h(0)
+        cliff = Clifford(cliff_circuit)
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.append(cliff, [1, 0])
+        qc.cx(1, 2)
+
+        # Collect clifford gates from the circuit (in this case all the gates must be collected).
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(len(qct.data), 1)
+
+        # Make sure that the operator for the initial quantum circuit is equivalent to the
+        # operator for the collected clifford.
+        op1 = Operator(qc)
+        op2 = Operator(qct)
+        self.assertTrue(op1.equiv(op2))
+
+    def test_collect_with_linear_functions(self):
+        """Make sure that collecting Clifford gates and replacing them by Clifford
+        works correctly when the gates include LinearFunctions."""
+
+        # Create a linear function over 2 qubits
+        lf = LinearFunction([[0, 1], [1, 0]])
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.append(lf, [1, 0])
+        qc.cx(1, 2)
+
+        # Collect clifford gates from the circuit (in this case all the gates must be collected).
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(len(qct.data), 1)
+
+        # Make sure that the operator for the initial quantum circuit is equivalent to the
+        # operator for the collected clifford.
+        op1 = Operator(qc)
+        op2 = Operator(qct)
+        self.assertTrue(op1.equiv(op2))
+
+    def test_collect_with_pauli_gates(self):
+        """Make sure that collecting Clifford gates and replacing them by Clifford
+        works correctly when the gates include PauliGates."""
+
+        # Create a pauli gate over 2 qubits
+        pauli_gate = PauliGate("XY")
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.append(pauli_gate, [1, 0])
+        qc.cx(1, 2)
+
+        # Collect clifford gates from the circuit (in this case all the gates must be collected).
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(len(qct.data), 1)
+
+        # Make sure that the operator for the initial quantum circuit is equivalent to the
+        # operator for the collected clifford.
+        op1 = Operator(qc)
+        op2 = Operator(qct)
+        self.assertTrue(op1.equiv(op2))
+
+    def test_collect_with_all_types(self):
+        """Make sure that collecting Clifford gates and replacing them by Clifford
+        works correctly when the gates include all possible clifford gate types."""
+
+        cliff_circuit0 = QuantumCircuit(1)
+        cliff_circuit0.h(0)
+        cliff0 = Clifford(cliff_circuit0)
+
+        cliff_circuit1 = QuantumCircuit(2)
+        cliff_circuit1.cz(0, 1)
+        cliff_circuit1.s(1)
+        cliff1 = Clifford(cliff_circuit1)
+
+        lf1 = LinearFunction([[0, 1], [1, 1]])
+        lf2 = LinearFunction([[0, 1, 0], [1, 0, 0], [0, 0, 1]])
+
+        pauli_gate1 = PauliGate("X")
+        pauli_gate2 = PauliGate("YZX")
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.append(cliff0, [1])
+        qc.cy(0, 1)
+
+        # not a clifford gate (separating the circuit)
+        qc.rx(np.pi / 2, 0)
+
+        qc.append(pauli_gate2, [0, 2, 1])
+        qc.append(lf2, [2, 1, 0])
+        qc.x(0)
+        qc.append(pauli_gate1, [1])
+        qc.append(lf1, [1, 0])
+        qc.h(2)
+        qc.append(cliff1, [1, 2])
+
+        # Collect clifford gates from the circuit (we should get two Clifford blocks separated by
+        # the RX gate).
+        qct = PassManager(CollectCliffords()).run(qc)
+        self.assertEqual(len(qct.data), 3)
+
+        # Make sure that the operator for the initial quantum circuit is equivalent to the
+        # operator for the circuit with the collected cliffords.
+        op1 = Operator(qc)
+        op2 = Operator(qct)
+        self.assertTrue(op1.equiv(op2))
 
 
 if __name__ == "__main__":

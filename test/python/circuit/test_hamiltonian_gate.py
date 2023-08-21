@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-""" HamiltonianGate tests """
+"""HamiltonianGate tests"""
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -89,16 +89,13 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertEqual(dnode.qargs, tuple(qc.qubits))
         assert_allclose(dnode.op.to_matrix(), np.eye(2))
 
-    def test_error_on_qasm(self):
-        """test that an error is thrown if qc.qasm() is called."""
-        qr = QuantumRegister(1, "q0")
-        cr = ClassicalRegister(1, "c0")
-        qc = QuantumCircuit(qr, cr)
+    def test_error_and_deprecation_warning_on_qasm(self):
+        """test that an error is thrown if the method `qasm` is called."""
         matrix = np.zeros((2, 2))
-        qc.hamiltonian(operator=matrix, time=1, qubits=qr[0])
-
+        hamiltonian_gate = HamiltonianGate(data=matrix, time=1)
         with self.assertRaises(ExtensionError):
-            qc.qasm()
+            with self.assertWarns(DeprecationWarning):
+                hamiltonian_gate.qasm()
 
     def test_2q_hamiltonian(self):
         """test 2 qubit hamiltonian"""

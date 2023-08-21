@@ -23,6 +23,7 @@ Method is described in Appendix B of Cross, A. W., Bishop, L. S., Sheldon, S., N
 Gambetta, J. M. Validating quantum computers using randomized model circuits.
 arXiv:1811.12926 [quant-ph] (2018).
 """
+from __future__ import annotations
 import cmath
 import math
 import io
@@ -34,8 +35,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
@@ -44,6 +44,8 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
+from qiskit.utils.deprecation import deprecate_arg
+
 
 logger = logging.getLogger(__name__)
 
@@ -368,7 +370,7 @@ class TwoQubitWeylDecomposition:
         raise NotImplementedError
 
     def circuit(
-        self, *, euler_basis: Optional[str] = None, simplify=False, atol=DEFAULT_ATOL
+        self, *, euler_basis: str | None = None, simplify=False, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form.
 
@@ -644,7 +646,7 @@ class TwoQubitControlledUDecomposer:
         circ.compose(c1l, [1], inplace=True)
         return circ
 
-    def _to_rxx_gate(self, angle: float):
+    def _to_rxx_gate(self, angle: float) -> QuantumCircuit:
         """
         Takes an angle and returns the circuit equivalent to an RXXGate with the
         RXX equivalent gate as the two-qubit unitary.
@@ -854,7 +856,6 @@ class TwoQubitBasisDecomposer:
         basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
             Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR'].
-            Default 'U3'.
         pulse_optimize (None or bool): If True, try to do decomposition which minimizes
             local unitaries in between entangling gates. This will raise an exception if an
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
@@ -862,16 +863,19 @@ class TwoQubitBasisDecomposer:
             if unknown.
     """
 
-    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, pulse_optimize=None):
+    def __init__(
+        self,
+        gate: Gate,
+        basis_fidelity: float = 1.0,
+        euler_basis: str = "U",
+        pulse_optimize: bool | None = None,
+    ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
 
         basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
-        if euler_basis is not None:
-            self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
-        else:
-            self._decomposer1q = OneQubitEulerDecomposer("U3")
+        self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
 
         # FIXME: find good tolerances
         self.is_supercontrolled = math.isclose(basis.a, np.pi / 4) and math.isclose(basis.c, 0.0)
@@ -1082,16 +1086,35 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    def __call__(self, target, basis_fidelity=None, *, _num_basis_uses=None) -> QuantumCircuit:
-        """Decompose a two-qubit unitary over fixed basis + SU(2) using the best approximation given
-        that each basis application has a finite fidelity.
+    @deprecate_arg("target", new_alias="unitary", since="0.23.0")
+    def __call__(
+        self,
+        unitary: Operator | np.ndarray,
+        basis_fidelity: float | None = None,
+        approximate: bool = True,
+        *,
+        _num_basis_uses: int | None = None,
+    ) -> QuantumCircuit:
+        """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
+        that each basis application has a finite `basis_fidelity`.
 
-        You can force a particular approximation by passing _num_basis_uses.
+        Args:
+            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
+                If given, overrides basis_fidelity given at init.
+            approximate (bool): Approximates if basis fidelities are less than 1.0.
+            _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+        Returns:
+            QuantumCircuit: Synthesized circuit.
+        Raises:
+            QiskitError: if pulse_optimize is True but we don't know how to do it.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
-        target = np.asarray(target, dtype=complex)
+        if approximate is False:
+            basis_fidelity = 1.0
+        unitary = np.asarray(unitary, dtype=complex)
 
-        target_decomposed = TwoQubitWeylDecomposition(target)
+        target_decomposed = TwoQubitWeylDecomposition(unitary)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
@@ -1128,7 +1151,9 @@ class TwoQubitBasisDecomposer:
         return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
         return return_circuit
 
-    def _pulse_optimal_chooser(self, best_nbasis, decomposition, target_decomposed):
+    def _pulse_optimal_chooser(
+        self, best_nbasis, decomposition, target_decomposed
+    ) -> QuantumCircuit:
         """Determine method to find pulse optimal circuit. This method may be
         removed once a more general approach is used.
 
@@ -1514,7 +1539,7 @@ class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
         if self._inner is None:
             self._inner = TwoQubitBasisDecomposer(CXGate())
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> QuantumCircuit:
         self._load()
         return self._inner(*args, **kwargs)
 

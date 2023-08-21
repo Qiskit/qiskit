@@ -86,14 +86,20 @@ class SolovayKitaevDecomposition:
         return sequences
 
     def run(
-        self, gate_matrix: np.ndarray, recursion_degree: int, return_dag: bool = False
+        self,
+        gate_matrix: np.ndarray,
+        recursion_degree: int,
+        return_dag: bool = False,
+        check_input: bool = True,
     ) -> "QuantumCircuit" | "DAGCircuit":
         r"""Run the algorithm.
 
         Args:
-            gate_matrix: The 2x2 matrix representing the gate. Does not need to be SU(2).
+            gate_matrix: The 2x2 matrix representing the gate. This matrix has to be SU(2)
+                up to global phase.
             recursion_degree: The recursion degree, called :math:`n` in the paper.
             return_dag: If ``True`` return a :class:`.DAGCircuit`, else a :class:`.QuantumCircuit`.
+            check_input: If ``True`` check that the input matrix is valid for the decomposition.
 
         Returns:
             A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
@@ -104,7 +110,7 @@ class SolovayKitaevDecomposition:
         global_phase = np.arctan2(np.imag(z), np.real(z))
 
         # get the decompositon as GateSequence type
-        decomposition = self._recurse(gate_matrix_su2, recursion_degree)
+        decomposition = self._recurse(gate_matrix_su2, recursion_degree, check_input=check_input)
 
         # simplify
         _remove_identities(decomposition)
@@ -120,18 +126,20 @@ class SolovayKitaevDecomposition:
 
         return out
 
-    def _recurse(self, sequence: GateSequence, n: int) -> GateSequence:
+    def _recurse(self, sequence: GateSequence, n: int, check_input: bool = True) -> GateSequence:
         """Performs ``n`` iterations of the Solovay-Kitaev algorithm on ``sequence``.
 
         Args:
-            sequence: GateSequence to which the Solovay-Kitaev algorithm is applied.
-            n: number of iterations that the algorithm needs to run.
+            sequence: ``GateSequence`` to which the Solovay-Kitaev algorithm is applied.
+            n: The number of iterations that the algorithm needs to run.
+            check_input: If ``True`` check that the input matrix represented by ``GateSequence``
+                is valid for the decomposition.
 
         Returns:
             GateSequence that approximates ``sequence``.
 
         Raises:
-            ValueError: if ``u`` does not represent an SO(3)-matrix.
+            ValueError: If the matrix in ``GateSequence`` does not represent an SO(3)-matrix.
         """
         if sequence.product.shape != (3, 3):
             raise ValueError("Shape of U must be (3, 3) but is", sequence.shape)
@@ -139,12 +147,14 @@ class SolovayKitaevDecomposition:
         if n == 0:
             return self.find_basic_approximation(sequence)
 
-        u_n1 = self._recurse(sequence, n - 1)
+        u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
 
-        v_n, w_n = commutator_decompose(sequence.dot(u_n1.adjoint()).product)
+        v_n, w_n = commutator_decompose(
+            sequence.dot(u_n1.adjoint()).product, check_input=check_input
+        )
 
-        v_n1 = self._recurse(v_n, n - 1)
-        w_n1 = self._recurse(w_n, n - 1)
+        v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
+        w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:

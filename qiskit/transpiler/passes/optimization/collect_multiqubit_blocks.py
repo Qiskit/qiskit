@@ -126,7 +126,6 @@ class CollectMultiQBlocks(AnalysisPass):
             return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for nd in op_nodes:
             can_process = True
@@ -140,7 +139,7 @@ class CollectMultiQBlocks(AnalysisPass):
             ):
                 can_process = False
 
-            cur_qubits = {qubit_indices[bit] for bit in nd.qargs}
+            cur_qubits = {dag.find_bit(bit).index for bit in nd.qargs}
 
             if can_process:
                 # if the gate is valid, check if grouping up the bits

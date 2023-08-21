@@ -17,18 +17,15 @@ Circuit Converters (:mod:`qiskit.converters`)
 
 .. currentmodule:: qiskit.converters
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   circuit_to_dag
-   dag_to_circuit
-   circuit_to_instruction
-   circuit_to_gate
-   ast_to_dag
-   dagdependency_to_circuit
-   circuit_to_dagdependency
-   dag_to_dagdependency
-   dagdependency_to_dag
+.. autofunction:: circuit_to_dag
+.. autofunction:: dag_to_circuit
+.. autofunction:: circuit_to_instruction
+.. autofunction:: circuit_to_gate
+.. autofunction:: ast_to_dag
+.. autofunction:: dagdependency_to_circuit
+.. autofunction:: circuit_to_dagdependency
+.. autofunction:: dag_to_dagdependency
+.. autofunction:: dagdependency_to_dag
 """
 
 from .circuit_to_dag import circuit_to_dag
