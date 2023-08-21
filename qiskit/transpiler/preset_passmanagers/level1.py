@@ -65,7 +65,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
     scheduling_method = pass_manager_config.scheduling_method or "default"
-    backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
