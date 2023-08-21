@@ -539,6 +539,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             layout.append(
                 [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
             )
+        else:
+            raise TranspilerError(f"Invalid optimization level: {optimization_level}")
 
         embed = common.generate_embed_passmanager(coupling_map)
         layout.append(
@@ -684,6 +686,8 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
+        else:
+            raise TranspilerError(f"Invalid optimization level: {optimization_level}")
         layout.append(
             [BarrierBeforeFinalMeasurements(), layout_pass], condition=_choose_layout_condition
         )
