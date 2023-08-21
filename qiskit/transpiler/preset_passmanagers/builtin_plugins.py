@@ -450,12 +450,10 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 return True
             # if VF2 layout stopped for any reason other than solution found we need
             # to run layout since VF2 didn't converge.
-            if (
+            return (
                 property_set["VF2Layout_stop_reason"] is not None
                 and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
-            ):
-                return True
-            return False
+            )
 
         def _swap_mapped(property_set):
             return property_set["final_layout"] is None
