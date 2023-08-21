@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,7 @@ SOURCE_DIR=`pwd`
 SOURCE_LANG='en'
 
 SOURCE_REPOSITORY="git@github.com:Qiskit/qiskit.git"
-TARGET_BRANCH_PO="master"
+TARGET_BRANCH_PO="main"
 DOC_DIR_PO="deploy"
 TARGET_DOCS_DIR_PO="docs/locale"
 
@@ -80,7 +80,7 @@ git add setup.py
 git add requirements-dev.txt constraints.txt
 
 # Commit and push the changes.
-git commit -m "Automated documentation update to add .po files from meta-qiskit" -m "skip ci" -m "Commit: $GITHUB_SHA" -m "Github Actions Run: https://github.com/Qiskit/qiskit/runs/$GITHUB_RUN_NUMBER"
+git commit -m "Automated documentation update to add .po files from qiskit" -m "skip ci" -m "Commit: $GITHUB_SHA" -m "Github Actions Run: https://github.com/Qiskit/qiskit/runs/$GITHUB_RUN_NUMBER"
 echo "git push"
 git push --quiet origin $TARGET_BRANCH_PO
 echo "********** End of pushing po to working repo! *************"
