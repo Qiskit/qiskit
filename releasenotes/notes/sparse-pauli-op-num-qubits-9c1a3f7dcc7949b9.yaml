@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added support to allow :class:`SparsePauliOp` default initialization passing empty
+    iterable to the static methods :func:`.from_list` and :func:`.from_sparse_list`.
+
+fixes:
+  - |
+    Fixed issue `#10159 <https://github.com/Qiskit/qiskit-terra/issues/10159>`.
