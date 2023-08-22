@@ -234,22 +234,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         layout = None
         routing = None
-    if translation_method not in {"translator", "synthesis", "unroller"}:
-        translation = plugin_manager.get_passmanager_stage(
-            "translation", translation_method, pass_manager_config, optimization_level=3
-        )
-    else:
-        translation = common.generate_translation_passmanager(
-            target,
-            basis_gates,
-            translation_method,
-            approximation_degree,
-            coupling_map,
-            backend_properties,
-            unitary_synthesis_method,
-            unitary_synthesis_plugin_config,
-            hls_config,
-        )
+
+    translation = plugin_manager.get_passmanager_stage(
+        "translation", translation_method, pass_manager_config, optimization_level=3
+    )
 
     if optimization_method is None:
         optimization = PassManager()
@@ -295,13 +283,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         else:
             pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
 
-    if isinstance(scheduling_method, PassManager):
-        sched = scheduling_method
-
-    else:
-        sched = plugin_manager.get_passmanager_stage(
-            "scheduling", scheduling_method, pass_manager_config, optimization_level=3
-        )
+    sched = plugin_manager.get_passmanager_stage(
+        "scheduling", scheduling_method, pass_manager_config, optimization_level=3
+    )
 
     return StagedPassManager(
         init=init,
