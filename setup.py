@@ -52,9 +52,8 @@ visualization_extras = [
 z3_requirements = [
     "z3-solver>=4.7",
 ]
-bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.1.0"]
+
 
 setup(
     name="qiskit-terra",
@@ -89,12 +88,8 @@ setup(
     extras_require={
         "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
-        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
         "csp-layout-pass": csp_requirements,
-        "toqm": toqm_requirements,
-        # Note: 'all' only includes extras that are stable and work on the majority of Python
-        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
         "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
@@ -138,6 +133,11 @@ setup(
             "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
+        ],
+        "qiskit.transpiler.translation": [
+            "translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager",
+            "unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager",
+            "synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager",
         ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
