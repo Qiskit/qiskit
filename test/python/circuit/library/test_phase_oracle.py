@@ -69,6 +69,32 @@ class TestPhaseOracle(QiskitTestCase):
         self.assertListEqual(expected_valid, result_valid)
         self.assertListEqual(expected_invalid, result_invalid)
 
+    @data(
+        ("((A & C) | (B & D)) & ~(C & D)", None, [3, 7, 12, 13]),
+        ("((A & C) | (B & D)) & ~(C & D)", ["A", "B", "C", "D"], [5, 7, 10, 11]),
+    )
+    @unpack
+    def test_variable_order(self, expression, var_order, good_states):
+        """Circuit generation"""
+        oracle = PhaseOracle(expression, var_order=var_order)
+        num_qubits = oracle.num_qubits
+        circuit = QuantumCircuit(num_qubits)
+        circuit.h(range(num_qubits))
+        circuit.compose(oracle, inplace=True)
+        statevector = Statevector.from_instruction(circuit)
+
+        valid_state = -1 / sqrt(2**num_qubits)
+        invalid_state = 1 / sqrt(2**num_qubits)
+
+        states = list(range(2**num_qubits))
+        expected_valid = [state in good_states for state in states]
+        result_valid = [isclose(statevector.data[state], valid_state) for state in states]
+
+        expected_invalid = [state not in good_states for state in states]
+        result_invalid = [isclose(statevector.data[state], invalid_state) for state in states]
+        self.assertListEqual(expected_valid, result_valid)
+        self.assertListEqual(expected_invalid, result_invalid)
+
 
 if __name__ == "__main__":
     unittest.main()

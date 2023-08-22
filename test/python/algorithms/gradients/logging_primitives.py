@@ -18,15 +18,8 @@ from qiskit.primitives import Estimator, Sampler
 class LoggingEstimator(Estimator):
     """An estimator checking what operations were in the circuits it executed."""
 
-    def __init__(
-        self,
-        circuits=None,
-        observables=None,
-        parameters=None,
-        options=None,
-        operations_callback=None,
-    ):
-        super().__init__(circuits, observables, parameters, options)
+    def __init__(self, options=None, operations_callback=None):
+        super().__init__(options=options)
         self.operations_callback = operations_callback
 
     def _run(self, circuits, observables, parameter_values, **run_options):

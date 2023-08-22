@@ -47,14 +47,14 @@ load external plugins via corresponding entry points.
      - Description and expectations
    * - ``init``
      - ``qiskit.transpiler.init``
-     - No reserved names
+     - ``default``
      - This stage runs first and is typically used for any initial logical optimization. Because most
        layout and routing algorithms are only designed to work with 1 and 2 qubit gates, this stage
        is also used to translate any gates that operate on more than 2 qubits into gates that only
        operate on 1 or 2 qubits.
    * - ``layout``
      - ``qiskit.transpiler.layout``
-     - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``
+     - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``, ``default``
      - The output from this stage is expected to have the ``layout`` property
        set field set with a :class:`~.Layout` object. Additionally, the circuit is
        typically expected to be embedded so that it is expanded to include all
@@ -76,14 +76,14 @@ load external plugins via corresponding entry points.
         instruction on the target backend.
    * - ``optimization``
      - ``qiskit.transpiler.optimization``
-     - There are no reserved plugin names
+     - ``default``
      - This stage is expected to perform optimization and simplification.
        The constraints from earlier stages still apply to the output of this
        stage. After the ``optimization`` stage is run we expect the circuit
        to still be executable on the target.
    * - ``scheduling``
      - ``qiskit.transpiler.scheduling``
-     - ``alap``, ``asap``
+     - ``alap``, ``asap``, ``default``
      - This is the last stage run and it is expected to output a scheduled
        circuit such that all idle periods in the circuit are marked by explicit
        :class:`~qiskit.circuit.Delay` instructions.
@@ -160,11 +160,13 @@ Plugin API
 
    PassManagerStagePlugin
    PassManagerStagePluginManager
-   list_stage_plugins
+
+.. autofunction:: list_stage_plugins
+.. autofunction:: passmanager_stage_plugins
 """
 
 import abc
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import stevedore
 
@@ -301,3 +303,47 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         return plugin_mgr.scheduling_plugins.names()
     else:
         raise TranspilerError(f"Invalid stage name: {stage_name}")
+
+
+def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
+    """Return a dict with, for each stage name, the class type of the plugin.
+
+    This function is useful for getting more information about a plugin:
+
+    .. code-block:: python
+
+        from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
+        routing_plugins = passmanager_stage_plugins('routing')
+        basic_plugin = routing_plugins['basic']
+        help(basic_plugin)
+
+    .. code-block:: text
+
+        Help on BasicSwapPassManager in module ...preset_passmanagers.builtin_plugins object:
+
+        class BasicSwapPassManager(...preset_passmanagers.plugin.PassManagerStagePlugin)
+         |  Plugin class for routing stage with :class:`~.BasicSwap`
+         |
+         |  Method resolution order:
+         |      BasicSwapPassManager
+         |      ...preset_passmanagers.plugin.PassManagerStagePlugin
+         |      abc.ABC
+         |      builtins.object
+         ...
+
+    Args:
+        stage: The stage name to get
+
+    Returns:
+        dict: the key is the name of the plugin and the value is the class type for each.
+
+    Raises:
+       TranspilerError: If an invalid stage name is specified.
+    """
+    plugin_mgr = PassManagerStagePluginManager()
+    try:
+        manager = getattr(plugin_mgr, f"{stage}_plugins")
+    except AttributeError as exc:
+        raise TranspilerError(f"Passmanager stage {stage} not found") from exc
+
+    return {name: manager[name].obj for name in manager.names()}

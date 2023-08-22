@@ -173,9 +173,11 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
+   UnrollForLoops
 """
 
 # layout selection (placement)
@@ -285,8 +287,10 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
+from .utils import UnrollForLoops

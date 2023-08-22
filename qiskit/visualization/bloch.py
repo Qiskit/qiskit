@@ -62,6 +62,8 @@ from .utils import matplotlib_close_if_inline
 class Arrow3D(Patch3D, FancyArrowPatch):
     """Makes a fancy arrow"""
 
+    # pylint: disable=missing-function-docstring,invalid-name
+
     # Nasty hack around a poorly implemented deprecation warning in Matplotlib 3.5 that issues two
     # deprecation warnings if an artist's module does not claim to be part of the below module.
     # This revolves around the method `Patch3D.do_3d_projection(self, renderer=None)`.  The
@@ -149,7 +151,9 @@ class Bloch:
             Positions of +z and -z labels respectively.
     """
 
-    def __init__(self, fig=None, axes=None, view=None, figsize=None, background=False):
+    def __init__(
+        self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=20
+    ):
 
         # Figure and axes
         self._ext_fig = False
@@ -194,7 +198,7 @@ class Bloch:
         # Color of fonts, default = 'black'
         self.font_color = plt.rcParams["axes.labelcolor"]
         # Size of fonts, default = 20
-        self.font_size = 20
+        self.font_size = font_size
 
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']

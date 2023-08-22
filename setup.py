@@ -14,8 +14,7 @@
 
 import os
 import re
-import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 
@@ -32,7 +31,12 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
+# If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
+# it's an editable installation.
+rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
+# If modifying these optional extras, make sure to sync with `requirements-optional.txt` and
+# `qiskit.utils.optionals` as well.
 qasm3_import_extras = [
     "qiskit-qasm3-import>=0.1.0",
 ]
@@ -48,13 +52,12 @@ visualization_extras = [
 z3_requirements = [
     "z3-solver>=4.7",
 ]
-bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.1.0"]
+
 
 setup(
     name="qiskit-terra",
-    version="0.24.0",
+    version="0.45.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -71,7 +74,6 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
@@ -82,16 +84,12 @@ setup(
     packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     extras_require={
         "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
-        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
         "csp-layout-pass": csp_requirements,
-        "toqm": toqm_requirements,
-        # Note: 'all' only includes extras that are stable and work on the majority of Python
-        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
         "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
@@ -99,7 +97,21 @@ setup(
         "Documentation": "https://qiskit.org/documentation/",
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
-    rust_extensions=[RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)],
+    rust_extensions=[
+        RustExtension(
+            "qiskit._accelerate",
+            "crates/accelerate/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
+        ),
+        RustExtension(
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
+        ),
+    ],
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
@@ -109,11 +121,26 @@ setup(
         ],
         "qiskit.synthesis": [
             "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
+            "clifford.ag = qiskit.transpiler.passes.synthesis.high_level_synthesis:AGSynthesisClifford",
+            "clifford.bm = qiskit.transpiler.passes.synthesis.high_level_synthesis:BMSynthesisClifford",
+            "clifford.greedy = qiskit.transpiler.passes.synthesis.high_level_synthesis:GreedySynthesisClifford",
+            "clifford.layers = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerSynthesisClifford",
+            "clifford.lnn = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerLnnSynthesisClifford",
             "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
+            "linear_function.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction",
+            "linear_function.pmh = qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction",
             "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
+        ],
+        "qiskit.transpiler.init": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager",
+        ],
+        "qiskit.transpiler.translation": [
+            "translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager",
+            "unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager",
+            "synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager",
         ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
@@ -121,6 +148,21 @@ setup(
             "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
+        "qiskit.transpiler.optimization": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager",
+        ],
+        "qiskit.transpiler.layout": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager",
+            "trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager",
+            "dense = qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager",
+            "noise_adaptive = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoiseAdaptiveLayoutPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager",
+        ],
+        "qiskit.transpiler.scheduling": [
+            "alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager",
+            "asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager",
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager",
         ],
     },
 )

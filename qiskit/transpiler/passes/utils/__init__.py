@@ -27,6 +27,9 @@ from .remove_barriers import RemoveBarriers
 from .contains_instruction import ContainsInstruction
 from .gates_basis import GatesInBasis
 from .convert_conditions_to_if_ops import ConvertConditionsToIfOps
+from .unroll_forloops import UnrollForLoops
+from .minimum_point import MinimumPoint
 
 # Utility functions
 from . import control_flow
+from .block_to_matrix import _block_to_matrix

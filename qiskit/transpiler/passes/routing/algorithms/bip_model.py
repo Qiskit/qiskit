@@ -26,6 +26,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     trace_to_fid,
 )
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,12 @@ class BIPMappingModel:
             the solution will be stored in :attr:`solution`). None if it's not yet set.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This has been replaced by a new transpiler plugin package: "
+        "qiskit-bip-mapper. More details can be found here: "
+        "https://github.com/qiskit-community/qiskit-bip-mapper",
+    )  # pylint: disable=bad-docstring-quotes
     def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
         """
         Args:
@@ -80,7 +87,6 @@ class BIPMappingModel:
             )
 
         self._index_to_virtual = dict(enumerate(dag.qubits))
-        self._virtual_to_index = {v: i for i, v in self._index_to_virtual.items()}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates
@@ -89,8 +95,8 @@ class BIPMappingModel:
         for lay in dag.layers():
             laygates = []
             for node in lay["graph"].two_qubit_ops():
-                i1 = self._virtual_to_index[node.qargs[0]]
-                i2 = self._virtual_to_index[node.qargs[1]]
+                i1 = self._dag.find_bit(node.qargs[0]).index
+                i2 = self._dag.find_bit(node.qargs[1]).index
                 laygates.append(((i1, i2), node))
             if laygates:
                 self._to_su4layer.append(len(self.su4layers))

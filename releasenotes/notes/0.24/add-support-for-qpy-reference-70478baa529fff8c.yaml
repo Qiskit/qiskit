@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    QPY supports pulse :class:`~.ScheduleBlock` with unassigned reference,
+    and preserves the data structure for the reference to subroutines.
+    This feature allows to save a template pulse program for tasks such as pulse calibration.
+
+    .. code-block:: python
+
+      from qiskit import pulse
+      from qiskit import qpy
+
+      with pulse.build() as schedule:
+          pulse.reference("cr45p", "q0", "q1")
+          pulse.reference("x", "q0")
+          pulse.reference("cr45p", "q0", "q1")
+
+      with open('template_ecr.qpy', 'wb') as fd:
+          qpy.dump(schedule, fd)

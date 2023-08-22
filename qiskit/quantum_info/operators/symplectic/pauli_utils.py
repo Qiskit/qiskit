@@ -13,11 +13,19 @@
 PauliList utility functions.
 """
 
-import warnings
+from __future__ import annotations
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+from qiskit.utils.deprecation import deprecate_arg
 
 
-def pauli_basis(num_qubits, weight=False, pauli_list=None):
+@deprecate_arg(
+    "pauli_basis",
+    since="0.22",
+    additional_msg=(
+        "The argument ``pauli_list`` has no effect as the function always returns a PauliList."
+    ),
+)
+def pauli_basis(num_qubits: int, weight: bool = False, pauli_list=None) -> PauliList:
     """Return the ordered PauliTable or PauliList for the n-qubit Pauli basis.
 
     Args:
@@ -30,13 +38,7 @@ def pauli_basis(num_qubits, weight=False, pauli_list=None):
     Returns:
         PauliList: the Paulis for the basis
     """
-    if pauli_list is not None:
-        warnings.warn(
-            "The `pauli_list` kwarg is deprecated as of Qiskit Terra 0.22 and "
-            "no longer has an effect as `pauli_basis` always returns a PauliList.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+    del pauli_list
     pauli_1q = PauliList(["I", "X", "Y", "Z"])
     if num_qubits == 1:
         return pauli_1q

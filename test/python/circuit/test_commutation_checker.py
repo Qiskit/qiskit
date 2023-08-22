@@ -18,13 +18,14 @@ import numpy as np
 from qiskit import ClassicalRegister
 from qiskit.test import QiskitTestCase
 
-from qiskit.circuit import QuantumRegister, Parameter
+from qiskit.circuit import QuantumRegister, Parameter, Qubit
 from qiskit.circuit import CommutationChecker
 from qiskit.circuit.library import (
     ZGate,
     XGate,
     CXGate,
     CCXGate,
+    MCXGate,
     RZGate,
     Measure,
     Barrier,
@@ -34,7 +35,6 @@ from qiskit.circuit.library import (
 
 
 class TestCommutationChecker(QiskitTestCase):
-
     """Test CommutationChecker class."""
 
     def test_simple_gates(self):
@@ -355,6 +355,26 @@ class TestCommutationChecker(QiskitTestCase):
         # lf3 is the inverse permutation 1->3, 2->1, 3->2.
         # These commute.
         res = comm_checker.commute(lf3, [0, 1, 2], [], lf4, [0, 1, 2], [])
+        self.assertTrue(res)
+
+    def test_c7x_gate(self):
+        """Test wide gate works correctly."""
+        qargs = [Qubit() for _ in [None] * 8]
+        res = CommutationChecker().commute(XGate(), qargs[:1], [], XGate().control(7), qargs, [])
+        self.assertFalse(res)
+
+    def test_wide_gates_over_nondisjoint_qubits(self):
+        """Test that checking wide gates does not lead to memory problems."""
+        res = CommutationChecker().commute(MCXGate(29), list(range(30)), [], XGate(), [0], [])
+        self.assertFalse(res)
+        res = CommutationChecker().commute(XGate(), [0], [], MCXGate(29), list(range(30)), [])
+        self.assertFalse(res)
+
+    def test_wide_gates_over_disjoint_qubits(self):
+        """Test that wide gates still commute when they are over disjoint sets of qubits."""
+        res = CommutationChecker().commute(MCXGate(29), list(range(30)), [], XGate(), [30], [])
+        self.assertTrue(res)
+        res = CommutationChecker().commute(XGate(), [30], [], MCXGate(29), list(range(30)), [])
         self.assertTrue(res)
 
 

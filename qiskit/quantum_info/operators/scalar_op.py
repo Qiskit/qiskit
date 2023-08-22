@@ -14,6 +14,7 @@
 ScalarOp class
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -35,7 +36,7 @@ class ScalarOp(LinearOp):
     :meth:`tensor`, :meth:`expand` methods.
     """
 
-    def __init__(self, dims=None, coeff=1):
+    def __init__(self, dims: int | tuple | None = None, coeff: Number = 1):
         """Initialize an operator object.
 
         Args:
@@ -47,7 +48,7 @@ class ScalarOp(LinearOp):
             QiskitError: If the optional coefficient is invalid.
         """
         if not isinstance(coeff, Number):
-            QiskitError(f"coeff {coeff} must be a number.")
+            raise QiskitError(f"coeff {coeff} must be a number.")
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
@@ -86,13 +87,13 @@ class ScalarOp(LinearOp):
         iden = np.eye(dim, dtype=complex)
         return self.coeff * iden
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(
             self.to_matrix(), input_dims=self.input_dims(), output_dims=self.output_dims()
         )
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: ScalarOp, qargs: list | None = None, front: bool = False) -> ScalarOp:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, BaseOperator):
@@ -129,7 +130,7 @@ class ScalarOp(LinearOp):
         # `to_operator` method).
         return other.__class__(self).compose(other, qargs=qargs, front=front)
 
-    def power(self, n):
+    def power(self, n: float) -> ScalarOp:
         """Return the power of the ScalarOp.
 
         Args:
@@ -142,7 +143,7 @@ class ScalarOp(LinearOp):
         ret._coeff = self.coeff**n
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: ScalarOp) -> ScalarOp:
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
@@ -154,7 +155,7 @@ class ScalarOp(LinearOp):
 
         return other.expand(self)
 
-    def expand(self, other):
+    def expand(self, other: ScalarOp) -> ScalarOp:
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 

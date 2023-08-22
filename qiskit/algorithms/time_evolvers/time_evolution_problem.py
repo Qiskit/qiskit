@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -84,7 +84,7 @@ class TimeEvolutionProblem:
             circuit = QuantumCircuit(initial_state.num_qubits)
             circuit.prepare_state(initial_state.data)
             initial_state = circuit
-        self.initial_state = initial_state
+        self.initial_state: QuantumCircuit | None = initial_state
         self.aux_operators = aux_operators
         self.truncation_threshold = truncation_threshold
 
@@ -97,12 +97,7 @@ class TimeEvolutionProblem:
     def time(self, time: float) -> None:
         """
         Sets time and validates it.
-
-        Raises:
-            ValueError: If time is not positive.
         """
-        if time <= 0:
-            raise ValueError(f"Evolution time must be > 0 but was {time}.")
         self._time = time
 
     def validate_params(self) -> None:

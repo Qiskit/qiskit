@@ -147,6 +147,16 @@ class TestCircuitOperations(QiskitTestCase):
         with self.subTest("c list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
             test.append(opaque, [[0]], [[specifier]])
 
+    @data([], [0], [0, 1, 2])
+    def test_append_rejects_bad_arguments_opaque(self, bad_arg):
+        """Test that a suitable exception is raised when there is an argument mismatch."""
+        inst = QuantumCircuit(2, 2).to_instruction()
+        qc = QuantumCircuit(3, 3)
+        with self.assertRaisesRegex(CircuitError, "The amount of qubit arguments"):
+            qc.append(inst, bad_arg, [0, 1])
+        with self.assertRaisesRegex(CircuitError, "The amount of clbit arguments"):
+            qc.append(inst, [0, 1], bad_arg)
+
     def test_anding_self(self):
         """Test that qc &= qc finishes, which can be prone to infinite while-loops.
 
@@ -378,6 +388,22 @@ class TestCircuitOperations(QiskitTestCase):
 
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
+
+    def test_circuit_copy_rejects_invalid_types(self):
+        """Test copy method rejects argument with type other than 'string' and 'None' type."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+
+        with self.assertRaises(TypeError):
+            qc.copy([1, "2", 3])
+
+    def test_circuit_copy_empty_like_rejects_invalid_types(self):
+        """Test copy_empty_like method rejects argument with type other than 'string' and 'None' type."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+
+        with self.assertRaises(TypeError):
+            qc.copy_empty_like(123)
 
     def test_clear_circuit(self):
         """Test clear method deletes instructions in circuit."""
@@ -1123,9 +1149,9 @@ class TestCircuitOperations(QiskitTestCase):
         a, b, c, d = qreg
         x, y, z = creg
 
-        circuit_1 = QuantumCircuit(2)
+        circuit_1 = QuantumCircuit(2, 1)
         circuit_1.x(0)
-        circuit_2 = QuantumCircuit(2)
+        circuit_2 = QuantumCircuit(2, 1)
         circuit_2.y(0)
 
         def instructions():
@@ -1155,7 +1181,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         expected = QuantumCircuit([a, b, c, d], [x, y, z])
         for instruction in instructions():
-            expected.append(*instruction)
+            expected.append(instruction.operation, instruction.qubits, instruction.clbits)
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit_tuples, expected)
@@ -1205,7 +1231,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         expected = QuantumCircuit([a, b], global_phase=0.1)
         for instruction in instructions():
-            expected.append(*instruction)
+            expected.append(instruction.operation, instruction.qubits, instruction.clbits)
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")

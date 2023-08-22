@@ -60,7 +60,6 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._target is None:
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
             device_insts = basic_insts | set(self._basis_gates)
-        qubit_mapping = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
@@ -78,7 +77,7 @@ class UnrollCustomDefinitions(TransformationPass):
                 inst_supported = (
                     self._target.instruction_supported(
                         operation_name=node.op.name,
-                        qargs=tuple(qubit_mapping[x] for x in node.qargs),
+                        qargs=tuple(dag.find_bit(x).index for x in node.qargs),
                     )
                     if self._target is not None
                     else node.name in device_insts
@@ -86,25 +85,19 @@ class UnrollCustomDefinitions(TransformationPass):
                 if inst_supported or self._equiv_lib.has_entry(node.op):
                     continue
             try:
-                rule = node.op.definition.data
+                unrolled = getattr(node.op, "definition", None)
             except TypeError as err:
                 raise QiskitError(f"Error decomposing node {node.name}: {err}") from err
-            except AttributeError:
-                # definition is None
-                rule = None
 
-            if not rule:
-                if rule == []:
-                    dag.remove_op_node(node)
-                    continue
-
+            if unrolled is None:
                 # opaque node
                 raise QiskitError(
                     "Cannot unroll the circuit to the given basis, %s. "
                     "Instruction %s not found in equivalence library "
                     "and no rule found to expand." % (str(self._basis_gates), node.op.name)
                 )
-            decomposition = circuit_to_dag(node.op.definition)
+
+            decomposition = circuit_to_dag(unrolled)
             unrolled_dag = UnrollCustomDefinitions(
                 self._equiv_lib, self._basis_gates, target=self._target
             ).run(decomposition)
