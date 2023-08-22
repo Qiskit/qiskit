@@ -92,13 +92,9 @@ class Diagonal(QuantumCircuit):
 
         # Since the diagonal is a unitary, all its entries have absolute value
         # one and the diagonal is fully specified by the phases of its entries.
-        diag_phases = [cmath.phase(z) for z in diag]
+        diag_phases = np.array([cmath.phase(z) for z in diag])
 
-        fwht_matrix = had = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        for _ in range(num_qubits - 1):
-            fwht_matrix = np.kron(fwht_matrix, had)
-
-        angles_rz = np.dot(fwht_matrix, diag_phases) / np.sqrt(2 ** (num_qubits - 2))
+        angles_rz = _fwht(diag_phases) / np.sqrt(2 ** (num_qubits - 2))
 
         if num_qubits == 1:
             gate_list[0].append(["rz", -angles_rz[1], 0])
@@ -139,3 +135,16 @@ class Diagonal(QuantumCircuit):
 
         super().__init__(num_qubits, name="Diagonal")
         self.append(circuit.to_gate(), self.qubits)
+
+
+def _fwht(a: np.ndarray) -> np.ndarray:
+    """Fast Walsh-Hadamard Transform of array a."""
+    h = 1
+    n = len(a)
+    while h < n:
+        for i in range(0, n, h * 2):
+            for j in range(i, i + h):
+                a[j], a[j + h] = a[j] + a[j + h], a[j] - a[j + h]
+        a /= np.sqrt(2)
+        h *= 2
+    return a
