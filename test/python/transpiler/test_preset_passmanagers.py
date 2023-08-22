@@ -71,6 +71,8 @@ def mock_get_passmanager_stage(
         return pm
     elif stage_name == "routing":
         return PassManager([])
+    elif stage_name == "layout":
+        return PassManager([])
     else:
         raise Exception("Failure, unexpected stage plugin combo for test")
 

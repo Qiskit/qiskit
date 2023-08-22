@@ -14,17 +14,9 @@
 
 Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
-from qiskit.transpiler.basepasses import BasePass
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
-
-from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler.passes import DenseLayout
-from qiskit.transpiler.passes import NoiseAdaptiveLayout
-from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
@@ -55,49 +47,16 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     init_method = pass_manager_config.init_method
-    layout_method = pass_manager_config.layout_method or "trivial"
+    layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "stochastic"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method
     scheduling_method = pass_manager_config.scheduling_method or "default"
-    seed_transpiler = pass_manager_config.seed_transpiler
-    backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
     hls_config = pass_manager_config.hls_config
-
-    # Choose an initial layout if not set by user (default: trivial layout)
-    _given_layout = SetLayout(initial_layout)
-
-    def _choose_layout_condition(property_set):
-        return not property_set["layout"]
-
-    if target is None:
-        coupling_map_layout = coupling_map
-    else:
-        coupling_map_layout = target
-
-    if layout_method == "trivial":
-        _choose_layout: BasePass = TrivialLayout(coupling_map_layout)
-    elif layout_method == "dense":
-        _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
-    elif layout_method == "noise_adaptive":
-        if target is None:
-            _choose_layout = NoiseAdaptiveLayout(backend_properties)
-        else:
-            _choose_layout = NoiseAdaptiveLayout(target)
-    elif layout_method == "sabre":
-        skip_routing = pass_manager_config.routing_method is not None and routing_method != "sabre"
-        _choose_layout = SabreLayout(
-            coupling_map_layout,
-            max_iterations=1,
-            seed=seed_transpiler,
-            swap_trials=5,
-            layout_trials=5,
-            skip_routing=skip_routing,
-        )
 
     # Choose routing pass
     routing_pm = plugin_manager.get_passmanager_stage(
@@ -115,22 +74,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             unitary_synthesis_plugin_config,
             hls_config,
         )
-        if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
-            layout = plugin_manager.get_passmanager_stage(
-                "layout", layout_method, pass_manager_config, optimization_level=0
-            )
-        else:
-
-            def _swap_mapped(property_set):
-                return property_set["final_layout"] is None
-
-            layout = PassManager()
-            layout.append(_given_layout)
-            layout.append(_choose_layout, condition=_choose_layout_condition)
-            embed = common.generate_embed_passmanager(coupling_map_layout)
-            layout.append(
-                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
-            )
+        layout = plugin_manager.get_passmanager_stage(
+            "layout", layout_method, pass_manager_config, optimization_level=0
+        )
         routing = routing_pm
     else:
         layout = None
