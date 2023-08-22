@@ -112,6 +112,14 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
+            if (elision_final_layout := self.property_set["elision_final_layout"]) is not None:
+                final_layout_mapping = {
+                    new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
+                    for old_virt, old_phys in elision_final_layout.get_virtual_bits().items()
+                }
+                out_layout = Layout(final_layout_mapping)
+                self.property_set["elision_final_layout"] = out_layout
+
         new_dag._global_phase = dag._global_phase
 
         return new_dag

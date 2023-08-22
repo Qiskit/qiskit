@@ -39,15 +39,15 @@ class ElidePermutations(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        if dag.count_ops().get("swap", 0) == 0 and dag.count_ops().get("permutation", 0) == 0:
-
+        op_count = dag.count_ops()
+        if op_count.get("swap", 0) == 0 and op_count.get("permutation", 0) == 0:
             return dag
+
         new_dag = dag.copy_empty_like()
         qubit_mapping = list(range(len(dag.qubits)))
-        input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
 
         def _apply_mapping(qargs):
-            return tuple(dag.qubits[qubit_mapping[input_qubit_mapping[qubit]]] for qubit in qargs)
+            return tuple(dag.qubits[qubit_mapping[dag.find_bit(qubit).index]] for qubit in qargs)
 
         for node in dag.topological_op_nodes():
             if not isinstance(node.op, (SwapGate, PermutationGate)):
@@ -55,23 +55,21 @@ class ElidePermutations(TransformationPass):
             elif getattr(node.op, "condition", None) is not None:
                 new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
             elif isinstance(node.op, SwapGate):
-                index_0 = input_qubit_mapping[node.qargs[0]]
-                index_1 = input_qubit_mapping[node.qargs[1]]
+                index_0 = dag.find_bit(node.qargs[0]).index
+                index_1 = dag.find_bit(node.qargs[1]).index
                 qubit_mapping[index_1], qubit_mapping[index_0] = (
                     qubit_mapping[index_0],
                     qubit_mapping[index_1],
                 )
             elif isinstance(node.op, PermutationGate):
-                indices = []
+                starting_indices = [qubit_mapping[dag.find_bit(qarg).index] for qarg in node.qargs]
                 pattern = node.op.params[0]
-                for qarg in node.qargs:
-                    indices.append(input_qubit_mapping[qarg])
-                for index_0, index_1 in zip(indices, pattern):
-                    qubit_mapping[index_1], qubit_mapping[index_0] = (
-                        qubit_mapping[index_0],
-                        qubit_mapping[index_1],
-                    )
+                pattern_indices = [qubit_mapping[idx] for idx in pattern]
+                for i, j in zip(starting_indices, pattern_indices):
+                    qubit_mapping[i] = j
+        input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
-        self.property_set["original_qubit_indices"] = input_qubit_mapping
-        self.property_set["elision_final_layout"] = Layout(dict(zip(dag.qubits, qubit_mapping)))
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = input_qubit_mapping
+        self.property_set["elision_final_layout"] = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
         return new_dag

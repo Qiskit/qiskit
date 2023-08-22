@@ -176,11 +176,20 @@ class TestElidePermutations(QiskitTestCase):
         qc.swap(1, 0)
         qc.h(1)
 
+        expected = QuantumCircuit(3)
+        expected.h(0)
+        expected.cx(2, 1)
+        expected.h(2)
+
+        # First assert the pass works as expected
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
         # with no layout
         res = transpile(qc, optimization_level=3, seed_transpiler=42)
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
         # With layout
-        res = transpile(qc, coupling_map=CouplingMap.from_line(3), optimization_level=3)
+        res = transpile(qc, coupling_map=CouplingMap.from_line(3), optimization_level=3, seed_transpiler=1234)
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
 
     def test_permutation_in_middle(self):
@@ -196,7 +205,7 @@ class TestElidePermutations(QiskitTestCase):
 
         expected = QuantumCircuit(3, 3)
         expected.h(0)
-        expected.cx(2, 0)
+        expected.cx(1, 0)
         expected.barrier(0, 1, 2)
         expected.measure(2, 0)
         expected.measure(1, 1)
@@ -218,7 +227,7 @@ class TestElidePermutations(QiskitTestCase):
 
         expected = QuantumCircuit(3, 3)
         expected.h(2)
-        expected.cx(2, 0)
+        expected.cx(1, 0)
         expected.barrier(0, 1, 2)
         expected.measure(2, 0)
         expected.measure(1, 1)

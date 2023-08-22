@@ -30,7 +30,7 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
-from qiskit.transpiler.passes import ElideSwaps
+from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -86,7 +86,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             init.append(OptimizeSwapBeforeMeasure())
             init.append(RemoveDiagonalGatesBeforeMeasure())
             if pass_manager_config.initial_layout is None:
-                init.append(ElideSwaps())
+                init.append(ElidePermutations())
         else:
             return TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
