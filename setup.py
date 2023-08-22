@@ -146,6 +146,13 @@ setup(
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
         ],
+        "qiskit.transpiler.layout": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager",
+            "trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager",
+            "dense = qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager",
+            "noise_adaptive = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoiseAdaptiveLayoutPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager",
+        ],
         "qiskit.transpiler.scheduling": [
             "alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager",
             "asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager",

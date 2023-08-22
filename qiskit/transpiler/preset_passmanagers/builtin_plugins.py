@@ -19,9 +19,18 @@ from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
 from qiskit.transpiler.passes import Error
+from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes import SabreLayout
+from qiskit.transpiler.passes import DenseLayout
+from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.passes import NoiseAdaptiveLayout
+from qiskit.transpiler.passes import CheckMap
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
 
 class BasisTranslatorPassManager(PassManagerStagePlugin):
@@ -418,3 +427,272 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
         return common.generate_scheduling(
             instruction_durations, scheduling_method, timing_constraints, inst_map, target
         )
+
+
+class DefaultLayoutPassManager(PassManagerStagePlugin):
+    """Plugin class for default layout stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
+        def _choose_layout_condition(property_set):
+            return not property_set["layout"]
+
+        def _layout_not_perfect(property_set):
+            """Return ``True`` if the first attempt at layout has been checked and found to be
+            imperfect.  In this case, perfection means "does not require any swap routing"."""
+            return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
+
+        def _vf2_match_not_found(property_set):
+            # If a layout hasn't been set by the time we run vf2 layout we need to
+            # run layout
+            if property_set["layout"] is None:
+                return True
+            # if VF2 layout stopped for any reason other than solution found we need
+            # to run layout since VF2 didn't converge.
+            return (
+                property_set["VF2Layout_stop_reason"] is not None
+                and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
+            )
+
+        def _swap_mapped(property_set):
+            return property_set["final_layout"] is None
+
+        if pass_manager_config.target is None:
+            coupling_map = pass_manager_config.coupling_map
+        else:
+            coupling_map = pass_manager_config.target
+
+        layout = PassManager()
+        layout.append(_given_layout)
+        if optimization_level == 0:
+            layout.append(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+            layout += common.generate_embed_passmanager(coupling_map)
+            return layout
+        elif optimization_level == 1:
+            layout.append(
+                [TrivialLayout(coupling_map), CheckMap(coupling_map)],
+                condition=_choose_layout_condition,
+            )
+            choose_layout_1 = VF2Layout(
+                coupling_map=pass_manager_config.coupling_map,
+                seed=pass_manager_config.seed_transpiler,
+                call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
+                properties=pass_manager_config.backend_properties,
+                target=pass_manager_config.target,
+                max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+            )
+            layout.append(choose_layout_1, condition=_layout_not_perfect)
+            choose_layout_2 = SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), choose_layout_2], condition=_vf2_match_not_found
+            )
+        elif optimization_level == 2:
+            choose_layout_0 = VF2Layout(
+                coupling_map=pass_manager_config.coupling_map,
+                seed=pass_manager_config.seed_transpiler,
+                call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
+                properties=pass_manager_config.backend_properties,
+                target=pass_manager_config.target,
+                max_trials=25000,  # Limits layout scoring to < 10s on ~400 qubit devices
+            )
+            layout.append(choose_layout_0, condition=_choose_layout_condition)
+            choose_layout_1 = SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=10,
+                layout_trials=10,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+            )
+        elif optimization_level == 3:
+            choose_layout_0 = VF2Layout(
+                coupling_map=pass_manager_config.coupling_map,
+                seed=pass_manager_config.seed_transpiler,
+                call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
+                properties=pass_manager_config.backend_properties,
+                target=pass_manager_config.target,
+                max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
+            )
+            layout.append(choose_layout_0, condition=_choose_layout_condition)
+            choose_layout_1 = SabreLayout(
+                coupling_map,
+                max_iterations=4,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=20,
+                layout_trials=20,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+            )
+        else:
+            raise TranspilerError(f"Invalid optimization level: {optimization_level}")
+
+        embed = common.generate_embed_passmanager(coupling_map)
+        layout.append(
+            [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+        )
+        return layout
+
+
+class TrivialLayoutPassManager(PassManagerStagePlugin):
+    """Plugin class for trivial layout stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
+        def _choose_layout_condition(property_set):
+            return not property_set["layout"]
+
+        if pass_manager_config.target is None:
+            coupling_map = pass_manager_config.coupling_map
+        else:
+            coupling_map = pass_manager_config.target
+
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+        layout += common.generate_embed_passmanager(coupling_map)
+        return layout
+
+
+class DenseLayoutPassManager(PassManagerStagePlugin):
+    """Plugin class for dense layout stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
+        def _choose_layout_condition(property_set):
+            return not property_set["layout"]
+
+        if pass_manager_config.target is None:
+            coupling_map = pass_manager_config.coupling_map
+        else:
+            coupling_map = pass_manager_config.target
+
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(
+            DenseLayout(
+                coupling_map=pass_manager_config.coupling_map,
+                backend_prop=pass_manager_config.backend_properties,
+                target=pass_manager_config.target,
+            ),
+            condition=_choose_layout_condition,
+        )
+        layout += common.generate_embed_passmanager(coupling_map)
+        return layout
+
+
+class NoiseAdaptiveLayoutPassManager(PassManagerStagePlugin):
+    """Plugin class for noise adaptive layout stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
+        def _choose_layout_condition(property_set):
+            return not property_set["layout"]
+
+        if pass_manager_config.target is None:
+            coupling_map = pass_manager_config.coupling_map
+        else:
+            coupling_map = pass_manager_config.target
+
+        layout = PassManager()
+        layout.append(_given_layout)
+        if pass_manager_config.target is None:
+            layout.append(
+                NoiseAdaptiveLayout(pass_manager_config.backend_properties),
+                condition=_choose_layout_condition,
+            )
+        else:
+            layout.append(
+                NoiseAdaptiveLayout(pass_manager_config.target), condition=_choose_layout_condition
+            )
+        layout += common.generate_embed_passmanager(coupling_map)
+        return layout
+
+
+class SabreLayoutPassManager(PassManagerStagePlugin):
+    """Plugin class for sabre layout stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
+        def _choose_layout_condition(property_set):
+            return not property_set["layout"]
+
+        def _swap_mapped(property_set):
+            return property_set["final_layout"] is None
+
+        if pass_manager_config.target is None:
+            coupling_map = pass_manager_config.coupling_map
+        else:
+            coupling_map = pass_manager_config.target
+
+        layout = PassManager()
+        layout.append(_given_layout)
+        if optimization_level == 0:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=1,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        elif optimization_level == 1:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        elif optimization_level == 2:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=10,
+                layout_trials=10,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        elif optimization_level == 3:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=4,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=20,
+                layout_trials=20,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        else:
+            raise TranspilerError(f"Invalid optimization level: {optimization_level}")
+        layout.append(
+            [BarrierBeforeFinalMeasurements(), layout_pass], condition=_choose_layout_condition
+        )
+        embed = common.generate_embed_passmanager(coupling_map)
+        layout.append(
+            [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+        )
+        return layout
