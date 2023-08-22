@@ -122,7 +122,10 @@ class RunningPassManager(BasePassRunner):
             # maatches expectations. If we have an initial layout set then ApplyLayout
             # handles mapping the layout to the set initial layout and nothing needs to
             # be done.
-            if not self.property_set["layout"]:
+            if (
+                not self.property_set["layout"]
+                and self.property_set["elision_final_layout"] is not None
+            ):
                 final_layout = Layout(
                     {
                         circuit.qubits[phys]: circuit.find_bit(bit).index
