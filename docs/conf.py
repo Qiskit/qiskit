@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from __future__ import annotations
+
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
@@ -18,6 +20,7 @@ import datetime
 import doctest
 import os
 import subprocess
+from pathlib import Path
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -50,6 +53,7 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "sphinx_remove_toctrees",
+    "sphinx_reredirects",
 ]
 
 templates_path = ["_templates"]
@@ -232,6 +236,33 @@ nbsphinx_prolog = """
     __ https://github.com/Qiskit/qiskit-terra/blob/main/{{ docname }}
 
 """
+
+
+# ----------------------------------------------------------------------------------
+# Redirects
+# ----------------------------------------------------------------------------------
+
+def determine_api_redirects() -> dict[str, str]:
+    """Set up API redirects for functions that we moved to module pages.
+
+    Note that we have redirects in Cloudflare for methods moving to their class page. We
+    could not do this for functions because some functions still have dedicated
+    HTML pages, so we cannot use a generic rule.
+    """
+    lines = Path("api_redirects.txt").read_text().splitlines()
+    result = {}
+    for line in lines:
+        if not line:
+            continue
+        old, new = line.split(" ")
+        obj_name = old.split("stubs/")[1]
+        # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
+        result[old] = f"{new}#{obj_name}"
+    return result
+
+
+redirects = determine_api_redirects()
+
 
 # ---------------------------------------------------------------------------------------
 # Prod changes
