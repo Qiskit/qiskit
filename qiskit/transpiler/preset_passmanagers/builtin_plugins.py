@@ -416,31 +416,21 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     not property_set["size_fixed_point"]
                 )
 
-            if translation_method not in {
-                "translator",
-                "synthesis",
-                "unroller",
-            }:
-                translation = plugin_manager.get_passmanager_stage(
-                    "translation",
-                    translation_method,
-                    pass_manager_config,
-                    optimization_level=1,
-                )
-            else:
-                translation = common.generate_translation_passmanager(
-                    pass_manager_config.target,
-                    pass_manager_config.basis_gates,
-                    translation_method,
-                    pass_manager_config.approximation_degree,
-                    pass_manager_config.coupling_map,
-                    pass_manager_config.backend_properties,
-                    pass_manager_config.unitary_synthesis_method,
-                    pass_manager_config.unitary_synthesis_plugin_config,
-                    pass_manager_config.hls_config,
-                )
-
-            if optimization_level == 2:
+            translation = plugin_manager.get_passmanager_stage(
+                "translation",
+                translation_method,
+                pass_manager_config,
+                optimization_level=optimization_level,
+            )
+            if optimization_level == 1:
+                # Steps for optimization level 1
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CXCancellation(),
+                ]
+            elif optimization_level == 2:
                 # Steps for optimization level 2
                 _opt = [
                     Optimize1qGatesDecomposition(
@@ -451,7 +441,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                     ),
                 ]
-
             elif optimization_level == 3:
                 # Steps for optimization level 3
                 _opt = [
@@ -480,13 +469,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     return not property_set["optimization_loop_minimum_point"]
 
             else:
-                # Steps for optimization level 1
-                _opt = [
-                    Optimize1qGatesDecomposition(
-                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
-                    CXCancellation(),
-                ]
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
 
             unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
             # Build nested Flow controllers
