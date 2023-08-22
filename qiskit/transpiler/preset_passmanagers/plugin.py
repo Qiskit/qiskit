@@ -76,7 +76,7 @@ load external plugins via corresponding entry points.
         instruction on the target backend.
    * - ``optimization``
      - ``qiskit.transpiler.optimization``
-     - There are no reserved plugin names
+     - ``default``
      - This stage is expected to perform optimization and simplification.
        The constraints from earlier stages still apply to the output of this
        stage. After the ``optimization`` stage is run we expect the circuit

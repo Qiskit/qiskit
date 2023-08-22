@@ -15,17 +15,8 @@
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 from __future__ import annotations
-from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler import ConditionalController, FlowController
-from qiskit.transpiler.passes import CXCancellation
-from qiskit.transpiler.passes import FixedPoint
-from qiskit.transpiler.passes import Depth
-from qiskit.transpiler.passes import Size
-from qiskit.transpiler.passes import Optimize1qGatesDecomposition
-from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
@@ -63,7 +54,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
-    optimization_method = pass_manager_config.optimization_method
+    optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
 
@@ -71,16 +62,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     routing_pm = plugin_manager.get_passmanager_stage(
         "routing", routing_method, pass_manager_config, optimization_level=1
     )
-
-    # Build optimization loop: merge 1q rotations and cancel CNOT gates iteratively
-    # until no more change in depth
-    _depth_check = [Depth(recurse=True), FixedPoint("depth")]
-    _size_check = [Size(recurse=True), FixedPoint("size")]
-
-    def _opt_control(property_set):
-        return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
-
-    _opt = [Optimize1qGatesDecomposition(basis=basis_gates, target=target), CXCancellation()]
 
     # Build full pass manager
     if coupling_map or initial_layout:
@@ -105,26 +86,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     else:
         pre_optimization = common.generate_pre_op_passmanager(remove_reset_in_zero=True)
-    if optimization_method is None:
-        optimization = PassManager()
-        unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
-        # Build nested Flow controllers
-        def _unroll_condition(property_set):
-            return not property_set["all_gates_in_basis"]
 
-        # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
-            GatesInBasis(basis_gates, target=target),
-            ConditionalController(unroll, condition=_unroll_condition),
-        ]
-
-        optimization.append(_depth_check + _size_check)
-        opt_loop = _opt + _unroll_if_out_of_basis + _depth_check + _size_check
-        optimization.append(opt_loop, do_while=_opt_control)
-    else:
-        optimization = plugin_manager.get_passmanager_stage(
-            "optimization", optimization_method, pass_manager_config, optimization_level=1
-        )
+    optimization = plugin_manager.get_passmanager_stage(
+        "optimization", optimization_method, pass_manager_config, optimization_level=1
+    )
 
     sched = plugin_manager.get_passmanager_stage(
         "scheduling", scheduling_method, pass_manager_config, optimization_level=1

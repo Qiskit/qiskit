@@ -149,6 +149,9 @@ setup(
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
         ],
+        "qiskit.transpiler.optimization": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager",
+        ],
         "qiskit.transpiler.layout": [
             "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager",
             "trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager",

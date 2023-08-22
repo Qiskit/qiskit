@@ -50,7 +50,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "stochastic"
     translation_method = pass_manager_config.translation_method or "translator"
-    optimization_method = pass_manager_config.optimization_method
+    optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
 
@@ -97,11 +97,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     init = plugin_manager.get_passmanager_stage(
         "init", init_method, pass_manager_config, optimization_level=0
     )
-    optimization = None
-    if optimization_method is not None:
-        optimization = plugin_manager.get_passmanager_stage(
-            "optimization", optimization_method, pass_manager_config, optimization_level=0
-        )
+    optimization = plugin_manager.get_passmanager_stage(
+        "optimization", optimization_method, pass_manager_config, optimization_level=0
+    )
 
     return StagedPassManager(
         pre_init=pre_init,
