@@ -486,7 +486,6 @@ class Target(Mapping):
         qiskit_inst_name_map = get_standard_gate_name_mapping()
         if inst_name_map is not None:
             qiskit_inst_name_map.update(inst_name_map)
-
         for inst_name in inst_map.instructions:
             # Prepare dictionary of instruction properties
             out_props = {}
@@ -501,8 +500,9 @@ class Target(Mapping):
                     props = None
 
                 entry = get_calibration(inst_name, qargs)
-
                 if getattr(props, "_calibration", None) != entry:
+                    if not entry.user_provided:
+                        continue
                     if self.dt is not None:
                         try:
                             duration = entry.get_schedule().duration * self.dt
