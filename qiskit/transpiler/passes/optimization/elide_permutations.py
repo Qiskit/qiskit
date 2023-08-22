@@ -13,10 +13,14 @@
 
 """Remove any swap gates in the circuit by pushing it through into a qubit permutation."""
 
+import logging
+
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.layout import Layout
+
+logger = logging.getLogger(__name__)
 
 
 class ElidePermutations(TransformationPass):
@@ -25,9 +29,26 @@ class ElidePermutations(TransformationPass):
     This pass is intended to be run before a layout (mapping virtual qubits
     to physical qubits) is set during the transpilation pipeline. This
     pass iterates over the :class:`~.DAGCircuit` and when a :class:`~.SwapGate`
-    is encountered it permutes the virtual qubits in the circuit and removes
-    the swap gate. This will effectively remove any :class:`~SwapGate`\s in
-    the circuit prior to running layout.
+    or :class:`~.PermutationGate` are encountered it permutes the virtual qubits in
+    the circuit and removes the swap gate. This will effectively remove any
+    :class:`~SwapGate`\s or :class:`~PermutationGate` in the circuit prior to running
+    layout. If this pass is run after a layout has been set it will become a no-op
+    (and log a warning) as this optimization is not sound after physical qubits are
+    selected and there are connectivity constraints to adhere to.
+
+    For tracking purposes this pass sets 3 values in the property set if there
+    are any :class:`~.SwapGate` or :class:`~.PermutationGate` objects in the circuit
+    and the pass isn't a no-op.
+
+    ``original_layout``: The trivial :class:`~.Layout` for the input to this pass being run
+    ``original_qubit_indices``: The mapping of qubit objects to positional indices for the state
+        of the circuit as input to this pass.
+    ``elision_final_layout``: A :class:`~.Layout` object mapping input qubits to the output
+        state after eliding permutations.
+
+    These three properties are needed for the transpiler to track the permutations in the out
+    :attr:`.QuantumCircuit.layout` attribute. The elision of permutations is equivalent to a
+    ``final_layout`` set by routing and all three of these attributes are needed in the case
     """
 
     def run(self, dag):
@@ -39,6 +60,13 @@ class ElidePermutations(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+        if self.property_set["layout"] is not None:
+            logger.warning(
+                "ElideSwaps is not valid after a layout has been set. This indicates an invalid "
+                "pass manager construction."
+            )
+            return dag
+
         op_count = dag.count_ops()
         if op_count.get("swap", 0) == 0 and op_count.get("permutation", 0) == 0:
             return dag
