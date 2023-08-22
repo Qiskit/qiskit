@@ -74,6 +74,8 @@ def mock_get_passmanager_stage(
         return PassManager([])
     elif stage_name == "optimization":
         return OptimizationPassManager().pass_manager(pm_config, optimization_level)
+    elif stage_name == "layout":
+        return PassManager([])
     else:
         raise Exception("Failure, unexpected stage plugin combo for test")
 
