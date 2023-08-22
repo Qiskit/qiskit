@@ -17,22 +17,9 @@
 # pylint: disable=missing-param-doc
 # pylint: disable=missing-type-doc
 
-"""
-Uniformly controlled gates (also called multiplexed gates).
+"""Uniformly controlled gates (also called multiplexed gates)."""
 
-These gates can have several control qubits and a single target qubit.
-If the k control qubits are in the state |i> (in the computational basis),
-a single-qubit unitary U_i is applied to the target qubit.
-
-This gate is represented by a block-diagonal matrix, where each block is a
-2x2 unitary:
-
-    [[U_0, 0,   ....,        0],
-     [0,   U_1, ....,        0],
-                .
-                    .
-     [0,   0,  ...., U_(2^k-1)]]
-"""
+from __future__ import annotations
 
 import cmath
 import math
@@ -55,21 +42,42 @@ _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
 class UCGate(Gate):
-    """Uniformly controlled gate (also called multiplexed gate).
-    The decomposition is based on: https://arxiv.org/pdf/quant-ph/0410066.pdf.
+    r"""Uniformly controlled gate (also called multiplexed gate).
+
+    These gates can have several control qubits and a single target qubit.
+    If the k control qubits are in the state :math:`|i\rangle` (in the computational basis),
+    a single-qubit unitary :math:`U_i` is applied to the target qubit.
+
+    This gate is represented by a block-diagonal matrix, where each block is a
+    :math:`2\times 2` unitary, that is
+
+    .. math::
+
+        \begin{pmatrix}
+            U_0 & 0 & \cdots & 0 \\
+            0 & U_1 & \cdots & 0 \\
+            \vdots  &     & \ddots & \vdots \\
+            0 & 0   &  \cdots & U_{2^{k-1}}
+        \end{pmatrix}.
+
+    The decomposition is based on Ref. [1].
+
+    **References:**
+
+    [1] Bergholm et al., Quantum circuits with uniformly controlled one-qubit gates (2005).
+        `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
+
     """
 
-    def __init__(self, gate_list, up_to_diagonal=False):
-        """UCGate Gate initializer.
-
+    def __init__(self, gate_list: list[np.ndarray], up_to_diagonal: bool = False):
+        r"""
         Args:
-            gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}],
-                where each single-qubit unitary U_i is given as a 2*2 numpy array.
-
-            up_to_diagonal (bool): determines if the gate is implemented up to a diagonal.
+            gate_list: List of two qubit unitaries :math:`[U_0, ..., U_{2^{k-1}}]`, where each
+                single-qubit unitary :math:`U_i` is given as a :math:`2 \times 2` numpy array.
+            up_to_diagonal: Determines if the gate is implemented up to a diagonal.
                 or if it is decomposed completely (default: False).
-                If the UCGate u is decomposed up to a diagonal d, this means that the circuit
-                implements a unitary u' such that d.u'=u.
+                If the ``UCGate`` :math:`U` is decomposed up to a diagonal :math:`D`, this means
+                that the circuit implements a unitary :math:`U'` such that :math:`D U' = U`.
 
         Raises:
             QiskitError: in case of bad input to the constructor
@@ -99,7 +107,7 @@ class UCGate(Gate):
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
 
-    def inverse(self):
+    def inverse(self) -> Gate:
         """Return the inverse.
 
         This does not re-compute the decomposition for the multiplexer with the inverse of the

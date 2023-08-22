@@ -4233,19 +4233,18 @@ class QuantumCircuit:
         :class:`qiskit.extensions.Initialize` instruction.
 
         Args:
-            params: Can be either of
-                * vector of complex amplitudes to initialize to.
-                * labels of basis states of the Pauli eigenstates Z, X, Y. See
-                :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
-                to the qubit index to be applied to. Example label '01' initializes the qubit zero to
-                :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
-                * an integer that is used as a bitmap indicating which qubits to initialize
-                to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+            params: The state to initialize to, can be either of the following.
+                * Statevector or vector of complex amplitudes to initialize to.
+                * Labels of basis states of the Pauli eigenstates Z, X, Y. See
+                  :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
+                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
+                * An integer that is used as a bitmap indicating which qubits to initialize to
+                  :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
+                  2 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
 
             qubits: Qubits to initialize. If ``None`` the initialization is applied to all qubits in
                 the circuit.
-
             normalize: Whether to normalize an input array to a unit vector.
 
         Returns:
@@ -4267,9 +4266,9 @@ class QuantumCircuit:
 
             .. parsed-literal::
 
-                    ┌──────────────────────────────┐
+                     ┌──────────────────────────────┐
                 q_0: ┤ Initialize(0.70711,-0.70711) ├
-                    └──────────────────────────────┘
+                     └──────────────────────────────┘
 
 
             Initialize from a string two qubits in the state :math:`|10\rangle`.
@@ -4290,11 +4289,11 @@ class QuantumCircuit:
 
             .. parsed-literal::
 
-                    ┌──────────────────┐
+                     ┌──────────────────┐
                 q_0: ┤0                 ├
-                    │  Initialize(0,1) │
+                     │  Initialize(0,1) │
                 q_1: ┤1                 ├
-                    └──────────────────┘
+                     └──────────────────┘
 
             Initialize two qubits from an array of complex amplitudes.
 
@@ -4311,11 +4310,11 @@ class QuantumCircuit:
 
             .. parsed-literal::
 
-                    ┌────────────────────────────────────┐
+                     ┌────────────────────────────────────┐
                 q_0: ┤0                                   ├
-                    │  Initialize(0,0.70711,-0.70711j,0) │
+                     │  Initialize(0,0.70711,-0.70711j,0) │
                 q_1: ┤1                                   ├
-                    └────────────────────────────────────┘
+                     └────────────────────────────────────┘
         """
         from qiskit.circuit.library.data_preparation.initializer import Initialize
 
@@ -4328,7 +4327,7 @@ class QuantumCircuit:
 
     def unitary(
         self,
-        obj: np.ndarray | Gate | BaseOperator | int,
+        obj: np.ndarray | Gate | BaseOperator,
         qubits: Sequence[QubitSpecifier],
         label: str | None = None,
     ):

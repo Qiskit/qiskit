@@ -14,6 +14,8 @@
 """Diagonal matrix circuit."""
 
 from __future__ import annotations
+from collections.abc import Sequence
+
 import cmath
 import numpy as np
 
@@ -53,16 +55,16 @@ class Diagonal(QuantumCircuit):
             \end{pmatrix}
 
     Diagonal gates are useful as representations of Boolean functions,
-    as they can map from {0,1}^2**n to {0,1}^2**n space. For example a phase
-    oracle can be seen as a diagonal gate with {+1, -1} on the diagonals. Such
-    an oracle will induce a +1 or -1 phase on the amplitude of any corresponding
+    as they can map from :math:`\{0,1\}^{2^n}` to :math:`\{0,1\}^{2^n}` space. For example a phase
+    oracle can be seen as a diagonal gate with :math:`\{1, -1\}` on the diagonals. Such
+    an oracle will induce a :math:`+1` or :math`-1` phase on the amplitude of any corresponding
     basis state.
 
     Diagonal gates appear in many classically hard oracular problems such as
     Forrelation or Hidden Shift circuits.
 
     Diagonal gates are represented and simulated more efficiently than a dense
-    2**n x 2**n unitary matrix.
+    :math:`2^n \times 2^n` unitary matrix.
 
     The reference implementation is via the method described in
     Theorem 7 of [1]. The code is based on Emanuel Malvetti's semester thesis
@@ -74,7 +76,7 @@ class Diagonal(QuantumCircuit):
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
     """
 
-    def __init__(self, diag: list[complex] | np.ndarray) -> None:
+    def __init__(self, diag: Sequence[complex]) -> None:
         """Create a new Diagonal circuit.
 
         Args:
@@ -126,7 +128,7 @@ class Diagonal(QuantumCircuit):
 class DiagonalGate(Gate):
     """Gate implementing a diagonal transformation."""
 
-    def __init__(self, diag):
+    def __init__(self, diag: Sequence[complex]) -> None:
         """
         Args:
             diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).

@@ -14,8 +14,11 @@
 Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
+from __future__ import annotations
+import typing
+
 from numbers import Number
-import numpy
+import numpy as np
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
@@ -25,23 +28,29 @@ from qiskit.utils.deprecation import deprecate_func
 
 from .generalized_gates.unitary import UnitaryGate
 
+if typing.TYPE_CHECKING:
+    from qiskit.quantum_info import BaseOperator
+
 
 class HamiltonianGate(Gate):
-    """Class for representing evolution by a Hamiltonian operator as a gate.
+    r"""Class for representing evolution by a Hamiltonian operator as a gate.
 
-    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = \exp(-i t H)`,
     which can be decomposed into basis gates if it is 2 qubits or less, or
-    simulated directly in Aer for more qubits. Note that you can also directly
-    use :meth:`.QuantumCircuit.hamiltonian`.
+    simulated directly in Aer for more qubits.
     """
 
-    def __init__(self, data, time, label=None):
-        """Create a gate from a hamiltonian operator and evolution time parameter t
-
+    def __init__(
+        self,
+        data: np.ndarray | Gate | BaseOperator,
+        time: float | ParameterExpression,
+        label: str | None = None,
+    ) -> None:
+        """
         Args:
-            data (matrix or Operator): a hermitian operator.
-            time (float or ParameterExpression): time evolution parameter.
-            label (str): unitary name for backend [Default: None].
+            data: A hermitian operator.
+            time: Time evolution parameter.
+            label: Unitary name for backend [Default: None].
 
         Raises:
             ValueError: if input data is not an N-qubit unitary operator.
@@ -55,16 +64,16 @@ class HamiltonianGate(Gate):
             # the object to an Operator so that we can extract the underlying
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
-        # Convert to numpy array in case not already an array
-        data = numpy.array(data, dtype=complex)
+        # Convert to np array in case not already an array
+        data = np.array(data, dtype=complex)
         # Check input is unitary
         if not is_hermitian_matrix(data):
             raise ValueError("Input matrix is not Hermitian.")
-        if isinstance(time, Number) and time != numpy.real(time):
+        if isinstance(time, Number) and time != np.real(time):
             raise ValueError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
-        num_qubits = int(numpy.log2(input_dim))
+        num_qubits = int(np.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ValueError("Input matrix is not an N-qubit operator.")
 
@@ -99,7 +108,7 @@ class HamiltonianGate(Gate):
 
     def conjugate(self):
         """Return the conjugate of the Hamiltonian."""
-        return HamiltonianGate(numpy.conj(self.params[0]), -self.params[1])
+        return HamiltonianGate(np.conj(self.params[0]), -self.params[1])
 
     def adjoint(self):
         """Return the adjoint of the unitary."""
@@ -107,7 +116,7 @@ class HamiltonianGate(Gate):
 
     def transpose(self):
         """Return the transpose of the Hamiltonian."""
-        return HamiltonianGate(numpy.transpose(self.params[0]), self.params[1])
+        return HamiltonianGate(np.transpose(self.params[0]), self.params[1])
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -125,7 +134,7 @@ class HamiltonianGate(Gate):
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""
-        if isinstance(parameter, (float, int, numpy.ndarray)):
+        if isinstance(parameter, (float, int, np.ndarray)):
             return parameter
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
             return float(parameter)

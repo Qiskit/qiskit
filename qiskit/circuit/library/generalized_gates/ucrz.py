@@ -10,25 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Implementation of the abstract class UCPauliRotGate for uniformly controlled
-(also called multiplexed) single-qubit rotations around the Z-axes
-(i.e., uniformly controlled R_z rotations).
-These gates can have several control qubits and a single target qubit.
-If the k control qubits are in the state ket(i) (in the computational bases),
-a single-qubit rotation R_z(a_i) is applied to the target qubit.
-"""
+"""Uniformly controlled Pauli-Z rotations."""
+
+from __future__ import annotations
 
 from .uc_pauli_rot import UCPauliRotGate
 
 
 class UCRZGate(UCPauliRotGate):
-    """
-    Uniformly controlled rotations (also called multiplexed rotations).
-    The decomposition is based on
-    'Synthesis of Quantum Logic Circuits' by V. Shende et al.
-    (https://arxiv.org/pdf/quant-ph/0406176.pdf)
+    r"""Uniformly controlled Pauli-Z rotations.
+
+    Implements the :class:`.UCGate` for the special case that all unitaries are Pauli-Z rotations,
+    :math:`U_i = R_Z(a_i)` where :math:`a_i \in \mathbb{R}` is the rotation angle.
     """
 
-    def __init__(self, angle_list):
+    def __init__(self, angle_list: list[float]):
+        r"""
+        Args:
+            angle_list: List of rotation angles :math:`[a_0, ..., a_{2^{k-1}}]`.
+        """
         super().__init__(angle_list, "Z")
