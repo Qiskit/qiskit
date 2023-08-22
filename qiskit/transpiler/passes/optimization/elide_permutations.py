@@ -71,5 +71,7 @@ class ElidePermutations(TransformationPass):
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         if self.property_set["original_qubit_indices"] is None:
             self.property_set["original_qubit_indices"] = input_qubit_mapping
-        self.property_set["elision_final_layout"] = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
+        self.property_set["elision_final_layout"] = Layout(
+            {dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)}
+        )
         return new_dag

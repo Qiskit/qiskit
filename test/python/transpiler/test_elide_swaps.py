@@ -189,7 +189,9 @@ class TestElidePermutations(QiskitTestCase):
         res = transpile(qc, optimization_level=3, seed_transpiler=42)
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
         # With layout
-        res = transpile(qc, coupling_map=CouplingMap.from_line(3), optimization_level=3, seed_transpiler=1234)
+        res = transpile(
+            qc, coupling_map=CouplingMap.from_line(3), optimization_level=3, seed_transpiler=1234
+        )
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
 
     def test_permutation_in_middle(self):
