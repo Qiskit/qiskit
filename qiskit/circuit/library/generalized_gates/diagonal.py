@@ -139,12 +139,12 @@ class Diagonal(QuantumCircuit):
 
 def _fwht(a: np.ndarray) -> np.ndarray:
     """Fast Walsh-Hadamard Transform of array a."""
-    h = 1
+    step = 1
     n = len(a)
-    while h < n:
-        for i in range(0, n, h * 2):
-            for j in range(i, i + h):
-                a[j], a[j + h] = a[j] + a[j + h], a[j] - a[j + h]
+    while step < n:
+        for i in range(0, n, step * 2):
+            for j in range(i, i + step):
+                a[j], a[j + step] = a[j] + a[j + step], a[j] - a[j + step]
         a /= np.sqrt(2)
-        h *= 2
+        step *= 2
     return a
