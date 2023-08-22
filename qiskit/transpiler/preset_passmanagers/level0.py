@@ -50,7 +50,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "stochastic"
     translation_method = pass_manager_config.translation_method or "translator"
-    optimization_method = pass_manager_config.optimization_method
+    optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
@@ -113,11 +113,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     elif unroll_3q is not None:
         init += unroll_3q
-    optimization = None
-    if optimization_method is not None:
-        optimization = plugin_manager.get_passmanager_stage(
-            "optimization", optimization_method, pass_manager_config, optimization_level=0
-        )
+    optimization = plugin_manager.get_passmanager_stage(
+        "optimization", optimization_method, pass_manager_config, optimization_level=0
+    )
 
     return StagedPassManager(
         init=init,
