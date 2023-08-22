@@ -40,7 +40,7 @@ Operators
 
 .. deprecated:: 0.24.0
    The operators tutorials rely on the ``opflow`` module, which has been deprecated since
-   Qiskit 0.44 (aka Qiskit Terra 0.24). Refer to the
+   Qiskit 0.43 (aka Qiskit Terra 0.24). Refer to the
    `Opflow migration guide <https://qisk.it/opflow_migration>`_.
    These tutorials will be removed in the future.
 
