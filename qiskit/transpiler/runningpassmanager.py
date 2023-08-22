@@ -30,6 +30,7 @@ from qiskit.passmanager.flow_controllers import (
 )
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.transpiler.basepasses import BasePass
+from qiskit.transpiler.layout import Layout
 from .exceptions import TranspilerError
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .layout import TranspileLayout
@@ -108,11 +109,30 @@ class RunningPassManager(BasePassRunner):
         circuit.name = self.metadata["output_name"]
 
         layout = self.property_set["layout"]
+        # If  there is no initial layout set but "original_layout" is set that means
+        # `ElidePermutations` ran and we have a final layout. Since a final layout
+        # needs an initial layout to be useful we take the original layout field which
+        # is just a trivial layout at the time ElidePermutations ran (which must be
+        # before an initial layout gets set).
         if not layout:
             layout = self.property_set["original_layout"]
         final_layout = self.property_set["final_layout"]
         if not final_layout:
-            final_layout = self.property_set["elision_final_layout"]
+            # If no initial layout is set reverse the elision final layout so it
+            # maatches expectations. If we have an initial layout set then ApplyLayout
+            # handles mapping the layout to the set initial layout and nothing needs to
+            # be done.
+            if not self.property_set["layout"]:
+                final_layout = Layout(
+                    {
+                        circuit.qubits[phys]: circuit.find_bit(bit).index
+                        for bit, phys in self.property_set["elision_final_layout"]
+                        .get_virtual_bits()
+                        .items()
+                    }
+                )
+            else:
+                final_layout = self.property_set["elision_final_layout"]
 
         if layout is not None:
             circuit._layout = TranspileLayout(
