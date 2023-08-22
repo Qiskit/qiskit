@@ -47,7 +47,7 @@ load external plugins via corresponding entry points.
      - Description and expectations
    * - ``init``
      - ``qiskit.transpiler.init``
-     - No reserved names
+     - ``default``
      - This stage runs first and is typically used for any initial logical optimization. Because most
        layout and routing algorithms are only designed to work with 1 and 2 qubit gates, this stage
        is also used to translate any gates that operate on more than 2 qubits into gates that only

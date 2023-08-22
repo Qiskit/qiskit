@@ -23,11 +23,8 @@ from qiskit.transpiler.passmanager import StagedPassManager
 from qiskit.transpiler.passes import MinimumPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Size
-from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
-from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
-from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -66,7 +63,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    init_method = pass_manager_config.init_method
+    init_method = pass_manager_config.init_method or "default"
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
@@ -77,7 +74,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
-    hls_config = pass_manager_config.hls_config
 
     # Choose routing pass
     routing_pm = plugin_manager.get_passmanager_stage(
@@ -114,7 +110,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     ]
 
     # Build pass manager
-    init = common.generate_control_flow_options_check(
+    pre_init = common.generate_control_flow_options_check(
         layout_method=layout_method,
         routing_method=routing_method,
         translation_method=translation_method,
@@ -123,22 +119,9 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         basis_gates=basis_gates,
         target=target,
     )
-    if init_method is not None:
-        init += plugin_manager.get_passmanager_stage(
-            "init", init_method, pass_manager_config, optimization_level=2
-        )
-    else:
-        init += common.generate_unroll_3q(
-            target,
-            basis_gates,
-            approximation_degree,
-            unitary_synthesis_method,
-            unitary_synthesis_plugin_config,
-            hls_config,
-        )
-    init.append(RemoveResetInZeroState())
-    init.append(OptimizeSwapBeforeMeasure())
-    init.append(RemoveDiagonalGatesBeforeMeasure())
+    init = plugin_manager.get_passmanager_stage(
+        "init", init_method, pass_manager_config, optimization_level=3
+    )
     if coupling_map or initial_layout:
         layout = plugin_manager.get_passmanager_stage(
             "layout", layout_method, pass_manager_config, optimization_level=3
@@ -201,6 +184,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     )
 
     return StagedPassManager(
+        pre_init=pre_init,
         init=init,
         layout=layout,
         routing=routing,
