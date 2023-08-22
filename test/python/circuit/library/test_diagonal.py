@@ -17,7 +17,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit.library import Diagonal, _dict_to_list
+from qiskit.circuit.library import Diagonal
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -37,16 +37,20 @@ class TestDiagonalGate(QiskitTestCase):
     )
     def test_diag_gate(self, phases):
         """Test correctness of diagonal decomposition."""
+        diag = [np.exp(1j * ph) for ph in phases]
+        qc = Diagonal(diag)
         diag_dict = {}
-        for ph in phases:
-            i = np.random.randint(0, 16)
-            diag_dict[i] = np.exp(1j * ph)
-        diag = _dict_to_list(diag_dict)
-        qc = Diagonal(diag_dict)
+        for i in range(len(diag)):
+            diag_dict[i] = diag[i]
+        qc2 = Diagonal(diag_dict)
         simulated_diag = Statevector(Operator(qc).data.diagonal()).data
         ref_diag = Statevector(diag).data
 
+        simulated_diag_dict = Statevector(Operator(qc2).data.diagonal()).data
+        ref_diag_dict = Statevector(diag).data
+
         self.assertTrue(matrix_equal(simulated_diag, ref_diag, ignore_phase=False))
+        self.assertTrue(matrix_equal(simulated_diag_dict, ref_diag_dict, ignore_phase=False))
 
 
 if __name__ == "__main__":

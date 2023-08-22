@@ -492,7 +492,6 @@ from ..reset import Reset
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
-    _dict_to_list,
     MCMT,
     MCMTVChain,
     Permutation,

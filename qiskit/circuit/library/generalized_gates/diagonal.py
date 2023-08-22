@@ -71,22 +71,23 @@ class Diagonal(QuantumCircuit):
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
     """
 
-    def __init__(self, diag_dict: dict) -> None:
+    def __init__(self, diag_general: list[complex] | np.ndarray | dict) -> None:
         """Create a new Diagonal circuit.
 
         Args:
-            diag: dict of the diagonal entries which are not 1.
+            diag: list or np.ndarray of 2^k diagonal entries or
+                dict of the diagonal entries which are not 1.Where k is number of qubits
 
         Raises:
-            CircuitError: if the dictionary of the diagonal entries are in bad format;
-                          if absolute value of any entry is not 1.
+            CircuitError: if the diagonal entries are in bad format;
+                if absolute value of any entry is not 1.
         """
-        diag = _dict_to_list(diag_dict)
-        if not isinstance(diag_dict, dict):
-            raise CircuitError("Diagonal entries must be dictionary.")
+        diag = _dict_to_list(diag_general)
+        if not isinstance(diag, (list, np.ndarray, dict)):
+            raise CircuitError("Diagonal entries must be list , np.ndarray or dict.")
         num_qubits = np.log2(len(diag))
-        # if num_qubits < 1 or not num_qubits.is_integer():
-        # raise CircuitError("The number of diagonal entries is not a positive power of 2.")
+        if num_qubits < 1 or not num_qubits.is_integer():
+            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
 
@@ -125,7 +126,7 @@ def _extract_rz(phi1, phi2):
 
 
 # Returns size of Diagonal or 2^k
-def _exp_two(n: int) -> int:
+def _near_exp_two(n: int) -> int:
     i = 1
     while i <= n:
         i *= 2
@@ -133,9 +134,11 @@ def _exp_two(n: int) -> int:
 
 
 # Convert dictionary to list
-def _dict_to_list(d: dict) -> list:
-    diag_list = [1] * _exp_two(max(d))
-    for i in range(len(diag_list)):
-        if i in d:
-            diag_list[i] = d[i]
-    return diag_list
+def _dict_to_list(d: list[complex] | np.ndarray | dict) -> list:
+    if isinstance(d, dict):
+        diag_list = [1] * _near_exp_two(max(d))
+        for i in range(len(diag_list)):
+            if i in d:
+                diag_list[i] = d[i]
+        return diag_list
+    return d
