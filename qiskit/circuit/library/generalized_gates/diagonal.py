@@ -94,33 +94,38 @@ class Diagonal(QuantumCircuit):
         # one and the diagonal is fully specified by the phases of its entries.
         diag_phases = [cmath.phase(z) for z in diag]
 
-        fwht_matrix = Had = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+        fwht_matrix = had = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
         for _ in range(num_qubits - 1):
-            fwht_matrix = np.kron(fwht_matrix, Had)
+            fwht_matrix = np.kron(fwht_matrix, had)
 
         angles_rz = np.dot(fwht_matrix, diag_phases) / np.sqrt(2 ** (num_qubits - 2))
 
-        for i in range(1, num_qubits):
-            gate_list[0].append(["rz", -angles_rz[2 ** (num_qubits - i)], i - 1])
+        if num_qubits == 1:
+            gate_list[0].append(["rz", -angles_rz[1], 0])
 
-        cc_set = [0]
-        gray_code = [0, 1]
-        for p in range(2, num_qubits + 1):
-            t = 2 ** (p - 1)
-            cc_set[t // 2 - 1] = p - 1
-            cc_set.extend(cc_set)
-            if p < num_qubits:
-                gate_list[2**p].append(["cx", 0, p - 1])
-                for i in range(2, t + 1):
-                    j = ((gray_code[i - 1] << 1) + 1) << (num_qubits - p)
-                    gate_list[2**p + 2 * i - 3].append(["rz", -angles_rz[j], p - 1])
-                    gate_list[2**p + 2 * i - 2].append(["cx", cc_set[i - 1] - 1, p - 1])
-                gray_code = [x << 1 for x in gray_code] + [(x << 1) + 1 for x in gray_code[::-1]]
+        else:
+            for i in range(1, num_qubits):
+                gate_list[0].append(["rz", -angles_rz[2 ** (num_qubits - i)], i - 1])
 
-        for i in range(1, 2 ** (num_qubits - 1) + 1):
-            j = (gray_code[i - 1] << 1) + 1
-            gate_list[2 * i - 2].append(["rz", -angles_rz[j], num_qubits - 1])
-            gate_list[2 * i - 1].append(["cx", cc_set[i - 1] - 1, num_qubits - 1])
+            cc_set = [0]
+            gray_code = [0, 1]
+            for p in range(2, num_qubits + 1):
+                cc_set[2 ** (p - 2) - 1] = p - 1
+                cc_set.extend(cc_set)
+                if p < num_qubits:
+                    gate_list[2**p].append(["cx", 0, p - 1])
+                    for i in range(2, 2 ** (p - 1) + 1):
+                        j = ((gray_code[i - 1] << 1) + 1) << (num_qubits - p)
+                        gate_list[2**p + 2 * i - 3].append(["rz", -angles_rz[j], p - 1])
+                        gate_list[2**p + 2 * i - 2].append(["cx", cc_set[i - 1] - 1, p - 1])
+                    gray_code = [x << 1 for x in gray_code] + [
+                        (x << 1) + 1 for x in gray_code[::-1]
+                    ]
+
+            for i in range(1, 2 ** (num_qubits - 1) + 1):
+                j = (gray_code[i - 1] << 1) + 1
+                gate_list[2 * i - 2].append(["rz", -angles_rz[j], num_qubits - 1])
+                gate_list[2 * i - 1].append(["cx", cc_set[i - 1] - 1, num_qubits - 1])
 
         circuit = QuantumCircuit(num_qubits, name="Diagonal")
         circuit.global_phase += angles_rz[0] / 2
