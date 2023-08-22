@@ -21,7 +21,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 
-class DiagonalNew(QuantumCircuit):
+class Diagonal(QuantumCircuit):
     r"""Diagonal circuit.
 
     Circuit symbol:
