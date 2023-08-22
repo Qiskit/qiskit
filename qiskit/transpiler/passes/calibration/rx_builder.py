@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,13 +29,12 @@ from qiskit.exceptions import QiskitError
 class RXCalibrationBuilder(CalibrationBuilder):
     """Add single-pulse RX calibrations that are bootstrapped from the SX calibration.
 
-    .. note:
+    .. note::
         Requirement: NormalizeRXAngles pass (one of the optimization passes).
 
     References:
-        [1]: Gokhale et al. (2020), Optimized Quantum Compilation for
-        Near-Term Algorithms with OpenPulse.
-            `arXiv:2004.11205 <https://arxiv.org/abs/2004.11205>`
+        * [1]: Gokhale et al. (2020), Optimized Quantum Compilation for
+        Near-Term Algorithms with OpenPulse. https://arxiv.org/abs/2004.11205
     """
 
     def __init__(
