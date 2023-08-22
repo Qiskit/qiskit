@@ -95,6 +95,8 @@ stubs/qiskit.converters.circuit_to_dagdependency ../apidoc/converters.html
 stubs/qiskit.converters.dag_to_dagdependency ../apidoc/converters.html
 stubs/qiskit.converters.dagdependency_to_dag ../apidoc/converters.html
 
+stubs/qiskit.dagcircuit.DAGCircuitError ../apidoc/dagcircuit.html
+
 stubs/qiskit.opflow.commutator ../apidoc/opflow.html
 stubs/qiskit.opflow.anti_commutator ../apidoc/opflow.html
 stubs/qiskit.opflow.double_commutator ../apidoc/opflow.html
@@ -245,6 +247,9 @@ stubs/qiskit.tools.job_monitor ../apidoc/tools.html
 stubs/qiskit.tools.backend_monitor ../apidoc/tools.html
 stubs/qiskit.tools.backend_overview ../apidoc/tools.html
 stubs/qiskit.tools.events.TextProgressBar ../apidoc/tools.html
+
+stubs/qiskit.transpiler.TranspilerError ../apidoc/transpiler.html
+stubs/qiskit.transpiler.TranspilerAccessError ../apidoc/transpiler.html
 
 stubs/qiskit.transpiler.preset_passmanagers.generate_preset_pass_manager ../apidoc/transpiler_preset.html
 stubs/qiskit.transpiler.preset_passmanagers.level_0_pass_manager ../apidoc/transpiler_preset.html
