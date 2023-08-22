@@ -46,34 +46,21 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    init_method = pass_manager_config.init_method
+    init_method = pass_manager_config.init_method or "default"
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "stochastic"
     translation_method = pass_manager_config.translation_method or "translator"
     optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
-    approximation_degree = pass_manager_config.approximation_degree
-    unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
-    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     target = pass_manager_config.target
-    hls_config = pass_manager_config.hls_config
 
     # Choose routing pass
     routing_pm = plugin_manager.get_passmanager_stage(
         "routing", routing_method, pass_manager_config, optimization_level=0
     )
 
-    unroll_3q = None
     # Build pass manager
     if coupling_map or initial_layout:
-        unroll_3q = common.generate_unroll_3q(
-            target,
-            basis_gates,
-            approximation_degree,
-            unitary_synthesis_method,
-            unitary_synthesis_plugin_config,
-            hls_config,
-        )
         layout = plugin_manager.get_passmanager_stage(
             "layout", layout_method, pass_manager_config, optimization_level=0
         )
@@ -98,7 +85,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         "scheduling", scheduling_method, pass_manager_config, optimization_level=0
     )
 
-    init = common.generate_control_flow_options_check(
+    pre_init = common.generate_control_flow_options_check(
         layout_method=layout_method,
         routing_method=routing_method,
         translation_method=translation_method,
@@ -107,17 +94,15 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         basis_gates=basis_gates,
         target=target,
     )
-    if init_method is not None:
-        init += plugin_manager.get_passmanager_stage(
-            "init", init_method, pass_manager_config, optimization_level=0
-        )
-    elif unroll_3q is not None:
-        init += unroll_3q
+    init = plugin_manager.get_passmanager_stage(
+        "init", init_method, pass_manager_config, optimization_level=0
+    )
     optimization = plugin_manager.get_passmanager_stage(
         "optimization", optimization_method, pass_manager_config, optimization_level=0
     )
 
     return StagedPassManager(
+        pre_init=pre_init,
         init=init,
         layout=layout,
         routing=routing,

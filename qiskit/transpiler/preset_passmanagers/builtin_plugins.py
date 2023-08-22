@@ -27,6 +27,9 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
+from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -45,6 +48,45 @@ from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesi
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+
+
+class DefaultInitPassManager(PassManagerStagePlugin):
+    """Plugin class for default init stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        if optimization_level in {1, 2, 0}:
+            init = None
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init = common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                )
+        elif optimization_level == 3:
+            init = common.generate_unroll_3q(
+                pass_manager_config.target,
+                pass_manager_config.basis_gates,
+                pass_manager_config.approximation_degree,
+                pass_manager_config.unitary_synthesis_method,
+                pass_manager_config.unitary_synthesis_plugin_config,
+                pass_manager_config.hls_config,
+            )
+            init.append(RemoveResetInZeroState())
+            init.append(OptimizeSwapBeforeMeasure())
+            init.append(RemoveDiagonalGatesBeforeMeasure())
+        else:
+            return TranspilerError(f"Invalid optimization level {optimization_level}")
+        return init
 
 
 class BasisTranslatorPassManager(PassManagerStagePlugin):

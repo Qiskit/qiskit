@@ -70,6 +70,8 @@ def mock_get_passmanager_stage(
             ]
         )
         return pm
+    elif stage_name == "init":
+        return PassManager([])
     elif stage_name == "routing":
         return PassManager([])
     elif stage_name == "optimization":
