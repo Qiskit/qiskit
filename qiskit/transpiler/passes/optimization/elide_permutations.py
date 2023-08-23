@@ -40,10 +40,10 @@ class ElidePermutations(TransformationPass):
     are any :class:`~.SwapGate` or :class:`~.PermutationGate` objects in the circuit
     and the pass isn't a no-op.
 
-    ``original_layout``: The trivial :class:`~.Layout` for the input to this pass being run
-    ``original_qubit_indices``: The mapping of qubit objects to positional indices for the state
+    * ``original_layout``: The trivial :class:`~.Layout` for the input to this pass being run
+    * ``original_qubit_indices``: The mapping of qubit objects to positional indices for the state
         of the circuit as input to this pass.
-    ``elision_final_layout``: A :class:`~.Layout` object mapping input qubits to the output
+    * ``elision_final_layout``: A :class:`~.Layout` object mapping input qubits to the output
         state after eliding permutations.
 
     These three properties are needed for the transpiler to track the permutations in the out
