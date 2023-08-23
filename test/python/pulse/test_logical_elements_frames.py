@@ -69,7 +69,7 @@ class TestFrames(QiskitTestCase):
     def test_generic_frame_initialization(self):
         """Test that Frame objects are created correctly"""
         frame = GenericFrame(name="frame1", frequency=100.2, phase=1.3)
-        self.assertEqual(frame.name, "frame1")
+        self.assertEqual(frame.name, "GenericFrame(frame1)")
         self.assertEqual(frame.frequency, 100.2)
         self.assertEqual(frame.phase, 1.3)
 
