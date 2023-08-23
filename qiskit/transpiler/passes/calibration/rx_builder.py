@@ -34,7 +34,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
     References
         * [1]: Gokhale et al. (2020), Optimized Quantum Compilation for
-          Near-Term Algorithms with OpenPulse. 
+          Near-Term Algorithms with OpenPulse.
           `arXiv:2004.11205 <https://arxiv.org/abs/2004.11205>`
     """
 
