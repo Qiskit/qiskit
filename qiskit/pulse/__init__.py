@@ -168,3 +168,15 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
+
+from qiskit.pulse.logical_elements_frames import (
+    LogicalElement,
+    Qubit,
+    Coupler,
+    Frame,
+    GenericFrame,
+    QubitFrame,
+    MeasurementFrame,
+    MixedFrame,
+    CRMixedFrame,
+)
