@@ -254,10 +254,13 @@ def determine_api_redirects() -> dict[str, str]:
     for line in lines:
         if not line:
             continue
-        old, new = line.split(" ")
-        obj_name = old.split("stubs/")[1]
+        old_doc_name, new_module_page_name = line.split(" ")
+        obj_name = old_doc_name.split("stubs/")[1]
         # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
-        result[old] = f"{new}#{obj_name}"
+        result[old_doc_name] = (
+            "https://qiskit.org/documentation/apidoc/" +
+            f"{new_module_page_name}.html#{obj_name}"
+        )
     return result
 
 
