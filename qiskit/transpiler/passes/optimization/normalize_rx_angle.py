@@ -37,7 +37,7 @@ class NormalizeRXAngle(TransformationPass):
         """NormalizeRXAngle initializer.
 
         Args:
-            target (Target): The Target of the backend to run the circuit on.
+            target (Target): The :class:`~.Target` representing the target backend.
                 If the target contains SX and X calibrations, this pass will replace the
                 corresponding RX gates with SX and X gates.
             resolution_in_radian (float): Resolution for RX rotation angle quantization.
@@ -78,7 +78,7 @@ class NormalizeRXAngle(TransformationPass):
         return quantized_angle
 
     def run(self, dag):
-        """Run the NormalizeRXAngle pass on dag. This pass consists of three parts:
+        """Run the NormalizeRXAngle pass on ``dag``. This pass consists of three parts:
         normalize_rx_angles(), convert_to_hardware_sx_x(), quantize_rx_angles().
 
         Args:
