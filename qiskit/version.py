@@ -93,14 +93,6 @@ class QiskitVersion(Mapping):
     __slots__ = ["_version_dict", "_loaded"]
 
     def __init__(self):
-        warnings.warn(
-            "qiskit.__qiskit_version__ is deprecated since "
-            "Qiskit Terra 0.25.0, and will be removed 3 months or more later. "
-            "Instead, you should use qiskit.__version__. The other packages listed in "
-            "former qiskit.__qiskit_version__ have their own __version__ module level dunder, "
-            "as standard in PEP 8.",
-            category=DeprecationWarning,
-        )
         self._version_dict = {
             "qiskit-terra": __version__,
             "qiskit": None,
@@ -108,6 +100,16 @@ class QiskitVersion(Mapping):
         self._loaded = False
 
     def _load_versions(self):
+        warnings.warn(
+            "qiskit.__qiskit_version__ is deprecated since "
+            "Qiskit Terra 0.25.0, and will be removed 3 months or more later. "
+            "Instead, you should use qiskit.__version__. The other packages listed in the"
+            "former qiskit.__qiskit_version__ have their own __version__ module level dunder, "
+            "as standard in PEP 8.",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
+
         from importlib.metadata import version
 
         try:
