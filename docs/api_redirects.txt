@@ -176,7 +176,7 @@ qiskit.pulse.transforms.remove_trivial_barriers pulse
 qiskit.pulse.transforms.block_to_dag pulse
 qiskit.pulse.transforms.target_qobj_transform pulse
 
-qiskit.qsm.Qasm qasm
+qiskit.qasm.Qasm qasm
 
 qiskit.qpy.load qpy
 qiskit.qpy.dump qpy
