@@ -77,14 +77,14 @@ class Diagonal(QuantumCircuit):
     """
 
     def __init__(self, diag: Sequence[complex]) -> None:
-        """Create a new Diagonal circuit.
-
+        r"""
         Args:
-            diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+            diag: List of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
 
         Raises:
             CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
-                if the number of diagonal entries is not 2^k, where k denotes the number of qubits
+                if the number of diagonal entries is not :math:`2^k`, where :math:`k` denotes the
+                number of qubits.
         """
         self.check_input(diag)
         num_qubits = int(np.log2(len(diag)))
@@ -129,9 +129,9 @@ class DiagonalGate(Gate):
     """Gate implementing a diagonal transformation."""
 
     def __init__(self, diag: Sequence[complex]) -> None:
-        """
+        r"""
         Args:
-            diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+            diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
         """
         Diagonal._check_input(diag)
         num_qubits = int(np.log2(len(diag)))

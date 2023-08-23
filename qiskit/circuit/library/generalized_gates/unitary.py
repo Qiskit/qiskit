@@ -10,10 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Arbitrary unitary circuit instruction.
-"""
+"""Arbitrary unitary circuit instruction."""
 
+from __future__ import annotations
+
+import typing
 import numpy
 
 from qiskit.circuit import Gate, ControlledGate
@@ -29,6 +30,9 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_dec
 from .isometry import Isometry
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U")
+
+if typing.TYPE_CHECKING:
+    from qiskit.quantum_info import BaseOperator
 
 
 class UnitaryGate(Gate):
@@ -55,15 +59,14 @@ class UnitaryGate(Gate):
             circuit.append(gate, [0, 1])
     """
 
-    def __init__(self, data, label=None):
-        """Create a gate from a numeric unitary matrix.
-
+    def __init__(self, data: numpy.ndarray | Gate | BaseOperator, label: str | None = None) -> None:
+        """
         Args:
-            data (matrix or Operator): unitary operator.
-            label (str): unitary name for backend [Default: None].
+            data: Unitary operator.
+            label: Unitary name for backend [Default: None].
 
         Raises:
-            ValueError: if input data is not an N-qubit unitary operator.
+            ValueError: If input data is not an N-qubit unitary operator.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -136,17 +139,22 @@ class UnitaryGate(Gate):
 
             self.definition = qs_decomposition(self.to_matrix())
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return controlled version of gate
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: int | None = None,
+        ctrl_state: int | str | None = None,
+    ) -> ControlledGate:
+        """Return controlled version of gate.
 
         Args:
-            num_ctrl_qubits (int): number of controls to add to gate (default=1)
-            label (str): optional gate label
-            ctrl_state (int or str or None): The control state in decimal or as a
-                bit string (e.g. '1011'). If None, use 2**num_ctrl_qubits-1.
+            num_ctrl_qubits: Number of controls to add to gate (default is 1).
+            label: Optional gate label.
+            ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
+                If ``None``, use ``2**num_ctrl_qubits - 1``.
 
         Returns:
-            UnitaryGate: controlled version of gate.
+            Controlled version of gate.
         """
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
