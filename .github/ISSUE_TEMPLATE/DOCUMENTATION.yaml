@@ -1,0 +1,45 @@
+name: Documentation
+description: Report typos/bugs or suggest new content.
+labels: ["documentation"]
+assignees: 'abbycross, beckykd, javabster'
+
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for reporting!  Please also use the search to see if there are any other relevant issues or pull requests.
+
+  - type: textarea
+    attributes:
+      label: URL to the relevant documentation
+      description: provide a URL and section name/paragraph if applicable
+    validations:
+      required: false
+
+  - type: checkboxes
+    attributes:
+      label: Select all that apply
+      description: Please select all that apply from the following.
+      options:
+        - label: typo
+        - label: code bug
+        - label: add new content
+        - label: out-of-date content
+        - label: it's just wrong
+        - label: other
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: What is the documentation issue/request?
+      description: If reporting a bug, please be as specific as possible (steps to reproduce, a screenshot etc.) 
+      If suggesting new content, please give a clear and concise description. What value does the new content bring?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Reviewers
+      description: (Optional) List Github usernames of anyone who should be tagged as a reviewer (include yourself)
+    validations:
+      required: false
