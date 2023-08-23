@@ -107,8 +107,6 @@ qiskit.providers.BackendPropertyError providers
 qiskit.providers.JobError providers
 qiskit.providers.JobTimeoutError providers
 
-qiskit.pulse.PulseError pulse
-
 qiskit.pulse.builder.build pulse
 qiskit.pulse.builder.acquire_channel pulse
 qiskit.pulse.builder.control_channels pulse
@@ -192,7 +190,6 @@ qiskit.quantum_info.entropy quantum_info
 qiskit.quantum_info.entanglement_of_formation quantum_info
 qiskit.quantum_info.mutual_information quantum_info
 qiskit.quantum_info.partial_trace quantum_info
-qiskit.quantum_info.schmidt_decomposition quantum_info
 qiskit.quantum_info.shannon_entropy quantum_info
 qiskit.quantum_info.commutator quantum_info
 qiskit.quantum_info.anti_commutator quantum_info
@@ -219,13 +216,12 @@ qiskit.result.marginal_memory result
 qiskit.result.sampled_expectation_value result
 
 qiskit.scheduler.ScheduleConfig scheduler
-qiskit.scheduler.schedule_circuit.schedule_circuit scheduler
+qiskit.scheduler.schedule_circuit scheduler
 qiskit.scheduler.methods.basic scheduler
 
 qiskit.synthesis.synth_cnot_count_full_pmh synthesis
 qiskit.synthesis.synth_cnot_depth_line_kms synthesis
 qiskit.synthesis.synth_cz_depth_line_mr synthesis
-qiskit.synthesis.synth_cx_cz_depth_line_my synthesis
 qiskit.synthesis.synth_permutation_depth_lnn_kms synthesis
 qiskit.synthesis.synth_permutation_basic synthesis
 qiskit.synthesis.synth_permutation_acg synthesis
