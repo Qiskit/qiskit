@@ -98,7 +98,7 @@ from qiskit import transpile
 qc_transpiled = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling_map =[[0, 1], [1, 2]] , optimization_level=3)
 ```
 
-For further examples of using Qiskit you can look at the tutorials in the documentation here:
+For further examples of Qiskit, visit the tutorials in the documentation here:
 
 <https://qiskit.org/documentation/tutorials.html>
 
