@@ -20,6 +20,7 @@ This table tracks the metapackage versions and the version of each legacy Qiskit
 ==========================  ============  ==========  ============  ====================  ===========  ============
 Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-provider  qiskit-aqua  Release Date
 ==========================  ============  ==========  ============  ====================  ===========  ============
+0.44.1                      0.25.1                                                                     2023-08-17
 0.44.0                      0.25.0                                                                     2023-07-27
 0.43.3                      0.24.2        0.12.2                    0.20.2                             2023-07-19
 0.43.2                      0.24.1        0.12.1                    0.20.2                             2023-06-28
