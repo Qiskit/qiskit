@@ -1,8 +1,8 @@
 .. module:: qiskit
 
-==========================
-Qiskit Terra API Reference
-==========================
+=============
+API Reference
+=============
 
 .. toctree::
    :maxdepth: 1
@@ -46,3 +46,4 @@ Qiskit Terra API Reference
    utils_mitigation
    opflow
    algorithms
+   exceptions
