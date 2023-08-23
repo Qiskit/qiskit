@@ -119,7 +119,7 @@ def iso(
         q_ancillas_dirty = q_ancillas_dirty[:]
 
     return self.append(
-        Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty), epsilon=epsilon),
+        NewIsometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty), epsilon=epsilon),
         q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty,
     )
 

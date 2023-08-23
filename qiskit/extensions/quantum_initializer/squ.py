@@ -26,6 +26,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -41,6 +42,9 @@ class SingleQubitUnitary(Gate):
                      gate d with u = d.dot(u').
     """
 
+    @deprecate_func(
+        since="0.45.0", additional_msg="Instead, you can use qiskit.circuit.library.UnitaryGate."
+    )
     def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False):
         """Create a new single qubit gate based on the unitary ``u``."""
         if mode not in ["ZYZ"]:
@@ -158,6 +162,10 @@ class SingleQubitUnitary(Gate):
             raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
+@deprecate_func(
+    since="0.45.0",
+    additional_msg="Instead, append a qiskit.circuit.library.UnitaryGate to the circuit.",
+)
 def squ(
     self,
     unitary_matrix,

@@ -96,7 +96,7 @@ def ucry(
         raise QiskitError(
             "Number of controlled rotations does not correspond to the number of control-qubits."
         )
-    return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
+    return self.append(NewUCRYGate(angle_list), [q_target] + q_controls, [])
 
 
 QuantumCircuit.ucry = ucry

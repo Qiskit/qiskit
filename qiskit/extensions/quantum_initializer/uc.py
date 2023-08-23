@@ -131,7 +131,7 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
         raise QiskitError(
             "Number of controlled gates does not correspond to the number of control qubits."
         )
-    return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
+    return self.append(NewUCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
 QuantumCircuit.uc = uc

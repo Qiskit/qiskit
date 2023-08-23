@@ -96,7 +96,7 @@ def ucrx(
         raise QiskitError(
             "Number of controlled rotations does not correspond to the number of control-qubits."
         )
-    return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
+    return self.append(NewUCRXGate(angle_list), [q_target] + q_controls, [])
 
 
 QuantumCircuit.ucrx = ucrx

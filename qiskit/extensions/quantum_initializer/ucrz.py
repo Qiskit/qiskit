@@ -98,7 +98,7 @@ def ucrz(
         )
 
     print([q_target] + q_controls)
-    return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
+    return self.append(NewUCRZGate(angle_list), [q_target] + q_controls, [])
 
 
 QuantumCircuit.ucrz = ucrz

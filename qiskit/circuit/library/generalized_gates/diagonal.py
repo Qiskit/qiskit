@@ -86,7 +86,7 @@ class Diagonal(QuantumCircuit):
                 if the number of diagonal entries is not :math:`2^k`, where :math:`k` denotes the
                 number of qubits.
         """
-        self.check_input(diag)
+        self._check_input(diag)
         num_qubits = int(np.log2(len(diag)))
 
         circuit = QuantumCircuit(num_qubits, name="Diagonal")
