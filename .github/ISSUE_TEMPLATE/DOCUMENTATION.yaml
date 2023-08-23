@@ -1,7 +1,10 @@
 name: Documentation
 description: Report typos/bugs or suggest new content.
 labels: ["documentation"]
-assignees: 'abbycross, beckykd, javabster'
+assignees:
+  - abbycross
+  - beckykd
+  - javabster
 
 body:
   - type: markdown
