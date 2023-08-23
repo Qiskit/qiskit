@@ -34,7 +34,8 @@ body:
 
   - type: textarea
     attributes:
-      label: What is the documentation issue/request?
-      description: If reporting a bug, please be as specific as possible (steps to reproduce, a screenshot etc.). If suggesting new content, please give a clear and concise description. What value does the new content bring?
+      label: What is the documentation issue/request? >
+      description: If reporting a bug, please be as specific as possible (steps to reproduce, screenshot, etc.).
+      If suggesting new content, please give a clear and concise description. What value does the new content bring?
     validations:
       required: true
