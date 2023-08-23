@@ -199,7 +199,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
 
 
 def _has_measure(circuit: QuantumCircuit) -> bool:
-    for instruction in circuit:
+    for instruction in reversed(circuit):
         if isinstance(instruction.operation, Measure):
             return True
         elif isinstance(instruction.operation, ControlFlowOp):
