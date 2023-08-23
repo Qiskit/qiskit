@@ -134,6 +134,9 @@ setup(
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
         ],
+        "qiskit.transpiler.init": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager",
+        ],
         "qiskit.transpiler.translation": [
             "translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager",
             "unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager",
@@ -145,6 +148,9 @@ setup(
             "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
+        "qiskit.transpiler.optimization": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager",
         ],
         "qiskit.transpiler.layout": [
             "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager",
