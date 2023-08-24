@@ -39,6 +39,7 @@ class Unroll3qOrMore(TransformationPass):
         """
         super().__init__()
         self.target = target
+        self._cache = {}
         self.basis_gates = None
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
@@ -70,11 +71,23 @@ class Unroll3qOrMore(TransformationPass):
             elif self.basis_gates is not None and node.name in self.basis_gates:
                 continue
 
+            params = node.op.params
+            name = node.op.name
+            if not params:
+                cached_decomp = self._cache.get(name, None)
+                if cached_decomp is not None:
+                    if not cached_decomp:
+                        dag.remove_op_node(node)
+                    else:
+                        dag.substitute_node_with_dag(node, cached_decomp)
+                    continue
             # TODO: allow choosing other possible decompositions
             rule = node.op.definition.data
             if not rule:
                 if rule == []:  # empty node
                     dag.remove_op_node(node)
+                    if not params:
+                        self._cache[name] = []
                     continue
                 raise QiskitError(
                     "Cannot unroll all 3q or more gates. "
@@ -83,4 +96,6 @@ class Unroll3qOrMore(TransformationPass):
             decomposition = circuit_to_dag(node.op.definition, copy_operations=False)
             decomposition = self.run(decomposition)  # recursively unroll
             dag.substitute_node_with_dag(node, decomposition)
+            if not params:
+                self._cache[name] = decomposition
         return dag
