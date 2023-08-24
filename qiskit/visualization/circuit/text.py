@@ -325,12 +325,16 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
 class FlowOnQuWire(DrawElement):
     """Draws a box for a ControlFlowOp using a single qubit."""
 
-    def __init__(self, label="", top_connect="─", conditional=False, section=CF_LEFT):
+    def __init__(self, section, label="", top_connect="─", conditional=False):
         super().__init__(label)
         if section == CF_RIGHT:
             self.top_format = " ─%s─┐"
             self.mid_format = "  %s ├"
             self.bot_format = " ─%s─┘"
+        elif section == CF_MID:
+            self.top_format = " ─%s─ "
+            self.mid_format = "  %s  "
+            self.bot_format = " ─%s─ "
         else:
             self.top_format = "┌─%s─ "
             self.mid_format = "┤ %s  "
@@ -346,19 +350,24 @@ class FlowOnQuWire(DrawElement):
 class FlowOnQuWireTop(MultiBox, BoxOnQuWire):
     """Draws the top of a box for a ControlFlowOp that uses more than one qubit."""
 
-    def __init__(self, label="", top_connect=None, wire_label="", section=CF_LEFT):
+    def __init__(self, section, label="", top_connect=None, wire_label=""):
         super().__init__(label)
         self.wire_label = wire_label
         self.bot_connect = self.bot_pad = " "
         self.mid_content = ""  # The label will be put by some other part of the box.
         self.left_fill = len(self.wire_label)
         if section == CF_RIGHT:
-            self.top_format = " s".center(self.left_fill + 1, "─") + "─┐"
+            self.top_format = "s".center(self.left_fill + 2, "─") + "─┐"
             self.top_format = self.top_format.replace("s", "%s")
             self.mid_format = f" {self.wire_label} %s ├"
             self.bot_format = f" {self.bot_pad * self.left_fill} %s │"
+        elif section == CF_MID:
+            self.top_format = "" + "s".center(self.left_fill + 2, "─") + " "
+            self.top_format = self.top_format.replace("s", "%s")
+            self.mid_format = f"{self.wire_label} %s  "
+            self.bot_format = f"{self.bot_pad * self.left_fill} %s  "
         else:
-            self.top_format = "┌─" + "s".center(self.left_fill + 1, "─") + "  "
+            self.top_format = "┌─" + "s".center(self.left_fill + 2, "─") + " "
             self.top_format = self.top_format.replace("s", "%s")
             self.mid_format = f"┤{self.wire_label} %s  "
             self.bot_format = f"│{self.bot_pad * self.left_fill} %s  "
@@ -368,19 +377,23 @@ class FlowOnQuWireTop(MultiBox, BoxOnQuWire):
 class FlowOnQuWireMid(MultiBox, BoxOnQuWire):
     """Draws the middle of a box for a ControlFlowOp that uses more than one qubit."""
 
-    def __init__(self, label, input_length, order, wire_label="", section=CF_LEFT):
+    def __init__(self, section, label, input_length, order, wire_label=""):
         super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
         if section == CF_RIGHT:
-            self.top_format = f" {self.top_pad * self.left_fill} %s │"
-            self.bot_format = f" {self.bot_pad * self.left_fill} %s │"
-            self.mid_format = f" {self.wire_label} %s ├"
+            self.top_format = f" {self.top_pad * self.left_fill} %s |"
+            self.bot_format = f" {self.bot_pad * self.left_fill} %s |"
+            self.mid_format = f" {self.wire_label} %s |"
+        elif section == CF_MID:
+            self.top_format = f" {self.top_pad * self.left_fill} %s  "
+            self.bot_format = f" {self.bot_pad * self.left_fill} %s  "
+            self.mid_format = f" {self.wire_label} %s  "
         else:
-            self.top_format = f"│{self.top_pad * self.left_fill} %s  "
-            self.bot_format = f"│{self.bot_pad * self.left_fill} %s  "
-            self.mid_format = f"┤{self.wire_label} %s  "
+            self.top_format = f"|{self.top_pad * self.left_fill} %s "
+            self.bot_format = f"|{self.bot_pad * self.left_fill} %s "
+            self.mid_format = f"|{self.wire_label} %s  "
         self.top_connect = self.bot_connect = self.mid_content = ""
         self.center_label(input_length, order)
 
@@ -390,12 +403,12 @@ class FlowOnQuWireBot(MultiBox, BoxOnQuWire):
 
     def __init__(
         self,
+        section,
         label,
         input_length,
         bot_connect=None,
         wire_label="",
         conditional=False,
-        section=CF_LEFT,
     ):
         super().__init__(label)
         self.wire_label = wire_label
@@ -404,12 +417,17 @@ class FlowOnQuWireBot(MultiBox, BoxOnQuWire):
         if section == CF_RIGHT:
             self.top_format = f" {self.top_pad * self.left_fill} %s │"
             self.mid_format = f" {self.wire_label} %s ├"
-            self.bot_format = "  " + "s".center(self.left_fill + 1, "─") + "─┘"
+            self.bot_format = " " + "s".center(self.left_fill + 2, "─") + "─┘"
+            self.bot_format = self.bot_format.replace("s", "%s")
+        elif section == CF_MID:
+            self.top_format = f"{self.top_pad * self.left_fill} %s  "
+            self.mid_format = f"{self.wire_label} %s  "
+            self.bot_format = "" + "s".center(self.left_fill + 2, "─") + " "
             self.bot_format = self.bot_format.replace("s", "%s")
         else:
             self.top_format = f"│{self.top_pad * self.left_fill} %s  "
             self.mid_format = f"┤{self.wire_label} %s  "
-            self.bot_format = "└─" + "s".center(self.left_fill + 1, "─") + "  "
+            self.bot_format = "└─" + "s".center(self.left_fill + 2, "─") + " "
             self.bot_format = self.bot_format.replace("s", "%s")
         bot_connect = bot_connect if bot_connect else "─"
         self.bot_connect = "╥" if conditional else bot_connect
@@ -786,9 +804,6 @@ class TextDrawing:
         # from running twice.
         if self._single_string:
             return self._single_string
-        else:
-            # In case there is an exception, this prevents it from printing twice.
-            self._single_string = " "
         try:
             self._single_string = (
                 "\n".join(self.lines()).encode(self.encoding).decode(self.encoding)
@@ -1292,20 +1307,13 @@ class TextDrawing:
 
         for circ_num, circuit in enumerate(circuit_list):
             # Update the wire_map with the qubits and clbits from the inner circuit
-            flow_wire_map = {
-                inner: wire_map[outer]
-                for outer, inner in zip(node.qargs, circuit.qubits)
-                if inner not in wire_map
-            }
+            flow_wire_map = wire_map.copy()
             flow_wire_map.update(
-                {
-                    inner: wire_map[outer]
-                    for outer, inner in zip(node.cargs, circuit.clbits)
-                    if inner not in wire_map
-                }
+                (inner, wire_map[outer]) for outer, inner in zip(node.qargs, circuit.qubits)
             )
-            flow_wire_map.update(wire_map)
-
+            flow_wire_map.update(
+                (inner, wire_map[outer]) for outer, inner in zip(node.cargs, circuit.clbits)
+            )
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
@@ -1376,7 +1384,7 @@ class TextDrawing:
                 if "default" in str(jump_list[circ_num][0]):
                     jump_str = "default"
                 else:
-                    jump_str = str(jump_list[circ_num])
+                    jump_str = str(jump_list[circ_num]).replace(",)", ")")
                 label = "Case-" + depth + " " + jump_str
 
         else:
@@ -1387,7 +1395,7 @@ class TextDrawing:
         if len(node.qargs) == 1:
             flow_layer.set_qubit(
                 self.qubits[flow_wire_map[node.qargs[0]]],
-                FlowOnQuWire(label=label, conditional=conditional, section=section),
+                FlowOnQuWire(section, label=label, conditional=conditional),
             )
         else:
             # If multiple qubits, must use wire_map to handle wire_order changes.
@@ -1397,27 +1405,27 @@ class TextDrawing:
             box_height = max_idx - min_idx + 1
 
             flow_layer.set_qubit(
-                self.qubits[min_idx], FlowOnQuWireTop(label=label, wire_label="", section=section)
+                self.qubits[min_idx], FlowOnQuWireTop(section, label=label, wire_label="")
             )
             for order, i in enumerate(range(min_idx + 1, max_idx)):
                 flow_layer.set_qubit(
                     self.qubits[i],
                     FlowOnQuWireMid(
+                        section,
                         label=label,
                         input_length=box_height,
                         order=order,
                         wire_label="",
-                        section=section,
                     ),
                 )
             flow_layer.set_qubit(
                 self.qubits[max_idx],
                 FlowOnQuWireBot(
+                    section,
                     label=label,
                     input_length=box_height,
                     conditional=conditional,
                     wire_label="",
-                    section=section,
                 ),
             )
         if conditional:
