@@ -259,7 +259,9 @@ stages:
                   inputs:
                     versionSpec: ${{ version }}
                     architecture: x64
-
+    - stage: "sdist"
+      dependsOn: "Deploy"
+      jobs:
         - job: 'sdist'
           pool: {vmImage: 'ubuntu-latest'}
           steps:
@@ -278,7 +280,7 @@ stages:
               env:
                 TWINE_USERNAME: "qiskit"
                 TWINE_PASSWORD: $(TWINE_PASSWORD)
-        - job: 'qiskit-pkg'
+        - job: 'qiskit_pkg'
           pool: {vmImage: 'ubuntu-latest'}
           steps:
             - task: UsePythonVersion@0
@@ -288,11 +290,11 @@ stages:
                 cd qiskit_pkg
                 python -m build .
             - task: PublishBuildArtifacts@1
-              inputs: {pathtoPublish: 'dist'}
+              inputs: {pathtoPublish: 'qiskit_pkg/dist'}
               condition: succeededOrFailed()
             - bash: |
                 python -m pip install --upgrade twine
-                twine upload dist/*
+                twine upload qiskit_pkg/dist/*
               env:
                 TWINE_USERNAME: "qiskit"
                 TWINE_PASSWORD: $(TWINE_PASSWORD)
