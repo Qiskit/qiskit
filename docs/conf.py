@@ -248,6 +248,7 @@ if os.getenv("DOCS_PROD_BUILD"):
 # Custom extensions
 # ---------------------------------------------------------------------------------------
 
+
 def add_versions_to_config(_app, config):
     """Add a list of old documentation versions that should have links generated to them into the
     context, so the theme can use them to generate a sidebar."""
