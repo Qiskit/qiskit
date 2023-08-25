@@ -1292,7 +1292,7 @@ class Target(Mapping):
         Raises:
             TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
             specified.
-            KeyError: If no mappign is available for a specified ``basis_gate``.
+            KeyError: If no mapping is available for a specified ``basis_gate``.
         """
         granularity = 1
         min_length = 1
