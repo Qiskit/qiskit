@@ -497,7 +497,7 @@ The context type char is mapped to each alignment subclass as follows:
 - ``s``: :class:`~.AlignSequential`
 - ``e``: :class:`~.AlignEquispaced`
 
-Note that :class:`~.AlignFunc` context is not supported becasue of the callback function
+Note that :class:`~.AlignFunc` context is not supported because of the callback function
 stored in the context parameters.
 
 .. _qpy_schedule_instructions:

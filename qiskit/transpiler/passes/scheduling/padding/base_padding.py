@@ -93,7 +93,7 @@ class BasePadding(TransformationPass):
 
         # Update start time dictionary for the new_dag.
         # This information may be used for further scheduling tasks,
-        # but this is immediately invalidated becasue node id is updated in the new_dag.
+        # but this is immediately invalidated because node id is updated in the new_dag.
         self.property_set["node_start_time"].clear()
 
         new_dag.name = dag.name
