@@ -511,7 +511,7 @@ Each schedule instruction starts with ``char`` representing the instruction type
 followed by the :ref:`qpy_sequence` block representing the instruction
 :attr:`~qiskit.pulse.instructions.Instruction.operands`.
 Note that the data structure of pulse :class:`~qiskit.pulse.instructions.Instruction`
-is unified so that instance can be uniquely determied by the class and a tuple of operands.
+is unified so that instance can be uniquely determined by the class and a tuple of operands.
 The mapping of type char to the instruction subclass is defined as follows:
 
 - ``a``: :class:`~qiskit.pulse.instructions.Acquire` instruction
