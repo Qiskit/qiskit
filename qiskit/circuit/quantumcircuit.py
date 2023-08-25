@@ -2591,7 +2591,7 @@ class QuantumCircuit:
                 >>> circuit.parameters  # sorted alphabetically!
                 ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
 
-            Bear in mind that alphabetical sorting might be unituitive when it comes to numbers.
+            Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
             The literal "10" comes before "2" in strict alphabetical sorting.
 
             .. code-block:: python
