@@ -134,7 +134,7 @@ circuits in the data.
 Version 9
 =========
 
-Version 9 addds support for classical :class:`~.expr.Expr` nodes and their associated
+Version 9 adds support for classical :class:`~.expr.Expr` nodes and their associated
 :class:`~.types.Type`\\ s.
 
 
