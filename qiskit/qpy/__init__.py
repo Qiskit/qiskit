@@ -321,7 +321,7 @@ with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
 bytes for a ``utf8`` encoded string for the register name.
 
 Following the initial layout there is ``input_mapping_size`` array of
-``uint32_t`` integers representing the positions of the phyiscal bit from the
+``uint32_t`` integers representing the positions of the physical bit from the
 initial layout. This enables constructing a list of virtual bits where the
 array index is its input mapping position.
 
