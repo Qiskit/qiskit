@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added :meth:`.Clifford.from_linear_function` and :meth:`.Clifford.from_permutation`
+    methods that create a ``Clifford`` object from :class:`~.LinearFunction`
+    and from :class:`~.PermutationGate` respectively. As a consequence, a ``Clifford``
+    can now be constructed directly from a ``LinearFunction``, a ``PermutationGate``, or
+    a quantum circuit containing such gates.

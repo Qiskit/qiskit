@@ -341,11 +341,14 @@ def _apply_sabre_result(
         return out
 
     def apply_inner(out_dag, current_layout, qubit_indices_inner, result, id_to_node):
-        for node_id in result.node_order:
+        node_order = result[1]
+        swap_map = result[0]
+        node_block_results = result[2]
+        for node_id in node_order:
             node = id_to_node[node_id]
             if isinstance(node.op, ControlFlowOp):
                 # Handle control flow op and continue.
-                block_results = result.node_block_results[node_id]
+                block_results = node_block_results[node_id]
                 mapped_block_dags = []
                 idle_qubits = set(out_dag.qubits)
                 for block, block_result in zip(node.op.blocks, block_results):
@@ -360,7 +363,11 @@ def _apply_sabre_result(
                         mapped_block_dag,
                         mapped_block_layout,
                         block_qubit_indices,
-                        block_result.result,
+                        (
+                            block_result.result.map,
+                            block_result.result.node_order,
+                            block_result.result.node_block_results,
+                        ),
                         block_id_to_node,
                     )
 
@@ -396,9 +403,9 @@ def _apply_sabre_result(
                 continue
 
             # If we get here, the node isn't a control-flow gate.
-            if node_id in result.map:
+            if node_id in swap_map:
                 process_swaps(
-                    result.map[node_id],
+                    swap_map[node_id],
                     out_dag,
                     current_layout,
                     canonical_register,
