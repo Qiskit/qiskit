@@ -515,13 +515,18 @@ class MatplotlibDrawer:
                         if self._flow_parent is not None:
                             node_data[node].nest_depth = node_data[self._flow_parent].nest_depth + 1
                         # Update the wire_map with the qubits from the inner circuit
-                        flow_wire_map = {
+                        flow_wire_map = wire_map.copy()
+                        flow_wire_map.update({
                             inner: wire_map[outer]
-                            for outer, inner in zip(self._qubits, circuit.qubits)
-                            if inner not in wire_map
-                        }
-                        if not flow_wire_map:
-                            flow_wire_map = wire_map
+                            for outer, inner in zip(node.qargs, circuit.qubits)
+                        })
+                        print("CARGS", node.cargs)
+                        print(circuit.clbits)
+                        print(wire_map)
+                        flow_wire_map.update({
+                            inner: wire_map[outer]
+                            for outer, inner in zip(node.cargs, circuit.clbits)
+                        })
 
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
@@ -1145,21 +1150,22 @@ class MatplotlibDrawer:
         first_clbit = len(self._qubits)
         cond_pos = []
 
+        print("\ncond xy", cond_xy)
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
-            builder = QASM3Builder(
-                self._circuit,
-                includeslist=("stdgates.inc",),
-                basis_gates=("U",),
-                disable_constants=False,
-                allow_aliasing=False,
-            )
-            stream = StringIO()
-            builder.build_classical_declarations()
-            BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
-            print(stream.getvalue())
-            return
+            # builder = QASM3Builder(
+            #     self._circuit,
+            #     includeslist=("stdgates.inc",),
+            #     basis_gates=("U",),
+            #     disable_constants=False,
+            #     allow_aliasing=False,
+            # )
+            # stream = StringIO()
+            # builder.build_classical_declarations()
+            # BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
+            # print(stream.getvalue())
+            # return
             condition_bits = condition_resources(condition).clbits
             label = "[expression]"
             override_fc = True
@@ -1203,6 +1209,7 @@ class MatplotlibDrawer:
                     cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
             else:
                 cond_pos.append(cond_xy[wire_map[cond_bit_reg] - first_clbit])
+        print("cond_pos", cond_pos)
 
         xy_plot = []
         for val_bit, xy in zip(val_bits, cond_pos):
@@ -1223,8 +1230,11 @@ class MatplotlibDrawer:
 
         # For IfElseOp, WhileLoopOp or SwitchCaseOp, place the condition
         # at almost the left edge of the box
+        print(node_data[node].q_xy)
+        print(qubit_b)
         if isinstance(node.op, (IfElseOp, WhileLoopOp, SwitchCaseOp)):
             qubit_b = (qubit_b[0], qubit_b[1] - (0.5 * HIG + 0.14))
+            print("q 2", qubit_b)
 
         # display the label at the bottom of the lowest conditional and draw the double line
         xpos, ypos = clbit_b
