@@ -667,7 +667,7 @@ The calibration definition header is then followed by ``name_size`` utf8 bytes o
 the gate name, ``num_qubits`` length of integers representing a sequence of qubits,
 and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
 associated to the custom instruction.
-The ``type`` indicates the class of pulse program which is either, in pricinple,
+The ``type`` indicates the class of pulse program which is either, in principle,
 :class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
 only :class:`~.ScheduleBlock` payload is supported.
 Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
