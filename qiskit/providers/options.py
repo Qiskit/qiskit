@@ -48,7 +48,7 @@ class Options(Mapping):
 
     Runtime validators can be registered. See `set_validator`.
     Updates through `update_options` and indexing (`__setitem__`) validate
-    the new value before peforming the update and raise `ValueError` if
+    the new value before performing the update and raise `ValueError` if
     the new value is invalid.
 
     >>> options.set_validator("opt1", (1, 5))
