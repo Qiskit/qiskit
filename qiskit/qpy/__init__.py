@@ -791,7 +791,7 @@ A RANGE is a representation of a ``range`` object. It is defined as:
 SEQUENCE
 --------
 
-A SEQUENCE is a reprentation of a arbitrary sequence object. As sequence are just fixed length
+A SEQUENCE is a representation of an arbitrary sequence object. As sequence are just fixed length
 containers of arbitrary python objects their QPY can't fully represent any sequence,
 but as long as the contents in a sequence are other QPY serializable types for
 the INSTRUCTION_PARAM payload the ``sequence`` object can be serialized.
