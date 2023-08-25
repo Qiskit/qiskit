@@ -43,7 +43,7 @@ class BaseReadoutMitigator(ABC):
                 be calculated as the sum of all counts.
 
         Returns:
-            QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
+            QuasiDistribution: A dictionary containing pairs of [output, mean] where "output"
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
