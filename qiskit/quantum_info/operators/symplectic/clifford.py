@@ -385,7 +385,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def destab_phase(self):
-        """Return phase of destaibilizer with boolean representation."""
+        """Return phase of destabilizer with boolean representation."""
         return self.tableau[: self.num_qubits, -1]
 
     @destab_phase.setter
