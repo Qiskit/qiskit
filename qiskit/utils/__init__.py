@@ -53,7 +53,7 @@ are run on a device or simulator by passing a QuantumInstance setup with the des
 backend etc.
 
 
-Optional Depedency Checkers (:mod:`qiskit.utils.optionals`)
+Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
 ===========================================================
 
 .. automodule:: qiskit.utils.optionals
