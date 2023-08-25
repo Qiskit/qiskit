@@ -466,7 +466,7 @@ class Target(Mapping):
             inst_name_map (dict): An optional dictionary that maps any
                 instruction name in ``inst_map`` to an instruction object.
                 If not provided, instruction is pulled from the standard Qiskit gates,
-                and finally custom gate instnace is created with schedule name.
+                and finally custom gate instance is created with schedule name.
             error_dict (dict): A dictionary of errors of the form::
 
                 {gate_name: {qarg: error}}
