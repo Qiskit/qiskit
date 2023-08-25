@@ -54,7 +54,7 @@ backend etc.
 
 
 Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
-===========================================================
+============================================================
 
 .. automodule:: qiskit.utils.optionals
 """
