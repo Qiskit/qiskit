@@ -914,7 +914,7 @@ class DAGCircuit:
 
     def depth(self, *, recurse: bool = False):
         """Return the circuit depth.  If there is control flow present, this count may only be an
-        estimate, as the complete control-flow path cannot be staticly known.
+        estimate, as the complete control-flow path cannot be statically known.
 
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops

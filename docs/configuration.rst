@@ -26,7 +26,7 @@ For example:
     num_processes = 15
 
 By default this file lives in ``~/.qiskit/settings.conf`` but the path used
-can be overriden with the ``QISKIT_SETTINGS`` environment variable. If
+can be overridden with the ``QISKIT_SETTINGS`` environment variable. If
 ``QISKIT_SETTINGS`` is set its value will used as the path to the user config
 file.
 
@@ -61,12 +61,12 @@ Available options:
    `Python multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`__
    is enabled for operations that support running in parallel (for example
    transpilation of multiple :class:`~qiskit.circuit.QuantumCircuit` objects).
-   The default setting in the user config file can be overriden by
+   The default setting in the user config file can be overridden by
    the ``QISKIT_PARALLEL`` environment variable.
  * ``num_processes``: This option takes an integer value (> 0) that is used
    to specify the maximum number of parallel processes to launch for parallel
    operations if parallel execution is enabled. The default setting in the
-   user config file can be overriden by the ``QISKIT_NUM_PROCS`` environment
+   user config file can be overridden by the ``QISKIT_NUM_PROCS`` environment
    variable.
 
 Environment Variables

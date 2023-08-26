@@ -961,7 +961,7 @@ class NLocal(BlueprintCircuit):
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
-        """If certain blocks should use certain parameters this method can be overriden."""
+        """If certain blocks should use certain parameters this method can be overridden."""
         return None
 
 
