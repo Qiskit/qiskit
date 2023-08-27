@@ -383,17 +383,17 @@ class FlowOnQuWireMid(MultiBox, BoxOnQuWire):
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
         if section == CF_RIGHT:
-            self.top_format = f" {self.top_pad * self.left_fill} %s |"
-            self.bot_format = f" {self.bot_pad * self.left_fill} %s |"
-            self.mid_format = f" {self.wire_label} %s |"
+            self.top_format = f" {self.top_pad * self.left_fill} %s │"
+            self.bot_format = f" {self.bot_pad * self.left_fill} %s │"
+            self.mid_format = f" {self.wire_label} %s ├"
         elif section == CF_MID:
             self.top_format = f" {self.top_pad * self.left_fill} %s  "
             self.bot_format = f" {self.bot_pad * self.left_fill} %s  "
             self.mid_format = f" {self.wire_label} %s  "
         else:
-            self.top_format = f"|{self.top_pad * self.left_fill} %s "
-            self.bot_format = f"|{self.bot_pad * self.left_fill} %s "
-            self.mid_format = f"|{self.wire_label} %s  "
+            self.top_format = f"│{self.top_pad * self.left_fill} %s "
+            self.bot_format = f"│{self.bot_pad * self.left_fill} %s "
+            self.mid_format = f"┤{self.wire_label} %s  "
         self.top_connect = self.bot_connect = self.mid_content = ""
         self.center_label(input_length, order)
 
@@ -1072,7 +1072,7 @@ class TextDrawing:
             node.layer_width = longest
 
     @staticmethod
-    def controlled_wires(node, layer):
+    def controlled_wires(node, layer, wire_map):
         """
         Analyzes the node in the layer and checks if the controlled arguments are in
         the box or out of the box.
@@ -1098,12 +1098,12 @@ class TextDrawing:
         top_box = []
         bot_box = []
 
-        qubit_indices = sorted(i for i, x in enumerate(layer.qubits) if x in args_qubits)
+        qubit_indices = sorted(wire_map[x] for x in wire_map.keys() if x in args_qubits)
 
         for ctrl_qubit in zip(ctrl_qubits, ctrl_state):
-            if min(qubit_indices) > layer.qubits.index(ctrl_qubit[0]):
+            if min(qubit_indices) > wire_map[ctrl_qubit[0]]:
                 top_box.append(ctrl_qubit)
-            elif max(qubit_indices) < layer.qubits.index(ctrl_qubit[0]):
+            elif max(qubit_indices) < wire_map[ctrl_qubit[0]]:
                 bot_box.append(ctrl_qubit)
             else:
                 in_box.append(ctrl_qubit)
@@ -1200,7 +1200,7 @@ class TextDrawing:
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
         elif isinstance(op, ControlledGate):
-            params_array = TextDrawing.controlled_wires(node, layer)
+            params_array = TextDrawing.controlled_wires(node, layer, gate_wire_map)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(node, conditional, ctrl_text, bool(controlled_bot))
             if base_gate.name == "z":
