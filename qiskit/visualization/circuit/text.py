@@ -331,10 +331,6 @@ class FlowOnQuWire(DrawElement):
             self.top_format = " ─%s─┐"
             self.mid_format = "  %s ├"
             self.bot_format = " ─%s─┘"
-        elif section == CF_MID:
-            self.top_format = " ─%s─ "
-            self.mid_format = "  %s  "
-            self.bot_format = " ─%s─ "
         else:
             self.top_format = "┌─%s─ "
             self.mid_format = "┤ %s  "
@@ -361,11 +357,6 @@ class FlowOnQuWireTop(MultiBox, BoxOnQuWire):
             self.top_format = self.top_format.replace("s", "%s")
             self.mid_format = f" {self.wire_label} %s ├"
             self.bot_format = f" {self.bot_pad * self.left_fill} %s │"
-        elif section == CF_MID:
-            self.top_format = " " + "s".center(self.left_fill + 2, "─") + " "
-            self.top_format = self.top_format.replace("s", "%s")
-            self.mid_format = f"{self.wire_label} %s  "
-            self.bot_format = f"{self.bot_pad * self.left_fill} %s  "
         else:
             self.top_format = "┌─" + "s".center(self.left_fill + 2, "─") + " "
             self.top_format = self.top_format.replace("s", "%s")
@@ -378,8 +369,6 @@ class FlowOnQuWireMid(MultiBox, BoxOnQuWire):
     """Draws the middle of a box for a ControlFlowOp that uses more than one qubit."""
 
     def __init__(self, section, label, input_length, order, wire_label=""):
-        # if len(label) % 2:
-        #     label = " " + label
         super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
@@ -388,13 +377,9 @@ class FlowOnQuWireMid(MultiBox, BoxOnQuWire):
             self.top_format = f" {self.top_pad * self.left_fill} %s │"
             self.bot_format = f" {self.bot_pad * self.left_fill} %s │"
             self.mid_format = f" {self.wire_label} %s ├"
-        elif section == CF_MID:
-            self.top_format = f" {self.top_pad * self.left_fill} %s  "
-            self.bot_format = f" {self.bot_pad * self.left_fill} %s  "
-            self.mid_format = f" {self.wire_label} %s  "
         else:
-            self.top_format = f"│{self.top_pad * self.left_fill} %s "
-            self.bot_format = f"│{self.bot_pad * self.left_fill} %s "
+            self.top_format = f"│{self.top_pad * self.left_fill} %s  "
+            self.bot_format = f"│{self.bot_pad * self.left_fill} %s  "
             self.mid_format = f"┤{self.wire_label} %s  "
         self.top_connect = self.bot_connect = self.mid_content = ""
         self.center_label(input_length, order)
@@ -420,11 +405,6 @@ class FlowOnQuWireBot(MultiBox, BoxOnQuWire):
             self.top_format = f" {self.top_pad * self.left_fill} %s │"
             self.mid_format = f" {self.wire_label} %s ├"
             self.bot_format = " " + "s".center(self.left_fill + 2, "─") + "─┘"
-            self.bot_format = self.bot_format.replace("s", "%s")
-        elif section == CF_MID:
-            self.top_format = f"{self.top_pad * self.left_fill} %s  "
-            self.mid_format = f"{self.wire_label} %s  "
-            self.bot_format = " " + "s".center(self.left_fill + 2, "─") + " "
             self.bot_format = self.bot_format.replace("s", "%s")
         else:
             self.top_format = f"│{self.top_pad * self.left_fill} %s  "
@@ -1074,14 +1054,14 @@ class TextDrawing:
             node.layer_width = longest
 
     @staticmethod
-    def controlled_wires(node, layer, wire_map):
+    def controlled_wires(node, wire_map):
         """
         Analyzes the node in the layer and checks if the controlled arguments are in
         the box or out of the box.
 
         Args:
             node (DAGNode): node to analyse
-            layer (Layer): The layer in which the node is inserted.
+            wire_map (dict): map of qubits/clbits to position
 
         Returns:
             Tuple(list, list, list):
@@ -1100,7 +1080,7 @@ class TextDrawing:
         top_box = []
         bot_box = []
 
-        qubit_indices = sorted(wire_map[x] for x in wire_map.keys() if x in args_qubits)
+        qubit_indices = sorted(wire_map[x] for x in wire_map if x in args_qubits)
 
         for ctrl_qubit in zip(ctrl_qubits, ctrl_state):
             if min(qubit_indices) > wire_map[ctrl_qubit[0]]:
@@ -1202,7 +1182,7 @@ class TextDrawing:
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
         elif isinstance(op, ControlledGate):
-            params_array = TextDrawing.controlled_wires(node, layer, gate_wire_map)
+            params_array = TextDrawing.controlled_wires(node, gate_wire_map)
             controlled_top, controlled_bot, controlled_edge, rest = params_array
             gates = self._set_ctrl_state(node, conditional, ctrl_text, bool(controlled_bot))
             if base_gate.name == "z":
