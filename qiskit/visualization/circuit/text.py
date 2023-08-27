@@ -362,7 +362,7 @@ class FlowOnQuWireTop(MultiBox, BoxOnQuWire):
             self.mid_format = f" {self.wire_label} %s ├"
             self.bot_format = f" {self.bot_pad * self.left_fill} %s │"
         elif section == CF_MID:
-            self.top_format = "" + "s".center(self.left_fill + 2, "─") + " "
+            self.top_format = " " + "s".center(self.left_fill + 2, "─") + " "
             self.top_format = self.top_format.replace("s", "%s")
             self.mid_format = f"{self.wire_label} %s  "
             self.bot_format = f"{self.bot_pad * self.left_fill} %s  "
@@ -378,6 +378,8 @@ class FlowOnQuWireMid(MultiBox, BoxOnQuWire):
     """Draws the middle of a box for a ControlFlowOp that uses more than one qubit."""
 
     def __init__(self, section, label, input_length, order, wire_label=""):
+        # if len(label) % 2:
+        #     label = " " + label
         super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
@@ -422,7 +424,7 @@ class FlowOnQuWireBot(MultiBox, BoxOnQuWire):
         elif section == CF_MID:
             self.top_format = f"{self.top_pad * self.left_fill} %s  "
             self.mid_format = f"{self.wire_label} %s  "
-            self.bot_format = "" + "s".center(self.left_fill + 2, "─") + " "
+            self.bot_format = " " + "s".center(self.left_fill + 2, "─") + " "
             self.bot_format = self.bot_format.replace("s", "%s")
         else:
             self.top_format = f"│{self.top_pad * self.left_fill} %s  "
