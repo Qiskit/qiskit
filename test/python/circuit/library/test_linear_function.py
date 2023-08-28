@@ -486,14 +486,13 @@ class TestLinearFunctions(QiskitTestCase):
         and checking that the two are equivalent as Cliffords and as LinearFunctions.
         """
 
-        # Note: Cliffords cannot be yet constructed from PermutationGate objects
         qc = random_linear_circuit(
             num_qubits,
             100,
             seed=0,
             barrier=True,
             delay=True,
-            permutation=False,
+            permutation=True,
             linear=True,
             clifford=True,
             recursion_depth=2,
