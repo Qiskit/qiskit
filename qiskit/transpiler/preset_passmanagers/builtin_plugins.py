@@ -27,10 +27,64 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
+from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.preset_passmanagers import common
-from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePlugin
+from qiskit.transpiler.preset_passmanagers.plugin import (
+    PassManagerStagePlugin,
+    PassManagerStagePluginManager,
+)
+from qiskit.transpiler.passes.optimization import (
+    Optimize1qGatesDecomposition,
+    CommutativeCancellation,
+    Collect2qBlocks,
+    ConsolidateBlocks,
+    CXCancellation,
+)
+from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
+from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
+from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
+from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+
+
+class DefaultInitPassManager(PassManagerStagePlugin):
+    """Plugin class for default init stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        if optimization_level in {1, 2, 0}:
+            init = None
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init = common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                )
+        elif optimization_level == 3:
+            init = common.generate_unroll_3q(
+                pass_manager_config.target,
+                pass_manager_config.basis_gates,
+                pass_manager_config.approximation_degree,
+                pass_manager_config.unitary_synthesis_method,
+                pass_manager_config.unitary_synthesis_plugin_config,
+                pass_manager_config.hls_config,
+            )
+            init.append(OptimizeSwapBeforeMeasure())
+            init.append(RemoveDiagonalGatesBeforeMeasure())
+        else:
+            return TranspilerError(f"Invalid optimization level {optimization_level}")
+        return init
 
 
 class BasisTranslatorPassManager(PassManagerStagePlugin):
@@ -376,6 +430,111 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
             seed_transpiler=seed_transpiler,
             use_barrier_before_measurement=True,
         )
+
+
+class OptimizationPassManager(PassManagerStagePlugin):
+    """Plugin class for optimization stage"""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        """Build pass manager for optimization stage."""
+        # Obtain the translation method required for this pass to work
+        translation_method = pass_manager_config.translation_method or "translator"
+        optimization = PassManager()
+        if optimization_level != 0:
+            plugin_manager = PassManagerStagePluginManager()
+            _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+            _size_check = [Size(recurse=True), FixedPoint("size")]
+            # Minimum point check for optimization level 3.
+            _minimum_point_check = [
+                Depth(recurse=True),
+                Size(recurse=True),
+                MinimumPoint(["depth", "size"], "optimization_loop"),
+            ]
+
+            def _opt_control(property_set):
+                return (not property_set["depth_fixed_point"]) or (
+                    not property_set["size_fixed_point"]
+                )
+
+            translation = plugin_manager.get_passmanager_stage(
+                "translation",
+                translation_method,
+                pass_manager_config,
+                optimization_level=optimization_level,
+            )
+            if optimization_level == 1:
+                # Steps for optimization level 1
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CXCancellation(),
+                ]
+            elif optimization_level == 2:
+                # Steps for optimization level 2
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                    ),
+                ]
+            elif optimization_level == 3:
+                # Steps for optimization level 3
+                _opt = [
+                    Collect2qBlocks(),
+                    ConsolidateBlocks(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                    UnitarySynthesis(
+                        pass_manager_config.basis_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        backend_props=pass_manager_config.backend_properties,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                ]
+
+                def _opt_control(property_set):
+                    return not property_set["optimization_loop_minimum_point"]
+
+            else:
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+            # Build nested Flow controllers
+            def _unroll_condition(property_set):
+                return not property_set["all_gates_in_basis"]
+
+            # Check if any gate is not in the basis, and if so, run unroll passes
+            _unroll_if_out_of_basis = [
+                GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
+                ConditionalController(unroll, condition=_unroll_condition),
+            ]
+
+            if optimization_level == 3:
+                optimization.append(_minimum_point_check)
+            else:
+                optimization.append(_depth_check + _size_check)
+            opt_loop = (
+                _opt + _unroll_if_out_of_basis + _minimum_point_check
+                if optimization_level == 3
+                else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
+            )
+            optimization.append(opt_loop, do_while=_opt_control)
+            return optimization
+        else:
+            return None
 
 
 class AlapSchedulingPassManager(PassManagerStagePlugin):

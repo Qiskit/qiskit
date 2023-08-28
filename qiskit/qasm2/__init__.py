@@ -280,10 +280,10 @@ In particular, in the legacy importers:
       The four-parameter version of a controlled-:math:`U`, corresponding to :class:`.CUGate`.
 
     ``rxx(theta) a, b``
-      Two-qubit rotation arond the :math:`XX` axis, corresponding to :class:`.RXXGate`.
+      Two-qubit rotation around the :math:`XX` axis, corresponding to :class:`.RXXGate`.
 
     ``rzz(theta) a, b``
-      Two-qubit rotation arond the :math:`ZZ` axis, corresponding to :class:`.RZZGate`.
+      Two-qubit rotation around the :math:`ZZ` axis, corresponding to :class:`.RZZGate`.
 
     ``rccx a, b, c``
       The double-controlled :math:`X` gate, but with relative phase differences over the standard
@@ -442,7 +442,7 @@ def loads(
 
     Args:
         string: The OpenQASM 2 program in a string.
-        include_path: order of directories to search when evluating ``include`` statements.
+        include_path: order of directories to search when evaluating ``include`` statements.
         custom_instructions: any custom constructors that should be used for specific gates or
             opaque instructions during circuit construction.  See :ref:`qasm2-custom-instructions`
             for more.
@@ -483,7 +483,7 @@ def load(
 
     Args:
         filename: The OpenQASM 2 program in a string.
-        include_path: order of directories to search when evluating ``include`` statements.
+        include_path: order of directories to search when evaluating ``include`` statements.
         include_input_directory: Whether to add the directory of the input file to the
             ``include_path``, and if so, whether to *append* it to search last, or *prepend* it to
             search first.  Pass ``None`` to suppress adding this directory entirely.
