@@ -20,7 +20,7 @@ Logical Elements & Frames (:mod:`qiskit.pulse.logical_elements_frames`)
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
 low-level control. Qiskit Pulse's logical element and frames are meant to create a flexible framework
 to define where pulses are applied, and what would be their carrier frequency and phase
-(because typically AC pulses are used). Each ``LogicalElement`` represents a separate component
+(because typically AC pulses are used). Each :class:`LogicalElement` represents a separate component
 in the quantum system on which pulses could be played. On the other hand, each ``Frame`` represents
 a frequency and phase duo for the carrier of the pulse.
 
