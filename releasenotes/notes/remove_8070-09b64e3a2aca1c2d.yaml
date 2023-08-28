@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The arguments ``x``, ``z`` and ``label`` to the initializer of
+    :class:`.Pauli` were removed, as deprecated in Qiskit Terra 0.17 (released on 2021-04-02).
+  - |
+    Importing from ``qiskit.quantum_info.operators.pauli`` was deprecated in Qiskit Terra 0.21
+    (released on 2022-06-30) is now removed.
