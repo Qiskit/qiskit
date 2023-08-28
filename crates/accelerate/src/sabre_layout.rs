@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
+use hashbrown::HashSet;
 use ndarray::prelude::*;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
@@ -29,6 +30,7 @@ use crate::sabre_swap::swap_map::SwapMap;
 use crate::sabre_swap::{build_swap_map_inner, Heuristic, NodeBlockResults, SabreResult};
 
 #[pyfunction]
+#[pyo3(signature = (dag, neighbor_table, distance_matrix, heuristic, max_iterations, num_swap_trials, num_layout_trials, seed=None, partial_layouts=vec![]))]
 pub fn sabre_layout_and_routing(
     py: Python,
     dag: &SabreDAG,
@@ -39,6 +41,7 @@ pub fn sabre_layout_and_routing(
     num_swap_trials: usize,
     num_layout_trials: usize,
     seed: Option<u64>,
+    partial_layouts: Vec<Vec<Option<usize>>>,
 ) -> ([NLayout; 2], (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
     let outer_rng = match seed {
@@ -47,14 +50,19 @@ pub fn sabre_layout_and_routing(
     };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
-        .take(num_layout_trials)
+        .take(num_layout_trials + partial_layouts.len())
         .collect();
     let dist = distance_matrix.as_array();
-    let res = if run_in_parallel && num_layout_trials > 1 {
+    let res = if run_in_parallel && (num_layout_trials > 1 || !partial_layouts.is_empty()) {
         seed_vec
             .into_par_iter()
             .enumerate()
             .map(|(index, seed_trial)| {
+                let partial = if index == num_layout_trials {
+                    Some(&partial_layouts[num_layout_trials - index])
+                } else {
+                    None
+                };
                 (
                     index,
                     layout_trial(
@@ -66,6 +74,7 @@ pub fn sabre_layout_and_routing(
                         max_iterations,
                         num_swap_trials,
                         run_in_parallel,
+                        partial,
                     ),
                 )
             })
@@ -80,7 +89,13 @@ pub fn sabre_layout_and_routing(
     } else {
         seed_vec
             .into_iter()
-            .map(|seed_trial| {
+            .enumerate()
+            .map(|(index, seed_trial)| {
+                let partial = if index >= num_layout_trials {
+                    Some(&partial_layouts[index - num_layout_trials])
+                } else {
+                    None
+                };
                 layout_trial(
                     dag,
                     neighbor_table,
@@ -90,6 +105,7 @@ pub fn sabre_layout_and_routing(
                     max_iterations,
                     num_swap_trials,
                     run_in_parallel,
+                    partial,
                 )
             })
             .min_by_key(|(_, result)| result.map.map.values().map(|x| x.len()).sum::<usize>())
@@ -114,12 +130,36 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
+    partial_layout: Option<&Vec<Option<usize>>>,
 ) -> ([NLayout; 2], SabreResult) {
     // Pick a random initial layout and fully populate ancillas in that layout too
     let num_physical_qubits = distance_matrix.shape()[0];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
-    let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
-    physical_qubits.shuffle(&mut rng);
+    let physical_qubits = match partial_layout {
+        Some(partial_layout_bits) => {
+            let used_bits: HashSet<usize> = partial_layout_bits
+                .iter()
+                .filter_map(|x| x.as_ref())
+                .copied()
+                .collect();
+            let mut free_bits: Vec<usize> = (0..num_physical_qubits)
+                .filter(|x| !used_bits.contains(x))
+                .collect();
+            free_bits.shuffle(&mut rng);
+            (0..num_physical_qubits)
+                .map(|x| match partial_layout_bits.get(x) {
+                    Some(phys) => phys.unwrap_or_else(|| free_bits.pop().unwrap()),
+                    None => free_bits.pop().unwrap(),
+                })
+                .collect()
+        }
+        None => {
+            let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
+            physical_qubits.shuffle(&mut rng);
+            physical_qubits
+        }
+    };
+
     let mut initial_layout = NLayout::from_logical_to_physical(physical_qubits);
     let new_dag_fn = |nodes| {
         // Because the current implementation of Sabre swap doesn't permute
