@@ -127,8 +127,12 @@ html_theme = "qiskit"
 html_favicon = "images/favicon.ico"
 html_last_updated_fmt = "%Y/%m/%d"
 html_context = {
-    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", ""))
-}  # enable segment analytics for qiskit.org/documentation
+    # Enable segment analytics for qiskit.org/documentation
+    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
+    "theme_announcement": "🎉 Qiskit is getting a new documentation experience on IBM Quantum!",
+    "announcement_url": "https://docs.quantum-computing.ibm.com/",
+    "announcement_url_text": "Check it out",
+}
 html_static_path = ["_static"]
 
 # This speeds up the docs build because it works around the Furo theme's slowdown from the left
@@ -243,6 +247,7 @@ if os.getenv("DOCS_PROD_BUILD"):
 # ---------------------------------------------------------------------------------------
 # Custom extensions
 # ---------------------------------------------------------------------------------------
+
 
 def add_versions_to_config(_app, config):
     """Add a list of old documentation versions that should have links generated to them into the
