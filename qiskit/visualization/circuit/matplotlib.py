@@ -136,7 +136,6 @@ class MatplotlibDrawer:
 
         for node in itertools.chain.from_iterable(self._nodes):
             if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
-                print("Cargs", node.op)
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -420,14 +419,14 @@ class MatplotlibDrawer:
                 op = node.op
                 node_data[node] = NodeData()
                 node_data[node].width = WID
-                num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
+                num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
                 if (
                     getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
                 ) or isinstance(op, Measure):
                     node_data[node].raw_gate_text = op.name
                     continue
 
-                base_type = None if not hasattr(op, "base_gate") else op.base_gate
+                base_type = getattr(op, "base_gate", None)
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
                     op, "mpl", style=self._style, calibrations=self._calibrations
                 )
@@ -440,7 +439,7 @@ class MatplotlibDrawer:
                 if (
                     (len(node.qargs) - num_ctrl_qubits) == 1
                     and len(gate_text) < 3
-                    and (not hasattr(op, "params") or len(op.params) == 0)
+                    and len(getattr(op, "params", [])) == 0
                     and ctrl_text is None
                 ):
                     continue
@@ -455,8 +454,7 @@ class MatplotlibDrawer:
                 )
                 # get param_width, but 0 for gates with array params or circuits in params
                 if (
-                    hasattr(op, "params")
-                    and len(op.params) > 0
+                    len(getattr(op, "params", [])) > 0
                     and not any(isinstance(param, np.ndarray) for param in op.params)
                     and not any(isinstance(param, QuantumCircuit) for param in op.params)
                 ):
@@ -549,7 +547,7 @@ class MatplotlibDrawer:
                         flow_drawer._flow_wire_map = flow_wire_map
                         self._flow_drawers[node].append(flow_drawer)
 
-                        if op.condition is not None and isinstance(op.condition, expr.Expr):
+                        if getattr(op, "condition", None) and isinstance(op.condition, expr.Expr):
                             builder = QASM3Builder(
                                 self._circuit,
                                 includeslist=("stdgates.inc",),
@@ -1667,7 +1665,7 @@ class MatplotlibDrawer:
         """Draw a controlled gate"""
         op = node.op
         xy = node_data[node].q_xy
-        base_type = None if not hasattr(op, "base_gate") else op.base_gate
+        base_type = getattr(op, "base_gate", None)
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         num_ctrl_qubits = op.num_ctrl_qubits
@@ -1802,7 +1800,7 @@ class MatplotlibDrawer:
         xy = node_data[node].q_xy
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
-        base_type = None if not hasattr(op, "base_gate") else op.base_gate
+        base_type = getattr(op, "base_gate", None)
         ec = node_data[node].ec
         tc = node_data[node].tc
         lc = node_data[node].lc
