@@ -241,7 +241,6 @@ class SabreLayout(TransformationPass):
             target.make_symmetric()
         else:
             target = self.coupling_map
-        partial_layouts = None
         inner_run = self._inner_run
         if "sabre_starting_layout" in self.property_set:
             inner_run = functools.partial(

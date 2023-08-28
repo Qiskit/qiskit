@@ -254,6 +254,8 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
 
 
 class DensePartialSabreTrial(AnalysisPass):
+    """Pass to run dense layout as a sabre trial."""
+
     def __init__(self, cmap):
         self.dense_pass = DenseLayout(cmap)
         super().__init__()
@@ -365,6 +367,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
             layout_routing_pass(qc)
 
     def test_with_partial_layout(self):
+        """Test a partial layout with a disjoint connectivity graph."""
         qc = QuantumCircuit(8, name="double dhz")
         qc.h(0)
         qc.cz(0, 1)
