@@ -385,7 +385,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def destab_phase(self):
-        """Return phase of destaibilizer with boolean representation."""
+        """Return phase of destabilizer with boolean representation."""
         return self.tableau[: self.num_qubits, -1]
 
     @destab_phase.setter
@@ -421,7 +421,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def stab_phase(self):
-        """Return phase of stablizer with boolean representation."""
+        """Return phase of stabilizer with boolean representation."""
         return self.tableau[self.num_qubits :, -1]
 
     @stab_phase.setter
@@ -874,8 +874,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         Args:
             array (bool): return a Numpy array if True, otherwise
                           return a list (Default: False).
-            mode (Literal["S", "D", "B"]): return both stabilizer and destablizer if "B",
-                return only stabilizer if "S" and return only destablizer if "D".
+            mode (Literal["S", "D", "B"]): return both stabilizer and destabilizer if "B",
+                return only stabilizer if "S" and return only destabilizer if "D".
 
         Returns:
             list or array: The rows of the StabilizerTable in label form.
