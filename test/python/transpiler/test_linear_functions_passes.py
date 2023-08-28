@@ -417,7 +417,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         """Test that collection recurses into a simple if-else."""
         pass_ = CollectLinearFunctions(do_commutative_analysis=do_commutative_analysis)
 
-        circuit = QuantumCircuit(4)
+        circuit = QuantumCircuit(4, 1)
         circuit.cx(0, 1)
         circuit.cx(1, 0)
         circuit.cx(2, 3)
@@ -576,6 +576,82 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertNotIn("linear_function", circuit4.count_ops().keys())
         self.assertEqual(circuit4.count_ops()["cx"], 6)
 
+    @combine(do_commutative_analysis=[False, True])
+    def test_collect_from_back_correctness(self, do_commutative_analysis):
+        """Test that collecting from the back of the circuit works correctly."""
+
+        # original circuit
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(2, 3)
+        circuit.cx(3, 4)
+        circuit.h(2)
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        circuit.swap(2, 3)
+        circuit.swap(3, 4)
+
+        circuit1 = PassManager(
+            CollectLinearFunctions(
+                split_blocks=False,
+                do_commutative_analysis=do_commutative_analysis,
+                collect_from_back=False,
+            )
+        ).run(circuit)
+
+        circuit2 = PassManager(
+            CollectLinearFunctions(
+                split_blocks=False,
+                do_commutative_analysis=do_commutative_analysis,
+                collect_from_back=True,
+            )
+        ).run(circuit)
+        self.assertEqual(Operator(circuit1), Operator(circuit2))
+
+    @combine(do_commutative_analysis=[False, True])
+    def test_collect_from_back_as_expected(self, do_commutative_analysis):
+        """Test that collecting from the back of the circuit works as expected."""
+
+        # original circuit
+        circuit = QuantumCircuit(3)
+        circuit.cx(1, 2)
+        circuit.cx(1, 0)
+        circuit.h(2)
+        circuit.cx(1, 2)
+
+        # If we collect from the back, we expect the cx(1, 0) to be part of the second block.
+        circuit1 = PassManager(
+            CollectLinearFunctions(
+                split_blocks=False,
+                min_block_size=1,
+                do_commutative_analysis=do_commutative_analysis,
+                collect_from_back=True,
+            )
+        ).run(circuit)
+
+        # We expect to see 3 gates (linear, h, linear)
+        self.assertEqual(len(circuit1.data), 3)
+        inst1 = circuit1.data[0]
+        inst2 = circuit1.data[2]
+        self.assertIsInstance(inst1.operation, LinearFunction)
+        self.assertIsInstance(inst2.operation, LinearFunction)
+
+        resulting_subcircuit1 = QuantumCircuit(3)
+        resulting_subcircuit1.append(inst1)
+        resulting_subcircuit2 = QuantumCircuit(3)
+        resulting_subcircuit2.append(inst2)
+
+        expected_subcircuit1 = QuantumCircuit(3)
+        expected_subcircuit1.cx(1, 2)
+
+        expected_subcircuit2 = QuantumCircuit(3)
+        expected_subcircuit2.cx(1, 0)
+        expected_subcircuit2.cx(1, 2)
+
+        self.assertEqual(Operator(resulting_subcircuit1), Operator(expected_subcircuit1))
+        self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
+
     def test_do_not_merge_conditional_gates(self):
         """Test that collecting Cliffords works properly when there the circuit
         contains conditional gates."""
@@ -594,6 +670,34 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # Make sure that the condition on the middle gate is not lost
         self.assertIsNotNone(qct.data[1].operation.condition)
+
+    @combine(do_commutative_analysis=[False, True])
+    def test_split_layers(self, do_commutative_analysis):
+        """Test that splitting blocks of nodes into layers works correctly."""
+
+        # original circuit is linear
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.cx(2, 0)
+        circuit.cx(0, 3)
+        circuit.swap(3, 2)
+        circuit.swap(4, 1)
+
+        circuit2 = PassManager(
+            CollectLinearFunctions(
+                split_blocks=False,
+                min_block_size=1,
+                split_layers=True,
+                do_commutative_analysis=do_commutative_analysis,
+            )
+        ).run(circuit)
+
+        # check that we have an equivalent circuit
+        self.assertEqual(Operator(circuit), Operator(circuit2))
+
+        # Check that we have the expected number of linear blocks
+        self.assertEqual(circuit2.count_ops()["linear_function"], 4)
 
 
 if __name__ == "__main__":

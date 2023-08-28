@@ -1255,6 +1255,43 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(set(circ.calibrations["h"].keys()), {((0,), ())})
         self.assertEqual(circ.calibrations["h"][((0,), ())].instructions, q0_x180.instructions)
 
+    def test_has_calibration_for(self):
+        """Test that `has_calibration_for` returns a correct answer."""
+        qc = QuantumCircuit(3)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        qc.add_calibration("h", [0], q0_x180)
+
+        qc.h(0)
+        qc.h(1)
+
+        self.assertTrue(qc.has_calibration_for(qc.data[0]))
+        self.assertFalse(qc.has_calibration_for(qc.data[1]))
+
+    def test_has_calibration_for_legacy(self):
+        """Test that `has_calibration_for` returns a correct answer when presented with a legacy 3
+        tuple."""
+        qc = QuantumCircuit(3)
+
+        with pulse.build() as q0_x180:
+            pulse.play(pulse.library.Gaussian(20, 1.0, 3.0), pulse.DriveChannel(0))
+        qc.add_calibration("h", [0], q0_x180)
+
+        qc.h(0)
+        qc.h(1)
+
+        self.assertTrue(
+            qc.has_calibration_for(
+                (qc.data[0].operation, list(qc.data[0].qubits), list(qc.data[0].clbits))
+            )
+        )
+        self.assertFalse(
+            qc.has_calibration_for(
+                (qc.data[1].operation, list(qc.data[1].qubits), list(qc.data[1].clbits))
+            )
+        )
+
     def test_metadata_copy_does_not_share_state(self):
         """Verify mutating the metadata of a circuit copy does not impact original."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/6057
@@ -1266,6 +1303,25 @@ class TestCircuitProperties(QiskitTestCase):
         qc2.metadata["a"] = 1000
 
         self.assertEqual(qc1.metadata["a"], 0)
+
+    def test_metadata_is_dict(self):
+        """Verify setting metadata to None in the constructor results in an empty dict."""
+        qc = QuantumCircuit(1)
+        metadata1 = qc.metadata
+        self.assertEqual(metadata1, {})
+
+    def test_metadata_raises(self):
+        """Test that we must set metadata to a dict."""
+        qc = QuantumCircuit(1)
+        with self.assertRaises(TypeError):
+            qc.metadata = 1
+
+    def test_metdata_deprectation(self):
+        """Test that setting metadata to None emits a deprecation warning."""
+        qc = QuantumCircuit(1)
+        with self.assertWarns(DeprecationWarning):
+            qc.metadata = None
+        self.assertEqual(qc.metadata, {})
 
     def test_scheduling(self):
         """Test cannot return schedule information without scheduling."""

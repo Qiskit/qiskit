@@ -33,6 +33,7 @@ a-coordinates is then extracted from the monodromy polytope.
 NOTE: The constants in this file are auto-generated and are not meant to be edited by hand / read.
 """
 
+from __future__ import annotations
 import numpy as np
 
 from .polytopes import ConvexPolytopeData, PolytopeData, manual_get_vertex, polytope_has_element

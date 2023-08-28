@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,12 +14,12 @@
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.circuit._utils import sort_parameters
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
@@ -37,7 +37,7 @@ RCOND = 1e-2
 
 
 class NaturalGradient(GradientBase):
-    r"""Convert an operator expression to the first-order gradient.
+    r"""Deprecated: Convert an operator expression to the first-order gradient.
 
     Given an ill-posed inverse problem
 
@@ -51,6 +51,10 @@ class NaturalGradient(GradientBase):
     where R(x) represents the penalization term.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         grad_method: Union[str, CircuitGradient] = "lin_comb",
@@ -117,7 +121,7 @@ class NaturalGradient(GradientBase):
         if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = sort_parameters(operator.parameters)
         if not isinstance(params, Iterable):
             params = [params]
         # Instantiate the gradient

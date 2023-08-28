@@ -26,9 +26,8 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
 
 try:
@@ -129,9 +128,9 @@ def generate_random_circuits():
 
 
 def generate_string_parameters():
-    """Generate a circuit from pauli tensor opflow."""
-    op_circuit = (X ^ Y ^ Z).to_circuit_op().to_circuit()
-    op_circuit.name = "X^Y^Z"
+    """Generate a circuit for the XYZ pauli string."""
+    op_circuit = QuantumCircuit(3, name="X^Y^Z")
+    op_circuit.append(PauliGate("XYZ"), op_circuit.qubits, [])
     return op_circuit
 
 
@@ -329,9 +328,11 @@ def generate_evolution_gate():
     # Runtime import since this only exists in terra 0.19.0
     from qiskit.circuit.library import PauliEvolutionGate
     from qiskit.synthesis import SuzukiTrotter
+    from qiskit.quantum_info import SparsePauliOp
 
     synthesis = SuzukiTrotter()
-    evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=2.0, synthesis=synthesis)
+    op = SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)])
+    evo = PauliEvolutionGate([op] * 5, time=2.0, synthesis=synthesis)
     qc = QuantumCircuit(2, name="pauli_evolution_circuit")
     qc.append(evo, range(2))
     return qc
@@ -389,6 +390,38 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_control_flow_switch_circuits():
+    """Generate circuits with switch-statement instructions."""
+    from qiskit.circuit.controlflow import CASE_DEFAULT
+
+    circuits = []
+
+    qc = QuantumCircuit(2, 1, name="switch_clbit")
+    case_t = qc.copy_empty_like()
+    case_t.x(0)
+    case_f = qc.copy_empty_like()
+    case_f.z(1)
+    qc.switch(qc.clbits[0], [(True, case_t), (False, case_f)], qc.qubits, qc.clbits)
+    circuits.append(qc)
+
+    qreg = QuantumRegister(2, "q")
+    creg = ClassicalRegister(3, "c")
+    qc = QuantumCircuit(qreg, creg, name="switch_creg")
+
+    case_0 = QuantumCircuit(qreg, creg)
+    case_0.x(0)
+    case_1 = QuantumCircuit(qreg, creg)
+    case_1.z(1)
+    case_2 = QuantumCircuit(qreg, creg)
+    case_2.x(1)
+    qc.switch(
+        creg, [(0, case_0), ((1, 2), case_1), ((3, 4, CASE_DEFAULT), case_2)], qc.qubits, qc.clbits
+    )
+    circuits.append(qc)
+
+    return circuits
+
+
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
@@ -438,6 +471,31 @@ def generate_schedule_blocks():
     my_waveform = 0.1 * np.sin(2 * np.pi * np.linspace(0, 1, 100))
     with builder.build() as block:
         builder.play(my_waveform, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
+def generate_referenced_schedule():
+    """Test for QPY serialization of unassigned reference schedules."""
+    from qiskit.pulse import builder, channels, library
+
+    schedule_blocks = []
+
+    # Completely unassigned schedule
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.reference("x", "q0")
+        builder.reference("cr45m", "q0", "q1")
+    schedule_blocks.append(block)
+
+    # Partly assigned schedule
+    with builder.build() as x_q0:
+        builder.play(library.Constant(100, 0.1), channels.DriveChannel(0))
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.call(x_q0)
+        builder.reference("cr45m", "q0", "q1")
     schedule_blocks.append(block)
 
     return schedule_blocks
@@ -517,6 +575,140 @@ def generate_open_controlled_gates():
     return circuits
 
 
+def generate_acquire_instruction_with_kernel_and_discriminator():
+    """Test QPY serialization with Acquire instruction with kernel and discriminator."""
+    from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
+
+    schedule_blocks = []
+
+    with builder.build() as block:
+        builder.acquire(
+            100,
+            AcquireChannel(0),
+            MemorySlot(0),
+            kernel=Kernel(
+                name="my_kernel", my_params_1={"param1": 0.1, "param2": 0.2}, my_params_2=[0, 1]
+            ),
+        )
+    schedule_blocks.append(block)
+
+    with builder.build() as block:
+        builder.acquire(
+            100,
+            AcquireChannel(0),
+            MemorySlot(0),
+            discriminator=Discriminator(
+                name="my_disc", my_params_1={"param1": 0.1, "param2": 0.2}, my_params_2=[0, 1]
+            ),
+        )
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
+def generate_layout_circuits():
+    """Test qpy circuits with layout set."""
+
+    from qiskit.transpiler.layout import TranspileLayout, Layout
+
+    qr = QuantumRegister(3, "foo")
+    qc = QuantumCircuit(qr, name="GHZ with layout")
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.swap(0, 1)
+    qc.cx(0, 2)
+    input_layout = {qr[index]: index for index in range(len(qc.qubits))}
+    qc._layout = TranspileLayout(
+        Layout(input_layout),
+        input_qubit_mapping=input_layout,
+        final_layout=Layout.from_qubit_list([qc.qubits[1], qc.qubits[0], qc.qubits[2]]),
+    )
+    return [qc]
+
+
+def generate_control_flow_expr():
+    """`IfElseOp`, `WhileLoopOp` and `SwitchCaseOp` with `Expr` nodes in their discriminators."""
+    from qiskit.circuit.classical import expr, types
+
+    body1 = QuantumCircuit(1)
+    body1.x(0)
+    qr1 = QuantumRegister(2, "q1")
+    cr1 = ClassicalRegister(2, "c1")
+    qc1 = QuantumCircuit(qr1, cr1)
+    qc1.if_test(expr.equal(cr1, 3), body1.copy(), [0], [])
+    qc1.while_loop(expr.logic_not(cr1[1]), body1.copy(), [0], [])
+
+    inner2 = QuantumCircuit(1)
+    inner2.x(0)
+    outer2 = QuantumCircuit(1, 1)
+    outer2.if_test(expr.logic_not(outer2.clbits[0]), inner2, [0], [])
+    qr2 = QuantumRegister(2, "q2")
+    cr1_2 = ClassicalRegister(3, "c1")
+    cr2_2 = ClassicalRegister(3, "c2")
+    qc2 = QuantumCircuit(qr2, cr1_2, cr2_2)
+    qc2.if_test(expr.logic_or(expr.less(cr1_2, cr2_2), cr1_2[1]), outer2, [1], [1])
+
+    inner3 = QuantumCircuit(1)
+    inner3.x(0)
+    outer3 = QuantumCircuit(1, 1)
+    outer3.switch(expr.logic_not(outer2.clbits[0]), [(False, inner2)], [0], [])
+    qr3 = QuantumRegister(2, "q2")
+    cr1_3 = ClassicalRegister(3, "c1")
+    cr2_3 = ClassicalRegister(3, "c2")
+    qc3 = QuantumCircuit(qr3, cr1_3, cr2_3)
+    qc3.switch(expr.bit_xor(cr1_3, cr2_3), [(0, outer2)], [1], [1])
+
+    cr1_4 = ClassicalRegister(256, "c1")
+    cr2_4 = ClassicalRegister(4, "c2")
+    cr3_4 = ClassicalRegister(4, "c3")
+    inner4 = QuantumCircuit(1)
+    inner4.x(0)
+    outer_loose = Clbit()
+    outer4 = QuantumCircuit(QuantumRegister(2, "q_outer"), cr2_4, [outer_loose], cr1_4)
+    outer4.if_test(
+        expr.logic_and(
+            expr.logic_or(
+                expr.greater(expr.bit_or(cr2_4, 7), 10),
+                expr.equal(expr.bit_and(cr1_4, cr1_4), expr.bit_not(cr1_4)),
+            ),
+            expr.logic_or(
+                outer_loose,
+                expr.cast(cr1_4, types.Bool()),
+            ),
+        ),
+        inner4,
+        [0],
+        [],
+    )
+    qc4_loose = Clbit()
+    qc4 = QuantumCircuit(QuantumRegister(2, "qr4"), cr1_4, cr2_4, cr3_4, [qc4_loose])
+    qc4.rz(np.pi, 0)
+    qc4.switch(
+        expr.logic_and(
+            expr.logic_or(
+                expr.logic_or(
+                    expr.less(cr2_4, cr3_4),
+                    expr.logic_not(expr.greater_equal(cr3_4, cr2_4)),
+                ),
+                expr.logic_or(
+                    expr.logic_not(expr.less_equal(cr3_4, cr2_4)),
+                    expr.greater(cr2_4, cr3_4),
+                ),
+            ),
+            expr.logic_and(
+                expr.equal(cr3_4, 2),
+                expr.not_equal(expr.bit_xor(cr1_4, 0x0F), 0x0F),
+            ),
+        ),
+        [(False, outer4)],
+        [1, 0],
+        list(cr2_4) + [qc4_loose] + list(cr1_4),
+    )
+    qc4.rz(np.pi, 0)
+
+    return [qc1, qc2, qc3, qc4]
+
+
 def generate_circuits(version_parts):
     """Generate reference circuits."""
     output_circuits = {
@@ -546,12 +738,21 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
-        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
-    if version_parts >= (0, 21, 2):
+    if version_parts >= (0, 24, 0):
+        output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
+        output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
+    if version_parts >= (0, 24, 1):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
-
+        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+    if version_parts >= (0, 24, 2):
+        output_circuits["layout.qpy"] = generate_layout_circuits()
+    if version_parts >= (0, 25, 0):
+        output_circuits[
+            "acquire_inst_with_kernel_and_disc.qpy"
+        ] = generate_acquire_instruction_with_kernel_and_discriminator()
+        output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
     return output_circuits
 
 
@@ -591,6 +792,15 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
                 )
                 sys.stderr.write(msg)
                 sys.exit(1)
+
+    if (
+        version_parts >= (0, 24, 2)
+        and isinstance(reference, QuantumCircuit)
+        and reference.layout != qpy.layout
+    ):
+        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        sys.stderr.write(msg)
+        sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:

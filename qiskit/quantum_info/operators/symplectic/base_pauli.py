@@ -14,7 +14,9 @@ Optimized list of Pauli operators
 """
 # pylint: disable=invalid-name
 
+from __future__ import annotations
 import copy
+from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
@@ -24,6 +26,9 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+
+if TYPE_CHECKING:
+    from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 # utility for _to_matrix
@@ -36,7 +41,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     Base class for Pauli and PauliList.
     """
 
-    def __init__(self, z, x, phase):
+    def __init__(self, z: np.ndarray, x: np.ndarray, phase: np.ndarray):
         """Initialize the BasePauli.
 
         This is an array of M N-qubit Paulis defined as
@@ -91,7 +96,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    def compose(self, other, qargs=None, front=False, inplace=False):
+    def compose(self, other, qargs: list | None = None, front: bool = False, inplace=False):
         """Return the composition of Paulis.
 
         Args:
@@ -193,19 +198,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return self
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
 
-    def commutes(self, other, qargs=None):
-        """Return True if Pauli that commutes with other.
+    def commutes(self, other: BasePauli, qargs: list | None = None) -> np.ndarray:
+        """Return ``True`` if Pauli commutes with ``other``.
 
         Args:
             other (BasePauli): another BasePauli operator.
-            qargs (list): qubits to apply dot product on (default: None).
+            qargs (list): qubits to apply dot product on (default: ``None``).
 
         Returns:
-            np.array: Boolean array of True if Pauli's commute, False if
+            np.array: Boolean array of ``True`` if Paulis commute, ``False`` if
                       they anti-commute.
 
         Raises:
-            QiskitError: if number of qubits of other does not match qargs.
+            QiskitError: if number of qubits of ``other`` does not match ``qargs``.
         """
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
@@ -226,24 +231,33 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         b_dot_a = np.mod(_count_y(other._x, z1), 2)
         return a_dot_b == b_dot_a
 
-    def evolve(self, other, qargs=None, frame="h"):
-        r"""Heisenberg picture evolution of a Pauli by a Clifford.
+    def evolve(
+        self,
+        other: BasePauli | QuantumCircuit | Clifford,
+        qargs: list | None = None,
+        frame: Literal["h", "s"] = "h",
+    ) -> BasePauli:
+        r"""Performs either Heisenberg (default) or Schrödinger picture
+        evolution of the Pauli by a Clifford and returns the evolved Pauli.
 
-        This returns the Pauli :math:`P^\prime = C^\dagger.P.C`.
+        Schrödinger picture evolution can be chosen by passing parameter ``frame='s'``.
+        This option yields a faster calculation.
 
-        By choosing the parameter frame='s', this function returns the Schrödinger evolution of the Pauli
-        :math:`P^\prime = C.P.C^\dagger`. This option yields a faster calculation.
+        Heisenberg picture evolves the Pauli as :math:`P^\prime = C^\dagger.P.C`.
+
+        Schrödinger picture evolves the Pauli as :math:`P^\prime = C.P.C^\dagger`.
 
         Args:
             other (BasePauli or QuantumCircuit): The Clifford circuit to evolve by.
             qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): 'h' for Heisenberg or 's' for Schrödinger framework.
+            frame (string): ``'h'`` for Heisenberg or ``'s'`` for Schrödinger framework.
 
         Returns:
-            BasePauli: the Pauli :math:`C^\dagger.P.C`.
+            BasePauli: the Pauli :math:`C^\dagger.P.C` (Heisenberg picture)
+            or the Pauli :math:`C.P.C^\dagger` (Schrödinger picture).
 
         Raises:
-            QiskitError: if the Clifford number of qubits and qargs don't match.
+            QiskitError: if the Clifford number of qubits and ``qargs`` don't match.
         """
         # Check dimension
         if qargs is not None and len(qargs) != other.num_qubits:
@@ -340,7 +354,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return ret
 
     def _count_y(self, dtype=None):
-        """Count the number of I Pauli's"""
+        """Count the number of I Paulis"""
         return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
@@ -405,16 +419,16 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (array): The symplectic representation z vector.
             x (array): The symplectic representation x vector.
             phase (int): Pauli phase.
-            group_phase (bool): Optional. If True use group-phase convention
+            group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
-                                (default: False).
-            sparse (bool): Optional. Of True return a sparse CSR matrix,
+                                (default: ``False``).
+            sparse (bool): Optional. Of ``True`` return a sparse CSR matrix,
                            otherwise return a dense Numpy array
-                           (default: False).
+                           (default: ``False``).
 
         Returns:
-            array: if sparse=False.
-            csr_matrix: if sparse=True.
+            array: if ``sparse=False``.
+            csr_matrix: if ``sparse=True``.
         """
         num_qubits = z.size
 
@@ -466,21 +480,21 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (array): The symplectic representation z vector.
             x (array): The symplectic representation x vector.
             phase (int): Pauli phase.
-            group_phase (bool): Optional. If True use group-phase convention
+            group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
-                                (default: False).
+                                (default: ``False``).
             full_group (bool): If True return the Pauli label from the full Pauli group
                 including complex coefficient from [1, -1, 1j, -1j]. If
-                False return the unsigned Pauli label with coefficient 1
-                (default: True).
-            return_phase (bool): If True return the adjusted phase for the coefficient
+                ``False`` return the unsigned Pauli label with coefficient 1
+                (default: ``True``).
+            return_phase (bool): If ``True`` return the adjusted phase for the coefficient
                 of the returned Pauli label. This can be used even if
                 ``full_group=False``.
 
         Returns:
             str: the Pauli label from the full Pauli group (if ``full_group=True``) or
                 from the unsigned Pauli group (if ``full_group=False``).
-            Tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
+            tuple[str, int]: if ``return_phase=True`` returns a tuple of the Pauli
                             label (from either the full or unsigned Pauli group) and
                             the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
                             for the label from the full Pauli group.
@@ -702,5 +716,5 @@ def _evolve_swap(base_pauli, q1, q2):
 
 
 def _count_y(x, z, dtype=None):
-    """Count the number of I Pauli's"""
+    """Count the number of I Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)

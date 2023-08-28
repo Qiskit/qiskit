@@ -12,19 +12,22 @@
 
 """Z, CZ and CCZ gates."""
 
+from math import pi
 from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import pi
 
 from .p import PhaseGate
 
+_Z_ARRAY = [[1, 0], [0, -1]]
 
+
+@with_gate_array(_Z_ARRAY)
 class ZGate(Gate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
@@ -118,15 +121,12 @@ class ZGate(Gate):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Z gate."""
-        return numpy.array([[1, 0], [0, -1]], dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(numpy.pi * exponent)
 
 
+@with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
 class CZGate(ControlledGate):
     r"""Controlled-Z gate.
 
@@ -188,18 +188,8 @@ class CZGate(ControlledGate):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CZ gate."""
-        if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=dtype
-            )
-        else:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
-            )
 
-
+@with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
 class CCZGate(ControlledGate):
     r"""CCZ gate.
 
@@ -266,12 +256,3 @@ class CCZGate(ControlledGate):
     def inverse(self):
         """Return inverted CCZ gate (itself)."""
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CCZ gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat

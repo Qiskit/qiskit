@@ -18,15 +18,27 @@ from math import inf
 import numpy as np
 
 from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
+from qiskit.transpiler.target import Target
+from qiskit.circuit import (
+    Clbit,
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+    ControlFlowOp,
+    Instruction,
+    CASE_DEFAULT,
+)
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 from .utils import get_swap_map_dag
 
@@ -56,7 +68,7 @@ class StochasticSwap(TransformationPass):
         If these are not satisfied, the behavior is undefined.
 
         Args:
-            coupling_map (CouplingMap): Directed graph representing a coupling
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
@@ -65,14 +77,18 @@ class StochasticSwap(TransformationPass):
             initial_layout (Layout): starting layout at beginning of pass.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
         self.rng = None
         self.fake_run = fake_run
         self.qregs = None
         self.initial_layout = initial_layout
-        self._qubit_to_int = None
         self._int_to_qubit = None
 
     def run(self, dag):
@@ -97,6 +113,9 @@ class StochasticSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
 
         self.rng = np.random.default_rng(self.seed)
 
@@ -105,7 +124,6 @@ class StochasticSwap(TransformationPass):
             self.initial_layout = Layout.generate_trivial_layout(canonical_register)
         # Qubit indices are used to assign an integer to each virtual qubit during the routing: it's
         # a mapping of {virtual: virtual}, for converting between Python and Rust forms.
-        self._qubit_to_int = {bit: idx for idx, bit in enumerate(dag.qubits)}
         self._int_to_qubit = tuple(dag.qubits)
 
         self.qregs = dag.qregs
@@ -114,7 +132,7 @@ class StochasticSwap(TransformationPass):
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag
 
-    def _layer_permutation(self, layer_partition, layout, qubit_subset, coupling, trials):
+    def _layer_permutation(self, dag, layer_partition, layout, qubit_subset, coupling, trials):
         """Find a swap circuit that implements a permutation for this layer.
 
         The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -183,18 +201,18 @@ class StochasticSwap(TransformationPass):
 
         cdist2 = coupling._dist_matrix**2
         int_qubit_subset = np.fromiter(
-            (self._qubit_to_int[bit] for bit in qubit_subset),
+            (dag.find_bit(bit).index for bit in qubit_subset),
             dtype=np.uintp,
             count=len(qubit_subset),
         )
 
         int_gates = np.fromiter(
-            (self._qubit_to_int[bit] for gate in gates for bit in gate),
+            (dag.find_bit(bit).index for gate in gates for bit in gate),
             dtype=np.uintp,
             count=2 * len(gates),
         )
 
-        layout_mapping = {self._qubit_to_int[k]: v for k, v in layout.get_virtual_bits().items()}
+        layout_mapping = {dag.find_bit(k).index: v for k, v in layout.get_virtual_bits().items()}
         int_layout = nlayout.NLayout(layout_mapping, num_qubits, coupling.size())
 
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
@@ -294,7 +312,7 @@ class StochasticSwap(TransformationPass):
             # First try and compute a route for the entire layer in one go.
             if not layer["graph"].op_nodes(op=ControlFlowOp):
                 success_flag, best_circuit, best_depth, best_layout = self._layer_permutation(
-                    layer["partition"], layout, qubit_subset, coupling_graph, trials
+                    circuit_graph, layer["partition"], layout, qubit_subset, coupling_graph, trials
                 )
 
                 logger.debug("mapper: layer %d", i)
@@ -322,7 +340,12 @@ class StochasticSwap(TransformationPass):
                     )
                 else:
                     (success_flag, best_circuit, best_depth, best_layout) = self._layer_permutation(
-                        serial_layer["partition"], layout, qubit_subset, coupling_graph, trials
+                        circuit_graph,
+                        serial_layer["partition"],
+                        layout,
+                        qubit_subset,
+                        coupling_graph,
+                        trials,
                     )
                     logger.debug("mapper: layer %d, sublayer %d", i, j)
                     logger.debug(
@@ -376,7 +399,7 @@ class StochasticSwap(TransformationPass):
 
         """
         node = layer_dag.op_nodes()[0]
-        if not isinstance(node.op, (IfElseOp, ForLoopOp, WhileLoopOp)):
+        if not isinstance(node.op, (IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp)):
             raise TranspilerError(f"unsupported control flow operation: {node}")
         # For each block, expand it up be the full width of the containing DAG so we can be certain
         # that it is routable, then route it within that.  When we recombine later, we'll reduce all
@@ -389,18 +412,15 @@ class StochasticSwap(TransformationPass):
             block_layouts.append(inner_pass.property_set["final_layout"].copy())
 
         # Determine what layout we need to go towards.  For some blocks (such as `for`), we must
-        # guarantee that the final layout is the same as the initial or the loop won't work.  For an
-        # `if` with an `else`, we don't need that as long as the two branches are the same.  We have
-        # to be careful with `if` _without_ an else, though - the `if` needs to restore the layout
-        # in case it isn't taken; we can't have two different virtual layouts.
-        if not (isinstance(node.op, IfElseOp) and len(node.op.blocks) == 2):
-            final_layout = current_layout
-        else:
+        # guarantee that the final layout is the same as the initial or the loop won't work.
+        if _controlflow_exhaustive_acyclic(node.op):
             # We heuristically just choose to use the layout of whatever the deepest block is, to
             # avoid extending the total depth by too much.
             final_layout = max(
                 zip(block_layouts, block_dags), key=lambda x: x[1].depth(recurse=True)
             )[0]
+        else:
+            final_layout = current_layout
         if self.fake_run:
             return final_layout
 
@@ -446,6 +466,27 @@ class StochasticSwap(TransformationPass):
             fake_run=self.fake_run,
             initial_layout=initial_layout,
         )
+
+
+def _controlflow_exhaustive_acyclic(operation: ControlFlowOp):
+    """Return True if the entire control-flow operation represents a block that is guaranteed to be
+    entered, and does not cycle back to the initial layout."""
+    if isinstance(operation, IfElseOp):
+        return len(operation.blocks) == 2
+    if isinstance(operation, SwitchCaseOp):
+        cases = operation.cases()
+        if isinstance(operation.target, expr.Expr):
+            type_ = operation.target.type
+            if type_.kind is types.Bool:
+                max_matches = 2
+            elif type_.kind is types.Uint:
+                max_matches = 1 << type_.width
+            else:
+                raise RuntimeError(f"unhandled target type: '{type_}'")
+        else:
+            max_matches = 2 if isinstance(operation.target, Clbit) else 1 << len(operation.target)
+        return CASE_DEFAULT in cases or len(cases) == max_matches
+    return False
 
 
 def _dag_from_block(block, node, root_dag):

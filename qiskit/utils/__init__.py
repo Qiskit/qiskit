@@ -18,31 +18,27 @@ Utilities (:mod:`qiskit.utils`)
 
 .. currentmodule:: qiskit.utils
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   deprecate_arguments
-   deprecate_function
-   local_hardware_info
-   is_main_process
-   apply_prefix
-   detach_prefix
-   wrap_method
+.. autofunction:: add_deprecation_to_docstring
+.. autofunction:: deprecate_arg
+.. autofunction:: deprecate_arguments
+.. autofunction:: deprecate_func
+.. autofunction:: deprecate_function
+.. autofunction:: local_hardware_info
+.. autofunction:: is_main_process
+.. autofunction:: apply_prefix
+.. autofunction:: detach_prefix
+.. autofunction:: wrap_method
 
 Algorithm Utilities
 ===================
 
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   summarize_circuits
-   get_entangler_map
-   validate_entangler_map
-   has_ibmq
-   has_aer
-   name_args
-   algorithm_globals
+.. autofunction:: summarize_circuits
+.. autofunction:: get_entangler_map
+.. autofunction:: validate_entangler_map
+.. autofunction:: has_ibmq
+.. autofunction:: has_aer
+.. autofunction:: name_args
+.. autodata:: algorithm_globals
 
 .. autosummary::
    :toctree: ../stubs/
@@ -57,15 +53,20 @@ are run on a device or simulator by passing a QuantumInstance setup with the des
 backend etc.
 
 
-Optional Depedency Checkers (:mod:`qiskit.utils.optionals`)
-===========================================================
+Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
+============================================================
 
 .. automodule:: qiskit.utils.optionals
 """
 
 from .quantum_instance import QuantumInstance
-from .deprecation import deprecate_arguments
-from .deprecation import deprecate_function
+from .deprecation import (
+    add_deprecation_to_docstring,
+    deprecate_arg,
+    deprecate_arguments,
+    deprecate_func,
+    deprecate_function,
+)
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
 from .units import apply_prefix, detach_prefix
@@ -93,7 +94,10 @@ __all__ = [
     "has_aer",
     "name_args",
     "algorithm_globals",
+    "add_deprecation_to_docstring",
+    "deprecate_arg",
     "deprecate_arguments",
+    "deprecate_func",
     "deprecate_function",
     "local_hardware_info",
     "is_main_process",

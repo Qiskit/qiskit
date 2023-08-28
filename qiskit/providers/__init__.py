@@ -125,13 +125,11 @@ Job Status
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   QiskitBackendNotFoundError
-   BackendPropertyError
-   JobError
-   JobTimeoutError
+.. autoexception:: QiskitBackendNotFoundError
+.. autoexception:: BackendPropertyError
+.. autoexception:: JobError
+.. autoexception:: JobTimeoutError
+.. autoexception:: BackendConfigurationError
 
 ======================
 Writing a New Provider
@@ -288,6 +286,8 @@ a model of a backend for the transpiler. A backend object will need to return
 a :class:`~qiskit.transpiler.Target` object from the :attr:`~qiskit.providers.BackendV2.target`
 attribute which the :func:`~qiskit.compiler.transpile` function will use as
 its model of a backend target for compilation.
+
+.. _custom_basis_gates:
 
 Custom Basis Gates
 ^^^^^^^^^^^^^^^^^^
@@ -626,7 +626,7 @@ post-processing, batching, caching, error mitigation, etc. The concept of
 the :mod:`qiskit.primitives` module is to explicitly enable this as the
 primitive objects are higher level abstractions to produce processed higher
 level outputs (such as probability distributions and expectation values)
-that abstract away the mechanics of getting the best result efficienctly, to
+that abstract away the mechanics of getting the best result efficiently, to
 concentrate on higher level applications using these outputs.
 
 For example, if your backends were well suited to leverage
@@ -775,7 +775,6 @@ from qiskit.providers.exceptions import (
 from qiskit.providers.jobstatus import JobStatus
 
 
-# Allow extending this namespace.
-# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
-# qiskit-ibmq-provider package is retired/archived.
+# Support for the deprecated extending this namespace.
+# Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)

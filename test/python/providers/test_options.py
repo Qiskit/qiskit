@@ -18,7 +18,6 @@ import pickle
 
 from qiskit.providers import Options
 from qiskit.qobj.utils import MeasLevel
-
 from qiskit.test import QiskitTestCase
 
 
@@ -119,6 +118,39 @@ Where:
         self.assertEqual(cpy.opt1, 10)
         self.assertEqual(cpy.opt2, 2)
         self.assertEqual(cpy.opt3, 20)
+
+    def test_iterate(self):
+        options = Options(opt1=1, opt2=2, opt3="abc")
+        options_dict = dict(options)
+
+        self.assertEqual(options_dict, {"opt1": 1, "opt2": 2, "opt3": "abc"})
+
+    def test_iterate_items(self):
+        options = Options(opt1=1, opt2=2, opt3="abc")
+        items = list(options.items())
+
+        self.assertEqual(items, [("opt1", 1), ("opt2", 2), ("opt3", "abc")])
+
+    def test_mutate_mapping(self):
+        options = Options(opt1=1, opt2=2, opt3="abc")
+
+        options["opt4"] = "def"
+        self.assertEqual(options.opt4, "def")
+
+        options_dict = dict(options)
+        self.assertEqual(options_dict, {"opt1": 1, "opt2": 2, "opt3": "abc", "opt4": "def"})
+
+    def test_mutate_mapping_validator(self):
+        options = Options(shots=1024)
+        options.set_validator("shots", (1, 2048))
+
+        options["shots"] = 512
+        self.assertEqual(options.shots, 512)
+
+        with self.assertRaises(ValueError):
+            options["shots"] = 3096
+
+        self.assertEqual(options.shots, 512)
 
 
 class TestOptionsSimpleNamespaceBackwardCompatibility(QiskitTestCase):

@@ -11,11 +11,10 @@
 # that they have been altered from the originals.
 
 """One-pulse single-qubit gate."""
-from math import sqrt
+from math import sqrt, pi
 from cmath import exp
 from typing import Optional
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister

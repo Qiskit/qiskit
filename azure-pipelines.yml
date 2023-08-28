@@ -34,12 +34,12 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+    default: ["3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
     type: string
-    default: "3.7"
+    default: "3.8"
 
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
@@ -60,6 +60,7 @@ parameters:
     type: string
     default: "3.8"
 
+  # Sync with 'python-version' in '.github/workflows/docs_deploy.yml'.
   - name: "documentationPythonVersion"
     displayName: "Version of Python to use to build Sphinx documentation"
     type: string
@@ -103,14 +104,17 @@ stages:
               testQPY: false
               testImages: false
               testRust: false
+              installOptionals: true
 
           - template: ".azure/test-macos.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
           - template: ".azure/test-windows.yml"
             parameters:
               pythonVersion: ${{ version }}
+              installOptionals: true
 
     - stage: "Nightly_Failure"
       displayName: "Comment on nightly failure"
@@ -150,9 +154,15 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            # A PR is more likely to fail CI because it introduces a logic error
+            # into an existing test than because it adds a new test / optional
+            # dependency that isn't accounted for in the test-skipping logic
+            # (and such a failure would need fewer iterations to fix).  We want
+            # to fail fast in the first CI stage.
+            installOptionals: true
             testRust: true
             testQPY: true
-            testImages: false
+            testImages: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -172,24 +182,29 @@ stages:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             testRust: false
             testQPY: false
-            testImages: true
+            testImages: false
             installFromSdist: true
+            installOptionals: false
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-macos.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            installOptionals: true
 
         - template: ".azure/test-windows.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            installOptionals: false
 
   # Push to main or the stable branches.  The triggering branches also need to
   # be in the triggers at the top of this file.
@@ -202,6 +217,7 @@ stages:
             testRust: true
             testQPY: true
             testImages: true
+            installOptionals: false
 
   # Push to a tag.  The triggering tags are set in the triggers at the top of
   # this file.
@@ -243,7 +259,9 @@ stages:
                   inputs:
                     versionSpec: ${{ version }}
                     architecture: x64
-
+    - stage: "sdist"
+      dependsOn: "Deploy"
+      jobs:
         - job: 'sdist'
           pool: {vmImage: 'ubuntu-latest'}
           steps:
@@ -259,6 +277,24 @@ stages:
             - bash: |
                 python -m pip install --upgrade twine
                 twine upload dist/*
+              env:
+                TWINE_USERNAME: "qiskit"
+                TWINE_PASSWORD: $(TWINE_PASSWORD)
+        - job: 'qiskit_pkg'
+          pool: {vmImage: 'ubuntu-latest'}
+          steps:
+            - task: UsePythonVersion@0
+            - bash: |
+                set -e
+                python -m pip install --upgrade pip build
+                cd qiskit_pkg
+                python -m build .
+            - task: PublishBuildArtifacts@1
+              inputs: {pathtoPublish: 'qiskit_pkg/dist'}
+              condition: succeededOrFailed()
+            - bash: |
+                python -m pip install --upgrade twine
+                twine upload qiskit_pkg/dist/*
               env:
                 TWINE_USERNAME: "qiskit"
                 TWINE_PASSWORD: $(TWINE_PASSWORD)

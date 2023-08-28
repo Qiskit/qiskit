@@ -25,7 +25,7 @@ class FakeWashingtonV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_washington.json"
     props_filename = "props_washington.json"
     defs_filename = "defs_washington.json"
-    backend_name = "fake_washington_v2"
+    backend_name = "fake_washington"
 
 
 class FakeWashington(fake_pulse_backend.FakePulseBackend):

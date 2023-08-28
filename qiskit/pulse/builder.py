@@ -231,10 +231,7 @@ In the example below we demonstrate some more features of the pulse builder:
 The above is just a small taste of what is possible with the builder. See the rest of the module
 documentation for more information on its capabilities.
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    build
+.. autofunction:: build
 
 
 Channels
@@ -257,13 +254,10 @@ Methods to return the correct channels for the respective qubit indices.
 
     DriveChannel(0)
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    acquire_channel
-    control_channels
-    drive_channel
-    measure_channel
+.. autofunction:: acquire_channel
+.. autofunction:: control_channels
+.. autofunction:: drive_channel
+.. autofunction:: measure_channel
 
 
 Instructions
@@ -299,21 +293,17 @@ Pulse instructions are available within the builder interface. Here's an example
 
     drive_sched.draw()
 
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    acquire
-    barrier
-    call
-    delay
-    play
-    reference
-    set_frequency
-    set_phase
-    shift_frequency
-    shift_phase
-    snapshot
+.. autofunction:: acquire
+.. autofunction:: barrier
+.. autofunction:: call
+.. autofunction:: delay
+.. autofunction:: play
+.. autofunction:: reference
+.. autofunction:: set_frequency
+.. autofunction:: set_phase
+.. autofunction:: shift_frequency
+.. autofunction:: shift_phase
+.. autofunction:: snapshot
 
 
 Contexts
@@ -340,18 +330,15 @@ be used to align all pulses as late as possible in a pulse program.
 
    pulse_prog.draw()
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    align_equispaced
-    align_func
-    align_left
-    align_right
-    align_sequential
-    circuit_scheduler_settings
-    frequency_offset
-    phase_offset
-    transpiler_settings
+.. autofunction:: align_equispaced
+.. autofunction:: align_func
+.. autofunction:: align_left
+.. autofunction:: align_right
+.. autofunction:: align_sequential
+.. autofunction:: circuit_scheduler_settings
+.. autofunction:: frequency_offset
+.. autofunction:: phase_offset
+.. autofunction:: transpiler_settings
 
 
 Macros
@@ -374,12 +361,9 @@ Macros help you add more complex functionality to your pulse program.
 
     MemorySlot(0)
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    measure
-    measure_all
-    delay_qubits
+.. autofunction:: measure
+.. autofunction:: measure_all
+.. autofunction:: delay_qubits
 
 
 Circuit Gates
@@ -405,14 +389,11 @@ with :func:`call`.
     with pulse.build(backend) as u3_sched:
         pulse.u3(math.pi, 0, math.pi, 0)
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    cx
-    u1
-    u2
-    u3
-    x
+.. autofunction:: cx
+.. autofunction:: u1
+.. autofunction:: u2
+.. autofunction:: u3
+.. autofunction:: x
 
 
 Utilities
@@ -446,25 +427,22 @@ how the program is built.
     There are 160 samples in 3.5555555555555554e-08 seconds
     There are 1e-06 seconds in 4500 samples.
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    active_backend
-    active_transpiler_settings
-    active_circuit_scheduler_settings
-    num_qubits
-    qubit_channels
-    samples_to_seconds
-    seconds_to_samples
+.. autofunction:: active_backend
+.. autofunction:: active_transpiler_settings
+.. autofunction:: active_circuit_scheduler_settings
+.. autofunction:: num_qubits
+.. autofunction:: qubit_channels
+.. autofunction:: samples_to_seconds
+.. autofunction:: seconds_to_samples
 """
 import collections
 import contextvars
 import functools
 import itertools
-import sys
 import uuid
 import warnings
 from contextlib import contextmanager
+from functools import singledispatchmethod
 from typing import (
     Any,
     Callable,
@@ -495,14 +473,10 @@ from qiskit.pulse import (
     library,
     transforms,
 )
+from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod
-else:
-    from singledispatchmethod import singledispatchmethod
 
 
 #: contextvars.ContextVar[BuilderContext]: active builder
@@ -682,6 +656,9 @@ class _PulseBuilder:
     @_requires_backend
     def num_qubits(self):
         """Get the number of qubits in the backend."""
+        # backendV2
+        if isinstance(self.backend, BackendV2):
+            return self.backend.num_qubits
         return self.backend.configuration().n_qubits
 
     @property
@@ -958,6 +935,12 @@ class _PulseBuilder:
 
         return target_block
 
+    def get_dt(self):
+        """Retrieve dt differently based on the type of Backend"""
+        if isinstance(self.backend, BackendV2):
+            return self.backend.dt
+        return self.backend.configuration().dt
+
 
 def build(
     backend=None,
@@ -1110,6 +1093,8 @@ def num_qubits() -> int:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    if isinstance(active_backend(), BackendV2):
+        return active_backend().num_qubits
     return active_backend().configuration().n_qubits
 
 
@@ -1125,9 +1110,10 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
+    dt = _active_builder().get_dt()
     if isinstance(seconds, np.ndarray):
-        return (seconds / active_backend().configuration().dt).astype(int)
-    return int(seconds / active_backend().configuration().dt)
+        return (seconds / dt).astype(int)
+    return int(seconds / dt)
 
 
 def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarray]:
@@ -1140,7 +1126,7 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
     Returns:
         The time that elapses in ``samples``.
     """
-    return samples * active_backend().configuration().dt
+    return samples * _active_builder().get_dt()
 
 
 def qubit_channels(qubit: int) -> Set[chans.Channel]:
@@ -1168,6 +1154,31 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
         such as in the case where significant crosstalk exists.
 
     """
+
+    # implement as the inner function to avoid API change for a patch release in 0.24.2.
+    def get_qubit_channels_v2(backend: BackendV2, qubit: int):
+        r"""Return a list of channels which operate on the given ``qubit``.
+        Returns:
+            List of ``Channel``\s operated on my the given ``qubit``.
+        """
+        channels = []
+
+        # add multi-qubit channels
+        for node_qubits in backend.coupling_map:
+            if qubit in node_qubits:
+                control_channel = backend.control_channel(node_qubits)
+                if control_channel:
+                    channels.extend(control_channel)
+
+        # add single qubit channels
+        channels.append(backend.drive_channel(qubit))
+        channels.append(backend.measure_channel(qubit))
+        channels.append(backend.acquire_channel(qubit))
+        return channels
+
+    # backendV2
+    if isinstance(active_backend(), BackendV2):
+        return set(get_qubit_channels_v2(active_backend(), qubit))
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
@@ -1653,8 +1664,8 @@ def frequency_offset(
     finally:
         if compensate_phase:
             duration = builder.get_context().duration - t0
-            dt = active_backend().configuration().dt
-            accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
+
+            accumulated_phase = 2 * np.pi * ((duration * builder.get_dt() * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 
@@ -1680,6 +1691,9 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    # backendV2
+    if isinstance(active_backend(), BackendV2):
+        return active_backend().drive_channel(qubit)
     return active_backend().configuration().drive(qubit)
 
 
@@ -1700,6 +1714,9 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    # backendV2
+    if isinstance(active_backend(), BackendV2):
+        return active_backend().measure_channel(qubit)
     return active_backend().configuration().measure(qubit)
 
 
@@ -1720,6 +1737,9 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
     .. note:: Requires the active builder context to have a backend set.
     """
+    # backendV2
+    if isinstance(active_backend(), BackendV2):
+        return active_backend().acquire_channel(qubit)
     return active_backend().configuration().acquire(qubit)
 
 
@@ -1750,6 +1770,9 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
         List of control channels associated with the supplied ordered list
         of qubits.
     """
+    # backendV2
+    if isinstance(active_backend(), BackendV2):
+        return active_backend().control_channel(qubits)
     return active_backend().configuration().control(qubits=qubits)
 
 
@@ -2433,11 +2456,9 @@ def measure(
             registers = list(registers)
         except TypeError:
             registers = [registers]
-
     measure_sched = macros.measure(
         qubits=qubits,
-        inst_map=backend.defaults().instruction_schedule_map,
-        meas_map=backend.configuration().meas_map,
+        backend=backend,
         qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
     )
 
@@ -2483,10 +2504,10 @@ def measure_all() -> List[chans.MemorySlot]:
     backend = active_backend()
     qubits = range(num_qubits())
     registers = [chans.MemorySlot(qubit) for qubit in qubits]
+
     measure_sched = macros.measure(
         qubits=qubits,
-        inst_map=backend.defaults().instruction_schedule_map,
-        meas_map=backend.configuration().meas_map,
+        backend=backend,
         qubit_mem_slots={qubit: qubit for qubit in qubits},
     )
 

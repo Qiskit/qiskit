@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -242,7 +242,7 @@ class PVQD(RealTimeEvolver):
         x = ParameterVector("w", ansatz.num_parameters)
         shifted = ansatz.assign_parameters(current_parameters + x)
 
-        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | list[float]:
+        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | np.ndarray:
             """Evaluate the overlap of the ansatz with the Trotterized evolution.
 
             Args:
@@ -368,7 +368,7 @@ class PVQD(RealTimeEvolver):
             )
             observable_values = [evaluate_observables(self.initial_parameters)]
 
-        fidelities = [1]
+        fidelities = [1.0]
         parameters = [self.initial_parameters]
         times = np.linspace(0, time, num_timesteps + 1).tolist()  # +1 to include initial time 0
 

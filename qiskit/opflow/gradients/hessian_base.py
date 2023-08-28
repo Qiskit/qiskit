@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,13 +14,18 @@
 
 from typing import Union
 
+from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradients.circuit_gradient import CircuitGradient
 from .derivative_base import DerivativeBase
 
 
 class HessianBase(DerivativeBase):
-    """Base class for the Hessian of an expected value."""
+    """Deprecated: Base class for the Hessian of an expected value."""
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, hess_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
         r"""
         Args:
@@ -32,7 +37,7 @@ class HessianBase(DerivativeBase):
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-
+        super().__init__()
         if isinstance(hess_method, CircuitGradient):
             self._hess_method = hess_method
         elif hess_method == "param_shift":

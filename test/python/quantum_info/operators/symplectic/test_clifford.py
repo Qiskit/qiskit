@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,6 +14,7 @@
 """Tests for Clifford class."""
 
 import unittest
+
 from test import combine
 
 import numpy as np
@@ -21,28 +22,43 @@ from ddt import ddt
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
     CXGate,
-    CZGate,
     CYGate,
+    CZGate,
+    DCXGate,
+    ECRGate,
     HGate,
     IGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
     SdgGate,
     SGate,
     SXGate,
     SXdgGate,
     SwapGate,
-    iSwapGate,
-    ECRGate,
-    DCXGate,
     XGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
     YGate,
     ZGate,
+    iSwapGate,
     LinearFunction,
+    PermutationGate,
     PauliGate,
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -50,6 +66,7 @@ from qiskit.synthesis.clifford import (
     synth_clifford_bm,
     synth_clifford_greedy,
 )
+from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.test import QiskitTestCase
 
 
@@ -227,10 +244,11 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
-                value_table = cliff.table._array
-                value_phase = cliff.table._phase
-                value_stabilizer = cliff.stabilizer.to_labels()
-                value_destabilizer = cliff.destabilizer.to_labels()
+                with self.assertWarns(DeprecationWarning):
+                    value_table = cliff.table._array
+                    value_phase = cliff.table._phase
+                    value_stabilizer = cliff.stabilizer.to_labels()
+                    value_destabilizer = cliff.destabilizer.to_labels()
                 self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
                 self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
                 self.assertTrue(
@@ -506,6 +524,51 @@ class TestCliffordGates(QiskitTestCase):
         expected_cliff2 = Clifford.compose(expected_cliff2, cliff2, qargs=[1, 2], front=False)
         self.assertEqual(expected_cliff1, expected_cliff2)
 
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_from_linear_function(self, num_qubits):
+        """Test initialization from linear function."""
+        rng = np.random.default_rng(1234)
+        samples = 50
+
+        for _ in range(samples):
+            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+            lin = LinearFunction(mat)
+            cliff = Clifford(lin)
+            self.assertTrue(Operator(cliff).equiv(Operator(lin)))
+
+    def test_from_circuit_with_linear_function(self):
+        """Test initialization from a quantum circuit that contains a linear function."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        lin = LinearFunction(mat)
+        qc.append(lin, [0, 1, 2, 3])
+        qc.h(1)
+        cliff = Clifford(qc)
+        self.assertTrue(Operator(cliff).equiv(Operator(qc)))
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_from_permutation_gate(self, num_qubits):
+        """Test initialization from permutation gate."""
+        np.random.seed(1234)
+        samples = 50
+
+        for _ in range(samples):
+            pat = np.random.permutation(num_qubits)
+            perm = PermutationGate(pat)
+            cliff = Clifford(perm)
+            self.assertTrue(Operator(cliff).equiv(Operator(perm)))
+
+    def test_from_circuit_with_permutation_gate(self):
+        """Test initialization from a quantum circuit that contains a permutation gate."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        perm = PermutationGate([2, 1, 0, 3])
+        qc.append(perm, [0, 1, 2, 3])
+        qc.h(1)
+        cliff = Clifford(qc)
+        self.assertTrue(Operator(cliff).equiv(Operator(qc)))
+
     def test_from_circuit_with_all_types(self):
         """Test initialization from circuit containing various Clifford-like objects."""
 
@@ -545,7 +608,8 @@ class TestCliffordGates(QiskitTestCase):
 class TestCliffordSynthesis(QiskitTestCase):
     """Test Clifford synthesis methods."""
 
-    def _cliffords_1q(self):
+    @staticmethod
+    def _cliffords_1q():
         clifford_dicts = [
             {"stabilizer": ["+Z"], "destabilizer": ["-X"]},
             {"stabilizer": ["-Z"], "destabilizer": ["+X"]},
@@ -989,12 +1053,57 @@ class TestCliffordOperators(QiskitTestCase):
         clifford = random_clifford(num_qubits, seed=777)
         self.assertEqual(clifford.to_instruction().name, str(clifford))
 
-    def visualize_does_not_throw_error(self):
+    def test_visualize_does_not_throw_error(self):
         """Test to verify that drawing Clifford does not throw an error"""
         # An error may be thrown if visualization code calls op.condition instead
         # of getattr(op, "condition", None)
         clifford = random_clifford(3, seed=0)
         print(clifford)
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_from_matrix_round_trip(self, num_qubits):
+        """Test round trip conversion to and from matrix"""
+        for i in range(10):
+            expected = random_clifford(num_qubits, seed=42 + i)
+            actual = Clifford.from_matrix(expected.to_matrix())
+            self.assertEqual(expected, actual)
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_from_operator_round_trip(self, num_qubits):
+        """Test round trip conversion to and from operator"""
+        for i in range(10):
+            expected = random_clifford(num_qubits, seed=777 + i)
+            actual = Clifford.from_operator(expected.to_operator())
+            self.assertEqual(expected, actual)
+
+    @combine(
+        gate=[
+            RXGate(theta=np.pi / 2),
+            RYGate(theta=np.pi / 2),
+            RZGate(phi=np.pi / 2),
+            CPhaseGate(theta=np.pi),
+            CRXGate(theta=np.pi),
+            CRYGate(theta=np.pi),
+            CRZGate(theta=np.pi),
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            ECRGate(),
+            RXXGate(theta=np.pi / 2),
+            RYYGate(theta=np.pi / 2),
+            RZZGate(theta=np.pi / 2),
+            RZXGate(theta=np.pi / 2),
+            SwapGate(),
+            iSwapGate(),
+            XXMinusYYGate(theta=np.pi),
+            XXPlusYYGate(theta=-np.pi),
+        ]
+    )
+    def test_create_from_gates(self, gate):
+        """Test if matrix of Clifford created from gate equals the gate matrix up to global phase"""
+        self.assertTrue(
+            matrix_equal(Clifford(gate).to_matrix(), gate.to_matrix(), ignore_phase=True)
+        )
 
 
 if __name__ == "__main__":

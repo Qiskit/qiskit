@@ -15,6 +15,8 @@
 """
 Base register reference object.
 """
+
+from __future__ import annotations
 import re
 import itertools
 import warnings
@@ -59,7 +61,7 @@ class Register:
     prefix = "reg"
     bit_type = None
 
-    def __init__(self, size=None, name=None, bits=None):
+    def __init__(self, size: int | None = None, name: str | None = None, bits=None):
         """Create a new generic register.
 
         Either the ``size`` or the ``bits`` argument must be provided. If
@@ -141,8 +143,8 @@ class Register:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
             # Since the hash of Bits created by the line above will depend upon
-            # the the hash of self, which is not guaranteed to have been initialized
-            # first on deepcopying or on pickling, so defer populating _bit_indices
+            # the hash of self, which is not guaranteed to have been initialized
+            # first on deep-copying or on pickling, so defer populating _bit_indices
             # until first access.
             self._bit_indices = None
 

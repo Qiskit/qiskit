@@ -12,7 +12,9 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from typing import Callable, Dict, Set, Union
+
+from __future__ import annotations
+from typing import Callable, Union
 
 import numbers
 import operator
@@ -33,7 +35,7 @@ class ParameterExpression:
 
     __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
 
-    def __init__(self, symbol_map: Dict, expr):
+    def __init__(self, symbol_map: dict, expr):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -48,15 +50,15 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._name_map = None
+        self._name_map: dict | None = None
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
         return self._parameters
 
     @property
-    def _names(self) -> Dict:
+    def _names(self) -> dict:
         """Returns a mapping of parameter names to Parameters in the expression."""
         if self._name_map is None:
             self._name_map = {p.name: p for p in self._parameters}
@@ -91,7 +93,7 @@ class ParameterExpression:
         return self.bind({parameter: value})
 
     def bind(
-        self, parameter_values: Dict, allow_unknown_parameters: bool = False
+        self, parameter_values: dict, allow_unknown_parameters: bool = False
     ) -> "ParameterExpression":
         """Binds the provided set of parameters to their corresponding values.
 
@@ -147,7 +149,7 @@ class ParameterExpression:
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
     def subs(
-        self, parameter_map: Dict, allow_unknown_parameters: bool = False
+        self, parameter_map: dict, allow_unknown_parameters: bool = False
     ) -> "ParameterExpression":
         """Returns a new Expression with replacement Parameters.
 
@@ -462,30 +464,47 @@ class ParameterExpression:
             return complex(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to a complex.".format(self.parameters)
-            ) from exc
+            if self.parameters:
+                raise TypeError(
+                    "ParameterExpression with unbound parameters ({}) "
+                    "cannot be cast to a complex.".format(self.parameters)
+                ) from None
+            raise TypeError("could not cast expression to complex") from exc
 
     def __float__(self):
         try:
             return float(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to a float.".format(self.parameters)
-            ) from exc
+            if self.parameters:
+                raise TypeError(
+                    "ParameterExpression with unbound parameters ({}) "
+                    "cannot be cast to a float.".format(self.parameters)
+                ) from None
+            try:
+                # In symengine, if an expression was complex at any time, its type is likely to have
+                # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
+                # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
+                # real.  This second attempt at a cast is a way of unifying the behaviour to the
+                # more expected form for our users.
+                cval = complex(self)
+                if cval.imag == 0.0:
+                    return cval.real
+            except TypeError:
+                pass
+            raise TypeError("could not cast expression to float") from exc
 
     def __int__(self):
         try:
             return int(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to an int.".format(self.parameters)
-            ) from exc
+            if self.parameters:
+                raise TypeError(
+                    "ParameterExpression with unbound parameters ({}) "
+                    "cannot be cast to an int.".format(self.parameters)
+                ) from None
+            raise TypeError("could not cast expression to int") from exc
 
     def __hash__(self):
         return hash((frozenset(self._parameter_symbols), self._symbol_expr))
@@ -495,6 +514,21 @@ class ParameterExpression:
 
     def __deepcopy__(self, memo=None):
         return self
+
+    def __abs__(self):
+        """Absolute of a ParameterExpression"""
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
+            return self._call(symengine.Abs)
+        else:
+            from sympy import Abs as _abs
+
+            return self._call(_abs)
+
+    def abs(self):
+        """Absolute of a ParameterExpression"""
+        return self.__abs__()
 
     def __eq__(self, other):
         """Check if this parameter expression is equal to another parameter expression
