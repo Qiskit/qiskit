@@ -9,7 +9,7 @@ features:
     enables running an :class:`.AnalysisPass` prior to :class:`.SabreLayout`
     which sets the ``"sabre_starting_layout"`` field in the property set
     to provide the :class:`.SabreLayout` with additional starting layouts
-    to use in it's internal trials. For example, if you wanted to run
+    to use in its internal trials. For example, if you wanted to run
     :class:`.DenseLayout` as the starting point for one trial in
     :class:`.SabreLayout` you would do something like::
 
