@@ -251,6 +251,7 @@ class DAGOpNode(DAGNode):
     """Object to represent an Instruction at a node in the DAGCircuit."""
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
+    _key_cache = {}
 
     def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None):
         """Create an Instruction node"""
@@ -259,9 +260,13 @@ class DAGOpNode(DAGNode):
         self.qargs = tuple(qargs)
         self.cargs = tuple(cargs)
         if dag is not None:
-            self.sort_key = ",".join(
-                f"{dag.find_bit(q).index:04d}" for q in itertools.chain(self.qargs, self.cargs)
-            )
+            qargs = tuple(itertools.chain(self.qargs, self.cargs))
+            key = self._key_cache.get(qargs, None)
+            if key is not None:
+                self.sort_key = key
+            else:
+                self.sort_key = ",".join(f"{dag.find_bit(q).index:04d}" for q in qargs)
+                self._key_cache[qargs] = self.sort_key
         else:
             self.sort_key = str(self.qargs)
 
