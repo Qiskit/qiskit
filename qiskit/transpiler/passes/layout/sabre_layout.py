@@ -391,5 +391,5 @@ class _DisjointComponent:
     coupling_map: CouplingMap
     initial_layout: NLayout
     final_permutation: "list[int]"
-    sabre_result: "SabreResult"
+    sabre_result: "tuple[SwapMap, Sequence[int], NodeBlockResults]"
     circuit_to_dag_dict: "dict[int, DAGCircuit]"

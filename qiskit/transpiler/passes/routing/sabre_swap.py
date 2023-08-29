@@ -331,10 +331,10 @@ def _apply_sabre_result(
     Args:
         out_dag (DAGCircuit): the physical DAG that the output should be written to.
         in_dag (DAGCircuit): the source of the nodes that are being routed.
-        sabre_result (SabreResult): the result object from the Rust run of the Sabre routing
-            algorithm.
+        sabre_result (tuple[SwapMap, Sequence[int], NodeBlockResults]): the result object from the
+            Rust run of the Sabre routing algorithm.
         initial_layout (NLayout): a Rust-space mapping of virtual indices (i.e. those of the qubits
-            in ``source_dag``) to physical ones.
+            in ``in_dag``) to physical ones.
         physical_qubits (list[Qubit]): an indexable sequence of :class:`.Qubit` objects representing
             the physical qubits of the circuit.  Note that disjoint-coupling handling can mean that
             these are not strictly a "canonical physical register" in order.
