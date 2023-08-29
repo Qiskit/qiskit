@@ -12,8 +12,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use ndarray::prelude::*;
-use numpy::IntoPyArray;
-use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
@@ -39,7 +38,7 @@ pub fn sabre_layout_and_routing(
     num_swap_trials: usize,
     num_layout_trials: usize,
     seed: Option<u64>,
-) -> (NLayout, Vec<usize>, (SwapMap, PyObject, NodeBlockResults)) {
+) -> (NLayout, PyObject, (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -97,7 +96,7 @@ pub fn sabre_layout_and_routing(
     };
     (
         res.0,
-        res.1,
+        PyArray::from_vec(py, res.1).into(),
         (
             res.2.map,
             res.2.node_order.into_pyarray(py).into(),

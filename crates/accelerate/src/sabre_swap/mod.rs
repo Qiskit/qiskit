@@ -22,7 +22,7 @@ use std::cmp::Ordering;
 use hashbrown::HashMap;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
-use numpy::{IntoPyArray, ToPyArray};
+use numpy::{IntoPyArray, PyArray, ToPyArray};
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -226,7 +226,7 @@ pub fn build_swap_map(
     num_trials: usize,
     seed: Option<u64>,
     run_in_parallel: Option<bool>,
-) -> (SwapMap, PyObject, NodeBlockResults, Vec<usize>) {
+) -> (SwapMap, PyObject, NodeBlockResults, PyObject) {
     let dist = distance_matrix.as_array();
     let (res, final_layout) = build_swap_map_inner(
         num_qubits,
@@ -243,11 +243,14 @@ pub fn build_swap_map(
         res.map,
         res.node_order.into_pyarray(py).into(),
         res.node_block_results,
-        initial_layout
-            .phys_to_logic
-            .iter()
-            .map(|initial| final_layout.logic_to_phys[*initial])
-            .collect(),
+        PyArray::from_iter(
+            py,
+            initial_layout
+                .phys_to_logic
+                .iter()
+                .map(|initial| final_layout.logic_to_phys[*initial]),
+        )
+        .into(),
     )
 }
 

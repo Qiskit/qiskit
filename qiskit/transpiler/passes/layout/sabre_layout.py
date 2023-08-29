@@ -387,6 +387,15 @@ class SabreLayout(TransformationPass):
 
 @dataclasses.dataclass
 class _DisjointComponent:
+    __slots__ = (
+        "dag",
+        "coupling_map",
+        "initial_layout",
+        "final_permutation",
+        "sabre_result",
+        "circuit_to_dag_dict",
+    )
+
     dag: DAGCircuit
     coupling_map: CouplingMap
     initial_layout: NLayout
