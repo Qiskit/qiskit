@@ -55,7 +55,7 @@ jobs:
 
       # Sync with '.azure/tutorials-linux.yml'.
       - name: Download current tutorials
-        run: tools/prepare_tutorials.bash algorithms circuits circuits_advanced operators
+        run: tools/prepare_tutorials.bash circuits circuits_advanced operators
         shell: bash
 
       # This is just to have tox create the environment, so we can use it to execute the tutorials.

@@ -354,7 +354,7 @@ class QuantumCircuit:
 
     @property
     def layout(self) -> Optional[TranspileLayout]:
-        r"""Return any associated layout information anout the circuit
+        r"""Return any associated layout information about the circuit
 
         This attribute contains an optional :class:`~.TranspileLayout`
         object. This is typically set on the output from :func:`~.transpile`
@@ -2593,7 +2593,7 @@ class QuantumCircuit:
                 >>> circuit.parameters  # sorted alphabetically!
                 ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
 
-            Bear in mind that alphabetical sorting might be unituitive when it comes to numbers.
+            Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
             The literal "10" comes before "2" in strict alphabetical sorting.
 
             .. code-block:: python
