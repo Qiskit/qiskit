@@ -13,10 +13,14 @@
 Simulator command to snapshot internal simulator representation.
 """
 
+import warnings
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.extensions.exceptions import QiskitError, ExtensionError
+
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Snapshot(Instruction):
@@ -24,6 +28,12 @@ class Snapshot(Instruction):
 
     _directive = True
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
+        "instructions, see "
+        "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
+    )
     def __init__(self, label, snapshot_type="statevector", num_qubits=0, num_clbits=0, params=None):
         """Create new snapshot instruction.
 
@@ -64,6 +74,12 @@ class Snapshot(Instruction):
         raise QiskitError("Snapshots are simulator directives and cannot be conditional.")
 
 
+@deprecate_func(
+    since="0.45.0",
+    additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
+    "instructions, see "
+    "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
+)
 def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
     """Take a statevector snapshot of the internal simulator representation.
     Works on all qubits, and prevents reordering (like barrier).
@@ -100,9 +116,14 @@ def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None)
                     qubits.append(tuple_element[j])
             else:
                 qubits.append(tuple_element)
-    return self.append(
-        Snapshot(label, snapshot_type=snapshot_type, num_qubits=len(qubits), params=params), qubits
-    )
+
+    # catch deprecation warning from instantiating the Snapshot instruction,
+    # as a warning is already triggered from this method
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=DeprecationWarning)
+        snap = Snapshot(label, snapshot_type=snapshot_type, num_qubits=len(qubits), params=params)
+
+    return self.append(snap, qubits)
 
 
 # Add to QuantumCircuit class

@@ -4320,6 +4320,8 @@ class QuantumCircuit:
 
         if qubits is None:
             qubits = self.qubits
+        elif isinstance(qubits, (int, np.integer, slice, Qubit)):
+            qubits = [qubits]
 
         num_qubits = len(qubits) if isinstance(params, int) else None
 
