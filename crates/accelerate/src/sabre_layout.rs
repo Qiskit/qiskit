@@ -123,7 +123,7 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
-    starting_layout: &Vec<Option<usize>>,
+    starting_layout: &[Option<usize>],
 ) -> ([NLayout; 2], SabreResult) {
     // Pick a random initial layout and fully populate ancillas in that layout too
     let num_physical_qubits = distance_matrix.shape()[0];
