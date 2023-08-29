@@ -56,7 +56,7 @@ pub fn sabre_layout_and_routing(
         .take(starting_layouts.len())
         .collect();
     let dist = distance_matrix.as_array();
-    let res = if run_in_parallel && (num_random_trials > 1 || !partial_layouts.is_empty()) {
+    let res = if run_in_parallel && starting_layouts.len() > 1 {
         seed_vec
             .into_par_iter()
             .enumerate()
