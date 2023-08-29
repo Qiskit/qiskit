@@ -83,6 +83,22 @@ class SabreLayout(TransformationPass):
     virtual qubit is missing from an :class:`.Layout` object in the list a random qubit
     will be selected.
 
+    Property Set Fields Read
+    ------------------------
+
+    ``sabre_starting_layout`` (``list[Layout]``)
+        An optional list of :class:`~.Layout` objects to use for additional layout trials. This is
+        in addition to the full random trials specified with the ``layout_trials`` argument.
+
+    Property Set Values Written
+    ---------------------------
+
+    ``layout`` (:class:`.Layout`)
+        The chosen initial mapping of virtual to physical qubits, including the ancilla allocation.
+
+    ``final_layout`` (:class:`.Layout`)
+        A permutation of how swaps have been applied to the input qubits at the end of the circuit.
+
     **References:**
 
     [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
