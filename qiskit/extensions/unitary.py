@@ -166,7 +166,7 @@ class UnitaryGate(Gate):
             from qiskit.extensions.quantum_initializer.isometry import Isometry
 
             warnings.warn(
-                f"Error in qs_decomposition. Trying isometry decomposition.\n{err}", UserWarning
+                f"Error in qs_decomposition. Trying isometry decomposition.\n{err}", RuntimeWarning
             )
             cmat_def = Isometry(cmat, 0, 0).definition
         return ControlledGate(
