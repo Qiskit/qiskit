@@ -73,6 +73,12 @@ def circuit_drawer(
 
     **latex_source**: raw uncompiled latex output.
 
+    .. warning::
+
+        Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target` fields
+        is preliminary and incomplete.  The ``text`` and ``mpl`` drawers will make a best-effort
+        attempt to show data dependencies, but the LaTeX-based drawers will skip these completely.
+
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
         scale (float): scale of image to draw (shrink if < 1.0). Only used by

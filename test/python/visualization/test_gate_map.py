@@ -14,7 +14,6 @@
 import unittest
 
 from io import BytesIO
-from PIL import Image
 from ddt import ddt, data
 from qiskit.providers.fake_provider import (
     FakeProvider,
@@ -36,9 +35,14 @@ from .visualization import path_to_diagram_reference, QiskitVisualizationTestCas
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
+if optionals.HAS_PIL:
+    from PIL import Image
 
 
 @ddt
+@unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+@unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
+@unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 class TestGateMap(QiskitVisualizationTestCase):
     """visual tests for plot_gate_map"""
 
