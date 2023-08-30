@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.library import EfficientSU2, UnitaryOverlap
 from qiskit.quantum_info import Statevector
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestUnitaryOverlap(QiskitTestCase):
@@ -66,6 +67,15 @@ class TestUnitaryOverlap(QiskitTestCase):
 
         overlap = UnitaryOverlap(U, V)
         self.assertEqual(overlap.num_parameters, U.num_parameters)
+
+    def test_measurements(self):
+        """Test that exception is thrown for measurements"""
+        U = EfficientSU2(2)
+        U.measure_all()
+        V = EfficientSU2(2)
+
+        with self.assertRaises(CircuitError):
+            _ = UnitaryOverlap(U, V)
 
 
 if __name__ == "__main__":

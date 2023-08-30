@@ -44,6 +44,10 @@ class UnitaryOverlap(QuantumCircuit):
                 f"Number of qubits in unitaries does "
                 f"not match: {U.num_qubits} != {V.num_qubits}."
             )
+        if any(set(U.count_ops()) & {"measure", "reset"}) or any(
+            set(V.count_ops()) & {"measure", "reset"}
+        ):
+            raise CircuitError("Input circuits contain measurements or resets")
         # Vectors of new parameters, if any
         a_vec = ParameterVector("a", U.num_parameters)
         b_vec = ParameterVector("b", V.num_parameters)
