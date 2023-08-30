@@ -164,7 +164,11 @@ def require_layout_isolated_to_component(
                 component_index = i
                 break
         if dag.find_bit(inst.qargs[1]).index not in component_sets[component_index]:
-            raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
+            raise TranspilerError(
+                f"The qubit {inst.qargs[1].register.name}[{inst.qargs[1].index}] laid "
+                f"out in the physical qubit {dag.find_bit(inst.qargs[1]).index} is "
+                f"in a component disjoined to the qubits."
+            )
 
 
 def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
