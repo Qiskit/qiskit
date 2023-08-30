@@ -51,14 +51,10 @@ extensions = [
     "sphinx.ext.doctest",
     "reno.sphinxext",
     "sphinx_design",
-<<<<<<< HEAD
     "matplotlib.sphinxext.plot_directive",
     "qiskit_sphinx_theme",
     "nbsphinx",
-=======
-    "sphinx_remove_toctrees",
     "sphinx_reredirects",
->>>>>>> adc1d4ccd (Set up redirects for functions moved to module pages (#10692))
 ]
 
 templates_path = ["_templates"]
@@ -237,8 +233,6 @@ nbsphinx_prolog = """
 
 """
 
-<<<<<<< HEAD
-=======
 
 # ----------------------------------------------------------------------------------
 # Redirects
@@ -270,21 +264,9 @@ redirects = determine_api_redirects()
 
 
 # ---------------------------------------------------------------------------------------
-# Prod changes
-# ---------------------------------------------------------------------------------------
-
-if os.getenv("DOCS_PROD_BUILD"):
-    # `viewcode` slows down docs build by about 14 minutes.
-    extensions.append("sphinx.ext.viewcode")
-    # Include all pages in the left sidebar in prod.
-    remove_from_toctrees = []
-
-
-# ---------------------------------------------------------------------------------------
 # Custom extensions
 # ---------------------------------------------------------------------------------------
 
->>>>>>> adc1d4ccd (Set up redirects for functions moved to module pages (#10692))
 
 def add_versions_to_config(_app, config):
     """Add a list of old documentation versions that should have links generated to them into the
