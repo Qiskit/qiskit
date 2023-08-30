@@ -63,8 +63,11 @@ class NormalizeRXAngle(TransformationPass):
         # check if there is already a calibration for a simliar angle
         try:
             angles = self.already_generated[qubit]  # 1d ndarray of already generated angles
-            quantized_angle = float(
-                angles[np.where(np.abs(angles - original_angle) < (self.resolution_in_radian / 2))]
+            similar_angle = angles[
+                np.isclose(angles, original_angle, atol=self.resolution_in_radian / 2)
+            ]
+            quantized_angle = (
+                float(similar_angle[0]) if len(similar_angle) > 1 else float(similar_angle)
             )
         except KeyError:
             quantized_angle = original_angle
@@ -78,19 +81,18 @@ class NormalizeRXAngle(TransformationPass):
         return quantized_angle
 
     def run(self, dag):
-        """Run the NormalizeRXAngle pass on ``dag``. This pass consists of three parts:
-        normalize_rx_angles(), convert_to_hardware_sx_x(), quantize_rx_angles().
+        """Run the NormalizeRXAngle pass on ``dag``.
 
         Args:
             dag (DAGCircuit): The DAG to be optimized.
 
         Returns:
-            DAGCircuit: A DAG where all RX rotation angles are within [0, pi].
+            DAGCircuit: A DAG with RX gate calibration.
         """
 
         # Iterate over all op_nodes and replace RX if eligible for modification.
         for op_node in dag.op_nodes():
-            if not (op_node.op.name == "rx"):
+            if not isinstance(op_node.op, RXGate):
                 continue
 
             raw_theta = op_node.op.params[0]
@@ -101,14 +103,6 @@ class NormalizeRXAngle(TransformationPass):
 
             half_pi_rotation = np.isclose(abs(wrapped_theta), np.pi / 2)
             pi_rotation = np.isclose(abs(wrapped_theta), np.pi)
-
-            # get the physical qubit index to look up the SX or X calibrations
-            qubit = dag.find_bit(op_node.qargs[0]).index if half_pi_rotation | pi_rotation else None
-            try:
-                qubit = int(qubit)
-                find_bit_succeeded = True
-            except TypeError:
-                find_bit_succeeded = False
 
             should_modify_node = (
                 (wrapped_theta != raw_theta)
@@ -122,18 +116,14 @@ class NormalizeRXAngle(TransformationPass):
                 mini_dag.add_qubits(op_node.qargs)
 
                 # new X-rotation gate with angle in [0, pi]
-                if (
-                    half_pi_rotation
-                    and find_bit_succeeded
-                    and self.target.has_calibration("sx", (qubit,))
-                ):
-                    mini_dag.apply_operation_back(SXGate(), qargs=op_node.qargs)
-                elif (
-                    pi_rotation
-                    and find_bit_succeeded
-                    and self.target.has_calibration("x", (qubit,))
-                ):
-                    mini_dag.apply_operation_back(XGate(), qargs=op_node.qargs)
+                if half_pi_rotation:
+                    physical_qubit_idx = dag.find_bit(op_node.qargs[0]).index
+                    if self.target.instruction_supported("sx", (physical_qubit_idx,)):
+                        mini_dag.apply_operation_back(SXGate(), qargs=op_node.qargs)
+                elif pi_rotation:
+                    physical_qubit_idx = dag.find_bit(op_node.qargs[0]).index
+                    if self.target.instruction_supported("x", (physical_qubit_idx,)):
+                        mini_dag.apply_operation_back(XGate(), qargs=op_node.qargs)
                 else:
                     mini_dag.apply_operation_back(
                         RXGate(np.abs(wrapped_theta)), qargs=op_node.qargs
