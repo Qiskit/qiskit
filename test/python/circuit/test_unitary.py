@@ -289,7 +289,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(expected_qasm, qc.qasm())
 
     def test_unitary_decomposition(self):
-        """Test decomposition for unitary gates over 2 qubits."""
+        """Test decomposition for unitary gates over 3 qubits."""
         qc = QuantumCircuit(3)
         qc.unitary(random_unitary(8, seed=42), [0, 1, 2])
         self.assertTrue(Operator(qc).equiv(Operator(qc.decompose())))
@@ -312,7 +312,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertTrue(numpy.allclose(gate.base_gate.params, mat))
 
     def test_unitary_control_4q(self):
-        """Test decomposition for unitary gates over 2 qubits."""
+        """Test decomposition for unitary gates over 4 qubits."""
         num_qubits = 4
         qc = QuantumCircuit(num_qubits)
         mat = random_unitary(2 ** (num_qubits - 1), seed=42).data
