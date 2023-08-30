@@ -38,6 +38,7 @@ class UnitaryOverlap(QuantumCircuit):
 
         Raises:
             CircuitError: Number of qubits in U and V does not match
+            CircuitError: Inputs contain measurements and/or resets
         """
         if U.num_qubits != V.num_qubits:
             raise CircuitError(
