@@ -63,6 +63,8 @@ problems.
 .. autoexception:: ExtensionError
 """
 
+import warnings
+
 # import all standard gates
 from qiskit.circuit.library.standard_gates import *
 from qiskit.circuit.barrier import Barrier
@@ -79,3 +81,11 @@ from .quantum_initializer import (
 from .unitary import UnitaryGate
 from .hamiltonian_gate import HamiltonianGate
 from .simulator import Snapshot
+
+
+warnings.warn(
+    "The qiskit.extensions module is deprecated since Qiskit 0.45.0. It will be removed no sooner "
+    "than 3 months after the release date.",
+    stacklevel=2,
+    category=DeprecationWarning,
+)

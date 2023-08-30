@@ -10,41 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
 
 """
 Multi controlled single-qubit unitary up to diagonal.
 """
 
-# ToDo: This code should be merged wth the implementation of MCGs
-# ToDo: (introducing a decomposition mode "up_to_diagonal").
+# pylint: disable=unused-import
+from qiskit.circuit.library.generalized_gates.mcg_up_to_diagonal import MCGupDiag
+from qiskit.utils.deprecation import _deprecate_extension
 
-from qiskit.circuit.library.generalized_gates.mcg_up_to_diagonal import MCGupDiag as NewMCGupDiag
-from qiskit.utils.deprecation import deprecate_func
-
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
-
-
-class MCGupDiag(NewMCGupDiag):
-    """
-    Decomposes a multi-controlled gate u up to a diagonal d acting on the control and target qubit
-    (but not on the  ancilla qubits), i.e., it implements a circuit corresponding to a unitary u'
-    such that u=d.u'.
-    """
-
-    @deprecate_func(
-        since="0.45.0", additional_msg="This object moved to qiskit.circuit.library.MCGupDiagonal."
-    )
-    def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
-        """Initialize a multi controlled gate.
-
-        Args:
-            gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
-            num_controls (int): number of control qubits
-            num_ancillas_zero (int): number of ancilla qubits that start in the state zero
-            num_ancillas_dirty (int): number of ancilla qubits that are allowed to start in an
-                arbitrary state
-        Raises:
-            QiskitError: if the input format is wrong; if the array gate is not unitary
-        """
-        super().__init__(gate, num_controls, num_ancillas_zero, num_ancillas_dirty)
+_deprecate_extension("MCGupDiag")

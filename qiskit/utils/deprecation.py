@@ -484,3 +484,14 @@ def add_deprecation_to_docstring(
     else:
         original_lines.extend(new_lines)
     func.__doc__ = "\n".join(original_lines)
+
+
+def _deprecate_extension(gate):
+    """Warn that a gate in qiskit.extensions moved to qiskit.circuit.library."""
+    msg = (
+        f"The qiskit.extensions.{gate} object is deprecated since Qiskit 0.45.0. It will be "
+        "removed no sooner than 3 months after the release date."
+        f" Instead, use qiskit.circuit.library.{gate} as replacement."
+    )
+
+    warnings.warn(msg, stacklevel=3, category=DeprecationWarning)

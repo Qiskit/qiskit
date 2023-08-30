@@ -23,6 +23,7 @@ import string
 import re
 import warnings
 import typing
+import math
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -47,6 +48,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 
 from . import _classical_resource_map
 from ._utils import sort_parameters
@@ -4369,6 +4371,450 @@ class QuantumCircuit:
 
         return self.append(gate, qubits, [])
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, compose the circuit with a qiskit.circuit.library.Diagonal circuit.",
+    )
+    def diagonal(self, diag, qubit):
+        """Attach a diagonal gate to a circuit.
+
+        The decomposition is based on Theorem 7 given in "Synthesis of Quantum Logic Circuits" by
+        Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
+
+        Args:
+            diag (list): list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+                Must contain at least two entries
+            qubit (QuantumRegister | list): list of k qubits the diagonal is
+                acting on (the order of the qubits specifies the computational basis in which the
+                diagonal gate is provided: the first element in diag acts on the state where all
+                the qubits in q are in the state 0, the second entry acts on the state where all
+                the qubits q[1],...,q[k-1] are in the state zero and q[0] is in the state 1,
+                and so on)
+
+        Returns:
+            QuantumCircuit: the diagonal gate which was attached to the circuit.
+
+        Raises:
+            QiskitError: if the list of the diagonal entries or the qubit list is in bad format;
+                if the number of diagonal entries is not 2^k, where k denotes the number of qubits
+        """
+        from qiskit.circuit.library import DiagonalGate
+
+        if isinstance(qubit, QuantumRegister):
+            qubit = qubit[:]
+        # Check if q has type "list"
+        if not isinstance(qubit, list):
+            raise QiskitError(
+                "The qubits must be provided as a list (also if there is only one qubit)."
+            )
+        # Check if diag has type "list"
+        if not isinstance(diag, list):
+            raise QiskitError("The diagonal entries are not provided in a list.")
+        num_action_qubits = math.log2(len(diag))
+        if not len(qubit) == num_action_qubits:
+            raise QiskitError(
+                "The number of diagonal entries does not correspond to the number of qubits."
+            )
+
+        return self.append(DiagonalGate(diag), qubit)
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, append a qiskit.circuit.library.Isometry to the circuit.",
+    )
+    def iso(
+        self,
+        isometry,
+        q_input,
+        q_ancillas_for_output,
+        q_ancillas_zero=None,
+        q_ancillas_dirty=None,
+        epsilon=1e-10,
+    ):
+        """
+        Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
+        this allows to attach arbitrary unitaries on n qubits (m=n) or to prepare any state
+        on n qubits (m=0).
+        The decomposition used here was introduced by Iten et al. in https://arxiv.org/abs/1501.06911.
+
+        Args:
+            isometry (ndarray): an isometry from m to n qubits, i.e., a (complex) ndarray of
+                dimension 2^n×2^m with orthonormal columns (given in the computational basis
+                specified by the order of the ancillas and the input qubits, where the ancillas
+                are considered to be more significant than the input qubits.).
+            q_input (QuantumRegister | list[Qubit]): list of m qubits where the input
+                to the isometry is fed in (empty list for state preparation).
+            q_ancillas_for_output (QuantumRegister | list[Qubit]): list of n-m ancilla
+                qubits that are used for the output of the isometry and which are assumed to start
+                in the zero state. The qubits are listed with increasing significance.
+            q_ancillas_zero (QuantumRegister | list[Qubit]): list of ancilla qubits
+                which are assumed to start in the zero state. Default is q_ancillas_zero = None.
+            q_ancillas_dirty (QuantumRegister | list[Qubit]): list of ancilla qubits
+                which can start in an arbitrary state. Default is q_ancillas_dirty = None.
+            epsilon (float): error tolerance of calculations.
+                Default is epsilon = _EPS.
+
+        Returns:
+            QuantumCircuit: the isometry is attached to the quantum circuit.
+
+        Raises:
+            QiskitError: if the array is not an isometry of the correct size corresponding to
+                the provided number of qubits.
+        """
+        from qiskit.circuit.library import Isometry
+
+        if q_input is None:
+            q_input = []
+        if q_ancillas_for_output is None:
+            q_ancillas_for_output = []
+        if q_ancillas_zero is None:
+            q_ancillas_zero = []
+        if q_ancillas_dirty is None:
+            q_ancillas_dirty = []
+
+        if isinstance(q_input, QuantumRegister):
+            q_input = q_input[:]
+        if isinstance(q_ancillas_for_output, QuantumRegister):
+            q_ancillas_for_output = q_ancillas_for_output[:]
+        if isinstance(q_ancillas_zero, QuantumRegister):
+            q_ancillas_zero = q_ancillas_zero[:]
+        if isinstance(q_ancillas_dirty, QuantumRegister):
+            q_ancillas_dirty = q_ancillas_dirty[:]
+
+        return self.append(
+            Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty), epsilon=epsilon),
+            q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty,
+        )
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, append a qiskit.circuit.library.HamiltonianGate to the circuit.",
+    )
+    def hamiltonian(self, operator, time, qubits, label=None):
+        """Apply hamiltonian evolution to qubits.
+
+        This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+        which can be decomposed into basis gates if it is 2 qubits or less, or
+        simulated directly in Aer for more qubits.
+
+        Args:
+            operator (matrix or Operator): a hermitian operator.
+            time (float or ParameterExpression): time evolution parameter.
+            qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+                transformation to.
+            label (str): unitary name for backend [Default: None].
+
+        Returns:
+            QuantumCircuit: The quantum circuit.
+
+        Raises:
+            ExtensionError: if input data is not an N-qubit unitary operator.
+        """
+        from qiskit.circuit.library import HamiltonianGate
+
+        if not isinstance(qubits, list):
+            qubits = [qubits]
+
+        return self.append(HamiltonianGate(data=operator, time=time, label=label), qubits, [])
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, append a qiskit.circuit.library.UCGate to the circuit.",
+    )
+    def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
+        """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
+
+        The decomposition was introduced by Bergholm et al. in
+        https://arxiv.org/pdf/quant-ph/0410066.pdf.
+
+        Args:
+            gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}],
+                where each single-qubit unitary U_i is a given as a 2*2 array
+            q_controls (QuantumRegister | list[(QuantumRegister,int)]): list of k control qubits.
+                The qubits are ordered according to their significance in the computational basis.
+                For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)),
+                the unitary U_0 is performed if q[1] and q[2] are in the state zero, U_1 is
+                performed if q[2] is in the state zero and q[1] is in the state one, and so on
+            q_target (QuantumRegister | tuple(QuantumRegister, int)):  target qubit, where we act on with
+                the single-qubit gates.
+            up_to_diagonal (bool): If set to True, the uniformly controlled gate is decomposed up
+                to a diagonal gate, i.e. a unitary u' is implemented such that there exists a
+                diagonal gate d with u = d.dot(u'), where the unitary u describes the uniformly
+                controlled gate
+
+        Returns:
+            QuantumCircuit: the uniformly controlled gate is attached to the circuit.
+
+        Raises:
+            QiskitError: if the list number of control qubits does not correspond to the provided
+                number of single-qubit unitaries; if an input is of the wrong type
+        """
+        from qiskit.circuit.library import UCGate
+
+        if isinstance(q_controls, QuantumRegister):
+            q_controls = q_controls[:]
+        if isinstance(q_target, QuantumRegister):
+            q_target = q_target[:]
+            if len(q_target) == 1:
+                q_target = q_target[0]
+            else:
+                raise QiskitError(
+                    "The target qubit is a QuantumRegister containing more than one qubit."
+                )
+        # Check if q_controls has type "list"
+        if not isinstance(q_controls, list):
+            raise QiskitError(
+                "The control qubits must be provided as a list"
+                " (also if there is only one control qubit)."
+            )
+        # Check if gate_list has type "list"
+        if not isinstance(gate_list, list):
+            raise QiskitError("The single-qubit unitaries are not provided in a list.")
+            # Check if number of gates in gate_list is a positive power of two
+        num_contr = math.log2(len(gate_list))
+        if num_contr < 0 or not num_contr.is_integer():
+            raise QiskitError(
+                "The number of controlled single-qubit gates is not a non negative power of 2."
+            )
+        # Check if number of control qubits does correspond to the number of single-qubit rotations
+        if num_contr != len(q_controls):
+            raise QiskitError(
+                "Number of controlled gates does not correspond to the number of control qubits."
+            )
+        return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, append a qiskit.circuit.library.UCRXGate to the circuit.",
+    )
+    def ucrx(
+        self,
+        angle_list: list[float],
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
+    ):
+        r"""Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
+
+        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
+
+        Args:
+            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+            q_controls (Sequence[QubitSpecifier]): list of k control qubits
+                (or empty list if no controls). The control qubits are ordered according to their
+                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
+                (with ``q = QuantumRegister(2)``), the rotation ``Rx(a_0)`` is performed if ``q[0]``
+                and ``q[1]`` are in the state zero, the rotation ``Rx(a_1)`` is performed if ``q[0]``
+                is in the state one and ``q[1]`` is in the state zero, and so on
+            q_target (QubitSpecifier): target qubit, where we act on with
+                the single-qubit rotation gates
+
+        Returns:
+            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
+
+        Raises:
+            QiskitError: if the list number of control qubits does not correspond to the provided
+                number of single-qubit unitaries; if an input is of the wrong type
+        """
+        from qiskit.circuit.library import UCRXGate
+
+        if isinstance(q_controls, QuantumRegister):
+            q_controls = q_controls[:]
+        if isinstance(q_target, QuantumRegister):
+            q_target = q_target[:]
+            if len(q_target) == 1:
+                q_target = q_target[0]
+            else:
+                raise QiskitError(
+                    "The target qubit is a QuantumRegister containing more than one qubit."
+                )
+        # Check if q_controls has type "list"
+        if not isinstance(angle_list, list):
+            raise QiskitError("The angles must be provided as a list.")
+        num_contr = math.log2(len(angle_list))
+        if num_contr < 0 or not num_contr.is_integer():
+            raise QiskitError(
+                "The number of controlled rotation gates is not a non-negative power of 2."
+            )
+        # Check if number of control qubits does correspond to the number of rotations
+        if num_contr != len(q_controls):
+            raise QiskitError(
+                "Number of controlled rotations does not correspond to the number of control-qubits."
+            )
+        return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, append a qiskit.circuit.library.UCRYGate to the circuit.",
+    )
+    def ucry(
+        self,
+        angle_list: list[float],
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
+    ):
+        r"""Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
+
+        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
+
+        Args:
+            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+            q_controls (Sequence[QubitSpecifier]): list of k control qubits
+                (or empty list if no controls). The control qubits are ordered according to their
+                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
+                (with ``q = QuantumRegister(2)``), the rotation ``Ry(a_0)`` is performed if ``q[0]``
+                and ``q[1]`` are in the state zero, the rotation ``Ry(a_1)`` is performed if ``q[0]``
+                is in the state one and ``q[1]`` is in the state zero, and so on
+            q_target (QubitSpecifier): target qubit, where we act on with
+                the single-qubit rotation gates
+
+        Returns:
+            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
+
+        Raises:
+            QiskitError: if the list number of control qubits does not correspond to the provided
+                number of single-qubit unitaries; if an input is of the wrong type
+        """
+        from qiskit.circuit.library import UCRYGate
+
+        if isinstance(q_controls, QuantumRegister):
+            q_controls = q_controls[:]
+        if isinstance(q_target, QuantumRegister):
+            q_target = q_target[:]
+            if len(q_target) == 1:
+                q_target = q_target[0]
+            else:
+                raise QiskitError(
+                    "The target qubit is a QuantumRegister containing more than one qubit."
+                )
+        # Check if q_controls has type "list"
+        if not isinstance(angle_list, list):
+            raise QiskitError("The angles must be provided as a list.")
+        num_contr = math.log2(len(angle_list))
+        if num_contr < 0 or not num_contr.is_integer():
+            raise QiskitError(
+                "The number of controlled rotation gates is not a non-negative power of 2."
+            )
+        # Check if number of control qubits does correspond to the number of rotations
+        if num_contr != len(q_controls):
+            raise QiskitError(
+                "Number of controlled rotations does not correspond to the number of control-qubits."
+            )
+        return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, append a qiskit.circuit.library.UCRZGate to the circuit.",
+    )
+    def ucrz(
+        self,
+        angle_list: list[float],
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
+    ):
+        r"""Attach a uniformly controlled (also called multiplexed) Rz rotation gate to a circuit.
+
+        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
+
+        Args:
+            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+            q_controls (Sequence[QubitSpecifier]): list of k control qubits
+                (or empty list if no controls). The control qubits are ordered according to their
+                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
+                (with ``q = QuantumRegister(2)``), the rotation ``Rz(a_0)`` is performed if ``q[0]``
+                and ``q[1]`` are in the state zero, the rotation ``Rz(a_1)`` is performed if ``q[0]``
+                is in the state one and ``q[1]`` is in the state zero, and so on
+            q_target (QubitSpecifier): target qubit, where we act on with
+                the single-qubit rotation gates
+
+        Returns:
+            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
+
+        Raises:
+            QiskitError: if the list number of control qubits does not correspond to the provided
+                number of single-qubit unitaries; if an input is of the wrong type
+        """
+        from qiskit.circuit.library import UCRZGate
+
+        if isinstance(q_controls, QuantumRegister):
+            q_controls = q_controls[:]
+        if isinstance(q_target, QuantumRegister):
+            q_target = q_target[:]
+            if len(q_target) == 1:
+                q_target = q_target[0]
+            else:
+                raise QiskitError(
+                    "The target qubit is a QuantumRegister containing more than one qubit."
+                )
+        # Check if q_controls has type "list"
+        if not isinstance(angle_list, list):
+            raise QiskitError("The angles must be provided as a list.")
+        num_contr = math.log2(len(angle_list))
+        if num_contr < 0 or not num_contr.is_integer():
+            raise QiskitError(
+                "The number of controlled rotation gates is not a non-negative power of 2."
+            )
+        # Check if number of control qubits does correspond to the number of rotations
+        if num_contr != len(q_controls):
+            raise QiskitError(
+                "Number of controlled rotations does not correspond to the number of control-qubits."
+            )
+        return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Instead, use the QuantumCircuit.unitary method.",
+    )
+    def squ(
+        self,
+        unitary_matrix,
+        qubit,
+        mode="ZYZ",
+        up_to_diagonal=False,
+    ):
+        """Decompose an arbitrary 2*2 unitary into three rotation gates.
+
+        Note that the decomposition is up to a global phase shift.
+        (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
+        "Quantum computation and quantum information".)
+
+        Args:
+            unitary_matrix (ndarray): 2*2 unitary (given as a (complex) ndarray).
+            qubit (QuantumRegister or Qubit): The qubit which the gate is acting on.
+            mode (string): determines the used decomposition by providing the rotation axes.
+                The allowed modes are: "ZYZ" (default)
+            up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
+                a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
+                diagonal gate d with u = d.dot(u')
+
+        Returns:
+            InstructionSet: The single-qubit unitary instruction attached to the circuit.
+
+        Raises:
+            QiskitError: if the format is wrong; if the array u is not unitary
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            from qiskit.extensions import SingleQubitUnitary
+
+        if isinstance(qubit, QuantumRegister):
+            qubit = qubit[:]
+            if len(qubit) == 1:
+                qubit = qubit[0]
+            else:
+                raise QiskitError(
+                    "The target qubit is a QuantumRegister containing more than one qubit."
+                )
+        # Check if there is one target qubit provided
+        if not isinstance(qubit, Qubit):
+            raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            gate = SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal)
+
+        return self.append(gate, [qubit], [])
+
+
     def _push_scope(
         self,
         qubits: Iterable[Qubit] = (),
@@ -5127,6 +5573,10 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
+
+
+# isometry is an alias for iso
+QuantumCircuit.isometry = QuantumCircuit.iso
 
 
 class _ParameterBindsDict:

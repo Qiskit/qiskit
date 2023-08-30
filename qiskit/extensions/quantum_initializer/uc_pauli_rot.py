@@ -21,27 +21,8 @@ If the k control qubits are in the state ket(i) (in the computational bases),
 a single-qubit rotation R_t(a_i) is applied to the target qubit for a (real) angle a_i.
 """
 
-from qiskit.circuit.library.generalized_gates.uc_pauli_rot import (
-    UCPauliRotGate as NewUCPauliRotGate,
-)
-from qiskit.utils.deprecation import deprecate_func
+# pylint: disable=unused-import
+from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate
+from qiskit.utils.deprecation import _deprecate_extension
 
-
-class UCPauliRotGate(NewUCPauliRotGate):
-    """
-    Uniformly controlled rotations (also called multiplexed rotations).
-    The decomposition is based on 'Synthesis of Quantum Logic Circuits'
-    by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf)
-
-    Input:
-    angle_list = list of (real) rotation angles [a_0,...,a_{2^k-1}]. Must have at least one entry.
-
-    rot_axis = rotation axis for the single qubit rotations
-               (currently, 'X', 'Y' and 'Z' are supported)
-    """
-
-    @deprecate_func(
-        since="0.45.0", additional_msg="This object moved to qiskit.circuit.library.UCPauliRotGate."
-    )
-    def __init__(self, angle_list, rot_axis):
-        super().__init__(angle_list, rot_axis)
+_deprecate_extension("UCPauliRotGate")
