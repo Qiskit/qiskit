@@ -167,7 +167,7 @@ def require_layout_isolated_to_component(
             raise TranspilerError(
                 f"The qubit {inst.qargs[1].register.name}[{inst.qargs[1].index}] laid "
                 f"out in the physical qubit {dag.find_bit(inst.qargs[1]).index} is "
-                f"in a component disjoined to the qubits."
+                f"in a disconnected component with respect to other necessary qubits."
             )
 
 
