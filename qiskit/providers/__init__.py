@@ -129,6 +129,7 @@ Exceptions
 .. autoexception:: BackendPropertyError
 .. autoexception:: JobError
 .. autoexception:: JobTimeoutError
+.. autoexception:: BackendConfigurationError
 
 ======================
 Writing a New Provider
@@ -625,7 +626,7 @@ post-processing, batching, caching, error mitigation, etc. The concept of
 the :mod:`qiskit.primitives` module is to explicitly enable this as the
 primitive objects are higher level abstractions to produce processed higher
 level outputs (such as probability distributions and expectation values)
-that abstract away the mechanics of getting the best result efficienctly, to
+that abstract away the mechanics of getting the best result efficiently, to
 concentrate on higher level applications using these outputs.
 
 For example, if your backends were well suited to leverage

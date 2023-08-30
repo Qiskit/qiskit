@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    Added the arguments ``coupling_map``, ``target`` and ``use_qubit_indices`` to
+    :class:`.HighLevelSynthesis` transpiler pass. The argument ``target`` specifies
+    the target backend, allowing the synthesis plugins called within the pass to
+    access all target-specific information, such as the coupling map and the supported
+    gate set. The argument ``coupling_map`` only specifies the coupling map, and is only
+    used when ``target`` is not specified. The argument ``use_qubit_indices`` indicates
+    whether the high-level-synthesis pass is running before or after the layout is set,
+    that is, whether the qubit indices of higher-level-objects correspond to qubit indices
+    on the target backend.
+  - |
+    Added the arguments ``coupling_map``, ``target`` and ``qubits`` to :class:`.HighLevelSynthesisPlugin`.
+    The positional argument ``target`` specifies the target backend, allowing the plugin
+    to access all target-specific information,
+    such as the coupling map, the supported gate set, and so on. The positional argument
+    ``coupling_map`` only specifies the coupling map, and is only used when ``target``
+    is not specified.
+    The positional argument ``qubits`` specifies the list of qubits over which the
+    higher-level-object is defined, in case the synthesis is done on the physical circuit.
+    The value of ``None`` indicates that the layout has not yet been chosen.
+
+    This enables a cleaner separation of synthesis plugins options into general interface options
+    for plugins (that is, ``coupling_map``, ``target``, and ``qubits``) and into plugin-specific options
+    (a free form configuration dictionary specified via ``options``). It is worthwhile to note that this
+    change is backward-compatible, if the options ``coupling_map``, etc. are not explicitly added to
+    the plugin's ``run()`` method, they will appear as part of ``options``.
