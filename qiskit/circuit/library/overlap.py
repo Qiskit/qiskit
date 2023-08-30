@@ -17,16 +17,16 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class UnitaryOverlap(QuantumCircuit):
-    """Circuit that returns the overlap between two unitaries $V^{\dag}U|0\\rangle^{\otimes N}$.
+    r"""Circuit that returns the overlap between two unitaries $V^{\dag}U|0\rangle^{\otimes N}$.
 
     Input quantum circuits must represent unitary operations that are invertible.  Input
     circuits `U` and `V` will have parameters, if any, renamed `ParameterVector` `a` and `b`,
     respectively in the output circuit.
 
     Circuit is usually employed in computing the fidelity
-    $\left|\langle 0\dots 0| V^{\dag}U|0\dots 0\\rangle\\right|^{2}$ by computing the probability
+    $\left|\langle 0\dots 0| V^{\dag}U|0\dots 0\rangle\right|^{2}$ by computing the probability
     of being in the all-zeros bit-string, or equivilently, the expectation value of projector
-    $|0\dots 0\\rangle\langle 0\dots 0|$.
+    $|0\dots 0\rangle\langle 0\dots 0|$.
     """
 
     def __init__(self, U, V):
