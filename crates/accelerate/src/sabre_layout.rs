@@ -156,7 +156,7 @@ fn layout_trial(
                 heuristic,
                 Some(seed),
                 &initial_layout,
-                num_swap_trials,
+                1,
                 Some(run_swap_in_parallel),
             );
             initial_layout = final_layout;
