@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from __future__ import annotations
+
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
@@ -18,6 +20,7 @@ import datetime
 import doctest
 import os
 import subprocess
+from pathlib import Path
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -48,9 +51,14 @@ extensions = [
     "sphinx.ext.doctest",
     "reno.sphinxext",
     "sphinx_design",
+<<<<<<< HEAD
     "matplotlib.sphinxext.plot_directive",
     "qiskit_sphinx_theme",
     "nbsphinx",
+=======
+    "sphinx_remove_toctrees",
+    "sphinx_reredirects",
+>>>>>>> adc1d4ccd (Set up redirects for functions moved to module pages (#10692))
 ]
 
 templates_path = ["_templates"]
@@ -229,6 +237,54 @@ nbsphinx_prolog = """
 
 """
 
+<<<<<<< HEAD
+=======
+
+# ----------------------------------------------------------------------------------
+# Redirects
+# ----------------------------------------------------------------------------------
+
+def determine_api_redirects() -> dict[str, str]:
+    """Set up API redirects for functions that we moved to module pages.
+
+    Note that we have redirects in Cloudflare for methods moving to their class page. We
+    could not do this for functions because some functions still have dedicated
+    HTML pages, so we cannot use a generic rule.
+    """
+    lines = Path("api_redirects.txt").read_text().splitlines()
+    result = {}
+    for line in lines:
+        if not line:
+            continue
+        obj_name, new_module_page_name = line.split(" ")
+        # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
+        new_url = (
+            "https://qiskit.org/documentation/apidoc/" +
+            f"{new_module_page_name}.html#{obj_name}"
+        )
+        result[f"stubs/{obj_name}"] = new_url
+    return result
+
+
+redirects = determine_api_redirects()
+
+
+# ---------------------------------------------------------------------------------------
+# Prod changes
+# ---------------------------------------------------------------------------------------
+
+if os.getenv("DOCS_PROD_BUILD"):
+    # `viewcode` slows down docs build by about 14 minutes.
+    extensions.append("sphinx.ext.viewcode")
+    # Include all pages in the left sidebar in prod.
+    remove_from_toctrees = []
+
+
+# ---------------------------------------------------------------------------------------
+# Custom extensions
+# ---------------------------------------------------------------------------------------
+
+>>>>>>> adc1d4ccd (Set up redirects for functions moved to module pages (#10692))
 
 def add_versions_to_config(_app, config):
     """Add a list of old documentation versions that should have links generated to them into the
