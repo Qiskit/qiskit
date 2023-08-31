@@ -13,7 +13,7 @@
 
 """List deprecated decorators."""
 from __future__ import annotations
-from typing import cast
+from typing import cast, Optional
 from pathlib import Path
 from collections import OrderedDict, defaultdict
 import ast
@@ -22,9 +22,30 @@ import sys
 import requests
 
 
+def short_path(path: Path) -> Optional[Path]:
+    """shorten the full path, when possible"""
+    original_path = path
+    while path is not None:
+        if Path.cwd().is_relative_to(path):
+            return original_path.relative_to(path)
+        path = path.parent if path != path.parent else None
+    return original_path
+
+
 class Deprecation:
     """
-    Deprecation node, representing a single deprecation decorator.
+    Root class for Deprecation classes.
+    """
+
+    @property
+    def location_str(self) -> str:
+        """String with the location of the deprecated decorator <filename>:<line number>"""
+        return f"{self.filename}:{self.lineno}"
+
+
+class DeprecationDecorator(Deprecation):
+    """
+    Deprecation decorator, representing a single deprecation decorator.
 
     Args:
         filename: where is the deprecation.
@@ -59,10 +80,41 @@ class Deprecation:
         """Name of the decorated function/method."""
         return self.func_node.name
 
+
+class DeprecationCall(Deprecation):
+    """
+    Deprecation call, representing a single deprecation call.
+
+    Args:
+        decorator_call: deprecation call.
+    """
+
+    def __init__(self, filename: Path, decorator_call: ast.Call) -> None:
+        self.filename = filename
+        self.decorator_node = decorator_call
+        self.lineno = decorator_call.lineno
+        self._target: str | None = None
+        self._since: str | None = None
+
     @property
-    def location_str(self) -> str:
-        """String with the location of the deprecated decorator <filename>:<line number>"""
-        return f"{self.filename}:{self.lineno}"
+    def target(self) -> str | None:
+        """what's deprecated."""
+        if not self._target:
+            arg = self.decorator_node.args.__getitem__(0)
+            if isinstance(arg, ast.Attribute):
+                self._target = f"{arg.value.id}.{arg.attr}"
+            if isinstance(arg, ast.Name):
+                self._target = arg.id
+        return self._target
+
+    @property
+    def since(self) -> str | None:
+        """Version since the deprecation applies."""
+        if not self._since:
+            for kwarg in self.decorator_node.func.keywords:
+                if kwarg.arg == "since":
+                    self._since = ".".join(cast(ast.Constant, kwarg.value).value.split(".")[:2])
+        return self._since
 
 
 class DecoratorVisitor(ast.NodeVisitor):
@@ -73,7 +125,7 @@ class DecoratorVisitor(ast.NodeVisitor):
     """
 
     def __init__(self, filename: Path):
-        self.filename = filename
+        self.filename = short_path(filename)
         self.deprecations: list[Deprecation] = []
 
     @staticmethod
@@ -85,13 +137,28 @@ class DecoratorVisitor(ast.NodeVisitor):
             and node.func.id.startswith("deprecate_")
         )
 
+    @staticmethod
+    def is_deprecation_call(node: ast.expr) -> bool:
+        """Check if a node is a deprecation call"""
+        return (
+            isinstance(node.func, ast.Call)
+            and isinstance(node.func.func, ast.Name)
+            and node.func.func.id.startswith("deprecate_")
+        )
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pylint: disable=invalid-name
         """Visitor for function declarations"""
         self.deprecations += [
-            Deprecation(self.filename, cast(ast.Call, d_node), node)
+            DeprecationDecorator(self.filename, cast(ast.Call, d_node), node)
             for d_node in node.decorator_list
             if DecoratorVisitor.is_deprecation_decorator(d_node)
         ]
+        ast.NodeVisitor.generic_visit(self, node)
+
+    def visit_Call(self, node: ast.Call) -> None:  # pylint: disable=invalid-name
+        """Visitor for function call"""
+        if DecoratorVisitor.is_deprecation_call(node):
+            self.deprecations.append(DeprecationCall(self.filename, node))
         ast.NodeVisitor.generic_visit(self, node)
 
 
@@ -171,4 +238,4 @@ if __name__ == "__main__":
                 DETAILS = "Future release"
         print(f"\n{since_version}: {DETAILS}")
         for deprecation in deprecations:
-            print(f" - {deprecation.location_str}")
+            print(f" - {deprecation.location_str} ({deprecation.target})")
