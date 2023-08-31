@@ -16,6 +16,7 @@
 
 import struct
 from collections import namedtuple
+from qiskit.qpy import common
 
 
 # FILE_HEADER
@@ -23,7 +24,7 @@ FILE_HEADER = namedtuple(
     "FILE_HEADER",
     ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_programs"],
 )
-FILE_HEADER_PACK = "!6sBBBBQ"
+FILE_HEADER_PACK = f"!6s{len(str(common.QPY_VERSION))}sBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 # CIRCUIT_HEADER_V2
@@ -104,6 +105,26 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
 CIRCUIT_INSTRUCTION_V2_PACK = "!HHHIIBHqII"
 CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
 
+# CIRCUIT_INSTRUCTION_V3
+CIRCUIT_INSTRUCTION_V3 = namedtuple(
+    "CIRCUIT_INSTRUCTION",
+    [
+        "name_size",
+        "label_size",
+        "num_parameters",
+        "num_qargs",
+        "num_cargs",
+        "conditional_key",
+        "condition_register_size",
+        "condition_value",
+        "num_ctrl_qubits",
+        "ctrl_state",
+        "duration_size",
+        "unit_size",
+    ],
+)
+CIRCUIT_INSTRUCTION_V3_PACK = "!HHHIIBHqIIII"
+CIRCUIT_INSTRUCTION_V3_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V3_PACK)
 
 # CIRCUIT_INSTRUCTION_ARG
 CIRCUIT_INSTRUCTION_ARG = namedtuple("CIRCUIT_INSTRUCTION_ARG", ["type", "size"])

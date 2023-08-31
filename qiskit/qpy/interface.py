@@ -155,7 +155,7 @@ def dump(
     header = struct.pack(
         formats.FILE_HEADER_PACK,
         b"QISKIT",
-        common.QPY_VERSION,
+        str(common.QPY_VERSION).encode(common.ENCODE),
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -227,6 +227,7 @@ def load(
     )
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
+    qpy_version = int(data.qpy_version.decode(common.ENCODE))
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
@@ -251,7 +252,7 @@ def load(
             "version" % (".".join([str(x) for x in qiskit_version]), __version__)
         )
 
-    if data.qpy_version < 5:
+    if qpy_version < 5:
         type_key = type_keys.Program.CIRCUIT
     else:
         type_key = common.read_type_key(file_obj)
@@ -268,7 +269,7 @@ def load(
         programs.append(
             loader(
                 file_obj,
-                data.qpy_version,
+                qpy_version,
                 metadata_deserializer=metadata_deserializer,
             )
         )
