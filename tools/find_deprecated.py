@@ -231,9 +231,9 @@ if __name__ == "__main__":
                 )
                 release_minor_date = release_minor_datetime.strftime("%B %d, %Y")
                 diff_days = (LAST_TIME_MINOR - release_minor_datetime).days
-                DETAILS = (
-                    f"Released in {release_minor_date} ({diff_days} days until last minor release)"
-                )
+                DETAILS = f"Released in {release_minor_date}"
+                if diff_days:
+                    DETAILS += f" (wrt last minor release, {round(diff_days / 30.4)} month old)"
             except KeyError:
                 DETAILS = "Future release"
         print(f"\n{since_version}: {DETAILS}")
