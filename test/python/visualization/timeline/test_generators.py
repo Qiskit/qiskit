@@ -27,7 +27,7 @@ class TestGates(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1))[0]
+        self.qubit = list(qiskit.QuantumRegister(1, name="foo"))[0]
 
         self.u1 = types.ScheduledGate(
             t0=100, operand=library.U1Gate(0), duration=0, bits=[self.qubit], bit_position=0
@@ -58,7 +58,7 @@ class TestGates(QiskitTestCase):
         ref_meta = {
             "name": "u3",
             "label": "n/a",
-            "bits": str(self.qubit.register.name),
+            "bits": "foo",
             "t0": 100,
             "duration": 20,
             "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
