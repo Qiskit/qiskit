@@ -33,7 +33,7 @@ class CollectMultiQBlocks(AnalysisPass):
     Some gates may not be present in any block (e.g. if the number
     of operands is greater than max_block_size)
 
-    A Disjont Set Union data structure (DSU) is used to maintain blocks as
+    A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.
