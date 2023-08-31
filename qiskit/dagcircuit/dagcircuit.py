@@ -73,6 +73,9 @@ class DAGCircuit:
         # Circuit metadata
         self.metadata = {}
 
+        # Cache of dag op node sort keys
+        self._key_cache = {}
+
         # Set of wires (Register,idx) in the dag
         self._wires = set()
 
@@ -600,7 +603,7 @@ class DAGCircuit:
             int: The integer node index for the new op node on the DAG
         """
         # Add a new operation node to the graph
-        new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs)
+        new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
         self._increment_op(op)
@@ -632,6 +635,7 @@ class DAGCircuit:
         target_dag.duration = self.duration
         target_dag.unit = self.unit
         target_dag.metadata = self.metadata
+        target_dag._key_cache = self._key_cache
 
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
@@ -914,7 +918,7 @@ class DAGCircuit:
 
     def depth(self, *, recurse: bool = False):
         """Return the circuit depth.  If there is control flow present, this count may only be an
-        estimate, as the complete control-flow path cannot be staticly known.
+        estimate, as the complete control-flow path cannot be statically known.
 
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops
@@ -1134,7 +1138,7 @@ class DAGCircuit:
         block_qargs.sort(key=wire_pos_map.get)
         block_cargs = [bit for bit in block_cargs if bit in wire_pos_map]
         block_cargs.sort(key=wire_pos_map.get)
-        new_node = DAGOpNode(op, block_qargs, block_cargs)
+        new_node = DAGOpNode(op, block_qargs, block_cargs, dag=self)
 
         try:
             new_node._node_id = self._multi_graph.contract_nodes(
@@ -1345,7 +1349,7 @@ class DAGCircuit:
                 m_op = old_node.op
             m_qargs = [wire_map[x] for x in old_node.qargs]
             m_cargs = [wire_map[x] for x in old_node.cargs]
-            new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs)
+            new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs, dag=self)
             new_node._node_id = new_node_index
             self._multi_graph[new_node_index] = new_node
             self._increment_op(new_node.op)

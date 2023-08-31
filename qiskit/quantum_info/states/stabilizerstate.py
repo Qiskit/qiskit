@@ -151,7 +151,7 @@ class StabilizerState(QuantumState):
         return ret
 
     def tensor(self, other: StabilizerState) -> StabilizerState:
-        """Return the tensor product stabilzier state self ⊗ other.
+        """Return the tensor product stabilizer state self ⊗ other.
 
         Args:
             other (StabilizerState): a stabilizer state object.
@@ -169,7 +169,7 @@ class StabilizerState(QuantumState):
         return ret
 
     def expand(self, other: StabilizerState) -> StabilizerState:
-        """Return the tensor product stabilzier state other ⊗ self.
+        """Return the tensor product stabilizer state other ⊗ self.
 
         Args:
             other (StabilizerState): a stabilizer state object.

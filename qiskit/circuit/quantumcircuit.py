@@ -352,7 +352,7 @@ class QuantumCircuit:
 
     @property
     def layout(self) -> Optional[TranspileLayout]:
-        r"""Return any associated layout information anout the circuit
+        r"""Return any associated layout information about the circuit
 
         This attribute contains an optional :class:`~.TranspileLayout`
         object. This is typically set on the output from :func:`~.transpile`
@@ -2180,7 +2180,7 @@ class QuantumCircuit:
         """Copy the circuit.
 
         Args:
-          name (str): name to be given to the copied circuit. If None, then the name stays the same
+          name (str): name to be given to the copied circuit. If None, then the name stays the same.
 
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
@@ -2222,6 +2222,10 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: An empty copy of self.
         """
+        if not (name is None or isinstance(name, str)):
+            raise TypeError(
+                f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
+            )
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
@@ -2587,7 +2591,7 @@ class QuantumCircuit:
                 >>> circuit.parameters  # sorted alphabetically!
                 ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
 
-            Bear in mind that alphabetical sorting might be unituitive when it comes to numbers.
+            Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
             The literal "10" comes before "2" in strict alphabetical sorting.
 
             .. code-block:: python
