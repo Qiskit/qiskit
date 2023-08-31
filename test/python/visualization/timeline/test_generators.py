@@ -58,7 +58,7 @@ class TestGates(QiskitTestCase):
         ref_meta = {
             "name": "u3",
             "label": "n/a",
-            "bits": "foo",
+            "bits": [self.qubit],
             "t0": 100,
             "duration": 20,
             "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
