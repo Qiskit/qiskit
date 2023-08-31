@@ -198,7 +198,7 @@ class BasePadding(TransformationPass):
         t_start: int,
         oper: Instruction,
         qubits: Qubit | Iterable[Qubit],
-        clbits: Clbit | Iterable[Clbit] | None = None,
+        clbits: Clbit | Iterable[Clbit] = (),
     ):
         """Add new operation to DAG with scheduled information.
 

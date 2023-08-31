@@ -24,6 +24,7 @@ from collections import OrderedDict, defaultdict, deque, namedtuple
 import copy
 import itertools
 import math
+import warnings
 from typing import Dict, Generator, Any, List
 
 import numpy as np
@@ -661,8 +662,16 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        qargs = tuple(qargs) if qargs is not None else ()
-        cargs = tuple(cargs) if cargs is not None else ()
+        if qargs is None:
+            _warn_none_args()
+            qargs = ()
+        else:
+            qargs = tuple(qargs)
+        if cargs is None:
+            _warn_none_args()
+            cargs = ()
+        else:
+            cargs = tuple(cargs)
 
         all_cbits = set(self._bits_in_operation(op)).union(cargs)
 
@@ -695,6 +704,17 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
+        if qargs is None:
+            _warn_none_args()
+            qargs = ()
+        else:
+            qargs = tuple(qargs)
+        if cargs is None:
+            _warn_none_args()
+            cargs = ()
+        else:
+            cargs = tuple(cargs)
+
         all_cbits = set(self._bits_in_operation(op)).union(cargs)
 
         self._check_condition(op.name, getattr(op, "condition", None))
@@ -2071,3 +2091,12 @@ class DAGCircuit:
         from qiskit.visualization.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+
+
+def _warn_none_args():
+    warnings.warn(
+        "Passing 'None' as the qubits or clbits of an operation to 'DAGCircuit' methods"
+        " is deprecated since Qiskit 0.45 and will be removed in Qiskit 1.0.  Instead, pass '()'.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
