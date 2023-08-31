@@ -25,12 +25,26 @@ from qiskit.circuit.library.standard_gates import RXGate, RZGate, SXGate, XGate
 
 
 class NormalizeRXAngle(TransformationPass):
-    """Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
-    This will help reduce the size of calibration data,
-    as we won't have to keep separate, phase-flipped calibrations for negative rotation angles.
-    Moreover, if the calibrations exist in the target, convert RX(pi/2) to SX, and RX(pi) to X.
-    This will allow us to exploit the more accurate, hardware-calibrated pulses.
-    Lastly, quantize the RX rotation angles using a resolution provided by the user.
+    """Normalize theta parameter of RXGate instruction.
+    
+    The parameter normalization is performed with following steps.
+    
+    1) Wrap RX Gate theta into [0, pi]. When theta is negative value, the gate is 
+    decomposed into the following sequence.
+    
+    .. code-block::
+    
+       ┌───────┐┌─────────┐┌────────┐
+    q: ┤ Rz(π) ├┤ Rx(|θ|) ├┤ Rz(-π) ├
+       └───────┘└─────────┘└────────┘
+    
+    2) If the operation is supported by target, convert RX(pi/2) to SX, and RX(pi) to X.
+    
+    3) Quantize theta value according to the user-specified resolution.
+    
+    This will help reduce the size of calibration data sent over the wire,
+    and allow us to exploit the more accurate, hardware-calibrated pulses.
+    Note that pulse calibration might be attached per each rotation angle.
     """
 
     def __init__(self, target=None, resolution_in_radian=0):
