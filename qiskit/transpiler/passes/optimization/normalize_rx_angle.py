@@ -34,9 +34,9 @@ class NormalizeRXAngle(TransformationPass):
 
     .. code-block::
 
-       ┌───────┐┌─────────┐┌────────┐
-    q: ┤ Rz(π) ├┤ Rx(|θ|) ├┤ Rz(-π) ├
-       └───────┘└─────────┘└────────┘
+          ┌───────┐┌─────────┐┌────────┐
+       q: ┤ Rz(π) ├┤ Rx(|θ|) ├┤ Rz(-π) ├
+          └───────┘└─────────┘└────────┘
 
     2) If the operation is supported by target, convert RX(pi/2) to SX, and RX(pi) to X.
 
