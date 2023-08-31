@@ -157,7 +157,7 @@ fn layout_trial(
                 Some(seed),
                 &initial_layout,
                 1,
-                Some(run_swap_in_parallel),
+                Some(false),
             );
             initial_layout = final_layout;
         }
