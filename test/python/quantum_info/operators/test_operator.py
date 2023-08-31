@@ -681,6 +681,18 @@ class TestOperator(OperatorTestCase):
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        op = Operator.from_circuit(qc1)
+        with self.subTest(msg="str(operator)"):
+            str(op)
+        for drawtype in ["repr", "text", "latex_source"]:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                op.draw(drawtype)
+        with self.subTest(msg=" draw('latex')"):
+            op.draw("latex")
+
     def test_from_circuit_constructor_no_layout(self):
         """Test initialization from a circuit using the from_circuit constructor."""
         # Test tensor product of 1-qubit gates
