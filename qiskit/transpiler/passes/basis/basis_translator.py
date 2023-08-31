@@ -567,7 +567,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
         dag = DAGCircuit()
         qr = QuantumRegister(gate_num_qubits)
         dag.add_qreg(qr)
-        dag.apply_operation_back(placeholder_gate, qr[:], [])
+        dag.apply_operation_back(placeholder_gate, qr, (), check=False)
         mapped_instrs[gate_name, gate_num_qubits] = placeholder_params, dag
 
     for gate_name, gate_num_qubits, equiv_params, equiv in basis_transforms:

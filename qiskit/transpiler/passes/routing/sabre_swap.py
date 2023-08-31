@@ -364,7 +364,7 @@ def _apply_sabre_result(
                 physical_qubits[layout.logical_to_physical(b)],
             )
             layout.swap_logical(a, b)
-            dest_dag.apply_operation_back(SwapGate(), qubits, ())
+            dest_dag.apply_operation_back(SwapGate(), qubits, (), check=False)
 
     def recurse(dest_dag, source_dag, result, root_logical_map, layout):
         """The main recursive worker.  Mutates ``dest_dag`` and ``layout`` and returns them.
@@ -384,6 +384,7 @@ def _apply_sabre_result(
                         for q in node.qargs
                     ],
                     node.cargs,
+                    check=False,
                 )
                 continue
 
@@ -419,7 +420,7 @@ def _apply_sabre_result(
             # Apply the control flow gate to the dag.
             mapped_node = node.op.replace_blocks(mapped_blocks)
             mapped_node_qargs = mapped_blocks[0].qubits if mapped_blocks else ()
-            dest_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
+            dest_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs, check=False)
         return dest_dag, layout
 
     root_logical_map = {bit: index for index, bit in enumerate(in_dag.qubits)}

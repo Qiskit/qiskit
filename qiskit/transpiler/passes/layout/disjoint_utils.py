@@ -112,7 +112,9 @@ def split_barriers(dag: DAGCircuit):
         split_dag.add_qubits([Qubit() for _ in range(num_qubits)])
         for i in range(num_qubits):
             split_dag.apply_operation_back(
-                Barrier(1, label=barrier_uuid), qargs=[split_dag.qubits[i]]
+                Barrier(1, label=barrier_uuid),
+                qargs=(split_dag.qubits[i],),
+                check=False,
             )
         dag.substitute_node_with_dag(node, split_dag)
 
@@ -186,7 +188,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
         new_dag.global_phase = 0
         for node in dag.topological_op_nodes():
             if dag_qubits.issuperset(node.qargs):
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
         idle_clbits = []
         for bit, node in new_dag.input_map.items():
             succ_node = next(new_dag.successors(node))
