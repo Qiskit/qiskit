@@ -416,8 +416,8 @@ fn swap_map_trial(
                 qubits_decay.fill(1.);
                 num_search_steps = 0;
             } else {
-                qubits_decay[best_swap[0].index()] += DECAY_RATE;
-                qubits_decay[best_swap[1].index()] += DECAY_RATE;
+                qubits_decay[best_swap[0].to_phys(&layout).index()] += DECAY_RATE;
+                qubits_decay[best_swap[1].to_phys(&layout).index()] += DECAY_RATE;
             }
         }
         // If we exceeded the number of allowed attempts without successfully routing a node, we
@@ -717,7 +717,8 @@ fn choose_best_swap(
                     + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist)
             }
             Heuristic::Decay => {
-                qubits_decay[swap[0].index()].max(qubits_decay[swap[1].index()])
+                qubits_decay[swap[0].to_phys(layout).index()]
+                    .max(qubits_decay[swap[1].to_phys(layout).index()])
                     * (absolute_score
                         + layer.score(swap, layout, dist)
                         + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist))
