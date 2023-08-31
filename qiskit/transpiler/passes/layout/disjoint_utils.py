@@ -165,9 +165,10 @@ def require_layout_isolated_to_component(
                 break
         if dag.find_bit(inst.qargs[1]).index not in component_sets[component_index]:
             raise TranspilerError(
-                f"The qubit {inst.qargs[1].register.name}[{inst.qargs[1].index}] is "
-                f"mapped to physical qubit {dag.find_bit(inst.qargs[1]).index} which "
-                f"is in a disconnected component with respect to other interacting qubits."
+                "The circuit has an invalid layout as two qubits need to interact in disconnected "
+                "components of the coupling map. The physical qubit "
+                f"{dag.find_bit(inst.qargs[1]).index} needs to interact with the "
+                f"qubit {dag.find_bit(inst.qargs[0]).index} and they belong to different components"
             )
 
 
