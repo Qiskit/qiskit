@@ -206,7 +206,7 @@ class TestTimeslot(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1))[0]
+        self.qubit = list(qiskit.QuantumRegister(1, "bar"))[0]
 
         style = stylesheet.QiskitTimelineStyle()
         self.formatter = style.formatter
@@ -244,10 +244,8 @@ class TestTimeslot(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, str(self.qubit.register.name))
-        ref_latex = r"{{\rm {register}}}_{{{index}}}".format(
-            register=self.qubit.register.prefix, index=self.qubit.index
-        )
+        self.assertEqual(drawing_obj.text, "bar")
+        ref_latex = r"{{\rm {register}}}_{{{index}}}".format(register="q", index="0")
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {
