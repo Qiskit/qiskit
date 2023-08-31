@@ -447,7 +447,7 @@ class BackendV2(Backend, ABC):
         scheduling.
 
         Returns:
-            The input signal timestep in seconds. If the backend doesn't define ``dt`` ``None`` will
+            The input signal timestep in seconds. If the backend doesn't define ``dt``, ``None`` will
             be returned.
         """
         return self.target.dt
