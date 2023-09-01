@@ -28345,7 +28345,7 @@ New Features
   for users who are only running qiskit-terra (or just not qiskit-aer and/or
   qiskit-ibmq-provider) and the warnings are not an indication of a potential
   packaging problem. If the user config file is set to disable the warnings
-  this can be overriden by setting the ``QISKIT_SUPPRESS_PACKAGING_WARNINGS``
+  this can be overridden by setting the ``QISKIT_SUPPRESS_PACKAGING_WARNINGS``
   to ``N`` or ``n``
 
 - :func:`qiskit.compiler.transpile()` has two new kwargs, ``layout_method``
