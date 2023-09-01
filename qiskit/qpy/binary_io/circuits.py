@@ -246,10 +246,11 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     # Load Duration and Unit
     if version >= 10:
         # Load Duration
-        if file_obj.read(instruction.duration_size).decode(common.ENCODE) == "None":
+        duration = file_obj.read(instruction.duration_size).decode(common.ENCODE)
+        if duration == "None":
             duration = None
         else:
-            duration = int(file_obj.read(instruction.duration_size).decode(common.ENCODE))
+            duration = int(duration)
         # Load Unit
         unit = str(file_obj.read(instruction.unit_size).decode(common.ENCODE))
     else:
