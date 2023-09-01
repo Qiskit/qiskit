@@ -436,6 +436,7 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "numpy",
+ "once_cell",
  "pyo3",
  "rand",
  "rand_distr",

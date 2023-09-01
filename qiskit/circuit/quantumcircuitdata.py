@@ -21,6 +21,7 @@ from .instruction import Instruction
 from .operation import Operation
 from .quantumregister import Qubit
 from .classicalregister import Clbit
+from qiskit._accelerate.quantum_circuit import CircuitData
 
 
 class CircuitInstruction:
@@ -192,7 +193,7 @@ class QuantumCircuitData(MutableSequence):
         return CircuitInstruction(operation, tuple(qargs), tuple(cargs))
 
     def insert(self, index, value):
-        self._circuit._data.insert(index, None)
+        self._circuit._data.insert(index, CircuitInstruction(None, [], []))
         try:
             self[index] = value
         except CircuitError:
@@ -212,7 +213,7 @@ class QuantumCircuitData(MutableSequence):
         return other._circuit._data if isinstance(other, QuantumCircuitData) else other
 
     def __repr__(self):
-        return repr(self._circuit._data)
+        return repr(list(self._circuit._data))
 
     def __lt__(self, other):
         return self._circuit._data < self.__cast(other)
@@ -247,4 +248,4 @@ class QuantumCircuitData(MutableSequence):
 
     def copy(self):
         """Returns a shallow copy of instruction list."""
-        return self._circuit._data.copy()
+        return list(self._circuit._data)

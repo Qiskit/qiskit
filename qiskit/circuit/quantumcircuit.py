@@ -60,6 +60,7 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
+from qiskit._accelerate.quantum_circuit import CircuitData, InternContext
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -227,9 +228,6 @@ class QuantumCircuit:
             self.name = name
         self._increment_instances()
 
-        # Data contains a list of instructions and their contexts,
-        # in the order they were applied.
-        self._data: list[CircuitInstruction] = []
         self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
@@ -254,6 +252,13 @@ class QuantumCircuit:
         self._qubit_indices: dict[Qubit, BitLocations] = {}
         self._clbit_indices: dict[Clbit, BitLocations] = {}
 
+        # An opaque context use to intern circuit instructions on the Rust side.
+        self._intern_context = InternContext()
+
+        # Data contains a list of instructions and their contexts,
+        # in the order they were applied.
+        self._data: CircuitData = self._new_data()
+
         self._ancillas: list[AncillaQubit] = []
         self._calibrations: DefaultDict[str, dict[tuple, Any]] = defaultdict(dict)
         self.add_register(*regs)
@@ -271,6 +276,16 @@ class QuantumCircuit:
         self.duration = None
         self.unit = "dt"
         self.metadata = {} if metadata is None else metadata
+
+    def _new_data(self):
+        return CircuitData(
+            self._intern_context,
+            CircuitInstruction,
+            self._qubits,
+            self._clbits,
+            self._qubit_indices,
+            self._clbit_indices
+        )
 
     @staticmethod
     def from_instructions(
@@ -385,7 +400,7 @@ class QuantumCircuit:
         # If data_input is QuantumCircuitData(self), clearing self._data
         # below will also empty data_input, so make a shallow copy first.
         data_input = list(data_input)
-        self._data = []
+        self._data = self._new_data()
         self._parameter_table = ParameterTable()
         if not data_input:
             return
@@ -498,6 +513,20 @@ class QuantumCircuit:
         return circuit_to_dag(self, copy_operations=False) == circuit_to_dag(
             other, copy_operations=False
         )
+
+    def __getstate__(self):
+        # Rust's CircuitData is not picklable, so we convert it to a list first.
+        state = self.__dict__.copy()
+        state["_data"] = list(self._data)
+        del state["_intern_context"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._intern_context = InternContext()
+        data = self._new_data()
+        data.extend(self._data)
+        self._data = data
 
     @classmethod
     def _increment_instances(cls):
@@ -959,7 +988,7 @@ class QuantumCircuit:
 
         if front:
             # adjust new instrs before original ones and update all parameters
-            mapped_instrs += dest.data
+            mapped_instrs.extend(dest.data)
             dest.clear()
         append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
@@ -2088,10 +2117,10 @@ class QuantumCircuit:
             }
         )
 
-        cpy._data = [
+        cpy._data.extend([
             instruction.replace(operation=operation_copies[id(instruction.operation)])
             for instruction in self._data
-        ]
+        ])
 
         return cpy
 
@@ -2124,7 +2153,10 @@ class QuantumCircuit:
         cpy._clbit_indices = self._clbit_indices.copy()
 
         cpy._parameter_table = ParameterTable()
-        cpy._data = []
+        # TODO: should copies of a circuit share its intern context?
+        #   If not, we need to uncomment the next line.
+        # cpy._intern_context = InternContext()
+        cpy._data = cpy._new_data()
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)

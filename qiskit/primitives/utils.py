@@ -102,7 +102,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
 
     # Find final measurements starting in back
     mapping = {}
-    for item in circuit._data[::-1]:
+    for item in reversed(circuit._data):
         if item.operation.name == "measure":
             cbit = circuit.find_bit(item.clbits[0]).index
             qbit = circuit.find_bit(item.qubits[0]).index

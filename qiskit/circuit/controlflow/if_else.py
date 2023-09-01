@@ -448,7 +448,8 @@ class ElseContext:
             raise CircuitError("Cannot attach an 'else' to a broadcasted 'if' block.")
         appended = appended_instructions[0]
         instruction = circuit._peek_previous_instruction_in_scope()
-        if appended is not instruction:
+        # TODO: this isn't exactly the right check
+        if appended.operation is not instruction.operation:
             raise CircuitError(
                 "The 'if' block is not the most recent instruction in the circuit."
                 f" Expected to find: {appended!r}, but instead found: {instruction!r}."
