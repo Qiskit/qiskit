@@ -712,7 +712,7 @@ class Pauli(BasePauli):
             if not isinstance(inner.operation, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in inner.qubits]
+                    qargs = [instr.find_bit(tup).index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
 
