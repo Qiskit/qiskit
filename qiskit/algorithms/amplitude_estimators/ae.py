@@ -458,7 +458,6 @@ class AmplitudeEstimation(AmplitudeEstimator):
             The (1 - alpha) confidence interval of the specified kind.
 
         Raises:
-            AquaError: If 'mle' is not in self._ret.keys() (i.e. `run` was not called yet).
             NotImplementedError: If the confidence interval method `kind` is not implemented.
         """
         # if statevector simulator the estimate is exact

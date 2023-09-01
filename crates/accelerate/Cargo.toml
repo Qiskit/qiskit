@@ -29,9 +29,9 @@ version = "^0.15.6"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.12.3"
+version = "0.14.0"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "1.9"
+version = "2.0.0"
 features = ["rayon"]
