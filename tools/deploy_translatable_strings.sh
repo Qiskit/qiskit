@@ -80,7 +80,7 @@ git add setup.py
 git add requirements-dev.txt constraints.txt
 
 # Commit and push the changes.
-git commit -m "Automated documentation update to add .po files from qiskit" -m "skip ci" -m "Commit: $GITHUB_SHA" -m "Github Actions Run: https://github.com/Qiskit/qiskit/runs/$GITHUB_RUN_NUMBER"
+git commit -m "Automated documentation update to add .po files from qiskit" -m "skip ci" -m "Commit: $GITHUB_SHA" -m "Github Actions Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 echo "git push"
 git push --quiet origin $TARGET_BRANCH_PO
 echo "********** End of pushing po to working repo! *************"
