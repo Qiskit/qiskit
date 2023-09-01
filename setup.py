@@ -61,7 +61,7 @@ setup(
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/Qiskit/qiskit-terra",
+    url="https://github.com/Qiskit/qiskit",
     author="Qiskit Development Team",
     author_email="hello@qiskit.org",
     license="Apache 2.0",
@@ -134,12 +134,30 @@ setup(
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
         ],
+        "qiskit.transpiler.init": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager",
+        ],
+        "qiskit.transpiler.translation": [
+            "translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager",
+            "unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager",
+            "synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager",
+        ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
             "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
             "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
+        "qiskit.transpiler.optimization": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager",
+        ],
+        "qiskit.transpiler.layout": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager",
+            "trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager",
+            "dense = qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager",
+            "noise_adaptive = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoiseAdaptiveLayoutPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager",
         ],
         "qiskit.transpiler.scheduling": [
             "alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager",
