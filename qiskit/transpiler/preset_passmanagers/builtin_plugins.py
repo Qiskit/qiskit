@@ -27,7 +27,6 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.preset_passmanagers import common
@@ -81,7 +80,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
             )
-            init.append(RemoveResetInZeroState())
             init.append(OptimizeSwapBeforeMeasure())
             init.append(RemoveDiagonalGatesBeforeMeasure())
         else:
