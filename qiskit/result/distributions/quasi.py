@@ -51,6 +51,7 @@ class QuasiDistribution(dict):
         self.shots = shots
         self._stddev_upper_bound = stddev_upper_bound
         self._num_bits = 0
+        self.decimal = 15
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
@@ -141,3 +142,6 @@ class QuasiDistribution(dict):
     def stddev_upper_bound(self):
         """Return an upper bound on standard deviation of expval estimator."""
         return self._stddev_upper_bound
+
+    def __repr__(self):
+        return str({key: round(value, ndigits=self.decimal) for key, value in self.items()})

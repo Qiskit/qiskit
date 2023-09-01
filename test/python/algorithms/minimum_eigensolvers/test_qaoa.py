@@ -54,7 +54,7 @@ W2 = np.array(
 )
 P2 = 1
 M2 = None
-S2 = {"1011", "1111"}
+S2 = {"1011", "0100"}
 
 CUSTOM_SUPERPOSITION = [1 / np.sqrt(15)] * 15 + [0]
 
