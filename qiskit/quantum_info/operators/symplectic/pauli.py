@@ -155,7 +155,9 @@ class Pauli(BasePauli):
     _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
-    def __init__(self, data: str | tuple | Pauli | ScalarOp | None = None):
+    def __init__(
+        self,
+        data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -688,7 +690,7 @@ class Pauli(BasePauli):
             if not isinstance(inner.operation, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in inner.qubits]
+                    qargs = [instr.find_bit(tup).index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
 
