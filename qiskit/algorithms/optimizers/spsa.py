@@ -27,7 +27,7 @@ import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from qiskit.utils.deprecation import deprecate_func
+
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -649,39 +649,6 @@ class SPSA(Optimizer):
         }
 
     # pylint: disable=bad-docstring-quotes
-    @deprecate_func(
-        additional_msg=(
-            "Instead, use ``SPSA.minimize`` as a replacement, which supports the same arguments "
-            "but follows the interface of scipy.optimize and returns a complete result object "
-            "containing additional information."
-        ),
-        since="0.21.0",
-    )
-    def optimize(
-        self,
-        num_vars,  # pylint: disable=unused-argument
-        objective_function,
-        gradient_function=None,  # pylint: disable=unused-argument
-        variable_bounds=None,  # pylint: disable=unused-argument
-        initial_point=None,
-    ):
-        """Perform optimization.
-
-        Args:
-            num_vars (int): Number of parameters to be optimized.
-            objective_function (callable): A function that computes the objective function.
-            gradient_function (callable): Not supported for SPSA.
-            variable_bounds (list[(float, float)]): Not supported for SPSA.
-            initial_point (numpy.ndarray[float]): Initial point.
-
-        Returns:
-            tuple: point, value, nfev
-               point: is a 1D numpy.ndarray[float] containing the solution
-               value: is a float with the objective function value
-               nfev: number of objective function calls made if available or None
-        """
-        result = self.minimize(objective_function, initial_point)
-        return result.x, result.fun, result.nfev
 
 
 def bernoulli_perturbation(dim, perturbation_dims=None):
