@@ -2,4 +2,4 @@
 fixes:
   - |
     The class :class:`.Pauli` now support creation from :class:`.QuantumCircuit`
-    that use new-style :class:`Bit`.
+    that use new-style :class:`.Bit`.
