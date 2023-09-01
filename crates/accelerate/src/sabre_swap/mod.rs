@@ -17,9 +17,8 @@ pub mod neighbor_table;
 pub mod sabre_dag;
 pub mod swap_map;
 
-use std::cmp::Ordering;
-
 use hashbrown::HashMap;
+use indexmap::IndexMap;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, PyArray, ToPyArray};
@@ -36,6 +35,7 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::EdgeRef;
 use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
+use std::cmp::Ordering;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
@@ -171,7 +171,8 @@ fn populate_extended_set(
     required_predecessors: &mut [u32],
 ) {
     let mut to_visit = front_layer.iter_nodes().copied().collect::<Vec<_>>();
-    let mut decremented: HashMap<usize, u32> = HashMap::new();
+    let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
+        IndexMap::with_hasher(ahash::RandomState::default());
     let mut i = 0;
     while i < to_visit.len() && extended_set.len() < EXTENDED_SET_SIZE {
         for edge in dag.dag.edges_directed(to_visit[i], Direction::Outgoing) {

@@ -35,6 +35,8 @@ Backend Objects
    PulseDefaults
    Command
    JobStatus
+   GateProperties
+   Nduv
 """
 
 from .backendconfiguration import (
@@ -44,7 +46,7 @@ from .backendconfiguration import (
     UchannelLO,
     GateConfig,
 )
-from .backendproperties import BackendProperties
+from .backendproperties import BackendProperties, GateProperties, Nduv
 from .backendstatus import BackendStatus
 from .jobstatus import JobStatus
 from .pulsedefaults import PulseDefaults, Command
