@@ -157,7 +157,12 @@ class Pauli(BasePauli):
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
     def __init__(
-        self, data: str | tuple | Pauli | ScalarOp | None = None, x=None, *, z=None, label=None
+        self,
+        data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None,
+        x=None,
+        *,
+        z=None,
+        label=None,
     ):
         """Initialize the Pauli.
 
