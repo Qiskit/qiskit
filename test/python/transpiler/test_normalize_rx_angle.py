@@ -24,22 +24,14 @@ from qiskit.transpiler.passes.optimization.normalize_rx_angle import (
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.transpiler import Target
+from qiskit.circuit.library.standard_gates import SXGate
 
 
 @ddt
 class TestNormalizeRXAngle(QiskitTestCase):
     """Tests the NormalizeRXAngle pass."""
 
-    @staticmethod
-    def count_gate_number(gate, circuit):
-        """Count the number of a specific gate type in a circuit"""
-        if gate not in QuantumCircuit.count_ops(circuit):
-            gate_number = 0
-        else:
-            gate_number = QuantumCircuit.count_ops(circuit)[gate]
-        return gate_number
-
-    def test_not_convert_to_X_if_no_calib_in_target(self):
+    def test_not_convert_to_x_if_no_calib_in_target(self):
         """Check that RX(pi) is NOT converted to X,
         if X calibration is not present in the target"""
         empty_target = Target()
@@ -49,37 +41,37 @@ class TestNormalizeRXAngle(QiskitTestCase):
         qc.rx(90, 0)
 
         transpiled_circ = tp(qc)
-        self.assertEqual(self.count_gate_number("x", transpiled_circ), 0)
+        self.assertEqual(transpiled_circ.count_ops().get("x", 0), 0)
 
-    def test_SX_conversion_works(self):
+    def test_sx_conversion_works(self):
         """Check that RX(pi/2) is converted to SX,
         if SX calibration is present in the target"""
-        backend = FakeBelemV2()
-        tp = NormalizeRXAngle(target=backend.target)
+        target = Target()
+        target.add_instruction(SXGate(), properties={(0,): None})
+        tp = NormalizeRXAngle(target=target)
 
         qc = QuantumCircuit(1)
         qc.rx(np.pi / 2, 0)
 
         transpiled_circ = tp(qc)
-        self.assertEqual(self.count_gate_number("sx", transpiled_circ), 1)
+        self.assertEqual(transpiled_circ.count_ops().get("sx", 0), 1)
 
-    @named_data({"name": "RX(-pi/3)=RZ(pi)-RX(pi/3)-RZ(-pi)", "rx_angle": (-1 / 3) * np.pi})
-    def test_RZ_added_for_negative_rotation_angles(self, rx_angle):
+    def test_rz_added_for_negative_rotation_angles(self):
         """Check that RZ is added before and after RX,
         if RX rotation angle is negative"""
 
         backend = FakeBelemV2()
         tp = NormalizeRXAngle(target=backend.target)
 
-        # circuit to transpiler and test
+        # circuit to transpile and test
         qc = QuantumCircuit(1)
-        qc.rx(rx_angle, 0)
+        qc.rx((-1 / 3) * np.pi, 0)
         transpiled_circ = tp(qc)
 
         # circuit to show the correct answer
         qc_ref = QuantumCircuit(1)
         qc_ref.rz(np.pi, 0)
-        qc_ref.rx(np.abs(rx_angle), 0)
+        qc_ref.rx(np.pi / 3, 0)
         qc_ref.rz(-np.pi, 0)
 
         self.assertQuantumCircuitEqual(transpiled_circ, qc_ref)

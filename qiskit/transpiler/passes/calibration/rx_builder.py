@@ -17,7 +17,7 @@ from functools import lru_cache
 import numpy as np
 
 from qiskit.circuit import Instruction
-from qiskit.pulse import Schedule, ScheduleBlock, builder, DriveChannel
+from qiskit.pulse import Schedule, ScheduleBlock, builder
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.library.symbolic_pulses import Drag
 from qiskit.transpiler.passes.calibration.base_builder import CalibrationBuilder
@@ -31,6 +31,21 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
     .. note::
         Requirement: NormalizeRXAngles pass (one of the optimization passes).
+
+    It is recommended to place this pass in the post-optimization stage of a passmanager.
+    A simple demo:
+
+    .. code-block:: python
+       backend = FakeBelemV2()
+       pm = PassManager(RXCalibrationBuilder(backend.target))
+       qc = QuantumCircuit(1)
+       angles = [0.1, 0.2, 0.3, 0.4]
+       for angle in angles:
+         qc.rx(angle, 0)
+
+       # run the pass and check that new calibrations are generated
+       transpiled_circuit = pm.run(qc)
+       print(transpiled_circuit.calibrations["rx"])
 
     References
         * [1]: Gokhale et al. (2020), Optimized Quantum Compilation for
@@ -55,9 +70,6 @@ class RXCalibrationBuilder(CalibrationBuilder):
         self.target = target
         self.already_generated = {}
         self.requires = [NormalizeRXAngle(self.target)]
-
-        if self.target.instruction_schedule_map() is None:
-            raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
     def supported(self, node_op: Instruction, qubits: list) -> bool:
         """
@@ -84,7 +96,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
         )
         new_rx_sched = _create_rx_sched(
             rx_angle=angle,
-            channel_identifier=DriveChannel(qubits[0]),
+            channel=self.target.get_calibration("sx", tuple(qubits)).channels[0],
             duration=params["duration"],
             amp=params["amp"],
             sigma=params["sigma"],
@@ -101,7 +113,7 @@ def _create_rx_sched(
     amp: float,
     sigma: float,
     beta: float,
-    channel_identifier: Channel,
+    channel: Channel,
 ):
     """Generates (and caches) pulse calibrations for RX gates.
     Assumes that the rotation angle is in [0, pi].
@@ -110,7 +122,7 @@ def _create_rx_sched(
     with builder.build() as new_rx_sched:
         builder.play(
             Drag(duration=duration, amp=new_amp, sigma=sigma, beta=beta, angle=0),
-            channel=channel_identifier,
+            channel=channel,
         )
 
     return new_rx_sched
