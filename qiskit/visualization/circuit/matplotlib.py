@@ -37,9 +37,6 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.classical import expr
-from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
-from qiskit.qasm3.exporter import QASM3Builder
-from qiskit.qasm3.printer import BasicPrinter
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -48,6 +45,9 @@ from qiskit.circuit.library.standard_gates import (
     XGate,
     ZGate,
 )
+from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3.printer import BasicPrinter
+
 from qiskit.extensions import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
@@ -135,7 +135,7 @@ class MatplotlibDrawer:
         self._calibrations = self._circuit.calibrations
 
         for node in itertools.chain.from_iterable(self._nodes):
-            if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
+            if node.cargs and node.op.name != "measure":
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -499,17 +499,19 @@ class MatplotlibDrawer:
                         )
                         stream = StringIO()
                         builder.build_classical_declarations()
-                        BasicPrinter(stream, indent="  ").visit(builder.build_expression(op.condition))
+                        BasicPrinter(stream, indent="  ").visit(
+                            builder.build_expression(op.condition)
+                        )
                         expr_text = stream.getvalue()
                         # Truncate expr_text so that first gate is no more than 3 x_index's over
                         if len(expr_text) > 27:
                             expr_text = expr_text[:24] + "..."
                         node_data[node].expr_text = expr_text
 
-                        expr_width =  self._get_text_width(node_data[node].expr_text,
-                            glob_data, fontsize=self._style["sfs"]
+                        expr_width = self._get_text_width(
+                            node_data[node].expr_text, glob_data, fontsize=self._style["sfs"]
                         )
-                        node_data[node].expr_width = expr_width
+                        node_data[node].expr_width = int(expr_width)
 
                     # Get the list of circuits to iterate over from the blocks
                     circuit_list = list(node.op.blocks)
@@ -537,22 +539,18 @@ class MatplotlibDrawer:
 
                         # Update the wire_map with the qubits from the inner circuit
                         flow_wire_map = {}
-                        flow_wire_map.update({
-                            inner: wire_map[outer]
-                            for outer, inner in zip(node.qargs, circuit.qubits)
-                        })
-                        #print("WIRE MAP", wire_map)
-                        #print("CREG", self._cregbundle)
-                        if self._cregbundle:
-                            flow_wire_map.update({
-                                inner.register: wire_map[outer.register]
-                                for outer, inner in zip(node.cargs, circuit.clbits)
-                            })
-                        else:
-                            flow_wire_map.update({
+                        flow_wire_map.update(
+                            {
+                                inner: wire_map[outer]
+                                for outer, inner in zip(node.qargs, circuit.qubits)
+                            }
+                        )
+                        flow_wire_map.update(
+                            {
                                 inner: wire_map[outer]
                                 for outer, inner in zip(node.cargs, circuit.clbits)
-                            })
+                            }
+                        )
 
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
@@ -598,7 +596,7 @@ class MatplotlibDrawer:
                         if circ_num > 0:
                             raw_gate_width += 0.045
 
-                        node_data[node].width.append(int(raw_gate_width) if expr_width > 0.0 else raw_gate_width)
+                        node_data[node].width.append(raw_gate_width)
 
                 # Otherwise, standard gate or multiqubit gate
                 else:
@@ -740,7 +738,6 @@ class MatplotlibDrawer:
                 for carg in node.cargs:
                     if carg in self._clbits:
                         register = get_bit_register(self._circuit, carg)
-                        register = carg.register
                         if register is not None and self._cregbundle:
                             c_indxs.append(wire_map[register])
                         else:
@@ -749,7 +746,7 @@ class MatplotlibDrawer:
                 flow_op = isinstance(node.op, ControlFlowOp)
                 if flow_parent is not None:
                     node_data[node].inside_flow = True
-                    x_index = node_data[node].x_index + int(node_data[flow_parent].expr_width)
+                    x_index = node_data[node].x_index + node_data[flow_parent].expr_width
                 else:
                     node_data[node].inside_flow = False
                     x_index = curr_x_index
@@ -885,10 +882,10 @@ class MatplotlibDrawer:
                         zorder=PORDER_REGLINE,
                     )
                     self._ax.text(
-                        glob_data["x_offset"] + 0.24,
+                        glob_data["x_offset"] + 0.1,
                         y + 0.1,
                         str(this_clbit["register"].size),
-                        ha="center",
+                        ha="left",
                         va="bottom",
                         fontsize=0.8 * self._style["fs"],
                         color=self._style["tc"],
@@ -1147,10 +1144,8 @@ class MatplotlibDrawer:
 
         if isinstance(condition, expr.Expr):
 
-
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
-
 
             condition_bits = condition_resources(condition).clbits
             label = "[expr]"
@@ -1161,9 +1156,7 @@ class MatplotlibDrawer:
             # Registerless bits don't care whether cregbundle is set.
             cond_pos.extend(cond_xy[wire_map[bit] - first_clbit] for bit in registers.pop(None, ()))
             if self._cregbundle:
-                cond_pos.extend(
-                    cond_xy[wire_map[register] - first_clbit] for register in registers
-                )
+                cond_pos.extend(cond_xy[wire_map[register] - first_clbit] for register in registers)
             else:
                 cond_pos.extend(
                     cond_xy[wire_map[bit] - first_clbit]
@@ -1198,9 +1191,6 @@ class MatplotlibDrawer:
 
         xy_plot = []
         for val_bit, xy in zip(val_bits, cond_pos):
-            # This moves the condition line for ControlFlowOps over a touch to avoid
-            # hitting the cregbundle info
-            xy = (xy[0] + 0.3, xy[1]) if isinstance(node.op, ControlFlowOp) else xy
             fc = self._style["lc"] if override_fc or val_bit == "1" else self._style["bg"]
             box = glob_data["patches_mod"].Circle(
                 xy=xy,
@@ -1219,7 +1209,7 @@ class MatplotlibDrawer:
         # For IfElseOp, WhileLoopOp or SwitchCaseOp, place the condition line
         # near the left edge of the box
         if isinstance(node.op, ControlFlowOp):
-            qubit_b = (qubit_b[0] + 0.3, qubit_b[1] - (0.5 * HIG + 0.14))
+            qubit_b = (qubit_b[0], qubit_b[1] - (0.5 * HIG + 0.14))
 
         # display the label at the bottom of the lowest conditional and draw the double line
         xpos, ypos = clbit_b
@@ -1442,18 +1432,19 @@ class MatplotlibDrawer:
             )
         if c_xy:
             # annotate classical inputs
-            for bit, y in enumerate([x[1] for x in c_xy]):
-                self._ax.text(
-                    cxpos + 0.07 - 0.5 * wid,
-                    y,
-                    str(bit),
-                    ha="left",
-                    va="center",
-                    fontsize=self._style["fs"],
-                    color=node_data[node].gt,
-                    clip_on=True,
-                    zorder=PORDER_TEXT,
-                )
+            if self._cregbundle:
+                for bit, y in enumerate([x[1] for x in c_xy]):
+                    self._ax.text(
+                        cxpos + 0.07 - 0.5 * wid,
+                        y,
+                        str(bit),
+                        ha="left",
+                        va="center",
+                        fontsize=self._style["fs"],
+                        color=node_data[node].gt,
+                        clip_on=True,
+                        zorder=PORDER_TEXT,
+                    )
         if node_data[node].gate_text:
             gate_ypos = ypos + 0.5 * qubit_span
             if node_data[node].param_text:
@@ -1539,7 +1530,7 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
 
-            # Indicate type of op and if expression used, print below
+            # Indicate type of ControlFlowOp and if expression used, print below
             self._ax.text(
                 xpos - x_shift - 0.08,
                 ypos_max + 0.2 - y_shift,
