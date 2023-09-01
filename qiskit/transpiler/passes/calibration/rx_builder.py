@@ -36,6 +36,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
     A simple demo:
 
     .. code-block:: python
+    
        backend = FakeBelemV2()
        pm = PassManager(RXCalibrationBuilder(backend.target))
        qc = QuantumCircuit(1)
