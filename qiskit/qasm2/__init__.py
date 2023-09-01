@@ -116,7 +116,7 @@ file it occurred.
 .. autoexception:: QASM2ParseError
 
 When the exporters fail to export a circuit, likely because it has structure that cannot be
-represented by OpenQASM, they will also emit a custom error.
+represented by OpenQASM 2.0, they will also emit a custom error.
 
 .. autoexception:: QASM2ExportError
 

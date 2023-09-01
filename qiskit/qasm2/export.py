@@ -201,8 +201,8 @@ def dumps(circuit: QuantumCircuit, /) -> str:
 
 
 def _escape_name(name: str, prefix: str) -> str:
-    """Returns a valid OpenQASM identifier, using `prefix` as a prefix if necessary.  `prefix` must
-    itself be a valid identifier."""
+    """Returns a valid OpenQASM 2.0 identifier, using `prefix` as a prefix if necessary.  `prefix`
+    must itself be a valid identifier."""
     # Replace all non-ASCII-word characters (letters, digits, underscore) with the underscore.
     escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
     if (

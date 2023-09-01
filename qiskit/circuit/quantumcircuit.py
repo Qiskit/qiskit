@@ -1597,7 +1597,7 @@ class QuantumCircuit:
         filename: str | None = None,
         encoding: str | None = None,
     ) -> str | None:
-        """Return OpenQASM string.
+        """Return OpenQASM 2.0 string.
 
         .. seealso::
 
