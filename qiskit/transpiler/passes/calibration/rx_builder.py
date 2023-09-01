@@ -30,13 +30,14 @@ class RXCalibrationBuilder(CalibrationBuilder):
     """Add single-pulse RX calibrations that are bootstrapped from the SX calibration.
 
     .. note::
+
         Requirement: NormalizeRXAngles pass (one of the optimization passes).
 
     It is recommended to place this pass in the post-optimization stage of a passmanager.
     A simple demo:
 
     .. code-block:: python
-    
+
        backend = FakeBelemV2()
        pm = PassManager(RXCalibrationBuilder(backend.target))
        qc = QuantumCircuit(1)
