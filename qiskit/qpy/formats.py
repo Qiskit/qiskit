@@ -16,7 +16,6 @@
 
 import struct
 from collections import namedtuple
-from qiskit.qpy import common
 
 
 # FILE_HEADER
@@ -24,7 +23,7 @@ FILE_HEADER = namedtuple(
     "FILE_HEADER",
     ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_programs"],
 )
-FILE_HEADER_PACK = f"!6s{len(str(common.QPY_VERSION))}sBBBQ"
+FILE_HEADER_PACK = "!6s2sBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 # CIRCUIT_HEADER_V2

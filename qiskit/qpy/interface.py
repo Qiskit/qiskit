@@ -227,7 +227,7 @@ def load(
     )
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
-    qpy_version = int(data.qpy_version.decode(common.ENCODE))
+    qpy_version = int(data.qpy_version)
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
