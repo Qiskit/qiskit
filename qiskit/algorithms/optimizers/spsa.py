@@ -666,12 +666,14 @@ class SPSA(Optimizer):
         initial_point=None,
     ):
         """Perform optimization.
+
         Args:
             num_vars (int): Number of parameters to be optimized.
             objective_function (callable): A function that computes the objective function.
             gradient_function (callable): Not supported for SPSA.
             variable_bounds (list[(float, float)]): Not supported for SPSA.
             initial_point (numpy.ndarray[float]): Initial point.
+
         Returns:
             tuple: point, value, nfev
                point: is a 1D numpy.ndarray[float] containing the solution
