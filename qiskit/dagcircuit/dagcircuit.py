@@ -73,6 +73,9 @@ class DAGCircuit:
         # Circuit metadata
         self.metadata = {}
 
+        # Cache of dag op node sort keys
+        self._key_cache = {}
+
         # Set of wires (Register,idx) in the dag
         self._wires = set()
 
@@ -632,6 +635,7 @@ class DAGCircuit:
         target_dag.duration = self.duration
         target_dag.unit = self.unit
         target_dag.metadata = self.metadata
+        target_dag._key_cache = self._key_cache
 
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
@@ -914,7 +918,7 @@ class DAGCircuit:
 
     def depth(self, *, recurse: bool = False):
         """Return the circuit depth.  If there is control flow present, this count may only be an
-        estimate, as the complete control-flow path cannot be staticly known.
+        estimate, as the complete control-flow path cannot be statically known.
 
         Args:
             recurse: if ``True``, then recurse into control-flow operations.  For loops

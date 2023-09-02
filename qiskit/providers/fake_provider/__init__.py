@@ -99,7 +99,8 @@ Fake V2 Backends
 ----------------
 
 Fake V2 backends are fake backends with IBM Quantum systems snapshots implemented with
-:mod:`~qiskit.providers.backend.BackendV2` interface.
+:mod:`~qiskit.providers.backend.BackendV2` interface.  They are all subclasses of
+:class:`FakeBackendV2`.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -224,6 +225,18 @@ Special fake backends are fake backends that were created for special testing pu
     FakeMumbaiFractionalCX
     ConfigurableFakeBackend
 
+Fake Backend Base Classes
+=========================
+
+The fake backends based on IBM hardware are based on a set of base classes:
+
+.. currentmodule:: qiskit.providers.fake_provider.fake_backend
+.. autoclass:: qiskit.providers.fake_provider.fake_backend.FakeBackendV2
+
+.. currentmodule:: qiskit.providers.fake_provider
+.. autoclass:: FakeBackend
+.. autoclass:: FakeQasmBackend
+.. autoclass:: FakePulseBackend
 """
 
 # Fake job and qobj classes
@@ -231,6 +244,7 @@ from .fake_job import FakeJob
 from .fake_qobj import FakeQobj
 
 # Base classes for fake backends
+from . import fake_backend
 from .fake_backend import FakeBackend
 from .fake_qasm_backend import FakeQasmBackend
 from .fake_pulse_backend import FakePulseBackend
