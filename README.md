@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
 [![Minimum rustc 1.64.0](https://img.shields.io/badge/rustc-1.64.0+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
-[![Downloads](https://pepy.tech/badge/qiskit-terra)](https://pypi.org/project/qiskit-terra/)<!--- long-description-skip-end -->
+[![Downloads](https://static.pepy.tech/badge/qiskit)](https://pypi.org/project/qiskit-terra/)<!--- long-description-skip-end -->
 [![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
 
 **Qiskit**  is an open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives.
@@ -121,7 +121,7 @@ hardware or simulators to Qiskit. The backend class includes a common interface 
 * https://github.com/qiskit-community/qiskit-quantinuum-provider
 * https://github.com/rigetti/qiskit-rigetti
 
-<!-- This is not an exhasutive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
+<!-- This is not an exhaustive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
 
 You can refer to the documentation of these packages for further instructions
 on how to get access and use these systems.
