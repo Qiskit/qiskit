@@ -13,7 +13,7 @@
 """
 .. currentmodule:: qiskit.utils.optionals
 
-Qiskit Terra, and many of the other Qiskit components, have several features that are enabled only
+Qiskit has several features that are enabled only
 if certain *optional* dependencies are satisfied.  This module is a collection of objects that can
 be used to test if certain functionality is available, and optionally raise
 :class:`.MissingOptionalLibraryError` if the functionality is not available.
@@ -30,7 +30,7 @@ Qiskit Components
 
     * - .. py:data:: HAS_AER
       - :mod:`Qiskit Aer <qiskit.providers.aer>` provides high-performance simulators for the
-        quantum circuits constructed within Qiskit Terra.
+        quantum circuits constructed within Qiskit.
 
     * - .. py:data:: HAS_IBMQ
       - The :mod:`Qiskit IBMQ Provider <qiskit.providers.ibmq>` is used for accessing IBM Quantum
@@ -92,12 +92,12 @@ External Python Libraries
         interactivity features.
 
     * - .. py:data:: HAS_MATPLOTLIB
-      - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.
+      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.
         Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
         be installed in order to use them.
 
     * - .. py:data:: HAS_NETWORKX
-      - No longer used by Terra.  Internally, Qiskit now uses the high-performance `rustworkx
+      - No longer used by Qiskit.  Internally, Qiskit now uses the high-performance `rustworkx
         <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
         change-over period, it was sometimes convenient to convert things into the Python-only
         `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
@@ -132,7 +132,7 @@ External Python Libraries
         <https://qiskit.github.io/qiskit-qasm3-import>`__.
 
     * - .. py:data:: HAS_SEABORN
-      - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.  Some
+      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.  Some
         of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
         in order to use them.
 
@@ -156,13 +156,13 @@ External Python Libraries
         :class:`~.circuit.Parameter`\\ s if available.
 
     * - .. py:data:: HAS_TESTTOOLS
-      - Qiskit Terra's test suite has more advanced functionality available if the optional
+      - Qiskit's test suite has more advanced functionality available if the optional
         `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
         only needed for Qiskit developers.
 
     * - .. py:data:: HAS_TWEEDLEDUM
       - `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
-        synthesis and optimization of circuits that may involve classical oracles.  Qiskit Terra's
+        synthesis and optimization of circuits that may involve classical oracles.  Qiskit's
         :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
         the :class:`.AmplificationProblem`.
 

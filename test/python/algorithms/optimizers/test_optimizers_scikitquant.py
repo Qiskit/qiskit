@@ -69,7 +69,8 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             self.skipTest(str(ex))
 
     @unittest.skipIf(
-        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        # NB: numpy.__version__ may contain letters, e.g. "1.26.0b1"
+        tuple(map(int, numpy.__version__.split(".")[:2])) >= (1, 24),
         "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
     )
     def test_snobfit(self):
@@ -81,7 +82,8 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             self.skipTest(str(ex))
 
     @unittest.skipIf(
-        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        # NB: numpy.__version__ may contain letters, e.g. "1.26.0b1"
+        tuple(map(int, numpy.__version__.split(".")[:2])) >= (1, 24),
         "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
     )
     @data((None,), ([(-1, 1), (None, None)],))
