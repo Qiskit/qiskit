@@ -87,7 +87,7 @@ from qiskit.pulse.exceptions import PulseError
 class LogicalElement(metaclass=ABCMeta):
     """Base class of logical elements.
 
-    ``LogicalElement``s are components of the quantum HW which can be controlled by the user
+    ``LogicalElement``s are abstraction of the quantum HW component which can be controlled by the user
     ("apply pulses on").
     Every played pulse is associated with a ``LogicalElement`` on which it is being played.
     Logical elements identified by their index, and a unique name for each class such that the
