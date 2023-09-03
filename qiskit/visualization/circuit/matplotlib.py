@@ -320,7 +320,7 @@ class MatplotlibDrawer:
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
 
         # get layer widths - flow gates are initialized here
-        layer_widths = self._get_layer_widths(node_data, self._circuit, wire_map, glob_data)
+        layer_widths = self._get_layer_widths(node_data, wire_map, self._circuit, glob_data)
 
         # load the coordinates for each top level gate and compute number of folds.
         # coordinates for flow gates are loaded before draw_ops
@@ -412,7 +412,7 @@ class MatplotlibDrawer:
             matplotlib_close_if_inline(mpl_figure)
             return mpl_figure
 
-    def _get_layer_widths(self, node_data, outer_circuit, wire_map, glob_data):
+    def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
@@ -529,21 +529,6 @@ class MatplotlibDrawer:
                                 for outer, inner in zip(node.qargs, circuit.qubits)
                             }
                         )
-                        if self._cregbundle:
-                            pass
-                        #     for outer, inner in zip(node.cargs, circuit.clbits):
-                        #         outer_reg = get_bit_register(outer_circuit, outer)
-                        #         inner_reg = get_bit_register(outer_circuit, inner)
-                        #         print(inner_reg, outer_reg)
-                        #         flow_wire_map.update({inner_reg: wire_map[outer_reg]})
-                        # else:
-                        #     flow_wire_map.update(
-                        #         {
-                        #             inner: wire_map[outer]
-                        #             for outer, inner in zip(node.cargs, circuit.clbits)
-                        #         }
-                        #     )
-
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, nodes = _get_layered_instructions(
@@ -566,14 +551,15 @@ class MatplotlibDrawer:
                         self._flow_drawers[node].append(flow_drawer)
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
-                        flow_widths = flow_drawer._get_layer_widths(node_data, outer_circuit, wire_map, glob_data)
+                        flow_widths = flow_drawer._get_layer_widths(
+                            node_data, wire_map, outer_circuit, glob_data
+                        )
                         layer_widths.update(flow_widths)
 
                         # Gates within a SwitchCaseOp need to know which case they are in
                         for flow_layer in nodes:
                             for flow_node in flow_layer:
-                                if isinstance(node.op, SwitchCaseOp):
-                                    node_data[flow_node].case_num = circ_num
+                                node_data[flow_node].case_num = circ_num
 
                         # Add up the width values of the same flow_parent that are not -1
                         # to get the raw_gate_width
@@ -697,7 +683,6 @@ class MatplotlibDrawer:
         clbits_dict,
         glob_data,
         flow_parent=None,
-        is_not_first_block=None,
     ):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
@@ -706,19 +691,13 @@ class MatplotlibDrawer:
             curr_x_index = prev_x_index + 1
             l_width = []
             for node in layer:
-                # For gates inside if, else, while, or case set the x_index and if it's an
-                # else or case increment by if width. For additional cases increment by
-                # width of previous cases.
+                # For gates inside a flow op set the x_index and if it's an else or case,
+                # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
                     node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
-                    if is_not_first_block:
-                        # Add index space for else or first case if switch/case
-                        node_data[node].x_index += int(node_data[flow_parent].width[0]) + 1
-
-                        # Add index space for remaining cases for switch/case
-                        if node_data[node].case_num > 1:
-                            for width in node_data[flow_parent].width[1 : node_data[node].case_num]:
-                                node_data[node].x_index += int(width) + 1
+                    if node_data[node].case_num > 0:
+                        for width in node_data[flow_parent].width[: node_data[node].case_num]:
+                            node_data[node].x_index += int(width) + 1
 
                 # get qubit indexes
                 q_indxs = []
@@ -990,7 +969,6 @@ class MatplotlibDrawer:
                     clbits_dict,
                     glob_data,
                     flow_parent=flow_drawer._flow_parent,
-                    is_not_first_block=(i > 0),
                 )
                 # Recurse for ControlFlowOps inside the flow_drawer
                 flow_drawer._add_nodes_and_coords(
