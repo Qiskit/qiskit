@@ -157,7 +157,12 @@ class Pauli(BasePauli):
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
     def __init__(
-        self, data: str | tuple | Pauli | ScalarOp | None = None, x=None, *, z=None, label=None
+        self,
+        data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None,
+        x=None,
+        *,
+        z=None,
+        label=None,
     ):
         """Initialize the Pauli.
 
@@ -712,7 +717,7 @@ class Pauli(BasePauli):
             if not isinstance(inner.operation, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in inner.qubits]
+                    qargs = [instr.find_bit(tup).index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
 
