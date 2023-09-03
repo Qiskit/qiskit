@@ -285,7 +285,7 @@ class QasmBackendConfiguration:
                 backend is a simulator
             credits_required (bool): True if backend requires credits to run a
                 job.
-            online_date (datetime): The date that the device went online
+            online_date (datetime.datetime): The date that the device went online
             display_name (str): Alternate name field for the backend
             description (str): A description for the backend
             tags (list): A list of string tags to describe the backend
@@ -593,7 +593,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                 backend is a simulator
             credits_required (bool): True if backend requires credits to run a
                 job.
-            online_date (datetime): The date that the device went online
+            online_date (datetime.datetime): The date that the device went online
             display_name (str): Alternate name field for the backend
             description (str): A description for the backend
             tags (list): A list of string tags to describe the backend
