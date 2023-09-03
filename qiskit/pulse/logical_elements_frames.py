@@ -415,9 +415,11 @@ class MixedFrame:
     in some cases using ``MixedFrame``s can better convey the meaning of the code, and change the
     compilation process. One example are shift/set frequency/phase instructions which are not
     broadcasted to other ``MixedFrame``s if applied on a specific ``MixedFrame`` (unlike the behavior
-    of ``Frame``). A second example is the ``CRMixedFrame`` which indicates to the compiler what is the
-    purpose of the pulses played on the mixed frame, and allows for extra validation - namely, validating
-    that qubits are coupled.
+    of ``Frame``). User can also subclass ``MixedFrame`` for a particular combination of
+    logical elements and frames as if a syntactic sugar. This might increase the readability
+    of user pulse program. Such example may include cross resonance architecture,
+    in which a pulse is played on a target qubit frame and applied to a control qubit
+    logical element.
     """
 
     def __init__(self, logical_element: LogicalElement, frame: Frame):
