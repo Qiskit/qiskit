@@ -23,7 +23,7 @@ FILE_HEADER = namedtuple(
     "FILE_HEADER",
     ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_programs"],
 )
-FILE_HEADER_PACK = "!6s2sBBBQ"
+FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 # CIRCUIT_HEADER_V2
@@ -118,7 +118,7 @@ CIRCUIT_INSTRUCTION_V3 = namedtuple(
         "condition_value",
         "num_ctrl_qubits",
         "ctrl_state",
-        "duration_size",
+        "duration",
         "unit_size",
     ],
 )
