@@ -60,7 +60,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [16, 7, 11, 12, 13])
+        self.assertEqual([layout[q] for q in circuit.qubits], [11, 10, 16, 5, 17])
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -158,7 +158,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [13, 10, 11, 12, 17, 14, 22, 26, 5, 16, 25, 19, 7, 8]
+            [layout[q] for q in qc.qubits], [11, 19, 18, 16, 26, 8, 21, 1, 5, 15, 3, 12, 14, 13]
         )
 
     # pylint: disable=line-too-long
