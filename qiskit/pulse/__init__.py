@@ -169,7 +169,7 @@ from qiskit.pulse.library import (
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
-from qiskit.pulse.logical_elements_frames import (
+from qiskit.pulse.model import (
     LogicalElement,
     Qubit,
     Coupler,
@@ -178,5 +178,4 @@ from qiskit.pulse.logical_elements_frames import (
     QubitFrame,
     MeasurementFrame,
     MixedFrame,
-    CRMixedFrame,
 )
