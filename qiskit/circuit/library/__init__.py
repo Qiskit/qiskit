@@ -196,7 +196,6 @@ set the amount of qubits involved at instantiation time.
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   MGCupDiag
    RVGate
    PauliGate
    LinearFunction
@@ -524,7 +523,6 @@ from .generalized_gates import (
     UCRXGate,
     UCRYGate,
     UCRZGate,
-    MCGupDiag,
 )
 from .pauli_evolution import PauliEvolutionGate
 from .hamiltonian_gate import HamiltonianGate

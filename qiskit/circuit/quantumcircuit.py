@@ -4236,6 +4236,7 @@ class QuantumCircuit:
 
         Args:
             params: The state to initialize to, can be either of the following.
+
                 * Statevector or vector of complex amplitudes to initialize to.
                 * Labels of basis states of the Pauli eigenstates Z, X, Y. See
                   :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
