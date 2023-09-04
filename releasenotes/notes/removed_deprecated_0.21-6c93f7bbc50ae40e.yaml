@@ -1,0 +1,48 @@
+---
+upgrade:
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :func:`~qiskit.execute_function.execute` doesn't support
+    `qobj_id` and `qobj_header` arguments.
+    
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :class:`.transpiler.passes.ALAPSchedule` is removed instead
+    use :class:`.transpiler.passes.ALAPScheduleAnalysis`.
+    
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :class:`.transpiler.passes.ASAPSchedule` is removed instead
+    use :class:`.transpiler.passes.ASAPScheduleAnalysis`.
+    
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :class:`.transpiler.passes.DynamicalDecoupling` is removed instead
+    use :class:`.transpiler.passes.PadDynamicalDecoupling`.
+        
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :class:`.transpiler.passes.AlignMeasures` is removed instead
+    use :class:`.transpiler.passes.ConstrainedReschedule`.
+
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :class:`.transpiler.passes.CXDirection` is removed instead
+    use generic :class:`.transpiler.passes.GateDirection`.
+
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    :class:`.transpiler.passes.CheckCXDirection` is removed instead
+    use generic :class:`.transpiler.passes.CheckGateDirection`.
+
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    Classes :class:`.pulse.transforms.AlignmentKind`, :class:`.pulse.transforms.AlignEquispaced`,
+    and :class:`.pulse.transforms.AlignFunc` don't support :meth:`to_dict`.
+
+  - |
+    Deprecated code and tests in 0.21 are removed.
+    In :func:`~qiskit.qpy.dump` argument `circuits` is aliased with `programs`.
+    Refer to `#10748 <https://github.com/Qiskit/qiskit/issues/10748>`
+
+    
