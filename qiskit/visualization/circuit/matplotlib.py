@@ -489,7 +489,10 @@ class MatplotlibDrawer:
                     gate_width = 0.0
                     expr_width = 0.0
 
-                    if getattr(op, "condition", None) and isinstance(op.condition, expr.Expr):
+                    if (isinstance(op, SwitchCaseOp) and isinstance(op.target, expr.Expr)) or (
+                        getattr(op, "condition", None) and isinstance(op.condition, expr.Expr)
+                    ):
+                        condition = op.target if isinstance(op, SwitchCaseOp) else op.condition
                         builder = QASM3Builder(
                             self._circuit,
                             includeslist=("stdgates.inc",),
@@ -499,9 +502,7 @@ class MatplotlibDrawer:
                         )
                         stream = StringIO()
                         builder.build_classical_declarations()
-                        BasicPrinter(stream, indent="  ").visit(
-                            builder.build_expression(op.condition)
-                        )
+                        BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
                         expr_text = stream.getvalue()
                         # Truncate expr_text so that first gate is no more than 3 x_index's over
                         if len(expr_text) > 27:
@@ -531,27 +532,21 @@ class MatplotlibDrawer:
 
                     # Now process the circuits inside the ControlFlowOps
                     for circ_num, circuit in enumerate(circuit_list):
-                        raw_gate_width = expr_width
+                        # Only add expr_width for if, while, and switch
+                        raw_gate_width = expr_width if circ_num == 0 else 0.0
 
                         # Depth of nested ControlFlowOp used for color of box
                         if self._flow_parent is not None:
                             node_data[node].nest_depth = node_data[self._flow_parent].nest_depth + 1
 
                         # Update the wire_map with the qubits from the inner circuit
-                        flow_wire_map = {}
+                        flow_wire_map = wire_map.copy()
                         flow_wire_map.update(
                             {
                                 inner: wire_map[outer]
                                 for outer, inner in zip(node.qargs, circuit.qubits)
                             }
                         )
-                        flow_wire_map.update(
-                            {
-                                inner: wire_map[outer]
-                                for outer, inner in zip(node.cargs, circuit.clbits)
-                            }
-                        )
-
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, nodes = _get_layered_instructions(
@@ -596,7 +591,15 @@ class MatplotlibDrawer:
                         if circ_num > 0:
                             raw_gate_width += 0.045
 
-                        node_data[node].width.append(raw_gate_width)
+                        # print("raw", raw_gate_width)
+                        # print("gate", gate_width)
+                        # print(node.op)
+                        # if expr_width > 0.0:
+                        #    raw_gate_width = int(raw_gate_width)
+                        if not isinstance(op, ForLoopOp) and circ_num == 0:
+                            node_data[node].width.append(raw_gate_width - (expr_width % 1))
+                        else:
+                            node_data[node].width.append(raw_gate_width)
 
                 # Otherwise, standard gate or multiqubit gate
                 else:
@@ -615,6 +618,7 @@ class MatplotlibDrawer:
                     node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
                 layer_widths[node][0] = int(widest_box) + 1
+            # print("l widths", layer_widths)
 
         return layer_widths
 
@@ -1432,19 +1436,18 @@ class MatplotlibDrawer:
             )
         if c_xy:
             # annotate classical inputs
-            if self._cregbundle:
-                for bit, y in enumerate([x[1] for x in c_xy]):
-                    self._ax.text(
-                        cxpos + 0.07 - 0.5 * wid,
-                        y,
-                        str(bit),
-                        ha="left",
-                        va="center",
-                        fontsize=self._style["fs"],
-                        color=node_data[node].gt,
-                        clip_on=True,
-                        zorder=PORDER_TEXT,
-                    )
+            for bit, y in enumerate([x[1] for x in c_xy]):
+                self._ax.text(
+                    cxpos + 0.07 - 0.5 * wid,
+                    y,
+                    str(bit),
+                    ha="left",
+                    va="center",
+                    fontsize=self._style["fs"],
+                    color=node_data[node].gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
         if node_data[node].gate_text:
             gate_ypos = ypos + 0.5 * qubit_span
             if node_data[node].param_text:
