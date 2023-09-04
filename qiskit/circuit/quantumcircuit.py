@@ -15,12 +15,8 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import collections.abc
 import copy
-import itertools
 import multiprocessing as mp
-import string
-import re
 import warnings
 import typing
 import math
@@ -49,7 +45,6 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_func
-
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .classical import expr
@@ -66,7 +61,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-from .tools import pi_check
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -104,23 +98,6 @@ ClbitSpecifier = Union[
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
-
-# Regex pattern to match valid OpenQASM identifiers
-VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
-QASM2_RESERVED = {
-    "OPENQASM",
-    "qreg",
-    "creg",
-    "include",
-    "gate",
-    "opaque",
-    "U",
-    "CX",
-    "measure",
-    "reset",
-    "if",
-    "barrier",
-}
 
 
 class QuantumCircuit:
@@ -216,10 +193,6 @@ class QuantumCircuit:
 
     instances = 0
     prefix = "circuit"
-
-    # Class variable OPENQASM header
-    header = "OPENQASM 2.0;"
-    extension_lib = 'include "qelib1.inc";'
 
     def __init__(
         self,
@@ -370,6 +343,24 @@ class QuantumCircuit:
         inserted during routing.
         """
         return self._layout
+
+    @classmethod
+    @property
+    @deprecate_func(
+        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+    )
+    def header(cls) -> str:
+        """The OpenQASM 2.0 header statement."""
+        return "OPENQASM 2.0;"
+
+    @classmethod
+    @property
+    @deprecate_func(
+        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+    )
+    def extension_lib(cls) -> str:
+        """The standard OpenQASM 2 import statement."""
+        return 'include "qelib1.inc";'
 
     @property
     def data(self) -> QuantumCircuitData:
@@ -1608,7 +1599,13 @@ class QuantumCircuit:
         filename: str | None = None,
         encoding: str | None = None,
     ) -> str | None:
-        """Return OpenQASM string.
+        """Return OpenQASM 2.0 string.
+
+        .. seealso::
+
+            :func:`.qasm2.dump` and :func:`.qasm2.dumps`
+                The preferred entry points to the OpenQASM 2 export capabilities.  These match the
+                interface for other serialisers in Qiskit.
 
         Args:
             formatted (bool): Return formatted Qasm string.
@@ -1629,126 +1626,12 @@ class QuantumCircuit:
             QASM2ExportError: If circuit has free parameters.
             QASM2ExportError: If an operation that has no OpenQASM 2 representation is encountered.
         """
-        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+        from qiskit import qasm2  # pylint: disable=cyclic-import
 
-        if self.num_parameters > 0:
-            raise QASM2ExportError(
-                "Cannot represent circuits with unbound parameters in OpenQASM 2."
-            )
-
-        existing_gate_names = {
-            "barrier",
-            "measure",
-            "reset",
-            "u3",
-            "u2",
-            "u1",
-            "cx",
-            "id",
-            "u0",
-            "u",
-            "p",
-            "x",
-            "y",
-            "z",
-            "h",
-            "s",
-            "sdg",
-            "t",
-            "tdg",
-            "rx",
-            "ry",
-            "rz",
-            "sx",
-            "sxdg",
-            "cz",
-            "cy",
-            "swap",
-            "ch",
-            "ccx",
-            "cswap",
-            "crx",
-            "cry",
-            "crz",
-            "cu1",
-            "cp",
-            "cu3",
-            "csx",
-            "cu",
-            "rxx",
-            "rzz",
-            "rccx",
-            "rc3x",
-            "c3x",
-            "c3sx",  # This is the Qiskit gate name, but the qelib1.inc name is 'c3sqrtx'.
-            "c4x",
-        }
-
-        # Mapping of instruction name to a pair of the source for a definition, and an OQ2 string
-        # that includes the `gate` or `opaque` statement that defines the gate.
-        gates_to_define: OrderedDict[str, tuple[Instruction, str]] = OrderedDict()
-
-        regless_qubits = [bit for bit in self.qubits if not self.find_bit(bit).registers]
-        regless_clbits = [bit for bit in self.clbits if not self.find_bit(bit).registers]
-        dummy_registers: list[QuantumRegister | ClassicalRegister] = []
-        if regless_qubits:
-            dummy_registers.append(QuantumRegister(name="qregless", bits=regless_qubits))
-        if regless_clbits:
-            dummy_registers.append(ClassicalRegister(name="cregless", bits=regless_clbits))
-        register_escaped_names: dict[str, QuantumRegister | ClassicalRegister] = {}
-        for regs in (self.qregs, self.cregs, dummy_registers):
-            for reg in regs:
-                register_escaped_names[
-                    _make_unique(_qasm_escape_name(reg.name, "reg_"), register_escaped_names)
-                ] = reg
-        bit_labels: dict[Qubit | Clbit, str] = {
-            bit: "%s[%d]" % (name, idx)
-            for name, register in register_escaped_names.items()
-            for (idx, bit) in enumerate(register)
-        }
-        register_definitions_qasm = "".join(
-            f"{'qreg' if isinstance(reg, QuantumRegister) else 'creg'} {name}[{reg.size}];\n"
-            for name, reg in register_escaped_names.items()
-        )
-        instruction_calls = []
-        for instruction in self._data:
-            operation = instruction.operation
-            if operation.name == "measure":
-                qubit = instruction.qubits[0]
-                clbit = instruction.clbits[0]
-                instruction_qasm = f"measure {bit_labels[qubit]} -> {bit_labels[clbit]};"
-            elif operation.name == "reset":
-                instruction_qasm = f"reset {bit_labels[instruction.qubits[0]]};"
-            elif operation.name == "barrier":
-                if not instruction.qubits:
-                    # Barriers with no operands are invalid in (strict) OQ2, and the statement
-                    # would have no meaning anyway.
-                    continue
-                qargs = ",".join(bit_labels[q] for q in instruction.qubits)
-                instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
-            else:
-                instruction_qasm = _qasm2_custom_operation_statement(
-                    instruction, existing_gate_names, gates_to_define, bit_labels
-                )
-            instruction_calls.append(instruction_qasm)
-        instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
-        gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
-
-        out = "".join(
-            (
-                self.header,
-                "\n",
-                self.extension_lib,
-                "\n",
-                gate_definitions_qasm,
-                register_definitions_qasm,
-                instructions_qasm,
-            )
-        )
-
-        if filename:
+        out = qasm2.dumps(self)
+        if filename is not None:
             with open(filename, "w+", encoding=encoding) as file:
-                file.write(out)
+                print(out, file=file)
 
         if formatted:
             _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
@@ -1765,7 +1648,9 @@ class QuantumCircuit:
             )
             print(code)
             return None
-        return out
+        # The old `QuantumCircuit.qasm()` method included a terminating new line that `qasm2.dumps`
+        # doesn't, so for full compatibility we add it back here.
+        return out + "\n"
 
     def draw(
         self,
@@ -5565,195 +5450,6 @@ class _ParameterBindsSequence:
         if self.mapping_cache is None:
             self.mapping_cache = dict(zip(self.parameters, self.values))
         return self.mapping_cache
-
-
-# Used by the OQ2 exporter.  Just needs to have enough parameters to support the largest standard
-# (non-controlled) gate in our standard library.  We have to use the same `Parameter` instances each
-# time so the equality comparisons will work.
-_QASM2_FIXED_PARAMETERS = [Parameter("param0"), Parameter("param1"), Parameter("param2")]
-
-
-def _qasm2_custom_operation_statement(
-    instruction, existing_gate_names, gates_to_define, bit_labels
-):
-    operation = _qasm2_define_custom_operation(
-        instruction.operation, existing_gate_names, gates_to_define
-    )
-    # Insert qasm representation of the original instruction
-    if instruction.clbits:
-        bits = itertools.chain(instruction.qubits, instruction.clbits)
-    else:
-        bits = instruction.qubits
-    bits_qasm = ",".join(bit_labels[j] for j in bits)
-    instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
-    return instruction_qasm
-
-
-def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_define):
-    """Extract a custom definition from the given operation, and append any necessary additional
-    subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
-
-    Returns a potentially new :class:`.Instruction`, which should be used for the
-    :meth:`~.Instruction.qasm` call (it may have been renamed)."""
-    # pylint: disable=cyclic-import
-    from qiskit.circuit import library as lib
-    from qiskit.qasm2 import QASM2ExportError
-
-    if operation.name in existing_gate_names:
-        return operation
-
-    # Check instructions names or label are valid
-    escaped = _qasm_escape_name(operation.name, "gate_")
-    if escaped != operation.name:
-        operation = operation.copy(name=escaped)
-
-    # These are built-in gates that are known to be safe to construct by passing the correct number
-    # of `Parameter` instances positionally, and have no other information.  We can't guarantee that
-    # if they've been subclassed, though.  This is a total hack; ideally we'd be able to inspect the
-    # "calling" signatures of Qiskit `Gate` objects to know whether they're safe to re-parameterise.
-    known_good_parameterized = {
-        lib.PhaseGate,
-        lib.RGate,
-        lib.RXGate,
-        lib.RXXGate,
-        lib.RYGate,
-        lib.RYYGate,
-        lib.RZGate,
-        lib.RZXGate,
-        lib.RZZGate,
-        lib.XXMinusYYGate,
-        lib.XXPlusYYGate,
-        lib.UGate,
-        lib.U1Gate,
-        lib.U2Gate,
-        lib.U3Gate,
-    }
-
-    # In known-good situations we want to use a manually parametrised object as the source of the
-    # definition, but still continue to return the given object as the call-site object.
-    if type(operation) in known_good_parameterized:
-        parameterized_operation = type(operation)(*_QASM2_FIXED_PARAMETERS[: len(operation.params)])
-    elif hasattr(operation, "_qasm2_decomposition"):
-        new_op = operation._qasm2_decomposition()
-        parameterized_operation = operation = new_op.copy(
-            name=_qasm_escape_name(new_op.name, "gate_")
-        )
-    else:
-        parameterized_operation = operation
-
-    # If there's an _equal_ operation in the existing circuits to be defined, then our job is done.
-    previous_definition_source, _ = gates_to_define.get(operation.name, (None, None))
-    if parameterized_operation == previous_definition_source:
-        return operation
-
-    # Otherwise, if there's a naming clash, we need a unique name.
-    if operation.name in gates_to_define:
-        operation = _rename_operation(operation)
-
-    new_name = operation.name
-
-    if parameterized_operation.params:
-        parameters_qasm = (
-            "(" + ",".join(f"param{i}" for i in range(len(parameterized_operation.params))) + ")"
-        )
-    else:
-        parameters_qasm = ""
-
-    if operation.num_qubits == 0:
-        raise QASM2ExportError(
-            f"OpenQASM 2 cannot represent '{operation.name}, which acts on zero qubits."
-        )
-    if operation.num_clbits != 0:
-        raise QASM2ExportError(
-            f"OpenQASM 2 cannot represent '{operation.name}', which acts on {operation.num_clbits}"
-            " classical bits."
-        )
-
-    qubits_qasm = ",".join(f"q{i}" for i in range(parameterized_operation.num_qubits))
-    parameterized_definition = getattr(parameterized_operation, "definition", None)
-    if parameterized_definition is None:
-        gates_to_define[new_name] = (
-            parameterized_operation,
-            f"opaque {new_name}{parameters_qasm} {qubits_qasm};",
-        )
-    else:
-        qubit_labels = {bit: f"q{i}" for i, bit in enumerate(parameterized_definition.qubits)}
-        body_qasm = " ".join(
-            _qasm2_custom_operation_statement(
-                instruction, existing_gate_names, gates_to_define, qubit_labels
-            )
-            for instruction in parameterized_definition.data
-        )
-
-        # if an inner operation has the same name as the actual operation, it needs to be renamed
-        if operation.name in gates_to_define:
-            operation = _rename_operation(operation)
-            new_name = operation.name
-
-        definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
-        gates_to_define[new_name] = (parameterized_operation, definition_qasm)
-    return operation
-
-
-def _rename_operation(operation):
-    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
-    new_name = f"{operation.name}_{id(operation)}"
-    updated_operation = operation.copy(name=new_name)
-    return updated_operation
-
-
-def _qasm_escape_name(name: str, prefix: str) -> str:
-    """Returns a valid OpenQASM identifier, using `prefix` as a prefix if necessary.  `prefix` must
-    itself be a valid identifier."""
-    # Replace all non-ASCII-word characters (letters, digits, underscore) with the underscore.
-    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
-    if (
-        not escaped_name
-        or escaped_name[0] not in string.ascii_lowercase
-        or escaped_name in QASM2_RESERVED
-    ):
-        escaped_name = prefix + escaped_name
-    return escaped_name
-
-
-def _instruction_qasm2(operation):
-    """Return an OpenQASM 2 string for the instruction."""
-    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
-
-    if operation.name == "c3sx":
-        qasm2_call = "c3sqrtx"
-    else:
-        qasm2_call = operation.name
-    if operation.params:
-        qasm2_call = "{}({})".format(
-            qasm2_call,
-            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
-        )
-    if operation.condition is not None:
-        if not isinstance(operation.condition[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
-            )
-        qasm2_call = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
-        )
-    return qasm2_call
-
-
-def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
-    """Generate a name by suffixing the given stem that is unique within the defined set."""
-    if name not in already_defined:
-        return name
-    used = {in_use[len(name) :] for in_use in already_defined if in_use.startswith(name)}
-    characters = (string.digits + string.ascii_letters) if name else string.ascii_letters
-    for parts in itertools.chain.from_iterable(
-        itertools.product(characters, repeat=n) for n in itertools.count(1)
-    ):
-        suffix = "".join(parts)
-        if suffix not in used:
-            return name + suffix
-    # This isn't actually reachable because the above loop is infinite.
-    return name
 
 
 def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:

@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use ahash;
-use hashbrown::HashMap;
 use indexmap::IndexMap;
 use ndarray::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
@@ -149,19 +148,18 @@ impl FrontLayer {
     }
 }
 
-/// This is largely similar to the `FrontLayer` struct, but does not need to track the insertion
-/// order of the nodes, and can have more than one node on each active qubit.  This does not have a
-/// `remove` method (and its data structures aren't optimised for fast removal), since the extended
-/// set is built from scratch each time a new gate is routed.
+/// This is largely similar to the `FrontLayer` struct but can have more than one node on each active
+/// qubit.  This does not have `remove` method (and its data structures aren't optimised for fast
+/// removal), since the extended set is built from scratch each time a new gate is routed.
 pub struct ExtendedSet {
-    nodes: HashMap<NodeIndex, [usize; 2]>,
+    nodes: IndexMap<NodeIndex, [usize; 2], ahash::RandomState>,
     qubits: Vec<Vec<usize>>,
 }
 
 impl ExtendedSet {
     pub fn new(num_qubits: usize, max_size: usize) -> Self {
         ExtendedSet {
-            nodes: HashMap::with_capacity(max_size),
+            nodes: IndexMap::with_capacity_and_hasher(max_size, ahash::RandomState::default()),
             qubits: vec![Vec::new(); num_qubits],
         }
     }
@@ -212,8 +210,8 @@ impl ExtendedSet {
             return 0.0;
         }
         self.nodes
-            .iter()
-            .map(|(_, &[l_a, l_b])| dist[[layout.logic_to_phys[l_a], layout.logic_to_phys[l_b]]])
+            .values()
+            .map(|&[l_a, l_b]| dist[[layout.logic_to_phys[l_a], layout.logic_to_phys[l_b]]])
             .sum::<f64>()
             / self.nodes.len() as f64
     }
