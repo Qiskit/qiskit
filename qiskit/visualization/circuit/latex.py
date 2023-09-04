@@ -19,13 +19,13 @@ import re
 from warnings import warn
 
 import numpy as np
-from qiskit.circuit import Clbit, Qubit, ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Clbit, Qubit, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.utils.deprecation import deprecate_arg
+
 
 from .qcstyle import load_style
 from ._utils import (
@@ -49,10 +49,6 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    @deprecate_arg("gregs", since="0.20.0")
-    @deprecate_arg("cregs", since="0.20.0")
-    @deprecate_arg("layout", since="0.20.0")
-    @deprecate_arg("global_phase", since="0.20.0")
     def __init__(  # pylint: disable=bad-docstring-quotes
         self,
         qubits,
@@ -62,12 +58,8 @@ class QCircuitImage:
         style=None,
         reverse_bits=False,
         plot_barriers=True,
-        layout=None,
         initial_state=False,
         cregbundle=None,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=False,
         circuit=None,
     ):
@@ -82,36 +74,16 @@ class QCircuitImage:
             reverse_bits (bool): when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
-            layout (Layout or None): If present, the layout information will be
-               included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers.
-            global_phase (float): Optional, the global phase for the circuit.
             circuit (QuantumCircuit): the circuit that's being displayed
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        del layout
-        del global_phase
+
         # This check should be removed when the 4 deprecations above are removed
-        if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the QCircuitImage class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs or []:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs or []:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
+
+        self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
 
