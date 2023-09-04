@@ -81,8 +81,6 @@ class QCircuitImage:
             ImportError: If pylatexenc is not installed
         """
 
-        # This check should be removed when the 4 deprecations above are removed
-
         self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits

@@ -72,6 +72,8 @@ class SuzukiTrotter(ProductFormula):
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
+        Raises:
+            ValueError: If order is not even
         """
 
         if order % 2 == 1:
