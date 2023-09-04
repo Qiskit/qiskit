@@ -17,7 +17,6 @@ A module for drawing circuits in ascii art or some other text representation
 from warnings import warn
 from shutil import get_terminal_size
 import collections
-import itertools
 import sys
 
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister
@@ -732,19 +731,7 @@ class TextDrawing:
         self.vertical_compression = vertical_compression
         self._wire_map = {}
 
-        for node in itertools.chain.from_iterable(self.nodes):
-            if node.cargs and node.op.name != "measure":
-                if cregbundle:
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
-                self.cregbundle = False
-                break
-        else:
-            self.cregbundle = True if cregbundle is None else cregbundle
+        self.cregbundle = cregbundle
 
         if encoding:
             self.encoding = encoding
@@ -1293,9 +1280,6 @@ class TextDrawing:
             flow_wire_map.update(
                 (inner, wire_map[outer]) for outer, inner in zip(node.qargs, circuit.qubits)
             )
-            flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.cargs, circuit.clbits)
-            )
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
@@ -1308,7 +1292,7 @@ class TextDrawing:
                     qubits[: len(self.qubits)],
                     self.clbits,
                     self.cregbundle,
-                    circuit,
+                    self._circuit,
                     flow_wire_map,
                 )
                 for layer_node in layer_nodes:

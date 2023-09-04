@@ -17,7 +17,6 @@
 import collections
 import itertools
 import re
-from warnings import warn
 
 import numpy as np
 
@@ -47,7 +46,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.extensions import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
-from qiskit.converters import circuit_to_dag
 
 from .qcstyle import load_style
 from ._utils import (
@@ -130,31 +128,7 @@ class MatplotlibDrawer:
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
-
-        def check_carg_in_circuit(circuit):
-            dag = circuit_to_dag(circuit)
-            for node in dag.op_nodes():
-                if getattr(node.op, "blocks", None):
-                    for block in node.op.blocks:
-                        if check_carg_in_circuit(block) is False:
-                            return False
-                if (
-                    node.cargs
-                    and node.op.name != "measure"
-                    and not isinstance(node.op, ControlFlowOp)
-                ):
-                    if cregbundle:
-                        warn(
-                            "Cregbundle set to False since an instruction needs to refer"
-                            " to individual classical wire",
-                            RuntimeWarning,
-                            3,
-                        )
-                    return False
-
-            return True
-
-        self._cregbundle = False if cregbundle is False else check_carg_in_circuit(self._circuit)
+        self._cregbundle = cregbundle
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
@@ -958,7 +932,7 @@ class MatplotlibDrawer:
     ):
         """Add the nodes from ControlFlowOps and their coordinates to the main circuit"""
         for flow_drawers in self._flow_drawers.values():
-            for i, flow_drawer in enumerate(flow_drawers):
+            for flow_drawer in flow_drawers:
                 nodes += flow_drawer._nodes
                 flow_drawer._get_coords(
                     node_data,

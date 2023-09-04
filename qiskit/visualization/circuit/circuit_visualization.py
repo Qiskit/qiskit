@@ -33,6 +33,8 @@ from warnings import warn
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
+from qiskit.converters import circuit_to_dag
+from qiskit.circuit import ControlFlowOp
 from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib
@@ -62,6 +64,7 @@ def circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    encoding=None,
 ):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -156,6 +159,8 @@ def circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        encoding (str): Optional. Sets the encoding preference of the output.
+            Default: ``sys.stdout.encoding``.
 
     Returns:
         :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -243,6 +248,29 @@ def circuit_drawer(
             )
         cregbundle = False
 
+    def check_carg_in_circuit(circuit):
+        if cregbundle is False:
+            return False
+        dag = circuit_to_dag(circuit)
+        for node in dag.op_nodes():
+            if getattr(node.op, "blocks", None):
+                for block in node.op.blocks:
+                    if check_carg_in_circuit(block) is False:
+                        return False
+            if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
+                if cregbundle:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        3,
+                    )
+                return False
+
+        return True
+
+    cregbundle = check_carg_in_circuit(circuit)
+
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -257,6 +285,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            encoding=encoding,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
