@@ -761,7 +761,7 @@ class TestUnrollAllInstructions(QiskitTestCase):
     def test_unroll_snapshot(self):
         """test unroll snapshot"""
         num_qubits = self.circuit.num_qubits
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             instr = Snapshot("0", num_qubits=num_qubits)
         self.circuit.append(instr, range(num_qubits))
         self.ref_circuit.append(instr, range(num_qubits))

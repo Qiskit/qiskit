@@ -59,7 +59,7 @@ class TestUCGate(QiskitTestCase):
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             # TODO: change to directly appending UCGate once deprecation period of the method is over
             qc.uc(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
 

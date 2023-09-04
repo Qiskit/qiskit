@@ -4374,6 +4374,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, compose the circuit with a qiskit.circuit.library.Diagonal circuit.",
+        pending=True,
     )
     def diagonal(self, diag, qubit):
         """Attach a diagonal gate to a circuit.
@@ -4421,6 +4422,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.Isometry to the circuit.",
+        pending=True,
     )
     def iso(
         self,
@@ -4489,6 +4491,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.HamiltonianGate to the circuit.",
+        pending=True,
     )
     def hamiltonian(self, operator, time, qubits, label=None):
         """Apply hamiltonian evolution to qubits.
@@ -4520,6 +4523,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCGate to the circuit.",
+        pending=True,
     )
     def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
         """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
@@ -4586,6 +4590,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRXGate to the circuit.",
+        pending=True,
     )
     def ucrx(
         self,
@@ -4645,6 +4650,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRYGate to the circuit.",
+        pending=True,
     )
     def ucry(
         self,
@@ -4704,6 +4710,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRZGate to the circuit.",
+        pending=True,
     )
     def ucrz(
         self,
@@ -4759,61 +4766,6 @@ class QuantumCircuit:
                 "Number of controlled rotations does not correspond to the number of control-qubits."
             )
         return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, use the QuantumCircuit.unitary method.",
-    )
-    def squ(
-        self,
-        unitary_matrix,
-        qubit,
-        mode="ZYZ",
-        up_to_diagonal=False,
-    ):
-        """Decompose an arbitrary 2*2 unitary into three rotation gates.
-
-        Note that the decomposition is up to a global phase shift.
-        (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
-        "Quantum computation and quantum information".)
-
-        Args:
-            unitary_matrix (ndarray): 2*2 unitary (given as a (complex) ndarray).
-            qubit (QuantumRegister or Qubit): The qubit which the gate is acting on.
-            mode (string): determines the used decomposition by providing the rotation axes.
-                The allowed modes are: "ZYZ" (default)
-            up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
-                a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
-                diagonal gate d with u = d.dot(u')
-
-        Returns:
-            InstructionSet: The single-qubit unitary instruction attached to the circuit.
-
-        Raises:
-            QiskitError: if the format is wrong; if the array u is not unitary
-        """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            from qiskit.extensions import SingleQubitUnitary
-
-        if isinstance(qubit, QuantumRegister):
-            qubit = qubit[:]
-            if len(qubit) == 1:
-                qubit = qubit[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if there is one target qubit provided
-        if not isinstance(qubit, Qubit):
-            raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            gate = SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal)
-
-        return self.append(gate, [qubit], [])
-
 
     def _push_scope(
         self,
