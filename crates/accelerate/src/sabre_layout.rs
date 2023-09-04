@@ -144,7 +144,8 @@ fn layout_trial(
         dag_no_control_forward.num_clbits,
         dag_no_control_forward.nodes.iter().rev().cloned().collect(),
         dag_no_control_forward.node_blocks.clone(),
-    );
+    )
+    .unwrap();
 
     for _iter in 0..max_iterations {
         for dag in [&dag_no_control_forward, &dag_no_control_reverse] {
