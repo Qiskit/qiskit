@@ -26,29 +26,30 @@ class TestFrames(QiskitTestCase):
 
     def test_generic_frame_initialization(self):
         """Test that Frame objects are created correctly"""
-        frame = GenericFrame(name="frame1", frequency=100.2, phase=1.3)
-        self.assertEqual(frame.name, "GenericFrame(frame1)")
+        frame = GenericFrame(identifier="frame1", frequency=100.2, phase=1.3)
+        self.assertEqual(frame.identifier, "frame1")
+        self.assertEqual(str(frame), "GenericFrame(frame1)")
         self.assertEqual(frame.frequency, 100.2)
         self.assertEqual(frame.phase, 1.3)
 
-        frame = GenericFrame(name="frame1", frequency=100.2)
+        frame = GenericFrame(identifier="frame1", frequency=100.2)
         self.assertEqual(frame.phase, 0)
 
     def test_generic_frame_comparison(self):
         """Test that GenericFrame objects are compared correctly"""
-        frame1 = GenericFrame(name="frame1", frequency=100.2, phase=1.3)
+        frame1 = GenericFrame(identifier="frame1", frequency=100.2, phase=1.3)
 
-        self.assertEqual(frame1, GenericFrame(name="frame1", frequency=100.2, phase=1.3))
-        self.assertNotEqual(frame1, GenericFrame(name="frame2", frequency=100.2, phase=1.3))
-        self.assertNotEqual(frame1, GenericFrame(name="frame1", frequency=50.2, phase=1.3))
-        self.assertNotEqual(frame1, GenericFrame(name="frame1", frequency=100.2))
+        self.assertEqual(frame1, GenericFrame(identifier="frame1", frequency=100.2, phase=1.3))
+        self.assertNotEqual(frame1, GenericFrame(identifier="frame2", frequency=100.2, phase=1.3))
+        self.assertNotEqual(frame1, GenericFrame(identifier="frame1", frequency=50.2, phase=1.3))
+        self.assertNotEqual(frame1, GenericFrame(identifier="frame1", frequency=100.2))
         self.assertNotEqual(frame1, QubitFrame(3))
 
     def test_qubit_frame_initialization(self):
         """Test that QubitFrame type frames are created and validated correctly"""
         frame = QubitFrame(2)
         self.assertEqual(frame.qubit_index, 2)
-        self.assertEqual(frame.name, "QubitFrame2")
+        self.assertEqual(str(frame), "QubitFrame(2)")
 
         with self.assertRaises(PulseError):
             QubitFrame(0.5)
@@ -67,7 +68,7 @@ class TestFrames(QiskitTestCase):
         """Test that MeasurementFrame type frames are created and validated correctly"""
         frame = MeasurementFrame(2)
         self.assertEqual(frame.qubit_index, 2)
-        self.assertEqual(frame.name, "MeasurementFrame2")
+        self.assertEqual(str(frame), "MeasurementFrame(2)")
 
         with self.assertRaises(PulseError):
             MeasurementFrame(0.5)

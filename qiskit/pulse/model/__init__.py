@@ -32,7 +32,7 @@ to HW aware objects is left to the Pulse Compiler.
 
 LogicalElement
 =============
-:class:`LogicalElement`s are identified by their index and name. Currently, the most prominent example
+:class:`LogicalElement`s are identified by their type and index. Currently, the most prominent example
 is the :class:`Qubit`.
 
 .. autosummary::
@@ -57,11 +57,7 @@ defaults are to be used (for the qubit's driving frequency and measurement frequ
 
 MixedFrame
 =============
-The combination of a :class:`LogicalElement` and :class:`Frame` is dubbed a :class:`MixedFrame`
-and is similar
-to the legacy :class:`Channel` objects. It should be noted that the legacy :class:`AcquireChannel`
-has no counterpart in the new model, because they have a one-to-one correspondence with the
-qubits, and so acquire instructions are simply associated with a :class:`Qubit`.
+The combination of a :class:`LogicalElement` and :class:`Frame` is dubbed a :class:`MixedFrame`.
 
 .. autosummary::
    :toctree: ../stubs/

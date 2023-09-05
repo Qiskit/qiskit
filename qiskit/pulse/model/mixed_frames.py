@@ -24,8 +24,6 @@ class MixedFrame:
     Most instructions need to be associated with both a :class:`LogicalElement` and a :class:`Frame`.
     The combination
     of the two is called a mixed frame, and is represented by a :class:`MixedFrame` object.
-    The :class:`MixedFrame` is closely related to the legacy :class:`Channel`, but provides a more
-    flexible framework.
 
     In most cases the :class:`MixedFrame` is used more by the compiler, and a pulse program
     can be written without :class:`MixedFrame`s, by setting :class:`LogicalElement` and
@@ -33,7 +31,7 @@ class MixedFrame:
     better convey the meaning of the code, and change the compilation process. One example
     are shift/set frequency/phase instructions which are not broadcasted to other
     :class:`MixedFrame`s if applied on a specific :class:`MixedFrame` (unlike the behavior
-    of :class:`Frame`). User can also subclass :class:`MixedFrame` for a particular
+    of :class:`Frame`). User can also use a subclass of :class:`MixedFrame` for a particular
     combination of logical elements and frames as if a syntactic sugar. This might
     increase the readability of user pulse program. Such example may include cross
     resonance architecture, in which a pulse is played on a target qubit frame and applied
