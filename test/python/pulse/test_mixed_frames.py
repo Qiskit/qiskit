@@ -30,7 +30,6 @@ class TestMixedFrames(QiskitTestCase):
         mixed_frame = MixedFrame(qubit, frame)
         self.assertEqual(mixed_frame.logical_element, qubit)
         self.assertEqual(mixed_frame.frame, frame)
-        self.assertEqual(mixed_frame.name, f"MixedFrame({qubit.name},{frame.name})")
 
     def test_mixed_frames_comparison(self):
         """Test the comparison of various mixed frames"""
@@ -47,3 +46,10 @@ class TestMixedFrames(QiskitTestCase):
             MixedFrame(Qubit(1), GenericFrame("a", 106.1)),
             MixedFrame(Qubit(1), GenericFrame("b", 106.1)),
         )
+
+    def test_mixed_frame_repr(self):
+        """Test MixedFrame __repr__"""
+        frame = GenericFrame("frame1", 106.2)
+        qubit = Qubit(1)
+        mixed_frame = MixedFrame(qubit, frame)
+        self.assertEqual(str(mixed_frame), f"MixedFrame({qubit},{frame})")

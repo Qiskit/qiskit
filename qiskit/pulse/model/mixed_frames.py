@@ -61,13 +61,8 @@ class MixedFrame:
         """Return the ``Frame`` of this mixed frame."""
         return self._frame
 
-    @property
-    def name(self) -> str:
-        """Return the name of the mixed frame."""
-        return f"MixedFrame({self.logical_element},{self.frame})"
-
     def __repr__(self) -> str:
-        return self.name
+        return f"MixedFrame({self.logical_element},{self.frame})"
 
     def __eq__(self, other: "MixedFrame") -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same logical
