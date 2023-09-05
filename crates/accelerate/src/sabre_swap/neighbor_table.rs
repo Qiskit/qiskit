@@ -15,6 +15,7 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use rustworkx_core::petgraph::prelude::*;
 
 use crate::nlayout::PhysicalQubit;
 
@@ -31,7 +32,26 @@ use crate::nlayout::PhysicalQubit;
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[derive(Clone, Debug)]
 pub struct NeighborTable {
-    pub neighbors: Vec<Vec<PhysicalQubit>>,
+    neighbors: Vec<Vec<PhysicalQubit>>,
+}
+
+impl NeighborTable {
+    /// Regenerate a Rust-space coupling graph from the table.
+    pub fn coupling_graph(&self) -> DiGraph<(), ()> {
+        DiGraph::from_edges(self.neighbors.iter().enumerate().flat_map(|(u, targets)| {
+            targets
+                .iter()
+                .map(move |v| (NodeIndex::new(u), NodeIndex::new(v.index())))
+        }))
+    }
+}
+
+impl std::ops::Index<PhysicalQubit> for NeighborTable {
+    type Output = [PhysicalQubit];
+
+    fn index(&self, index: PhysicalQubit) -> &Self::Output {
+        &self.neighbors[index.index()]
+    }
 }
 
 #[pymethods]
