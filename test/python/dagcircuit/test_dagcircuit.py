@@ -410,6 +410,18 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_cregs_equal(self.original_cregs)
         self.assert_clbits_equal(self.original_clbits, excluding={self.individual_clbit})
 
+    def test_copy_empty_like(self):
+        """Copy dag circuit metadata with copy_empty_like."""
+        result_dag = self.dag.copy_empty_like()
+        self.assertEqual(self.dag.name, result_dag.name)
+        self.assertEqual(self.dag.metadata, result_dag.metadata)
+        self.assertEqual(self.dag.clbits, result_dag.clbits)
+        self.assertEqual(self.dag.qubits, result_dag.qubits)
+        self.assertEqual(self.dag.cregs, result_dag.cregs)
+        self.assertEqual(self.dag.qregs, result_dag.qregs)
+        self.assertEqual(self.dag.duration, result_dag.duration)
+        self.assertEqual(self.dag.unit, result_dag.unit)
+
     def test_remove_busy_clbit(self):
         """Classical bit removal of busy classical bits raises."""
         self.dag.apply_operation_back(Measure(), [self.qreg[0]], [self.individual_clbit])

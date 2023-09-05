@@ -2,23 +2,23 @@
 upgrade:
   - |
     Code and tests deprecated in 0.20 are removed.
-    :class: `.visualization.QCircuitImage` objects no longer supports
+    :class:`.visualization.QCircuitImage` objects no longer supports
     `qregs`, `cregs`, `layout`and `global_phase` arguments.
     
   - |
-    Code and tests deprecated in 0.20 are removed.In
-    :class: `.transpiler.CouplingMap`:meth: `~subgraph` is removed.
+    Code and tests deprecated in 0.20 are removed. In
+    :class:`.transpiler.CouplingMap` :meth:`~subgraph` is removed.
     :meth:`~reduce` can be used in place of 
-    :meth: `~subgraph`.
+    :meth:`~subgraph`.
     
   - |
-    Code and tests deprecated in 0.20 are removed.In
-    :class: `.dagcircuit.DAGCircuit` private :meth: `~_copy_circuit_metadata` is removed.
+    Code and tests deprecated in 0.20 are removed. In
+    :class:`.dagcircuit.DAGCircuit` private :meth:`~_copy_circuit_metadata` is removed.
     Instead use public :meth:`~copy_empty_like` with same functionality.
   
   - |
-    Code and tests deprecated in 0.20 are removed.In
-    :class: `.synthesis.SuzukiTrotter` deprecation warning for
+    Code and tests deprecated in 0.20 are removed. In
+    :class:`.synthesis.SuzukiTrotter` deprecation warning for
     odd `order` is replaced with `ValueError`.
     Refer to `#10747 <https://github.com/Qiskit/qiskit/issues/10747>`
     
