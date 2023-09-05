@@ -112,13 +112,10 @@ Scheduling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
-   AlignMeasures
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
-   ALAPSchedule
-   ASAPSchedule
-   DynamicalDecoupling
+   
 
 Circuit Analysis
 ================
@@ -162,9 +159,7 @@ Additional Passes
    :toctree: ../stubs/
 
    CheckMap
-   CheckCXDirection
    CheckGateDirection
-   CXDirection
    GateDirection
    MergeAdjacentBarriers
    RemoveBarriers
