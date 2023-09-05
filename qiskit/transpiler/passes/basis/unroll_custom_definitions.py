@@ -97,10 +97,8 @@ class UnrollCustomDefinitions(TransformationPass):
                     "and no rule found to expand." % (str(self._basis_gates), node.op.name)
                 )
 
-            decomposition = circuit_to_dag(unrolled)
-            unrolled_dag = UnrollCustomDefinitions(
-                self._equiv_lib, self._basis_gates, target=self._target
-            ).run(decomposition)
+            decomposition = circuit_to_dag(unrolled, copy_operations=False)
+            unrolled_dag = self.run(decomposition)
             dag.substitute_node_with_dag(node, unrolled_dag)
 
         return dag
