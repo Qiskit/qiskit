@@ -665,8 +665,11 @@ impl TokenStream {
             b'}' => TokenType::RBrace,
             b'/' => {
                 if let Some(b'/') = self.peek_byte()? {
-                    self.advance_line()?;
-                    return self.next(context);
+                    return if self.advance_line()? == 0 {
+                        Ok(None)
+                    } else {
+                        self.next(context)
+                    }
                 } else {
                     TokenType::Slash
                 }

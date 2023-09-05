@@ -39,9 +39,21 @@ from qiskit.test import QiskitTestCase
 from . import gate_builder
 
 
-class TestEmpty(QiskitTestCase):
+@ddt.ddt
+class TestWhitespace(QiskitTestCase):
     def test_allows_empty(self):
         self.assertEqual(qiskit.qasm2.loads(""), QuantumCircuit())
+
+    @ddt.data("", "\n", "\r\n", "\n  ")
+    def test_empty_except_comment(self, terminator):
+        program = "// final comment" + terminator
+        self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit())
+
+    @ddt.data("", "\n", "\r\n", "\n  ")
+    def test_final_comment(self, terminator):
+        # This is similar to the empty-circuit test, except that we also have an instruction.
+        program = "qreg q[2]; // final comment" + terminator
+        self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit(QuantumRegister(2, "q")))
 
 
 class TestVersion(QiskitTestCase):
