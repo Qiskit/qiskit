@@ -669,7 +669,7 @@ impl TokenStream {
                         Ok(None)
                     } else {
                         self.next(context)
-                    }
+                    };
                 } else {
                     TokenType::Slash
                 }
