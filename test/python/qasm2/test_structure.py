@@ -44,7 +44,7 @@ class TestWhitespace(QiskitTestCase):
     def test_allows_empty(self):
         self.assertEqual(qiskit.qasm2.loads(""), QuantumCircuit())
 
-    @ddt.data("", "\n", "\r\n", "\n  ")
+    @ddt.data("", "\n", "\r\n", "\n  ", "\n\t", "\r\n\t")
     def test_empty_except_comment(self, terminator):
         program = "// final comment" + terminator
         self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit())
