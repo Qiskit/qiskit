@@ -20,7 +20,10 @@ import typing
 from numbers import Number
 import numpy as np
 
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
@@ -29,13 +32,13 @@ from qiskit.utils.deprecation import deprecate_func
 from .generalized_gates.unitary import UnitaryGate
 
 if typing.TYPE_CHECKING:
-    from qiskit.quantum_info import BaseOperator
+    from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class HamiltonianGate(Gate):
     r"""Class for representing evolution by a Hamiltonian operator as a gate.
 
-    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = \exp(-i t H)`,
+    This gate resolves to a :class:`~.library.UnitaryGate` as :math:`U(t) = \exp(-i t H)`,
     which can be decomposed into basis gates if it is 2 qubits or less, or
     simulated directly in Aer for more qubits.
     """

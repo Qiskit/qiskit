@@ -17,22 +17,26 @@ from __future__ import annotations
 import typing
 import numpy
 
-from qiskit.circuit import Gate, ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.library.standard_gates import UGate
+from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+
+# pylint: disable=cyclic-import
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
+
 from .isometry import Isometry
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U")
 
 if typing.TYPE_CHECKING:
-    from qiskit.quantum_info import BaseOperator
+    from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class UnitaryGate(Gate):

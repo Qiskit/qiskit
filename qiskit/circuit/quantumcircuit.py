@@ -4204,7 +4204,8 @@ class QuantumCircuit:
                 q_1: ┤1                                   ├
                      └────────────────────────────────────┘
         """
-        from qiskit.circuit.library.data_preparation.initializer import Initialize
+        # pylint: disable=cyclic-import
+        from .library.data_preparation.initializer import Initialize
 
         if qubits is None:
             qubits = self.qubits
@@ -4245,7 +4246,8 @@ class QuantumCircuit:
                 circuit = QuantumCircuit(2)
                 circuit.unitary(matrix, [0, 1])
         """
-        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.unitary import UnitaryGate
 
         gate = UnitaryGate(obj, label=label)
 
@@ -4285,7 +4287,8 @@ class QuantumCircuit:
             QiskitError: if the list of the diagonal entries or the qubit list is in bad format;
                 if the number of diagonal entries is not 2^k, where k denotes the number of qubits
         """
-        from qiskit.circuit.library import DiagonalGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.diagonal import DiagonalGate
 
         if isinstance(qubit, QuantumRegister):
             qubit = qubit[:]
@@ -4349,7 +4352,8 @@ class QuantumCircuit:
             QiskitError: if the array is not an isometry of the correct size corresponding to
                 the provided number of qubits.
         """
-        from qiskit.circuit.library import Isometry
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.isometry import Isometry
 
         if q_input is None:
             q_input = []
@@ -4382,7 +4386,7 @@ class QuantumCircuit:
     def hamiltonian(self, operator, time, qubits, label=None):
         """Apply hamiltonian evolution to qubits.
 
-        This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+        This gate resolves to a :class:`~.library.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
         which can be decomposed into basis gates if it is 2 qubits or less, or
         simulated directly in Aer for more qubits.
 
@@ -4399,7 +4403,8 @@ class QuantumCircuit:
         Raises:
             ExtensionError: if input data is not an N-qubit unitary operator.
         """
-        from qiskit.circuit.library import HamiltonianGate
+        # pylint: disable=cyclic-import
+        from .library.hamiltonian_gate import HamiltonianGate
 
         if not isinstance(qubits, list):
             qubits = [qubits]
@@ -4439,7 +4444,8 @@ class QuantumCircuit:
             QiskitError: if the list number of control qubits does not correspond to the provided
                 number of single-qubit unitaries; if an input is of the wrong type
         """
-        from qiskit.circuit.library import UCGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.uc import UCGate
 
         if isinstance(q_controls, QuantumRegister):
             q_controls = q_controls[:]
@@ -4506,7 +4512,8 @@ class QuantumCircuit:
             QiskitError: if the list number of control qubits does not correspond to the provided
                 number of single-qubit unitaries; if an input is of the wrong type
         """
-        from qiskit.circuit.library import UCRXGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.ucrx import UCRXGate
 
         if isinstance(q_controls, QuantumRegister):
             q_controls = q_controls[:]
@@ -4566,7 +4573,8 @@ class QuantumCircuit:
             QiskitError: if the list number of control qubits does not correspond to the provided
                 number of single-qubit unitaries; if an input is of the wrong type
         """
-        from qiskit.circuit.library import UCRYGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.ucry import UCRYGate
 
         if isinstance(q_controls, QuantumRegister):
             q_controls = q_controls[:]
@@ -4626,7 +4634,8 @@ class QuantumCircuit:
             QiskitError: if the list number of control qubits does not correspond to the provided
                 number of single-qubit unitaries; if an input is of the wrong type
         """
-        from qiskit.circuit.library import UCRZGate
+        # pylint: disable=cyclic-import
+        from .library.generalized_gates.ucrz import UCRZGate
 
         if isinstance(q_controls, QuantumRegister):
             q_controls = q_controls[:]

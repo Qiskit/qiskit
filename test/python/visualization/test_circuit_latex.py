@@ -250,7 +250,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         # this import appears to be unused, but is actually needed to get snapshot instruction
         import qiskit.extensions.simulator  # pylint: disable=unused-import
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             circuit.snapshot("sn 1")
 
         # check the barriers plot properly when plot_barriers= True

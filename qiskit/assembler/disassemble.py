@@ -39,7 +39,7 @@ PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any],
 # Prevent the disassembler from accessing deprecated circuit methods. This can happen for
 # gates where the name of the gate matches a circuit method (e.g. Isometry.name is "isometry")
 # and the circuit attribute is also QuantumCircuit.isometry
-_DEPRECATED_CIRCUIT_METHODS = [
+_DEPRECATED_CIRCUIT_METHODS = {
     "isometry",
     "snapshot",
     "ucrx",
@@ -48,7 +48,7 @@ _DEPRECATED_CIRCUIT_METHODS = [
     "squ",
     "diagonal",
     "hamiltonian",
-]
+}
 
 
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:

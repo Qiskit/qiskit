@@ -16,13 +16,15 @@ Initialize qubit registers to desired arbitrary state.
 
 from __future__ import annotations
 from collections.abc import Sequence
+import typing
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.instruction import Instruction
+from .state_preparation import StatePreparation
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import Instruction
-from qiskit.circuit.library.data_preparation import StatePreparation
-from qiskit.quantum_info import Statevector
+if typing.TYPE_CHECKING:
+    from qiskit.quantum_info.states.statevector import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
