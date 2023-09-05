@@ -79,7 +79,7 @@ class Kraus(QuantumChannel):
         Additional Information:
             If the input or output dimensions are None, they will be
             automatically determined from the input data. If the input data is
-            a list of Numpy arrays of shape ($2**N, 2**N$) qubit systems will be
+            a list of Numpy arrays of shape :math:`(2^N,\\,2^N)` qubit systems will be
             used. If the input does not correspond to an N-qubit channel, it
             will assign a single subsystem with dimension specified by the
             shape of the input.
