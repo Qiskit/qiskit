@@ -24,7 +24,7 @@ from numpy import pi
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife
-from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer, circuit_drawer
+from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -642,7 +642,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(1)
 
         fname = "creg_initial_true.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, cregbundle=True, initial_state=True)
+        self.circuit_drawer(
+            circuit, output="mpl", filename=fname, cregbundle=True, initial_state=True
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -652,7 +654,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "creg_initial_false.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname2, cregbundle=False, initial_state=False)
+        self.circuit_drawer(
+            circuit, output="mpl", filename=fname2, cregbundle=False, initial_state=False
+        )
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -1074,7 +1078,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(2).c_if(cr, 2)
 
         fname = "reverse_bits_cond_true.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1084,7 +1090,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "reverse_bits_cond_false.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, reverse_bits=False, filename=fname2)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, reverse_bits=False, filename=fname2
+        )
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -1451,7 +1459,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0).c_if(bits[3], 0)
 
         fname = "cond_bits_reverse.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1643,7 +1653,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_else_op_textbook.png"
-        self.circuit_drawer(circuit, output="mpl", style="textbook", cregbundle=True, filename=fname)
+        self.circuit_drawer(
+            circuit, output="mpl", style="textbook", cregbundle=True, filename=fname
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1759,7 +1771,13 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_wire_order.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, wire_order=[2, 0, 3, 1, 4, 5, 6], filename=fname)
+        self.circuit_drawer(
+            circuit,
+            output="mpl",
+            cregbundle=False,
+            wire_order=[2, 0, 3, 1, 4, 5, 6],
+            filename=fname,
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
