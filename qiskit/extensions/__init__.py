@@ -23,8 +23,6 @@ Unitary Extensions
 .. autosummary::
    :toctree: ../stubs/
 
-   UnitaryGate
-   HamiltonianGate
    SingleQubitUnitary
 
 Simulator Extensions
@@ -34,25 +32,6 @@ Simulator Extensions
    :toctree: ../stubs/
 
    Snapshot
-
-Initialization
-==============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   Initialize
-
-Uniformly Controlled Rotations
-==============================
-
-.. autosummary::
-   :toctree: ../stubs
-
-   UCPauliRotGate
-   UCRXGate
-   UCRYGate
-   UCRZGate
 
 Exceptions
 ==========
