@@ -148,12 +148,12 @@ fn obtain_swaps<'a>(
     layout: &'a NLayout,
 ) -> impl Iterator<Item = [VirtualQubit; 2]> + 'a {
     front_layer.iter_active().flat_map(move |&v| {
-        neighbors.neighbors[v.to_phys(layout).index()]
+        neighbors[v.to_phys(layout)]
             .iter()
-            .filter_map(move |&neighbor| {
-                let virtual_neighbor = neighbor.to_virt(layout);
-                if virtual_neighbor > v || !front_layer.is_active(virtual_neighbor) {
-                    Some([v, virtual_neighbor])
+            .filter_map(move |p_neighbor| {
+                let neighbor = p_neighbor.to_virt(layout);
+                if neighbor > v || !front_layer.is_active(neighbor) {
+                    Some([v, neighbor])
                 } else {
                     None
                 }
@@ -194,16 +194,6 @@ fn populate_extended_set(
     for (node, amount) in decremented.iter() {
         required_predecessors[*node] += *amount;
     }
-}
-
-fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
-    DiGraph::<(), ()>::from_edges(neighbor_table.neighbors.iter().enumerate().flat_map(
-        |(u, targets)| {
-            targets
-                .iter()
-                .map(move |v| (NodeIndex::new(u), NodeIndex::new(v.index())))
-        },
-    ))
 }
 
 /// Run sabre swap on a circuit
@@ -271,7 +261,7 @@ pub fn build_swap_map_inner(
         Some(run_in_parallel) => run_in_parallel,
         None => getenv_use_multiple_threads() && num_trials > 1,
     };
-    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
+    let coupling_graph = neighbor_table.coupling_graph();
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
