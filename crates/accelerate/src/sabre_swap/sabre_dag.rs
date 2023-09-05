@@ -12,6 +12,7 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
+use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
@@ -51,18 +52,30 @@ impl SabreDAG {
             let gate_index = dag.add_node((node.0, qargs.clone()));
             let mut is_front = true;
             for x in qargs {
-                if let Some(predecessor) = qubit_pos[*x] {
+                let pos = qubit_pos.get_mut(*x).ok_or_else(|| {
+                    PyIndexError::new_err(format!(
+                        "qubit index {} is out of range for {} qubits",
+                        *x, num_qubits
+                    ))
+                })?;
+                if let Some(predecessor) = *pos {
                     is_front = false;
                     dag.add_edge(predecessor, gate_index, ());
                 }
-                qubit_pos[*x] = Some(gate_index);
+                *pos = Some(gate_index);
             }
             for x in cargs {
-                if let Some(predecessor) = clbit_pos[*x] {
+                let pos = clbit_pos.get_mut(*x).ok_or_else(|| {
+                    PyIndexError::new_err(format!(
+                        "clbit index {} is out of range for {} clbits",
+                        *x, num_qubits
+                    ))
+                })?;
+                if let Some(predecessor) = *pos {
                     is_front = false;
                     dag.add_edge(predecessor, gate_index, ());
                 }
-                clbit_pos[*x] = Some(gate_index);
+                *pos = Some(gate_index);
             }
             if is_front {
                 first_layer.push(gate_index);
@@ -76,5 +89,21 @@ impl SabreDAG {
             nodes,
             node_blocks,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::SabreDAG;
+    use hashbrown::{HashMap, HashSet};
+
+    #[test]
+    fn no_panic_on_bad_qubits() {
+        assert!(SabreDAG::new(2, 0, vec![(0, vec![0, 2], HashSet::new())], HashMap::new()).is_err())
+    }
+
+    #[test]
+    fn no_panic_on_bad_clbits() {
+        assert!(SabreDAG::new(2, 1, vec![(0, vec![0, 1], [0, 1].into())], HashMap::new()).is_err())
     }
 }
