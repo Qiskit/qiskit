@@ -69,23 +69,17 @@ class Kraus(QuantumChannel):
         """Initialize a quantum channel Kraus operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions. (Default: `None`)
+            output_dims: the output subsystem dimensions. (Default: `None`)
 
         Raises:
-            QiskitError: if input data cannot be initialized as a
-                         a list of Kraus matrices.
+            QiskitError: if input data cannot be initialized as a list of Kraus matrices.
 
         Additional Information:
             If the input or output dimensions are None, they will be
             automatically determined from the input data. If the input data is
-            a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be
+            a list of Numpy arrays of shape ($2**N, 2**N$) qubit systems will be
             used. If the input does not correspond to an N-qubit channel, it
             will assign a single subsystem with dimension specified by the
             shape of the input.
