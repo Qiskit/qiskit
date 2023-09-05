@@ -383,6 +383,7 @@ fn swap_map_trial(
     // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
     // each iteration of this loop, we route either one or two gates.
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
+    let mut swap_scratch = Vec::<[VirtualQubit; 2]>::new();
     while !front_layer.is_empty() {
         let mut current_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
@@ -397,6 +398,7 @@ fn swap_map_trial(
                 &qubits_decay,
                 heuristic,
                 &mut rng,
+                &mut swap_scratch,
             );
             front_layer.routable_after(&mut routable_nodes, &best_swap, &layout, coupling_graph);
             current_swaps.push(best_swap);
@@ -688,9 +690,10 @@ fn choose_best_swap(
     qubits_decay: &[f64],
     heuristic: &Heuristic,
     rng: &mut Pcg64Mcg,
+    best_swaps: &mut Vec<[VirtualQubit; 2]>,
 ) -> [VirtualQubit; 2] {
+    best_swaps.clear();
     let mut min_score = f64::MAX;
-    let mut best_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
     // The decay heuristic is the only one that actually needs the absolute score.
     let absolute_score = match heuristic {
         Heuristic::Decay => {
