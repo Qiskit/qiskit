@@ -16,11 +16,13 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
+use crate::nlayout::VirtualQubit;
+
 /// Named access to the node elements in the [SabreDAG].
 #[derive(Clone, Debug)]
 pub struct DAGNode {
     pub py_node_id: usize,
-    pub qubits: Vec<usize>,
+    pub qubits: Vec<VirtualQubit>,
 }
 
 /// A DAG representation of the logical circuit to be routed.  This represents the same dataflow
@@ -39,7 +41,7 @@ pub struct SabreDAG {
     pub num_clbits: usize,
     pub dag: DiGraph<DAGNode, ()>,
     pub first_layer: Vec<NodeIndex>,
-    pub nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+    pub nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>)>,
     pub node_blocks: HashMap<usize, Vec<SabreDAG>>,
 }
 
@@ -50,7 +52,7 @@ impl SabreDAG {
     pub fn new(
         num_qubits: usize,
         num_clbits: usize,
-        nodes: Vec<(usize, Vec<usize>, HashSet<usize>)>,
+        nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>)>,
         node_blocks: HashMap<usize, Vec<SabreDAG>>,
     ) -> PyResult<Self> {
         let mut qubit_pos: Vec<Option<NodeIndex>> = vec![None; num_qubits];
@@ -66,10 +68,11 @@ impl SabreDAG {
             });
             let mut is_front = true;
             for x in qargs {
-                let pos = qubit_pos.get_mut(*x).ok_or_else(|| {
+                let pos = qubit_pos.get_mut(x.index()).ok_or_else(|| {
                     PyIndexError::new_err(format!(
                         "qubit index {} is out of range for {} qubits",
-                        *x, num_qubits
+                        x.index(),
+                        num_qubits
                     ))
                 })?;
                 if let Some(predecessor) = *pos {
@@ -109,15 +112,18 @@ impl SabreDAG {
 #[cfg(test)]
 mod test {
     use super::SabreDAG;
+    use crate::nlayout::VirtualQubit;
     use hashbrown::{HashMap, HashSet};
 
     #[test]
     fn no_panic_on_bad_qubits() {
-        assert!(SabreDAG::new(2, 0, vec![(0, vec![0, 2], HashSet::new())], HashMap::new()).is_err())
+        let bad_qubits = vec![VirtualQubit::new(0), VirtualQubit::new(2)];
+        assert!(SabreDAG::new(2, 0, vec![(0, bad_qubits, HashSet::new())], HashMap::new()).is_err())
     }
 
     #[test]
     fn no_panic_on_bad_clbits() {
-        assert!(SabreDAG::new(2, 1, vec![(0, vec![0, 1], [0, 1].into())], HashMap::new()).is_err())
+        let good_qubits = vec![VirtualQubit::new(0), VirtualQubit::new(1)];
+        assert!(SabreDAG::new(2, 1, vec![(0, good_qubits, [0, 1].into())], HashMap::new()).is_err())
     }
 }
