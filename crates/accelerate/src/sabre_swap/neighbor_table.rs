@@ -14,6 +14,7 @@ use crate::getenv_use_multiple_threads;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
+use pyo3::types::PyList;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
@@ -102,14 +103,26 @@ impl NeighborTable {
         Ok(NeighborTable { neighbors })
     }
 
-    fn __getstate__(&self) -> Vec<Vec<PhysicalQubit>> {
-        self.neighbors
-            .iter()
-            .map(|v| v.iter().copied().collect())
-            .collect()
+    fn __getstate__(&self, py: Python<'_>) -> Py<PyList> {
+        PyList::new(
+            py,
+            self.neighbors
+                .iter()
+                .map(|v| PyList::new(py, v.iter()).to_object(py)),
+        )
+        .into()
     }
 
-    fn __setstate__(&mut self, state: Vec<Vec<PhysicalQubit>>) {
-        self.neighbors = state.into_iter().map(|v| v.into()).collect()
+    fn __setstate__(&mut self, state: &PyList) -> PyResult<()> {
+        self.neighbors = state
+            .iter()
+            .map(|v| {
+                v.downcast::<PyList>()?
+                    .iter()
+                    .map(PyAny::extract)
+                    .collect::<PyResult<_>>()
+            })
+            .collect::<PyResult<_>>()?;
+        Ok(())
     }
 }
