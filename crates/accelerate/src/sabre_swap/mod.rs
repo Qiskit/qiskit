@@ -383,6 +383,9 @@ fn swap_map_trial(
     // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
     // each iteration of this loop, we route either one or two gates.
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
+    // Reusable allocated storage space for choosing the best swap.  This is owned outside of the
+    // `choose_best_swap` function so that we don't need to reallocate and then re-grow the
+    // collection on every entry.
     let mut swap_scratch = Vec::<[VirtualQubit; 2]>::new();
     while !front_layer.is_empty() {
         let mut current_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
