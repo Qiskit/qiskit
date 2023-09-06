@@ -351,7 +351,7 @@ class QasmSimulatorPy(BackendV1):
         """Determine if measure sampling is allowed for an experiment
 
         Args:
-            experiment (QobjExperiment): a qobj experiment.
+            experiment (QasmQobjExperiment): a qobj experiment.
         """
         # If shots=1 we should disable measure sampling.
         # This is also required for statevector simulator to return the
@@ -476,7 +476,7 @@ class QasmSimulatorPy(BackendV1):
         """Run an experiment (circuit) and return a single experiment result.
 
         Args:
-            experiment (QobjExperiment): experiment from qobj experiments list
+            experiment (QasmQobjExperiment): experiment from qobj experiments list
 
         Returns:
              dict: A result dictionary which looks something like::

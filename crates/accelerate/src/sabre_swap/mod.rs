@@ -17,12 +17,11 @@ pub mod neighbor_table;
 pub mod sabre_dag;
 pub mod swap_map;
 
-use std::cmp::Ordering;
-
 use hashbrown::HashMap;
+use indexmap::IndexMap;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
-use numpy::{IntoPyArray, ToPyArray};
+use numpy::{IntoPyArray, PyArray, ToPyArray};
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -36,9 +35,10 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::EdgeRef;
 use rustworkx_core::shortest_path::dijkstra;
 use rustworkx_core::token_swapper::token_swapper;
+use std::cmp::Ordering;
 
 use crate::getenv_use_multiple_threads;
-use crate::nlayout::NLayout;
+use crate::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
 
 use layer::{ExtendedSet, FrontLayer};
 use neighbor_table::NeighborTable;
@@ -120,7 +120,7 @@ impl NodeBlockResults {
 pub struct BlockResult {
     #[pyo3(get)]
     pub result: SabreResult,
-    pub swap_epilogue: Vec<[usize; 2]>,
+    pub swap_epilogue: Vec<[VirtualQubit; 2]>,
 }
 
 #[pymethods]
@@ -146,14 +146,14 @@ fn obtain_swaps<'a>(
     front_layer: &'a FrontLayer,
     neighbors: &'a NeighborTable,
     layout: &'a NLayout,
-) -> impl Iterator<Item = [usize; 2]> + 'a {
+) -> impl Iterator<Item = [VirtualQubit; 2]> + 'a {
     front_layer.iter_active().flat_map(move |&v| {
-        neighbors.neighbors[layout.logic_to_phys[v]]
+        neighbors[v.to_phys(layout)]
             .iter()
-            .filter_map(move |&neighbor| {
-                let virtual_neighbor = layout.phys_to_logic[neighbor];
-                if virtual_neighbor > v || !front_layer.is_active(virtual_neighbor) {
-                    Some([v, virtual_neighbor])
+            .filter_map(move |p_neighbor| {
+                let neighbor = p_neighbor.to_virt(layout);
+                if neighbor > v || !front_layer.is_active(neighbor) {
+                    Some([v, neighbor])
                 } else {
                     None
                 }
@@ -171,7 +171,8 @@ fn populate_extended_set(
     required_predecessors: &mut [u32],
 ) {
     let mut to_visit = front_layer.iter_nodes().copied().collect::<Vec<_>>();
-    let mut decremented: HashMap<usize, u32> = HashMap::new();
+    let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
+        IndexMap::with_hasher(ahash::RandomState::default());
     let mut i = 0;
     while i < to_visit.len() && extended_set.len() < EXTENDED_SET_SIZE {
         for edge in dag.dag.edges_directed(to_visit[i], Direction::Outgoing) {
@@ -181,7 +182,7 @@ fn populate_extended_set(
             required_predecessors[successor_index] -= 1;
             if required_predecessors[successor_index] == 0 {
                 if !dag.node_blocks.contains_key(&successor_index) {
-                    if let [a, b] = dag.dag[successor_node].1[..] {
+                    if let [a, b] = dag.dag[successor_node].qubits[..] {
                         extended_set.insert(successor_node, &[a, b]);
                     }
                 }
@@ -195,45 +196,37 @@ fn populate_extended_set(
     }
 }
 
-fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
-    DiGraph::<(), ()>::from_edges(neighbor_table.neighbors.iter().enumerate().flat_map(
-        |(u, targets)| {
-            targets
-                .iter()
-                .map(move |v| (NodeIndex::new(u), NodeIndex::new(*v)))
-        },
-    ))
-}
-
 /// Run sabre swap on a circuit
 ///
 /// Returns:
-///     (SwapMap, gate_order, node_block_results): A tuple where the first element is a mapping of
-///     DAGCircuit node ids to a list of virtual qubit swaps that should be
-///     added before that operation. The second element is a numpy array of
-///     node ids that represents the traversal order used by sabre.
+///     (SwapMap, gate_order, node_block_results, final_permutation): A tuple where the first
+///     element is a mapping of DAGCircuit node ids to a list of virtual qubit swaps that should be
+///     added before that operation. The second element is a numpy array of node ids that
+///     represents the traversal order used by sabre.  The third is inner results for the blocks of
+///     control flow, and the fourth is a permutation, where `final_permution[i]` is the final
+///     logical position of the qubit that began in position `i`.
 #[pyfunction]
 pub fn build_swap_map(
     py: Python,
-    num_qubits: usize,
+    num_qubits: u32,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    layout: &mut NLayout,
+    initial_layout: &NLayout,
     num_trials: usize,
     seed: Option<u64>,
     run_in_parallel: Option<bool>,
-) -> (SwapMap, PyObject, NodeBlockResults) {
+) -> (SwapMap, PyObject, NodeBlockResults, PyObject) {
     let dist = distance_matrix.as_array();
-    let res = build_swap_map_inner(
+    let (res, final_layout) = build_swap_map_inner(
         num_qubits,
         dag,
         neighbor_table,
         &dist,
         heuristic,
         seed,
-        layout,
+        initial_layout,
         num_trials,
         run_in_parallel,
     );
@@ -241,25 +234,34 @@ pub fn build_swap_map(
         res.map,
         res.node_order.into_pyarray(py).into(),
         res.node_block_results,
+        PyArray::from_iter(
+            py,
+            (0..num_qubits).map(|phys| {
+                PhysicalQubit::new(phys)
+                    .to_virt(initial_layout)
+                    .to_phys(&final_layout)
+            }),
+        )
+        .into(),
     )
 }
 
 pub fn build_swap_map_inner(
-    num_qubits: usize,
+    num_qubits: u32,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     dist: &ArrayView2<f64>,
     heuristic: &Heuristic,
     seed: Option<u64>,
-    layout: &mut NLayout,
+    initial_layout: &NLayout,
     num_trials: usize,
     run_in_parallel: Option<bool>,
-) -> SabreResult {
+) -> (SabreResult, NLayout) {
     let run_in_parallel = match run_in_parallel {
         Some(run_in_parallel) => run_in_parallel,
         None => getenv_use_multiple_threads() && num_trials > 1,
     };
-    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
+    let coupling_graph = neighbor_table.coupling_graph();
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
@@ -268,7 +270,7 @@ pub fn build_swap_map_inner(
         .sample_iter(&rand::distributions::Standard)
         .take(num_trials)
         .collect();
-    let (result, final_layout) = if run_in_parallel {
+    if run_in_parallel {
         seed_vec
             .into_par_iter()
             .enumerate()
@@ -283,7 +285,7 @@ pub fn build_swap_map_inner(
                         &coupling_graph,
                         heuristic,
                         seed_trial,
-                        layout.clone(),
+                        initial_layout,
                     ),
                 )
             })
@@ -307,34 +309,33 @@ pub fn build_swap_map_inner(
                     &coupling_graph,
                     heuristic,
                     seed_trial,
-                    layout.clone(),
+                    initial_layout,
                 )
             })
             .min_by_key(|(result, _)| result.map.map.values().map(|x| x.len()).sum::<usize>())
             .unwrap()
-    };
-    *layout = final_layout;
-    result
+    }
 }
 
 fn swap_map_trial(
-    num_qubits: usize,
+    num_qubits: u32,
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     dist: &ArrayView2<f64>,
     coupling_graph: &DiGraph<(), ()>,
     heuristic: &Heuristic,
     seed: u64,
-    mut layout: NLayout,
+    initial_layout: &NLayout,
 ) -> (SabreResult, NLayout) {
-    let max_iterations_without_progress = 10 * neighbor_table.neighbors.len();
-    let mut out_map: HashMap<usize, Vec<[usize; 2]>> = HashMap::new();
+    let max_iterations_without_progress = 10 * num_qubits as usize;
+    let mut out_map: HashMap<usize, Vec<[VirtualQubit; 2]>> = HashMap::new();
     let mut gate_order = Vec::with_capacity(dag.dag.node_count());
     let mut front_layer = FrontLayer::new(num_qubits);
     let mut extended_set = ExtendedSet::new(num_qubits, EXTENDED_SET_SIZE);
     let mut required_predecessors: Vec<u32> = vec![0; dag.dag.node_count()];
+    let mut layout = initial_layout.clone();
     let mut num_search_steps: u8 = 0;
-    let mut qubits_decay: Vec<f64> = vec![1.; num_qubits];
+    let mut qubits_decay: Vec<f64> = vec![1.; num_qubits as usize];
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
     let mut node_block_results: HashMap<usize, Vec<BlockResult>> =
         HashMap::with_capacity(dag.node_blocks.len());
@@ -348,7 +349,7 @@ fn swap_map_trial(
     // This closure is used to curry parameters so we can avoid passing
     // everything and the kitchen sink to update_routes and
     // route_reachable_nodes.
-    let route_block_dag = |block_dag: &SabreDAG, current_layout: NLayout| {
+    let route_block_dag = |block_dag: &SabreDAG, current_layout: &NLayout| {
         swap_map_trial(
             num_qubits,
             block_dag,
@@ -383,7 +384,7 @@ fn swap_map_trial(
     // each iteration of this loop, we route either one or two gates.
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
     while !front_layer.is_empty() {
-        let mut current_swaps: Vec<[usize; 2]> = Vec::new();
+        let mut current_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
         // either successfully route a node, or exceed the maximum number of attempts.
         while routable_nodes.is_empty() && current_swaps.len() <= max_iterations_without_progress {
@@ -399,14 +400,14 @@ fn swap_map_trial(
             );
             front_layer.routable_after(&mut routable_nodes, &best_swap, &layout, coupling_graph);
             current_swaps.push(best_swap);
-            layout.swap_logical(best_swap[0], best_swap[1]);
+            layout.swap_virtual(best_swap[0], best_swap[1]);
             num_search_steps += 1;
             if num_search_steps >= DECAY_RESET_INTERVAL {
                 qubits_decay.fill(1.);
                 num_search_steps = 0;
             } else {
-                qubits_decay[best_swap[0]] += DECAY_RATE;
-                qubits_decay[best_swap[1]] += DECAY_RATE;
+                qubits_decay[best_swap[0].index()] += DECAY_RATE;
+                qubits_decay[best_swap[1].index()] += DECAY_RATE;
             }
         }
         // If we exceeded the number of allowed attempts without successfully routing a node, we
@@ -421,7 +422,7 @@ fn swap_map_trial(
             let (node, qubits) = closest_operation(&front_layer, &layout, dist);
             swaps_to_route(&mut current_swaps, &qubits, &layout, coupling_graph);
             for &[a, b] in current_swaps.iter() {
-                layout.swap_logical(a, b);
+                layout.swap_virtual(a, b);
             }
             routable_nodes.push(node);
         }
@@ -462,24 +463,23 @@ fn swap_map_trial(
 fn update_route<F>(
     seed: u64,
     nodes: &[NodeIndex],
-    swaps: Vec<[usize; 2]>,
+    swaps: Vec<[VirtualQubit; 2]>,
     dag: &SabreDAG,
     layout: &NLayout,
     coupling: &DiGraph<(), ()>,
     gate_order: &mut Vec<usize>,
-    out_map: &mut HashMap<usize, Vec<[usize; 2]>>,
+    out_map: &mut HashMap<usize, Vec<[VirtualQubit; 2]>>,
     front_layer: &mut FrontLayer,
     extended_set: &mut ExtendedSet,
     required_predecessors: &mut [u32],
     node_block_results: &mut HashMap<usize, Vec<BlockResult>>,
     route_block_dag: &F,
 ) where
-    F: Fn(&SabreDAG, NLayout) -> (SabreResult, NLayout),
+    F: Fn(&SabreDAG, &NLayout) -> (SabreResult, NLayout),
 {
     // First node gets the swaps attached.  We don't add to the `gate_order` here because
     // `route_reachable_nodes` is responsible for that part.
-    let py_node = dag.dag[nodes[0]].0;
-    out_map.insert(py_node, swaps);
+    out_map.insert(dag.dag[nodes[0]].py_node_id, swaps);
     for node in nodes {
         front_layer.remove(node);
     }
@@ -507,16 +507,14 @@ fn gen_swap_epilogue(
     mut from_layout: NLayout,
     to_layout: &NLayout,
     seed: u64,
-) -> Vec<[usize; 2]> {
+) -> Vec<[VirtualQubit; 2]> {
     // Map physical location in from_layout to physical location in to_layout
     let mapping: HashMap<NodeIndex, NodeIndex> = from_layout
-        .logic_to_phys
-        .iter()
-        .enumerate()
-        .map(|(v, p)| {
+        .iter_physical()
+        .map(|(p, v)| {
             (
-                NodeIndex::new(*p),
-                NodeIndex::new(to_layout.logic_to_phys[v]),
+                NodeIndex::new(p.index()),
+                NodeIndex::new(v.to_phys(to_layout).index()),
             )
         })
         .collect();
@@ -533,11 +531,10 @@ fn gen_swap_epilogue(
     swaps
         .into_iter()
         .map(|(l, r)| {
-            let ret = [
-                from_layout.phys_to_logic[l.index()],
-                from_layout.phys_to_logic[r.index()],
-            ];
-            from_layout.swap_physical(l.index(), r.index());
+            let p_l = PhysicalQubit::new(l.index().try_into().unwrap());
+            let p_r = PhysicalQubit::new(r.index().try_into().unwrap());
+            let ret = [p_l.to_virt(&from_layout), p_r.to_virt(&from_layout)];
+            from_layout.swap_physical(p_l, p_r);
             ret
         })
         .collect()
@@ -560,24 +557,22 @@ fn route_reachable_nodes<F>(
     node_block_results: &mut HashMap<usize, Vec<BlockResult>>,
     route_block_dag: &F,
 ) where
-    F: Fn(&SabreDAG, NLayout) -> (SabreResult, NLayout),
+    F: Fn(&SabreDAG, &NLayout) -> (SabreResult, NLayout),
 {
     let mut to_visit = to_visit.to_vec();
     let mut i = 0;
     // Iterate through `to_visit`, except we often push new nodes onto the end of it.
     while i < to_visit.len() {
-        let node = to_visit[i];
+        let node_id = to_visit[i];
+        let node = &dag.dag[node_id];
         i += 1;
-        let (py_node, qubits) = &dag.dag[node];
 
-        match dag.node_blocks.get(py_node) {
+        match dag.node_blocks.get(&node.py_node_id) {
             Some(blocks) => {
                 // Control flow op. Route all blocks for current layout.
                 let mut block_results: Vec<BlockResult> = Vec::with_capacity(blocks.len());
                 for inner_dag in blocks {
-                    let (inner_dag_routed, inner_final_layout) =
-                        route_block_dag(inner_dag, layout.copy());
-
+                    let (inner_dag_routed, inner_final_layout) = route_block_dag(inner_dag, layout);
                     // For now, we always append a swap circuit that gets the inner block
                     // back to the parent's layout.
                     let swap_epilogue =
@@ -588,28 +583,28 @@ fn route_reachable_nodes<F>(
                     };
                     block_results.push(block_result);
                 }
-                node_block_results.insert_unique_unchecked(*py_node, block_results);
+                node_block_results.insert_unique_unchecked(node.py_node_id, block_results);
             }
-            None => match qubits[..] {
+            None => match node.qubits[..] {
                 // A gate op whose connectivity must match the device to be
                 // placed in the gate order.
                 [a, b]
                     if !coupling.contains_edge(
-                        NodeIndex::new(layout.logic_to_phys[a]),
-                        NodeIndex::new(layout.logic_to_phys[b]),
+                        NodeIndex::new(a.to_phys(layout).index()),
+                        NodeIndex::new(b.to_phys(layout).index()),
                     ) =>
                 {
                     // 2Q op that cannot be placed. Add it to the front layer
                     // and move on.
-                    front_layer.insert(node, [a, b]);
+                    front_layer.insert(node_id, [a, b]);
                     continue;
                 }
                 _ => {}
             },
         }
 
-        gate_order.push(*py_node);
-        for edge in dag.dag.edges_directed(node, Direction::Outgoing) {
+        gate_order.push(node.py_node_id);
+        for edge in dag.dag.edges_directed(node_id, Direction::Outgoing) {
             let successor_node = edge.target();
             let successor_index = successor_node.index();
             required_predecessors[successor_index] -= 1;
@@ -621,11 +616,11 @@ fn route_reachable_nodes<F>(
 }
 
 /// Walk through the swaps in the given vector, undoing them on the layout and removing them.
-fn undo_swaps(swaps: &mut Vec<[usize; 2]>, layout: &mut NLayout) {
+fn undo_swaps(swaps: &mut Vec<[VirtualQubit; 2]>, layout: &mut NLayout) {
     swaps
         .drain(..)
         .rev()
-        .for_each(|swap| layout.swap_logical(swap[0], swap[1]));
+        .for_each(|swap| layout.swap_virtual(swap[0], swap[1]));
 }
 
 /// Find the node index and its associated virtual qubits that is currently the closest to being
@@ -634,68 +629,52 @@ fn closest_operation(
     front_layer: &FrontLayer,
     layout: &NLayout,
     dist: &ArrayView2<f64>,
-) -> (NodeIndex, [usize; 2]) {
+) -> (NodeIndex, [VirtualQubit; 2]) {
     let (&node, qubits) = front_layer
         .iter()
-        .map(|(node, qubits)| {
-            (
-                node,
-                [
-                    layout.logic_to_phys[qubits[0]],
-                    layout.logic_to_phys[qubits[1]],
-                ],
-            )
-        })
+        .map(|(node, qubits)| (node, [qubits[0].to_phys(layout), qubits[1].to_phys(layout)]))
         .min_by(|(_, qubits_a), (_, qubits_b)| {
-            dist[*qubits_a]
-                .partial_cmp(&dist[*qubits_b])
+            dist[[qubits_a[0].index(), qubits_a[1].index()]]
+                .partial_cmp(&dist[[qubits_b[0].index(), qubits_b[1].index()]])
                 .unwrap_or(Ordering::Equal)
         })
         .unwrap();
-    (
-        node,
-        [
-            layout.phys_to_logic[qubits[0]],
-            layout.phys_to_logic[qubits[1]],
-        ],
-    )
+    (node, [qubits[0].to_virt(layout), qubits[1].to_virt(layout)])
 }
 
 /// Add the minimal set of swaps to the `swaps` vector that bring the two `qubits` together so that
 /// a 2q gate on them could be routed.
 fn swaps_to_route(
-    swaps: &mut Vec<[usize; 2]>,
-    qubits: &[usize; 2],
+    swaps: &mut Vec<[VirtualQubit; 2]>,
+    qubits: &[VirtualQubit; 2],
     layout: &NLayout,
     coupling_graph: &DiGraph<(), ()>,
 ) {
     let mut shortest_paths: DictMap<NodeIndex, Vec<NodeIndex>> = DictMap::new();
-    let u = layout.logic_to_phys[qubits[0]];
-    let v = layout.logic_to_phys[qubits[1]];
     (dijkstra(
         coupling_graph,
-        NodeIndex::<u32>::new(u),
-        Some(NodeIndex::<u32>::new(v)),
+        NodeIndex::new(qubits[0].to_phys(layout).index()),
+        Some(NodeIndex::new(qubits[1].to_phys(layout).index())),
         |_| Ok(1.),
         Some(&mut shortest_paths),
     ) as PyResult<Vec<Option<f64>>>)
         .unwrap();
-    let shortest_path: Vec<usize> = shortest_paths
-        .get(&NodeIndex::new(v))
+    let shortest_path = shortest_paths
+        .get(&NodeIndex::new(qubits[1].to_phys(layout).index()))
         .unwrap()
         .iter()
-        .map(|n| n.index())
-        .collect();
+        .map(|n| PhysicalQubit::new(n.index() as u32))
+        .collect::<Vec<_>>();
     // Insert greedy swaps along that shortest path
     let split: usize = shortest_path.len() / 2;
     let forwards = &shortest_path[1..split];
     let backwards = &shortest_path[split..shortest_path.len() - 1];
     swaps.reserve(shortest_path.len() - 2);
     for swap in forwards {
-        swaps.push([qubits[0], layout.phys_to_logic[*swap]]);
+        swaps.push([qubits[0], swap.to_virt(layout)]);
     }
     for swap in backwards.iter().rev() {
-        swaps.push([qubits[1], layout.phys_to_logic[*swap]]);
+        swaps.push([qubits[1], swap.to_virt(layout)]);
     }
 }
 
@@ -709,9 +688,9 @@ fn choose_best_swap(
     qubits_decay: &[f64],
     heuristic: &Heuristic,
     rng: &mut Pcg64Mcg,
-) -> [usize; 2] {
+) -> [VirtualQubit; 2] {
     let mut min_score = f64::MAX;
-    let mut best_swaps: Vec<[usize; 2]> = Vec::new();
+    let mut best_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
     // The decay heuristic is the only one that actually needs the absolute score.
     let absolute_score = match heuristic {
         Heuristic::Decay => {
@@ -728,7 +707,7 @@ fn choose_best_swap(
                     + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist)
             }
             Heuristic::Decay => {
-                qubits_decay[swap[0]].max(qubits_decay[swap[1]])
+                qubits_decay[swap[0].index()].max(qubits_decay[swap[1].index()])
                     * (absolute_score
                         + layer.score(swap, layout, dist)
                         + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist))
