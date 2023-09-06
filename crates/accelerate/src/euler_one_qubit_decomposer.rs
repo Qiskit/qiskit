@@ -688,15 +688,16 @@ fn mod_2pi(angle: f64, atol: f64) -> f64 {
 }
 
 fn params_zyz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
-    let coeff: Complex64 = 1. / det_one_qubit(mat).sqrt();
+    let det = det_one_qubit(mat);
+    let coeff: Complex64 = 1. / det.sqrt();
     let phase = -complex_phase(coeff);
     let tmp_1_0 = (coeff * mat[[1, 0]]).abs();
     let tmp_0_0 = (coeff * mat[[0, 0]]).abs();
     let theta = 2. * tmp_1_0.atan2(tmp_0_0);
-    let phiplambda2 = complex_phase(coeff * mat[[1, 1]]);
-    let phimlambda2 = complex_phase(coeff * mat[[1, 0]]);
-    let phi = phiplambda2 + phimlambda2;
-    let lam = phiplambda2 - phimlambda2;
+    let ang1 = complex_phase(mat[[1, 1]]);
+    let ang2 = complex_phase(mat[[1, 0]]);
+    let phi = ang1 + ang2 - complex_phase(det);
+    let lam = ang1 - ang2;
     [theta, phi, lam, phase]
 }
 
