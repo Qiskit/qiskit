@@ -95,7 +95,7 @@ class BasisTranslator(TransformationPass):
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
-    def __init__(self, equivalence_library, target_basis, target=None):
+    def __init__(self, equivalence_library, target_basis, target=None, min_qubits=0):
         """Initialize a BasisTranslator instance.
 
         Args:
@@ -104,6 +104,8 @@ class BasisTranslator(TransformationPass):
                 this library will not be unrolled by this pass.)
             target_basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
             target (Target): The backend compilation target
+            min_qubits (int): The minimum number of qubits for operations in the input
+                dag to translate.
         """
 
         super().__init__()
@@ -112,6 +114,7 @@ class BasisTranslator(TransformationPass):
         self._target = target
         self._non_global_operations = None
         self._qargs_with_non_global_operation = {}
+        self._min_qubits = min_qubits
         if target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()
             self._qargs_with_non_global_operation = defaultdict(set)
@@ -237,7 +240,7 @@ class BasisTranslator(TransformationPass):
             for node in dag.op_nodes():
                 node_qargs = tuple(wire_map[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
-                if node.name in target_basis:
+                if node.name in target_basis or len(node.qargs) < self._min_qubits:
                     if isinstance(node.op, ControlFlowOp):
                         flow_blocks = []
                         for block in node.op.blocks:
@@ -327,7 +330,7 @@ class BasisTranslator(TransformationPass):
     @_extract_basis.register
     def _(self, dag: DAGCircuit):
         for node in dag.op_nodes():
-            if not dag.has_calibration_for(node):
+            if not dag.has_calibration_for(node) and len(node.qargs) >= self._min_qubits:
                 yield (node.name, node.op.num_qubits)
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
@@ -337,7 +340,10 @@ class BasisTranslator(TransformationPass):
     def _(self, circ: QuantumCircuit):
         for instruction in circ.data:
             operation = instruction.operation
-            if not circ.has_calibration_for(instruction):
+            if (
+                not circ.has_calibration_for(instruction)
+                and len(instruction.qubits) >= self._min_qubits
+            ):
                 yield (operation.name, operation.num_qubits)
             if isinstance(operation, ControlFlowOp):
                 for block in operation.blocks:
@@ -352,7 +358,7 @@ class BasisTranslator(TransformationPass):
             qargs_local_source_basis = defaultdict(set)
         for node in dag.op_nodes():
             qargs = tuple(qarg_indices[bit] for bit in node.qargs)
-            if dag.has_calibration_for(node):
+            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 continue
             # Treat the instruction as on an incomplete basis if the qargs are in the
             # qargs_with_non_global_operation dictionary or if any of the qubits in qargs

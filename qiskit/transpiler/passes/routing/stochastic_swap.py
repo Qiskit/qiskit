@@ -202,13 +202,13 @@ class StochasticSwap(TransformationPass):
         cdist2 = coupling._dist_matrix**2
         int_qubit_subset = np.fromiter(
             (dag.find_bit(bit).index for bit in qubit_subset),
-            dtype=np.uintp,
+            dtype=np.uint32,
             count=len(qubit_subset),
         )
 
         int_gates = np.fromiter(
             (dag.find_bit(bit).index for gate in gates for bit in gate),
-            dtype=np.uintp,
+            dtype=np.uint32,
             count=2 * len(gates),
         )
 
@@ -218,7 +218,7 @@ class StochasticSwap(TransformationPass):
         trial_circuit = DAGCircuit()  # SWAP circuit for slice of swaps in this trial
         trial_circuit.add_qubits(layout.get_virtual_bits())
 
-        edges = np.asarray(coupling.get_edges(), dtype=np.uintp).ravel()
+        edges = np.asarray(coupling.get_edges(), dtype=np.uint32).ravel()
         cdist = coupling._dist_matrix
         best_edges, best_layout, best_depth = stochastic_swap_rs.swap_trials(
             trials,

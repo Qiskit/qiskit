@@ -360,10 +360,10 @@ def _apply_sabre_result(
             # outermost DAG, since the scope binding occurred as the `SabreDAG` objects were built
             # up; they're all provided to Sabre routing as full-width already.
             qubits = (
-                physical_qubits[layout.logical_to_physical(a)],
-                physical_qubits[layout.logical_to_physical(b)],
+                physical_qubits[layout.virtual_to_physical(a)],
+                physical_qubits[layout.virtual_to_physical(b)],
             )
-            layout.swap_logical(a, b)
+            layout.swap_virtual(a, b)
             dest_dag.apply_operation_back(SwapGate(), qubits, (), check=False)
 
     def recurse(dest_dag, source_dag, result, root_logical_map, layout):
@@ -380,7 +380,7 @@ def _apply_sabre_result(
                 dest_dag.apply_operation_back(
                     node.op,
                     [
-                        physical_qubits[layout.logical_to_physical(root_logical_map[q])]
+                        physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
                         for q in node.qargs
                     ],
                     node.cargs,
