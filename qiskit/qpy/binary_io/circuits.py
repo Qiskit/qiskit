@@ -970,10 +970,13 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
         new_custom_operations = list(custom_operations.keys())
         while new_custom_operations:
             operations_to_serialize = new_custom_operations.copy()
+            new_custom_operations = []
             for name in operations_to_serialize:
                 operation = custom_operations[name]
-                new_custom_operations = _write_custom_operation(
-                    custom_operations_buffer, name, operation, custom_operations
+                new_custom_operations.extend(
+                    _write_custom_operation(
+                        custom_operations_buffer, name, operation, custom_operations
+                    )
                 )
 
         file_obj.write(struct.pack(formats.CUSTOM_CIRCUIT_DEF_HEADER_PACK, len(custom_operations)))

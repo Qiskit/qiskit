@@ -312,7 +312,7 @@ class UnitarySynthesis(TransformationPass):
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises :class:`~TranspileError`. If set to None, no
+                determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and

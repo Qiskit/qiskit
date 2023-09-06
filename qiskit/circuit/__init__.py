@@ -348,7 +348,17 @@ Random Circuits
 .. currentmodule:: qiskit.circuit.random
 .. autofunction:: random_circuit
 .. currentmodule:: qiskit.circuit
+
+Exceptions
+----------
+
+Almost all circuit functions and methods will raise a :exc:`CircuitError` when encountering an error
+that is particular to usage of Qiskit (as opposed to regular typing or indexing problems, which will
+typically raise the corresponding standard Python error).
+
+.. autoexception:: CircuitError
 """
+from .exceptions import CircuitError
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
