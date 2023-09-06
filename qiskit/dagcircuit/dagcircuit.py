@@ -1952,7 +1952,9 @@ class DAGCircuit:
         Returns:
             Mapping[str, int]: a mapping of operation names to the number of times it appears.
         """
-        if not recurse:
+        if not recurse or not {"for_loop", "while_loop", "if_else", "switch_case"}.intersection(
+            self._op_names
+        ):
             return self._op_names.copy()
 
         # pylint: disable=cyclic-import

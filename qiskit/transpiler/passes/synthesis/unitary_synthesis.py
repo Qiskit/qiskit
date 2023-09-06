@@ -375,6 +375,12 @@ class UnitarySynthesis(TransformationPass):
         """
         if self.method != "default" and self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
+
+        # If there aren't any gates to synthesize in the circuit we can skip all the iteration
+        # and just return.
+        if not set(self._synth_gates).intersection(dag.count_ops()):
+            return dag
+
         # Return fast if we have no synth gates (ie user specified an empty
         # list or the synth gates are all in the basis
         if not self._synth_gates:
