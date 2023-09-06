@@ -1,26 +1,18 @@
 ---
 upgrade:
   - |
-    Code and tests deprecated in 0.20 are removed.
-    :class:`.visualization.QCircuitImage` objects no longer supports
-    `qregs`, `cregs`, `layout`and `global_phase` arguments.
+    The class constructor arguments `qregs`, `cregs`, 
+    `layout` and `global_phase` for :class:`.visualization.QCircuitImage`
+    are removed, as they were deprecated in 0.20.
     
   - |
-    Code and tests deprecated in 0.20 are removed. In
-    :class:`.transpiler.CouplingMap` :meth:`~subgraph` is removed.
-    :meth:`~reduce` can be used in place of 
-    :meth:`~subgraph`.
-    
-  - |
-    Code and tests deprecated in 0.20 are removed. In
-    :class:`.dagcircuit.DAGCircuit` private :meth:`~_copy_circuit_metadata` is removed.
-    Instead use public :meth:`~copy_empty_like` with same functionality.
+    In :class:`.transpiler.CouplingMap` method `subgraph` is removed
+    as deprecated in 0.20. :meth:`~reduce` can be used in place of method `subgraph`.
   
   - |
-    Code and tests deprecated in 0.20 are removed. In
-    :class:`.synthesis.SuzukiTrotter` deprecation warning for
-    odd `order` is replaced with `ValueError`.
-    Refer to `#10747 <https://github.com/Qiskit/qiskit/issues/10747>`
-    
-        
+    The parameter `order` in :class:`.synthesis.SuzukiTrotter`
+    constructor raises an exception instead of deprecation warning when
+    set in an odd number. Suzuki product formulae are symmetric and
+    therefore only defined for even orders.
+      
     
