@@ -49,10 +49,15 @@ from qiskit.circuit.library import (
     RYGate,
     RZGate,
     SXGate,
+    SXdgGate,
+    SGate,
+    SdgGate,
     U1Gate,
     U2Gate,
     UGate,
     XGate,
+    ZGate,
+    ECRGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.compiler import transpile
@@ -408,6 +413,28 @@ class TestTranspile(QiskitTestCase):
 
         circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
+
+    def test_transpile_bell_discrete_basis(self):
+        """Test that it's possible to transpile a very simple circuit to a discrete stabiliser-like
+        basis.  In general, we do not make any guarantees about the possibility or quality of
+        transpilation in these situations, but this is at least useful as a check that stuff that
+        _could_ be possible remains so."""
+
+        target = Target(num_qubits=2)
+        for one_q in [XGate(), SXGate(), SXdgGate(), SGate(), SdgGate(), ZGate()]:
+            target.add_instruction(one_q, {(0,): None, (1,): None})
+        # This is only in one direction, and not the direction we're going to attempt to lay it out
+        # onto, so we can test the basis translation.
+        target.add_instruction(ECRGate(), {(1, 0): None})
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        # Try with the initial layout in both directions to ensure we're dealing with the basis
+        # having only a single direction.
+        self.assertIsInstance(transpile(qc, target=target, initial_layout=[0, 1]), QuantumCircuit)
+        self.assertIsInstance(transpile(qc, target=target, initial_layout=[1, 0]), QuantumCircuit)
 
     def test_transpile_one(self):
         """Test transpile a single circuit.
