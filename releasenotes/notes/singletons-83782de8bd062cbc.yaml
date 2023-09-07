@@ -26,7 +26,9 @@ features:
     :meth:`~.SingletonGate.c_if` for :attr:`~.SingletonGate.condition`) when
     creating a new object. When this is done the output from the constructo
     will be a separate instance with the custom state instead of the globally
-    shared instance.
+    shared instance. You can also use the :meth:`.SingeltonGate.to_mutable`
+    method to get a mutable copy of a gate object and then mutate the attributes
+    like you would on any other :class:`~.circuit.Instruction` object.
   - |
     The following standard library gates are now instances of
     :class:`~.SingletonGate`:
@@ -54,6 +56,12 @@ features:
     instance whenever a new gate object is created. This results in large reduction
     in the memory overhead for > 1 object of these types and significantly faster
     object construction time.
+  - |
+    Added a new method :meth`.Instruction.to_mutable` and attribute
+    :attr:`.Instruction.mutable` which is used to get a mutable copy and check whether
+    an :class:`~.circuit.Instruction` object is mutable. With the introduction
+    of :class:`~.SingletonGate` these methods can be used to have a unified interface
+    to deal with the mutablitiy of instruction objects.
 upgrade:
   - |
     The following standard library gates:
@@ -77,11 +85,14 @@ upgrade:
         * :class:`~.ZGate`
 
     no longer are able to set :attr:`~.Gate.label`, :attr:`~.Gate.condition`,
-    :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` after insantiating an object
+    :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` after instantiating an object
     anymore. You will now only be able to set these attributes as arguments
     when creating a new object or in the case of :attr:`~.Gate.condtion` through
-    the use :meth:`~.Gate.c_if`. This change was necssary as part of converting
+    the use :meth:`~.Gate.c_if`. Alternatively you can use :meth:`~.Gate.to_mutable`
+    to get a mutable copy of the instruction and then use the setter on that copy
+    instead of the original object. This change was necssary as part of converting
     these classes to be :class:`~.SingletonGate` types which greatly reduces the
+    memory footprint of repeated instances of these gates.
   - |
     For anything that interacts with :class:`~.Gate`, :class:`~.Operation`,
     or :class:`~.circuit.Instruction` objects or works with these as part of a
@@ -94,7 +105,9 @@ upgrade:
     library gates now built off of it). If you're use of these objects is assuming
     unique instances for every circuit operation there are potential issue because
     of shared state that will be reused between operations of the same type (that
-    will persist through copy and deep copies).
+    will persist through copy and deep copies). You can rely on the
+    :attr:`.Instruction.mutable` attribute to check the mutability of an object or
+    use :meth:`.Instruction.to_mutable` to get a mutable copy of any instruction.
 fixes:
   - |
     Fixed an oversight in the :class:`~.ECRGate` that prevented setting an
