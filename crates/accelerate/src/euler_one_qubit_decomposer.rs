@@ -668,11 +668,6 @@ fn det_one_qubit(mat: ArrayView2<Complex64>) -> Complex64 {
     mat[[0, 0]] * mat[[1, 1]] - mat[[0, 1]] * mat[[1, 0]]
 }
 
-#[inline]
-fn complex_phase(x: Complex64) -> f64 {
-    x.im.atan2(x.re)
-}
-
 /// Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π
 #[inline]
 fn mod_2pi(angle: f64, atol: f64) -> f64 {
@@ -689,11 +684,11 @@ fn mod_2pi(angle: f64, atol: f64) -> f64 {
 
 fn params_zyz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     let det = det_one_qubit(mat);
-    let phase = 0.5 * complex_phase(det);
-    let theta = 2. * mat[[1, 0]].abs().atan2(mat[[0,0]].abs());
-    let ang1 = complex_phase(mat[[1, 1]]);
-    let ang2 = complex_phase(mat[[1, 0]]);
-    let phi = ang1 + ang2 - complex_phase(det);
+    let phase = 0.5 * det.arg();
+    let theta = 2. * mat[[1, 0]].abs().atan2(mat[[0, 0]].abs());
+    let ang1 = mat[[1, 1]].arg();
+    let ang2 = mat[[1, 0]].arg();
+    let phi = ang1 + ang2 - det.arg();
     let lam = ang1 - ang2;
     [theta, phi, lam, phase]
 }
