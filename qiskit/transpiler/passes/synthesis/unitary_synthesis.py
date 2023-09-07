@@ -381,10 +381,6 @@ class UnitarySynthesis(TransformationPass):
         if not set(self._synth_gates).intersection(dag.count_ops()):
             return dag
 
-        # Return fast if we have no synth gates (ie user specified an empty
-        # list or the synth gates are all in the basis
-        if not self._synth_gates:
-            return dag
         if self.plugins:
             plugin_method = self.plugins.ext_plugins[self.method].obj
         else:
