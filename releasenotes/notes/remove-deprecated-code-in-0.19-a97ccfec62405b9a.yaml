@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    In the internal ``qiskit.transpiler.instruction_durations.get`` object, using a Qubit or List[Qubit] for the argument ``qubits`` has been deprecated. Instead, use an integer for the qubit indices.
+
+  - |
+    In the internal ``qiskit.providers.models.backendconfiguration.control`` object, the argument ``channel`` has been deprecated. Instead, use the ``qubits`` argument.
+
+  - |
+    In the internal ``qiskit.qobj.__init__`` object, the initializer function ``__init__`` has been deprecated. Instead, use the ``QasmQobj`` or ``PulseQobj`` object.
