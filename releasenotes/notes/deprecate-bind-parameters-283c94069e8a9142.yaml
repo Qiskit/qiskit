@@ -1,6 +1,7 @@
 ---
 deprecations:
   - |
-    The method :meth:`~qiskit.QuantumCircuit.bind_parameters` is now deprecated. Its functionality
-    overlapped highly with :meth:`~qiskit.QuantumCircuit.assign_parameters`, and can be totally
-    replaced by it. Please use :meth:`~qiskit.QuantumCircuit.assign_parameters` instead.
+    The method :meth:`.QuantumCircuit.bind_parameters` is now deprecated and will be removed
+    from the codebase in no less than 3 months from the release date. Its functionality
+    overlapped highly with :meth:`.QuantumCircuit.assign_parameters`, and can be totally
+    replaced by it. Please use :meth:`.QuantumCircuit.assign_parameters` instead.
