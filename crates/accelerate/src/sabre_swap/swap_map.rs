@@ -14,11 +14,13 @@ use hashbrown::HashMap;
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 
+use crate::nlayout::VirtualQubit;
+
 /// A container for required swaps before a gate qubit
 #[pyclass(module = "qiskit._accelerate.sabre_swap")]
 #[derive(Clone, Debug)]
 pub struct SwapMap {
-    pub map: HashMap<usize, Vec<[usize; 2]>>,
+    pub map: HashMap<usize, Vec<[VirtualQubit; 2]>>,
 }
 
 #[pymethods]
@@ -32,7 +34,7 @@ impl SwapMap {
         self.map.contains_key(&object)
     }
 
-    pub fn __getitem__(&self, object: usize) -> PyResult<Vec<[usize; 2]>> {
+    pub fn __getitem__(&self, object: usize) -> PyResult<Vec<[VirtualQubit; 2]>> {
         match self.map.get(&object) {
             Some(val) => Ok(val.clone()),
             None => Err(PyIndexError::new_err(format!(

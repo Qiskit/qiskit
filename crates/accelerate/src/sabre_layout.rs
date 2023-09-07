@@ -22,7 +22,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use crate::getenv_use_multiple_threads;
-use crate::nlayout::NLayout;
+use crate::nlayout::{NLayout, PhysicalQubit};
 use crate::sabre_swap::neighbor_table::NeighborTable;
 use crate::sabre_swap::sabre_dag::SabreDAG;
 use crate::sabre_swap::swap_map::SwapMap;
@@ -40,10 +40,10 @@ pub fn sabre_layout_and_routing(
     num_swap_trials: usize,
     num_random_trials: usize,
     seed: Option<u64>,
-    mut partial_layouts: Vec<Vec<Option<usize>>>,
+    mut partial_layouts: Vec<Vec<Option<u32>>>,
 ) -> (NLayout, PyObject, (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
-    let mut starting_layouts: Vec<Vec<Option<usize>>> =
+    let mut starting_layouts: Vec<Vec<Option<u32>>> =
         (0..num_random_trials).map(|_| vec![]).collect();
     starting_layouts.append(&mut partial_layouts);
     let outer_rng = match seed {
@@ -123,35 +123,39 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
-    starting_layout: &[Option<usize>],
-) -> (NLayout, Vec<usize>, SabreResult) {
-    let num_physical_qubits = distance_matrix.shape()[0];
+    starting_layout: &[Option<u32>],
+) -> (NLayout, Vec<PhysicalQubit>, SabreResult) {
+    let num_physical_qubits: u32 = distance_matrix.shape()[0].try_into().unwrap();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
     // Pick a random initial layout including a full ancilla allocation.
     let mut initial_layout = {
-        let physical_qubits = if !starting_layout.is_empty() {
-            let used_bits: HashSet<usize> = starting_layout
+        let physical_qubits: Vec<PhysicalQubit> = if !starting_layout.is_empty() {
+            let used_bits: HashSet<u32> = starting_layout
                 .iter()
                 .filter_map(|x| x.as_ref())
                 .copied()
                 .collect();
-            let mut free_bits: Vec<usize> = (0..num_physical_qubits)
+            let mut free_bits: Vec<u32> = (0..num_physical_qubits)
                 .filter(|x| !used_bits.contains(x))
                 .collect();
             free_bits.shuffle(&mut rng);
             (0..num_physical_qubits)
-                .map(|x| match starting_layout.get(x) {
-                    Some(phys) => phys.unwrap_or_else(|| free_bits.pop().unwrap()),
-                    None => free_bits.pop().unwrap(),
+                .map(|x| {
+                    let bit_index = match starting_layout.get(x as usize) {
+                        Some(phys) => phys.unwrap_or_else(|| free_bits.pop().unwrap()),
+                        None => free_bits.pop().unwrap(),
+                    };
+                    PhysicalQubit::new(bit_index)
                 })
                 .collect()
         } else {
-            let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
+            let mut physical_qubits: Vec<PhysicalQubit> =
+                (0..num_physical_qubits).map(PhysicalQubit::new).collect();
             physical_qubits.shuffle(&mut rng);
             physical_qubits
         };
-        NLayout::from_logical_to_physical(physical_qubits)
+        NLayout::from_virtual_to_physical(physical_qubits).unwrap()
     };
 
     // Sabre routing currently enforces that control-flow blocks return to their starting layout,
@@ -173,7 +177,8 @@ fn layout_trial(
         dag_no_control_forward.num_clbits,
         dag_no_control_forward.nodes.iter().rev().cloned().collect(),
         dag_no_control_forward.node_blocks.clone(),
-    );
+    )
+    .unwrap();
 
     for _iter in 0..max_iterations {
         for dag in [&dag_no_control_forward, &dag_no_control_reverse] {
@@ -185,8 +190,8 @@ fn layout_trial(
                 heuristic,
                 Some(seed),
                 &initial_layout,
-                num_swap_trials,
-                Some(run_swap_in_parallel),
+                1,
+                Some(false),
             );
             initial_layout = final_layout;
         }
@@ -204,9 +209,8 @@ fn layout_trial(
         Some(run_swap_in_parallel),
     );
     let final_permutation = initial_layout
-        .phys_to_logic
-        .iter()
-        .map(|initial| final_layout.logic_to_phys[*initial])
+        .iter_physical()
+        .map(|(_, virt)| virt.to_phys(&final_layout))
         .collect();
     (initial_layout, final_permutation, sabre_result)
 }
