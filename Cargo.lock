@@ -442,6 +442,7 @@ dependencies = [
  "rand_pcg",
  "rayon",
  "rustworkx-core",
+ "smallvec",
 ]
 
 [[package]]

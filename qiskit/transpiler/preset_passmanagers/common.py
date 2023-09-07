@@ -222,7 +222,15 @@ def generate_unroll_3q(
             hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
         )
     )
-    unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
+    # If there are no target instructions revert to using unroll3qormore so
+    # routing works.
+    if basis_gates is None and target is None:
+        unroll_3q.append(Unroll3qOrMore(target, basis_gates))
+    else:
+        unroll_3q.append(
+            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target, min_qubits=3)
+        )
+        unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
     return unroll_3q
 
 

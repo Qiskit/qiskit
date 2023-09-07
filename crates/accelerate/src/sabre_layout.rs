@@ -21,7 +21,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use crate::getenv_use_multiple_threads;
-use crate::nlayout::NLayout;
+use crate::nlayout::{NLayout, PhysicalQubit};
 use crate::sabre_swap::neighbor_table::NeighborTable;
 use crate::sabre_swap::sabre_dag::SabreDAG;
 use crate::sabre_swap::swap_map::SwapMap;
@@ -114,15 +114,16 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
-) -> (NLayout, Vec<usize>, SabreResult) {
-    let num_physical_qubits = distance_matrix.shape()[0];
+) -> (NLayout, Vec<PhysicalQubit>, SabreResult) {
+    let num_physical_qubits: u32 = distance_matrix.shape()[0].try_into().unwrap();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
     // Pick a random initial layout including a full ancilla allocation.
     let mut initial_layout = {
-        let mut physical_qubits: Vec<usize> = (0..num_physical_qubits).collect();
+        let mut physical_qubits: Vec<PhysicalQubit> =
+            (0..num_physical_qubits).map(PhysicalQubit::new).collect();
         physical_qubits.shuffle(&mut rng);
-        NLayout::from_logical_to_physical(physical_qubits)
+        NLayout::from_virtual_to_physical(physical_qubits).unwrap()
     };
 
     // Sabre routing currently enforces that control-flow blocks return to their starting layout,
@@ -176,9 +177,8 @@ fn layout_trial(
         Some(run_swap_in_parallel),
     );
     let final_permutation = initial_layout
-        .phys_to_logic
-        .iter()
-        .map(|initial| final_layout.logic_to_phys[*initial])
+        .iter_physical()
+        .map(|(_, virt)| virt.to_phys(&final_layout))
         .collect();
     (initial_layout, final_permutation, sabre_result)
 }
