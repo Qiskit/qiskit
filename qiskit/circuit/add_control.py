@@ -17,7 +17,6 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from ._utils import _ctrl_state_to_int
-from .singleton_gate import SingletonGate
 
 
 def add_control(

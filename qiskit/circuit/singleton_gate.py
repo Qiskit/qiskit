@@ -16,7 +16,6 @@ import copy
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 
 
