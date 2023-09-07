@@ -14,7 +14,6 @@
 from typing import Set
 
 from qiskit.circuit import Delay
-from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -102,10 +101,7 @@ class TimeUnitConversion(TransformationPass):
                 )
             except TranspilerError:
                 continue
-            if isinstance(node.op, SingletonGate):
-                node.op = node.op.to_mutable()
-            else:
-                node.op = node.op.copy()
+            node.op = node.op.to_mutable()
             node.op.duration = duration
             node.op.unit = time_unit
 

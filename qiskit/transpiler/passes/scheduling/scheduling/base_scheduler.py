@@ -20,7 +20,6 @@ from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitCon
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
 
@@ -71,8 +70,7 @@ class BaseScheduler(AnalysisPass):
             duration = dag.calibrations[node.op.name][cal_key].duration
 
             # Note that node duration is updated (but this is analysis pass)
-            if isinstance(node.op, SingletonGate):
-                node.op = node.op.to_mutable()
+            node.op = node.op.to_mutable()
             node.op.duration = duration
         else:
             duration = node.op.duration

@@ -20,7 +20,6 @@ from qiskit.circuit import Qubit, Gate
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
-from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
@@ -246,9 +245,8 @@ class PadDynamicalDecoupling(BasePadding):
                     gate_length = self._durations.get(gate, physical_index)
                 sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
-                if isinstance(gate, SingletonGate):
-                    gate = gate.to_mutable()
-                    self._dd_sequence[index] = gate
+                gate = gate.to_mutable()
+                self._dd_sequence[index] = gate
                 gate.duration = gate_length
             self._dd_sequence_lengths[qubit] = sequence_lengths
 

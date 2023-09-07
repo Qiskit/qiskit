@@ -17,7 +17,6 @@ import itertools
 import numpy as np
 from qiskit.circuit import Gate, Delay, Reset
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
-from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
@@ -194,9 +193,8 @@ class DynamicalDecoupling(TransformationPass):
         for physical_qubit in self._qubits:
             dd_sequence_duration = 0
             for index, gate in enumerate(self._dd_sequence):
-                if isinstance(gate, SingletonGate):
-                    gate = gate.to_mutable()
-                    self._dd_sequence[index] = gate
+                gate = gate.to_mutable()
+                self._dd_sequence[index] = gate
                 gate.duration = self._durations.get(gate, physical_qubit)
 
                 dd_sequence_duration += gate.duration
