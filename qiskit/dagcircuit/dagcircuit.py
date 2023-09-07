@@ -36,7 +36,7 @@ from qiskit.circuit import (
     SwitchCaseOp,
     _classical_resource_map,
 )
-from qiskit.circuit.controlflow import condition_resources, node_resources
+from qiskit.circuit.controlflow import condition_resources, node_resources, CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
@@ -916,9 +916,7 @@ class DAGCircuit:
         """
         length = len(self._multi_graph) - 2 * len(self._wires)
         if not recurse:
-            if any(
-                x in self._op_names for x in ("for_loop", "while_loop", "if_else", "switch_case")
-            ):
+            if any(x in self._op_names for x in CONTROL_FLOW_OP_NAMES):
                 raise DAGCircuitError(
                     "Size with control flow is ambiguous."
                     " You may use `recurse=True` to get a result,"
@@ -980,9 +978,7 @@ class DAGCircuit:
                 return node_lookup.get(target, 1)
 
         else:
-            if any(
-                x in self._op_names for x in ("for_loop", "while_loop", "if_else", "switch_case")
-            ):
+            if any(x in self._op_names for x in CONTROL_FLOW_OP_NAMES):
                 raise DAGCircuitError(
                     "Depth with control flow is ambiguous."
                     " You may use `recurse=True` to get a result,"
@@ -1978,7 +1974,7 @@ class DAGCircuit:
         Returns:
             Mapping[str, int]: a mapping of operation names to the number of times it appears.
         """
-        if not recurse:
+        if not recurse or not CONTROL_FLOW_OP_NAMES.intersection(self._op_names):
             return self._op_names.copy()
 
         # pylint: disable=cyclic-import
