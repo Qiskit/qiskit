@@ -23,17 +23,16 @@ from qiskit.circuit.exceptions import CircuitError
 class SingletonGate(Gate):
     """A base class to use for Gate objects that by default are singleton instances
 
-
     This class should be used for gate classes that have fixed definitions and
     do not contain any unique state. The canonical example of something like
     this is :class:`~.HGate` which has an immutable definition and any
-    instance of :class:`~.HGate` is the same. Using singleton gate enables using
-    as a base class for these types of gate classes it provides a large
-    advantage in the memory footprint and creation speed of multiple gates.
+    instance of :class:`~.HGate` is the same. Using singleton gates
+    as a base class for these types of gate classes provides a large
+    advantage in the memory footprint of multiple gates.
 
     The exception to be aware of with this class though are the :class:`~.Gate`
     attributes :attr:`.label`, :attr:`.condition`, :attr:`.duration`, and
-    :attr`.unit` which can be set differently for specific instances of gates.
+    :attr:`.unit` which can be set differently for specific instances of gates.
     For :class:`~.SingletonGate` usage to be sound setting these attributes
     is not available and they can only be set at creation time. If any of these
     attributes are used instead of using a single shared global instance of
