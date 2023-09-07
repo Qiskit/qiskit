@@ -206,26 +206,26 @@ class DynamicalDecoupling(TransformationPass):
 
         for nd in dag.topological_op_nodes():
             if not isinstance(nd.op, Delay):
-                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, check=False)
                 continue
 
             dag_qubit = nd.qargs[0]
             physical_qubit = dag.find_bit(dag_qubit).index
             if physical_qubit not in self._qubits:  # skip unwanted qubits
-                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, check=False)
                 continue
 
             pred = next(dag.predecessors(nd))
             succ = next(dag.successors(nd))
             if self._skip_reset_qubits:  # discount initial delays
                 if isinstance(pred, DAGInNode) or isinstance(pred.op, Reset):
-                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, check=False)
                     continue
 
             dd_sequence_duration = index_sequence_duration_map[physical_qubit]
             slack = nd.op.duration - dd_sequence_duration
             if slack <= 0:  # dd doesn't fit
-                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, check=False)
                 continue
 
             if num_pulses == 1:  # special case of using a single gate for DD
@@ -247,7 +247,7 @@ class DynamicalDecoupling(TransformationPass):
                     sequence_gphase += phase
                 # don't do anything if there's no single-qubit gate to absorb the inverse
                 else:
-                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                    new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, check=False)
                     continue
 
             # insert the actual DD sequence
@@ -258,9 +258,9 @@ class DynamicalDecoupling(TransformationPass):
 
             for tau, gate in itertools.zip_longest(taus, self._dd_sequence):
                 if tau > 0:
-                    new_dag.apply_operation_back(Delay(tau), [dag_qubit])
+                    new_dag.apply_operation_back(Delay(tau), [dag_qubit], check=False)
                 if gate is not None:
-                    new_dag.apply_operation_back(gate, [dag_qubit])
+                    new_dag.apply_operation_back(gate, [dag_qubit], check=False)
 
             new_dag.global_phase = _mod_2pi(new_dag.global_phase + sequence_gphase)
 
