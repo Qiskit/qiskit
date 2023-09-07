@@ -1217,7 +1217,7 @@ class DAGCircuit:
             node_wire_order = list(node.qargs) + list(node.cargs)
             # If we're not propagating it, the number of wires in the input DAG should include the
             # condition as well.
-            if not propagate_condition:
+            if not propagate_condition and self._operation_may_have_bits(node.op):
                 node_wire_order += [
                     bit for bit in self._bits_in_operation(node.op) if bit not in node_cargs
                 ]
