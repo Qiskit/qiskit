@@ -70,8 +70,8 @@ class Kraus(QuantumChannel):
 
         Args:
             data: data to initialize superoperator.
-            input_dims: the input subsystem dimensions. (Default: `None`)
-            output_dims: the output subsystem dimensions. (Default: `None`)
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data cannot be initialized as a list of Kraus matrices.
