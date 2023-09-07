@@ -174,6 +174,6 @@ class SingletonGate(Gate):
             super().__setattr__(name, value)
 
     def copy(self, name=None):
-        if name is not None and self.condition is None and self.label is None:
-            raise QiskitError("A custom name can not be set on a copy of a singleton gate")
-        return super().copy()
+        if not self.mutable and name is None:
+            return self
+        return super().copy(name=name)
