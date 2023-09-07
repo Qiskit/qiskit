@@ -45,7 +45,7 @@ class Parameter(ParameterExpression):
            qc.draw('mpl')
 
            # bind the parameters after circuit to create a bound circuit
-           bc = qc.bind_parameters({phi: 3.14})
+           bc = qc.assign_parameters({phi: 3.14})
            bc.measure_all()
            bc.draw('mpl')
     """
