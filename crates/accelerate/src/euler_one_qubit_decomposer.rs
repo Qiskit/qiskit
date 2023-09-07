@@ -683,12 +683,12 @@ fn mod_2pi(angle: f64, atol: f64) -> f64 {
 }
 
 fn params_zyz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
-    let det = det_one_qubit(mat);
-    let phase = 0.5 * det.arg();
+    let det_arg = det_one_qubit(mat).arg();
+    let phase = 0.5 * det_arg;
     let theta = 2. * mat[[1, 0]].abs().atan2(mat[[0, 0]].abs());
     let ang1 = mat[[1, 1]].arg();
     let ang2 = mat[[1, 0]].arg();
-    let phi = ang1 + ang2 - det.arg();
+    let phi = ang1 + ang2 - det_arg;
     let lam = ang1 - ang2;
     [theta, phi, lam, phase]
 }
