@@ -1277,6 +1277,12 @@ class TestParameterExpressions(QiskitTestCase):
 
     supported_operations = [add, sub, mul, truediv]
 
+    def setUp(self):
+        super().setUp()
+        # TODO: delete once bind_parameters is removed from the codebase
+        #  and related tests are also removed.
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
     def test_compare_to_value_when_bound(self):
         """Verify expression can be compared to a fixed value
         when fully bound."""
