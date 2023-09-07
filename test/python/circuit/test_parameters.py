@@ -192,15 +192,22 @@ class TestParameters(QiskitTestCase):
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
 
-    @data(QuantumCircuit.assign_parameters, QuantumCircuit.assign_parameters)
-    def test_bind_parameters_custom_definition_global_phase(self, assigner):
+    def test_circuit_bind_parameters_raises(self):
+        """Test that the deprecated bind_parameters method raises a deprecation warning."""
+        qc = QuantumCircuit(1)
+        qc.rx(Parameter("x"), 0)
+
+        with self.assertWarns(DeprecationWarning):
+            _ = qc.bind_parameters([1])
+
+    def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
         x = Parameter("x")
         custom = QuantumCircuit(1, global_phase=x).to_gate()
         base = QuantumCircuit(1)
         base.append(custom, [0], [])
 
-        test = Operator(assigner(base, {x: math.pi}))
+        test = Operator(QuantumCircuit.assign_parameters(base, {x: math.pi}))
         expected = Operator(numpy.array([[-1, 0], [0, -1]]))
         self.assertEqual(test, expected)
 
@@ -465,7 +472,6 @@ class TestParameters(QiskitTestCase):
         y = Parameter("y")
         z = ParameterVector("z", 3)
         qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
 
         qc = QuantumCircuit(qr)
         qc.p(0.1, qr[0])
