@@ -69,21 +69,9 @@ class SingletonGate(Gate):
 
     @property
     def mutable(self) -> bool:
-        """Is this instance is a mutable unique instance or not.
-
-        If this attribute is ``False`` the gate instance is a shared singleton
-        and is not mutable.
-        """
         return self is not self._instance
 
     def to_mutable(self):
-        """Return a mutable copy of this gate.
-
-        This method will return a new mutable copy of this gate instance.
-        If a singleton instance is being used this will be a new unique
-        instance that can be mutated. If the instance is already mutable it
-        will be a deepcopy of that instance.
-        """
         if not self.mutable:
             instance = super().__new__(type(self))
             instance.__init__()
