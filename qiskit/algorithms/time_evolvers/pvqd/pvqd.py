@@ -232,7 +232,7 @@ class PVQD(RealTimeEvolver):
         self._validate_setup(skip={"optimizer"})
 
         # use Trotterization to evolve the current state
-        trotterized = ansatz.bind_parameters(current_parameters)
+        trotterized = ansatz.assign_parameters(current_parameters)
 
         evolution_gate = PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution)
 
@@ -388,7 +388,7 @@ class PVQD(RealTimeEvolver):
             if observables is not None:
                 observable_values.append(evaluate_observables(next_parameters))
 
-        evolved_state = self.ansatz.bind_parameters(parameters[-1])
+        evolved_state = self.ansatz.assign_parameters(parameters[-1])
 
         result = PVQDResult(
             evolved_state=evolved_state,
