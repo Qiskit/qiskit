@@ -1372,9 +1372,7 @@ class DAGCircuit:
                     label=old_node.op.label,
                 )
             elif getattr(old_node.op, "condition", None) is not None:
-                # Deepcopy needed here in case of singletone gate usage the condition will be sticky
-                # globally
-                m_op = copy.deepcopy(old_node.op)
+                m_op = old_node.op
                 if not isinstance(old_node.op, ControlFlowOp):
                     new_condition = variable_mapper.map_condition(m_op.condition)
                     if new_condition is not None:
