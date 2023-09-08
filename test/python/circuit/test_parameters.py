@@ -113,7 +113,9 @@ class TestParameters(QiskitTestCase):
         super().setUp()
         # TODO: delete once bind_parameters is removed from the codebase
         #  and related tests are also removed.
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+        )
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -1281,7 +1283,9 @@ class TestParameterExpressions(QiskitTestCase):
         super().setUp()
         # TODO: delete once bind_parameters is removed from the codebase
         #  and related tests are also removed.
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+        )
 
     def test_compare_to_value_when_bound(self):
         """Verify expression can be compared to a fixed value
