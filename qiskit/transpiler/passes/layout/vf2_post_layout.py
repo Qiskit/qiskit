@@ -185,7 +185,7 @@ class VF2PostLayout(AnalysisPass):
             if None in self.target.qargs:
                 global_ops = {1: [], 2: []}
                 for op in self.target.operation_names_for_qargs(None):
-                    operation = self.target.operation_for_name(op)
+                    operation = self.target.operation_from_name(op)
                     # If operation is a class this is a variable width ideal instruction
                     # so we treat it as available on both 1 and 2 qubits
                     if inspect.isclass(operation):
@@ -205,7 +205,19 @@ class VF2PostLayout(AnalysisPass):
                     entry.update(global_ops[1])
                 op_names.append(entry)
             cm_graph.add_nodes_from(op_names)
+            # Filter qubits without any supported operations. If they
+            # don't support any operations, they're not valid for layout selection.
+            # This is only needed in the undirected case because in strict direction
+            # mode the node matcher will not match since none of the circuit ops
+            # will match the cmap ops.
+            if not self.strict_direction:
+                has_none = False
+            has_operations = set()
             for qargs in self.target.qargs:
+                if qargs is None:
+                    has_none = True
+                    continue
+                has_operations.update(qargs)
                 len_args = len(qargs)
                 # If qargs == 1 we already populated it and if qargs > 2 there are no instructions
                 # using those in the circuit because we'd have already returned by this point
@@ -215,19 +227,7 @@ class VF2PostLayout(AnalysisPass):
                         ops.update(global_ops[2])
                     cm_graph.add_edge(qargs[0], qargs[1], ops)
             cm_nodes = list(cm_graph.node_indexes())
-            # Filter qubits without any supported operations. If they
-            # don't support any operations, they're not valid for layout selection.
-            # This is only needed in the undirected case because in strict direction
-            # mode the node matcher will not match since none of the circuit ops
-            # will match the cmap ops.
-            if not self.strict_direction:
-                has_none = False
-            has_operations = set()
-            for qarg in self.target.qargs:
-                if qarg is None:
-                    has_none = True
-                else:
-                    has_operations.update(qarg)
+
             # If there are defined operations or if has_operations is empty and there are
             # no globally defined gates. If has_none was true and there are no operations
             # defined that means all operations are supported on all qubits and there is
