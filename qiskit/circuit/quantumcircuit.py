@@ -3540,7 +3540,9 @@ class QuantumCircuit:
         )
 
     @deprecate_func(
-        since="0.45.0", additional_msg="Use QuantumCircuit.cswap as direct replacement.", pending=True
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.cswap as direct replacement.",
+        pending=True,
     )
     def fredkin(
         self,
