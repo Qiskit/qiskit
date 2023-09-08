@@ -176,7 +176,7 @@ class LookaheadSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = dag.copy_empty_like()
         for node in mapped_gates:
-            mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
+            mapped_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
 
         return mapped_dag
 
