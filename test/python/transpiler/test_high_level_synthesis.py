@@ -75,7 +75,7 @@ class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         qc = QuantumCircuit(1)
-        qc.id(0)
+        qc.i(0)
         return qc
 
 
@@ -88,7 +88,7 @@ class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
 
         qc = QuantumCircuit(1)
         for _ in range(options["n"]):
-            qc.id(0)
+            qc.i(0)
         return qc
 
 
@@ -127,7 +127,7 @@ class OpAPluginNeedsCouplingMap(HighLevelSynthesisPlugin):
         if coupling_map is None:
             raise TranspilerError("Coupling map should be specified!")
         qc = QuantumCircuit(1)
-        qc.id(0)
+        qc.i(0)
         return qc
 
 
@@ -138,7 +138,7 @@ class OpAPluginNeedsQubits(HighLevelSynthesisPlugin):
         if qubits is None:
             raise TranspilerError("Qubits should be specified!")
         qc = QuantumCircuit(1)
-        qc.id(0)
+        qc.i(0)
         return qc
 
 

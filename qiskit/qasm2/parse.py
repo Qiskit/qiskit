@@ -118,7 +118,7 @@ class _U0Gate(Gate):
     def _define(self):
         self._definition = QuantumCircuit(1)
         for _ in [None] * self.params[0]:
-            self._definition.id(0)
+            self._definition.i(0)
 
 
 LEGACY_CUSTOM_INSTRUCTIONS = (

@@ -1402,8 +1402,8 @@ class TestCustomInstructions(QiskitTestCase):
             program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS
         )
         qc = QuantumCircuit(QuantumRegister(1, "q"))
-        qc.id(0)
-        qc.id(0)
+        qc.i(0)
+        qc.i(0)
         self.assertEqual(parsed.decompose(), qc)
 
     def test_can_override_u(self):

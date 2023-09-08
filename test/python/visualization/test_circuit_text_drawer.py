@@ -891,8 +891,8 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         qr1 = QuantumRegister(2, "q1")
         qr2 = QuantumRegister(2, "q2")
         circuit = QuantumCircuit(qr1, qr2)
-        circuit.id(qr1)
-        circuit.id(qr2[1])
+        circuit.i(qr1)
+        circuit.i(qr2[1])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_barrier(self):

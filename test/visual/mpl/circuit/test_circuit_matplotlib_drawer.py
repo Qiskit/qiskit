@@ -609,7 +609,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.y(0)
         circuit.z(0)
-        circuit.id(0)
+        circuit.i(0)
         circuit.h(1)
         circuit.cx(1, 2)
         circuit.cy(1, 2)
