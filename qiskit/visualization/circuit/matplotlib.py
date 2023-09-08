@@ -495,23 +495,29 @@ class MatplotlibDrawer:
                         if self._flow_parent is not None:
                             node_data[node].nest_depth = node_data[self._flow_parent].nest_depth + 1
 
-                        # Update the wire_map with the qubits from the inner circuit
-                        flow_wire_map = wire_map.copy()
+                        flow_wire_map = {}
                         flow_wire_map.update(
                             {
                                 inner: wire_map[outer]
                                 for outer, inner in zip(node.qargs, circuit.qubits)
                             }
                         )
-                        # Get the layered node lists and instantiate a new drawer class for
-                        # the circuit inside the ControlFlowOp.
-                        qubits, clbits, nodes = _get_layered_instructions(
+                        for outer, inner in zip(node.cargs, circuit.clbits):
+                            if self._cregbundle and (
+                                (in_reg := get_bit_register(outer_circuit, inner)) is not None
+                            ):
+                                out_reg = get_bit_register(outer_circuit, outer)
+                                flow_wire_map.update({in_reg: wire_map[out_reg]})
+                            else:
+                                flow_wire_map.update({inner: wire_map[outer]})
+
+                        qubits, clbits, flow_nodes = _get_layered_instructions(
                             circuit, wire_map=flow_wire_map
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,
                             clbits,
-                            nodes,
+                            flow_nodes,
                             circuit,
                             style=self._style,
                             plot_barriers=self._plot_barriers,
@@ -526,14 +532,13 @@ class MatplotlibDrawer:
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(
-                            node_data, wire_map, outer_circuit, glob_data
+                            node_data, flow_wire_map, outer_circuit, glob_data
                         )
                         layer_widths.update(flow_widths)
 
-                        # Gates within a SwitchCaseOp need to know which case they are in
-                        for flow_layer in nodes:
+                        for flow_layer in flow_nodes:
                             for flow_node in flow_layer:
-                                node_data[flow_node].case_num = circ_num
+                                node_data[flow_node].circ_num = circ_num
 
                         # Add up the width values of the same flow_parent that are not -1
                         # to get the raw_gate_width
@@ -669,8 +674,8 @@ class MatplotlibDrawer:
                 # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
                     node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
-                    if node_data[node].case_num > 0:
-                        for width in node_data[flow_parent].width[: node_data[node].case_num]:
+                    if node_data[node].circ_num > 0:
+                        for width in node_data[flow_parent].width[: node_data[node].circ_num]:
                             node_data[node].x_index += int(width) + 1
 
                 # get qubit indexes
@@ -1554,7 +1559,7 @@ class MatplotlibDrawer:
             # If there's an else or a case draw the vertical line and the name
             else_case_text = "Else" if isinstance(node.op, IfElseOp) else "Case"
             ewidth_incr = if_width
-            for case_num, ewidth in enumerate(node_data[node].width[1:]):
+            for circ_num, ewidth in enumerate(node_data[node].width[1:]):
                 if ewidth > 0.0:
                     self._ax.plot(
                         [xpos + ewidth_incr + 0.3 - x_shift, xpos + ewidth_incr + 0.3 - x_shift],
@@ -1576,7 +1581,7 @@ class MatplotlibDrawer:
                         zorder=PORDER_FLOW,
                     )
                     if isinstance(node.op, SwitchCaseOp):
-                        jump_val = node_data[node].jump_values[case_num]
+                        jump_val = node_data[node].jump_values[circ_num]
                         # If only one value, e.g. (0,)
                         if len(str(jump_val)) == 4:
                             jump_text = str(jump_val)[1]
@@ -1913,4 +1918,4 @@ class NodeData:
         self.inside_flow = False
         self.indexset = ()  # List of indices used for ForLoopOp
         self.jump_values = []  # List of jump values used for SwitchCaseOp
-        self.case_num = 0  # Used for SwitchCaseOp
+        self.circ_num = 0  # Which block is it in op.blocks

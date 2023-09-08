@@ -710,6 +710,7 @@ class TextDrawing:
         with_layout=False,
     ):
         self.qubits = qubits
+        self.first_clbit = len(qubits)
         self.clbits = clbits
         self.nodes = nodes
         self._circuit = circuit
@@ -1244,7 +1245,14 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, self._wire_map)
+            layer = Layer(
+                self.qubits,
+                self.clbits,
+                self.cregbundle,
+                self._circuit,
+                self._wire_map,
+                self.first_clbit,
+            )
             for node in node_layer:
                 if isinstance(node.op, ControlFlowOp):
                     self._nest_depth = 0
@@ -1278,7 +1286,7 @@ class TextDrawing:
             # Update the wire_map with the qubits and clbits from the inner circuit
             flow_wire_map = wire_map.copy()
             flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.qargs, circuit.qubits)
+                {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}
             )
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
@@ -1289,11 +1297,12 @@ class TextDrawing:
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
-                    qubits[: len(self.qubits)],
+                    self.qubits,  # qubits[: len(self.qubits)],
                     self.clbits,
                     self.cregbundle,
                     self._circuit,
                     flow_wire_map,
+                    self.first_clbit,
                 )
                 for layer_node in layer_nodes:
                     if isinstance(layer_node.op, ControlFlowOp):
@@ -1321,15 +1330,16 @@ class TextDrawing:
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
-        conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
+        op = node.op
+        conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
-            if isinstance(node.op, IfElseOp):
+            if isinstance(op, IfElseOp):
                 label = "If-" + depth
-            elif isinstance(node.op, WhileLoopOp):
+            elif isinstance(op, WhileLoopOp):
                 label = "While-" + depth
-            elif isinstance(node.op, ForLoopOp):
-                indexset = node.op.params[0]
+            elif isinstance(op, ForLoopOp):
+                indexset = op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
                 if "range" not in str(indexset) and len(indexset) > 4:
                     index_str = str(indexset[:4])
@@ -1340,11 +1350,11 @@ class TextDrawing:
             else:
                 label = "Switch-" + depth
         elif section == CF_MID:
-            if isinstance(node.op, IfElseOp):
+            if isinstance(op, IfElseOp):
                 label = "Else-" + depth
             else:
                 jump_list = []
-                for jump_values, _ in list(node.op.cases_specifier()):
+                for jump_values, _ in list(op.cases_specifier()):
                     jump_list.append(jump_values)
 
                 if "default" in str(jump_list[circ_num][0]):
@@ -1356,7 +1366,14 @@ class TextDrawing:
         else:
             label = "End-" + depth
 
-        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map)
+        flow_layer = Layer(
+            self.qubits,
+            self.clbits,
+            self.cregbundle,
+            self._circuit,
+            flow_wire_map,
+            self.first_clbit,
+        )
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
             flow_layer.set_qubit(
@@ -1395,13 +1412,13 @@ class TextDrawing:
                 ),
             )
         if conditional:
-            if isinstance(node.op, SwitchCaseOp):
-                if isinstance(node.op.target, Clbit):
-                    condition = (node.op.target, 1)
+            if isinstance(op, SwitchCaseOp):
+                if isinstance(op.target, Clbit):
+                    condition = (op.target, 1)
                 else:
-                    condition = (node.op.target, 2 ** (node.op.target.size) - 1)
+                    condition = (op.target, 2 ** (op.target.size) - 1)
             else:
-                condition = node.op.condition
+                condition = op.condition
             _ = flow_layer.set_cl_multibox(condition, flow_wire_map, top_connect="╨")
 
         return flow_layer
@@ -1410,8 +1427,9 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle, circuit, wire_map):
+    def __init__(self, qubits, clbits, cregbundle, circuit, wire_map, first_clbit):
         self.qubits = qubits
+        self.first_clbit = first_clbit
         self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
 
@@ -1464,7 +1482,9 @@ class Layer:
         if self.cregbundle and register is not None:
             self.clbit_layer[self._wire_map[register] - len(self.qubits)] = element
         else:
-            self.clbit_layer[self._wire_map[clbit] - len(self.qubits)] = element
+            self.clbit_layer[
+                self._wire_map[clbit] - self.first_clbit
+            ] = element  # - len(self.qubits)] = element
 
     def _set_multibox(
         self,
