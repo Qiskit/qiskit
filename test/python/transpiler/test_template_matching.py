@@ -244,8 +244,8 @@ class TestTemplateMatching(QiskitTestCase):
         Check that users can supply DAGDependency in the template list.
         """
         circuit_in = QuantumCircuit(2)
-        circuit_in.cnot(0, 1)
-        circuit_in.cnot(0, 1)
+        circuit_in.cx(0, 1)
+        circuit_in.cx(0, 1)
 
         templates = [circuit_to_dagdependency(circuit_in)]
 
