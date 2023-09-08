@@ -17,8 +17,7 @@ from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
@@ -159,7 +158,7 @@ class SdgGate(SingletonGate):
 
 
 @with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
-class CSGate(ControlledGate):
+class CSGate(SingletonControlledGate):
     r"""Controlled-S gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -188,10 +187,28 @@ class CSGate(ControlledGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _condition=None,
+        duration=None,
+        unit=None,
+    ):
         """Create new CS gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
-            "cs", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=SGate()
+            "cs",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=SGate(),
+            duration=duration,
+            _condition=_condition,
+            unit=unit,
         )
 
     def _define(self):
@@ -210,7 +227,7 @@ class CSGate(ControlledGate):
 
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
-class CSdgGate(ControlledGate):
+class CSdgGate(SingletonControlledGate):
     r"""Controlled-S^\dagger gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -239,7 +256,14 @@ class CSdgGate(ControlledGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _condition=None,
+        duration=None,
+        unit=None,
+    ):
         """Create new CSdg gate."""
         super().__init__(
             "csdg",
@@ -249,6 +273,9 @@ class CSdgGate(ControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=SdgGate(),
+            duration=duration,
+            _condition=_condition,
+            unit=unit,
         )
 
     def _define(self):

@@ -283,6 +283,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "Commuting2qBlock",
         "PauliEvolutionGate",
         "SingletonGate",
+        "SingletonControlledGate",
         "_U0Gate",
         "_DefinedGate",
     }

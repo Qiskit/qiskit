@@ -111,6 +111,7 @@ def control(
     else:
         basis = ["p", "u", "x", "z", "rx", "ry", "rz", "cx"]
         if isinstance(operation, controlledgate.ControlledGate):
+            operation = operation.to_mutable()
             operation.ctrl_state = None
         unrolled_gate = _unroll_gate(operation, basis_gates=basis)
         if unrolled_gate.definition.global_phase:

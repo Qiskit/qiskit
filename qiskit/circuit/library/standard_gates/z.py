@@ -19,6 +19,7 @@ import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.singleton_gate import SingletonControlledGate
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -130,7 +131,7 @@ class ZGate(SingletonGate):
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
-class CZGate(ControlledGate):
+class CZGate(SingletonControlledGate):
     r"""Controlled-Z gate.
 
     This is a Clifford and symmetric gate.
@@ -168,8 +169,13 @@ class CZGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create new CZ gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
             "cz",
             2,
@@ -178,6 +184,9 @@ class CZGate(ControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
+            duration=duration,
+            _condition=_condition,
+            unit=unit,
         )
 
     def _define(self):

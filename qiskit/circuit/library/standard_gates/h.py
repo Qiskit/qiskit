@@ -14,8 +14,7 @@
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from .t import TGate, TdgGate
@@ -108,7 +107,7 @@ class HGate(SingletonGate):
 
 
 @with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
-class CHGate(ControlledGate):
+class CHGate(SingletonControlledGate):
     r"""Controlled-Hadamard gate.
 
     Applies a Hadamard on the target qubit if the control is
@@ -170,8 +169,17 @@ class CHGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create new CH gate."""
+        if unit is None:
+            unit = "dt"
+        if _base_label:
+            base_gate = HGate(label=_base_label)
+        else:
+            base_gate = HGate()
         super().__init__(
             "ch",
             2,
@@ -179,7 +187,11 @@ class CHGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=HGate(label=_base_label),
+            base_gate=base_gate,
+            duration=duration,
+            _condition=_condition,
+            unit=unit,
+            _base_label=_base_label,
         )
 
     def _define(self):

@@ -17,7 +17,7 @@ from math import ceil, pi
 import numpy
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from .h import HGate
@@ -133,7 +133,7 @@ class XGate(SingletonGate):
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=1)
-class CXGate(ControlledGate):
+class CXGate(SingletonControlledGate):
     r"""Controlled-X gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -201,8 +201,13 @@ class CXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create new CX gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
             "cx",
             2,
@@ -211,6 +216,9 @@ class CXGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
+            duration=duration,
+            _condition=_condition,
+            unit=unit,
         )
 
     def control(
@@ -246,7 +254,7 @@ class CXGate(ControlledGate):
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
-class CCXGate(ControlledGate):
+class CCXGate(SingletonControlledGate):
     r"""CCX gate, also known as Toffoli gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -319,8 +327,13 @@ class CCXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create new CCX gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
             "ccx",
             3,
@@ -329,6 +342,9 @@ class CCXGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
+            duration=duration,
+            _condition=_condition,
+            unit=unit,
         )
 
     def _define(self):
@@ -478,7 +494,7 @@ class RCCXGate(SingletonGate):
         self.definition = qc
 
 
-class C3SXGate(ControlledGate):
+class C3SXGate(SingletonControlledGate):
     """The 3-qubit controlled sqrt-X gate.
 
     This implementation is based on Page 17 of [1].
@@ -491,6 +507,10 @@ class C3SXGate(ControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create a new 3-qubit controlled sqrt-X gate.
 
@@ -499,8 +519,19 @@ class C3SXGate(ControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
+        if unit is None:
+            unit = "dt"
         super().__init__(
-            "c3sx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
+            "c3sx",
+            4,
+            [],
+            num_ctrl_qubits=3,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXGate(label=_base_label),
+            _condition=_condition,
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -580,7 +611,7 @@ class C3SXGate(ControlledGate):
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
-class C3XGate(ControlledGate):
+class C3XGate(SingletonControlledGate):
     r"""The X gate controlled on 3 qubits.
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
@@ -590,10 +621,25 @@ class C3XGate(ControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create a new 3-qubit controlled X gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
-            "mcx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=XGate()
+            "mcx",
+            4,
+            [],
+            num_ctrl_qubits=3,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(label=_base_label),
+            _condition=_condition,
+            duration=duration,
+            unit=unit,
         )
 
     # seems like open controls not hapening?
@@ -794,7 +840,7 @@ class RC3XGate(SingletonGate):
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=4, cached_states=(15,))
-class C4XGate(ControlledGate):
+class C4XGate(SingletonControlledGate):
     """The 4-qubit controlled X gate.
 
     This implementation is based on Page 21, Lemma 7.5, of [1], with the use
@@ -805,10 +851,29 @@ class C4XGate(ControlledGate):
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
+    ):
         """Create a new 4-qubit controlled X gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
-            "mcx", 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state, base_gate=XGate()
+            "mcx",
+            5,
+            [],
+            num_ctrl_qubits=4,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=XGate(label=_base_label),
+            _condition=_condition,
+            duration=duration,
+            unit=unit,
         )
 
     # seems like open controls not hapening?
@@ -902,6 +967,9 @@ class MCXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create a new MCX instance.
 
@@ -911,13 +979,20 @@ class MCXGate(ControlledGate):
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
-        if num_ctrl_qubits in explicit:
-            gate_class = explicit[num_ctrl_qubits]
+        gate_class = explicit.get(num_ctrl_qubits, None)
+        if gate_class is not None:
             gate = gate_class.__new__(
                 gate_class, label=label, ctrl_state=ctrl_state, _base_label=_base_label
             )
             # if __new__ does not return the same type as cls, init is not called
-            gate.__init__(label=label, ctrl_state=ctrl_state, _base_label=_base_label)
+            gate.__init__(
+                label=label,
+                ctrl_state=ctrl_state,
+                _base_label=_base_label,
+                _condition=_condition,
+                duration=duration,
+                unit=unit,
+            )
             return gate
         return super().__new__(cls)
 
@@ -1014,15 +1089,32 @@ class MCXGrayCode(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
-        if num_ctrl_qubits in explicit:
-            gate_class = explicit[num_ctrl_qubits]
-            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
+        gate_class = explicit.get(num_ctrl_qubits, None)
+        if gate_class is not None:
+            gate = gate_class.__new__(
+                gate_class,
+                label=label,
+                ctrl_state=ctrl_state,
+                _base_label=_base_label,
+                _condition=_condition,
+                duration=duration,
+                unit=unit,
+            )
             # if __new__ does not return the same type as cls, init is not called
-            gate.__init__(label=label, ctrl_state=ctrl_state)
+            gate.__init__(
+                label=label,
+                ctrl_state=ctrl_state,
+                _condition=_condition,
+                duration=duration,
+                unit=unit,
+            )
             return gate
         return super().__new__(cls)
 
@@ -1128,12 +1220,25 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,  # pylint: disable=unused-argument
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+        _condition=None,
+        duration=None,
+        unit=None,
     ):
         """Create a new MCX instance.
 
         This must be defined anew to include the additional argument ``dirty_ancillas``.
         """
-        return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        return super().__new__(
+            cls,
+            num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            _base_label=_base_label,
+            _condition=_condition,
+            duration=duration,
+            unit=unit,
+        )
 
     def __init__(
         self,
@@ -1141,8 +1246,15 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
     ):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
+        super().__init__(
+            num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            _name="mcx_vchain",
+            _base_label=_base_label,
+        )
         self._dirty_ancillas = dirty_ancillas
 
     def inverse(self):
