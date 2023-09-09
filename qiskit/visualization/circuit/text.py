@@ -710,7 +710,6 @@ class TextDrawing:
         with_layout=False,
     ):
         self.qubits = qubits
-        self.first_clbit = len(qubits)
         self.clbits = clbits
         self.nodes = nodes
         self._circuit = circuit
@@ -1251,7 +1250,6 @@ class TextDrawing:
                 self.cregbundle,
                 self._circuit,
                 self._wire_map,
-                self.first_clbit,
             )
             for node in node_layer:
                 if isinstance(node.op, ControlFlowOp):
@@ -1293,16 +1291,11 @@ class TextDrawing:
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
-            qubits, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            __, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
-                    self.qubits,  # qubits[: len(self.qubits)],
-                    self.clbits,
-                    self.cregbundle,
-                    self._circuit,
-                    flow_wire_map,
-                    self.first_clbit,
+                    self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map
                 )
                 for layer_node in layer_nodes:
                     if isinstance(layer_node.op, ControlFlowOp):
@@ -1372,7 +1365,6 @@ class TextDrawing:
             self.cregbundle,
             self._circuit,
             flow_wire_map,
-            self.first_clbit,
         )
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
@@ -1427,12 +1419,9 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle, circuit, wire_map, first_clbit):
+    def __init__(self, qubits, clbits, cregbundle, circuit, wire_map):
         self.qubits = qubits
-        self.first_clbit = first_clbit
-        self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
-
         if cregbundle:
             self.clbits = []
             previous_creg = None
@@ -1482,9 +1471,7 @@ class Layer:
         if self.cregbundle and register is not None:
             self.clbit_layer[self._wire_map[register] - len(self.qubits)] = element
         else:
-            self.clbit_layer[
-                self._wire_map[clbit] - self.first_clbit
-            ] = element  # - len(self.qubits)] = element
+            self.clbit_layer[self._wire_map[clbit] - len(self.qubits)] = element
 
     def _set_multibox(
         self,

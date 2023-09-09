@@ -1818,6 +1818,7 @@ class QuantumCircuit:
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=wire_order,
+            encoding=encoding,
         )
 
     def size(

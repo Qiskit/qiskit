@@ -495,6 +495,7 @@ class MatplotlibDrawer:
                         if self._flow_parent is not None:
                             node_data[node].nest_depth = node_data[self._flow_parent].nest_depth + 1
 
+                        # Build the wire_map to be used by this flow op
                         flow_wire_map = {}
                         flow_wire_map.update(
                             {
