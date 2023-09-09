@@ -360,11 +360,11 @@ def _apply_sabre_result(
             # outermost DAG, since the scope binding occurred as the `SabreDAG` objects were built
             # up; they're all provided to Sabre routing as full-width already.
             qubits = (
-                physical_qubits[layout.logical_to_physical(a)],
-                physical_qubits[layout.logical_to_physical(b)],
+                physical_qubits[layout.virtual_to_physical(a)],
+                physical_qubits[layout.virtual_to_physical(b)],
             )
-            layout.swap_logical(a, b)
-            dest_dag.apply_operation_back(SwapGate(), qubits, ())
+            layout.swap_virtual(a, b)
+            dest_dag.apply_operation_back(SwapGate(), qubits, (), check=False)
 
     def recurse(dest_dag, source_dag, result, root_logical_map, layout):
         """The main recursive worker.  Mutates ``dest_dag`` and ``layout`` and returns them.
@@ -380,10 +380,11 @@ def _apply_sabre_result(
                 dest_dag.apply_operation_back(
                     node.op,
                     [
-                        physical_qubits[layout.logical_to_physical(root_logical_map[q])]
+                        physical_qubits[layout.virtual_to_physical(root_logical_map[q])]
                         for q in node.qargs
                     ],
                     node.cargs,
+                    check=False,
                 )
                 continue
 
@@ -419,7 +420,7 @@ def _apply_sabre_result(
             # Apply the control flow gate to the dag.
             mapped_node = node.op.replace_blocks(mapped_blocks)
             mapped_node_qargs = mapped_blocks[0].qubits if mapped_blocks else ()
-            dest_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
+            dest_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs, check=False)
         return dest_dag, layout
 
     root_logical_map = {bit: index for index, bit in enumerate(in_dag.qubits)}
