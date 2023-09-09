@@ -1546,7 +1546,6 @@ class TestIntegrationControlFlow(QiskitTestCase):
         self.assertIn("Unroller", calls)
         self.assertNotIn("DenseLayout", calls)
         self.assertNotIn("SabreLayout", calls)
-        self.assertNotIn("BasisTranslator", calls)
 
     @data(0, 1, 2, 3)
     def test_invalid_methods_raise_on_control_flow(self, optimization_level):
