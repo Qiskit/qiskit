@@ -828,7 +828,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            output="mpl",
             backend=FakeTenerife(),
             basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
@@ -837,7 +836,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
 
         fname = "partial_layout.png"
-        self.circuit_drawer(transpiled, filename=fname)
+        self.circuit_drawer(transpiled, output="mpl", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
