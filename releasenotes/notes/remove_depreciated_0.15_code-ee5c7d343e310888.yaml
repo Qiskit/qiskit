@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Removed deprecated references to rho in plot_state_hinton,
+    plot_bloch_multivector, plot_state_city, plot_state_paulivec,
+    and plot_state_qsphere.
+    Removed scheduler.utils as all contained functions were moved to
+    pulse/macros and pulse/utils.
