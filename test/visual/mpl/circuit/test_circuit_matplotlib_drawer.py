@@ -828,6 +828,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
+            output="mpl",
             backend=FakeTenerife(),
             basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
@@ -1003,6 +1004,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "user_style.png"
         self.circuit_drawer(
             circuit,
+            output="mpl",
             style={
                 "name": "user_style",
                 "displaytext": {"H2": "H_2"},
@@ -1126,6 +1128,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "style_custom_gates.png"
         self.circuit_drawer(
             circuit,
+            output="mpl",
             style={
                 "displaycolor": {"CNOTNOT": ("#000000", "#FFFFFF"), "h": ("#A1A1A1", "#043812")},
                 "displaytext": {"CNOTNOT_PRIME": "$\\mathrm{CNOTNOT}'$"},
@@ -1152,6 +1155,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "6095.png"
         self.circuit_drawer(
             circuit,
+            output="mpl",
             style={"displaycolor": {"cp": ("#A27486", "#000000"), "h": ("#A27486", "#000000")}},
             filename=fname,
         )
@@ -1558,6 +1562,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "wire_order.png"
         self.circuit_drawer(
             circuit,
+            output="mpl",
             cregbundle=False,
             wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
             filename=fname,
