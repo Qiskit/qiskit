@@ -27,7 +27,7 @@ from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -37,9 +37,7 @@ from .exceptions import VisualizationError
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_state_hinton(
-    state, title="", figsize=None, ax_real=None, ax_imag=None, *, filename=None
-):
+def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, filename=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     The hinton diagram represents the values of a matrix using
@@ -618,9 +616,7 @@ def plot_state_city(
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_state_paulivec(
-    state, title="", figsize=None, color=None, ax=None, *, filename=None
-):
+def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, filename=None):
     r"""Plot the Pauli-vector representation of a quantum state as bar graph.
 
     The Pauli-vector of a density matrix :math:`\rho` is defined by the expectation of each
