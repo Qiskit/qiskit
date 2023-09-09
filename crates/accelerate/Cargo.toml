@@ -25,6 +25,10 @@ num-complex = "0.4"
 num-bigint = "0.4"
 rustworkx-core = "0.13"
 
+[dependencies.smallvec]
+version = "1.11"
+features = ["union"]
+
 [dependencies.pyo3]
 workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint"]
