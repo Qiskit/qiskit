@@ -148,12 +148,12 @@ fn obtain_swaps<'a>(
     layout: &'a NLayout,
 ) -> impl Iterator<Item = [VirtualQubit; 2]> + 'a {
     front_layer.iter_active().flat_map(move |&v| {
-        neighbors.neighbors[v.to_phys(layout).index()]
+        neighbors[v.to_phys(layout)]
             .iter()
-            .filter_map(move |&neighbor| {
-                let virtual_neighbor = neighbor.to_virt(layout);
-                if virtual_neighbor > v || !front_layer.is_active(virtual_neighbor) {
-                    Some([v, virtual_neighbor])
+            .filter_map(move |p_neighbor| {
+                let neighbor = p_neighbor.to_virt(layout);
+                if neighbor > v || !front_layer.is_active(neighbor) {
+                    Some([v, neighbor])
                 } else {
                     None
                 }
@@ -194,16 +194,6 @@ fn populate_extended_set(
     for (node, amount) in decremented.iter() {
         required_predecessors[*node] += *amount;
     }
-}
-
-fn cmap_from_neighor_table(neighbor_table: &NeighborTable) -> DiGraph<(), ()> {
-    DiGraph::<(), ()>::from_edges(neighbor_table.neighbors.iter().enumerate().flat_map(
-        |(u, targets)| {
-            targets
-                .iter()
-                .map(move |v| (NodeIndex::new(u), NodeIndex::new(v.index())))
-        },
-    ))
 }
 
 /// Run sabre swap on a circuit
@@ -271,7 +261,7 @@ pub fn build_swap_map_inner(
         Some(run_in_parallel) => run_in_parallel,
         None => getenv_use_multiple_threads() && num_trials > 1,
     };
-    let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
+    let coupling_graph = neighbor_table.coupling_graph();
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
@@ -393,6 +383,10 @@ fn swap_map_trial(
     // Main logic loop; the front layer only becomes empty when all nodes have been routed.  At
     // each iteration of this loop, we route either one or two gates.
     let mut routable_nodes = Vec::<NodeIndex>::with_capacity(2);
+    // Reusable allocated storage space for choosing the best swap.  This is owned outside of the
+    // `choose_best_swap` function so that we don't need to reallocate and then re-grow the
+    // collection on every entry.
+    let mut swap_scratch = Vec::<[VirtualQubit; 2]>::new();
     while !front_layer.is_empty() {
         let mut current_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
         // Swap-mapping loop.  This is the main part of the algorithm, which we repeat until we
@@ -407,6 +401,7 @@ fn swap_map_trial(
                 &qubits_decay,
                 heuristic,
                 &mut rng,
+                &mut swap_scratch,
             );
             front_layer.routable_after(&mut routable_nodes, &best_swap, &layout, coupling_graph);
             current_swaps.push(best_swap);
@@ -416,8 +411,8 @@ fn swap_map_trial(
                 qubits_decay.fill(1.);
                 num_search_steps = 0;
             } else {
-                qubits_decay[best_swap[0].index()] += DECAY_RATE;
-                qubits_decay[best_swap[1].index()] += DECAY_RATE;
+                qubits_decay[best_swap[0].to_phys(&layout).index()] += DECAY_RATE;
+                qubits_decay[best_swap[1].to_phys(&layout).index()] += DECAY_RATE;
             }
         }
         // If we exceeded the number of allowed attempts without successfully routing a node, we
@@ -698,9 +693,10 @@ fn choose_best_swap(
     qubits_decay: &[f64],
     heuristic: &Heuristic,
     rng: &mut Pcg64Mcg,
+    best_swaps: &mut Vec<[VirtualQubit; 2]>,
 ) -> [VirtualQubit; 2] {
+    best_swaps.clear();
     let mut min_score = f64::MAX;
-    let mut best_swaps: Vec<[VirtualQubit; 2]> = Vec::new();
     // The decay heuristic is the only one that actually needs the absolute score.
     let absolute_score = match heuristic {
         Heuristic::Decay => {
@@ -717,7 +713,8 @@ fn choose_best_swap(
                     + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist)
             }
             Heuristic::Decay => {
-                qubits_decay[swap[0].index()].max(qubits_decay[swap[1].index()])
+                qubits_decay[swap[0].to_phys(layout).index()]
+                    .max(qubits_decay[swap[1].to_phys(layout).index()])
                     * (absolute_score
                         + layer.score(swap, layout, dist)
                         + EXTENDED_SET_WEIGHT * extended_set.score(swap, layout, dist))
