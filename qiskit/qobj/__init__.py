@@ -23,7 +23,6 @@ Base
 .. autosummary::
    :toctree: ../stubs/
 
-   Qobj
    QobjExperimentHeader
    QobjHeader
 
