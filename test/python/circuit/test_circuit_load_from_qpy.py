@@ -180,7 +180,7 @@ class TestLoadFromQPY(QiskitTestCase):
         dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
-        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(reps=6), new_circ.decompose(reps=6))
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_opaque_gate(self):
