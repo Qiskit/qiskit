@@ -39,8 +39,6 @@ from qiskit.quantum_info.operators import (
     Operator,
     Pauli,
     PauliList,
-    PauliTable,
-    StabilizerTable,
 )
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
 from qiskit.test import QiskitTestCase
@@ -213,34 +211,6 @@ class TestPauliListInit(QiskitTestCase):
             target = PauliList(["iXI", "IX", "IZ"])
             value = PauliList(target)
             value[0] = "-iII"
-            self.assertEqual(value, target)
-
-    def test_pauli_table_init(self):
-        """Test table initialization."""
-        with self.subTest(msg="PauliTable"):
-            target = PauliTable.from_labels(["XI", "IX", "IZ"])
-            value = PauliList(target)
-            self.assertEqual(value, target)
-
-        with self.subTest(msg="PauliTable no copy"):
-            target = PauliTable.from_labels(["XI", "IX", "IZ"])
-            value = PauliList(target)
-            value[0] = "II"
-            self.assertEqual(value, target)
-
-    def test_stabilizer_table_init(self):
-        """Test table initialization."""
-        with self.subTest(msg="PauliTable"):
-            with self.assertWarns(DeprecationWarning):
-                target = StabilizerTable.from_labels(["+II", "-XZ"])
-            value = PauliList(target)
-            self.assertEqual(value, target)
-
-        with self.subTest(msg="PauliTable no copy"):
-            with self.assertWarns(DeprecationWarning):
-                target = StabilizerTable.from_labels(["+YY", "-XZ", "XI"])
-            value = PauliList(target)
-            value[0] = "II"
             self.assertEqual(value, target)
 
     def test_init_from_settings(self):

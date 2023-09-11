@@ -31,9 +31,6 @@ Operators
    SparsePauliOp
    CNOTDihedral
    PauliList
-   PauliTable
-   StabilizerTable
-   pauli_basis
 
 .. _quantum_info_states:
 
@@ -94,9 +91,7 @@ Random
 .. autofunction:: random_clifford
 .. autofunction:: random_quantum_channel
 .. autofunction:: random_cnotdihedral
-.. autofunction:: random_pauli_table
 .. autofunction:: random_pauli_list
-.. autofunction:: random_stabilizer_table
 
 Analysis
 =========
@@ -131,14 +126,11 @@ from .operators import (
     Operator,
     Pauli,
     PauliList,
-    PauliTable,
     ScalarOp,
     SparsePauliOp,
-    StabilizerTable,
     anti_commutator,
     commutator,
     double_commutator,
-    pauli_basis,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral
@@ -150,9 +142,7 @@ from .random import (
     random_hermitian,
     random_pauli,
     random_pauli_list,
-    random_pauli_table,
     random_quantum_channel,
-    random_stabilizer_table,
     random_statevector,
     random_unitary,
 )

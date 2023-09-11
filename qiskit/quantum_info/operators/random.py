@@ -27,8 +27,6 @@ from .symplectic.random import (
     random_clifford,
     random_pauli,
     random_pauli_list,
-    random_pauli_table,
-    random_stabilizer_table,
 )
 
 DEFAULT_RNG = default_rng()
