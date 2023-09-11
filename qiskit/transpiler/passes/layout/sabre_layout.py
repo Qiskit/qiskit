@@ -16,6 +16,8 @@
 import copy
 import dataclasses
 import logging
+import time
+
 import numpy as np
 import rustworkx as rx
 
@@ -324,6 +326,7 @@ class SabreLayout(TransformationPass):
         sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
             dag, coupling_map.size(), {bit: index for index, bit in enumerate(dag.qubits)}
         )
+        sabre_start = time.perf_counter()
         (initial_layout, final_permutation, sabre_result) = sabre_layout_and_routing(
             sabre_dag,
             neighbor_table,
@@ -333,6 +336,11 @@ class SabreLayout(TransformationPass):
             self.swap_trials,
             self.layout_trials,
             self.seed,
+        )
+        sabre_stop = time.perf_counter()
+        logger.debug(
+            "Sabre layout algorithm execution for a connected component complete in: %s sec.",
+            sabre_stop - sabre_start,
         )
         return _DisjointComponent(
             dag,
