@@ -502,7 +502,7 @@ class TestParameters(QiskitTestCase):
             with self.subTest(assign_fun=assign_fun):
                 # TODO: delete once bind_parameters is removed from the codebase
                 warnings.filterwarnings("ignore", category=DeprecationWarning)
-                
+
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
                 qc.p(x, qr[0])
