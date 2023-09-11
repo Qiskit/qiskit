@@ -150,8 +150,9 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
+        clbits = circuit.clbits if circuit is not None else ()
         param = value.loads_value(
-            type_key, data_bytes, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+            type_key, data_bytes, version, vectors, clbits=clbits, cregs=registers["c"]
         )
 
     return param
