@@ -151,7 +151,7 @@ impl CircuitData {
             Slice(slice) => {
                 let indices = slice.indices(self.data.len().try_into().unwrap())?;
                 let slice = self.convert_py_slice(py, slice)?;
-                let values = value.iter()?.take(slice.len()).collect::<Vec<_>>();
+                let values = value.iter()?.collect::<PyResult<Vec<_>>>()?;
                 if indices.step != 1 && slice.len() != values.len() {
                     return Err(PyValueError::new_err(format!(
                         "attempt to assign sequence of size {:?} to extended slice of size {:?}",
@@ -160,25 +160,27 @@ impl CircuitData {
                     )));
                 }
 
-                let mut slice_itr = slice.into_iter();
-                let mut value_itr = values.into_iter();
-                let enumerated = zip(&mut slice_itr, &mut value_itr);
+                let enumerated = zip(slice.iter(), values.iter());
                 for (i, v) in enumerated {
-                    self.__setitem__(py, Int(i), v?)?;
+                    let v = v;
+                    self.__setitem__(py, Int(*i), *v)?;
                 }
 
                 // Delete any extras.
-                for _ in slice_itr {
-                    let res = self.__delitem__(py, Int(indices.stop - 1));
-                    if res.is_err() {
-                        // We're empty!
-                        break;
+                if slice.len() >= values.len() {
+                    for _ in 0..(slice.len() - values.len()) {
+                        let res = self.__delitem__(py, Int(indices.stop - 1));
+                        if res.is_err() {
+                            // We're empty!
+                            break;
+                        }
                     }
-                }
-
-                // Insert any extra values.
-                for v in value_itr.rev() {
-                    self.insert(py, indices.stop - 1, v?.extract()?)?;
+                } else {
+                    // Insert any extra values.
+                    for v in values.iter().skip(slice.len()).rev() {
+                        let v: ElementType = (*v).extract()?;
+                        self.insert(py, indices.stop, v)?;
+                    }
                 }
 
                 Ok(())
