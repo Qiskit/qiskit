@@ -495,12 +495,14 @@ class TestParameters(QiskitTestCase):
         y = Parameter("y")
         z = ParameterVector("z", 3)
         qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
 
         # test for both `bind_parameters` and `assign_parameters`
         for assign_fun in ["bind_parameters", "assign_parameters"]:
             qc = QuantumCircuit(qr)
             with self.subTest(assign_fun=assign_fun):
+                # TODO: delete once bind_parameters is removed from the codebase
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
                 qc.p(x, qr[0])
