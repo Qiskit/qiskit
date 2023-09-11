@@ -607,26 +607,6 @@ class DAGCircuit:
         else:
             self._op_names[op.name] -= 1
 
-
-    def _add_op_node(self, op, qargs, cargs):
-        """Add a new operation node to the graph and assign properties.
-
-        Args:
-            op (qiskit.circuit.Operation): the operation associated with the DAG node
-            qargs (list[Qubit]): list of quantum wires to attach to.
-            cargs (list[Clbit]): list of classical wires to attach to.
-        Returns:
-            int: The integer node index for the new op node on the DAG
-        """
-        # Add a new operation node to the graph
-        new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, dag=self)
-        node_index = self._multi_graph.add_node(new_node)
-        new_node._node_id = node_index
-        self._increment_op(op)
-        return node_index
-
-
-
     def copy_empty_like(self):
         """Return a copy of self with the same structure but empty.
 
