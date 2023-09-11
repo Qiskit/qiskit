@@ -15,56 +15,56 @@ use indexmap::IndexMap;
 use ndarray::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
-use crate::nlayout::NLayout;
+use crate::nlayout::{NLayout, VirtualQubit};
 
 /// A container for the current non-routable parts of the front layer.  This only ever holds
 /// two-qubit gates; the only reason a 0q- or 1q operation can be unroutable is because it has an
 /// unsatisfied 2q predecessor, which disqualifies it from being in the front layer.
 pub struct FrontLayer {
     /// Map of the (index to the) node to the qubits it acts on.
-    nodes: IndexMap<NodeIndex, [usize; 2], ahash::RandomState>,
+    nodes: IndexMap<NodeIndex, [VirtualQubit; 2], ahash::RandomState>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
     /// qubit is active (otherwise `None`).
-    qubits: Vec<Option<(NodeIndex, usize)>>,
+    qubits: Vec<Option<(NodeIndex, VirtualQubit)>>,
 }
 
 impl FrontLayer {
-    pub fn new(num_qubits: usize) -> Self {
+    pub fn new(num_qubits: u32) -> Self {
         FrontLayer {
             // This is the maximum capacity of the front layer, since each qubit must be one of a
             // pair, and can only have one gate in the layer.
             nodes: IndexMap::with_capacity_and_hasher(
-                num_qubits / 2,
+                num_qubits as usize / 2,
                 ahash::RandomState::default(),
             ),
-            qubits: vec![None; num_qubits],
+            qubits: vec![None; num_qubits as usize],
         }
     }
 
     /// Add a node into the front layer, with the two qubits it operates on.
-    pub fn insert(&mut self, index: NodeIndex, qubits: [usize; 2]) {
+    pub fn insert(&mut self, index: NodeIndex, qubits: [VirtualQubit; 2]) {
         let [a, b] = qubits;
-        self.qubits[a] = Some((index, b));
-        self.qubits[b] = Some((index, a));
+        self.qubits[a.index()] = Some((index, b));
+        self.qubits[b.index()] = Some((index, a));
         self.nodes.insert(index, qubits);
     }
 
     /// Remove a node from the front layer.
     pub fn remove(&mut self, index: &NodeIndex) {
         let [q0, q1] = self.nodes.remove(index).unwrap();
-        self.qubits[q0] = None;
-        self.qubits[q1] = None;
+        self.qubits[q0.index()] = None;
+        self.qubits[q1.index()] = None;
     }
 
     /// Query whether a qubit has an active node.
     #[inline]
-    pub fn is_active(&self, qubit: usize) -> bool {
-        self.qubits[qubit].is_some()
+    pub fn is_active(&self, qubit: VirtualQubit) -> bool {
+        self.qubits[qubit.index()].is_some()
     }
 
     /// Calculate the score _difference_ caused by this swap, compared to not making the swap.
     #[inline]
-    pub fn score(&self, swap: [usize; 2], layout: &NLayout, dist: &ArrayView2<f64>) -> f64 {
+    pub fn score(&self, swap: [VirtualQubit; 2], layout: &NLayout, dist: &ArrayView2<f64>) -> f64 {
         if self.is_empty() {
             return 0.0;
         }
@@ -76,13 +76,15 @@ impl FrontLayer {
         // equal anyway, so not affect the score.
         let [a, b] = swap;
         let mut total = 0.0;
-        if let Some((_, c)) = self.qubits[a] {
-            let p_c = layout.logic_to_phys[c];
-            total += dist[[layout.logic_to_phys[b], p_c]] - dist[[layout.logic_to_phys[a], p_c]]
+        if let Some((_, c)) = self.qubits[a.index()] {
+            let p_c = c.to_phys(layout);
+            total += dist[[b.to_phys(layout).index(), p_c.index()]]
+                - dist[[a.to_phys(layout).index(), p_c.index()]]
         }
-        if let Some((_, c)) = self.qubits[b] {
-            let p_c = layout.logic_to_phys[c];
-            total += dist[[layout.logic_to_phys[a], p_c]] - dist[[layout.logic_to_phys[b], p_c]]
+        if let Some((_, c)) = self.qubits[b.index()] {
+            let p_c = c.to_phys(layout);
+            total += dist[[a.to_phys(layout).index(), p_c.index()]]
+                - dist[[b.to_phys(layout).index(), p_c.index()]]
         }
         total / self.nodes.len() as f64
     }
@@ -93,7 +95,7 @@ impl FrontLayer {
             return 0.0;
         }
         self.iter()
-            .map(|(_, &[l_a, l_b])| dist[[layout.logic_to_phys[l_a], layout.logic_to_phys[l_b]]])
+            .map(|(_, &[a, b])| dist[[a.to_phys(layout).index(), b.to_phys(layout).index()]])
             .sum::<f64>()
             / self.nodes.len() as f64
     }
@@ -103,23 +105,23 @@ impl FrontLayer {
     pub fn routable_after(
         &self,
         routable: &mut Vec<NodeIndex>,
-        swap: &[usize; 2],
+        swap: &[VirtualQubit; 2],
         layout: &NLayout,
         coupling: &DiGraph<(), ()>,
     ) {
         let [a, b] = *swap;
-        if let Some((node, c)) = self.qubits[a] {
+        if let Some((node, c)) = self.qubits[a.index()] {
             if coupling.contains_edge(
-                NodeIndex::new(layout.logic_to_phys[b]),
-                NodeIndex::new(layout.logic_to_phys[c]),
+                NodeIndex::new(b.to_phys(layout).index()),
+                NodeIndex::new(c.to_phys(layout).index()),
             ) {
                 routable.push(node);
             }
         }
-        if let Some((node, c)) = self.qubits[b] {
+        if let Some((node, c)) = self.qubits[b.index()] {
             if coupling.contains_edge(
-                NodeIndex::new(layout.logic_to_phys[a]),
-                NodeIndex::new(layout.logic_to_phys[c]),
+                NodeIndex::new(a.to_phys(layout).index()),
+                NodeIndex::new(c.to_phys(layout).index()),
             ) {
                 routable.push(node);
             }
@@ -133,7 +135,7 @@ impl FrontLayer {
     }
 
     /// Iterator over the nodes and the pair of qubits they act on.
-    pub fn iter(&self) -> impl Iterator<Item = (&NodeIndex, &[usize; 2])> {
+    pub fn iter(&self) -> impl Iterator<Item = (&NodeIndex, &[VirtualQubit; 2])> {
         self.nodes.iter()
     }
 
@@ -143,7 +145,7 @@ impl FrontLayer {
     }
 
     /// Iterator over the qubits that have active nodes on them.
-    pub fn iter_active(&self) -> impl Iterator<Item = &usize> {
+    pub fn iter_active(&self) -> impl Iterator<Item = &VirtualQubit> {
         self.nodes.values().flatten()
     }
 }
@@ -152,24 +154,24 @@ impl FrontLayer {
 /// qubit.  This does not have `remove` method (and its data structures aren't optimised for fast
 /// removal), since the extended set is built from scratch each time a new gate is routed.
 pub struct ExtendedSet {
-    nodes: IndexMap<NodeIndex, [usize; 2], ahash::RandomState>,
-    qubits: Vec<Vec<usize>>,
+    nodes: IndexMap<NodeIndex, [VirtualQubit; 2], ahash::RandomState>,
+    qubits: Vec<Vec<VirtualQubit>>,
 }
 
 impl ExtendedSet {
-    pub fn new(num_qubits: usize, max_size: usize) -> Self {
+    pub fn new(num_qubits: u32, max_size: usize) -> Self {
         ExtendedSet {
             nodes: IndexMap::with_capacity_and_hasher(max_size, ahash::RandomState::default()),
-            qubits: vec![Vec::new(); num_qubits],
+            qubits: vec![Vec::new(); num_qubits as usize],
         }
     }
 
     /// Add a node and its active qubits to the extended set.
-    pub fn insert(&mut self, index: NodeIndex, qubits: &[usize; 2]) -> bool {
+    pub fn insert(&mut self, index: NodeIndex, qubits: &[VirtualQubit; 2]) -> bool {
         let [a, b] = *qubits;
         if self.nodes.insert(index, *qubits).is_none() {
-            self.qubits[a].push(b);
-            self.qubits[b].push(a);
+            self.qubits[a.index()].push(b);
+            self.qubits[b.index()].push(a);
             true
         } else {
             false
@@ -177,29 +179,29 @@ impl ExtendedSet {
     }
 
     /// Calculate the score of applying the given swap, relative to not applying it.
-    pub fn score(&self, swap: [usize; 2], layout: &NLayout, dist: &ArrayView2<f64>) -> f64 {
+    pub fn score(&self, swap: [VirtualQubit; 2], layout: &NLayout, dist: &ArrayView2<f64>) -> f64 {
         if self.nodes.is_empty() {
             return 0.0;
         }
-        let [l_a, l_b] = swap;
-        let p_a = layout.logic_to_phys[l_a];
-        let p_b = layout.logic_to_phys[l_b];
+        let [a, b] = swap;
+        let p_a = a.to_phys(layout);
+        let p_b = b.to_phys(layout);
         let mut total = 0.0;
-        for &l_other in self.qubits[l_a].iter() {
+        for other in self.qubits[a.index()].iter() {
             // If the other qubit is also active then the score won't have changed, but since the
             // distance is absolute, we'd double count rather than ignore if we didn't skip it.
-            if l_other == l_b {
+            if *other == b {
                 continue;
             }
-            let p_other = layout.logic_to_phys[l_other];
-            total += dist[[p_b, p_other]] - dist[[p_a, p_other]];
+            let p_other = other.to_phys(layout);
+            total += dist[[p_b.index(), p_other.index()]] - dist[[p_a.index(), p_other.index()]];
         }
-        for &l_other in self.qubits[l_b].iter() {
-            if l_other == l_a {
+        for other in self.qubits[b.index()].iter() {
+            if *other == a {
                 continue;
             }
-            let p_other = layout.logic_to_phys[l_other];
-            total += dist[[p_a, p_other]] - dist[[p_b, p_other]];
+            let p_other = other.to_phys(layout);
+            total += dist[[p_a.index(), p_other.index()]] - dist[[p_b.index(), p_other.index()]];
         }
         total / self.nodes.len() as f64
     }
@@ -211,7 +213,7 @@ impl ExtendedSet {
         }
         self.nodes
             .values()
-            .map(|&[l_a, l_b]| dist[[layout.logic_to_phys[l_a], layout.logic_to_phys[l_b]]])
+            .map(|&[a, b]| dist[[a.to_phys(layout).index(), b.to_phys(layout).index()]])
             .sum::<f64>()
             / self.nodes.len() as f64
     }
@@ -219,8 +221,8 @@ impl ExtendedSet {
     /// Clear all nodes from the extended set.
     pub fn clear(&mut self) {
         for &[a, b] in self.nodes.values() {
-            self.qubits[a].clear();
-            self.qubits[b].clear();
+            self.qubits[a.index()].clear();
+            self.qubits[b.index()].clear();
         }
         self.nodes.clear()
     }
