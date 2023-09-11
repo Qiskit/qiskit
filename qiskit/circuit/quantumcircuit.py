@@ -15,13 +15,8 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-import collections.abc
 import copy
-import itertools
-import functools
 import multiprocessing as mp
-import string
-import re
 import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
@@ -48,13 +43,15 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
+from ._utils import sort_parameters
 from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterReferences, ParameterTable, ParameterView
-from .parametervector import ParameterVector, ParameterVectorElement
+from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .operation import Operation
 from .register import Register
@@ -63,7 +60,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-from .tools import pi_check
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -100,23 +96,6 @@ ClbitSpecifier = Union[
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
-
-# Regex pattern to match valid OpenQASM identifiers
-VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
-QASM2_RESERVED = {
-    "OPENQASM",
-    "qreg",
-    "creg",
-    "include",
-    "gate",
-    "opaque",
-    "U",
-    "CX",
-    "measure",
-    "reset",
-    "if",
-    "barrier",
-}
 
 
 class QuantumCircuit:
@@ -212,10 +191,6 @@ class QuantumCircuit:
 
     instances = 0
     prefix = "circuit"
-
-    # Class variable OPENQASM header
-    header = "OPENQASM 2.0;"
-    extension_lib = 'include "qelib1.inc";'
 
     def __init__(
         self,
@@ -352,7 +327,7 @@ class QuantumCircuit:
 
     @property
     def layout(self) -> Optional[TranspileLayout]:
-        r"""Return any associated layout information anout the circuit
+        r"""Return any associated layout information about the circuit
 
         This attribute contains an optional :class:`~.TranspileLayout`
         object. This is typically set on the output from :func:`~.transpile`
@@ -366,6 +341,24 @@ class QuantumCircuit:
         inserted during routing.
         """
         return self._layout
+
+    @classmethod
+    @property
+    @deprecate_func(
+        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+    )
+    def header(cls) -> str:
+        """The OpenQASM 2.0 header statement."""
+        return "OPENQASM 2.0;"
+
+    @classmethod
+    @property
+    @deprecate_func(
+        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+    )
+    def extension_lib(cls) -> str:
+        """The standard OpenQASM 2 import statement."""
+        return 'include "qelib1.inc";'
 
     @property
     def data(self) -> QuantumCircuitData:
@@ -1604,7 +1597,13 @@ class QuantumCircuit:
         filename: str | None = None,
         encoding: str | None = None,
     ) -> str | None:
-        """Return OpenQASM string.
+        """Return OpenQASM 2.0 string.
+
+        .. seealso::
+
+            :func:`.qasm2.dump` and :func:`.qasm2.dumps`
+                The preferred entry points to the OpenQASM 2 export capabilities.  These match the
+                interface for other serialisers in Qiskit.
 
         Args:
             formatted (bool): Return formatted Qasm string.
@@ -1625,122 +1624,12 @@ class QuantumCircuit:
             QASM2ExportError: If circuit has free parameters.
             QASM2ExportError: If an operation that has no OpenQASM 2 representation is encountered.
         """
-        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+        from qiskit import qasm2  # pylint: disable=cyclic-import
 
-        if self.num_parameters > 0:
-            raise QASM2ExportError(
-                "Cannot represent circuits with unbound parameters in OpenQASM 2."
-            )
-
-        existing_gate_names = {
-            "barrier",
-            "measure",
-            "reset",
-            "u3",
-            "u2",
-            "u1",
-            "cx",
-            "id",
-            "u0",
-            "u",
-            "p",
-            "x",
-            "y",
-            "z",
-            "h",
-            "s",
-            "sdg",
-            "t",
-            "tdg",
-            "rx",
-            "ry",
-            "rz",
-            "sx",
-            "sxdg",
-            "cz",
-            "cy",
-            "swap",
-            "ch",
-            "ccx",
-            "cswap",
-            "crx",
-            "cry",
-            "crz",
-            "cu1",
-            "cp",
-            "cu3",
-            "csx",
-            "cu",
-            "rxx",
-            "rzz",
-            "rccx",
-            "rc3x",
-            "c3x",
-            "c3sx",  # This is the Qiskit gate name, but the qelib1.inc name is 'c3sqrtx'.
-            "c4x",
-        }
-
-        # Mapping of instruction name to a pair of the source for a definition, and an OQ2 string
-        # that includes the `gate` or `opaque` statement that defines the gate.
-        gates_to_define: OrderedDict[str, tuple[Instruction, str]] = OrderedDict()
-
-        regless_qubits = [bit for bit in self.qubits if not self.find_bit(bit).registers]
-        regless_clbits = [bit for bit in self.clbits if not self.find_bit(bit).registers]
-        dummy_registers: list[QuantumRegister | ClassicalRegister] = []
-        if regless_qubits:
-            dummy_registers.append(QuantumRegister(name="qregless", bits=regless_qubits))
-        if regless_clbits:
-            dummy_registers.append(ClassicalRegister(name="cregless", bits=regless_clbits))
-        register_escaped_names: dict[str, QuantumRegister | ClassicalRegister] = {}
-        for regs in (self.qregs, self.cregs, dummy_registers):
-            for reg in regs:
-                register_escaped_names[
-                    _make_unique(_qasm_escape_name(reg.name, "reg_"), register_escaped_names)
-                ] = reg
-        bit_labels: dict[Qubit | Clbit, str] = {
-            bit: "%s[%d]" % (name, idx)
-            for name, register in register_escaped_names.items()
-            for (idx, bit) in enumerate(register)
-        }
-        register_definitions_qasm = "".join(
-            f"{'qreg' if isinstance(reg, QuantumRegister) else 'creg'} {name}[{reg.size}];\n"
-            for name, reg in register_escaped_names.items()
-        )
-        instruction_calls = []
-        for instruction in self._data:
-            operation = instruction.operation
-            if operation.name == "measure":
-                qubit = instruction.qubits[0]
-                clbit = instruction.clbits[0]
-                instruction_qasm = f"measure {bit_labels[qubit]} -> {bit_labels[clbit]};"
-            elif operation.name == "reset":
-                instruction_qasm = f"reset {bit_labels[instruction.qubits[0]]};"
-            elif operation.name == "barrier":
-                qargs = ",".join(bit_labels[q] for q in instruction.qubits)
-                instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
-            else:
-                instruction_qasm = _qasm2_custom_operation_statement(
-                    instruction, existing_gate_names, gates_to_define, bit_labels
-                )
-            instruction_calls.append(instruction_qasm)
-        instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
-        gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
-
-        out = "".join(
-            (
-                self.header,
-                "\n",
-                self.extension_lib,
-                "\n",
-                gate_definitions_qasm,
-                register_definitions_qasm,
-                instructions_qasm,
-            )
-        )
-
-        if filename:
+        out = qasm2.dumps(self)
+        if filename is not None:
             with open(filename, "w+", encoding=encoding) as file:
-                file.write(out)
+                print(out, file=file)
 
         if formatted:
             _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
@@ -1757,7 +1646,9 @@ class QuantumCircuit:
             )
             print(code)
             return None
-        return out
+        # The old `QuantumCircuit.qasm()` method included a terminating new line that `qasm2.dumps`
+        # doesn't, so for full compatibility we add it back here.
+        return out + "\n"
 
     def draw(
         self,
@@ -1789,6 +1680,13 @@ class QuantumCircuit:
         **latex**: high-quality images compiled via latex.
 
         **latex_source**: raw uncompiled latex output.
+
+        .. warning::
+
+            Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target`
+            fields is preliminary and incomplete.  The ``text`` and ``mpl`` drawers will make a
+            best-effort attempt to show data dependencies, but the LaTeX-based drawers will skip
+            these completely.
 
         Args:
             output (str): select the output method to use for drawing the circuit.
@@ -2169,7 +2067,7 @@ class QuantumCircuit:
         """Copy the circuit.
 
         Args:
-          name (str): name to be given to the copied circuit. If None, then the name stays the same
+          name (str): name to be given to the copied circuit. If None, then the name stays the same.
 
         Returns:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
@@ -2211,6 +2109,10 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: An empty copy of self.
         """
+        if not (name is None or isinstance(name, str)):
+            raise TypeError(
+                f"invalid name for a circuit: '{name}'. The name must be a string or 'None'."
+            )
         cpy = copy.copy(self)
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
@@ -2576,7 +2478,7 @@ class QuantumCircuit:
                 >>> circuit.parameters  # sorted alphabetically!
                 ParameterView([Parameter(a), Parameter(b), Parameter(elephant)])
 
-            Bear in mind that alphabetical sorting might be unituitive when it comes to numbers.
+            Bear in mind that alphabetical sorting might be unintuitive when it comes to numbers.
             The literal "10" comes before "2" in strict alphabetical sorting.
 
             .. code-block:: python
@@ -2614,9 +2516,7 @@ class QuantumCircuit:
         """
         # parameters from gates
         if self._parameters is None:
-            unsorted = self._unsorted_parameters()
-            self._parameters = sorted(unsorted, key=functools.cmp_to_key(_compare_parameters))
-
+            self._parameters = sort_parameters(self._unsorted_parameters())
         # return as parameter view, which implements the set and list interface
         return ParameterView(self._parameters)
 
@@ -2638,6 +2538,9 @@ class QuantumCircuit:
         self,
         parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
         inplace: Literal[False] = ...,
+        *,
+        flat_input: bool = ...,
+        strict: bool = ...,
     ) -> "QuantumCircuit":
         ...
 
@@ -2646,13 +2549,19 @@ class QuantumCircuit:
         self,
         parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
         inplace: Literal[True] = ...,
+        *,
+        flat_input: bool = ...,
+        strict: bool = ...,
     ) -> None:
         ...
 
-    def assign_parameters(
+    def assign_parameters(  # pylint: disable=missing-raises-doc
         self,
         parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
         inplace: bool = False,
+        *,
+        flat_input: bool = False,
+        strict: bool = True,
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
@@ -2670,6 +2579,13 @@ class QuantumCircuit:
             parameters: Either a dictionary or iterable specifying the new parameter values.
             inplace: If False, a copy of the circuit with the bound parameters is returned.
                 If True the circuit instance itself is modified.
+            flat_input: If ``True`` and ``parameters`` is a mapping type, it is assumed to be
+                exactly a mapping of ``{parameter: value}``.  By default (``False``), the mapping
+                may also contain :class:`.ParameterVector` keys that point to a corresponding
+                sequence of values, and these will be unrolled during the mapping.
+            strict: If ``False``, any parameters given in the mapping that are not used in the
+                circuit will be ignored.  If ``True`` (the default), an error will be raised
+                indicating a logic error.
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2678,7 +2594,7 @@ class QuantumCircuit:
                 parameters in the circuit.
 
         Returns:
-            A copy of the circuit with bound parameters, if ``inplace`` is False, otherwise None.
+            A copy of the circuit with bound parameters if ``inplace`` is False, otherwise None.
 
         Examples:
 
@@ -2715,47 +2631,154 @@ class QuantumCircuit:
                circuit.draw('mpl')
 
         """
-        # replace in self or in a copy depending on the value of in_place
         if inplace:
-            bound_circuit = self
+            target = self
         else:
-            bound_circuit = self.copy()
-            self._increment_instances()
-            bound_circuit._name_update()
+            target = self.copy()
+            target._increment_instances()
+            target._name_update()
 
+        # Normalise the inputs into simple abstract interfaces, so we've dispatched the "iteration"
+        # logic in one place at the start of the function.  This lets us do things like calculate
+        # and cache expensive properties for (e.g.) the sequence format only if they're used; for
+        # many large, close-to-hardware circuits, we won't need the extra handling for
+        # `global_phase` or recursive definition binding.
+        #
+        # During normalisation, be sure to reference 'parameters' and related things from 'self' not
+        # 'target' so we can take advantage of any caching we might be doing.
         if isinstance(parameters, dict):
-            # unroll the parameter dictionary (needed if e.g. it contains a ParameterVector)
-            unrolled_param_dict = self._unroll_param_dict(parameters)
-            unsorted_parameters = self._unsorted_parameters()
-
-            # check that all param_dict items are in the _parameter_table for this circuit
-            params_not_in_circuit = [
-                param_key
-                for param_key in unrolled_param_dict
-                if param_key not in unsorted_parameters
-            ]
-            if len(params_not_in_circuit) > 0:
+            raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
+            our_parameters = self._unsorted_parameters()
+            if strict and (extras := raw_mapping.keys() - our_parameters):
                 raise CircuitError(
-                    "Cannot bind parameters ({}) not present in the circuit.".format(
-                        ", ".join(map(str, params_not_in_circuit))
-                    )
+                    f"Cannot bind parameters ({', '.join(str(x) for x in extras)}) not present in"
+                    " the circuit."
                 )
-
-            # replace the parameters with a new Parameter ("substitute") or numeric value ("bind")
-            for parameter, value in unrolled_param_dict.items():
-                bound_circuit._assign_parameter(parameter, value)
+            parameter_binds = _ParameterBindsDict(raw_mapping, our_parameters)
         else:
-            if len(parameters) != self.num_parameters:
+            our_parameters = self.parameters
+            if len(parameters) != len(our_parameters):
                 raise ValueError(
                     "Mismatching number of values and parameters. For partial binding "
                     "please pass a dictionary of {parameter: value} pairs."
                 )
-            # use a copy of the parameters, to ensure we don't change the contents of
-            # self.parameters while iterating over them
-            fixed_parameters_copy = self.parameters.copy()
-            for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(fixed_parameters_copy[i], value)
-        return None if inplace else bound_circuit
+            parameter_binds = _ParameterBindsSequence(our_parameters, parameters)
+
+        # Clear out the parameter table for the relevant entries, since we'll be binding those.
+        # Any new references to parameters are reinserted as part of the bind.
+        target._parameters = None
+        # This is deliberately eager, because we want the side effect of clearing the table.
+        all_references = [
+            (parameter, value, target._parameter_table.pop(parameter, ()))
+            for parameter, value in parameter_binds.items()
+        ]
+        seen_operations = {}
+        # The meat of the actual binding for regular operations.
+        for to_bind, bound_value, references in all_references:
+            update_parameters = (
+                tuple(bound_value.parameters)
+                if isinstance(bound_value, ParameterExpression)
+                else ()
+            )
+            for operation, index in references:
+                seen_operations[id(operation)] = operation
+                assignee = operation.params[index]
+                if isinstance(assignee, ParameterExpression):
+                    new_parameter = assignee.assign(to_bind, bound_value)
+                    for parameter in update_parameters:
+                        if parameter not in target._parameter_table:
+                            target._parameter_table[parameter] = ParameterReferences(())
+                        target._parameter_table[parameter].add((operation, index))
+                    if not new_parameter.parameters:
+                        if new_parameter.is_real():
+                            new_parameter = (
+                                int(new_parameter)
+                                if new_parameter._symbol_expr.is_integer
+                                else float(new_parameter)
+                            )
+                        else:
+                            new_parameter = complex(new_parameter)
+                        new_parameter = operation.validate_parameter(new_parameter)
+                elif isinstance(assignee, QuantumCircuit):
+                    new_parameter = assignee.assign_parameters(
+                        {to_bind: bound_value}, inplace=False, flat_input=True
+                    )
+                else:
+                    raise RuntimeError(  # pragma: no cover
+                        f"Saw an unknown type during symbolic binding: {assignee}."
+                        " This may indicate an internal logic error in symbol tracking."
+                    )
+                operation.params[index] = new_parameter
+
+        # After we've been through everything at the top level, make a single visit to each
+        # operation we've seen, rebinding its definition if necessary.
+        for operation in seen_operations.values():
+            if (
+                definition := getattr(operation, "_definition", None)
+            ) is not None and definition.num_parameters:
+                definition.assign_parameters(
+                    parameter_binds.mapping, inplace=True, flat_input=True, strict=False
+                )
+
+        if isinstance(target.global_phase, ParameterExpression):
+            new_phase = target.global_phase
+            for parameter in new_phase.parameters & parameter_binds.mapping.keys():
+                new_phase = new_phase.assign(parameter, parameter_binds.mapping[parameter])
+            target.global_phase = new_phase
+
+        # Finally, assign the parameters inside any of the calibrations.  We don't track these in
+        # the `ParameterTable`, so we manually reconstruct things.
+        def map_calibration(qubits, parameters, schedule):
+            modified = False
+            new_parameters = list(parameters)
+            for i, parameter in enumerate(new_parameters):
+                if not isinstance(parameter, ParameterExpression):
+                    continue
+                if not (contained := parameter.parameters & parameter_binds.mapping.keys()):
+                    continue
+                for to_bind in contained:
+                    parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
+                if not parameter.parameters:
+                    parameter = (
+                        int(parameter) if parameter._symbol_expr.is_integer else float(parameter)
+                    )
+                new_parameters[i] = parameter
+                modified = True
+            if modified:
+                schedule.assign_parameters(parameter_binds.mapping)
+            return (qubits, tuple(new_parameters)), schedule
+
+        target._calibrations = defaultdict(
+            dict,
+            (
+                (
+                    gate,
+                    dict(
+                        map_calibration(qubits, parameters, schedule)
+                        for (qubits, parameters), schedule in calibrations.items()
+                    ),
+                )
+                for gate, calibrations in target._calibrations.items()
+            ),
+        )
+        return None if inplace else target
+
+    @staticmethod
+    def _unroll_param_dict(
+        parameter_binds: Mapping[Parameter, ParameterValueType]
+    ) -> Mapping[Parameter, ParameterValueType]:
+        out = {}
+        for parameter, value in parameter_binds.items():
+            if isinstance(parameter, ParameterVector):
+                if len(parameter) != len(value):
+                    raise CircuitError(
+                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+                        f" but was assigned to {len(value)} values."
+                    )
+                out.update(zip(parameter, value))
+            else:
+                out[parameter] = value
+        return out
 
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
@@ -2790,136 +2813,6 @@ class QuantumCircuit:
                     "Found ParameterExpression in values; use assign_parameters() instead."
                 )
             return self.assign_parameters(values)
-
-    def _unroll_param_dict(
-        self, value_dict: Mapping[Parameter, ParameterValueType]
-    ) -> dict[Parameter, ParameterValueType]:
-        unrolled_value_dict: dict[Parameter, ParameterValueType] = {}
-        for (param, value) in value_dict.items():
-            if isinstance(param, ParameterVector):
-                if not len(param) == len(value):
-                    raise CircuitError(
-                        "ParameterVector {} has length {}, which "
-                        "differs from value list {} of "
-                        "len {}".format(param, len(param), value, len(value))
-                    )
-                unrolled_value_dict.update(zip(param, value))
-            # pass anything else except number through. error checking is done in assign_parameter
-            elif isinstance(param, (ParameterExpression, str)) or param is None:
-                unrolled_value_dict[param] = value
-        return unrolled_value_dict
-
-    def _assign_parameter(self, parameter: Parameter, value: ParameterValueType) -> None:
-        """Update this circuit where instances of ``parameter`` are replaced by ``value``, which
-        can be either a numeric value or a new parameter expression.
-
-        Args:
-            parameter (ParameterExpression): Parameter to be bound
-            value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
-                replace instances of ``parameter``.
-
-        Raises:
-            RuntimeError: if some internal logic error has caused the circuit instruction sequence
-                and the parameter table to become out of sync, and the table now contains a
-                reference to a value that cannot be assigned.
-        """
-        # parameter might be in global phase only
-        if parameter in self._parameter_table:
-            for instr, param_index in self._parameter_table[parameter]:
-                assignee = instr.params[param_index]
-                # Normal ParameterExpression.
-                if isinstance(assignee, ParameterExpression):
-                    new_param = assignee.assign(parameter, value)
-                    # if fully bound, validate
-                    if len(new_param.parameters) == 0:
-                        if new_param._symbol_expr.is_integer and new_param.is_real():
-                            val = int(new_param)
-                        elif new_param.is_real():
-                            val = float(new_param)
-                        else:
-                            # complex values may no longer be supported but we
-                            # defer raising an exception to validdate_parameter
-                            # below for now.
-                            val = complex(new_param)
-                        instr.params[param_index] = instr.validate_parameter(val)
-                    else:
-                        instr.params[param_index] = new_param
-
-                    self._rebind_definition(instr, parameter, value)
-                # Scoped block of a larger instruction.
-                elif isinstance(assignee, QuantumCircuit):
-                    # It's possible that someone may re-use a loop body, so we need to mutate the
-                    # parameter vector with a new circuit, rather than mutating the body.
-                    instr.params[param_index] = assignee.assign_parameters({parameter: value})
-                else:
-                    raise RuntimeError(  # pragma: no cover
-                        "The ParameterTable or data of this QuantumCircuit have become out-of-sync."
-                        f"\nParameterTable: {self._parameter_table}"
-                        f"\nData: {self.data}"
-                    )
-
-            if isinstance(value, ParameterExpression):
-                entry = self._parameter_table.pop(parameter)
-                for new_parameter in value.parameters:
-                    if new_parameter in self._parameter_table:
-                        self._parameter_table[new_parameter] |= entry
-                    else:
-                        self._parameter_table[new_parameter] = entry
-            else:
-                del self._parameter_table[parameter]  # clear evaluated expressions
-
-        if (
-            isinstance(self.global_phase, ParameterExpression)
-            and parameter in self.global_phase.parameters
-        ):
-            self.global_phase = self.global_phase.assign(parameter, value)
-
-        # clear parameter cache
-        self._parameters = None
-        self._assign_calibration_parameters(parameter, value)
-
-    def _assign_calibration_parameters(
-        self, parameter: Parameter, value: ParameterValueType
-    ) -> None:
-        """Update parameterized pulse gate calibrations, if there are any which contain
-        ``parameter``. This updates the calibration mapping as well as the gate definition
-        ``Schedule``s, which also may contain ``parameter``.
-        """
-        new_param: ParameterValueType
-        for cals in self.calibrations.values():
-            for (qubit, cal_params), schedule in copy.copy(cals).items():
-                if any(
-                    isinstance(p, ParameterExpression) and parameter in p.parameters
-                    for p in cal_params
-                ):
-                    del cals[(qubit, cal_params)]
-                    new_cal_params = []
-                    for p in cal_params:
-                        if isinstance(p, ParameterExpression) and parameter in p.parameters:
-                            new_param = p.assign(parameter, value)
-                            if not new_param.parameters:
-                                if new_param._symbol_expr.is_integer:
-                                    new_param = int(new_param)
-                                else:
-                                    new_param = float(new_param)
-                            new_cal_params.append(new_param)
-                        else:
-                            new_cal_params.append(p)
-                    schedule.assign_parameters({parameter: value})
-                    cals[(qubit, tuple(new_cal_params))] = schedule
-
-    def _rebind_definition(
-        self, instruction: Instruction, parameter: Parameter, value: ParameterValueType
-    ) -> None:
-        if instruction._definition:
-            for inner in instruction._definition:
-                for idx, param in enumerate(inner.operation.params):
-                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
-                        if isinstance(value, ParameterExpression):
-                            inner.operation.params[idx] = param.subs({parameter: value})
-                        else:
-                            inner.operation.params[idx] = param.bind({parameter: value})
-                        self._rebind_definition(inner.operation, parameter, value)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~.library.Barrier`. If ``qargs`` is empty, applies to all qubits
@@ -4970,198 +4863,40 @@ class QuantumCircuit:
         return 0  # If there are no instructions over bits
 
 
-def _standard_compare(value1, value2):
-    if value1 < value2:
-        return -1
-    if value1 > value2:
-        return 1
-    return 0
+class _ParameterBindsDict:
+    __slots__ = ("mapping", "allowed_keys")
+
+    def __init__(self, mapping, allowed_keys):
+        self.mapping = mapping
+        self.allowed_keys = allowed_keys
+
+    def items(self):
+        """Iterator through all the keys in the mapping that we care about.  Wrapping the main
+        mapping allows us to avoid reconstructing a new 'dict', but just use the given 'mapping'
+        without any copy / reconstruction."""
+        for parameter, value in self.mapping.items():
+            if parameter in self.allowed_keys:
+                yield parameter, value
 
 
-def _compare_parameters(param1: Parameter, param2: Parameter) -> int:
-    if isinstance(param1, ParameterVectorElement) and isinstance(param2, ParameterVectorElement):
-        # if they belong to a vector with the same name, sort by index
-        if param1.vector.name == param2.vector.name:
-            return _standard_compare(param1.index, param2.index)
+class _ParameterBindsSequence:
+    __slots__ = ("parameters", "values", "mapping_cache")
 
-    # else sort by name
-    return _standard_compare(param1.name, param2.name)
+    def __init__(self, parameters, values):
+        self.parameters = parameters
+        self.values = values
+        self.mapping_cache = None
 
+    def items(self):
+        """Iterator through all the keys in the mapping that we care about."""
+        return zip(self.parameters, self.values)
 
-# Used by the OQ2 exporter.  Just needs to have enough parameters to support the largest standard
-# (non-controlled) gate in our standard library.  We have to use the same `Parameter` instances each
-# time so the equality comparisons will work.
-_QASM2_FIXED_PARAMETERS = [Parameter("param0"), Parameter("param1"), Parameter("param2")]
-
-
-def _qasm2_custom_operation_statement(
-    instruction, existing_gate_names, gates_to_define, bit_labels
-):
-    operation = _qasm2_define_custom_operation(
-        instruction.operation, existing_gate_names, gates_to_define
-    )
-    # Insert qasm representation of the original instruction
-    if instruction.clbits:
-        bits = itertools.chain(instruction.qubits, instruction.clbits)
-    else:
-        bits = instruction.qubits
-    bits_qasm = ",".join(bit_labels[j] for j in bits)
-    instruction_qasm = f"{_instruction_qasm2(operation)} {bits_qasm};"
-    return instruction_qasm
-
-
-def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_define):
-    """Extract a custom definition from the given operation, and append any necessary additional
-    subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
-
-    Returns a potentially new :class:`.Instruction`, which should be used for the
-    :meth:`~.Instruction.qasm` call (it may have been renamed)."""
-    from qiskit.circuit import library as lib  # pylint: disable=cyclic-import
-
-    if operation.name in existing_gate_names:
-        return operation
-
-    # Check instructions names or label are valid
-    escaped = _qasm_escape_name(operation.name, "gate_")
-    if escaped != operation.name:
-        operation = operation.copy(name=escaped)
-
-    # These are built-in gates that are known to be safe to construct by passing the correct number
-    # of `Parameter` instances positionally, and have no other information.  We can't guarantee that
-    # if they've been subclassed, though.  This is a total hack; ideally we'd be able to inspect the
-    # "calling" signatures of Qiskit `Gate` objects to know whether they're safe to re-parameterise.
-    known_good_parameterized = {
-        lib.PhaseGate,
-        lib.RGate,
-        lib.RXGate,
-        lib.RXXGate,
-        lib.RYGate,
-        lib.RYYGate,
-        lib.RZGate,
-        lib.RZXGate,
-        lib.RZZGate,
-        lib.XXMinusYYGate,
-        lib.XXPlusYYGate,
-        lib.UGate,
-        lib.U1Gate,
-        lib.U2Gate,
-        lib.U3Gate,
-    }
-
-    # In known-good situations we want to use a manually parametrised object as the source of the
-    # definition, but still continue to return the given object as the call-site object.
-    if type(operation) in known_good_parameterized:
-        parameterized_operation = type(operation)(*_QASM2_FIXED_PARAMETERS[: len(operation.params)])
-    elif hasattr(operation, "_qasm2_decomposition"):
-        new_op = operation._qasm2_decomposition()
-        parameterized_operation = operation = new_op.copy(
-            name=_qasm_escape_name(new_op.name, "gate_")
-        )
-    else:
-        parameterized_operation = operation
-
-    # If there's an _equal_ operation in the existing circuits to be defined, then our job is done.
-    previous_definition_source, _ = gates_to_define.get(operation.name, (None, None))
-    if parameterized_operation == previous_definition_source:
-        return operation
-
-    # Otherwise, if there's a naming clash, we need a unique name.
-    if operation.name in gates_to_define:
-        operation = _rename_operation(operation)
-
-    new_name = operation.name
-
-    if parameterized_operation.params:
-        parameters_qasm = (
-            "(" + ",".join(f"param{i}" for i in range(len(parameterized_operation.params))) + ")"
-        )
-    else:
-        parameters_qasm = ""
-    qubits_qasm = ",".join(f"q{i}" for i in range(parameterized_operation.num_qubits))
-    parameterized_definition = getattr(parameterized_operation, "definition", None)
-    if parameterized_definition is None:
-        gates_to_define[new_name] = (
-            parameterized_operation,
-            f"opaque {new_name}{parameters_qasm} {qubits_qasm};",
-        )
-    else:
-        qubit_labels = {bit: f"q{i}" for i, bit in enumerate(parameterized_definition.qubits)}
-        body_qasm = " ".join(
-            _qasm2_custom_operation_statement(
-                instruction, existing_gate_names, gates_to_define, qubit_labels
-            )
-            for instruction in parameterized_definition.data
-        )
-
-        # if an inner operation has the same name as the actual operation, it needs to be renamed
-        if operation.name in gates_to_define:
-            operation = _rename_operation(operation)
-            new_name = operation.name
-
-        definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
-        gates_to_define[new_name] = (parameterized_operation, definition_qasm)
-    return operation
-
-
-def _rename_operation(operation):
-    """Returns the operation with a new name following this pattern: {operation name}_{operation id}"""
-    new_name = f"{operation.name}_{id(operation)}"
-    updated_operation = operation.copy(name=new_name)
-    return updated_operation
-
-
-def _qasm_escape_name(name: str, prefix: str) -> str:
-    """Returns a valid OpenQASM identifier, using `prefix` as a prefix if necessary.  `prefix` must
-    itself be a valid identifier."""
-    # Replace all non-ASCII-word characters (letters, digits, underscore) with the underscore.
-    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
-    if (
-        not escaped_name
-        or escaped_name[0] not in string.ascii_lowercase
-        or escaped_name in QASM2_RESERVED
-    ):
-        escaped_name = prefix + escaped_name
-    return escaped_name
-
-
-def _instruction_qasm2(operation):
-    """Return an OpenQASM 2 string for the instruction."""
-    from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
-
-    if operation.name == "c3sx":
-        qasm2_call = "c3sqrtx"
-    else:
-        qasm2_call = operation.name
-    if operation.params:
-        qasm2_call = "{}({})".format(
-            qasm2_call,
-            ",".join([pi_check(i, output="qasm", eps=1e-12) for i in operation.params]),
-        )
-    if operation.condition is not None:
-        if not isinstance(operation.condition[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{operation.condition[0]}'"
-            )
-        qasm2_call = (
-            "if(%s==%d) " % (operation.condition[0].name, operation.condition[1]) + qasm2_call
-        )
-    return qasm2_call
-
-
-def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
-    """Generate a name by suffixing the given stem that is unique within the defined set."""
-    if name not in already_defined:
-        return name
-    used = {in_use[len(name) :] for in_use in already_defined if in_use.startswith(name)}
-    characters = (string.digits + string.ascii_letters) if name else string.ascii_letters
-    for parts in itertools.chain.from_iterable(
-        itertools.product(characters, repeat=n) for n in itertools.count(1)
-    ):
-        suffix = "".join(parts)
-        if suffix not in used:
-            return name + suffix
-    # This isn't actually reachable because the above loop is infinite.
-    return name
+    @property
+    def mapping(self):
+        """Cached version of a mapping.  This is only generated on demand."""
+        if self.mapping_cache is None:
+            self.mapping_cache = dict(zip(self.parameters, self.values))
+        return self.mapping_cache
 
 
 def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:

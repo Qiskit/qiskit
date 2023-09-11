@@ -23,6 +23,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (
     IGate,
@@ -483,6 +484,15 @@ class TestPauli(QiskitTestCase):
         expected.phase = phase
         test = Pauli(label)
         self.assertEqual(expected, test)
+
+    def test_circuit_with_bit(self):
+        """Test new-style Bit support when converting from QuantumCircuit"""
+        circ = QuantumCircuit([Qubit()])
+        circ.x(0)
+        value = Pauli(circ)
+        target = Pauli("X")
+
+        self.assertEqual(value, target)
 
 
 if __name__ == "__main__":

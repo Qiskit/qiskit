@@ -23,7 +23,7 @@ import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
 
 # Single qubit gates supported by ``single_gate_params``.
-SINGLE_QUBIT_GATES = ("U", "u1", "u2", "u3", "rz", "sx", "x")
+SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")
 
 
 def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
@@ -45,6 +45,12 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
         gc = gates.UGate
     elif gate == "u3":
         gc = gates.U3Gate
+    elif gate == "h":
+        gc = gates.HGate
+    elif gate == "u":
+        gc = gates.UGate
+    elif gate == "p":
+        gc = gates.PhaseGate
     elif gate == "u2":
         gc = gates.U2Gate
     elif gate == "u1":

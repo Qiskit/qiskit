@@ -312,7 +312,7 @@ class UnitarySynthesis(TransformationPass):
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises :class:`~TranspileError`. If set to None, no
+                determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
@@ -375,10 +375,12 @@ class UnitarySynthesis(TransformationPass):
         """
         if self.method != "default" and self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
-        # Return fast if we have no synth gates (ie user specified an empty
-        # list or the synth gates are all in the basis
-        if not self._synth_gates:
+
+        # If there aren't any gates to synthesize in the circuit we can skip all the iteration
+        # and just return.
+        if not set(self._synth_gates).intersection(dag.count_ops()):
             return dag
+
         if self.plugins:
             plugin_method = self.plugins.ext_plugins[self.method].obj
         else:
