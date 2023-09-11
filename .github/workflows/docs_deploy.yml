@@ -31,7 +31,7 @@ jobs:
       latest_tag: ${{ steps.latest_tag.outputs.latest_tag }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: qiskit
 
@@ -206,7 +206,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: 'qiskit'
 
@@ -215,9 +215,9 @@ jobs:
           name: qiskit-translatables
           path: 'deploy'
 
-      - name: Decrypt SSH secret key
+      - name: Deploy translations
         id: ssh_key
-        run: tools/deploy_translatable_strings.sh
+        run: qiskit/tools/deploy_translatable_strings.sh
         env:
           encrypted_deploy_po_branch_key: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_KEY }}
           encrypted_deploy_po_branch_iv: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_IV }}
