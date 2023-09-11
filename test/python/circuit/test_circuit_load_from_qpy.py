@@ -29,6 +29,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
     XGate,
+    RYGate,
     QFT,
     QAOAAnsatz,
     PauliEvolutionGate,
@@ -1302,6 +1303,25 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(2)
         qc.append(CustomCXGate(), [0, 1])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_multiple_controlled_gates(self):
+        """Test multiple controlled gates with same name but different
+        parameter values.
+
+        Reproduce from: https://github.com/Qiskit/qiskit-terra/issues/10735
+        """
+
+        qc = QuantumCircuit(3)
+        for i in range(3):
+            c2ry = RYGate(i + 1).control(2)
+            qc.append(c2ry, [i % 3, (i + 1) % 3, (i + 2) % 3])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)

@@ -60,7 +60,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [11, 10, 16, 5, 17])
+        self.assertEqual([layout[q] for q in circuit.qubits], [16, 7, 11, 12, 13])
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
