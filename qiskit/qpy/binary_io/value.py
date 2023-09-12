@@ -83,7 +83,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
             value_key = symbol_key
             value_data = bytes()
         else:
-            value_key, value_data = dumps_value(value)  # TODO: use_symengine?
+            value_key, value_data = dumps_value(value, use_symengine)
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
@@ -236,28 +236,12 @@ def _read_parameter_expression(file_obj):
 
     from sympy.parsing.sympy_parser import parse_expr
 
-    payload = file_obj.read(data.expr_size)
-
     if _optional.HAS_SYMENGINE:
         from symengine import sympify
-        from symengine.lib.symengine_wrapper import load_basic
 
-        try:
-            expr_ = load_basic(payload)
-
-        except RuntimeError:
-            warnings.warn("Symengine loading failed, trying with sympy...")
-            expr_ = sympify(parse_expr(payload.decode(common.ENCODE)))
+        expr_ = sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
     else:
-        warnings.warn("Symengine not found, trying with sympy...")
-
-        try:
-            expr_ = parse_expr(payload.decode(common.ENCODE))
-
-        except UnicodeDecodeError as exc:
-            raise exceptions.QpyError(
-                "Decoding failed. Did you serialize using symengine?"
-            ) from exc
+        expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
 
     symbol_map = {}
     for _ in range(data.map_elements):
@@ -288,7 +272,7 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(symbol_map, expr_)
 
 
-def _read_parameter_expression_v3(file_obj, vectors):
+def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
@@ -298,26 +282,22 @@ def _read_parameter_expression_v3(file_obj, vectors):
 
     payload = file_obj.read(data.expr_size)
 
-    if _optional.HAS_SYMENGINE:
-        from symengine import sympify
+    if use_symengine:
+        if not _optional.HAS_SYMENGINE:
+            raise exceptions.QpyError(
+                "``use_symengine`` requires the symengine package to be installed"
+            )
         from symengine.lib.symengine_wrapper import load_basic
 
-        try:
-            expr_ = load_basic(payload)
+        expr_ = load_basic(payload)
 
-        except RuntimeError:
-            warnings.warn("Symengine loading failed, trying with sympy...")
-            expr_ = sympify(parse_expr(payload.decode(common.ENCODE)))
     else:
-        warnings.warn("Symengine not found, trying with sympy...")
+        if _optional.HAS_SYMENGINE:
+            from symengine import sympify
 
-        try:
+            expr_ = sympify(parse_expr(payload.decode(common.ENCODE)))
+        else:
             expr_ = parse_expr(payload.decode(common.ENCODE))
-
-        except UnicodeDecodeError as exc:
-            raise exceptions.QpyError(
-                "Decoding failed. Did you serialize using symengine?"
-            ) from exc
 
     symbol_map = {}
     for _ in range(data.map_elements):
@@ -348,7 +328,10 @@ def _read_parameter_expression_v3(file_obj, vectors):
             value = symbol._symbol_expr
         elif elem_key == type_keys.Value.PARAMETER_EXPRESSION:
             value = common.data_from_binary(
-                binary_data, _read_parameter_expression_v3, vectors=vectors
+                binary_data,
+                _read_parameter_expression_v3,
+                vectors=vectors,
+                use_symengine=use_symengine,
             )
         else:
             raise exceptions.QpyError("Invalid parameter expression map type: %s" % elem_key)
@@ -506,7 +489,9 @@ def write_value(file_obj, obj, *, index_map=None):
     common.write_generic_typed_data(file_obj, type_key, data)
 
 
-def loads_value(type_key, binary_data, version, vectors, *, clbits=(), cregs=None):
+def loads_value(
+    type_key, binary_data, version, vectors, *, clbits=(), cregs=None, use_symengine=False
+):
     """Deserialize input binary data to value object.
 
     Args:
@@ -551,7 +536,10 @@ def loads_value(type_key, binary_data, version, vectors, *, clbits=(), cregs=Non
             return common.data_from_binary(binary_data, _read_parameter_expression)
         else:
             return common.data_from_binary(
-                binary_data, _read_parameter_expression_v3, vectors=vectors
+                binary_data,
+                _read_parameter_expression_v3,
+                vectors=vectors,
+                use_symengine=use_symengine,
             )
     if type_key == type_keys.Value.EXPRESSION:
         return common.data_from_binary(binary_data, _read_expr, clbits=clbits, cregs=cregs or {})
@@ -559,7 +547,7 @@ def loads_value(type_key, binary_data, version, vectors, *, clbits=(), cregs=Non
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
 
-def read_value(file_obj, version, vectors, *, clbits=(), cregs=None):
+def read_value(file_obj, version, vectors, *, clbits=(), cregs=None, use_symengine=False):
     """Read a value from the file like object.
 
     Args:
@@ -574,4 +562,6 @@ def read_value(file_obj, version, vectors, *, clbits=(), cregs=None):
     """
     type_key, data = common.read_generic_typed_data(file_obj)
 
-    return loads_value(type_key, data, version, vectors, clbits=clbits, cregs=cregs)
+    return loads_value(
+        type_key, data, version, vectors, clbits=clbits, cregs=cregs, use_symengine=use_symengine
+    )

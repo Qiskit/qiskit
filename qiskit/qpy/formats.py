@@ -26,6 +26,24 @@ FILE_HEADER = namedtuple(
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
+# CIRCUIT_HEADER_V10
+CIRCUIT_HEADER_V10 = namedtuple(
+    "HEADER",
+    [
+        "name_size",
+        "global_phase_type",
+        "global_phase_size",
+        "num_qubits",
+        "num_clbits",
+        "metadata_size",
+        "num_registers",
+        "num_instructions",
+        "use_symengine",
+    ],
+)
+CIRCUIT_HEADER_V10_PACK = "!H1cHIIQIQ?"
+CIRCUIT_HEADER_V10_SIZE = struct.calcsize(CIRCUIT_HEADER_V10_PACK)
+
 # CIRCUIT_HEADER_V2
 CIRCUIT_HEADER_V2 = namedtuple(
     "HEADER",

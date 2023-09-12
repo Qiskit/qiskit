@@ -41,13 +41,21 @@ from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
-def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
-    data = formats.CIRCUIT_HEADER_V2._make(
-        struct.unpack(
-            formats.CIRCUIT_HEADER_V2_PACK,
-            file_obj.read(formats.CIRCUIT_HEADER_V2_SIZE),
+def _read_header_after_v2(file_obj, version, vectors, metadata_deserializer=None):
+    if version < 10:
+        data = formats.CIRCUIT_HEADER_V2._make(
+            struct.unpack(
+                formats.CIRCUIT_HEADER_V2_PACK,
+                file_obj.read(formats.CIRCUIT_HEADER_V2_SIZE),
+            )
         )
-    )
+    else:
+        data = formats.CIRCUIT_HEADER_V10._make(
+            struct.unpack(
+                formats.CIRCUIT_HEADER_V10_PACK,
+                file_obj.read(formats.CIRCUIT_HEADER_V10_SIZE),
+            )
+        )
     name = file_obj.read(data.name_size).decode(common.ENCODE)
     global_phase = value.loads_value(
         data.global_phase_type,
@@ -62,6 +70,9 @@ def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
         "num_registers": data.num_registers,
         "num_instructions": data.num_instructions,
     }
+    if version >= 10:
+        header["use_symengine"] = data.use_symengine
+
     metadata_raw = file_obj.read(data.metadata_size)
     metadata = json.loads(metadata_raw, cls=metadata_deserializer)
     return header, name, metadata
@@ -124,7 +135,9 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registers, circuit):
+def _loads_instruction_parameter(
+    type_key, data_bytes, version, vectors, registers, circuit, use_symengine
+):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
     elif type_key == type_keys.Container.RANGE:
@@ -139,6 +152,7 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
                 vectors=vectors,
                 registers=registers,
                 circuit=circuit,
+                use_symengine=use_symengine,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -151,7 +165,13 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
         param = value.loads_value(
-            type_key, data_bytes, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+            type_key,
+            data_bytes,
+            version,
+            vectors,
+            clbits=circuit.clbits,
+            cregs=registers["c"],
+            use_symengine=use_symengine,
         )
 
     return param
@@ -165,7 +185,9 @@ def _loads_register_param(data_bytes, circuit, registers):
     return registers["c"][data_bytes]
 
 
-def _read_instruction(file_obj, circuit, registers, custom_operations, version, vectors):
+def _read_instruction(
+    file_obj, circuit, registers, custom_operations, version, vectors, use_symengine
+):
     if version < 5:
         instruction = formats.CIRCUIT_INSTRUCTION._make(
             struct.unpack(
@@ -196,7 +218,12 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         )
     elif version >= 5 and instruction.conditional_key == type_keys.Condition.EXPRESSION:
         condition = value.read_value(
-            file_obj, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+            file_obj,
+            version,
+            vectors,
+            clbits=circuit.clbits,
+            cregs=registers["c"],
+            use_symengine=use_symengine,
         )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
@@ -232,14 +259,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     for _param in range(instruction.num_parameters):
         type_key, data_bytes = common.read_generic_typed_data(file_obj)
         param = _loads_instruction_parameter(
-            type_key, data_bytes, version, vectors, registers, circuit
+            type_key, data_bytes, version, vectors, registers, circuit, use_symengine
         )
         params.append(param)
 
     # Load Gate object
     if gate_name in {"Gate", "Instruction", "ControlledGate"}:
         inst_obj = _parse_custom_operation(
-            custom_operations, gate_name, params, version, vectors, registers
+            custom_operations, gate_name, params, version, vectors, registers, use_symengine
         )
         inst_obj.condition = condition
         if instruction.label_size > 0:
@@ -250,7 +277,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         return None
     elif gate_name in custom_operations:
         inst_obj = _parse_custom_operation(
-            custom_operations, gate_name, params, version, vectors, registers
+            custom_operations, gate_name, params, version, vectors, registers, use_symengine
         )
         inst_obj.condition = condition
         if instruction.label_size > 0:
@@ -317,7 +344,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     return None
 
 
-def _parse_custom_operation(custom_operations, gate_name, params, version, vectors, registers):
+def _parse_custom_operation(
+    custom_operations, gate_name, params, version, vectors, registers, use_symengine
+):
     if version >= 5:
         (
             type_str,
@@ -346,7 +375,7 @@ def _parse_custom_operation(custom_operations, gate_name, params, version, vecto
     if version >= 5 and type_key == type_keys.CircuitInstruction.CONTROLLED_GATE:
         with io.BytesIO(base_gate_raw) as base_gate_obj:
             base_gate = _read_instruction(
-                base_gate_obj, None, registers, custom_operations, version, vectors
+                base_gate_obj, None, registers, custom_operations, version, vectors, use_symengine
             )
         if ctrl_state < 2**num_ctrl_qubits - 1:
             # If open controls, we need to discard the control suffix when setting the name.
@@ -507,7 +536,7 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
     elif isinstance(param, tuple):
         type_key = type_keys.Container.TUPLE
         data_bytes = common.sequence_to_binary(
-            param, _dumps_instruction_parameter, index_map=index_map
+            param, _dumps_instruction_parameter, index_map=index_map, use_symengine=use_symengine
         )
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
@@ -663,7 +692,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_custom_operation(file_obj, name, operation, custom_operations):
+def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
     size = 0
@@ -702,7 +731,11 @@ def _write_custom_operation(file_obj, name, operation, custom_operations):
     else:
         with io.BytesIO() as base_gate_buffer:
             new_custom_instruction = _write_instruction(
-                base_gate_buffer, CircuitInstruction(base_gate, (), ()), custom_operations, {}
+                base_gate_buffer,
+                CircuitInstruction(base_gate, (), ()),
+                custom_operations,
+                {},
+                use_symengine,
             )
             base_gate_raw = base_gate_buffer.getvalue()
     name_raw = name.encode(common.ENCODE)
@@ -947,7 +980,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
     num_registers = num_qregs + num_cregs
 
     # Write circuit header
-    header_raw = formats.CIRCUIT_HEADER_V2(
+    header_raw = formats.CIRCUIT_HEADER_V10(
         name_size=len(circuit_name),
         global_phase_type=global_phase_type,
         global_phase_size=len(global_phase_data),
@@ -956,8 +989,9 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
         metadata_size=metadata_size,
         num_registers=num_registers,
         num_instructions=num_instructions,
+        use_symengine=use_symengine,
     )
-    header = struct.pack(formats.CIRCUIT_HEADER_V2_PACK, *header_raw)
+    header = struct.pack(formats.CIRCUIT_HEADER_V10_PACK, *header_raw)
     file_obj.write(header)
     file_obj.write(circuit_name)
     file_obj.write(global_phase_data)
@@ -983,7 +1017,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
                 operation = custom_operations[name]
                 new_custom_operations.extend(
                     _write_custom_operation(
-                        custom_operations_buffer, name, operation, custom_operations
+                        custom_operations_buffer, name, operation, custom_operations, use_symengine
                     )
                 )
 
@@ -1022,7 +1056,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
     else:
-        header, name, metadata = _read_header_v2(
+        header, name, metadata = _read_header_after_v2(
             file_obj, version, vectors, metadata_deserializer=metadata_deserializer
         )
 
@@ -1031,7 +1065,8 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
-    # `out_registers` is two "name: registter" maps segregated by type for the rest of QPY, and
+    use_symengine = header.get("use_symengine", False)
+    # `out_registers` is two "name: register" maps segregated by type for the rest of QPY, and
     # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
     all_registers = []
@@ -1097,7 +1132,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     )
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
-        _read_instruction(file_obj, circ, out_registers, custom_operations, version, vectors)
+        _read_instruction(
+            file_obj, circ, out_registers, custom_operations, version, vectors, use_symengine
+        )
 
     # Read calibrations
     if version >= 5:
