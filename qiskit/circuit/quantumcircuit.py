@@ -277,8 +277,8 @@ class QuantumCircuit:
         self.unit = "dt"
         self.metadata = {} if metadata is None else metadata
 
-    def _new_data(self):
-        return CircuitData(
+    def _new_data(self, iterable: Iterable[CircuitInstruction] | None = None):
+        data = CircuitData(
             self._intern_context,
             CircuitInstruction,
             self._qubits,
@@ -286,6 +286,9 @@ class QuantumCircuit:
             self._qubit_indices,
             self._clbit_indices
         )
+        if iterable is not None:
+            data.extend(iterable)
+        return data
 
     @staticmethod
     def from_instructions(
@@ -524,8 +527,7 @@ class QuantumCircuit:
     def __setstate__(self, state):
         self.__dict__ = state
         self._intern_context = InternContext()
-        data = self._new_data()
-        data.extend(self._data)
+        data = self._new_data(self._data)
         self._data = data
 
     @classmethod
@@ -932,7 +934,7 @@ class QuantumCircuit:
                 clbits = self.clbits[: other.num_clbits]
             if front:
                 # Need to keep a reference to the data for use after we've emptied it.
-                old_data = list(dest.data)
+                old_data = dest._new_data(dest.data)
                 dest.clear()
                 dest.append(other, qubits, clbits)
                 for instruction in old_data:
@@ -975,7 +977,7 @@ class QuantumCircuit:
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
         )
-        mapped_instrs: list[CircuitInstruction] = []
+        mapped_instrs: CircuitData = dest._new_data()
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
