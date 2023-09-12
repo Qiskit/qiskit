@@ -346,6 +346,7 @@ impl CircuitData {
                     Ok(bit_locations.0)
                 })
                 .collect::<PyResult<Vec<BitType>>>()?;
+            // TODO: handle context being full instead of just faithfully unwrapping
             Ok(context.intern(args).unwrap())
         };
 
