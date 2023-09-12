@@ -58,7 +58,8 @@ External Python Libraries
     * - .. py:data:: HAS_CPLEX
       - The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
         high-performance mathematical programming solver for linear, mixed-integer and quadratic
-        programming.  It is required by the :class:`.BIPMapping` transpiler pass.
+        programming. This is no longer by Qiskit, but it weas historically and the optional
+        remains for backwards compatibility.
 
     * - .. py:data:: HAS_CVXPY
       - `CVXPY <https://www.cvxpy.org/>`__ is a Python package for solving convex optimization
@@ -68,7 +69,8 @@ External Python Libraries
     * - .. py:data:: HAS_DOCPLEX
       - `IBM Decision Optimization CPLEX Modelling
         <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-        analysis.  Like CPLEX, it is required for the :class:`.BIPMapping` transpiler pass.
+        analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
+        optional remains for backwards compatibility.
 
     * - .. py:data:: HAS_FIXTURES
       - The test suite has additional features that are available if the optional `fixtures
