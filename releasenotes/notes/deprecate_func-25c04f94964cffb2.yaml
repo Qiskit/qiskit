@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    The decorator `requires_qe_access` was deprecated in qiskit-terra 0.17 (released on April 2021)
-    and now is it being removed. The decorator :func:`.online_test` is a one-to-one replacement of it.
