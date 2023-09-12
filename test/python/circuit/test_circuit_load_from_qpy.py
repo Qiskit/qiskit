@@ -101,6 +101,31 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(q_circuit.name, new_circ.name)
         self.assertDeprecatedBitProperties(q_circuit, new_circ)
 
+    def test_qpy_symengine(self):
+        """Test use_symengine option for circuit with parameter expressions."""
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        sum_param = theta + phi
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+        qc.barrier()
+        qc.rz(sum_param, range(3))
+        qc.rz(phi, 3)
+        qc.rz(theta, 4)
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file, use_symengine=True)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
     def test_circuit_with_conditional(self):
         """Test that instructions with conditions are correctly serialized."""
         qc = QuantumCircuit(1, 1)

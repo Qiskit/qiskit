@@ -77,6 +77,7 @@ def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
+    use_symengine: bool = False,
 ):
     """Write QPY binary data to a file
 
@@ -122,7 +123,10 @@ def dump(
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
-
+        use_symengine: If True, ``ParameterExpression`` objects will be serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
@@ -165,7 +169,15 @@ def dump(
     common.write_type_key(file_obj, type_key)
 
     for program in programs:
-        writer(file_obj, program, metadata_serializer=metadata_serializer)
+        if issubclass(program_type, QuantumCircuit):
+            writer(
+                file_obj,
+                program,
+                metadata_serializer=metadata_serializer,
+                use_symengine=use_symengine,
+            )
+        else:
+            writer(file_obj, program, metadata_serializer=metadata_serializer)
 
 
 def load(

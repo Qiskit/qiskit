@@ -497,7 +497,7 @@ def _dumps_register(register, index_map):
     return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
 
 
-def _dumps_instruction_parameter(param, index_map):
+def _dumps_instruction_parameter(param, index_map, use_symengine):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
@@ -521,13 +521,15 @@ def _dumps_instruction_parameter(param, index_map):
         type_key = type_keys.Value.REGISTER
         data_bytes = _dumps_register(param, index_map)
     else:
-        type_key, data_bytes = value.dumps_value(param, index_map=index_map)
+        type_key, data_bytes = value.dumps_value(
+            param, index_map=index_map, use_symengine=use_symengine
+        )
 
     return type_key, data_bytes
 
 
 # pylint: disable=too-many-boolean-expressions
-def _write_instruction(file_obj, instruction, custom_operations, index_map):
+def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
     gate_class_name = instruction.operation.__class__.__name__
     custom_operations_list = []
     if (
@@ -603,7 +605,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         value.write_value(file_obj, op_condition, index_map=index_map)
     else:
         file_obj.write(condition_register)
-    # Encode instruciton args
+    # Encode instruction args
     for qbit in instruction.qubits:
         instruction_arg_raw = struct.pack(
             formats.CIRCUIT_INSTRUCTION_ARG_PACK, b"q", index_map["q"][qbit]
@@ -616,7 +618,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_params:
-        type_key, data_bytes = _dumps_instruction_parameter(param, index_map)
+        type_key, data_bytes = _dumps_instruction_parameter(param, index_map, use_symengine)
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
 
@@ -915,7 +917,7 @@ def _read_layout(file_obj, circuit):
     circuit._layout = TranspileLayout(initial_layout, input_qubit_mapping, final_layout)
 
 
-def write_circuit(file_obj, circuit, metadata_serializer=None):
+def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=False):
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
@@ -925,6 +927,10 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
             will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
             ``circuit`` and will be used as the ``cls`` kwarg
             on the ``json.dump()`` call to JSON serialize that dictionary.
+        use_symengine: If True, ``ParameterExpression`` objects will be serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
     """
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -964,7 +970,9 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     index_map["q"] = {bit: index for index, bit in enumerate(circuit.qubits)}
     index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
     for instruction in circuit.data:
-        _write_instruction(instruction_buffer, instruction, custom_operations, index_map)
+        _write_instruction(
+            instruction_buffer, instruction, custom_operations, index_map, use_symengine
+        )
 
     with io.BytesIO() as custom_operations_buffer:
         new_custom_operations = list(custom_operations.keys())
