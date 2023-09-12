@@ -262,7 +262,7 @@ class DensePartialSabreTrial(AnalysisPass):
 
     def run(self, dag):
         self.dense_pass.run(dag)
-        self.property_set["sabre_starting_layout"] = [self.dense_pass.property_set["layout"]]
+        self.property_set["sabre_starting_layouts"] = [self.dense_pass.property_set["layout"]]
 
 
 class TestDisjointDeviceSabreLayout(QiskitTestCase):
