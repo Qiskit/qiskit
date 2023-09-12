@@ -11,19 +11,12 @@
 # that they have been altered from the originals.
 
 """Test operations on circuit.data."""
-from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister, Parameter, CircuitInstruction, Operation, Clbit
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction, Operation
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-
-
-class TestCircuitData(QiskitTestCase):
-    """Tests the rust-side CircuitData struct."""
-    def test_circuit_data(self):
-        qr = QuantumRegister(5)
-        cr = ClassicalRegister(4)
-        qc = QuantumCircuit(qr, cr)
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
