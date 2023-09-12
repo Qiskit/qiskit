@@ -122,12 +122,12 @@ class TestSabreLayout(QiskitTestCase):
         pm = PassManager(
             [
                 DensePartialSabreTrial(CouplingMap(self.cmap20)),
-                SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32, layout_trials=32),
+                SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32, layout_trials=0),
             ]
         )
         pm.run(circuit)
         layout = pm.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 12, 6, 11, 13])
+        self.assertEqual([layout[q] for q in circuit.qubits], [1, 3, 5, 2, 6, 0])
 
     def test_6q_circuit_20q_coupling_with_target(self):
         """Test finds layout for 6q circuit on 20q device."""
