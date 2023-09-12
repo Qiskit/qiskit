@@ -304,10 +304,10 @@ impl CircuitData {
                     if !ours?.eq(theirs?)? {
                         return Ok(false);
                     }
-                },
+                }
                 (None, None) => {
                     return Ok(true);
-                },
+                }
                 _ => {
                     return Ok(false);
                 }
