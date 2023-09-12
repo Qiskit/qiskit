@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 import warnings
-import time
 
 import collections.abc
 import struct
@@ -238,7 +237,6 @@ def _read_parameter_expression(file_obj):
     payload = file_obj.read(data.expr_size)
 
     if _optional.HAS_SYMENGINE:
-        time0 = time.time()
         from symengine import sympify
         from symengine.lib.symengine_wrapper import load_basic
 
@@ -250,7 +248,6 @@ def _read_parameter_expression(file_obj):
             expr_ = sympify(parse_expr(payload.decode(common.ENCODE)))
     else:
         warnings.warn("Symengine not found, trying with sympy...")
-        time0 = time.time()
 
         try:
             expr_ = parse_expr(payload.decode(common.ENCODE))
@@ -300,7 +297,6 @@ def _read_parameter_expression_v3(file_obj, vectors):
     payload = file_obj.read(data.expr_size)
 
     if _optional.HAS_SYMENGINE:
-        time0 = time.time()
         from symengine import sympify
         from symengine.lib.symengine_wrapper import load_basic
 
@@ -312,7 +308,6 @@ def _read_parameter_expression_v3(file_obj, vectors):
             expr_ = sympify(parse_expr(payload.decode(common.ENCODE)))
     else:
         warnings.warn("Symengine not found, trying with sympy...")
-        time0 = time.time()
 
         try:
             expr_ = parse_expr(payload.decode(common.ENCODE))
