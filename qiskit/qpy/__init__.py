@@ -102,7 +102,7 @@ The QPY serialization format is a portable cross-platform binary
 serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
 file format is as follows:
 
-A QPY file (or memory object) always starts with the following 7
+A QPY file (or memory object) always starts with the following 6
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
 file header. The contents of the file header as defined as a C struct are:
 
@@ -128,6 +128,34 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_10:
+
+Version 10
+==========
+
+Version 10 adds support for the ``use_symengine`` flag in ``qpy.dump()``, which allows to use
+symengine-native serialization and deserialization for objects of type ``ParameterExpression``.
+This option is now stored as part of the circuit header:
+
+HEADER
+------
+
+The contents of HEADER are defined as a C struct are:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        char global_phase_type;
+        uint16_t global_phase_size;
+        uint32_t num_qubits;
+        uint32_t num_clbits;
+        uint64_t metadata_size;
+        uint32_t num_registers;
+        uint64_t num_instructions;
+        uint64_t num_custom_gates;
+        _Bool use_symengine;
+    }
 
 .. _qpy_version_9:
 
