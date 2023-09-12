@@ -100,7 +100,7 @@ class TestGateDirection(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
-        
+
     def test_multi_register(self):
         """The CX is in the right direction
         qr0:---(+)---
