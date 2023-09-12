@@ -248,13 +248,13 @@ HAS_CONSTRAINT = _LazyImportTester(
 
 HAS_CPLEX = _LazyImportTester(
     "cplex",
-    install="pip install 'qiskit-terra[bip-mapper]'",
+    install="pip install cplex",
     msg="This may not be possible for all Python versions and OSes",
 )
 HAS_CVXPY = _LazyImportTester("cvxpy", install="pip install cvxpy")
 HAS_DOCPLEX = _LazyImportTester(
     {"docplex": (), "docplex.mp.model": ("Model",)},
-    install="pip install 'qiskit-terra[bip-mapper]'",
+    install="pip install docplex",
     msg="This may not be possible for all Python versions and OSes",
 )
 HAS_FIXTURES = _LazyImportTester("fixtures", install="pip install fixtures")
