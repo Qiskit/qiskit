@@ -284,7 +284,7 @@ class QuantumCircuit:
             self._qubits,
             self._clbits,
             self._qubit_indices,
-            self._clbit_indices
+            self._clbit_indices,
         )
         if iterable is not None:
             data.extend(iterable)
@@ -2119,10 +2119,12 @@ class QuantumCircuit:
             }
         )
 
-        cpy._data.extend([
-            instruction.replace(operation=operation_copies[id(instruction.operation)])
-            for instruction in self._data
-        ])
+        cpy._data.extend(
+            [
+                instruction.replace(operation=operation_copies[id(instruction.operation)])
+                for instruction in self._data
+            ]
+        )
 
         return cpy
 
