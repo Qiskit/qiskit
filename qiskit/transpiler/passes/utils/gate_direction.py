@@ -325,11 +325,6 @@ class GateDirection(TransformationPass):
                 cx nodes.
         """
         layout_map = {bit: i for i, bit in enumerate(dag.qubits)}
-        if len(dag.qregs) > 1:
-            raise TranspilerError(
-                "GateDirection expects a single qreg input DAG,"
-                "but input DAG had qregs: {}.".format(dag.qregs)
-            )
         if self.target is None:
             return self._run_coupling_map(dag, layout_map)
         return self._run_target(dag, layout_map)

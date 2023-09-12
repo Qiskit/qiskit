@@ -100,6 +100,26 @@ class TestGateDirection(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
+        
+    def test_multi_register(self):
+        """The CX is in the right direction
+        qr0:---(+)---
+                |
+        qr1:----.----
+
+        CouplingMap map: [0] -> [1]
+        """
+        qr1 = QuantumRegister(1, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.cx(qr1, qr2)
+        coupling = CouplingMap([[0, 1]])
+        dag = circuit_to_dag(circuit)
+
+        pass_ = GateDirection(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(dag, after)
 
     def test_direction_flip(self):
         """Flip a CX
