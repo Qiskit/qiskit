@@ -229,19 +229,6 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
-        let data = slf.iter()?.collect::<PyResult<Vec<_>>>()?;
-        let reprs = data
-            .into_iter()
-            .map(|d| d.repr())
-            .collect::<PyResult<Vec<_>>>()?;
-        let strs = reprs
-            .into_iter()
-            .map(|x| x.to_str())
-            .collect::<PyResult<Vec<_>>>()?;
-        Ok(format!("{:?}", &strs))
-    }
-
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
 
@@ -297,40 +284,35 @@ impl CircuitData {
     }
 
     fn equals(slf: &PyAny, other: &PyAny) -> PyResult<bool> {
-        println!("eq was called");
-        let slf_len = slf.len();
+        let slf_len = slf.len()?;
         let other_len = other.len();
-        if slf_len.is_ok() && other_len.is_ok() {
-            if slf_len.unwrap() != other_len.unwrap() {
-                println!("wrong len");
+        if other_len.is_ok() {
+            if slf_len != other_len.unwrap() {
                 return Ok(false);
             }
         }
-
-        let ours_itr = match slf.iter() {
+        let mut ours_itr = slf.iter()?;
+        let mut theirs_itr = match other.iter() {
             Ok(i) => i,
             Err(_) => {
-                println!("not iter!");
                 return Ok(false);
             }
         };
-
-        let theirs_itr = match other.iter() {
-            Ok(i) => i,
-            Err(_) => {
-                println!("not iter!");
-                return Ok(false);
-            }
-        };
-
-        let zipped = ours_itr.zip(theirs_itr);
-        for (ours, theirs) in zipped {
-            if !ours?.eq(theirs?)? {
-                println!("elem not equal!");
-                return Ok(false);
+        loop {
+            match (ours_itr.next(), theirs_itr.next()) {
+                (Some(ours), Some(theirs)) => {
+                    if !ours?.eq(theirs?)? {
+                        return Ok(false);
+                    }
+                },
+                (None, None) => {
+                    return Ok(true);
+                },
+                _ => {
+                    return Ok(false);
+                }
             }
         }
-        Ok(true)
     }
 
     fn drop_from_cache(

@@ -21,7 +21,7 @@ use std::sync::atomic::Ordering::SeqCst;
 
 macro_rules! println {
     ($($rest:tt)*) => {
-        #[cfg(debug_assertions)]
+        #[cfg(any())]
         std::println!($($rest)*)
     }
 }

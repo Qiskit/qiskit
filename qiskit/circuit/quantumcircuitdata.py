@@ -210,41 +210,44 @@ class QuantumCircuitData(MutableSequence):
         return len(self._circuit._data)
 
     def __cast(self, other):
-        return other._circuit._data if isinstance(other, QuantumCircuitData) else other
+        return list(other._circuit._data) if isinstance(other, QuantumCircuitData) else other
 
     def __repr__(self):
         return repr(list(self._circuit._data))
 
     def __lt__(self, other):
-        return self._circuit._data < self.__cast(other)
+        return list(self._circuit._data) < self.__cast(other)
 
     def __le__(self, other):
-        return self._circuit._data <= self.__cast(other)
+        return list(self._circuit._data) <= self.__cast(other)
 
     def __eq__(self, other):
         return self._circuit._data == self.__cast(other)
 
     def __gt__(self, other):
-        return self._circuit._data > self.__cast(other)
+        return list(self._circuit._data) > self.__cast(other)
 
     def __ge__(self, other):
-        return self._circuit._data >= self.__cast(other)
+        return list(self._circuit._data) >= self.__cast(other)
 
     def __add__(self, other):
-        return self._circuit._data + self.__cast(other)
+        return list(self._circuit._data) + self.__cast(other)
 
     def __radd__(self, other):
-        return self.__cast(other) + self._circuit._data
+        return self.__cast(other) + list(self._circuit._data)
 
     def __mul__(self, n):
-        return self._circuit._data * n
+        return list(self._circuit._data) * n
 
     def __rmul__(self, n):
-        return n * self._circuit._data
+        return n * list(self._circuit._data)
 
     def sort(self, *args, **kwargs):
         """In-place stable sort. Accepts arguments of list.sort."""
-        self._circuit._data.sort(*args, **kwargs)
+        data = list(self._circuit._data)
+        data.sort(*args, **kwargs)
+        self._circuit._data.clear()
+        self._circuit._data.extend(data)
 
     def copy(self):
         """Returns a shallow copy of instruction list."""
