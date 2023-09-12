@@ -587,7 +587,7 @@ def _expand_parameters(circuits, run_config):
             )
 
         circuits = [
-            circuit.bind_parameters(binds) for circuit in circuits for binds in parameter_binds
+            circuit.assign_parameters(binds) for circuit in circuits for binds in parameter_binds
         ]
 
         # All parameters have been expanded and bound, so remove from run_config
