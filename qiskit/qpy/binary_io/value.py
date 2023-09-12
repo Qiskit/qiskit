@@ -54,7 +54,9 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
 
     if use_symengine:
         if not _optional.HAS_SYMENGINE:
-            raise ValueError("No symengine")
+            raise exceptions.QpyError(
+                "``use_symengine`` requires the symengine package to be installed"
+            )
         expr_bytes = obj._symbol_expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
