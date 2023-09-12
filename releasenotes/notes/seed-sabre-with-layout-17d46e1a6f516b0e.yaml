@@ -26,7 +26,7 @@ features:
 
           def run(self, dag):
               self.dense_pass.run(dag)
-              self.property_set["sabre_starting_layout"] = [self.dense_pass.property_set["layout"]]
+              self.property_set["sabre_starting_layouts"] = [self.dense_pass.property_set["layout"]]
 
         backend = FakeSherbrooke()
         opt_level_1 = generate_preset_pass_manager(1, backend)
