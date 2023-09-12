@@ -16,17 +16,18 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::{Hash, Hasher};
 use std::mem::take;
-use std::sync::atomic::AtomicU64;
-use std::sync::atomic::Ordering::SeqCst;
 
 macro_rules! println {
     ($($rest:tt)*) => {
-        #[cfg(any())]
+        #[cfg(debug_interner)]
         std::println!($($rest)*)
     }
 }
 
+#[cfg(debug_interner)]
 fn unique_id() -> u64 {
+    use std::sync::atomic::AtomicU64;
+    use std::sync::atomic::Ordering::SeqCst;
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     COUNTER.fetch_add(1, SeqCst)
 }
@@ -55,6 +56,7 @@ pub struct InternContext {
     slots: Vec<Option<SharedOperandList>>,
     free_slots: VecDeque<IndexType>,
     slot_lookup: HashMap<u64, IndexType>,
+    #[cfg(debug_interner)]
     id: u64,
 }
 
@@ -135,6 +137,7 @@ impl InternContext {
             slots: Vec::new(),
             free_slots: VecDeque::new(),
             slot_lookup: HashMap::new(),
+            #[cfg(debug_interner)]
             id: unique_id(),
         }
     }
