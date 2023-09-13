@@ -103,7 +103,7 @@ def _read_discriminator(file_obj, version):
     return Discriminator(name=name, **params)
 
 
-def _loads_symbolic_expr(expr_bytes, use_symengine):
+def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     if expr_bytes == b"":
         return None
     if use_symengine:
