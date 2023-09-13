@@ -116,6 +116,7 @@ file header. The contents of the file header as defined as a C struct are:
         uint64_t num_circuits;
     }
 
+
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
@@ -133,29 +134,32 @@ circuits in the data.
 Version 10
 ==========
 
-Version 10 adds support for the ``use_symengine`` flag in ``qpy.dump()``, which allows to use
-symengine-native serialization and deserialization for objects of type ``ParameterExpression``.
-This option is now stored as part of the circuit header:
+Version 10 adds support for the ``use_symengine`` flag in ``qpy.dump()``, which allows the use
+of symengine-native serialization and deserialization for objects of type ``ParameterExpression``
+as well as symbolic expressions in Pulse schedule blocks. This is a faster serialization
+alternative, but not supported in all platforms. Please check that your target
+platform is supported by the symengine library before setting this option, as it will be
+**required** by qpy to deserialize the payload. For this reason, the option defaults to False.
 
-HEADER
-------
+As it affects both circuit and block schedule payloads, the option is now stored as part of
+the file header:
 
-The contents of HEADER are defined as a C struct are:
+FILE_HEADER
+-----------
+
+The contents of FILE_HEADER after V10 are defined as a C struct as:
 
 .. code-block:: c
 
     struct {
-        uint16_t name_size;
-        char global_phase_type;
-        uint16_t global_phase_size;
-        uint32_t num_qubits;
-        uint32_t num_clbits;
-        uint64_t metadata_size;
-        uint32_t num_registers;
-        uint64_t num_instructions;
-        uint64_t num_custom_gates;
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
         _Bool use_symengine;
     }
+
 
 .. _qpy_version_9:
 

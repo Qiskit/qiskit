@@ -1698,7 +1698,8 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
                 dump(self.qc, qpy_file, use_symengine=True)
 
     def test_load_no_symengine(self):
-        """Test that load fails if symengine is not installed and the file was created with use_symengine==True."""
+        """Test that load fails if symengine is not installed and the
+        file was created with use_symengine==True."""
         qpy_file = io.BytesIO()
         dump(self.qc, qpy_file, use_symengine=True)
         qpy_file.seek(0)

@@ -123,10 +123,11 @@ def dump(
         metadata_serializer: An optional JSONEncoder class that
             will be passed the ``.metadata`` attribute for each program in ``programs`` and will be
             used as the ``cls`` kwarg on the `json.dump()`` call to JSON serialize that dictionary.
-        use_symengine: If True, ``ParameterExpression`` objects will be serialized using symengine's
-            native mechanism. This is a faster serialization alternative, but not supported in all
-            platforms. Please check that your target platform is supported by the symengine library
-            before setting this option, as it will be required by qpy to deserialize the payload.
+        use_symengine: If True, all objects containing symbolic expressions will be serialized
+            using symengine's native mechanism. This is a faster serialization alternative,
+            but not supported in all platforms. Please check that your target platform is supported
+            by the symengine library before setting this option, as it will be required by qpy to
+            deserialize the payload. For this reason, the option defaults to False.
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
@@ -157,27 +158,22 @@ def dump(
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     header = struct.pack(
-        formats.FILE_HEADER_PACK,
+        formats.FILE_HEADER_V10_PACK,
         b"QISKIT",
         common.QPY_VERSION,
         version_parts[0],
         version_parts[1],
         version_parts[2],
         len(programs),
+        use_symengine,
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_key)
 
     for program in programs:
-        if issubclass(program_type, QuantumCircuit):
-            writer(
-                file_obj,
-                program,
-                metadata_serializer=metadata_serializer,
-                use_symengine=use_symengine,
-            )
-        else:
-            writer(file_obj, program, metadata_serializer=metadata_serializer)
+        writer(
+            file_obj, program, metadata_serializer=metadata_serializer, use_symengine=use_symengine
+        )
 
 
 def load(
@@ -231,12 +227,26 @@ def load(
         QiskitError: if ``file_obj`` is not a valid QPY file
         TypeError: When invalid data type is loaded.
     """
-    data = formats.FILE_HEADER._make(
-        struct.unpack(
-            formats.FILE_HEADER_PACK,
-            file_obj.read(formats.FILE_HEADER_SIZE),
+
+    # identify file header version
+    version = struct.unpack("!6sB", file_obj.read(7))[1]
+    file_obj.seek(0)
+
+    if version < 10:
+        data = formats.FILE_HEADER._make(
+            struct.unpack(
+                formats.FILE_HEADER_PACK,
+                file_obj.read(formats.FILE_HEADER_SIZE),
+            )
         )
-    )
+    else:
+        data = formats.FILE_HEADER_V10._make(
+            struct.unpack(
+                formats.FILE_HEADER_V10_PACK,
+                file_obj.read(formats.FILE_HEADER_V10_SIZE),
+            )
+        )
+
     if data.preface.decode(common.ENCODE) != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
     version_match = VERSION_PATTERN_REGEX.search(__version__)
@@ -282,6 +292,7 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
+                use_symengine=data.use_symengine,
             )
         )
     return programs

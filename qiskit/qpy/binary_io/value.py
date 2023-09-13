@@ -13,7 +13,6 @@
 """Binary IO for any value objects, such as numbers, string, parameters."""
 
 from __future__ import annotations
-import warnings
 
 import collections.abc
 import struct
@@ -83,7 +82,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
             value_key = symbol_key
             value_data = bytes()
         else:
-            value_key, value_data = dumps_value(value, use_symengine)
+            value_key, value_data = dumps_value(value, use_symengine=use_symengine)
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
@@ -429,11 +428,10 @@ def dumps_value(obj, *, index_map=None, use_symengine=False):
 
     Args:
         obj (any): Arbitrary value object to serialize.
-        use_symengine (bool): Use symengine native serialization
         index_map (dict): Dictionary with two keys, "q" and "c".  Each key has a value that is a
             dictionary mapping :class:`.Qubit` or :class:`.Clbit` instances (respectively) to their
             integer indices.
-        use_symengine: If True, ``ParameterExpression`` objects will be serialized using symengine's
+        use_symengine (bool): If True, symbolic objects will be serialized using symengine's
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
@@ -475,7 +473,7 @@ def dumps_value(obj, *, index_map=None, use_symengine=False):
     return type_key, binary_data
 
 
-def write_value(file_obj, obj, *, index_map=None):
+def write_value(file_obj, obj, *, index_map=None, use_symengine=False):
     """Write a value to the file like object.
 
     Args:
@@ -484,8 +482,12 @@ def write_value(file_obj, obj, *, index_map=None):
         index_map (dict): Dictionary with two keys, "q" and "c".  Each key has a value that is a
             dictionary mapping :class:`.Qubit` or :class:`.Clbit` instances (respectively) to their
             integer indices.
+        use_symengine (bool): If True, symbolic objects will be serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
     """
-    type_key, data = dumps_value(obj, index_map=index_map)
+    type_key, data = dumps_value(obj, index_map=index_map, use_symengine=use_symengine)
     common.write_generic_typed_data(file_obj, type_key, data)
 
 
@@ -501,6 +503,10 @@ def loads_value(
         vectors (dict): ParameterVector in current scope.
         clbits (Sequence[Clbit]): Clbits in the current scope.
         cregs (Mapping[str, ClassicalRegister]): Classical registers in the current scope.
+        use_symengine (bool): If True, symbolic objects will be de-serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
 
     Returns:
         any: Deserialized value object.
@@ -556,6 +562,10 @@ def read_value(file_obj, version, vectors, *, clbits=(), cregs=None, use_symengi
         vectors (dict): ParameterVector in current scope.
         clbits (Sequence[Clbit]): Clbits in the current scope.
         cregs (Mapping[str, ClassicalRegister]): Classical registers in the current scope.
+        use_symengine (bool): If True, symbolic objects will be de-serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
 
     Returns:
         any: Deserialized value object.

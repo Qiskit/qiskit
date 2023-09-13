@@ -41,21 +41,15 @@ from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
-def _read_header_after_v2(file_obj, version, vectors, metadata_deserializer=None):
-    if version < 10:
-        data = formats.CIRCUIT_HEADER_V2._make(
-            struct.unpack(
-                formats.CIRCUIT_HEADER_V2_PACK,
-                file_obj.read(formats.CIRCUIT_HEADER_V2_SIZE),
-            )
+def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
+
+    data = formats.CIRCUIT_HEADER_V2._make(
+        struct.unpack(
+            formats.CIRCUIT_HEADER_V2_PACK,
+            file_obj.read(formats.CIRCUIT_HEADER_V2_SIZE),
         )
-    else:
-        data = formats.CIRCUIT_HEADER_V10._make(
-            struct.unpack(
-                formats.CIRCUIT_HEADER_V10_PACK,
-                file_obj.read(formats.CIRCUIT_HEADER_V10_SIZE),
-            )
-        )
+    )
+
     name = file_obj.read(data.name_size).decode(common.ENCODE)
     global_phase = value.loads_value(
         data.global_phase_type,
@@ -70,8 +64,6 @@ def _read_header_after_v2(file_obj, version, vectors, metadata_deserializer=None
         "num_registers": data.num_registers,
         "num_instructions": data.num_instructions,
     }
-    if version >= 10:
-        header["use_symengine"] = data.use_symengine
 
     metadata_raw = file_obj.read(data.metadata_size)
     metadata = json.loads(metadata_raw, cls=metadata_deserializer)
@@ -960,7 +952,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
             will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
             ``circuit`` and will be used as the ``cls`` kwarg
             on the ``json.dump()`` call to JSON serialize that dictionary.
-        use_symengine: If True, ``ParameterExpression`` objects will be serialized using symengine's
+        use_symengine (bool): If True, symbolic objects will be serialized using symengine's
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
@@ -980,7 +972,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
     num_registers = num_qregs + num_cregs
 
     # Write circuit header
-    header_raw = formats.CIRCUIT_HEADER_V10(
+    header_raw = formats.CIRCUIT_HEADER_V2(
         name_size=len(circuit_name),
         global_phase_type=global_phase_type,
         global_phase_size=len(global_phase_data),
@@ -989,9 +981,8 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
         metadata_size=metadata_size,
         num_registers=num_registers,
         num_instructions=num_instructions,
-        use_symengine=use_symengine,
     )
-    header = struct.pack(formats.CIRCUIT_HEADER_V10_PACK, *header_raw)
+    header = struct.pack(formats.CIRCUIT_HEADER_V2_PACK, *header_raw)
     file_obj.write(header)
     file_obj.write(circuit_name)
     file_obj.write(global_phase_data)
@@ -1032,7 +1023,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None):
+def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1045,7 +1036,11 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-
+        use_symengine (bool): If True, symbolic objects will be de-serialized using
+            symengine's native mechanism. This is a faster serialization alternative, but not
+            supported in all platforms. Please check that your target platform is supported by
+            the symengine library before setting this option, as it will be required by qpy to
+            deserialize the payload.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
@@ -1056,7 +1051,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
     else:
-        header, name, metadata = _read_header_after_v2(
+        header, name, metadata = _read_header_v2(
             file_obj, version, vectors, metadata_deserializer=metadata_deserializer
         )
 
@@ -1065,7 +1060,6 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
-    use_symengine = header.get("use_symengine", False)
     # `out_registers` is two "name: register" maps segregated by type for the rest of QPY, and
     # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
