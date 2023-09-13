@@ -184,7 +184,7 @@ class SabreStartingLayoutUsingVF2(AnalysisPass):
                 # this edge is not necessary, furthermore we can trim the set of edges to examine based
                 # in the edges involved in the layout.
                 extra_edges = self._get_extra_edges_used(dag, layout)
-                extra_edges_unprocessed_set = set(extra_edges)
+                extra_edges_unprocessed_set = set(extra_edges).difference(set(extra_edges_necessary))
                 best_layout = layout
 
         return best_layout
