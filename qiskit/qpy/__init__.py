@@ -128,6 +128,28 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_10:
+
+Version 10
+==========
+
+Version 10 adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
+0.45.0 release. The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
+WIth version 10 the ``LAYOUT`` struct is now:
+
+.. code-block:: c
+
+    struct {
+        char exists;
+        int32_t initial_layout_size;
+        int32_t input_mapping_size;
+        int32_t final_layout_size;
+        uint32_t extra_registers;
+        uint32_t input_qubit_size;
+    }
+
+The rest of the layout data after the ``LAYOUT`` struct is represented as in previous versions.
+
 
 .. _qpy_version_9:
 
