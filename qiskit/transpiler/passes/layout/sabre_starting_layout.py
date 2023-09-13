@@ -15,7 +15,7 @@
 import itertools
 
 from qiskit.transpiler import CouplingMap, AnalysisPass
-from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
 from qiskit._accelerate.error_map import ErrorMap
 
 
@@ -97,10 +97,10 @@ class SabreStartingLayoutUsingVF2(AnalysisPass):
             if self.minimize_edges:
                 starting_layout = self._minimize_extra_edges(dag, starting_layout)
             # write discovered layout into the property set
-            if "sabre_starting_layout" not in self.property_set:
-                self.property_set["sabre_starting_layout"] = [starting_layout]
+            if "sabre_starting_layouts" not in self.property_set:
+                self.property_set["sabre_starting_layouts"] = [starting_layout]
             else:
-                self.property_set["sabre_starting_layout"].append(starting_layout)
+                self.property_set["sabre_starting_layouts"].append(starting_layout)
 
     def _add_extra_edges(self, distance):
         """Augments the coupling map with extra edges that connect nodes ``distance``
