@@ -410,7 +410,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_cregs_equal(self.original_cregs)
         self.assert_clbits_equal(self.original_clbits, excluding={self.individual_clbit})
 
-    def test_copy_circuit_metadata(self):
+    def test_copy_empty_like(self):
         """Copy dag circuit metadata with copy_empty_like."""
         result_dag = self.dag.copy_empty_like()
         self.assertEqual(self.dag.name, result_dag.name)

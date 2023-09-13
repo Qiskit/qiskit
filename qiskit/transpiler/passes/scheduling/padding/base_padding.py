@@ -216,7 +216,7 @@ class BasePadding(TransformationPass):
         if isinstance(clbits, Clbit):
             clbits = [clbits]
 
-        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits)
+        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits, check=False)
         self.property_set["node_start_time"][new_node] = t_start
 
     def _pad(

@@ -79,11 +79,11 @@ class MergeAdjacentBarriers(TransformationPass):
                     qubits = node_to_barrier_qubits[node]
                     # qubits are stored as a set, need to convert to a list
                     new_dag.apply_operation_back(
-                        Barrier(len(qubits)), qargs=sorted(qubits, key=indices.get)
+                        Barrier(len(qubits)), qargs=sorted(qubits, key=indices.get), check=False
                     )
             else:
                 # copy the condition over too
-                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
         return new_dag
 
     @staticmethod
