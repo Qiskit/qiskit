@@ -117,6 +117,20 @@ file header. The contents of the file header as defined as a C struct are:
     }
 
 
+From V10 on, a new field is added to the file header struct to represent the
+encoding scheme used for symbolic expressions:
+
+.. code-block:: c
+
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
+    }
+
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
@@ -134,36 +148,12 @@ circuits in the data.
 Version 10
 ==========
 
-Version 10 adds support for the ``use_symengine`` flag in ``qpy.dump()``, which allows the use
-of symengine-native serialization and deserialization for objects of type ``ParameterExpression``
-as well as symbolic expressions in Pulse schedule blocks.
+Version 10 adds support for symengine-native serialization for objects of type
+:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks.
 
-For example::
-
-    from qiskit.circuit import QuantumCircuit, Parameter
-    from qiskit import qpy
-
-    theta = Parameter("theta")
-    phi = Parameter("phi")
-    sum_param = theta + phi
-
-    qc = QuantumCircuit(1)
-    qc.rz(sum_param, 0)
-    qc.measure_all()
-
-    with open('bell.qpy', 'wb') as fd:
-        qpy.dump(qc, fd)
-
-    with open('bell.qpy', 'rb') as fd:
-        new_qc = qpy.load(fd)[0]
-
-This is a faster serialization alternative, but not supported in all platforms.
-Please check that your target platform is supported by the symengine library before
-setting this option, as it will be **required** by qpy to deserialize the payload.
-For this reason, the option defaults to False.
-
-As it affects both circuit and block schedule payloads, the option is now stored as part of
-the file header:
+The symbolic_encoding field is added to the file header, and a new encoding type char
+is introduced, mapped to each serialization library as follows: ``p`` refers to sympy
+encoding and ``e`` refers to symengine encoding.
 
 FILE_HEADER
 -----------
@@ -178,7 +168,7 @@ The contents of FILE_HEADER after V10 are defined as a C struct as:
         uint8_t qiskit_minor_version;
         uint8_t qiskit_patch_version;
         uint64_t num_circuits;
-        _Bool use_symengine;
+        char symbolic_encoding;
     }
 
 

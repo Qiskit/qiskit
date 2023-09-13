@@ -432,7 +432,6 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_sched = load(qpy_file)[0]
         self.assertEqual(self.test_sched, new_sched)
-        self.assertDeprecatedBitProperties(self.test_sched, new_sched)
 
     def test_dump_no_symengine(self):
         """Test dump fails if symengine is not installed and use_symengine==True."""

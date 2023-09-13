@@ -25,6 +25,7 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.utils import optionals as _optional
 
@@ -53,8 +54,8 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
 
     if use_symengine:
         if not _optional.HAS_SYMENGINE:
-            raise exceptions.QpyError(
-                "``use_symengine`` requires the symengine package to be installed"
+            raise MissingOptionalLibraryError(
+                "The `use_symengine` option requires the symengine package, which is not installed."
             )
         expr_bytes = obj._symbol_expr.__reduce__()[1][0]
     else:
@@ -283,9 +284,10 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     if use_symengine:
         if not _optional.HAS_SYMENGINE:
-            raise exceptions.QpyError(
-                "``use_symengine`` requires the symengine package to be installed"
+            raise MissingOptionalLibraryError(
+                "This QPY file encodes its symbolic components using 'symengine', which is not installed."
             )
+
         from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
             load_basic,
         )
