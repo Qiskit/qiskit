@@ -36,6 +36,7 @@ from typing import (
     overload,
 )
 import numpy as np
+from qiskit._accelerate.quantum_circuit import CircuitData, InternContext
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -60,7 +61,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-from qiskit._accelerate.quantum_circuit import CircuitData, InternContext
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import

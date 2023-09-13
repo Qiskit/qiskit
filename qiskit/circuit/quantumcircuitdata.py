@@ -21,7 +21,6 @@ from .instruction import Instruction
 from .operation import Operation
 from .quantumregister import Qubit
 from .classicalregister import Clbit
-from qiskit._accelerate.quantum_circuit import CircuitData
 
 
 class CircuitInstruction:
