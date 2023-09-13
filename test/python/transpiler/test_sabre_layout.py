@@ -14,7 +14,10 @@
 
 import unittest
 
+import math
+
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import EfficientSU2
 from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
 from qiskit.transpiler.passes import SabreLayout, DenseLayout
 from qiskit.transpiler.exceptions import TranspilerError
@@ -24,6 +27,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
 from qiskit.providers.fake_provider import FakeKolkata
 from qiskit.providers.fake_provider import FakeMontreal
+from qiskit.transpiler.passes.layout.sabre_starting_layout import SabreStartingLayoutUsingVF2
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -387,6 +391,34 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         pm.run(qc)
         layout = pm.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+
+
+class TestSabreStartingLayoutUsingVF2(QiskitTestCase):
+    """Tests the SabreLayout pass with starting layout created by SabreStartingLayoutUsingVF2."""
+
+    def setUp(self):
+        super().setUp()
+        circuit = EfficientSU2(16, entanglement="circular", reps=6, flatten=True)
+        circuit.assign_parameters([math.pi / 2] * len(circuit.parameters), inplace=True)
+        circuit.measure_all()
+        self.circuit = circuit
+        self.coupling_map = CouplingMap.from_heavy_hex(7)
+
+    def test_starting_layout(self):
+        """Test that a starting layout is created and looks as expected."""
+        pm = PassManager(
+            [
+                SabreStartingLayoutUsingVF2(coupling_map=self.coupling_map),
+                SabreLayout(self.coupling_map, seed=123456, swap_trials=1, layout_trials=1),
+            ]
+        )
+        pm.run(self.circuit)
+        layout = pm.property_set["layout"]
+        print([layout[q] for q in self.circuit.qubits])
+        self.assertEqual(
+            [layout[q] for q in self.circuit.qubits],
+            [54, 87, 17, 88, 93, 62, 99, 31, 100, 32, 63, 25, 24, 94, 59, 81],
+        )
 
 
 if __name__ == "__main__":
