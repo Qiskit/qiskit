@@ -286,7 +286,9 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
             raise exceptions.QpyError(
                 "``use_symengine`` requires the symengine package to be installed"
             )
-        from symengine.lib.symengine_wrapper import load_basic
+        from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+            load_basic,
+        )
 
         expr_ = load_basic(payload)
 

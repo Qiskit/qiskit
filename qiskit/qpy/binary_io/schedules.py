@@ -113,7 +113,9 @@ def _loads_symbolic_expr(expr_bytes, use_symengine):
         if not _optional.HAS_SYMENGINE:
             raise QpyError("``use_symengine`` requires the symengine package to be installed")
 
-        from symengine.lib.symengine_wrapper import load_basic
+        from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+            load_basic,
+        )
 
         expr = load_basic(zlib.decompress(expr_bytes))
 
