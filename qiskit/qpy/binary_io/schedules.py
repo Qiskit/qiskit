@@ -112,7 +112,8 @@ def _loads_symbolic_expr(expr_bytes, use_symengine):
 
         if not _optional.HAS_SYMENGINE:
             raise MissingOptionalLibraryError(
-                "This QPY file encodes its symbolic components using 'symengine', which is not installed."
+                "This QPY file encodes its symbolic components using 'symengine', "
+                "which is not installed."
             )
 
         from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module

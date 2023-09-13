@@ -45,11 +45,12 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.test import QiskitTestCase
-from qiskit.qpy import dump, load, exceptions
+from qiskit.qpy import dump, load
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 @ddt.ddt
@@ -1694,7 +1695,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         """Test dump fails if symengine is not installed and use_symengine==True."""
         qpy_file = io.BytesIO()
         with optionals.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(exceptions.QpyError):
+            with self.assertRaises(MissingOptionalLibraryError):
                 dump(self.qc, qpy_file, use_symengine=True)
 
     def test_load_no_symengine(self):
@@ -1704,5 +1705,5 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         dump(self.qc, qpy_file, use_symengine=True)
         qpy_file.seek(0)
         with optionals.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(exceptions.QpyError):
+            with self.assertRaises(MissingOptionalLibraryError):
                 _ = load(qpy_file)[0]

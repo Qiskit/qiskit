@@ -285,7 +285,8 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     if use_symengine:
         if not _optional.HAS_SYMENGINE:
             raise MissingOptionalLibraryError(
-                "This QPY file encodes its symbolic components using 'symengine', which is not installed."
+                "This QPY file encodes its symbolic components using 'symengine', "
+                "which is not installed."
             )
 
         from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
