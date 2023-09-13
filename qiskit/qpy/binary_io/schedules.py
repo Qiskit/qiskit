@@ -20,7 +20,7 @@ from io import BytesIO
 
 import numpy as np
 
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
@@ -104,35 +104,24 @@ def _read_discriminator(file_obj, version):
 
 
 def _loads_symbolic_expr(expr_bytes, use_symengine):
-
     if expr_bytes == b"":
         return None
-
     if use_symengine:
-
-        if not _optional.HAS_SYMENGINE:
-            raise MissingOptionalLibraryError(
-                "This QPY file encodes its symbolic components using 'symengine', "
-                "which is not installed."
-            )
-
+        _optional.HAS_SYMENGINE.require_now("loads_symbolic_expr")
         from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
             load_basic,
         )
 
         expr = load_basic(zlib.decompress(expr_bytes))
-
     else:
         from sympy import parse_expr
 
         expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
         expr = parse_expr(expr_txt)
-
         if _optional.HAS_SYMENGINE:
             from symengine import sympify
 
             return sympify(expr)
-
     return expr
 
 
@@ -412,22 +401,15 @@ def _write_discriminator(file_obj, data):
 
 
 def _dumps_symbolic_expr(expr, use_symengine):
-
     if expr is None:
         return b""
-
     if use_symengine:
-        if not _optional.HAS_SYMENGINE:
-            raise MissingOptionalLibraryError(
-                "The `use_symengine` option requires the symengine package, which is not installed."
-            )
+        _optional.HAS_SYMENGINE.require_now("dumps_symbolic_expr")
         expr_bytes = expr.__reduce__()[1][0]
-
     else:
         from sympy import srepr, sympify
 
         expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
-
     return zlib.compress(expr_bytes)
 
 

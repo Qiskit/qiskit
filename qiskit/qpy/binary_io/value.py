@@ -25,7 +25,6 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.utils import optionals as _optional
 
@@ -51,12 +50,8 @@ def _write_parameter_vec(file_obj, obj):
 
 
 def _write_parameter_expression(file_obj, obj, use_symengine):
-
     if use_symengine:
-        if not _optional.HAS_SYMENGINE:
-            raise MissingOptionalLibraryError(
-                "The `use_symengine` option requires the symengine package, which is not installed."
-            )
+        _optional.HAS_SYMENGINE.require_now("write_parameter_expression")
         expr_bytes = obj._symbol_expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
@@ -229,11 +224,9 @@ def _read_parameter_vec(file_obj, vectors):
 
 
 def _read_parameter_expression(file_obj):
-
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
-
     from sympy.parsing.sympy_parser import parse_expr
 
     if _optional.HAS_SYMENGINE:
@@ -273,28 +266,19 @@ def _read_parameter_expression(file_obj):
 
 
 def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
-
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
-
     from sympy.parsing.sympy_parser import parse_expr
 
     payload = file_obj.read(data.expr_size)
-
     if use_symengine:
-        if not _optional.HAS_SYMENGINE:
-            raise MissingOptionalLibraryError(
-                "This QPY file encodes its symbolic components using 'symengine', "
-                "which is not installed."
-            )
-
+        _optional.HAS_SYMENGINE.require_now("read_parameter_expression_v3")
         from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
             load_basic,
         )
 
         expr_ = load_basic(payload)
-
     else:
         if _optional.HAS_SYMENGINE:
             from symengine import sympify
