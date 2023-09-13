@@ -273,7 +273,7 @@ LAYOUT_V2 = namedtuple(
         "input_qubit_count",
     ],
 )
-LAYOUT_V2_PACK = "!?iiiII"
+LAYOUT_V2_PACK = "!?iiiIi"
 LAYOUT_V2_SIZE = struct.calcsize(LAYOUT_V2_PACK)
 
 

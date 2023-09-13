@@ -145,10 +145,12 @@ WIth version 10 the ``LAYOUT`` struct is now:
         int32_t input_mapping_size;
         int32_t final_layout_size;
         uint32_t extra_registers;
-        uint32_t input_qubit_size;
+        int32_t input_qubit_count;
     }
 
-The rest of the layout data after the ``LAYOUT`` struct is represented as in previous versions.
+The rest of the layout data after the ``LAYOUT`` struct is represented as in previous versions. If
+``input qubit_count`` is < 0 that indicates that both ``_input_qubit_count``
+and ``_output_qubit_list`` in the :class:`~.TranspileLayout` object are ``None``.
 
 
 .. _qpy_version_9:

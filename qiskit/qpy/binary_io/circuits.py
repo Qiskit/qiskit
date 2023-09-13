@@ -835,6 +835,9 @@ def _write_layout(file_obj, circuit):
             virtual_bit = final_layout_physical[i]
             final_layout_array.append(circuit.find_bit(virtual_bit).index)
 
+    input_qubit_count = circuit._layout._input_qubit_count
+    if input_qubit_count is None:
+        input_qubit_count = -1
     file_obj.write(
         struct.pack(
             formats.LAYOUT_V2_PACK,
@@ -843,7 +846,7 @@ def _write_layout(file_obj, circuit):
             input_qubit_size,
             final_layout_size,
             len(extra_registers),
-            circuit._layout._input_qubit_count,
+            input_qubit_count,
         )
     )
     _write_registers(
@@ -931,8 +934,9 @@ def _read_layout_v2(file_obj, circuit):
     if not header.exists:
         return
     _read_common_layout(file_obj, header, circuit)
-    circuit._layout._input_qubit_count = header.input_qubit_count
-    circuit._layout._output_qubit_list = circuit.qubits
+    if header.input_qubit_count >= 0:
+        circuit._layout._input_qubit_count = header.input_qubit_count
+        circuit._layout._output_qubit_list = circuit.qubits
 
 
 def write_circuit(file_obj, circuit, metadata_serializer=None):
