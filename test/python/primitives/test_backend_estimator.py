@@ -107,7 +107,7 @@ class TestBackendEstimator(QiskitTestCase):
     def test_estimator_run_no_params(self, backend):
         """test for estimator without parameters"""
         backend.set_options(seed_simulator=123)
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = BackendEstimator(backend=backend)
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)

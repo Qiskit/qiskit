@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
+use hashbrown::HashSet;
 use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
 use pyo3::prelude::*;
@@ -28,6 +29,7 @@ use crate::sabre_swap::swap_map::SwapMap;
 use crate::sabre_swap::{build_swap_map_inner, Heuristic, NodeBlockResults, SabreResult};
 
 #[pyfunction]
+#[pyo3(signature = (dag, neighbor_table, distance_matrix, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![]))]
 pub fn sabre_layout_and_routing(
     py: Python,
     dag: &SabreDAG,
@@ -36,20 +38,24 @@ pub fn sabre_layout_and_routing(
     heuristic: &Heuristic,
     max_iterations: usize,
     num_swap_trials: usize,
-    num_layout_trials: usize,
+    num_random_trials: usize,
     seed: Option<u64>,
+    mut partial_layouts: Vec<Vec<Option<u32>>>,
 ) -> (NLayout, PyObject, (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
+    let mut starting_layouts: Vec<Vec<Option<u32>>> =
+        (0..num_random_trials).map(|_| vec![]).collect();
+    starting_layouts.append(&mut partial_layouts);
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_entropy(),
     };
     let seed_vec: Vec<u64> = outer_rng
         .sample_iter(&rand::distributions::Standard)
-        .take(num_layout_trials)
+        .take(starting_layouts.len())
         .collect();
     let dist = distance_matrix.as_array();
-    let res = if run_in_parallel && num_layout_trials > 1 {
+    let res = if run_in_parallel && starting_layouts.len() > 1 {
         seed_vec
             .into_par_iter()
             .enumerate()
@@ -65,6 +71,7 @@ pub fn sabre_layout_and_routing(
                         max_iterations,
                         num_swap_trials,
                         run_in_parallel,
+                        &starting_layouts[index],
                     ),
                 )
             })
@@ -79,7 +86,8 @@ pub fn sabre_layout_and_routing(
     } else {
         seed_vec
             .into_iter()
-            .map(|seed_trial| {
+            .enumerate()
+            .map(|(index, seed_trial)| {
                 layout_trial(
                     dag,
                     neighbor_table,
@@ -89,6 +97,7 @@ pub fn sabre_layout_and_routing(
                     max_iterations,
                     num_swap_trials,
                     run_in_parallel,
+                    &starting_layouts[index],
                 )
             })
             .min_by_key(|(_, _, result)| result.map.map.values().map(|x| x.len()).sum::<usize>())
@@ -114,15 +123,38 @@ fn layout_trial(
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
+    starting_layout: &[Option<u32>],
 ) -> (NLayout, Vec<PhysicalQubit>, SabreResult) {
     let num_physical_qubits: u32 = distance_matrix.shape()[0].try_into().unwrap();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
     // Pick a random initial layout including a full ancilla allocation.
     let mut initial_layout = {
-        let mut physical_qubits: Vec<PhysicalQubit> =
-            (0..num_physical_qubits).map(PhysicalQubit::new).collect();
-        physical_qubits.shuffle(&mut rng);
+        let physical_qubits: Vec<PhysicalQubit> = if !starting_layout.is_empty() {
+            let used_bits: HashSet<u32> = starting_layout
+                .iter()
+                .filter_map(|x| x.as_ref())
+                .copied()
+                .collect();
+            let mut free_bits: Vec<u32> = (0..num_physical_qubits)
+                .filter(|x| !used_bits.contains(x))
+                .collect();
+            free_bits.shuffle(&mut rng);
+            (0..num_physical_qubits)
+                .map(|x| {
+                    let bit_index = match starting_layout.get(x as usize) {
+                        Some(phys) => phys.unwrap_or_else(|| free_bits.pop().unwrap()),
+                        None => free_bits.pop().unwrap(),
+                    };
+                    PhysicalQubit::new(bit_index)
+                })
+                .collect()
+        } else {
+            let mut physical_qubits: Vec<PhysicalQubit> =
+                (0..num_physical_qubits).map(PhysicalQubit::new).collect();
+            physical_qubits.shuffle(&mut rng);
+            physical_qubits
+        };
         NLayout::from_virtual_to_physical(physical_qubits).unwrap()
     };
 

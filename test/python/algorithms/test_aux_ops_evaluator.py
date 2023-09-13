@@ -125,7 +125,7 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         expected_result = self.get_exact_expectation(bound_ansatz, observables)
 
         for backend_name in self.backend_names:
