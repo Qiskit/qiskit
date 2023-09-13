@@ -16,7 +16,7 @@ use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PySlice};
+use pyo3::types::{IntoPyDict, PySlice, PyTuple};
 use pyo3::{intern, PyObject, PyResult};
 use std::cmp::max;
 use std::iter::zip;
@@ -37,8 +37,8 @@ pub struct CircuitData {
 #[derive(FromPyObject)]
 pub struct ElementType {
     operation: PyObject,
-    qubits: Vec<PyObject>,
-    clbits: Vec<PyObject>,
+    qubits: Py<PyTuple>,
+    clbits: Py<PyTuple>,
 }
 
 #[derive(FromPyObject)]
@@ -337,8 +337,9 @@ impl CircuitData {
         let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
         let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
         let context = &mut *py_ref;
-        let mut cache_args = |fn_bit_idx: &PyObject, bits: Vec<PyObject>| -> PyResult<IndexType> {
+        let mut cache_args = |fn_bit_idx: &PyObject, bits: Py<PyTuple>| -> PyResult<IndexType> {
             let args = bits
+                .as_ref(py)
                 .into_iter()
                 .map(|b| {
                     let py_idx = fn_bit_idx.call1(py, (b.clone(),))?;
