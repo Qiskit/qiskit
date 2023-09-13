@@ -17,17 +17,21 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySlice, PyTuple};
-use pyo3::{PyObject, PyResult};
+use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::cmp::max;
 use std::iter::zip;
 use std::mem::swap;
 
+// Private type use to store instructions with interned arg lists.
+#[derive(Clone, Debug)]
+struct InternedInstruction(Option<PyObject>, IndexType, IndexType);
+
 #[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
-    data: Vec<(PyObject, IndexType, IndexType)>,
-    intern_context: Py<InternContext>,
-    new_callable: PyObject,
+    data: Vec<InternedInstruction>,
+    intern_context: Option<Py<InternContext>>,
+    new_callable: Option<PyObject>,
     qubits: Py<PyList>,
     clbits: Py<PyList>,
     qubit_indices: Py<PyDict>,
@@ -59,9 +63,9 @@ impl CircuitData {
         clbit_indices: Py<PyDict>,
     ) -> PyResult<Self> {
         Ok(CircuitData {
-            new_callable,
-            intern_context,
             data: Vec::new(),
+            intern_context: Some(intern_context),
+            new_callable: Some(new_callable),
             qubits,
             clbits,
             qubit_indices,
@@ -93,13 +97,15 @@ impl CircuitData {
                             .collect()
                     };
 
-                if let Some((op, qargs_slot, cargs_slot)) = self.data.get(index) {
-                    let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
+                if let Some(InternedInstruction(op, qargs_slot, cargs_slot)) = self.data.get(index)
+                {
+                    let cell: &PyCell<InternContext> =
+                        self.intern_context.as_ref().unwrap().as_ref(py);
                     let pyref: PyRef<'_, InternContext> = cell.try_borrow()?;
                     let context = &*pyref;
                     let qargs = context.lookup(*qargs_slot);
                     let cargs = context.lookup(*cargs_slot);
-                    self.new_callable.call1(
+                    self.new_callable.as_ref().unwrap().call1(
                         py,
                         (
                             op,
@@ -242,6 +248,28 @@ impl CircuitData {
             _ => Ok(py.NotImplemented()),
         }
     }
+
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        for InternedInstruction(op, _, _) in self.data.iter() {
+            visit.call(op)?;
+        }
+        visit.call(&self.intern_context)?;
+        visit.call(&self.new_callable)?;
+        visit.call(&self.qubits)?;
+        visit.call(&self.clbits)?;
+        visit.call(&self.qubit_indices)?;
+        visit.call(&self.clbit_indices)?;
+        Ok(())
+    }
+
+    fn __clear__(&mut self) {
+        // TODO: do we need to explicitly clear qubits, clbit, qubit_indices, and clbit_indices?
+        for InternedInstruction(op, _, _) in self.data.iter_mut() {
+            *op = None;
+        }
+        self.intern_context = None;
+        self.new_callable = None;
+    }
 }
 
 enum IndexFor {
@@ -313,26 +341,18 @@ impl CircuitData {
         }
     }
 
-    fn drop_from_cache(
-        &self,
-        py: Python<'_>,
-        entry: (PyObject, IndexType, IndexType),
-    ) -> PyResult<()> {
-        let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
+    fn drop_from_cache(&self, py: Python<'_>, entry: InternedInstruction) -> PyResult<()> {
+        let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
         let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
         let context = &mut *py_ref;
-        let (_, qargs_idx, carg_idx) = entry;
+        let InternedInstruction(_, qargs_idx, carg_idx) = entry;
         context.drop_use(qargs_idx);
         context.drop_use(carg_idx);
         Ok(())
     }
 
-    fn get_or_cache(
-        &mut self,
-        py: Python<'_>,
-        elem: ElementType,
-    ) -> PyResult<(PyObject, IndexType, IndexType)> {
-        let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
+    fn get_or_cache(&mut self, py: Python<'_>, elem: ElementType) -> PyResult<InternedInstruction> {
+        let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
         let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
         let context = &mut *py_ref;
         let mut cache_args = |indices: &PyDict, bits: Py<PyTuple>| -> PyResult<IndexType> {
@@ -349,8 +369,8 @@ impl CircuitData {
             Ok(context.intern(args).unwrap())
         };
 
-        Ok((
-            elem.operation,
+        Ok(InternedInstruction(
+            Some(elem.operation),
             cache_args(&self.qubit_indices.as_ref(py), elem.qubits)?,
             cache_args(&self.clbit_indices.as_ref(py), elem.clbits)?,
         ))
