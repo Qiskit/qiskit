@@ -152,7 +152,7 @@ Version 10 adds support for symengine-native serialization for objects of type
 :class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks.
 
 The symbolic_encoding field is added to the file header, and a new encoding type char
-is introduced, mapped to each serialization library as follows: ``p`` refers to sympy
+is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
 encoding and ``e`` refers to symengine encoding.
 
 FILE_HEADER
