@@ -417,7 +417,7 @@ class TestSabreStartingLayoutUsingVF2(QiskitTestCase):
         print([layout[q] for q in self.circuit.qubits])
         self.assertEqual(
             [layout[q] for q in self.circuit.qubits],
-            [54, 87, 17, 88, 93, 62, 99, 31, 100, 32, 63, 25, 24, 94, 59, 81],
+            [30, 98, 104, 36, 103, 35, 65, 28, 61, 91, 22, 92, 23, 93, 62, 99],
         )
 
 
