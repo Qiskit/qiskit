@@ -16,8 +16,8 @@ use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PySlice, PyTuple};
-use pyo3::{intern, PyObject, PyResult};
+use pyo3::types::{IntoPyDict, PyDict, PyList, PySlice, PyTuple};
+use pyo3::{PyObject, PyResult};
 use std::cmp::max;
 use std::iter::zip;
 use std::mem::swap;
@@ -28,10 +28,10 @@ pub struct CircuitData {
     data: Vec<(PyObject, IndexType, IndexType)>,
     intern_context: Py<InternContext>,
     new_callable: PyObject,
-    fn_idx_to_qubit: PyObject,
-    fn_idx_to_clbit: PyObject,
-    fn_qubit_to_idx: PyObject,
-    fn_clbit_to_idx: PyObject,
+    qubits: Py<PyList>,
+    clbits: Py<PyList>,
+    qubit_indices: Py<PyDict>,
+    clbit_indices: Py<PyDict>,
 }
 
 #[derive(FromPyObject)]
@@ -51,23 +51,21 @@ pub enum SliceOrInt<'a> {
 impl CircuitData {
     #[new]
     pub fn new(
-        py: Python<'_>,
         intern_context: Py<InternContext>,
         new_callable: PyObject,
-        qubits: PyObject,
-        clbits: PyObject,
-        qubit_indices: PyObject,
-        clbit_indices: PyObject,
+        qubits: Py<PyList>,
+        clbits: Py<PyList>,
+        qubit_indices: Py<PyDict>,
+        clbit_indices: Py<PyDict>,
     ) -> PyResult<Self> {
-        let fn_get_item = intern!(py, "__getitem__");
         Ok(CircuitData {
             new_callable,
             intern_context,
             data: Vec::new(),
-            fn_idx_to_qubit: qubits.getattr(py, fn_get_item)?,
-            fn_idx_to_clbit: clbits.getattr(py, fn_get_item)?,
-            fn_qubit_to_idx: qubit_indices.getattr(py, fn_get_item)?,
-            fn_clbit_to_idx: clbit_indices.getattr(py, fn_get_item)?,
+            qubits,
+            clbits,
+            qubit_indices,
+            clbit_indices,
         })
     }
 
@@ -89,9 +87,9 @@ impl CircuitData {
             Int(index) => {
                 let index = self.convert_py_index(index, IndexFor::Lookup)?;
                 let extract_args =
-                    |fn_idx_to_bit: &PyObject, args: &Vec<BitType>| -> PyResult<Vec<PyObject>> {
+                    |bits: &PyList, args: &Vec<BitType>| -> PyResult<Vec<PyObject>> {
                         args.iter()
-                            .map(|i| fn_idx_to_bit.call1(py, (*i,)))
+                            .map(|i| bits.get_item(*i as usize).map(|x| x.into()))
                             .collect()
                     };
 
@@ -105,8 +103,8 @@ impl CircuitData {
                         py,
                         (
                             op,
-                            extract_args(&self.fn_idx_to_qubit, qargs)?,
-                            extract_args(&self.fn_idx_to_clbit, cargs)?,
+                            extract_args(&self.qubits.as_ref(py), qargs)?,
+                            extract_args(&self.clbits.as_ref(py), cargs)?,
                         ),
                     )
                 } else {
@@ -337,13 +335,13 @@ impl CircuitData {
         let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
         let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
         let context = &mut *py_ref;
-        let mut cache_args = |fn_bit_idx: &PyObject, bits: Py<PyTuple>| -> PyResult<IndexType> {
+        let mut cache_args = |indices: &PyDict, bits: Py<PyTuple>| -> PyResult<IndexType> {
             let args = bits
                 .as_ref(py)
                 .into_iter()
                 .map(|b| {
-                    let py_idx = fn_bit_idx.call1(py, (b.clone(),))?;
-                    let bit_locations = py_idx.extract::<(BitType, PyObject)>(py)?;
+                    let py_idx = indices.as_ref().get_item(b)?;
+                    let bit_locations = py_idx.extract::<(BitType, PyObject)>()?;
                     Ok(bit_locations.0)
                 })
                 .collect::<PyResult<Vec<BitType>>>()?;
@@ -353,8 +351,8 @@ impl CircuitData {
 
         Ok((
             elem.operation,
-            cache_args(&self.fn_qubit_to_idx, elem.qubits)?,
-            cache_args(&self.fn_clbit_to_idx, elem.clbits)?,
+            cache_args(&self.qubit_indices.as_ref(py), elem.qubits)?,
+            cache_args(&self.clbit_indices.as_ref(py), elem.clbits)?,
         ))
     }
 }
