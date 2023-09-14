@@ -33,8 +33,6 @@ from warnings import warn
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
-from qiskit.converters import circuit_to_dag
-from qiskit.circuit import ControlFlowOp
 from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib

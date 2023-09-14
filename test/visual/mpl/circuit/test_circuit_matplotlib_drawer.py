@@ -1606,8 +1606,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
-    def test_if_else_op(self):
-        """Test the IfElseOp with else"""
+    def test_if_else_op_bundle_false(self):
+        """Test the IfElseOp with else with cregbundle False"""
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -1618,8 +1618,32 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         with _else:
             circuit.cx(0, 1)
 
-        fname = "if_else_op.png"
+        fname = "if_else_op_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_if_else_op_bundle_true(self):
+        """Test the IfElseOp with else with cregbundle True"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+
+        fname = "if_else_op_true.png"
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1718,7 +1742,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_nested.png"
-        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1759,7 +1783,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_wire_order.png"
-        self.circuit_drawer(circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], cregbundle=False, filename=fname)
+        self.circuit_drawer(
+            circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], cregbundle=False, filename=fname
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

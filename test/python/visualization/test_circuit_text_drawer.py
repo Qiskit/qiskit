@@ -5463,11 +5463,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         self.assertEqual(
             str(
                 _text_circuit_drawer(
-                    circuit,
-                    fold=77,
-                    initial_state=False,
-                    cregbundle=False,
-                    wire_order=[2, 0, 3, 1, 4, 5, 6],
+                    circuit, fold=77, initial_state=False, wire_order=[2, 0, 3, 1, 4, 5, 6],
                 )
             ),
             expected,

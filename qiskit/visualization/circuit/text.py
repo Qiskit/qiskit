@@ -19,14 +19,13 @@ from shutil import get_terminal_size
 import collections
 import sys
 
-from qiskit.circuit import QuantumCircuit, Qubit, Clbit, ClassicalRegister, Instruction
+from qiskit.circuit import QuantumCircuit, Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import ControlledGate, Reset, Measure
 from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -740,10 +739,7 @@ class TextDrawing:
                     for block in inst.operation.blocks:
                         if check_clbit_in_inst(block) is False:
                             return False
-                elif (
-                    inst.clbits
-                    and not isinstance(inst.operation, Measure)
-                ):
+                elif inst.clbits and not isinstance(inst.operation, Measure):
                     if cregbundle:
                         warn(
                             "Cregbundle set to False since an instruction needs to refer"
@@ -1507,8 +1503,6 @@ class Layer:
         conditional=False,
         controlled_edge=None,
     ):
-        # print("\n\n\nCARGS", cargs)
-        # print("CLBITS", self.clbits)
         if qargs is not None and cargs is not None:
             qarg_indices = sorted(i for i, x in enumerate(self.qubits) if x in qargs)
             carg_indices = sorted(i for i, x in enumerate(self.clbits) if x in cargs)

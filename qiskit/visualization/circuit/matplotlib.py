@@ -137,10 +137,7 @@ class MatplotlibDrawer:
                     for block in inst.operation.blocks:
                         if check_clbit_in_inst(block) is False:
                             return False
-                elif (
-                    inst.clbits
-                    and not isinstance(inst.operation, Measure)
-                ):
+                elif inst.clbits and not isinstance(inst.operation, Measure):
                     if cregbundle:
                         warn(
                             "Cregbundle set to False since an instruction needs to refer"
@@ -856,15 +853,15 @@ class MatplotlibDrawer:
                 if self._cregbundle and this_clbit["register"] is not None:
                     self._ax.plot(
                         [glob_data["x_offset"] + 0.2, glob_data["x_offset"] + 0.3],
-                        [y - 0.08, y + 0.08],
+                        [y - 0.1, y + 0.1],
                         color=self._style["cc"],
                         zorder=PORDER_REGLINE,
                     )
                     self._ax.text(
-                        glob_data["x_offset"] + 0.21,
+                        glob_data["x_offset"] + 0.1,
                         y + 0.1,
                         str(this_clbit["register"].size),
-                        ha="center",
+                        ha="left",
                         va="bottom",
                         fontsize=0.8 * self._style["fs"],
                         color=self._style["tc"],
@@ -1193,9 +1190,6 @@ class MatplotlibDrawer:
 
         xy_plot = []
         for val_bit, xy in zip(val_bits, cond_pos):
-            # This moves the condition line for ControlFlowOps over a touch to avoid
-            # hitting the cregbundle info
-            xy = (xy[0] + 0.3, xy[1]) if isinstance(node.op, ControlFlowOp) else xy
             fc = self._style["lc"] if override_fc or val_bit == "1" else self._style["bg"]
             box = glob_data["patches_mod"].Circle(
                 xy=xy,
@@ -1214,7 +1208,7 @@ class MatplotlibDrawer:
         # For IfElseOp, WhileLoopOp or SwitchCaseOp, place the condition line
         # near the left edge of the box
         if isinstance(node.op, ControlFlowOp):
-            qubit_b = (qubit_b[0] + 0.3, qubit_b[1] - (0.5 * HIG + 0.14))
+            qubit_b = (qubit_b[0], qubit_b[1] - (0.5 * HIG + 0.14))
 
         # display the label at the bottom of the lowest conditional and draw the double line
         xpos, ypos = clbit_b
