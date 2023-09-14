@@ -13,8 +13,8 @@
 """Test cases for the schedule block qpy loading and saving."""
 
 import io
-from ddt import ddt, data, unpack
 import unittest
+from ddt import ddt, data, unpack
 
 import numpy as np
 
