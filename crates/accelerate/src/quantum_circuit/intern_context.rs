@@ -140,3 +140,30 @@ impl Default for InternContext {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::InternContext;
+
+    #[test]
+    fn intern_existing() {
+        let mut context = InternContext::new();
+        let slot_idx = context.intern(vec![1, 2, 3]).unwrap();
+        assert_eq!(slot_idx, context.intern(vec![1, 2, 3]).unwrap());
+        assert!(context.free_slots.is_empty());
+
+        let interned_args = context.lookup(slot_idx);
+        assert_eq!(interned_args, &vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn slot_reused() {
+        let mut context = InternContext::new();
+        let slot_idx_0 = context.intern(vec![1, 2, 3]).unwrap();
+        let slot_idx_1 = context.intern(vec![4, 5, 6]).unwrap();
+        assert_ne!(slot_idx_0, slot_idx_1);
+
+        context.drop_use(slot_idx_0);
+        assert_eq!(slot_idx_0, context.intern(vec![7, 8, 9]).unwrap());
+    }
+}
