@@ -1636,6 +1636,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
 
+        circuit.h(0)
         with circuit.if_test((cr[1], 1)) as _else:
             circuit.h(0)
             circuit.cx(0, 1)
