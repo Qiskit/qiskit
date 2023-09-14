@@ -14,6 +14,7 @@
 
 """mpl circuit visualization backend."""
 
+from warnings import warn
 import collections
 import itertools
 import re
@@ -129,16 +130,16 @@ class MatplotlibDrawer:
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
 
-        def check_clbit_in_inst(circuit):
+        def check_clbit_in_inst(circuit, cregbundle):
             if cregbundle is False:
                 return False
             for inst in circuit.data:
                 if isinstance(inst.operation, ControlFlowOp):
                     for block in inst.operation.blocks:
-                        if check_clbit_in_inst(block) is False:
+                        if check_clbit_in_inst(block, cregbundle) is False:
                             return False
                 elif inst.clbits and not isinstance(inst.operation, Measure):
-                    if cregbundle:
+                    if cregbundle is not False:
                         warn(
                             "Cregbundle set to False since an instruction needs to refer"
                             " to individual classical wire",
@@ -149,7 +150,7 @@ class MatplotlibDrawer:
 
             return True
 
-        self._cregbundle = check_clbit_in_inst(circuit)
+        self._cregbundle = check_clbit_in_inst(circuit, cregbundle)
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
