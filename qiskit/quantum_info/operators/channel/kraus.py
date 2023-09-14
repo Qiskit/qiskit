@@ -20,6 +20,7 @@ from numbers import Number
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import instruction
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
@@ -62,7 +63,7 @@ class Kraus(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
