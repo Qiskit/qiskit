@@ -18,9 +18,9 @@ from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
+import qiskit
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import instruction
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
@@ -63,7 +63,7 @@ class Kraus(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | instruction.Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | qiskit.circuit.instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
