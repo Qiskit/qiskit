@@ -307,10 +307,8 @@ impl CircuitData {
                     )));
                 }
                 index
-            },
-            IndexFor::Insertion => {
-                min(max(0, index), self.data.len() as isize)
-            },
+            }
+            IndexFor::Insertion => min(max(0, index), self.data.len() as isize),
         };
         Ok(index as usize)
     }

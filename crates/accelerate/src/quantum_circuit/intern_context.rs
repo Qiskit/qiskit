@@ -12,10 +12,9 @@
 
 use hashbrown::HashMap;
 use pyo3::prelude::*;
-use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
-use std::hash::{Hash, Hasher};
 use std::mem::take;
+use std::sync::Arc;
 
 macro_rules! println {
     ($($rest:tt)*) => {
@@ -32,21 +31,12 @@ fn unique_id() -> u64 {
     COUNTER.fetch_add(1, SeqCst)
 }
 
-fn hash<T>(vec: &Vec<T>) -> u64
-where
-    T: Hash,
-{
-    let mut hasher = DefaultHasher::default();
-    vec.hash(&mut hasher);
-    hasher.finish()
-}
-
 pub type IndexType = u16;
 pub type BitType = u32;
 
 #[derive(Clone, Debug)]
 struct SharedOperandList {
-    operands: Vec<BitType>,
+    operands: Arc<Vec<BitType>>,
     use_count: usize,
 }
 
@@ -55,19 +45,22 @@ struct SharedOperandList {
 pub struct InternContext {
     slots: Vec<Option<SharedOperandList>>,
     free_slots: VecDeque<IndexType>,
-    slot_lookup: HashMap<u64, IndexType>,
+    slot_lookup: HashMap<Arc<Vec<BitType>>, IndexType>,
     #[cfg(debug_interner)]
     id: u64,
 }
 
 impl InternContext {
     pub fn intern(&mut self, args: Vec<BitType>) -> Option<IndexType> {
-        if self.free_slots.is_empty() && self.slots.len() == IndexType::MAX.into() {
+        let args = Arc::new(args);
+        if !self.slot_lookup.contains_key(&args)
+            && self.free_slots.is_empty()
+            && self.slots.len() == IndexType::MAX.into()
+        {
             return None;
         }
 
-        let args_hash = hash(&args);
-        let slot_idx = self.slot_lookup.entry(args_hash).or_insert_with(|| {
+        let slot_idx = self.slot_lookup.entry(args.clone()).or_insert_with(|| {
             if !self.free_slots.is_empty() {
                 let slot = self.free_slots.pop_front().unwrap();
                 println!("{:?}| Reusing empty slot {slot}", self.id);
@@ -115,7 +108,7 @@ impl InternContext {
         } = shared
         {
             println!("{:?}| Unallocating slot {slot_idx}.", self.id);
-            self.slot_lookup.remove(&hash(&operands));
+            self.slot_lookup.remove(&operands);
             self.free_slots.push_back(slot_idx);
             return;
         };
