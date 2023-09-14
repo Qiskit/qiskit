@@ -62,9 +62,8 @@ impl InternContext {
 
         let slot_idx = self.slot_lookup.entry(args.clone()).or_insert_with(|| {
             if !self.free_slots.is_empty() {
-                let slot = self.free_slots.pop_front().unwrap();
                 println!("{:?}| Reusing empty slot {slot}", self.id);
-                slot
+                self.free_slots.pop_front().unwrap()
             } else {
                 let slot = self.slots.len();
                 println!("{:?}| Using new empty slot {slot}", self.id);
@@ -100,7 +99,7 @@ impl InternContext {
         operands
     }
 
-    pub fn drop_use(&mut self, slot_idx: IndexType) -> () {
+    pub fn drop_use(&mut self, slot_idx: IndexType) {
         let mut shared = take(&mut self.slots[slot_idx as usize]).unwrap();
         if let SharedOperandList {
             operands,
@@ -133,5 +132,11 @@ impl InternContext {
             #[cfg(debug_interner)]
             id: unique_id(),
         }
+    }
+}
+
+impl Default for InternContext {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -109,8 +109,8 @@ impl CircuitData {
                         py,
                         (
                             op,
-                            extract_args(&self.qubits.as_ref(py), qargs)?,
-                            extract_args(&self.clbits.as_ref(py), cargs)?,
+                            extract_args(self.qubits.as_ref(py), qargs)?,
+                            extract_args(self.clbits.as_ref(py), cargs)?,
                         ),
                     )
                 } else {
@@ -133,7 +133,7 @@ impl CircuitData {
             }
             Int(index) => {
                 let index = self.convert_py_index(index, IndexFor::Lookup)?;
-                if let Some(_) = self.data.get(index) {
+                if self.data.get(index).is_some() {
                     let cached_entry = self.data.remove(index);
                     self.drop_from_cache(py, cached_entry)
                 } else {
@@ -207,10 +207,10 @@ impl CircuitData {
     }
 
     pub fn pop(&mut self, py: Python<'_>, index: Option<isize>) -> PyResult<PyObject> {
-        let index = index.unwrap_or(max(0, self.data.len() as isize - 1));
+        let index = index.unwrap_or_else(|| max(0, self.data.len() as isize - 1));
         let item = self.__getitem__(py, Int(index))?;
         self.__delitem__(py, Int(index))?;
-        return Ok(item);
+        Ok(item)
     }
 
     pub fn append(&mut self, py: Python<'_>, value: ElementType) -> PyResult<()> {
@@ -316,10 +316,8 @@ impl CircuitData {
     fn equals(slf: &PyAny, other: &PyAny) -> PyResult<bool> {
         let slf_len = slf.len()?;
         let other_len = other.len();
-        if other_len.is_ok() {
-            if slf_len != other_len.unwrap() {
-                return Ok(false);
-            }
+        if other_len.is_ok() && slf_len != other_len.unwrap() {
+            return Ok(false);
         }
         let mut ours_itr = slf.iter()?;
         let mut theirs_itr = match other.iter() {
@@ -375,8 +373,8 @@ impl CircuitData {
 
         Ok(InternedInstruction(
             Some(elem.operation),
-            cache_args(&self.qubit_indices.as_ref(py), elem.qubits)?,
-            cache_args(&self.clbit_indices.as_ref(py), elem.clbits)?,
+            cache_args(self.qubit_indices.as_ref(py), elem.qubits)?,
+            cache_args(self.clbit_indices.as_ref(py), elem.clbits)?,
         ))
     }
 }
