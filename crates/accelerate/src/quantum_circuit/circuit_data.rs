@@ -217,9 +217,12 @@ impl CircuitData {
         self.insert(py, self.data.len() as isize, value)
     }
 
-    pub fn extend(&mut self, py: Python<'_>, itr: Vec<ElementType>) -> PyResult<()> {
-        for v in itr {
-            self.append(py, v)?;
+    pub fn extend(&mut self, py: Python<'_>, itr: &PyAny) -> PyResult<()> {
+        if let Ok(len) = itr.len() {
+            self.data.reserve(len);
+        }
+        for v in itr.iter()? {
+            self.append(py, v?.extract()?)?;
         }
         Ok(())
     }
