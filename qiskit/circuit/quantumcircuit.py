@@ -277,7 +277,7 @@ class QuantumCircuit:
         self.unit = "dt"
         self.metadata = {} if metadata is None else metadata
 
-    def _new_data(self, iterable: Iterable[CircuitInstruction] | None = None):
+    def _new_data(self, iterable: Iterable[CircuitInstruction] = ()):
         data = CircuitData(
             self._intern_context,
             CircuitInstruction,
