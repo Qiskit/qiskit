@@ -351,9 +351,9 @@ impl CircuitData {
         let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
         let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
         let context = &mut *py_ref;
-        let InternedInstruction(_, qargs_idx, carg_idx) = entry;
+        let InternedInstruction(_, qargs_idx, cargs_idx) = entry;
         context.drop_use(qargs_idx);
-        context.drop_use(carg_idx);
+        context.drop_use(cargs_idx);
         Ok(())
     }
 
