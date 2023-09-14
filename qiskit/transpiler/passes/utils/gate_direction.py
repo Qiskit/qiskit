@@ -60,6 +60,10 @@ class GateDirection(TransformationPass):
              │  RZX │  =       ├───┤│  RZX │├───┤
         q_1: ┤1     ├     q_1: ┤ H ├┤0     ├┤ H ├
              └──────┘          └───┘└──────┘└───┘
+
+    This pass assumes that the positions of the qubits in the :attr:`.DAGCircuit.qubits` attribute
+    are the physical qubit indicies. For example if ``dag.qubits[0]`` is qubit 0 in the
+    :class:`.CouplingMap` or :class:`.Target`.
     """
 
     _KNOWN_REPLACEMENTS = frozenset(["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])
