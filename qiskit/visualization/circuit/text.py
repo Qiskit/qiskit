@@ -19,13 +19,14 @@ from shutil import get_terminal_size
 import collections
 import sys
 
-from qiskit.circuit import Qubit, Clbit, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, Qubit, Clbit, ClassicalRegister, Instruction
 from qiskit.circuit import ControlledGate, Reset, Measure
 from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -731,7 +732,30 @@ class TextDrawing:
         self.vertical_compression = vertical_compression
         self._wire_map = {}
 
-        self.cregbundle = cregbundle
+        def check_clbit_in_inst(circuit):
+            if cregbundle is False:
+                return False
+            for inst in circuit.data:
+                if isinstance(inst.operation, ControlFlowOp):
+                    for block in inst.operation.blocks:
+                        if check_clbit_in_inst(block) is False:
+                            return False
+                elif (
+                    inst.clbits
+                    and not isinstance(inst.operation, Measure)
+                ):
+                    if cregbundle:
+                        warn(
+                            "Cregbundle set to False since an instruction needs to refer"
+                            " to individual classical wire",
+                            RuntimeWarning,
+                            3,
+                        )
+                    return False
+
+            return True
+
+        self.cregbundle = check_clbit_in_inst(circuit)
 
         if encoding:
             self.encoding = encoding
@@ -1483,6 +1507,8 @@ class Layer:
         conditional=False,
         controlled_edge=None,
     ):
+        # print("\n\n\nCARGS", cargs)
+        # print("CLBITS", self.clbits)
         if qargs is not None and cargs is not None:
             qarg_indices = sorted(i for i, x in enumerate(self.qubits) if x in qargs)
             carg_indices = sorted(i for i, x in enumerate(self.clbits) if x in cargs)

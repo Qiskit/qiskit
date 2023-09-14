@@ -128,7 +128,31 @@ class MatplotlibDrawer:
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
-        self._cregbundle = cregbundle
+
+        def check_clbit_in_inst(circuit):
+            if cregbundle is False:
+                return False
+            for inst in circuit.data:
+                if isinstance(inst.operation, ControlFlowOp):
+                    for block in inst.operation.blocks:
+                        if check_clbit_in_inst(block) is False:
+                            return False
+                elif (
+                    inst.clbits
+                    and not isinstance(inst.operation, Measure)
+                ):
+                    if cregbundle:
+                        warn(
+                            "Cregbundle set to False since an instruction needs to refer"
+                            " to individual classical wire",
+                            RuntimeWarning,
+                            3,
+                        )
+                    return False
+
+            return True
+
+        self._cregbundle = check_clbit_in_inst(circuit)
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5

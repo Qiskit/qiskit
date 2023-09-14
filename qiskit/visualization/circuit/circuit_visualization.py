@@ -248,29 +248,6 @@ def circuit_drawer(
             )
         cregbundle = False
 
-    def check_carg_in_circuit(circuit):
-        if cregbundle is False:
-            return False
-        dag = circuit_to_dag(circuit)
-        for node in dag.op_nodes():
-            if getattr(node.op, "blocks", None):
-                for block in node.op.blocks:
-                    if check_carg_in_circuit(block) is False:
-                        return False
-            if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
-                if cregbundle:
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        3,
-                    )
-                return False
-
-        return True
-
-    cregbundle = check_carg_in_circuit(circuit)
-
     if output == "text":
         return _text_circuit_drawer(
             circuit,

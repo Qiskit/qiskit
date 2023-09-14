@@ -24,7 +24,7 @@ from numpy import pi
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife
-from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
+from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -62,7 +62,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.circuit_drawer = VisualTestUtilities.save_data_wrap(
-            circuit_drawer, str(self), RESULT_DIR
+            _matplotlib_circuit_drawer, str(self), RESULT_DIR
         )
 
         if not os.path.exists(FAILURE_DIFF_DIR):
@@ -88,7 +88,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit()
 
         fname = "empty_circut.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -117,7 +117,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.add_calibration("h", [0], h_q0)
 
         fname = "calibrations.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -154,7 +154,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.add_calibration("ch", [0, 1], ch_q01)
 
         fname = "calibrations_with_control_gates.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -191,7 +191,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.add_calibration("reset", [0], reset_q0)
 
         fname = "calibrations_with_swap_and_reset.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -227,7 +227,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.add_calibration("rxx", [0, 1], rxx_q01)
 
         fname = "calibrations_with_rzz_and_rxx.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -244,7 +244,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(2, 3)
 
         fname = "no_op_circut.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -272,7 +272,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
 
         fname = "long_name.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -292,7 +292,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
 
         fname = "multi_underscore_true.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=True, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -302,7 +302,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "multi_underscore_false.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname2)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname2)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -327,7 +327,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr, 2)
 
         fname = "reg_conditional.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -351,7 +351,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(qr[1]).c_if(cr[1], 0)
 
         fname = "bit_conditional_bundle.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -375,7 +375,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(qr[1]).c_if(cr[1], 0)
 
         fname = "bit_conditional_no_bundle.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, cregbundle=False)
+        self.circuit_drawer(circuit, filename=fname, cregbundle=False)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -400,7 +400,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(q[0])
 
         fname = "plot_partial_barrier.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, plot_barriers=True)
+        self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -434,7 +434,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         # check the barriers plot properly when plot_barriers= True
         fname = "plot_barriers_true.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, plot_barriers=True)
+        self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -444,7 +444,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "plot_barriers_false.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname2, plot_barriers=False)
+        self.circuit_drawer(circuit, filename=fname2, plot_barriers=False)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -467,7 +467,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(q1[1])
 
         fname = "no_barriers.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, plot_barriers=False)
+        self.circuit_drawer(circuit, filename=fname, plot_barriers=False)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -488,7 +488,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.x(0)
 
         fname = "fold_minus1.png"
-        self.circuit_drawer(circuit, output="mpl", fold=-1, filename=fname)
+        self.circuit_drawer(circuit, fold=-1, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -509,7 +509,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.x(0)
 
         fname = "fold_4.png"
-        self.circuit_drawer(circuit, output="mpl", fold=4, filename=fname)
+        self.circuit_drawer(circuit, fold=4, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -546,7 +546,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.isometry(np.eye(4, 4), list(range(3, 5)), [])
 
         fname = "big_gates.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -569,7 +569,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
         fname = "cnot.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -591,7 +591,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(ZGate().control(1, ctrl_state="0", label="CZ Gate"), [2, 3])
 
         fname = "cz.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -621,7 +621,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.dcx(3, 4)
 
         fname = "pauli_clifford.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -642,9 +642,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(1)
 
         fname = "creg_initial_true.png"
-        self.circuit_drawer(
-            circuit, output="mpl", filename=fname, cregbundle=True, initial_state=True
-        )
+        self.circuit_drawer(circuit, filename=fname, cregbundle=True, initial_state=True)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -654,9 +652,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "creg_initial_false.png"
-        self.circuit_drawer(
-            circuit, output="mpl", filename=fname2, cregbundle=False, initial_state=False
-        )
+        self.circuit_drawer(circuit, filename=fname2, cregbundle=False, initial_state=False)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -683,7 +679,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.rzz(pi / 2, 2, 3)
 
         fname = "r_gates.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -707,7 +703,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
 
         fname = "ctrl_labels.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -726,7 +722,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(RZZGate(3 * pi / 4).control(3, ctrl_state="010"), [2, 1, 4, 3, 0])
 
         fname = "cswap_rzz.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -750,7 +746,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(ccghz, [4, 0, 1, 3, 2])
 
         fname = "ghz_to_gate.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -768,7 +764,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.unitary(random_unitary(2**5), circuit.qubits)
 
         fname = "scale_default.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -778,7 +774,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "scale_half.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname2, scale=0.5)
+        self.circuit_drawer(circuit, filename=fname2, scale=0.5)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -789,7 +785,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
 
         fname3 = "scale_double.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname3, scale=2)
+        self.circuit_drawer(circuit, filename=fname3, scale=2)
 
         ratio3 = VisualTestUtilities._save_diff(
             self._image_path(fname3),
@@ -810,7 +806,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.rx((pi - x) * (pi - y), 0)
 
         fname = "pi_in_param_expr.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -836,7 +832,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
 
         fname = "partial_layout.png"
-        self.circuit_drawer(transpiled, output="mpl", filename=fname)
+        self.circuit_drawer(transpiled, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -855,7 +851,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.initialize([0, 1, 0, 0], [0, 1])
 
         fname = "init_reset.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -872,7 +868,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(range(3))
 
         fname = "global_phase.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -915,7 +911,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.reset(5)
 
                 fname = f"{style}_color.png"
-                self.circuit_drawer(circuit, output="mpl", style={"name": style}, filename=fname)
+                self.circuit_drawer(circuit, style={"name": style}, filename=fname)
 
                 ratio = VisualTestUtilities._save_diff(
                     self._image_path(fname),
@@ -937,7 +933,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.ccx(2, 1, 0)
 
         fname = "reverse_bits.png"
-        self.circuit_drawer(circuit, output="mpl", reverse_bits=True, filename=fname)
+        self.circuit_drawer(circuit, reverse_bits=True, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -960,7 +956,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.measure_all()
 
         fname = "bw.png"
-        self.circuit_drawer(circuit, output="mpl", style={"name": "bw"}, filename=fname)
+        self.circuit_drawer(circuit, style={"name": "bw"}, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1003,7 +999,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "user_style.png"
         self.circuit_drawer(
             circuit,
-            output="mpl",
             style={
                 "name": "user_style",
                 "displaytext": {"H2": "H_2"},
@@ -1031,7 +1026,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         style = {"name": "iqx", "subfontsize": 11}
 
         fname = "subfont.png"
-        self.circuit_drawer(circuit, output="mpl", style=style, filename=fname)
+        self.circuit_drawer(circuit, style=style, filename=fname)
         self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
 
         ratio = VisualTestUtilities._save_diff(
@@ -1053,7 +1048,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[1]).c_if(cr, 1)
 
         fname = "meas_condition.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1079,9 +1074,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(2).c_if(cr, 2)
 
         fname = "reverse_bits_cond_true.png"
-        self.circuit_drawer(
-            circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname
-        )
+        self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1091,9 +1084,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "reverse_bits_cond_false.png"
-        self.circuit_drawer(
-            circuit, output="mpl", cregbundle=False, reverse_bits=False, filename=fname2
-        )
+        self.circuit_drawer(circuit, cregbundle=False, reverse_bits=False, filename=fname2)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -1127,7 +1118,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "style_custom_gates.png"
         self.circuit_drawer(
             circuit,
-            output="mpl",
             style={
                 "displaycolor": {"CNOTNOT": ("#000000", "#FFFFFF"), "h": ("#A1A1A1", "#043812")},
                 "displaytext": {"CNOTNOT_PRIME": "$\\mathrm{CNOTNOT}'$"},
@@ -1154,7 +1144,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "6095.png"
         self.circuit_drawer(
             circuit,
-            output="mpl",
             style={"displaycolor": {"cp": ("#A27486", "#000000"), "h": ("#A27486", "#000000")}},
             filename=fname,
         )
@@ -1177,7 +1166,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(inst, [qr[0]], [cr[0]])
 
         fname = "instruction_1q_1c.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1198,7 +1187,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(inst, [qr[0], qr[1], qr[2]], [cr2[0], cr[0], cr[1]])
 
         fname = "instruction_3q_3c_circ1.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1219,7 +1208,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(inst, [qr[3], qr[0], qr[2]], [cr[0], cr[1], cr2[0]])
 
         fname = "instruction_3q_3c_circ2.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1241,7 +1230,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(inst, [qr[3], qr[1], qr[2]], [cr3[1], cr[1], cr3[0]])
 
         fname = "instruction_3q_3c_circ3.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1260,7 +1249,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.initialize(initial_state)
 
         fname = "wide_params.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1282,7 +1271,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.measure(0, 0)
 
         fname = "one_bit_regs.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1311,7 +1300,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         plt.close(fig)
 
         fname = "user_ax.png"
-        self.circuit_drawer(circuit, output="mpl", ax=ax2, filename=fname)
+        self.circuit_drawer(circuit, ax=ax2, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1332,7 +1321,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(2)
 
         fname = "figwidth.png"
-        self.circuit_drawer(circuit, output="mpl", style={"figwidth": 5}, filename=fname)
+        self.circuit_drawer(circuit, style={"figwidth": 5}, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1351,7 +1340,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
 
         fname = "registerless_one_bit.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1375,7 +1364,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0).c_if(cr2, 3)
 
         fname = "measure_cond_false.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1385,7 +1374,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "measure_cond_true.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname2)
+        self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -1408,7 +1397,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.measure(0, bits[3])
 
         fname = "measure_cond_bits_false.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1418,7 +1407,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         fname2 = "measure_cond_bits_true.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname2)
+        self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
 
         ratio2 = VisualTestUtilities._save_diff(
             self._image_path(fname2),
@@ -1442,7 +1431,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[2]).c_if(cr[0], 0)
 
         fname = "measure_cond_bits_right.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1462,9 +1451,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0).c_if(bits[3], 0)
 
         fname = "cond_bits_reverse.png"
-        self.circuit_drawer(
-            circuit, output="mpl", cregbundle=False, reverse_bits=True, filename=fname
-        )
+        self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1483,7 +1470,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
 
         fname = "sidetext_condition.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1518,7 +1505,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
 
         fname = "fold_with_conditions.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1536,7 +1523,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier()
 
         fname = "idle_wires_barrier.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1561,7 +1548,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "wire_order.png"
         self.circuit_drawer(
             circuit,
-            output="mpl",
             cregbundle=False,
             wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
             filename=fname,
@@ -1587,7 +1573,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(label="End Y/X")
 
         fname = "barrier_label.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1609,7 +1595,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_op.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1633,7 +1619,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_else_op.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1657,9 +1643,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_else_op_textbook.png"
-        self.circuit_drawer(
-            circuit, output="mpl", style="textbook", cregbundle=True, filename=fname
-        )
+        self.circuit_drawer(circuit, style="textbook", cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1693,7 +1677,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0, label="X1i")
 
         fname = "if_else_body.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1734,7 +1718,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_nested.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1775,13 +1759,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_wire_order.png"
-        self.circuit_drawer(
-            circuit,
-            output="mpl",
-            cregbundle=False,
-            wire_order=[2, 0, 3, 1, 4, 5, 6],
-            filename=fname,
-        )
+        self.circuit_drawer(circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1822,7 +1800,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_fold.png"
-        self.circuit_drawer(circuit, output="mpl", fold=7, filename=fname)
+        self.circuit_drawer(circuit, fold=7, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1849,7 +1827,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.x(0)
 
         fname = "while_loop.png"
-        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1878,7 +1856,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.z(0)
 
         fname = "for_loop.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1910,7 +1888,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
 
         fname = "switch_case.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
