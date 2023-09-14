@@ -18,7 +18,7 @@ use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySlice, PyTuple};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::iter::zip;
 use std::mem::swap;
 
@@ -299,16 +299,19 @@ impl CircuitData {
             index
         };
 
-        let out_of_bounds = match kind {
-            IndexFor::Lookup => index < 0 || index >= self.data.len() as isize,
-            IndexFor::Insertion => index < 0 || index > self.data.len() as isize,
+        let index = match kind {
+            IndexFor::Lookup => {
+                if index < 0 || index >= self.data.len() as isize {
+                    return Err(PyIndexError::new_err(format!(
+                        "Index {index} is out of bounds.",
+                    )));
+                }
+                index
+            },
+            IndexFor::Insertion => {
+                min(max(0, index), self.data.len() as isize)
+            },
         };
-
-        if out_of_bounds {
-            return Err(PyIndexError::new_err(format!(
-                "Index {index} is out of bounds.",
-            )));
-        }
         Ok(index as usize)
     }
 
