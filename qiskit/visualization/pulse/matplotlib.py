@@ -59,6 +59,7 @@ class EventsOutputChannels:
         ),
         since="0.23.0",
         removal_timeline="no earlier than 6 months after the release date",
+        package_name="qiskit-terra",
     )
     def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
@@ -296,6 +297,7 @@ class WaveformDrawer:
         ),
         since="0.23.0",
         removal_timeline="no earlier than 6 months after the release date",
+        package_name="qiskit-terra",
     )
     def __init__(self, style: PulseStyle):
         """Create new figure.
@@ -399,6 +401,7 @@ class ScheduleDrawer:
         ),
         since="0.23.0",
         removal_timeline="no earlier than 6 months after the release date",
+        package_name="qiskit-terra",
     )
     def __init__(self, style: SchedStyle):
         """Create new figure.

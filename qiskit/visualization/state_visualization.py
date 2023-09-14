@@ -36,7 +36,7 @@ from .utils import matplotlib_close_if_inline
 from .exceptions import VisualizationError
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_hinton(
     state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
@@ -254,7 +254,7 @@ def plot_bloch_vector(
     return None
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
     state,
@@ -362,7 +362,7 @@ def plot_bloch_multivector(
         return fig.savefig(filename)
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_city(
     state,
@@ -622,7 +622,7 @@ def plot_state_city(
         return fig.savefig(filename)
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
@@ -796,7 +796,7 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_state_qsphere(
@@ -1302,6 +1302,7 @@ def state_to_latex(
 @deprecate_func(
     additional_msg="For similar functionality, see sympy's ``nsimplify`` and ``latex`` functions.",
     since="0.23.0",
+    package_name="qiskit-terra",
 )
 def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
@@ -1321,6 +1322,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -
 @deprecate_func(
     additional_msg="For similar functionality, see sympy's ``nsimplify`` and ``latex`` functions.",
     since="0.23.0",
+    package_name="qiskit-terra",
 )
 def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms

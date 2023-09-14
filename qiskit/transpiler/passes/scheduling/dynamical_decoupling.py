@@ -97,6 +97,7 @@ class DynamicalDecoupling(TransformationPass):
         ),
         since="0.21.0",
         pending=True,
+        package_name="qiskit-terra",
     )
     def __init__(
         self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True, target=None

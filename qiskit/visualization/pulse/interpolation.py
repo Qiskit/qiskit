@@ -32,6 +32,7 @@ from qiskit.utils.deprecation import deprecate_func
     ),
     since="0.23.0",
     removal_timeline="no earlier than 6 months after the release date",
+    package_name="qiskit-terra",
 )
 def interp1d(
     time: np.ndarray, samples: np.ndarray, nop: int, kind: str = "linear"
@@ -72,6 +73,7 @@ def interp1d(
     ),
     since="0.23.0",
     removal_timeline="no earlier than 6 months after the release date",
+    package_name="qiskit-terra",
 )
 def step_wise(
     time: np.ndarray, samples: np.ndarray, nop: int
