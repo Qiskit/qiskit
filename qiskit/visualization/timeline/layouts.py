@@ -111,8 +111,8 @@ def qreg_creg_descending(bits: List[types.Bits]) -> List[types.Bits]:
         else:
             raise VisualizationError(f"Unknown bit {bit} is provided.")
 
-    qregs = sorted(qregs, key=lambda x: x.index, reverse=True)
-    cregs = sorted(cregs, key=lambda x: x.index, reverse=True)
+    qregs.reverse()
+    cregs.reverse()
 
     return qregs + cregs
 
