@@ -12,38 +12,40 @@ on:
 
 jobs:
   copy_metadata:
-    name: Copy labels from base PR
+    name: Copy metadata from base PR
     runs-on: ubuntu-latest
     if: github.repository == 'jakelishman/qiskit-terra' && github.actor == 'jakelishman'
 
     permissions:
       pull-requests: write
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: |
-      set -e
-      # Split Mergify's branch name (e.g. 'mergify/bp/stable/0.25/pr-10828') on the final '-' to get
-      # the number of the base PR.
-      IFS='-' read -ra split <<< "${{ github.ref_name }}"
-      base_pr=${split[-1]}
 
-      gh pr view $base_pr --json labels,milestone > base_pr.json
+    steps:
+      - name: Copy metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # Split Mergify's branch name (e.g. 'mergify/bp/stable/0.25/pr-10828') on the final '-' to
+          # get the number of the base PR.
+          IFS='-' read -ra split <<< "${{ github.ref_name }}"
+          base_pr=${split[-1]}
 
-      add_labels="$(jq '[.labels[].name] - ["stable backport potential"] | join(",")' base_pr.json)"
-      echo "New labels: '$add_labels'"
+          gh pr view $base_pr --json labels,milestone > base_pr.json
 
-      # 'jq' converts a JSON 'null' into the empty string.
-      milestone="$(jq '.milestone' base_pr.json)"
-      echo "Milestone: '$milestone'"
+          add_labels="$(jq '[.labels[].name] - ["stable backport potential"] | join(",")' base_pr.json)"
+          echo "New labels: '$add_labels'"
 
-      echo "Targetting current PR '${{ github.event.number }}'"
-      # The GitHub API is sometimes weird about calling options with empty values - the REST API
-      # certainly treats "add-label" with an empty input _not_ as a no-op but as a clear of all
-      # labels, which is quite different to its normal additive behaviour when there's labels given.
-      if [[ -n "$add_labels" && -n "$milestone" ]]; then
-        gh pr edit ${{ github.event.number }} --add-label "$add_labels" --milestone "$milestone"
-      elif [[ -n "$add_labels" ]]; then
-        gh pr edit ${{ github.event.number }} --add-label "$add_labels"
-      elif [[ -n "$milestone" ]]; then
-        gh pr edit ${{ github.event.number }} --milestone "$milestone"
-      fi
+          # 'jq' converts a JSON 'null' into the empty string.
+          milestone="$(jq '.milestone' base_pr.json)"
+          echo "Milestone: '$milestone'"
+
+          echo "Targetting current PR '${{ github.event.number }}'"
+          # The GitHub API is sometimes weird about empty values - the REST API certainly treats
+          # "add-label" with an empty input not as a no-op but as a clear of all labels.
+          if [[ -n "$add_labels" && -n "$milestone" ]]; then
+            gh pr edit ${{ github.event.number }} --add-label "$add_labels" --milestone "$milestone"
+          elif [[ -n "$add_labels" ]]; then
+            gh pr edit ${{ github.event.number }} --add-label "$add_labels"
+          elif [[ -n "$milestone" ]]; then
+            gh pr edit ${{ github.event.number }} --milestone "$milestone"
+          fi
