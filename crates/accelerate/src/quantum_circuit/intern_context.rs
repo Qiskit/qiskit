@@ -31,7 +31,7 @@ fn unique_id() -> u64 {
     COUNTER.fetch_add(1, SeqCst)
 }
 
-pub type IndexType = u16;
+pub type IndexType = u32;
 pub type BitType = u32;
 
 #[derive(Clone, Debug)]
@@ -55,7 +55,7 @@ impl InternContext {
         let args = Arc::new(args);
         if !self.slot_lookup.contains_key(&args)
             && self.free_slots.is_empty()
-            && self.slots.len() == IndexType::MAX.into()
+            && IndexType::MAX == self.slots.len().try_into().unwrap()
         {
             return None;
         }
