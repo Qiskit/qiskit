@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Pass for Hoare logic circuit optimization. """
+"""Pass for Hoare logic circuit optimization."""
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumRegister, ControlledGate, Gate
 from qiskit.dagcircuit import DAGCircuit
@@ -36,7 +36,7 @@ class HoareOptimizer(TransformationPass):
             MissingOptionalLibraryError: if unable to import z3 solver
         """
         # This module is just a script that adds several post conditions onto existing classes.
-        from . import _gate_extension  # pylint: disable=unused-import
+        from . import _gate_extension
 
         super().__init__()
         self.solver = None

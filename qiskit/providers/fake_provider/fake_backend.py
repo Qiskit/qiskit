@@ -25,20 +25,20 @@ import re
 from typing import List, Iterable
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models import BackendProperties, BackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
 from qiskit.transpiler import Target
+from qiskit.providers.backend_compat import convert_to_target
 
 from .utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from .utils.backend_converter import convert_to_target
 
 
 class _Credentials:
@@ -168,10 +168,16 @@ class FakeBackendV2(BackendV2):
                 self._set_props_dict_from_json()
             if self._defs_dict is None:
                 self._set_defs_dict_from_json()
+            conf = BackendConfiguration.from_dict(self._conf_dict)
+            props = None
+            if self._props_dict is not None:
+                props = BackendProperties.from_dict(self._props_dict)
+            defaults = None
+            if self._defs_dict is not None:
+                defaults = PulseDefaults.from_dict(self._defs_dict)
+
             self._target = convert_to_target(
-                conf_dict=self._conf_dict,
-                props_dict=self._props_dict,
-                defs_dict=self._defs_dict,
+                conf, props, defaults, add_delay=True, filter_faulty=True
             )
 
         return self._target
@@ -205,7 +211,7 @@ class FakeBackendV2(BackendV2):
         """Return the system time resolution of output signals
 
         Returns:
-            dtm: The output signal timestep in seconds.
+            The output signal timestep in seconds.
         """
         dtm = self._conf_dict.get("dtm")
         if dtm is not None:
@@ -221,7 +227,7 @@ class FakeBackendV2(BackendV2):
         scheduling.
 
         Returns:
-            meas_map: The grouping of measurements which are multiplexed
+            The grouping of measurements which are multiplexed
         """
         return self._conf_dict.get("meas_map")
 
@@ -310,7 +316,7 @@ class FakeBackendV2(BackendV2):
         Args:
             run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
                 individual or a list of
-                :class:`~qiskit.circuits.QuantumCircuit,
+                :class:`~qiskit.circuit.QuantumCircuit`,
                 :class:`~qiskit.pulse.ScheduleBlock`, or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
             options: Any kwarg options to pass to the backend for running the
@@ -318,11 +324,12 @@ class FakeBackendV2(BackendV2):
                 attribute/object then the expectation is that the value
                 specified will be used instead of what's set in the options
                 object.
+
         Returns:
             Job: The job object for the run
+
         Raises:
-            QiskitError: If a pulse job is supplied and qiskit-aer is not
-            installed.
+            QiskitError: If a pulse job is supplied and qiskit-aer is not installed.
         """
         circuits = run_input
         pulse_job = None
@@ -360,7 +367,6 @@ class FakeBackendV2(BackendV2):
         temperature=0,
         gate_lengths=None,
         gate_length_units="ns",
-        standard_gates=None,
     ):
         """Build noise model from BackendV2.
 
@@ -406,7 +412,6 @@ class FakeBackendV2(BackendV2):
                 gate_lengths=gate_lengths,
                 gate_length_units=gate_length_units,
                 temperature=temperature,
-                standard_gates=standard_gates,
             )
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits)
@@ -459,7 +464,7 @@ class FakeBackend(BackendV1):
 
             self.sim = aer.AerSimulator()
             if self.properties():
-                noise_model = NoiseModel.from_backend(self, warnings=False)
+                noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default options too to avoid overwriting
                 # it when run() is called
@@ -470,6 +475,8 @@ class FakeBackend(BackendV1):
     def properties(self):
         """Return backend properties"""
         coupling_map = self.configuration().coupling_map
+        if coupling_map is None:
+            return None
         unique_qubits = list(set().union(*coupling_map))
 
         properties = {

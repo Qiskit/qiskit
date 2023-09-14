@@ -38,20 +38,20 @@ class TestQobjIdentifiers(QiskitTestCase):
     def test_builtin_qasm_simulator_py(self):
         qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
-        self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
+        self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
+        self.assertIn(self.cr_name, (x[0] for x in exp.header.clbit_labels))
 
     def test_builtin_qasm_simulator(self):
         qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
-        self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
+        self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
+        self.assertIn(self.cr_name, (x[0] for x in exp.header.clbit_labels))
 
     def test_builtin_unitary_simulator_py(self):
         qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
-        self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
-        self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
+        self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
+        self.assertIn(self.cr_name, (x[0] for x in exp.header.clbit_labels))
 
 
 if __name__ == "__main__":

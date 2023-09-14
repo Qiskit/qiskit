@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -119,7 +119,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         states = bound_ansatz
         expected_result = self.get_exact_expectation(bound_ansatz, observables)
         estimator = Estimator()
@@ -140,7 +140,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
@@ -162,11 +162,12 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator(options={"shots": 2048})
-        observables = [PauliSumOp.from_list([("ZZ", 2.0)])]
-        result = estimate_observables(estimator, state, observables, None, self.threshold)
+        with self.assertWarns(DeprecationWarning):
+            observables = [PauliSumOp.from_list([("ZZ", 2.0)])]
+            result = estimate_observables(estimator, state, observables, None, self.threshold)
         exact_result = self.get_exact_expectation(bound_ansatz, observables)
         expected_result = [(exact_result[0][0], {"variance": 1.0898, "shots": 2048})]
 

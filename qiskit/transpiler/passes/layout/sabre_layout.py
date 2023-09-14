@@ -14,15 +14,22 @@
 """
 
 import copy
+import dataclasses
 import logging
+import functools
+import time
+
 import numpy as np
 import rustworkx as rx
 
 from qiskit.converters import dag_to_circuit
+from qiskit.circuit import QuantumRegister
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes.layout.set_layout import SetLayout
 from qiskit.transpiler.passes.layout.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAncilla
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
+from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
@@ -33,7 +40,9 @@ from qiskit._accelerate.sabre_swap import (
     Heuristic,
     NeighborTable,
 )
-from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
+from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.tools.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
@@ -66,6 +75,34 @@ class SabreLayout(TransformationPass):
     layout pass. When specified this will use the specified routing pass to select an
     initial layout only and will not run multiple seed trials.
 
+    In addition to starting with a random initial `Layout` the pass can also take in
+    an additional list of starting layouts which will be used for additional
+    trials. If the ``sabre_starting_layouts`` is present in the property set
+    when this pass is run, that will be used for additional trials. There will still
+    be ``layout_trials`` of full random starting layouts run and the contents of
+    ``sabre_starting_layouts`` will be run in addition to those. The output which results
+    in the lowest amount of swap gates (whether from the random trials or the property
+    set starting point) will be used. The value for this property set field should be a
+    list of :class:`.Layout` objects representing the starting layouts to use. If a
+    virtual qubit is missing from an :class:`.Layout` object in the list a random qubit
+    will be selected.
+
+    Property Set Fields Read
+    ------------------------
+
+    ``sabre_starting_layouts`` (``list[Layout]``)
+        An optional list of :class:`~.Layout` objects to use for additional layout trials. This is
+        in addition to the full random trials specified with the ``layout_trials`` argument.
+
+    Property Set Values Written
+    ---------------------------
+
+    ``layout`` (:class:`.Layout`)
+        The chosen initial mapping of virtual to physical qubits, including the ancilla allocation.
+
+    ``final_layout`` (:class:`.Layout`)
+        A permutation of how swaps have been applied to the input qubits at the end of the circuit.
+
     **References:**
 
     [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
@@ -86,7 +123,7 @@ class SabreLayout(TransformationPass):
         """SabreLayout initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
             routing_pass (BasePass): the routing pass to use while iterating.
                 If specified this pass operates as an :class:`~.AnalysisPass` and
                 will only populate the ``layout`` field in the property set and
@@ -124,17 +161,13 @@ class SabreLayout(TransformationPass):
             both ``routing_pass`` and ``layout_trials`` are specified
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self._neighbor_table = None
-        if self.coupling_map is not None:
-            if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here to avoid modifications updating
-                # shared references in passes which require directional
-                # constraints
-                self.coupling_map = copy.deepcopy(self.coupling_map)
-                self.coupling_map.make_symmetric()
-            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
-
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
         self.routing_pass = routing_pass
@@ -150,6 +183,15 @@ class SabreLayout(TransformationPass):
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
+        if self.coupling_map is not None:
+            if not self.coupling_map.is_symmetric:
+                # deepcopy is needed here if we don't own the coupling map (i.e. we were passed it
+                # directly) to avoid modifications updating shared references in passes which
+                # require directional constraints
+                if isinstance(coupling_map, CouplingMap):
+                    self.coupling_map = copy.deepcopy(self.coupling_map)
+                self.coupling_map.make_symmetric()
+            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
@@ -169,6 +211,10 @@ class SabreLayout(TransformationPass):
 
         # Choose a random initial_layout.
         if self.routing_pass is not None:
+            if not self.coupling_map.is_connected():
+                raise TranspilerError(
+                    "The routing_pass argument cannot be used with disjoint coupling maps."
+                )
             if self.seed is None:
                 seed = np.random.randint(0, np.iinfo(np.int32).max)
             else:
@@ -206,88 +252,167 @@ class SabreLayout(TransformationPass):
             self.property_set["layout"] = initial_layout
             self.routing_pass.fake_run = False
             return dag
-        dist_matrix = self.coupling_map.distance_matrix
-        original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-        original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
-
-        dag_list = []
-        for node in dag.topological_op_nodes():
-            cargs = {original_clbit_indices[x] for x in node.cargs}
-            if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
-                    cargs.add(original_clbit_indices[clbit])
-
-            dag_list.append(
-                (
-                    node._node_id,
-                    [original_qubit_indices[x] for x in node.qargs],
-                    cargs,
-                )
+        # Combined
+        if self.target is not None:
+            # This is a special case SABRE only works with a bidirectional coupling graph
+            # which we explicitly can't create from the target. So do this manually here
+            # to avoid altering the shared state with the unfiltered indices.
+            target = self.target.build_coupling_map(filter_idle_qubits=True)
+            target.make_symmetric()
+        else:
+            target = self.coupling_map
+        inner_run = self._inner_run
+        if "sabre_starting_layouts" in self.property_set:
+            inner_run = functools.partial(
+                self._inner_run, starting_layouts=self.property_set["sabre_starting_layouts"]
             )
-        ((initial_layout, final_layout), swap_map, gate_order) = sabre_layout_and_routing(
-            len(dag.clbits),
-            dag_list,
-            self._neighbor_table,
+        components = disjoint_utils.run_pass_over_connected_components(dag, target, inner_run)
+        self.property_set["layout"] = Layout(
+            {
+                component.dag.qubits[logic]: component.coupling_map.graph[phys]
+                for component in components
+                for logic, phys in component.initial_layout.layout_mapping()
+                # A physical component of the coupling map might be wider than the DAG that we're
+                # laying out onto it.  We shouldn't include these implicit ancillas right now as the
+                # ancilla-allocation pass will run on the whole map in one go.
+                if logic < len(component.dag.qubits)
+            }
+        )
+
+        # If skip_routing is set then return the layout in the property set
+        # and throwaway the extra work we did to compute the swap map.
+        # We also skip routing here if there is more than one connected
+        # component we ran layout on. We can only reliably route the full dag
+        # in this case if there is any dependency between the components
+        # (typically shared classical data or barriers).
+        if self.skip_routing or len(components) > 1:
+            return dag
+
+        # At this point, we become a transformation pass, and apply the layout and the routing to
+        # the DAG directly.  This includes filling in the `property_set` data of the embed passes.
+
+        dag = self._ancilla_allocation_no_pass_manager(dag)
+        # The ancilla-allocation pass has expanded this since we set it above.
+        full_initial_layout = self.property_set["layout"]
+
+        # Set up a physical DAG to apply the Sabre result onto.  We do not need to run the
+        # `ApplyLayout` transpiler pass (which usually does this step), because we're about to apply
+        # the layout and routing together as part of resolving the Sabre result.
+        physical_qubits = QuantumRegister(self.coupling_map.size(), "q")
+        mapped_dag = DAGCircuit()
+        mapped_dag.add_qreg(physical_qubits)
+        mapped_dag.add_clbits(dag.clbits)
+        for creg in dag.cregs.values():
+            mapped_dag.add_creg(creg)
+        mapped_dag._global_phase = dag._global_phase
+        self.property_set["original_qubit_indices"] = {
+            bit: index for index, bit in enumerate(dag.qubits)
+        }
+        self.property_set["final_layout"] = Layout(
+            {
+                mapped_dag.qubits[
+                    component.coupling_map.graph[initial]
+                ]: component.coupling_map.graph[final]
+                for component in components
+                for initial, final in enumerate(component.final_permutation)
+            }
+        )
+        for component in components:
+            # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
+            # each component DAG with the virtual ancillas that were allocated to it, so the layout
+            # application can succeed.  This is the last thing we do with the component DAG, so it's
+            # ok for us to modify it.
+            component_size = component.coupling_map.size()
+            dag_size = component.dag.num_qubits()
+            if component_size > dag_size:
+                used_physical = {full_initial_layout[logic] for logic in component.dag.qubits}
+                component.dag.add_qubits(
+                    [
+                        full_initial_layout[component.coupling_map.graph[phys]]
+                        for phys in range(component.dag.num_qubits(), component_size)
+                        if component.coupling_map.graph[phys] not in used_physical
+                    ]
+                )
+            mapped_dag = _apply_sabre_result(
+                mapped_dag,
+                component.dag,
+                component.sabre_result,
+                component.initial_layout,
+                [
+                    mapped_dag.qubits[component.coupling_map.graph[phys]]
+                    for phys in range(component_size)
+                ],
+                component.circuit_to_dag_dict,
+            )
+        disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
+        return mapped_dag
+
+    def _inner_run(self, dag, coupling_map, starting_layouts=None):
+        if not coupling_map.is_symmetric:
+            # deepcopy is needed here to avoid modifications updating
+            # shared references in passes which require directional
+            # constraints
+            coupling_map = copy.deepcopy(coupling_map)
+            coupling_map.make_symmetric()
+        neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
+        dist_matrix = coupling_map.distance_matrix
+        original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        partial_layouts = []
+        if starting_layouts is not None:
+            coupling_map_reverse_mapping = {
+                coupling_map.graph[x]: x for x in coupling_map.graph.node_indices()
+            }
+            for layout in starting_layouts:
+                virtual_bits = layout.get_virtual_bits()
+                out_layout = [None] * len(dag.qubits)
+                for bit, phys in virtual_bits.items():
+                    pos = original_qubit_indices.get(bit, None)
+                    if pos is None:
+                        continue
+                    out_layout[pos] = coupling_map_reverse_mapping[phys]
+                partial_layouts.append(out_layout)
+
+        sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
+            dag,
+            coupling_map.size(),
+            original_qubit_indices,
+        )
+        sabre_start = time.perf_counter()
+        (initial_layout, final_permutation, sabre_result) = sabre_layout_and_routing(
+            sabre_dag,
+            neighbor_table,
             dist_matrix,
             Heuristic.Decay,
             self.max_iterations,
             self.swap_trials,
             self.layout_trials,
             self.seed,
+            partial_layouts,
         )
-        # Apply initial layout selected.
-        original_dag = dag
-        layout_dict = {}
-        num_qubits = len(dag.qubits)
-        for k, v in initial_layout.layout_mapping():
-            if k < num_qubits:
-                layout_dict[dag.qubits[k]] = v
-        initital_layout = Layout(layout_dict)
-        self.property_set["layout"] = initital_layout
-        # If skip_routing is set then return the layout in the property set
-        # and throwaway the extra work we did to compute the swap map
-        if self.skip_routing:
-            return dag
-        # After this point the pass is no longer an analysis pass and the
-        # output circuit returned is transformed with the layout applied
-        # and swaps inserted
-        dag = self._apply_layout_no_pass_manager(dag)
-        # Apply sabre swap ontop of circuit with sabre layout
-        final_layout_mapping = final_layout.layout_mapping()
-        self.property_set["final_layout"] = Layout(
-            {dag.qubits[k]: v for (k, v) in final_layout_mapping}
+        sabre_stop = time.perf_counter()
+        logger.debug(
+            "Sabre layout algorithm execution for a connected component complete in: %s sec.",
+            sabre_stop - sabre_start,
         )
-        mapped_dag = dag.copy_empty_like()
-        canonical_register = dag.qregs["q"]
-        qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
-        original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
-        for node_id in gate_order:
-            node = original_dag._multi_graph[node_id]
-            process_swaps(
-                swap_map,
-                node,
-                mapped_dag,
-                original_layout,
-                canonical_register,
-                False,
-                qubit_indices,
-            )
-            apply_gate(mapped_dag, node, original_layout, canonical_register, False, layout_dict)
-        return mapped_dag
+        return _DisjointComponent(
+            dag,
+            coupling_map,
+            initial_layout,
+            final_permutation,
+            sabre_result,
+            circuit_to_dag_dict,
+        )
 
-    def _apply_layout_no_pass_manager(self, dag):
-        """Apply and embed a layout into a dagcircuit without using a ``PassManager`` to
-        avoid circuit<->dag conversion.
-        """
+    def _ancilla_allocation_no_pass_manager(self, dag):
+        """Run the ancilla-allocation and -enlargment passes on the DAG chained onto our
+        ``property_set``, skipping the DAG-to-circuit conversion cost of using a ``PassManager``."""
         ancilla_pass = FullAncillaAllocation(self.coupling_map)
         ancilla_pass.property_set = self.property_set
         dag = ancilla_pass.run(dag)
         enlarge_pass = EnlargeWithAncilla()
         enlarge_pass.property_set = ancilla_pass.property_set
         dag = enlarge_pass.run(dag)
-        apply_pass = ApplyLayout()
-        apply_pass.property_set = enlarge_pass.property_set
-        dag = apply_pass.run(dag)
+        self.property_set = enlarge_pass.property_set
         return dag
 
     def _layout_and_route_passmanager(self, initial_layout):
@@ -318,3 +443,22 @@ class SabreLayout(TransformationPass):
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
         final_layout = {v: pass_final_layout._v2p[qubit_map[v]] for v in initial_layout._v2p}
         return Layout(final_layout)
+
+
+@dataclasses.dataclass
+class _DisjointComponent:
+    __slots__ = (
+        "dag",
+        "coupling_map",
+        "initial_layout",
+        "final_permutation",
+        "sabre_result",
+        "circuit_to_dag_dict",
+    )
+
+    dag: DAGCircuit
+    coupling_map: CouplingMap
+    initial_layout: NLayout
+    final_permutation: "list[int]"
+    sabre_result: "tuple[SwapMap, Sequence[int], NodeBlockResults]"
+    circuit_to_dag_dict: "dict[int, DAGCircuit]"

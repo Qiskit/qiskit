@@ -14,7 +14,6 @@
 import re
 import copy
 import numbers
-import warnings
 from typing import Dict, List, Any, Iterable, Tuple, Union
 from collections import defaultdict
 
@@ -27,6 +26,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class GateConfig:
@@ -285,7 +285,7 @@ class QasmBackendConfiguration:
                 backend is a simulator
             credits_required (bool): True if backend requires credits to run a
                 job.
-            online_date (datetime): The date that the device went online
+            online_date (datetime.datetime): The date that the device went online
             display_name (str): Alternate name field for the backend
             description (str): A description for the backend
             tags (list): A list of string tags to describe the backend
@@ -593,7 +593,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
                 backend is a simulator
             credits_required (bool): True if backend requires credits to run a
                 job.
-            online_date (datetime): The date that the device went online
+            online_date (datetime.datetime): The date that the device went online
             display_name (str): Alternate name field for the backend
             description (str): A description for the backend
             tags (list): A list of string tags to describe the backend
@@ -831,6 +831,14 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
         return AcquireChannel(qubit)
 
+    @deprecate_arg(
+        "channel",
+        since="0.19.0",
+        additional_msg=(
+            "Instead, use the ``qubits`` argument. This method will now return accurate "
+            "ControlChannels determined by qubit indices."
+        ),
+    )
     def control(self, qubits: Iterable[int] = None, channel: int = None) -> List[ControlChannel]:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
@@ -848,12 +856,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             List of control channels.
         """
         if channel is not None:
-            warnings.warn(
-                "The channel argument has been deprecated in favor of qubits. "
-                "This method will now return accurate ControlChannels determined "
-                "by qubit indices.",
-                DeprecationWarning,
-            )
             qubits = [channel]
         try:
             if isinstance(qubits, list):

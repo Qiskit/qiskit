@@ -25,42 +25,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.library.standard_gates.x import CCXGate
-from qiskit.circuit.library.standard_gates.swap import CSwapGate
-from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.library.standard_gates.y import CYGate
-from qiskit.circuit.library.standard_gates.z import CZGate
-from qiskit.circuit.library.standard_gates.swap import SwapGate
-from qiskit.circuit.library.standard_gates.h import HGate
-from qiskit.circuit.library.standard_gates.i import IGate
-from qiskit.circuit.library.standard_gates.s import SGate
-from qiskit.circuit.library.standard_gates.s import SdgGate
-from qiskit.circuit.library.standard_gates.sx import SXGate
-from qiskit.circuit.library.standard_gates.sx import SXdgGate
-from qiskit.circuit.library.standard_gates.t import TGate
-from qiskit.circuit.library.standard_gates.t import TdgGate
-from qiskit.circuit.library.standard_gates.p import PhaseGate
-from qiskit.circuit.library.standard_gates.u1 import U1Gate
-from qiskit.circuit.library.standard_gates.u2 import U2Gate
-from qiskit.circuit.library.standard_gates.u3 import U3Gate
-from qiskit.circuit.library.standard_gates.u import UGate
-from qiskit.circuit.library.standard_gates.x import XGate
-from qiskit.circuit.library.standard_gates.y import YGate
-from qiskit.circuit.library.standard_gates.z import ZGate
-from qiskit.circuit.library.standard_gates.rx import RXGate
-from qiskit.circuit.library.standard_gates.ry import RYGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.rxx import RXXGate
-from qiskit.circuit.library.standard_gates.rzz import RZZGate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate
-from qiskit.circuit.library.standard_gates.u import CUGate
-from qiskit.circuit.library.standard_gates.u1 import CU1Gate
-from qiskit.circuit.library.standard_gates.u3 import CU3Gate
-from qiskit.circuit.library.standard_gates.h import CHGate
-from qiskit.circuit.library.standard_gates.rx import CRXGate
-from qiskit.circuit.library.standard_gates.ry import CRYGate
-from qiskit.circuit.library.standard_gates.rz import CRZGate
-from qiskit.circuit.library.standard_gates.sx import CSXGate
+from qiskit.circuit.library import standard_gates as std
 
 
 def ast_to_dag(ast):
@@ -102,43 +67,48 @@ class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
     standard_extension = {
-        "u1": U1Gate,
-        "u2": U2Gate,
-        "u3": U3Gate,
-        "u": UGate,
-        "p": PhaseGate,
-        "x": XGate,
-        "y": YGate,
-        "z": ZGate,
-        "t": TGate,
-        "tdg": TdgGate,
-        "s": SGate,
-        "sdg": SdgGate,
-        "sx": SXGate,
-        "sxdg": SXdgGate,
-        "swap": SwapGate,
-        "rx": RXGate,
-        "rxx": RXXGate,
-        "ry": RYGate,
-        "rz": RZGate,
-        "rzz": RZZGate,
-        "id": IGate,
-        "h": HGate,
-        "cx": CXGate,
-        "cy": CYGate,
-        "cz": CZGate,
-        "ch": CHGate,
-        "crx": CRXGate,
-        "cry": CRYGate,
-        "crz": CRZGate,
-        "csx": CSXGate,
-        "cu1": CU1Gate,
-        "cp": CPhaseGate,
-        "cu": CUGate,
-        "cu3": CU3Gate,
-        "ccx": CCXGate,
-        "cswap": CSwapGate,
+        "u1": std.U1Gate,
+        "u2": std.U2Gate,
+        "u3": std.U3Gate,
+        "u": std.UGate,
+        "p": std.PhaseGate,
+        "x": std.XGate,
+        "y": std.YGate,
+        "z": std.ZGate,
+        "t": std.TGate,
+        "tdg": std.TdgGate,
+        "s": std.SGate,
+        "sdg": std.SdgGate,
+        "sx": std.SXGate,
+        "sxdg": std.SXdgGate,
+        "swap": std.SwapGate,
+        "rx": std.RXGate,
+        "rxx": std.RXXGate,
+        "ry": std.RYGate,
+        "rz": std.RZGate,
+        "rzz": std.RZZGate,
+        "id": std.IGate,
+        "h": std.HGate,
+        "cx": std.CXGate,
+        "cy": std.CYGate,
+        "cz": std.CZGate,
+        "ch": std.CHGate,
+        "crx": std.CRXGate,
+        "cry": std.CRYGate,
+        "crz": std.CRZGate,
+        "csx": std.CSXGate,
+        "cu1": std.CU1Gate,
+        "cp": std.CPhaseGate,
+        "cu": std.CUGate,
+        "cu3": std.CU3Gate,
+        "ccx": std.CCXGate,
+        "cswap": std.CSwapGate,
         "delay": Delay,
+        "rccx": std.RCCXGate,
+        "rc3x": std.RC3XGate,
+        "c3x": std.C3XGate,
+        "c3sqrtx": std.C3SXGate,
+        "c4x": std.C4XGate,
     }
 
     def __init__(self, dag):
@@ -263,14 +233,14 @@ class AstInterpreter:
             )
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
-            cx_gate = CXGate()
+            cx_gate = std.CXGate()
             cx_gate.condition = self.condition
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [])
+                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [], check=False)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[0]], [])
+                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[0]], [], check=False)
             else:
-                self.dag.apply_operation_back(cx_gate, [id0[0], id1[idx]], [])
+                self.dag.apply_operation_back(cx_gate, [id0[0], id1[idx]], [], check=False)
 
     def _process_measure(self, node):
         """Process a measurement node."""
@@ -283,7 +253,7 @@ class AstInterpreter:
         for idx, idy in zip(id0, id1):
             meas_gate = Measure()
             meas_gate.condition = self.condition
-            self.dag.apply_operation_back(meas_gate, [idx], [idy])
+            self.dag.apply_operation_back(meas_gate, [idx], [idy], check=False)
 
     def _process_if(self, node):
         """Process an if node."""
@@ -365,14 +335,14 @@ class AstInterpreter:
             for qubit in ids:
                 for j, _ in enumerate(qubit):
                     qubits.append(qubit[j])
-            self.dag.apply_operation_back(Barrier(len(qubits)), qubits, [])
+            self.dag.apply_operation_back(Barrier(len(qubits)), qubits, [], check=False)
 
         elif node.type == "reset":
             id0 = self._process_bit_id(node.children[0])
             for i, _ in enumerate(id0):
                 reset = Reset()
                 reset.condition = self.condition
-                self.dag.apply_operation_back(reset, [id0[i]], [])
+                self.dag.apply_operation_back(reset, [id0[i]], [], check=False)
 
         elif node.type == "if":
             self._process_if(node)
@@ -429,7 +399,7 @@ class AstInterpreter:
         """
         op = self._create_op(name, params)
         op.condition = self.condition
-        self.dag.apply_operation_back(op, qargs, [])
+        self.dag.apply_operation_back(op, qargs, [], check=False)
 
     def _create_op(self, name, params):
         if name in self.standard_extension:

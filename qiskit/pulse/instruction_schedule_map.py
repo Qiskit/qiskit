@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-import
+
 """
 A convenient way to track reusable subschedules by name and qubit.
 
@@ -34,11 +36,12 @@ from typing import Callable, Iterable, List, Tuple, Union, Optional
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.calibration_entries import (
-    CalibrationPublisher,
     CalibrationEntry,
     ScheduleDef,
     CallableDef,
+    # for backward compatibility
     PulseQobjDef,
+    CalibrationPublisher,
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -74,7 +77,7 @@ class InstructionScheduleMap:
         """Return ``True`` if the map has user provided instruction."""
         for qubit_inst in self._map.values():
             for entry in qubit_inst.values():
-                if not isinstance(entry, PulseQobjDef):
+                if entry.user_provided:
                     return True
         return False
 
@@ -248,9 +251,6 @@ class InstructionScheduleMap:
         # generate signature
         if isinstance(schedule, (Schedule, ScheduleBlock)):
             entry = ScheduleDef(arguments)
-            # add metadata
-            if "publisher" not in schedule.metadata:
-                schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
         elif callable(schedule):
             if arguments:
                 warnings.warn(
@@ -264,7 +264,7 @@ class InstructionScheduleMap:
                 "Supplied schedule must be one of the Schedule, ScheduleBlock or a "
                 "callable that outputs a schedule."
             )
-        entry.define(schedule)
+        entry.define(schedule, user_provided=True)
         self._add(instruction, qubits, entry)
 
     def _add(

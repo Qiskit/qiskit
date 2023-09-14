@@ -147,8 +147,7 @@ class Command:
                          :meth:`to_dict`.
 
         Returns:
-            qiskit.providers.model.Command: The ``Command`` from the input
-                dictionary.
+            Command: The ``Command`` from the input dictionary.
         """
         # Pulse command data is nested dictionary.
         # To avoid deepcopy and avoid mutating the source object, create new dict here.
@@ -205,7 +204,7 @@ class PulseDefaults:
 
         for inst in cmd_def:
             entry = PulseQobjDef(converter=self.converter, name=inst.name)
-            entry.define(inst.sequence)
+            entry.define(inst.sequence, user_provided=False)
             self.instruction_schedule_map._add(
                 instruction_name=inst.name,
                 qubits=tuple(inst.qubits),

@@ -136,7 +136,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.model = None
         self.dag = None
         self.parse_backend_properties()
-        self.qubit_indices = None
 
     def powerset(self, iterable):
         """
@@ -189,8 +188,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         Note: current implementation assumes that the CX error rates and
         crosstalk behavior are independent of gate direction
         """
-        physical_q_0 = self.qubit_indices[gate.qargs[0]]
-        physical_q_1 = self.qubit_indices[gate.qargs[1]]
+        physical_q_0 = self.dag.find_bit(gate.qargs[0]).index
+        physical_q_1 = self.dag.find_bit(gate.qargs[1]).index
         r_0 = min(physical_q_0, physical_q_1)
         r_1 = max(physical_q_0, physical_q_1)
         return (r_0, r_1)
@@ -199,7 +198,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Representation for single-qubit gate
         """
-        physical_q_0 = self.qubit_indices[gate.qargs[0]]
+        physical_q_0 = self.dag.find_bit(gate.qargs[0]).index
         tup = (physical_q_0,)
         return tup
 
@@ -225,7 +224,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Gate A, B are overlapping if
         A is neither a descendant nor an ancestor of B.
-        Currenty overlaps (A,B) are considered when A is a 2q gate and
+        Currently overlaps (A,B) are considered when A is a 2q gate and
         B is either 2q or 1q gate.
         """
         for gate in dag.two_qubit_ops():
@@ -310,7 +309,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         active_qubits_list = []
         for gate in self.dag.gate_nodes():
             for q in gate.qargs:
-                active_qubits_list.append(self.qubit_indices[q])
+                active_qubits_list.append(self.dag.find_bit(q).index)
         for active_qubit in list(set(active_qubits_list)):
             q_var_name = "l_" + str(active_qubit)
             self.qubit_lifetime[active_qubit] = z3.Real(q_var_name)
@@ -318,7 +317,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         meas_q = []
         for node in self.dag.op_nodes():
             if isinstance(node.op, Measure):
-                meas_q.append(self.qubit_indices[node.qargs[0]])
+                meas_q.append(self.dag.find_bit(node.qargs[0]).index)
 
         self.measured_qubits = list(set(self.input_measured_qubits).union(set(meas_q)))
         self.measure_start = z3.Real("meas_start")
@@ -330,7 +329,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         for gate in self.gate_start_time:
             self.opt.add(self.gate_start_time[gate] >= 0)
         for gate in self.gate_duration:
-            q_0 = self.qubit_indices[gate.qargs[0]]
+            q_0 = self.dag.find_bit(gate.qargs[0]).index
             if isinstance(gate.op, U1Gate):
                 dur = self.bp_u1_dur[q_0]
             elif isinstance(gate.op, U2Gate):
@@ -384,7 +383,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         import z3
 
         for gate in self.gate_start_time:
-            q_0 = self.qubit_indices[gate.qargs[0]]
+            q_0 = self.dag.find_bit(gate.qargs[0]).index
             no_xtalk = False
             if gate not in self.xtalk_overlap_set:
                 no_xtalk = True
@@ -439,23 +438,23 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             if isinstance(gate.op, Barrier):
                 continue
             if len(gate.qargs) == 1:
-                q_0 = self.qubit_indices[gate.qargs[0]]
+                q_0 = self.dag.find_bit(gate.qargs[0]).index
                 self.last_gate_on_qubit[q_0] = gate
             else:
-                q_0 = self.qubit_indices[gate.qargs[0]]
-                q_1 = self.qubit_indices[gate.qargs[1]]
+                q_0 = self.dag.find_bit(gate.qargs[0]).index
+                q_1 = self.dag.find_bit(gate.qargs[1]).index
                 self.last_gate_on_qubit[q_0] = gate
                 self.last_gate_on_qubit[q_1] = gate
 
         self.first_gate_on_qubit = {}
         for gate in self.dag.topological_op_nodes():
             if len(gate.qargs) == 1:
-                q_0 = self.qubit_indices[gate.qargs[0]]
+                q_0 = self.dag.find_bit(gate.qargs[0]).index
                 if q_0 not in self.first_gate_on_qubit:
                     self.first_gate_on_qubit[q_0] = gate
             else:
-                q_0 = self.qubit_indices[gate.qargs[0]]
-                q_1 = self.qubit_indices[gate.qargs[1]]
+                q_0 = self.dag.find_bit(gate.qargs[0]).index
+                q_1 = self.dag.find_bit(gate.qargs[1]).index
                 if q_0 not in self.first_gate_on_qubit:
                     self.first_gate_on_qubit[q_0] = gate
                 if q_1 not in self.first_gate_on_qubit:
@@ -720,7 +719,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.dag = dag
 
         # process input program
-        self.qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
         self.assign_gate_id(self.dag)
         self.extract_dag_overlap_sets(self.dag)
         self.extract_crosstalk_relevant_sets()

@@ -62,6 +62,11 @@ class BackendV1(Backend, ABC):
     ease the transition for users and provider maintainers to the new versioned providers.
     Expect, future versions of this abstract class to change the data model and
     interface.
+
+    Subclasses of this should override the public method :meth:`run` and the internal
+    :meth:`_default_options`:
+
+    .. automethod:: _default_options
     """
 
     version = 1
@@ -88,6 +93,7 @@ class BackendV1(Backend, ABC):
         private methods:
 
         .. automethod:: _default_options
+           :noindex:
         """
         self._configuration = configuration
         self._options = self._default_options()
@@ -112,7 +118,6 @@ class BackendV1(Backend, ABC):
             qiskit.providers.Options: A options object with
                 default values set
         """
-        pass
 
     def set_options(self, **fields):
         """Set the options fields for the backend
@@ -216,7 +221,7 @@ class BackendV1(Backend, ABC):
 
         Args:
             run_input (QuantumCircuit or Schedule or list): An individual or a
-                list of :class:`~qiskit.circuits.QuantumCircuit` or
+                list of :class:`~qiskit.circuit.QuantumCircuit` or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
                 For legacy providers migrating to the new versioned providers,
                 provider interface a :class:`~qiskit.qobj.QasmQobj` or
@@ -250,7 +255,7 @@ class QubitProperties:
     __slots__ = ("t1", "t2", "frequency")
 
     def __init__(self, t1=None, t2=None, frequency=None):
-        """Create a new ``QubitProperties`` object
+        """Create a new :class:`QubitProperties` object.
 
         Args:
             t1: The T1 time for a qubit in seconds
@@ -281,8 +286,8 @@ class BackendV2(Backend, ABC):
     something like a ``shots`` field for a backend that runs experiments which
     would contain an int for how many shots to execute.
 
-    If migrating a provider from :class:`~qiskit.providers.BackendV1` or
-    :class:`~qiskit.providers.BaseBackend` one thing to keep in mind is for
+    If migrating a provider from :class:`~qiskit.providers.BackendV1`
+    one thing to keep in mind is for
     backwards compatibility you might need to add a configuration method that
     will build a :class:`~qiskit.providers.models.BackendConfiguration` object
     and :class:`~qiskit.providers.models.BackendProperties` from the attributes
@@ -307,6 +312,11 @@ class BackendV2(Backend, ABC):
     that contains the custom compilation passes and then for the hook methods on
     the backend object to return the plugin name so that :func:`~.transpile` will
     use it by default when targetting the backend.
+
+    Subclasses of this should override the public method :meth:`run` and the internal
+    :meth:`_default_options`:
+
+    .. automethod:: _default_options
     """
 
     version = 2
@@ -351,9 +361,16 @@ class BackendV2(Backend, ABC):
                     raise AttributeError("Options field %s is not valid for this backend" % field)
             self._options.update_config(**fields)
         self.name = name
+        """Name of the backend."""
         self.description = description
+        """Optional human-readable description."""
         self.online_date = online_date
+        """Date that the backend came online."""
         self.backend_version = backend_version
+        """Version of the backend being provided.  This is not the same as
+        :attr:`.BackendV2.version`, which is the version of the :class:`~.providers.Backend`
+        abstract interface."""
+        self._coupling_map = None
 
     @property
     def instructions(self) -> List[Tuple[Instruction, Tuple[int]]]:
@@ -387,7 +404,9 @@ class BackendV2(Backend, ABC):
     @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
-        return self.target.build_coupling_map()
+        if self._coupling_map is None:
+            self._coupling_map = self.target.build_coupling_map()
+        return self._coupling_map
 
     @property
     def instruction_durations(self):
@@ -428,8 +447,8 @@ class BackendV2(Backend, ABC):
         scheduling.
 
         Returns:
-            dt: The input signal timestep in seconds. If the backend doesn't
-            define ``dt`` ``None`` will be returned
+            The input signal timestep in seconds. If the backend doesn't define ``dt``, ``None`` will
+            be returned.
         """
         return self.target.dt
 
@@ -438,7 +457,7 @@ class BackendV2(Backend, ABC):
         """Return the system time resolution of output signals
 
         Returns:
-            dtm: The output signal timestep in seconds.
+            The output signal timestep in seconds.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -454,7 +473,7 @@ class BackendV2(Backend, ABC):
         scheduling.
 
         Returns:
-            meas_map: The grouping of measurements which are multiplexed
+            The grouping of measurements which are multiplexed
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -478,12 +497,12 @@ class BackendV2(Backend, ABC):
 
         Args:
             qubit: The qubit to get the
-                :class:`~qiskit.provider.QubitProperties` object for. This can
+                :class:`.QubitProperties` object for. This can
                 be a single integer for 1 qubit or a list of qubits and a list
-                of :class:`~qiskit.provider.QubitProperties` objects will be
+                of :class:`.QubitProperties` objects will be
                 returned in the same order
         Returns:
-            qubit_properties: The :class:`~.QubitProperties` object for the
+            The :class:`~.QubitProperties` object for the
             specified qubit. If a list of qubits is provided a list will be
             returned. If properties are missing for a qubit this can be
             ``None``.
@@ -619,15 +638,15 @@ class BackendV2(Backend, ABC):
 
         Args:
             run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
-                individual or a list of
-                :class:`~qiskit.circuits.QuantumCircuit,
-                :class:`~qiskit.pulse.ScheduleBlock`, or
-                :class:`~qiskit.pulse.Schedule` objects to run on the backend.
+                individual or a list of :class:`.QuantumCircuit`,
+                :class:`~qiskit.pulse.ScheduleBlock`, or :class:`~qiskit.pulse.Schedule` objects to
+                run on the backend.
             options: Any kwarg options to pass to the backend for running the
                 config. If a key is also present in the options
                 attribute/object then the expectation is that the value
                 specified will be used instead of what's set in the options
                 object.
+
         Returns:
             Job: The job object for the run
         """

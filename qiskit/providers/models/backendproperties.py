@@ -35,7 +35,7 @@ class Nduv:
         """Initialize a new name-date-unit-value object
 
         Args:
-            date (datetime): Date field
+            date (datetime.datetime): Date field
             name (str): Name field
             unit (str): Nduv unit
             value (float): The value of the Nduv
@@ -83,19 +83,19 @@ class Nduv:
         return f"Nduv({repr(self.date)}, {self.name}, {self.unit}, {self.value})"
 
 
-class Gate:
+class GateProperties:
     """Class representing a gate's properties
 
     Attributes:
-    qubits: qubits.
-    gate: gate.
-    parameters: parameters.
+        qubits: qubits.
+        gate: gate.
+        parameters: parameters.
     """
 
     _data = {}
 
     def __init__(self, qubits, gate, parameters, **kwargs):
-        """Initialize a new Gate object
+        """Initialize a new :class:`GateProperties` object
 
         Args:
             qubits (list): A list of integers representing qubits
@@ -126,7 +126,7 @@ class Gate:
                          :func:`to_dict`.
 
         Returns:
-            Gate: The Nduv from the input dictionary.
+            GateProperties: The Nduv from the input dictionary.
         """
         in_data = {}
         for key, value in data.items():
@@ -150,10 +150,14 @@ class Gate:
         return out_dict
 
     def __eq__(self, other):
-        if isinstance(other, Gate):
+        if isinstance(other, GateProperties):
             if self.to_dict() == other.to_dict():
                 return True
         return False
+
+
+# Backwards compatibility.
+Gate = GateProperties
 
 
 class BackendProperties:
@@ -174,11 +178,11 @@ class BackendProperties:
         Args:
             backend_name (str): Backend name.
             backend_version (str): Backend version in the form X.Y.Z.
-            last_update_date (datetime or str): Last date/time that a property was
+            last_update_date (datetime.datetime or str): Last date/time that a property was
                 updated. If specified as a ``str``, it must be in ISO format.
             qubits (list): System qubit parameters as a list of lists of
                            :class:`Nduv` objects
-            gates (list): System gate parameters as a list of :class:`Gate`
+            gates (list): System gate parameters as a list of :class:`GateProperties`
                           objects
             general (list): General parameters as a list of :class:`Nduv`
                             objects
@@ -224,13 +228,11 @@ class BackendProperties:
         """Create a new BackendProperties object from a dictionary.
 
         Args:
-            data (dict): A dictionary representing the BackendProperties to create.
-                         It will be in the same format as output by
-                         :func:`to_dict`.
+            data (dict): A dictionary representing the BackendProperties to create.  It will be in
+                the same format as output by :meth:`to_dict`.
 
         Returns:
-            BackendProperties: The BackendProperties from the input
-                               dictionary.
+            BackendProperties: The BackendProperties from the input dictionary.
         """
         in_data = copy.copy(data)
         backend_name = in_data.pop("backend_name")
@@ -242,7 +244,7 @@ class BackendProperties:
             for nduv in qubit:
                 nduvs.append(Nduv.from_dict(nduv))
             qubits.append(nduvs)
-        gates = [Gate.from_dict(x) for x in in_data.pop("gates")]
+        gates = [GateProperties.from_dict(x) for x in in_data.pop("gates")]
         general = [Nduv.from_dict(x) for x in in_data.pop("general")]
         return cls(
             backend_name, backend_version, last_update_date, qubits, gates, general, **in_data
@@ -298,7 +300,7 @@ class BackendProperties:
             result = self._gates[gate]
             if qubits is not None:
                 if isinstance(qubits, int):
-                    qubits = tuple([qubits])
+                    qubits = (qubits,)
                 result = result[tuple(qubits)]
                 if name:
                     result = result[name]

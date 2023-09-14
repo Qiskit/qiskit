@@ -14,11 +14,11 @@
 
 from typing import Callable, Optional, Union
 
-import warnings
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+
 
 from .product_formula import ProductFormula
 
@@ -70,21 +70,17 @@ class SuzukiTrotter(ProductFormula):
                 where next neighbor connections are used, or "fountain", where all qubits are
                 connected to one.
             atomic_evolution: A function to construct the circuit for the evolution of single
-                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
+        Raises:
+            ValueError: If order is not even
         """
+
         if order % 2 == 1:
-            warnings.warn(
-                "SuzukiTrotter for odd orders is deprecated as of 0.20.0, and will be "
-                "removed no earlier than 3 months after that release date. Suzuki "
-                "product formulae are symmetric and therefore only defined for even"
-                "orders.",
-                DeprecationWarning,
-                stacklevel=2,
+            raise ValueError(
+                "Suzuki product formulae are symmetric and therefore only defined "
+                "for even orders."
             )
-            # TODO replace deprecation warning by the following error and add unit test for odd
-            # raise ValueError("Suzuki product formulae are symmetric and therefore only defined "
-            #                  "for even orders.")
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(self, evolution):

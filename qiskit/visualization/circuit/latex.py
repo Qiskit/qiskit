@@ -19,11 +19,13 @@ import re
 from warnings import warn
 
 import numpy as np
-from qiskit.circuit import Clbit, Qubit, ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Clbit, Qubit, ClassicalRegister
+from qiskit.circuit.classical import expr
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.tools.pi_check import pi_check
+
 
 from .qcstyle import load_style
 from ._utils import (
@@ -47,7 +49,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=bad-docstring-quotes
         self,
         qubits,
         clbits,
@@ -56,12 +58,8 @@ class QCircuitImage:
         style=None,
         reverse_bits=False,
         plot_barriers=True,
-        layout=None,
         initial_state=False,
         cregbundle=None,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
         with_layout=False,
         circuit=None,
     ):
@@ -76,66 +74,14 @@ class QCircuitImage:
             reverse_bits (bool): when True, reverse the bit ordering of the registers
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
-            layout (Layout or None): If present, the layout information will be
-               included.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers.
-            global_phase (float): Optional, the global phase for the circuit.
             circuit (QuantumCircuit): the circuit that's being displayed
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        # This check should be removed when the 4 deprecations above are removed
-        if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the QCircuitImage class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
+
+        self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
 
@@ -441,7 +387,10 @@ class QCircuitImage:
                 num_cols_op = 1
                 wire_list = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
                 if getattr(op, "condition", None):
-                    self._add_condition(op, wire_list, column)
+                    if isinstance(op.condition, expr.Expr):
+                        warn("ignoring expression condition, which is not supported yet")
+                    else:
+                        self._add_condition(op, wire_list, column)
 
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
@@ -644,7 +593,6 @@ class QCircuitImage:
         # cwire - the wire number for the first wire for the condition register
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
-
         label, val_bits = get_condition_label_val(op.condition, self._circuit, self._cregbundle)
         cond_is_bit = isinstance(op.condition[0], Clbit)
         cond_reg = op.condition[0]

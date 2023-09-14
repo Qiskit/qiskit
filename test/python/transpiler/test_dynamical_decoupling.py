@@ -195,6 +195,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         target.add_instruction(
             Reset(), {(x,): InstructionProperties(duration=1500) for x in range(4)}
         )
+        target.add_instruction(Delay(Parameter("t")), {(x,): None for x in range(4)})
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
             [
@@ -821,6 +822,66 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         circ2 = pm2.run(self.ghz4)
 
         self.assertEqual(circ1, circ2)
+
+    def test_respect_target_instruction_constraints(self):
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions
+        and does not insert DD gates for qubits that do not support necessary gates.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        target = Target(dt=1)
+        # Y is partially supported (not supported on qubit 2)
+        target.add_instruction(
+            XGate(), {(q,): InstructionProperties(duration=100) for q in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(duration=1000),
+                (1, 2): InstructionProperties(duration=1000),
+            },
+        )
+        # delays are not supported
+
+        # No DD instructions nor delays are padded due to no delay support in the target
+        pm_xx = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(dd_sequence=[XGate(), XGate()], target=target),
+            ]
+        )
+        scheduled = pm_xx.run(qc)
+        self.assertEqual(qc, scheduled)
+
+        # Fails since Y is not supported in the target
+        with self.assertRaises(TranspilerError):
+            PassManager(
+                [
+                    ALAPScheduleAnalysis(target=target),
+                    PadDynamicalDecoupling(
+                        dd_sequence=[XGate(), YGate(), XGate(), YGate()], target=target
+                    ),
+                ]
+            )
+
+        # Add delay support to the target
+        target.add_instruction(Delay(Parameter("t")), {(q,): None for q in range(3)})
+        # No error but no DD on qubit 2 (just delay is padded) since X is not supported on it
+        scheduled = pm_xx.run(qc)
+
+        expected = QuantumCircuit(3)
+        expected.delay(1000, [2])
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+        expected.delay(200, [0])
+        expected.x([0])
+        expected.delay(400, [0])
+        expected.x([0])
+        expected.delay(200, [0])
+        self.assertEqual(expected, scheduled)
 
 
 if __name__ == "__main__":

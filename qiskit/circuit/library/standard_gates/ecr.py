@@ -14,12 +14,16 @@
 from math import sqrt
 import numpy as np
 
+from qiskit.circuit._utils import with_gate_array
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from .rzx import RZXGate
 from .x import XGate
 
 
+@with_gate_array(
+    sqrt(0.5) * np.array([[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]])
+)
 class ECRGate(Gate):
     r"""An echoed cross-resonance gate.
 
@@ -103,13 +107,6 @@ class ECRGate(Gate):
 
         self.definition = qc
 
-    def to_matrix(self):
-        """Return a numpy.array for the ECR gate."""
-        return (
-            1
-            / sqrt(2)
-            * np.array(
-                [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]],
-                dtype=complex,
-            )
-        )
+    def inverse(self):
+        """Return inverse ECR gate (itself)."""
+        return ECRGate()  # self-inverse

@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
-
-from typing import Dict
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
@@ -245,24 +243,24 @@ class BaseSchedulerTransform(TransformationPass):
         """
         super().__init__()
         self.durations = durations
+        # Ensure op node durations are attached and in consistent unit
+        if target is not None:
+            self.durations = target.durations()
+        self.requires.append(TimeUnitConversion(self.durations))
 
         # Control flow constraints.
         self.clbit_write_latency = clbit_write_latency
         self.conditional_latency = conditional_latency
 
-        # Ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
-        if target is not None:
-            self.durations = target.durations()
+        self.target = target
 
     @staticmethod
     def _get_node_duration(
         node: DAGOpNode,
-        bit_index_map: Dict,
         dag: DAGCircuit,
     ) -> int:
         """A helper method to get duration from node or calibration."""
-        indices = [bit_index_map[qarg] for qarg in node.qargs]
+        indices = [dag.find_bit(qarg).index for qarg in node.qargs]
 
         if dag.has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
@@ -280,6 +278,12 @@ class BaseSchedulerTransform(TransformationPass):
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 
         return duration
+
+    def _delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
 
     def run(self, dag: DAGCircuit):
         raise NotImplementedError

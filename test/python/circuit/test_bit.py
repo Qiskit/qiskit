@@ -13,7 +13,7 @@
 # pylint: disable=missing-function-docstring
 
 """Test library of quantum circuits."""
-
+import copy
 from unittest import mock
 
 from qiskit.test import QiskitTestCase
@@ -57,6 +57,25 @@ class TestBitClass(QiskitTestCase):
 
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_difftype, 0))
 
+    def test_old_style_bit_deepcopy(self):
+        """Verify deep-copies of bits are equal but not the same instance."""
+        test_reg = mock.MagicMock(size=3, name="foo")
+        test_reg.__str__.return_value = "Register(3, 'foo')"
+
+        bit1 = bit.Bit(test_reg, 0)
+        bit2 = copy.deepcopy(bit1)
+
+        self.assertIsNot(bit1, bit2)
+        self.assertIsNot(bit1._register, bit2._register)
+        self.assertEqual(bit1, bit2)
+
+    def test_old_style_bit_copy(self):
+        """Verify copies of bits are the same instance."""
+        bit1 = bit.Bit()
+        bit2 = copy.copy(bit1)
+
+        self.assertIs(bit1, bit2)
+
 
 class TestNewStyleBit(QiskitTestCase):
     """Test behavior of new-style bits."""
@@ -65,7 +84,21 @@ class TestNewStyleBit(QiskitTestCase):
         """Verify we can create a bit outside the context of a register."""
         self.assertIsInstance(bit.Bit(), bit.Bit)
 
-    def test_newstyle_bit_equality(self):
+    def test_new_style_bit_deepcopy(self):
+        """Verify deep-copies of bits are the same instance."""
+        bit1 = bit.Bit()
+        bit2 = copy.deepcopy(bit1)
+
+        self.assertIs(bit1, bit2)
+
+    def test_new_style_bit_copy(self):
+        """Verify copies of bits are the same instance."""
+        bit1 = bit.Bit()
+        bit2 = copy.copy(bit1)
+
+        self.assertIs(bit1, bit2)
+
+    def test_new_style_bit_equality(self):
         """Verify bits instances are equal only to themselves."""
         bit1 = bit.Bit()
         bit2 = bit.Bit()

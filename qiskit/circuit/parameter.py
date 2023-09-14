@@ -45,10 +45,12 @@ class Parameter(ParameterExpression):
            qc.draw('mpl')
 
            # bind the parameters after circuit to create a bound circuit
-           bc = qc.bind_parameters({phi: 3.14})
+           bc = qc.assign_parameters({phi: 3.14})
            bc.measure_all()
            bc.draw('mpl')
     """
+
+    __slots__ = ("_name", "_uuid", "_hash")
 
     def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
         # Parameter relies on self._uuid being set prior to other attributes

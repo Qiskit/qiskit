@@ -514,6 +514,37 @@ class TestUnrollerCompatability(QiskitTestCase):
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
+    def test_basic_unroll_min_qubits(self):
+        """Test decompose a single H into u2."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ["u2"], min_qubits=3)
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ["u2"], min_qubits=3)
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(op_nodes[0].name, "h")
+
+    def test_unroll_toffoli_min_qubits(self):
+        """Test unroll toffoli on multi regs to h, t, tdg, cx."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.ccx(qr1[0], qr1[1], qr2[0])
+        circuit.sx(qr1[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ["h", "t", "tdg", "cx"], min_qubits=3)
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ["h", "t", "tdg", "cx"], min_qubits=3)
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 16)
+        for node in op_nodes:
+            self.assertIn(node.name, ["h", "t", "tdg", "cx", "sx"])
+
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional."""
 
@@ -897,18 +928,19 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
-        #         ┌────────────┐  ┌─────────────┐┌──────────┐┌──────┐
-        # q_0: ───┤ U(π/2,0,π) ├──┤ U(0,0,-π/2) ├┤ U(π,0,0) ├┤0     ├
-        #      ┌──┴────────────┴─┐└─────────────┘└──────────┘│  Ecr │
-        # q_1: ┤ U(π/2,-π/2,π/2) ├───────────────────────────┤1     ├
-        #      └─────────────────┘                           └──────┘
+        #         ┌────────────┐   ┌─────────────┐┌──────┐┌──────────┐
+        # q_0: ───┤ U(π/2,0,π) ├───┤ U(0,0,-π/2) ├┤0     ├┤ U(π,0,π) ├
+        #      ┌──┴────────────┴──┐└─────────────┘│  Ecr │└──────────┘
+        # q_1: ┤ U(-π/2,-π/2,π/2) ├───────────────┤1     ├────────────
+        #      └──────────────────┘               └──────┘
+
         qr = QuantumRegister(2, "q")
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
         expected.u(0, 0, -pi / 2, qr[0])
-        expected.u(pi, 0, 0, qr[0])
-        expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
+        expected.u(-pi / 2, -pi / 2, pi / 2, qr[1])
         expected.ecr(0, 1)
+        expected.u(pi, 0, pi, qr[0])
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)

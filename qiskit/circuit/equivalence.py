@@ -15,11 +15,12 @@
 import copy
 from collections import namedtuple
 
-from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+from rustworkx.visualization import graphviz_draw
 import rustworkx as rx
 
 from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError
+from .parameter import Parameter
 from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
@@ -43,7 +44,7 @@ class EquivalenceLibrary:
 
         if base is None:
             self._graph = rx.PyDiGraph()
-            self._key_to_node_index = dict()
+            self._key_to_node_index = {}
             self._rule_count = 0
         else:
             self._graph = base._graph.copy()
@@ -246,7 +247,7 @@ class EquivalenceLibrary:
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],
-                    dict(label=label, fontname="Courier", fontsize=str(8)),
+                    {"label": label, "fontname": "Courier", "fontsize": str(8)},
                 )
 
         return graph
@@ -284,7 +285,7 @@ def _raise_if_shape_mismatch(gate, circuit):
 
 def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
-    param_map = dict(zip(equiv_params, query_params))
-    equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
+    param_map = {x: y for x, y in zip(equiv_params, query_params) if isinstance(x, Parameter)}
+    equiv = equiv_circuit.assign_parameters(param_map, inplace=False, flat_input=True)
 
     return equiv

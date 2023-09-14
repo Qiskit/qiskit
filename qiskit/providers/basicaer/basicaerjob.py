@@ -37,11 +37,10 @@ class BasicAerJob(JobV1):
         return
 
     def result(self, timeout=None):
-        # pylint: disable=arguments-differ
         """Get job result .
 
         Returns:
-            qiskit.Result: Result object
+            qiskit.result.Result: Result object
         """
         if timeout is not None:
             warnings.warn(

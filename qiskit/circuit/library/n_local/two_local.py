@@ -12,7 +12,9 @@
 
 """The two-local gate circuit."""
 
-from typing import Union, Optional, List, Callable, Any
+from __future__ import annotations
+import typing
+from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
@@ -44,6 +46,9 @@ from ..standard_gates import (
     CRZGate,
     CHGate,
 )
+
+if typing.TYPE_CHECKING:
+    import qiskit  # pylint: disable=cyclic-import
 
 
 class TwoLocal(NLocal):
@@ -157,24 +162,30 @@ class TwoLocal(NLocal):
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
-        rotation_blocks: Optional[
-            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
-        ] = None,
-        entanglement_blocks: Optional[
-            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
-        ] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        num_qubits: int | None = None,
+        rotation_blocks: str
+        | type
+        | qiskit.circuit.Instruction
+        | QuantumCircuit
+        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+        | None = None,
+        entanglement_blocks: str
+        | type
+        | qiskit.circuit.Instruction
+        | QuantumCircuit
+        | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+        | None = None,
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: QuantumCircuit | None = None,
         name: str = "TwoLocal",
+        flatten: bool | None = None,
     ) -> None:
-        """Construct a new two-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
@@ -207,6 +218,13 @@ class TwoLocal(NLocal):
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         """
         super().__init__(
@@ -221,9 +239,10 @@ class TwoLocal(NLocal):
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
             name=name,
+            flatten=flatten,
         )
 
-    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
+    def _convert_to_block(self, layer: str | type | Gate | QuantumCircuit) -> QuantumCircuit:
         """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
          returns the
          according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).
@@ -308,7 +327,7 @@ class TwoLocal(NLocal):
 
     def get_entangler_map(
         self, rep_num: int, block_num: int, num_block_qubits: int
-    ) -> List[List[int]]:
+    ) -> Sequence[Sequence[int]]:
         """Overloading to handle the special case of 1 qubit where the entanglement are ignored."""
         if self.num_qubits <= 1:
             return []

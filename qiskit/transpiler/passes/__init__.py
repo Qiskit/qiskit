@@ -45,7 +45,6 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
-   BIPMapping
    Commuting2qGateRouter
 
 Basis Change
@@ -172,9 +171,11 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
+   UnrollForLoops
 """
 
 # layout selection (placement)
@@ -197,7 +198,6 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
-from .routing import BIPMapping
 from .routing import Commuting2qGateRouter
 
 # basis change
@@ -283,8 +283,10 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
+from .utils import UnrollForLoops

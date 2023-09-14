@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -216,7 +216,6 @@ class PVQD(RealTimeEvolver):
         dt: float,
         current_parameters: np.ndarray,
     ) -> tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
-
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
         Args:
@@ -233,7 +232,7 @@ class PVQD(RealTimeEvolver):
         self._validate_setup(skip={"optimizer"})
 
         # use Trotterization to evolve the current state
-        trotterized = ansatz.bind_parameters(current_parameters)
+        trotterized = ansatz.assign_parameters(current_parameters)
 
         evolution_gate = PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution)
 
@@ -243,7 +242,7 @@ class PVQD(RealTimeEvolver):
         x = ParameterVector("w", ansatz.num_parameters)
         shifted = ansatz.assign_parameters(current_parameters + x)
 
-        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | list[float]:
+        def evaluate_loss(displacement: np.ndarray | list[np.ndarray]) -> float | np.ndarray:
             """Evaluate the overlap of the ansatz with the Trotterized evolution.
 
             Args:
@@ -369,7 +368,7 @@ class PVQD(RealTimeEvolver):
             )
             observable_values = [evaluate_observables(self.initial_parameters)]
 
-        fidelities = [1]
+        fidelities = [1.0]
         parameters = [self.initial_parameters]
         times = np.linspace(0, time, num_timesteps + 1).tolist()  # +1 to include initial time 0
 
@@ -389,7 +388,7 @@ class PVQD(RealTimeEvolver):
             if observables is not None:
                 observable_values.append(evaluate_observables(next_parameters))
 
-        evolved_state = self.ansatz.bind_parameters(parameters[-1])
+        evolved_state = self.ansatz.assign_parameters(parameters[-1])
 
         result = PVQDResult(
             evolved_state=evolved_state,

@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The plugin name ``default`` is reserved for the :ref:`stage_table`
+    ``init``, ``layout``, ``optimization``, and ``scheduling``. These stages previously
+    did not reserve this plugin name, but the ``default`` name is now used to
+    represent Qiskit's built-in default method for these stages. If you were
+    using these names for plugins on these stages these will conflict with
+    Qiskit's usage and you should rename your plugin.
