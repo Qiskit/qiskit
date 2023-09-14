@@ -16,21 +16,6 @@ use std::collections::VecDeque;
 use std::mem::take;
 use std::sync::Arc;
 
-macro_rules! println {
-    ($($rest:tt)*) => {
-        #[cfg(debug_interner)]
-        std::println!($($rest)*)
-    }
-}
-
-#[cfg(debug_interner)]
-fn unique_id() -> u64 {
-    use std::sync::atomic::AtomicU64;
-    use std::sync::atomic::Ordering::SeqCst;
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-    COUNTER.fetch_add(1, SeqCst)
-}
-
 pub type IndexType = u32;
 pub type BitType = u32;
 
@@ -46,8 +31,6 @@ pub struct InternContext {
     slots: Vec<Option<SharedOperandList>>,
     free_slots: VecDeque<IndexType>,
     slot_lookup: HashMap<Arc<Vec<BitType>>, IndexType>,
-    #[cfg(debug_interner)]
-    id: u64,
 }
 
 impl InternContext {
@@ -62,41 +45,27 @@ impl InternContext {
 
         let slot_idx = self.slot_lookup.entry(args.clone()).or_insert_with(|| {
             if !self.free_slots.is_empty() {
-                println!("{:?}| Reusing empty slot {slot}", self.id);
                 self.free_slots.pop_front().unwrap()
             } else {
-                let slot = self.slots.len();
-                println!("{:?}| Using new empty slot {slot}", self.id);
                 self.slots.push(None);
-                slot.try_into().unwrap()
+                self.slots.len().try_into().unwrap()
             }
         });
         let shared_args = self
             .slots
             .get_mut(*slot_idx as usize)
             .unwrap()
-            .get_or_insert_with(|| {
-                println!("{:?}| Initializing slot {slot_idx} for:", self.id);
-                println!("{:?}|    {:?}: {args_hash}", self.id, args);
-                SharedOperandList {
-                    operands: args,
-                    use_count: 0,
-                }
+            .get_or_insert_with(|| SharedOperandList {
+                operands: args,
+                use_count: 0,
             });
         shared_args.use_count += 1;
-        println!(
-            "{:?}| Incrementing uses for slot {slot_idx}. Use count: {:?}",
-            self.id, shared_args.use_count
-        );
         Some(*slot_idx)
     }
 
     pub fn lookup(&self, slot_idx: IndexType) -> &Vec<BitType> {
         let slot = self.slots.get(slot_idx as usize).unwrap();
-        let operands = &slot.as_ref().unwrap().operands;
-        println!("{:?}| Got slot {slot_idx}:", self.id);
-        println!("{:?}|    {:?}", self.id, operands);
-        operands
+        &slot.as_ref().unwrap().operands
     }
 
     pub fn drop_use(&mut self, slot_idx: IndexType) {
@@ -106,17 +75,11 @@ impl InternContext {
             use_count: 1,
         } = shared
         {
-            println!("{:?}| Unallocating slot {slot_idx}.", self.id);
             self.slot_lookup.remove(&operands);
             self.free_slots.push_back(slot_idx);
             return;
         };
-
         shared.use_count -= 1;
-        println!(
-            "{:?}| Decremented uses for slot {slot_idx}. Use count: {:?}",
-            self.id, shared.use_count
-        );
         self.slots[slot_idx as usize] = Some(shared);
     }
 }
@@ -129,8 +92,6 @@ impl InternContext {
             slots: Vec::new(),
             free_slots: VecDeque::new(),
             slot_lookup: HashMap::new(),
-            #[cfg(debug_interner)]
-            id: unique_id(),
         }
     }
 }
