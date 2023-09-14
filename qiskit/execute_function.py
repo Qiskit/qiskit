@@ -96,7 +96,7 @@ def execute(
         coupling_map (CouplingMap or list): Coupling map (perhaps custom) to
             target in mapping. Multiple formats are supported:
 
-            #. :class:`~.CouplingMap` instance
+            #. :class:`.CouplingMap` instance
             #. ``list``:
                must be given as an adjacency matrix, where each entry
                specifies all two-qubit interactions supported by backend
