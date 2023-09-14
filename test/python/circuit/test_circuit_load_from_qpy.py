@@ -16,6 +16,7 @@
 import io
 import json
 import random
+import unittest
 
 import ddt
 import numpy as np
@@ -1682,6 +1683,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
             original_clbits, roundtripped_clbits = zip(*owned_clbits)
             self.assertEqual(original_clbits, roundtripped_clbits)
 
+    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
     def test_symengine_full_path(self):
         """Test use_symengine option for circuit with parameter expressions."""
         qpy_file = io.BytesIO()
@@ -1691,6 +1693,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         self.assertEqual(self.qc, new_circ)
         self.assertDeprecatedBitProperties(self.qc, new_circ)
 
+    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
     def test_dump_no_symengine(self):
         """Test dump fails if symengine is not installed and use_symengine==True."""
         qpy_file = io.BytesIO()
@@ -1698,6 +1701,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
             with self.assertRaises(MissingOptionalLibraryError):
                 dump(self.qc, qpy_file, use_symengine=True)
 
+    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
     def test_load_no_symengine(self):
         """Test that load fails if symengine is not installed and the
         file was created with use_symengine==True."""

@@ -14,6 +14,7 @@
 
 import io
 from ddt import ddt, data, unpack
+import unittest
 
 import numpy as np
 
@@ -426,6 +427,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
 
         self.test_sched = test_sched
 
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
     def test_symengine_full_path(self):
         """Test use_symengine option for circuit with parameter expressions."""
         qpy_file = io.BytesIO()
@@ -434,6 +436,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         new_sched = load(qpy_file)[0]
         self.assertEqual(self.test_sched, new_sched)
 
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
     def test_dump_no_symengine(self):
         """Test dump fails if symengine is not installed and use_symengine==True."""
         qpy_file = io.BytesIO()
@@ -441,6 +444,7 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
             with self.assertRaises(MissingOptionalLibraryError):
                 dump(self.test_sched, qpy_file, use_symengine=True)
 
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
     def test_load_no_symengine(self):
         """Test that load fails if symengine is not installed and the
         file was created with use_symengine==True."""
