@@ -2157,9 +2157,8 @@ class QuantumCircuit:
         cpy._clbit_indices = self._clbit_indices.copy()
 
         cpy._parameter_table = ParameterTable()
-        # TODO: should copies of a circuit share its intern context?
-        #   If not, we need to uncomment the next line.
-        # cpy._intern_context = InternContext()
+        # Note that copies will share the same intern context
+        # (copied via copy.copy above)
         cpy._data = cpy._new_data()
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
