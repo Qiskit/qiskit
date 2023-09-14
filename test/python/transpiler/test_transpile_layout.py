@@ -40,6 +40,37 @@ class TranspileLayoutTest(QiskitTestCase):
         res = tqc.layout.full_layout()
         self.assertEqual(res, [2, 0, 1])
 
+    def test_full_layout_full_path_with_ancilla(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(10, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
+        # tqc:
+        #       q_2 -> 0 ──X─────────────────────────────────────────────────
+        #                  │
+        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
+        #                      │
+        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
+        #                         │ ┌───┐                               ┌───┐
+        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
+        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
+        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
+        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
+        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
+        #                                 │ └───┘└───┘└───┘
+        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
+        #                             │
+        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
+        #                         │
+        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
+        #                ┌───┐ │
+        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
+        #                └───┘
+        res = tqc.layout.full_layout()
+        self.assertEqual(res, [4, 5, 3])
+
     def test_permute_sparse_pauli_op(self):
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
