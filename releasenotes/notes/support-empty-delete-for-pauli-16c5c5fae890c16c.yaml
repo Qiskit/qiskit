@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Passing empty list to delete method of Pauli, PauliList, and PauliTable returns a copy of the original object instead of throwing an error.
