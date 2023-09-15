@@ -16,17 +16,11 @@ from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit, ParameterExpression
+from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
-
-
-def _is_deprecated_qubits_argument(qubits: Union[int, list[int], Qubit, list[Qubit]]) -> bool:
-    if isinstance(qubits, (int, Qubit)):
-        qubits = [qubits]
-    return isinstance(qubits[0], Qubit)
 
 
 class InstructionDurations:
@@ -129,7 +123,6 @@ class InstructionDurations:
             )
         else:
             for i, items in enumerate(inst_durations):
-
                 if not isinstance(items[-1], str):
                     items = (*items, "dt")  # set default unit
 
