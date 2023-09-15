@@ -1,10 +1,10 @@
 ---
 upgrade:
   - |
-    In the internal ``qiskit.transpiler.instruction_durations.get`` object, using a Qubit or List[Qubit] for the argument ``qubits`` has been deprecated. Instead, use an integer for the qubit indices.
+    The argument ``qubits`` in the method :meth:`qiskit.transpiler.instruction_durations.InstructionDurations.get`, does not accept :class:`.Qubit` (or a list of them) any more. This functionality was deprecated in Qiskit 0.33 (with Terra 0.19), released on Dec 2021. Instead, use an integer for the qubit indices.
 
   - |
-    In the internal ``qiskit.providers.models.backendconfiguration.control`` object, the argument ``channel`` has been deprecated. Instead, use the ``qubits`` argument.
+    The argument ``channel`` in the method :meth:`qiskit.providers.models.backendconfiguration.PulseBackendConfiguration.control` is removed. It was deprecated in Qiskit 0.33 (with Terra 0.19), released on Dec 2021. Instead use  the ``qubits`` argument.
 
   - |
-    In the internal ``qiskit.qobj.__init__`` object, the initializer function ``__init__`` has been deprecated. Instead, use the ``QasmQobj`` or ``PulseQobj`` object.
+    The class ``qiskit.qobj.Qobj`` is removed. It was deprecated in Qiskit 0.33 (with Terra 0.19), released on Dec 2021. Instead, use :class:`qiskit.qobj.QasmQobj` or :class:`qiskit.qobj.PulseQobj`.
