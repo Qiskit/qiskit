@@ -172,6 +172,10 @@ class HighLevelSynthesis(TransformationPass):
         Raises:
             TranspilerError: when the specified synthesis method is not available.
         """
+        # If there aren't any high level operations to synthesize return fast
+        hls_names = set(self.hls_plugin_manager.plugins_by_op)
+        if not hls_names.intersection(dag.count_ops()):
+            return dag
         for node in dag.op_nodes():
             if node.name in self.hls_config.methods.keys():
                 # the operation's name appears in the user-provided config,

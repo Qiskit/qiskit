@@ -114,7 +114,7 @@ class SparsePauliOp(LinearOp):
             QiskitError: If the input data or coeffs are invalid.
         """
         if ignore_pauli_phase and not isinstance(data, PauliList):
-            raise QiskitError("ignore_pauli_list=True is only valid with PauliList data")
+            raise QiskitError("ignore_pauli_phase=True is only valid with PauliList data")
 
         if isinstance(data, SparsePauliOp):
             if coeffs is None:
@@ -770,7 +770,9 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_list(obj: Iterable[tuple[str, complex]], dtype: type = complex) -> SparsePauliOp:
+    def from_list(
+        obj: Iterable[tuple[str, complex]], dtype: type = complex, *, num_qubits: int = None
+    ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
         For example, the 5-qubit Hamiltonian
@@ -787,23 +789,34 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            dtype (type): The dtype of coeffs (Default complex).
+            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
+            dtype (type): The dtype of coeffs (Default: complex).
+            num_qubits (int): The number of qubits of the operator (Default: None).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
 
         Raises:
-            QiskitError: If the list of Paulis is empty.
+            QiskitError: If an empty list is passed and num_qubits is None.
+            QiskitError: If num_qubits and the objects in the input list do not match.
         """
         obj = list(obj)  # To convert zip or other iterable
+        size = len(obj)
 
-        size = len(obj)  # number of Pauli terms
+        if size == 0 and num_qubits is None:
+            raise QiskitError(
+                "Could not determine the number of qubits from an empty list. Try passing num_qubits."
+            )
+        if size > 0 and num_qubits is not None:
+            if len(obj[0][0]) != num_qubits:
+                raise QiskitError(
+                    f"num_qubits ({num_qubits}) and the objects in the input list do not match."
+                )
+        if num_qubits is None:
+            num_qubits = len(obj[0][0])
         if size == 0:
-            raise QiskitError("Input Pauli list is empty.")
-
-        # determine the number of qubits
-        num_qubits = len(obj[0][0])
+            obj = [("I" * num_qubits, 0)]
+            size = len(obj)
 
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
@@ -845,22 +858,23 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
-            do_checks (bool): The flag of checking if the input indices are not duplicated.
-            dtype (type): The dtype of coeffs (Default complex).
+            do_checks (bool): The flag of checking if the input indices are not duplicated
+            (Default: True).
+            dtype (type): The dtype of coeffs (Default: complex).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
 
         Raises:
-            QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
             QiskitError: If the designated qubit is already assigned.
         """
         obj = list(obj)  # To convert zip or other iterable
+        size = len(obj)
 
-        size = len(obj)  # number of Pauli terms
         if size == 0:
-            raise QiskitError("Input Pauli list is empty.")
+            obj = [("I" * num_qubits, range(num_qubits), 0)]
+            size = len(obj)
 
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")

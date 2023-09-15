@@ -27,7 +27,6 @@ import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.utils.deprecation import deprecate_func
 
 
 class CouplingMap:
@@ -124,21 +123,6 @@ class CouplingMap:
         self.graph.add_edge(src, dst, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
-
-    @deprecate_func(
-        additional_msg=(
-            "Instead, use :meth:`~reduce`. It does the same thing, but preserves nodelist order."
-        ),
-        since="0.20.0",
-    )
-    def subgraph(self, nodelist):
-        """Return a CouplingMap object for a subgraph of self.
-
-        nodelist (list): list of integer node labels
-        """
-        subcoupling = CouplingMap()
-        subcoupling.graph = self.graph.subgraph(nodelist)
-        return subcoupling
 
     @property
     def physical_qubits(self):

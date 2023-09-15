@@ -396,8 +396,8 @@ class TestTemplateMatching(QiskitTestCase):
         # however these are equivalent if the operators are the same
         theta_set = 0.42
         self.assertTrue(
-            Operator(circuit_in.bind_parameters({theta: theta_set})).equiv(
-                circuit_out.bind_parameters({theta: theta_set})
+            Operator(circuit_in.assign_parameters({theta: theta_set})).equiv(
+                circuit_out.assign_parameters({theta: theta_set})
             )
         )
 
@@ -483,8 +483,8 @@ class TestTemplateMatching(QiskitTestCase):
         alpha_set = 0.37
         beta_set = 0.42
         self.assertTrue(
-            Operator(circuit_in.bind_parameters({alpha: alpha_set, beta: beta_set})).equiv(
-                circuit_out.bind_parameters({alpha: alpha_set, beta: beta_set})
+            Operator(circuit_in.assign_parameters({alpha: alpha_set, beta: beta_set})).equiv(
+                circuit_out.assign_parameters({alpha: alpha_set, beta: beta_set})
             )
         )
 
