@@ -47,8 +47,9 @@ impl InternContext {
             if !self.free_slots.is_empty() {
                 self.free_slots.pop_front().unwrap()
             } else {
+                let slot = self.slots.len();
                 self.slots.push(None);
-                self.slots.len().try_into().unwrap()
+                slot.try_into().unwrap()
             }
         });
         let shared_args = self
