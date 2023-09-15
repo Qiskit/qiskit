@@ -34,7 +34,7 @@ Layout Selection (Placement)
    Layout2qDistance
    EnlargeWithAncilla
    FullAncillaAllocation
-   SabreStartingLayoutUsingVF2
+   SabrePreLayout
 
 Routing
 =======
@@ -192,7 +192,7 @@ from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
 from .layout import FullAncillaAllocation
-from .layout import SabreStartingLayoutUsingVF2
+from .layout import SabrePreLayout
 
 # routing
 from .routing import BasicSwap

@@ -27,7 +27,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
 from qiskit.providers.fake_provider import FakeKolkata
 from qiskit.providers.fake_provider import FakeMontreal
-from qiskit.transpiler.passes.layout.sabre_starting_layout import SabreStartingLayoutUsingVF2
+from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -393,8 +393,8 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
 
-class TestSabreStartingLayoutUsingVF2(QiskitTestCase):
-    """Tests the SabreLayout pass with starting layout created by SabreStartingLayoutUsingVF2."""
+class TestSabrePreLayout(QiskitTestCase):
+    """Tests the SabreLayout pass with starting layout created by SabrePreLayout."""
 
     def setUp(self):
         super().setUp()
@@ -408,7 +408,7 @@ class TestSabreStartingLayoutUsingVF2(QiskitTestCase):
         """Test that a starting layout is created and looks as expected."""
         pm = PassManager(
             [
-                SabreStartingLayoutUsingVF2(coupling_map=self.coupling_map),
+                SabrePreLayout(coupling_map=self.coupling_map),
                 SabreLayout(self.coupling_map, seed=123456, swap_trials=1, layout_trials=1),
             ]
         )

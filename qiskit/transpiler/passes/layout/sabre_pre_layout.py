@@ -19,7 +19,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
 from qiskit._accelerate.error_map import ErrorMap
 
 
-class SabreStartingLayoutUsingVF2(AnalysisPass):
+class SabrePreLayout(AnalysisPass):
     """Choose a starting layout to use for additional Sabre layout trials.
 
     Property Set Values Written
@@ -33,7 +33,7 @@ class SabreStartingLayoutUsingVF2(AnalysisPass):
     def __init__(
         self, coupling_map, max_distance=2, error_rate=0.1, max_trials_vf2=100, minimize_edges=True
     ):
-        """SabreStartingLayoutUsingVF2 initializer.
+        """SabrePreLayout initializer.
 
         The pass works by augmenting the coupling map with more and more "extra" edges
         until VF2 succeeds to find a perfect graph isomorphism. More precisely, the
@@ -67,7 +67,7 @@ class SabreStartingLayoutUsingVF2(AnalysisPass):
         super().__init__()
 
     def run(self, dag):
-        """Run the SabreStartingLayoutUsingVF2 pass on `dag`.
+        """Run the SabrePreLayout pass on `dag`.
 
         The discovered starting layout is written to the property set
         value ``sabre_starting_layouts``.
@@ -184,7 +184,9 @@ class SabreStartingLayoutUsingVF2(AnalysisPass):
                 # this edge is not necessary, furthermore we can trim the set of edges to examine based
                 # in the edges involved in the layout.
                 extra_edges = self._get_extra_edges_used(dag, layout)
-                extra_edges_unprocessed_set = set(extra_edges).difference(set(extra_edges_necessary))
+                extra_edges_unprocessed_set = set(extra_edges).difference(
+                    set(extra_edges_necessary)
+                )
                 best_layout = layout
 
         return best_layout
