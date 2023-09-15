@@ -1237,11 +1237,11 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.name, "test")
 
     def test_duplicated_methods_deprecation(self):
-        """Test the now deprecated, duplicated gate method emit a (pending) deprecation warning."""
+        """Test the now deprecated, duplicated gate method emit a deprecation warning."""
 
         # {duplicate: (use_this_instead, args)}
         methods = {
-            "id": ("i", [0]),
+            "i": ("id", [0]),
             "cnot": ("cx", [0, 1]),
             "toffoli": ("ccx", [0, 1, 2]),
             "mct": ("mcx", [[0, 1], 2]),
@@ -1255,7 +1255,7 @@ class TestCircuitOperations(QiskitTestCase):
 
                 # check (1) the (pending) deprecation is raised
                 # and (2) the new method is documented there
-                with self.assertWarnsRegex(PendingDeprecationWarning, new):
+                with self.assertWarnsRegex(DeprecationWarning, new):
                     getattr(circuit, old)(*args)
 
 
