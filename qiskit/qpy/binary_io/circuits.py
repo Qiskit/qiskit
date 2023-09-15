@@ -540,13 +540,17 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
-        or gate_class_name == "ControlledGate"
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         if instruction.operation.name not in custom_operations:
             custom_operations[instruction.operation.name] = instruction.operation
             custom_operations_list.append(instruction.operation.name)
         gate_class_name = instruction.operation.name
+
+    elif gate_class_name == "ControlledGate":
+        gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
+        custom_operations[gate_class_name] = instruction.operation
+        custom_operations_list.append(gate_class_name)
 
     elif isinstance(instruction.operation, library.PauliEvolutionGate):
         gate_class_name = r"###PauliEvolutionGate_" + str(uuid.uuid4())
