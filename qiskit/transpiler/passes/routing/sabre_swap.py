@@ -14,6 +14,7 @@
 
 import logging
 from copy import deepcopy
+import time
 
 import rustworkx
 
@@ -237,6 +238,7 @@ class SabreSwap(TransformationPass):
             self.coupling_map.size(),
             self._qubit_indices,
         )
+        sabre_start = time.perf_counter()
         *sabre_result, final_permutation = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -247,6 +249,8 @@ class SabreSwap(TransformationPass):
             self.trials,
             self.seed,
         )
+        sabre_stop = time.perf_counter()
+        logging.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
 
         self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, final_permutation)))
         if self.fake_run:
@@ -364,7 +368,7 @@ def _apply_sabre_result(
                 physical_qubits[layout.virtual_to_physical(b)],
             )
             layout.swap_virtual(a, b)
-            dest_dag.apply_operation_back(SwapGate(), qubits, ())
+            dest_dag.apply_operation_back(SwapGate(), qubits, (), check=False)
 
     def recurse(dest_dag, source_dag, result, root_logical_map, layout):
         """The main recursive worker.  Mutates ``dest_dag`` and ``layout`` and returns them.
@@ -384,6 +388,7 @@ def _apply_sabre_result(
                         for q in node.qargs
                     ],
                     node.cargs,
+                    check=False,
                 )
                 continue
 
@@ -419,7 +424,7 @@ def _apply_sabre_result(
             # Apply the control flow gate to the dag.
             mapped_node = node.op.replace_blocks(mapped_blocks)
             mapped_node_qargs = mapped_blocks[0].qubits if mapped_blocks else ()
-            dest_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs)
+            dest_dag.apply_operation_back(mapped_node, mapped_node_qargs, node.cargs, check=False)
         return dest_dag, layout
 
     root_logical_map = {bit: index for index, bit in enumerate(in_dag.qubits)}
