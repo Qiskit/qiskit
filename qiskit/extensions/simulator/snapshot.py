@@ -33,7 +33,6 @@ class Snapshot(Instruction):
         additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
         "instructions, see "
         "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
-        pending=True,
     )
     def __init__(self, label, snapshot_type="statevector", num_qubits=0, num_clbits=0, params=None):
         """Create new snapshot instruction.
@@ -80,7 +79,6 @@ class Snapshot(Instruction):
     additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
     "instructions, see "
     "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
-    pending=True,
 )
 def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
     """Take a statevector snapshot of the internal simulator representation.

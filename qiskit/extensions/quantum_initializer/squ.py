@@ -45,7 +45,6 @@ class SingleQubitUnitary(Gate):
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, you can use qiskit.circuit.library.UnitaryGate.",
-        pending=True,
     )
     def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False):
         """Create a new single qubit gate based on the unitary ``u``."""
@@ -164,11 +163,7 @@ class SingleQubitUnitary(Gate):
             raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
-@deprecate_func(
-    since="0.45.0",
-    additional_msg="Instead, append a qiskit.circuit.library.UnitaryGate to the circuit.",
-    pending=True,
-)
+@deprecate_func(since="0.45.0", additional_msg="Instead, use the QuantumCircuit.unitary method.")
 def squ(
     self,
     unitary_matrix,
