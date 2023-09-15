@@ -14,7 +14,7 @@
 
 import itertools
 
-from qiskit.transpiler import CouplingMap, AnalysisPass
+from qiskit.transpiler import CouplingMap, AnalysisPass, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
 from qiskit._accelerate.error_map import ErrorMap
 
@@ -31,7 +31,13 @@ class SabrePreLayout(AnalysisPass):
     """
 
     def __init__(
-        self, coupling_map, max_distance=2, error_rate=0.1, max_trials_vf2=100, minimize_edges=True
+        self,
+        target=None,
+        coupling_map=None,
+        max_distance=2,
+        error_rate=0.1,
+        max_trials_vf2=100,
+        improve_layout=True,
     ):
         """SabrePreLayout initializer.
 
@@ -47,6 +53,8 @@ class SabrePreLayout(AnalysisPass):
         isomorphism still exists.
 
         Args:
+            target (Target): A target representing the backend device. If specified, it will
+                supersede a set value for ``coupling_map``.
             coupling_map (CouplingMap): directed graph representing the original coupling map.
             max_distance (int): the maximum distance to consider for augmented coupling maps.
             error_rate (float): the error rate to assign to the "extra" edges. A non-zero
@@ -54,16 +62,24 @@ class SabrePreLayout(AnalysisPass):
             max_trials_vf2 (int): specifies the maximum number of VF2 trials. A larger number
                 allows VF2 to explore more layouts, eventually choosing the one with the smallest
                 error rate.
-            minimize_edges (bool): whether to improve the layout by minimizing the number of
-                extra edges involved.
+            improve_layout (bool): whether to improve the layout by minimizing the number of
+                extra edges involved. This might be time-consuming as this requires additional
+                VF2 calls.
 
+        Raises:
+            TranspilerError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
 
+        self.target = target
         self.coupling_map = coupling_map
         self.max_distance = max_distance
         self.error_rate = error_rate
         self.max_trials_vf2 = max_trials_vf2
-        self.minimize_edges = minimize_edges
+        self.improve_layout = improve_layout
+
+        if self.target is not None:
+            self.coupling_map = self.target.build_coupling_map()
+
         super().__init__()
 
     def run(self, dag):
@@ -75,6 +91,11 @@ class SabrePreLayout(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to create starting layout for.
         """
+
+        if self.coupling_map is None:
+            raise TranspilerError(
+                "SabrePreLayout requires either target or coupling_map to be provided."
+            )
 
         starting_layout = None
         cur_distance = 1
@@ -94,7 +115,7 @@ class SabrePreLayout(AnalysisPass):
 
         if cur_distance > 1 and starting_layout is not None:
             # optionally improve starting layout
-            if self.minimize_edges:
+            if self.improve_layout:
                 starting_layout = self._minimize_extra_edges(dag, starting_layout)
             # write discovered layout into the property set
             if "sabre_starting_layouts" not in self.property_set:
