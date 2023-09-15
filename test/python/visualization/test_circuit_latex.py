@@ -314,7 +314,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         matrix = np.zeros((4, 4))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         circuit.append(Isometry(np.eye(4, 4), 0, 0), list(range(3, 5)))
 
         circuit_drawer(circuit, filename=filename, output="latex_source")

@@ -1934,7 +1934,7 @@ class TestTextDrawerParams(QiskitTestCase):
         qr = QuantumRegister(1, name="qr")
         circuit = QuantumCircuit(qr, name="circuit")
         circuit.append(my_u2, [qr[0]])
-        circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        circuit = circuit.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -5096,7 +5096,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         matrix = numpy.zeros((2, 2))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_draw_hamiltonian_multi(self):
@@ -5116,7 +5116,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         matrix = numpy.zeros((4, 4))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
