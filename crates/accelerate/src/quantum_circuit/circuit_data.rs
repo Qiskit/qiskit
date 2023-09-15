@@ -99,10 +99,7 @@ impl CircuitData {
 
                 if let Some(InternedInstruction(op, qargs_slot, cargs_slot)) = self.data.get(index)
                 {
-                    let cell: &PyCell<InternContext> =
-                        self.intern_context.as_ref().unwrap().as_ref(py);
-                    let pyref: PyRef<'_, InternContext> = cell.try_borrow()?;
-                    let context = &*pyref;
+                    let context = self.context(py)?;
                     let qargs = context.lookup(*qargs_slot);
                     let cargs = context.lookup(*cargs_slot);
                     self.new_callable.as_ref().unwrap().call1(
@@ -281,6 +278,16 @@ enum IndexFor {
 }
 
 impl CircuitData {
+    fn context<'a>(&'a self, py: Python<'a>) -> PyResult<PyRef<InternContext>> {
+        let cell: &'a PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
+        Ok(cell.try_borrow()?)
+    }
+
+    fn context_mut<'a>(&'a self, py: Python<'a>) -> PyResult<PyRefMut<InternContext>> {
+        let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
+        Ok(cell.try_borrow_mut()?)
+    }
+
     fn convert_py_slice(&self, py: Python<'_>, slice: &PySlice) -> PyResult<Vec<isize>> {
         let dict: HashMap<&str, PyObject> =
             HashMap::from([("s", slice.into()), ("length", self.data.len().into_py(py))]);
@@ -344,9 +351,7 @@ impl CircuitData {
     }
 
     fn drop_from_cache(&self, py: Python<'_>, entry: InternedInstruction) -> PyResult<()> {
-        let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
-        let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
-        let context = &mut *py_ref;
+        let mut context = self.context_mut(py)?;
         let InternedInstruction(_, qargs_idx, cargs_idx) = entry;
         context.drop_use(qargs_idx);
         context.drop_use(cargs_idx);
@@ -354,9 +359,7 @@ impl CircuitData {
     }
 
     fn get_or_cache(&mut self, py: Python<'_>, elem: ElementType) -> PyResult<InternedInstruction> {
-        let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
-        let mut py_ref: PyRefMut<'_, InternContext> = cell.try_borrow_mut()?;
-        let context = &mut *py_ref;
+        let mut context = self.context_mut(py)?;
         let mut cache_args = |indices: &PyDict, bits: Py<PyTuple>| -> PyResult<IndexType> {
             let args = bits
                 .as_ref(py)
