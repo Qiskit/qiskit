@@ -115,8 +115,8 @@ class NormalizeRXAngle(TransformationPass):
             if self.resolution_in_radian:
                 wrapped_theta = self.quantize_angles(op_node.qargs[0], wrapped_theta)
 
-            half_pi_rotation = np.isclose(abs(wrapped_theta), np.pi / 2)
-            pi_rotation = np.isclose(abs(wrapped_theta), np.pi)
+            half_pi_rotation = np.isclose(abs(wrapped_theta), np.pi / 2, atol=self.resolution_in_radians / 2)
+            pi_rotation = np.isclose(abs(wrapped_theta), np.pi, atol=self.resolution_in_radians / 2)
 
             should_modify_node = (
                 (wrapped_theta != raw_theta)
