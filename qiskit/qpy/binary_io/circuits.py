@@ -173,11 +173,18 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
                 file_obj.read(formats.CIRCUIT_INSTRUCTION_SIZE),
             )
         )
-    else:
+    elif 5 <= version < 10:
         instruction = formats.CIRCUIT_INSTRUCTION_V2._make(
             struct.unpack(
                 formats.CIRCUIT_INSTRUCTION_V2_PACK,
                 file_obj.read(formats.CIRCUIT_INSTRUCTION_V2_SIZE),
+            )
+        )
+    else:
+        instruction = formats.CIRCUIT_INSTRUCTION_V3._make(
+            struct.unpack(
+                formats.CIRCUIT_INSTRUCTION_V3_PACK,
+                file_obj.read(formats.CIRCUIT_INSTRUCTION_V3_SIZE),
             )
         )
     gate_name = file_obj.read(instruction.name_size).decode(common.ENCODE)
@@ -235,6 +242,19 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             type_key, data_bytes, version, vectors, registers, circuit
         )
         params.append(param)
+
+    # Load Duration and Unit
+    if version >= 10:
+        # Load Duration
+        duration = instruction.duration
+        if duration == 0:
+            duration = None
+        # Load Unit
+        unit = file_obj.read(instruction.unit_size).decode(common.ENCODE)
+        if unit == "":
+            unit = None
+    else:
+        pass
 
     # Load Gate object
     if gate_name in {"Gate", "Instruction", "ControlledGate"}:
@@ -308,6 +328,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         gate.condition = condition
     if instruction.label_size > 0:
         gate.label = label
+    if version >= 10:
+        gate.duration = duration
+        gate.unit = unit
     if circuit is None:
         return gate
     if not isinstance(gate, Instruction):
@@ -587,8 +610,14 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
 
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
+    duration = getattr(instruction.operation, "duration", 0)
+    if duration is None:
+        duration = 0
+    unit = getattr(instruction.operation, "unit", None)
+    if unit is None:
+        unit = ""
     instruction_raw = struct.pack(
-        formats.CIRCUIT_INSTRUCTION_V2_PACK,
+        formats.CIRCUIT_INSTRUCTION_V3_PACK,
         len(gate_class_name),
         len(label_raw),
         len(instruction_params),
@@ -599,6 +628,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         condition_value,
         num_ctrl_qubits,
         ctrl_state,
+        duration,
+        len(unit),
     )
     file_obj.write(instruction_raw)
     file_obj.write(gate_class_name)
@@ -622,6 +653,9 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     for param in instruction_params:
         type_key, data_bytes = _dumps_instruction_parameter(param, index_map)
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
+    # Encode instruction unit
+    unit = unit.encode(common.ENCODE)
+    file_obj.write(unit)
     return custom_operations_list
 
 

@@ -104,6 +104,26 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
 CIRCUIT_INSTRUCTION_V2_PACK = "!HHHIIBHqII"
 CIRCUIT_INSTRUCTION_V2_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V2_PACK)
 
+# CIRCUIT_INSTRUCTION_V3
+CIRCUIT_INSTRUCTION_V3 = namedtuple(
+    "CIRCUIT_INSTRUCTION",
+    [
+        "name_size",
+        "label_size",
+        "num_parameters",
+        "num_qargs",
+        "num_cargs",
+        "conditional_key",
+        "condition_register_size",
+        "condition_value",
+        "num_ctrl_qubits",
+        "ctrl_state",
+        "duration",
+        "unit_size",
+    ],
+)
+CIRCUIT_INSTRUCTION_V3_PACK = "!HHHIIBHqIIII"
+CIRCUIT_INSTRUCTION_V3_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_V3_PACK)
 
 # CIRCUIT_INSTRUCTION_ARG
 CIRCUIT_INSTRUCTION_ARG = namedtuple("CIRCUIT_INSTRUCTION_ARG", ["type", "size"])

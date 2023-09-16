@@ -1,0 +1,7 @@
+---
+features:
+  - | 
+    New QPY version - Version 10. QPY now can write/dump and read/load instruction/gate duration and unit.
+fixes:
+  - | 
+    Fixed loss of instruction/gate duration and unit information while writing/dumping and readiing/loading a qpy file.
