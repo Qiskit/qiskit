@@ -135,7 +135,7 @@ class MatplotlibDrawer:
         self._calibrations = self._circuit.calibrations
 
         for node in itertools.chain.from_iterable(self._nodes):
-            if node.cargs and node.op.name != "measure":
+            if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
                 if cregbundle:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -576,7 +576,7 @@ class MatplotlibDrawer:
                         for flow_layer in nodes:
                             for flow_node in flow_layer:
                                 if isinstance(node.op, SwitchCaseOp):
-                                    node_data[flow_node].case_num = circ_num
+                                    node_data[flow_node].circ_num = circ_num
 
                         # Add up the width values of the same flow_parent that are not -1
                         # to get the raw_gate_width
@@ -708,7 +708,6 @@ class MatplotlibDrawer:
         clbits_dict,
         glob_data,
         flow_parent=None,
-        is_not_first_block=None,
     ):
         """Load all the coordinate info needed to place the gates on the drawing."""
 
@@ -717,19 +716,15 @@ class MatplotlibDrawer:
             curr_x_index = prev_x_index + 1
             l_width = []
             for node in layer:
-                # For gates inside if, else, while, or case set the x_index and if it's an
-                # else or case increment by if width. For additional cases increment by
-                # width of previous cases.
+                print("width", node_data[node].width)
+                print('parent', flow_parent)
+                # For gates inside a flow op set the x_index and if it's an else or case,
+                # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
                     node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
-                    if is_not_first_block:
-                        # Add index space for else or first case if switch/case
-                        node_data[node].x_index += int(node_data[flow_parent].width[0]) + 1
-
-                        # Add index space for remaining cases for switch/case
-                        if node_data[node].case_num > 1:
-                            for width in node_data[flow_parent].width[1 : node_data[node].case_num]:
-                                node_data[node].x_index += int(width) + 1
+                    if node_data[node].circ_num > 0:
+                        for width in node_data[flow_parent].width[: node_data[node].circ_num]:
+                            node_data[node].x_index += int(width) + 1
 
                 # get qubit indexes
                 q_indxs = []
@@ -741,16 +736,25 @@ class MatplotlibDrawer:
                 c_indxs = []
                 for carg in node.cargs:
                     if carg in self._clbits:
-                        register = get_bit_register(self._circuit, carg)
-                        if register is not None and self._cregbundle:
-                            c_indxs.append(wire_map[register])
+                        if self._cregbundle:
+                            register = get_bit_register(self._circuit, carg)
+                            if register is not None:
+                                c_indxs.append(wire_map[register])
+                            else:
+                                c_indxs.append(wire_map[carg])
                         else:
                             c_indxs.append(wire_map[carg])
 
                 flow_op = isinstance(node.op, ControlFlowOp)
                 if flow_parent is not None:
                     node_data[node].inside_flow = True
-                    x_index = node_data[node].x_index + node_data[flow_parent].expr_width
+                    print("node x", node_data[node].x_index)
+                    print("flow x", node_data[flow_parent].x_index)
+                    print("flow expr width", node_data[flow_parent].expr_width)
+                    if node_data[flow_parent].circ_num == 0:
+                        x_index = node_data[flow_parent].x_index# + node_data[flow_parent].expr_width
+                    else:
+                        x_index = node_data[flow_parent].x_index
                 else:
                     node_data[node].inside_flow = False
                     x_index = curr_x_index
@@ -979,7 +983,7 @@ class MatplotlibDrawer:
     ):
         """Add the nodes from ControlFlowOps and their coordinates to the main circuit"""
         for flow_drawers in self._flow_drawers.values():
-            for i, flow_drawer in enumerate(flow_drawers):
+            for flow_drawer in flow_drawers:
                 nodes += flow_drawer._nodes
                 flow_drawer._get_coords(
                     node_data,
@@ -989,7 +993,6 @@ class MatplotlibDrawer:
                     clbits_dict,
                     glob_data,
                     flow_parent=flow_drawer._flow_parent,
-                    is_not_first_block=(i > 0),
                 )
                 # Recurse for ControlFlowOps inside the flow_drawer
                 flow_drawer._add_nodes_and_coords(
@@ -1594,7 +1597,7 @@ class MatplotlibDrawer:
             # If there's an else or a case draw the vertical line and the name
             else_case_text = "Else" if isinstance(node.op, IfElseOp) else "Case"
             ewidth_incr = if_width
-            for case_num, ewidth in enumerate(node_data[node].width[1:]):
+            for circ_num, ewidth in enumerate(node_data[node].width[1:]):
                 if ewidth > 0.0:
                     self._ax.plot(
                         [xpos + ewidth_incr + 0.3 - x_shift, xpos + ewidth_incr + 0.3 - x_shift],
@@ -1616,7 +1619,7 @@ class MatplotlibDrawer:
                         zorder=PORDER_FLOW,
                     )
                     if isinstance(node.op, SwitchCaseOp):
-                        jump_val = node_data[node].jump_values[case_num]
+                        jump_val = node_data[node].jump_values[circ_num]
                         # If only one value, e.g. (0,)
                         if len(str(jump_val)) == 4:
                             jump_text = str(jump_val)[1]
@@ -1955,4 +1958,4 @@ class NodeData:
         self.inside_flow = False
         self.indexset = ()  # List of indices used for ForLoopOp
         self.jump_values = []  # List of jump values used for SwitchCaseOp
-        self.case_num = 0  # Used for SwitchCaseOp
+        self.circ_num = 0  # Used for SwitchCaseOp
