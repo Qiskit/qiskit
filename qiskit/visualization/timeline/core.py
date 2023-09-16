@@ -159,6 +159,7 @@ class DrawerCanvas:
                 "This circuit should be transpiled with scheduler though it consists of "
                 "instructions with explicit durations.",
                 DeprecationWarning,
+                stacklevel=3,
             )
 
             try:
