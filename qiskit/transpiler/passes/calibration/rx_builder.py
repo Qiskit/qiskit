@@ -38,16 +38,36 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
     .. code-block:: python
 
-       backend = FakeBelemV2()
-       pm = PassManager(RXCalibrationBuilder(backend.target))
-       qc = QuantumCircuit(1)
-       angles = [0.1, 0.2, 0.3, 0.4]
-       for angle in angles:
-         qc.rx(angle, 0)
+       from qiskit.providers.fake_provider import FakeBelemV2
+       from qiskit.transpiler import PassManager, PassManagerConfig
+       from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
+       from qiskit.circuit import Parameter
+       from qiskit.circuit.library import QuantumVolume
+       from qiskit.circuit.library.standard_gates import RXGate
 
-       # run the pass and check that new calibrations are generated
-       transpiled_circuit = pm.run(qc)
-       print(transpiled_circuit.calibrations["rx"])
+       from calibration.rx_builder import RXCalibrationBuilder
+
+       qv = QuantumVolume(4, 4, seed=1004)
+
+       # Transpiling with single pulse RX gates enabled
+       backend_with_single_pulse_rx = FakeBelemV2()
+       rx_inst_props = {}
+       for i in range(backend_with_single_pulse_rx.num_qubits):
+         rx_inst_props[(i,)] = None
+       backend_with_single_pulse_rx.target.add_instruction(RXGate(Parameter("theta")), rx_inst_props)
+       config_with_rx = PassManagerConfig.from_backend(backend=backend_with_single_pulse_rx)
+       pm_with_rx = level_1_pass_manager(pass_manager_config=config_with_rx)
+       rx_builder = RXCalibrationBuilder(target=backend_with_single_pulse_rx.target)
+       pm_with_rx.post_optimization = PassManager([rx_builder])
+       transpiled_circ_with_single_pulse_rx = pm_with_rx.run(qv)
+       transpiled_circ_with_single_pulse_rx.count_ops()
+
+       # Conventional transpilation: each RX gate is decomposed into a sequence with two SX gates
+       original_backend = FakeBelemV2()
+       original_config = PassManagerConfig.from_backend(backend=original_backend)
+       original_pm = level_1_pass_manager(pass_manager_config=original_config)
+       original_transpiled_circ = original_pm.run(qv)
+       original_transpiled_circ.count_ops()
 
     References
         * [1]: Gokhale et al. (2020), Optimized Quantum Compilation for
@@ -75,9 +95,16 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
     def supported(self, node_op: Instruction, qubits: list) -> bool:
         """
-        Check if the calibration for SX gate exists.
+        Check if the calibration for SX gate exists and it's a single DRAG pulse.
         """
-        return isinstance(node_op, RXGate) and self.target.has_calibration("sx", tuple(qubits))
+        return (
+            isinstance(node_op, RXGate)
+            and self.target.has_calibration("sx", tuple(qubits))
+            and (len(self.target.get_calibration("sx", tuple(qubits)).instructions) == 1)
+            and isinstance(
+                self.target.get_calibration("sx", tuple(qubits)).instructions[0][1].pulse, Drag
+            )
+        )
 
     def get_calibration(self, node_op: Instruction, qubits: list) -> Union[Schedule, ScheduleBlock]:
         """

@@ -33,6 +33,7 @@ from qiskit.pulse import (
     InstructionScheduleMap,
     Schedule,
     Drag,
+    Square,
 )
 from qiskit.pulse import builder
 from qiskit.pulse.transforms import target_qobj_transform
@@ -447,6 +448,17 @@ class TestRXCalibrationBuilder(QiskitTestCase):
         """Test that supported() returns False when the target does not have SX calibration."""
         empty_target = Target()
         tp = RXCalibrationBuilder(empty_target)
+        qubits = (0,)
+        node_op = DAGOpNode(RXGate(0.5), qubits, [])
+        self.assertFalse(tp.supported(node_op, qubits))
+
+    def test_not_supported_if_sx_not_drag(self):
+        """Test that supported() returns False when the default SX calibration is not a DRAG."""
+        target = Target()
+        with builder.build() as square_sx_cal:
+            builder.play(Square(amp=0.1, duration=160, phase=0), DriveChannel(0))
+        target.add_instruction(SXGate(), {(0,): InstructionProperties(calibration=square_sx_cal)})
+        tp = RXCalibrationBuilder(target)
         qubits = (0,)
         node_op = DAGOpNode(RXGate(0.5), qubits, [])
         self.assertFalse(tp.supported(node_op, qubits))
