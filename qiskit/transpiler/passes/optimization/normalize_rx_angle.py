@@ -14,7 +14,8 @@
 the single-pulse RX gates:
 Wrap RX Gate rotation angles into [0, pi] by sandwiching them with RZ gates.
 Convert RX(pi/2) to SX, and RX(pi) to X if the calibrations exist in the target.
-Quantize the RX rotation angles using a resolution provided by the user.
+Quantize the RX rotation angles by assigning the same value for the angles
+that differ within a resolution provided by the user.
 """
 
 import numpy as np
@@ -64,7 +65,8 @@ class NormalizeRXAngle(TransformationPass):
         self.already_generated = {}
 
     def quantize_angles(self, qubit, original_angle):
-        """Quantize the RX rotation angles using a resolution provided by the user.
+        """Quantize the RX rotation angles by assigning the same value for the angles
+        that differ within a resolution provided by the user.
 
         Args:
             qubit (Qubit): This will be the dict key to access the list of quantized rotation angles.
@@ -115,7 +117,9 @@ class NormalizeRXAngle(TransformationPass):
             if self.resolution_in_radian:
                 wrapped_theta = self.quantize_angles(op_node.qargs[0], wrapped_theta)
 
-            half_pi_rotation = np.isclose(abs(wrapped_theta), np.pi / 2, atol=self.resolution_in_radian / 2)
+            half_pi_rotation = np.isclose(
+                abs(wrapped_theta), np.pi / 2, atol=self.resolution_in_radian / 2
+            )
             pi_rotation = np.isclose(abs(wrapped_theta), np.pi, atol=self.resolution_in_radian / 2)
 
             should_modify_node = (
