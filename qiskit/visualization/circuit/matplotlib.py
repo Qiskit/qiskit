@@ -575,8 +575,7 @@ class MatplotlibDrawer:
                         # Gates within a SwitchCaseOp need to know which case they are in
                         for flow_layer in nodes:
                             for flow_node in flow_layer:
-                                if isinstance(node.op, SwitchCaseOp):
-                                    node_data[flow_node].circ_num = circ_num
+                                node_data[flow_node].circ_num = circ_num
 
                         # Add up the width values of the same flow_parent that are not -1
                         # to get the raw_gate_width
@@ -591,11 +590,7 @@ class MatplotlibDrawer:
                         if circ_num > 0:
                             raw_gate_width += 0.045
 
-                        # print("raw", raw_gate_width)
-                        # print("gate", gate_width)
-                        # print(node.op)
-                        # if expr_width > 0.0:
-                        #    raw_gate_width = int(raw_gate_width)
+                        # If expr_width has a value, remove the decimal portion from raw_gate_width
                         if not isinstance(op, ForLoopOp) and circ_num == 0:
                             node_data[node].width.append(raw_gate_width - (expr_width % 1))
                         else:
@@ -716,15 +711,22 @@ class MatplotlibDrawer:
             curr_x_index = prev_x_index + 1
             l_width = []
             for node in layer:
-                print("width", node_data[node].width)
-                print('parent', flow_parent)
                 # For gates inside a flow op set the x_index and if it's an else or case,
                 # increment by if/switch width. If more cases increment by width of previous cases.
                 if flow_parent is not None:
+                    node_data[node].inside_flow = True
                     node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
+                    # If an else or case
                     if node_data[node].circ_num > 0:
                         for width in node_data[flow_parent].width[: node_data[node].circ_num]:
                             node_data[node].x_index += int(width) + 1
+                        x_index = node_data[node].x_index
+                    # Add expr_width to if, while, or switch if expr used
+                    else:
+                        x_index = node_data[node].x_index + node_data[flow_parent].expr_width
+                else:
+                    node_data[node].inside_flow = False
+                    x_index = curr_x_index
 
                 # get qubit indexes
                 q_indxs = []
@@ -736,28 +738,13 @@ class MatplotlibDrawer:
                 c_indxs = []
                 for carg in node.cargs:
                     if carg in self._clbits:
-                        if self._cregbundle:
-                            register = get_bit_register(self._circuit, carg)
-                            if register is not None:
-                                c_indxs.append(wire_map[register])
-                            else:
-                                c_indxs.append(wire_map[carg])
+                        register = get_bit_register(self._circuit, carg)
+                        if register is not None and self._cregbundle:
+                            c_indxs.append(wire_map[register])
                         else:
                             c_indxs.append(wire_map[carg])
 
                 flow_op = isinstance(node.op, ControlFlowOp)
-                if flow_parent is not None:
-                    node_data[node].inside_flow = True
-                    print("node x", node_data[node].x_index)
-                    print("flow x", node_data[flow_parent].x_index)
-                    print("flow expr width", node_data[flow_parent].expr_width)
-                    if node_data[flow_parent].circ_num == 0:
-                        x_index = node_data[flow_parent].x_index# + node_data[flow_parent].expr_width
-                    else:
-                        x_index = node_data[flow_parent].x_index
-                else:
-                    node_data[node].inside_flow = False
-                    x_index = curr_x_index
 
                 # qubit coordinates
                 node_data[node].q_xy = [

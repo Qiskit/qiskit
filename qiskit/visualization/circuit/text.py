@@ -1642,7 +1642,7 @@ class Layer:
                     self.set_clbit(register[0], BoxOnClWire(label=label, top_connect=top_connect))
             else:
                 for register, bits in registers.items():
-                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits))
+                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits, wire_map))
             return out
 
         label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)
