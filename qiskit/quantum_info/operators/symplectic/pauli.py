@@ -480,9 +480,9 @@ class Pauli(BasePauli):
 
         y_array = np.logical_and(self.x, self.z)
 
-        x_qubits = np.where(np.logical_xor(self.x, y_array))[0]
-        y_qubits = np.where(y_array)[0]
-        z_qubits = np.where(np.logical_xor(self.z, y_array))[0]
+        x_qubits = tuple(np.where(np.logical_xor(self.x, y_array))[0])
+        y_qubits = tuple(np.where(y_array)[0])
+        z_qubits = tuple(np.where(np.logical_xor(self.z, y_array))[0])
         phase = self.phase
         num_qubits = len(self.x)
 
