@@ -48,7 +48,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class DAGDependency:
-    """Object to represent a quantum circuit as a Directed Acyclic Graphs (DAG)
+    """Object to represent a quantum circuit as a Directed Acyclic Graph (DAG)
     via operation dependencies (i.e. lack of commutation).
 
     The nodes in the graph are operations represented by quantum gates.
