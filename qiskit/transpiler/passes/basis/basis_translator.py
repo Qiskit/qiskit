@@ -314,7 +314,9 @@ class BasisTranslator(TransformationPass):
                         else:
                             bind_dict = {x: parameter_map[x] for x in param.parameters}
                             if any(isinstance(x, ParameterExpression) for x in bind_dict.values()):
-                                new_value = param.subs(bind_dict)
+                                new_value = param
+                                for x in bind_dict.items():
+                                    new_value = new_value.assign(*x)
                             else:
                                 new_value = param.bind(bind_dict)
                             if not new_value.parameters:
@@ -335,7 +337,10 @@ class BasisTranslator(TransformationPass):
                 old_phase = target_dag.global_phase
                 bind_dict = {x: parameter_map[x] for x in old_phase.parameters}
                 if any(isinstance(x, ParameterExpression) for x in bind_dict.values()):
-                    new_phase = old_phase.subs(bind_dict)
+                    new_phase = old_phase
+                    for x in bind_dict.items():
+                        new_phase = new_phase.assign(*x)
+
                 else:
                     new_phase = old_phase.bind(bind_dict)
                 try:
