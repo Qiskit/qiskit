@@ -56,16 +56,16 @@ class UnitaryGate(Gate):
             circuit.append(gate, [0, 1])
     """
 
-    def __init__(self, data, label=None, skip_check=False):
+    def __init__(self, data, label=None, check_input=True):
         """Create a gate from a numeric unitary matrix.
 
         Args:
             data (matrix or Operator): unitary operator.
             label (str): unitary name for backend [Default: None].
-            skip_check (bool): If set to ``True`` this asserts the input
+            check_input (bool): If set to ``False`` this asserts the input
                 is known to be unitary and the checking to validate this will
                 be skipped. This should only ever be used if you know the
-                input is unitary, setting this to ``True`` and passing in
+                input is unitary, setting this to ``False`` and passing in
                 a non-unitary matrix will result unexpected behavior and errors.
 
         Raises:
@@ -84,7 +84,7 @@ class UnitaryGate(Gate):
         data = numpy.asarray(data, dtype=complex)
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if not skip_check:
+        if check_input:
             # Check input is unitary
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
