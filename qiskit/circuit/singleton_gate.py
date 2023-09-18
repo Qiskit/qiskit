@@ -19,23 +19,25 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.exceptions import CircuitError
 
 
-SINGLETONGATE_ATTR_SET = frozenset((
-    "definition",
-    "unit",
-    "duration",
-    "condition",
-    "label",
-    "_label",
-    "_condition",
-    "_duration",
-    "_unit",
-    "_definition",
-    "_name",
-    "_num_qubits",
-    "_num_clbits",
-    "_params",
-    "params",
-))
+SINGLETONGATE_ATTR_SET = frozenset(
+    (
+        "definition",
+        "unit",
+        "duration",
+        "condition",
+        "label",
+        "_label",
+        "_condition",
+        "_duration",
+        "_unit",
+        "_definition",
+        "_name",
+        "_num_qubits",
+        "_num_clbits",
+        "_params",
+        "params",
+    )
+)
 
 
 class SingletonGate(Gate):
@@ -59,8 +61,10 @@ class SingletonGate(Gate):
 
     _instance = None
 
-    def __new__(cls, *_args, **kwargs):
-        if "label" in kwargs or "_condition" in kwargs or "duration" in kwargs or "unit" in kwargs:
+    def __new__(cls, *args, **kwargs):
+        if kwargs and (
+            "label" in kwargs or "_condition" in kwargs or "duration" in kwargs or "unit" in kwargs
+        ):
             return super().__new__(cls)
         if cls._instance is None:
             cls._instance = super().__new__(cls)
