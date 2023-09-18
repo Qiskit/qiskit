@@ -31,9 +31,11 @@ ddt>=1.2.0,!=1.4.0,!=1.4.3
 # components of Terra use some of its optional dependencies in order to document
 # themselves.  These are the requirements that are _only_ required for the docs
 # build, and are not used by Terra itself.
-Sphinx>=6.0
-qiskit-sphinx-theme~=1.14.0
+Sphinx>=6.0,<7.2
+qiskit-sphinx-theme~=1.16.0
 sphinx-design>=0.2.0
+sphinx-remove-toctrees
+sphinx-reredirects
 nbsphinx~=0.9.2
 nbconvert~=7.7.1
 # TODO: switch to stable release when 4.1 is released
