@@ -30,17 +30,27 @@ from qiskit.providers.fake_provider import FakeNairobiV2
 class TranspileLayoutTest(QiskitTestCase):
     """Test the methods in the TranspileLayout object."""
 
-    def test_full_layout_full_path(self):
+    def test_final_index_layout_full_path(self):
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(3, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[2, 1, 0], seed_transpiler=42)
-        res = tqc.layout.full_layout()
+        res = tqc.layout.final_index_layout()
         self.assertEqual(res, [2, 0, 1])
 
-    def test_full_layout_full_path_with_ancilla(self):
+    def test_final_virtual_layout_full_path(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(3, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[2, 1, 0], seed_transpiler=42)
+        res = tqc.layout.final_virtual_layout()
+        self.assertEqual(res, Layout({qc.qubits[0]: 2, qc.qubits[1]: 0, qc.qubits[2]: 1}))
+
+    def test_final_index_layout_full_path_with_ancilla(self):
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
@@ -68,8 +78,116 @@ class TranspileLayoutTest(QiskitTestCase):
         #                ┌───┐ │
         #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
         #                └───┘
-        res = tqc.layout.full_layout()
+        res = tqc.layout.final_index_layout()
         self.assertEqual(res, [4, 5, 3])
+
+    def test_final_index_layout_full_path_with_ancilla_no_filter(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(10, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
+        # tqc:
+        #       q_2 -> 0 ──X─────────────────────────────────────────────────
+        #                  │
+        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
+        #                      │
+        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
+        #                         │ ┌───┐                               ┌───┐
+        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
+        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
+        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
+        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
+        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
+        #                                 │ └───┘└───┘└───┘
+        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
+        #                             │
+        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
+        #                         │
+        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
+        #                ┌───┐ │
+        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
+        #                └───┘
+        res = tqc.layout.final_index_layout(filter_ancillas=False)
+        self.assertEqual(res, [4, 5, 3, 0, 1, 2, 6, 7, 8, 9])
+
+    def test_final_virtual_layout_full_path_with_ancilla(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(10, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
+        # tqc:
+        #       q_2 -> 0 ──X─────────────────────────────────────────────────
+        #                  │
+        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
+        #                      │
+        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
+        #                         │ ┌───┐                               ┌───┐
+        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
+        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
+        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
+        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
+        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
+        #                                 │ └───┘└───┘└───┘
+        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
+        #                             │
+        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
+        #                         │
+        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
+        #                ┌───┐ │
+        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
+        #                └───┘
+        res = tqc.layout.final_virtual_layout()
+        self.assertEqual(res, Layout({qc.qubits[0]: 4, qc.qubits[1]: 5, qc.qubits[2]: 3}))
+
+    def test_final_virtual_layout_full_path_with_ancilla_no_filter(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(10, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[9, 4, 0], seed_transpiler=42)
+        # tqc:
+        #       q_2 -> 0 ──X─────────────────────────────────────────────────
+        #                  │
+        # ancilla_0 -> 1 ──X───X─────────────────────────────────────────────
+        #                      │
+        # ancilla_1 -> 2 ──────X──X──────────────────────────────────────────
+        #                         │ ┌───┐                               ┌───┐
+        # ancilla_2 -> 3 ─────────X─┤ H ├────────────────────────────■──┤ H ├
+        #                ┌───┐      └───┘             ┌───┐   ┌───┐┌─┴─┐├───┤
+        #       q_1 -> 4 ┤ H ├─────────────────────■──┤ H ├─X─┤ H ├┤ X ├┤ H ├
+        #                └───┘              ┌───┐┌─┴─┐├───┤ │ └───┘└───┘└───┘
+        # ancilla_3 -> 5 ─────────────────X─┤ H ├┤ X ├┤ H ├─X────────────────
+        #                                 │ └───┘└───┘└───┘
+        # ancilla_4 -> 6 ─────────────X───X──────────────────────────────────
+        #                             │
+        # ancilla_5 -> 7 ─────────X───X──────────────────────────────────────
+        #                         │
+        # ancilla_6 -> 8 ──────X──X──────────────────────────────────────────
+        #                ┌───┐ │
+        #       q_0 -> 9 ┤ H ├─X─────────────────────────────────────────────
+        #                └───┘
+        res = tqc.layout.final_virtual_layout(filter_ancillas=False)
+        pos_to_virt = {v: k for k, v in tqc.layout.input_qubit_mapping.items()}
+        expected = Layout(
+            {
+                pos_to_virt[0]: 4,
+                pos_to_virt[1]: 5,
+                pos_to_virt[2]: 3,
+                pos_to_virt[3]: 0,
+                pos_to_virt[4]: 1,
+                pos_to_virt[5]: 2,
+                pos_to_virt[6]: 6,
+                pos_to_virt[7]: 7,
+                pos_to_virt[8]: 8,
+                pos_to_virt[9]: 9,
+            }
+        )
+        self.assertEqual(res, expected)
 
     def test_permute_sparse_pauli_op(self):
         psi = EfficientSU2(4, reps=4, entanglement="circular")
@@ -78,8 +196,8 @@ class TranspileLayoutTest(QiskitTestCase):
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
         permuted_op = transpiled_psi.layout.permute_sparse_pauli_op(op)
         identity_op = SparsePauliOp("I" * 7)
-        initial_layout = transpiled_psi.layout.initial_layout_list(filter_ancillas=True)
-        final_layout = transpiled_psi.layout.final_layout_list()
+        initial_layout = transpiled_psi.layout.initial_index_layout(filter_ancillas=True)
+        final_layout = transpiled_psi.layout.routing_permutation()
         qargs = [final_layout[x] for x in initial_layout]
         expected_op = identity_op.compose(op, qargs=qargs)
         self.assertNotEqual(op, permuted_op)
@@ -98,7 +216,7 @@ class TranspileLayoutTest(QiskitTestCase):
         res = job.result().values
         np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
 
-    def test_final_layout_list(self):
+    def test_routing_permutation(self):
         qr = QuantumRegister(5)
         final_layout = Layout(
             {
@@ -116,10 +234,10 @@ class TranspileLayoutTest(QiskitTestCase):
             _input_qubit_count=5,
             _output_qubit_list=list(qr),
         )
-        res = layout_obj.final_layout_list()
+        res = layout_obj.routing_permutation()
         self.assertEqual(res, [2, 4, 1, 0, 3])
 
-    def test_final_layout_list_no_final_layout(self):
+    def test_routing_permutation_no_final_layout(self):
         qr = QuantumRegister(5)
         layout_obj = TranspileLayout(
             initial_layout=Layout.generate_trivial_layout(qr),
@@ -128,32 +246,84 @@ class TranspileLayoutTest(QiskitTestCase):
             _input_qubit_count=5,
             _output_qubit_list=list(qr),
         )
-        res = layout_obj.final_layout_list()
+        res = layout_obj.routing_permutation()
         self.assertEqual(res, list(range(5)))
 
-    def test_initial_layout_list(self):
+    def test_initial_index_layout(self):
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(3, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[2, 1, 0], seed_transpiler=42)
-        self.assertEqual(tqc.layout.initial_layout_list(), [2, 1, 0])
+        self.assertEqual(tqc.layout.initial_index_layout(), [2, 1, 0])
 
-    def test_initial_layout_list_with_ancillas(self):
+    def test_initial_index_layout_with_ancillas(self):
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(6, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[2, 1, 0], seed_transpiler=42)
-        self.assertEqual(tqc.layout.initial_layout_list(), [2, 1, 0, 3, 4, 5])
+        self.assertEqual(tqc.layout.initial_index_layout(), [2, 1, 0, 3, 4, 5])
 
-    def test_initial_layout_list_filter_ancillas(self):
+    def test_initial_index_layout_filter_ancillas(self):
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(0, 2)
         cmap = CouplingMap.from_line(6, bidirectional=False)
         tqc = transpile(qc, coupling_map=cmap, initial_layout=[5, 2, 1], seed_transpiler=42)
-        self.assertEqual(tqc.layout.initial_layout_list(True), [5, 2, 1])
+        self.assertEqual(tqc.layout.initial_index_layout(True), [5, 2, 1])
+
+    def test_initial_virtual_layout(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(3, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[2, 1, 0], seed_transpiler=42)
+        self.assertEqual(
+            tqc.layout.initial_virtual_layout(),
+            Layout.from_qubit_list([qc.qubits[2], qc.qubits[1], qc.qubits[0]]),
+        )
+
+    def test_initial_virtual_layout_with_ancillas(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(6, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[2, 1, 0], seed_transpiler=42)
+        reverse_pos_map = {v: k for k, v in tqc.layout.input_qubit_mapping.items()}
+        self.assertEqual(
+            tqc.layout.initial_virtual_layout(),
+            Layout.from_qubit_list(
+                [
+                    reverse_pos_map[2],
+                    reverse_pos_map[1],
+                    reverse_pos_map[0],
+                    reverse_pos_map[3],
+                    reverse_pos_map[4],
+                    reverse_pos_map[5],
+                ]
+            ),
+        )
+
+    def test_initial_virtual_layout_filter_ancillas(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(6, bidirectional=False)
+        tqc = transpile(qc, coupling_map=cmap, initial_layout=[5, 2, 1], seed_transpiler=42)
+        self.assertEqual(
+            tqc.layout.initial_virtual_layout(True),
+            Layout(
+                {
+                    qc.qubits[0]: 5,
+                    qc.qubits[1]: 2,
+                    qc.qubits[2]: 1,
+                }
+            ),
+        )
