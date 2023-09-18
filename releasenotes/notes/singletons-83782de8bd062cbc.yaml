@@ -102,7 +102,7 @@ upgrade:
     a circuit operation it wasn't very commonly used and a copy would generate
     a unique instance. This has changed starting in this release because of
     :class:`~.SingletonGate` being made available (and a large number of standard
-    library gates now built off of it). If you're use of these objects is assuming
+    library gates now built off of it). If your usage of these objects is assuming
     unique instances for every circuit operation there are potential issue because
     of shared state that will be reused between operations of the same type (that
     will persist through copy and deep copies). You can rely on the

@@ -55,8 +55,8 @@ class SingletonGate(Gate):
     :attr:`.unit` which can be set differently for specific instances of gates.
     For :class:`~.SingletonGate` usage to be sound setting these attributes
     is not available and they can only be set at creation time. If any of these
-    attributes are used instead of using a single shared global instance of
-    the same gate a new separate instance will be created.
+    attributes are used, then instead of using a single shared global instance
+    of the same gate a new separate instance will be created.
     """
 
     _instance = None
