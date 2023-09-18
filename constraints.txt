@@ -11,3 +11,7 @@ numpy<1.25
 # eigensystem code for one of the test cases.  See
 # https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
 scipy<1.11
+
+# python-subunit 1.4.3 caused a problem with `stestr` failing to detect
+# the subcommands like `run` with the latest `stestr` 4.0.1.
+python-subunit==1.4.2
