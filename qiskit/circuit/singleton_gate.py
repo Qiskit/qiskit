@@ -152,12 +152,7 @@ class SingletonGate(Gate):
         self._unit = unit
 
     def __deepcopy__(self, _memo=None):
-        if (
-            self.condition is None
-            and self.label is None
-            and self.duration is None
-            and self.unit == "dt"
-        ):
+        if not self.mutable:
             return self
         else:
             return type(self)(
