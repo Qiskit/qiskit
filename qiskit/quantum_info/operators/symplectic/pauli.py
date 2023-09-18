@@ -363,6 +363,8 @@ class Pauli(BasePauli):
         """
         if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
+        if len(qubits) == 0:
+            return Pauli((self._z, self._x, self.phase))
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
                 "Qubit index is larger than the number of qubits "
@@ -370,8 +372,6 @@ class Pauli(BasePauli):
             )
         if len(qubits) == self.num_qubits:
             raise QiskitError("Cannot delete all qubits of Pauli")
-        if len(qubits) == 0:
-            return Pauli((self._z, self._x, self.phase))
         z = np.delete(self._z, qubits, axis=1)
         x = np.delete(self._x, qubits, axis=1)
         return Pauli((z, x, self.phase))
