@@ -53,11 +53,6 @@ jobs:
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
 
-      # Sync with '.azure/tutorials-linux.yml'.
-      - name: Download current tutorials
-        run: tools/prepare_tutorials.bash circuits circuits_advanced operators
-        shell: bash
-
       # This is just to have tox create the environment, so we can use it to execute the tutorials.
       # We want to re-use it later for the build, hence 'tox run --notest' instead of 'tox devenv'.
       - name: Prepare Python environment

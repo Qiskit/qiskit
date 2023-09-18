@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import numpy as np
 
-from qiskit.circuit import Qubit, Gate
+from qiskit.circuit import Gate, ParameterExpression, Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
@@ -227,7 +227,8 @@ class PadDynamicalDecoupling(BasePadding):
             for index, gate in enumerate(self._dd_sequence):
                 try:
                     # Check calibration.
-                    gate_length = dag.calibrations[gate.name][(physical_index, gate.params)]
+                    params = self._resolve_params(gate)
+                    gate_length = dag.calibrations[gate.name][((physical_index,), params)].duration
                     if gate_length % self._alignment != 0:
                         # This is necessary to implement lightweight scheduling logic for this pass.
                         # Usually the pulse alignment constraint and pulse data chunk size take
@@ -395,6 +396,17 @@ class PadDynamicalDecoupling(BasePadding):
                 idle_after += gate_length
 
         dag.global_phase = self._mod_2pi(dag.global_phase + sequence_gphase)
+
+    @staticmethod
+    def _resolve_params(gate: Gate) -> tuple:
+        """Return gate params with any bound parameters replaced with floats"""
+        params = []
+        for p in gate.params:
+            if isinstance(p, ParameterExpression) and not p.parameters:
+                params.append(float(p))
+            else:
+                params.append(p)
+        return tuple(params)
 
     @staticmethod
     def _mod_2pi(angle: float, atol: float = 0):

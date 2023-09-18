@@ -104,6 +104,7 @@ Similarly, the binary operations and relations have helper functions defined.
 
 .. autofunction:: bit_and
 .. autofunction:: bit_or
+.. autofunction:: bit_xor
 .. autofunction:: logic_and
 .. autofunction:: logic_or
 .. autofunction:: equal

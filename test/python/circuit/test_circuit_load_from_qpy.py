@@ -251,7 +251,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual(qc.bind_parameters({theta: 3.14}), new_circ.bind_parameters({theta: 3.14}))
+        self.assertEqual(
+            qc.assign_parameters({theta: 3.14}), new_circ.assign_parameters({theta: 3.14})
+        )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_bound_parameter(self):

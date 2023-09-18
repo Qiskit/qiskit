@@ -45,7 +45,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
-from qiskit.utils.deprecation import deprecate_func
 
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
@@ -607,14 +606,6 @@ class DAGCircuit:
             del self._op_names[op.name]
         else:
             self._op_names[op.name] -= 1
-
-    @deprecate_func(
-        additional_msg="Instead, use :meth:`~copy_empty_like()`, which acts identically.",
-        since="0.20.0",
-    )
-    def _copy_circuit_metadata(self):
-        """DEPRECATED"""
-        return self.copy_empty_like()
 
     def copy_empty_like(self):
         """Return a copy of self with the same structure but empty.
