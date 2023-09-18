@@ -134,19 +134,27 @@ class MatplotlibDrawer:
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
 
-        for node in itertools.chain.from_iterable(self._nodes):
-            if node.cargs and node.op.name != "measure" and not isinstance(node.op, ControlFlowOp):
-                if cregbundle:
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        3,
-                    )
-                self._cregbundle = False
-                break
-        else:
-            self._cregbundle = True if cregbundle is None else cregbundle
+        def check_clbit_in_inst(circuit, cregbundle):
+            if cregbundle is False:
+                return False
+            for inst in circuit.data:
+                if isinstance(inst.operation, ControlFlowOp):
+                    for block in inst.operation.blocks:
+                        if check_clbit_in_inst(block, cregbundle) is False:
+                            return False
+                elif inst.clbits and not isinstance(inst.operation, Measure):
+                    if cregbundle is not False:
+                        warn(
+                            "Cregbundle set to False since an instruction needs to refer"
+                            " to individual classical wire",
+                            RuntimeWarning,
+                            3,
+                        )
+                    return False
+
+            return True
+
+        self._cregbundle = check_clbit_in_inst(circuit, cregbundle)
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
@@ -312,12 +320,12 @@ class MatplotlibDrawer:
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict, glob_data)
 
         # get layer widths - flow gates are initialized here
-        layer_widths = self._get_layer_widths(node_data, wire_map, glob_data)
+        layer_widths = self._get_layer_widths(node_data, wire_map, self._circuit, glob_data)
 
         # load the coordinates for each top level gate and compute number of folds.
         # coordinates for flow gates are loaded before draw_ops
         max_x_index = self._get_coords(
-            node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
+            node_data, wire_map, self._circuit, layer_widths, qubits_dict, clbits_dict, glob_data
         )
         num_folds = max(0, max_x_index - 1) // self._fold if self._fold > 0 else 0
 
@@ -386,6 +394,7 @@ class MatplotlibDrawer:
             self._nodes,
             node_data,
             wire_map,
+            self._circuit,
             layer_widths,
             qubits_dict,
             clbits_dict,
@@ -403,7 +412,7 @@ class MatplotlibDrawer:
             matplotlib_close_if_inline(mpl_figure)
             return mpl_figure
 
-    def _get_layer_widths(self, node_data, wire_map, glob_data):
+    def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
@@ -419,14 +428,14 @@ class MatplotlibDrawer:
                 op = node.op
                 node_data[node] = NodeData()
                 node_data[node].width = WID
-                num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
+                num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
                 if (
                     getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
                 ) or isinstance(op, Measure):
                     node_data[node].raw_gate_text = op.name
                     continue
 
-                base_type = getattr(op, "base_gate", None)
+                base_type = None if not hasattr(op, "base_gate") else op.base_gate
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
                     op, "mpl", style=self._style, calibrations=self._calibrations
                 )
@@ -439,7 +448,7 @@ class MatplotlibDrawer:
                 if (
                     (len(node.qargs) - num_ctrl_qubits) == 1
                     and len(gate_text) < 3
-                    and len(getattr(op, "params", [])) == 0
+                    and (not hasattr(op, "params") or len(op.params) == 0)
                     and ctrl_text is None
                 ):
                     continue
@@ -454,7 +463,8 @@ class MatplotlibDrawer:
                 )
                 # get param_width, but 0 for gates with array params or circuits in params
                 if (
-                    len(getattr(op, "params", [])) > 0
+                    hasattr(op, "params")
+                    and len(op.params) > 0
                     and not any(isinstance(param, np.ndarray) for param in op.params)
                     and not any(isinstance(param, QuantumCircuit) for param in op.params)
                 ):
@@ -569,7 +579,9 @@ class MatplotlibDrawer:
                         self._flow_drawers[node].append(flow_drawer)
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
-                        flow_widths = flow_drawer._get_layer_widths(node_data, wire_map, glob_data)
+                        flow_widths = flow_drawer._get_layer_widths(
+                            node_data, wire_map, outer_circuit, glob_data
+                        )
                         layer_widths.update(flow_widths)
 
                         # Gates within a SwitchCaseOp need to know which case they are in
@@ -590,7 +602,7 @@ class MatplotlibDrawer:
                         if circ_num > 0:
                             raw_gate_width += 0.045
 
-                        # If expr_width has a value, remove the decimal portion from raw_gate_width
+                        # If expr_width has a value, remove the decimal portion from raw_gate_widthl
                         if not isinstance(op, ForLoopOp) and circ_num == 0:
                             node_data[node].width.append(raw_gate_width - (expr_width % 1))
                         else:
@@ -613,7 +625,6 @@ class MatplotlibDrawer:
                     node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
                 layer_widths[node][0] = int(widest_box) + 1
-            # print("l widths", layer_widths)
 
         return layer_widths
 
@@ -698,6 +709,7 @@ class MatplotlibDrawer:
         self,
         node_data,
         wire_map,
+        outer_circuit,
         layer_widths,
         qubits_dict,
         clbits_dict,
@@ -738,7 +750,7 @@ class MatplotlibDrawer:
                 c_indxs = []
                 for carg in node.cargs:
                     if carg in self._clbits:
-                        register = get_bit_register(self._circuit, carg)
+                        register = get_bit_register(outer_circuit, carg)
                         if register is not None and self._cregbundle:
                             c_indxs.append(wire_map[register])
                         else:
@@ -966,7 +978,15 @@ class MatplotlibDrawer:
                 )
 
     def _add_nodes_and_coords(
-        self, nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
+        self,
+        nodes,
+        node_data,
+        wire_map,
+        outer_circuit,
+        layer_widths,
+        qubits_dict,
+        clbits_dict,
+        glob_data,
     ):
         """Add the nodes from ControlFlowOps and their coordinates to the main circuit"""
         for flow_drawers in self._flow_drawers.values():
@@ -975,6 +995,7 @@ class MatplotlibDrawer:
                 flow_drawer._get_coords(
                     node_data,
                     flow_drawer._flow_wire_map,
+                    outer_circuit,
                     layer_widths,
                     qubits_dict,
                     clbits_dict,
@@ -983,7 +1004,14 @@ class MatplotlibDrawer:
                 )
                 # Recurse for ControlFlowOps inside the flow_drawer
                 flow_drawer._add_nodes_and_coords(
-                    nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
+                    nodes,
+                    node_data,
+                    wire_map,
+                    outer_circuit,
+                    layer_widths,
+                    qubits_dict,
+                    clbits_dict,
+                    glob_data,
                 )
 
     def _draw_ops(
@@ -991,6 +1019,7 @@ class MatplotlibDrawer:
         nodes,
         node_data,
         wire_map,
+        outer_circuit,
         layer_widths,
         qubits_dict,
         clbits_dict,
@@ -1001,7 +1030,14 @@ class MatplotlibDrawer:
 
         # Add the nodes from all the ControlFlowOps and their coordinates to the main nodes
         self._add_nodes_and_coords(
-            nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, glob_data
+            nodes,
+            node_data,
+            wire_map,
+            outer_circuit,
+            layer_widths,
+            qubits_dict,
+            clbits_dict,
+            glob_data,
         )
         prev_x_index = -1
         for layer in nodes:
@@ -1029,11 +1065,11 @@ class MatplotlibDrawer:
                         )
                         for ii in clbits_dict
                     ]
-                    self._condition(node, node_data, wire_map, cond_xy, glob_data)
+                    self._condition(node, node_data, wire_map, outer_circuit, cond_xy, glob_data)
 
                 # draw measure
                 if isinstance(op, Measure):
-                    self._measure(node, node_data, glob_data)
+                    self._measure(node, node_data, outer_circuit, glob_data)
 
                 # draw barriers, snapshots, etc.
                 elif getattr(op, "_directive", False):
@@ -1073,7 +1109,7 @@ class MatplotlibDrawer:
         """Get all the colors needed for drawing the circuit"""
 
         op = node.op
-        base_name = getattr(getattr(op, "base_gate", None), "name", None)
+        base_name = None if not hasattr(op, "base_gate") else op.base_gate.name
         color = None
         if node_data[node].raw_gate_text in self._style["dispcol"]:
             color = self._style["dispcol"][node_data[node].raw_gate_text]
@@ -1117,7 +1153,7 @@ class MatplotlibDrawer:
         node_data[node].sc = sc
         node_data[node].lc = lc
 
-    def _condition(self, node, node_data, wire_map, cond_xy, glob_data):
+    def _condition(self, node, node_data, wire_map, outer_circuit, cond_xy, glob_data):
         """Add a conditional to a gate"""
 
         # For SwitchCaseOp convert the target to a fully closed Clbit or register
@@ -1146,7 +1182,7 @@ class MatplotlibDrawer:
             override_fc = True
             registers = collections.defaultdict(list)
             for bit in condition_bits:
-                registers[get_bit_register(self._circuit, bit)].append(bit)
+                registers[get_bit_register(outer_circuit, bit)].append(bit)
             # Registerless bits don't care whether cregbundle is set.
             cond_pos.extend(cond_xy[wire_map[bit] - first_clbit] for bit in registers.pop(None, ()))
             if self._cregbundle:
@@ -1175,7 +1211,7 @@ class MatplotlibDrawer:
 
             # If it's a register bit and cregbundle, need to use the register to find the location
             elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-                register = get_bit_register(self._circuit, cond_bit_reg)
+                register = get_bit_register(outer_circuit, cond_bit_reg)
                 if register is not None:
                     cond_pos.append(cond_xy[wire_map[register] - first_clbit])
                 else:
@@ -1222,11 +1258,11 @@ class MatplotlibDrawer:
         )
         self._line(qubit_b, clbit_b, lc=self._style["cc"], ls=self._style["cline"])
 
-    def _measure(self, node, node_data, glob_data):
+    def _measure(self, node, node_data, outer_circuit, glob_data):
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = node_data[node].q_xy[0]
         cx, cy = node_data[node].c_xy[0]
-        register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
+        register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
 
         # draw gate box
         self._gate(node, node_data, glob_data)
@@ -1637,7 +1673,7 @@ class MatplotlibDrawer:
         """Draw a controlled gate"""
         op = node.op
         xy = node_data[node].q_xy
-        base_type = getattr(op, "base_gate", None)
+        base_type = None if not hasattr(op, "base_gate") else op.base_gate
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
         num_ctrl_qubits = op.num_ctrl_qubits
@@ -1772,7 +1808,7 @@ class MatplotlibDrawer:
         xy = node_data[node].q_xy
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
-        base_type = getattr(op, "base_gate", None)
+        base_type = None if not hasattr(op, "base_gate") else op.base_gate
         ec = node_data[node].ec
         tc = node_data[node].tc
         lc = node_data[node].lc
