@@ -33,7 +33,7 @@ class CollectMultiQBlocks(AnalysisPass):
     Some gates may not be present in any block (e.g. if the number
     of operands is greater than max_block_size)
 
-    A Disjont Set Union data structure (DSU) is used to maintain blocks as
+    A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.
@@ -126,7 +126,6 @@ class CollectMultiQBlocks(AnalysisPass):
             return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for nd in op_nodes:
             can_process = True
@@ -140,7 +139,7 @@ class CollectMultiQBlocks(AnalysisPass):
             ):
                 can_process = False
 
-            cur_qubits = {qubit_indices[bit] for bit in nd.qargs}
+            cur_qubits = {dag.find_bit(bit).index for bit in nd.qargs}
 
             if can_process:
                 # if the gate is valid, check if grouping up the bits

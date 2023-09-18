@@ -13,6 +13,7 @@
 
 """Objects to represent the information at a node in the DAGCircuit."""
 
+import itertools
 import uuid
 from typing import Iterable
 
@@ -251,13 +252,24 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = ()):
+    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
         self.qargs = tuple(qargs)
         self.cargs = tuple(cargs)
-        self.sort_key = str(self.qargs)
+        if dag is not None:
+            cache_key = (self.qargs, self.cargs)
+            key = dag._key_cache.get(cache_key, None)
+            if key is not None:
+                self.sort_key = key
+            else:
+                self.sort_key = ",".join(
+                    f"{dag.find_bit(q).index:04d}" for q in itertools.chain(*cache_key)
+                )
+                dag._key_cache[cache_key] = self.sort_key
+        else:
+            self.sort_key = str(self.qargs)
 
     @property
     def name(self):

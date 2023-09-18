@@ -389,6 +389,22 @@ class TestCircuitOperations(QiskitTestCase):
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
 
+    def test_circuit_copy_rejects_invalid_types(self):
+        """Test copy method rejects argument with type other than 'string' and 'None' type."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+
+        with self.assertRaises(TypeError):
+            qc.copy([1, "2", 3])
+
+    def test_circuit_copy_empty_like_rejects_invalid_types(self):
+        """Test copy_empty_like method rejects argument with type other than 'string' and 'None' type."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+
+        with self.assertRaises(TypeError):
+            qc.copy_empty_like(123)
+
     def test_clear_circuit(self):
         """Test clear method deletes instructions in circuit."""
         qr = QuantumRegister(2)
@@ -744,7 +760,7 @@ class TestCircuitOperations(QiskitTestCase):
         circuit = QuantumCircuit(1, global_phase=x)
         self.assertEqual(circuit.parameters, {x})
 
-        bound = circuit.bind_parameters({x: 2})
+        bound = circuit.assign_parameters({x: 2})
         self.assertEqual(bound.global_phase, 2)
         self.assertEqual(bound.parameters, set())
 
@@ -758,7 +774,7 @@ class TestCircuitOperations(QiskitTestCase):
         ref = QuantumCircuit(1, global_phase=2)
         ref.rx(2, 0)
 
-        bound = circuit.bind_parameters({x: 2})
+        bound = circuit.assign_parameters({x: 2})
         self.assertEqual(bound, ref)
         self.assertEqual(bound.parameters, set())
 

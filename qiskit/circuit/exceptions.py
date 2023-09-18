@@ -17,5 +17,3 @@ from qiskit.exceptions import QiskitError
 
 class CircuitError(QiskitError):
     """Base class for errors raised while processing a circuit."""
-
-    pass

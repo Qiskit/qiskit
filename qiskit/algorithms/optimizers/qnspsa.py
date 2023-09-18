@@ -105,7 +105,7 @@ class QNSPSA(SPSA):
             initial_point = np.random.random(ansatz.num_parameters)
 
             def loss(x):
-                bound = ansatz.bind_parameters(x)
+                bound = ansatz.assign_parameters(x)
                 return np.real((StateFn(observable, is_measurement=True) @ StateFn(bound)).eval())
 
             fidelity = QNSPSA.get_fidelity(ansatz)
@@ -387,7 +387,7 @@ class QNSPSA(SPSA):
                 value_dict = dict(
                     zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
                 )
-                return np.abs(expression.bind_parameters(value_dict).eval()) ** 2
+                return np.abs(expression.assign_parameters(value_dict).eval()) ** 2
 
         else:
             sampler = CircuitSampler(backend)

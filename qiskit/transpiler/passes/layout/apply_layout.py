@@ -74,7 +74,7 @@ class ApplyLayout(TransformationPass):
             virtual_phsyical_map = layout.get_virtual_bits()
             for node in dag.topological_op_nodes():
                 qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
         else:
             # First build a new layout object going from:
             # old virtual -> old phsyical -> new virtual -> new physical
@@ -83,18 +83,26 @@ class ApplyLayout(TransformationPass):
             full_layout = Layout()
             old_phys_to_virtual = layout.get_physical_bits()
             new_virtual_to_physical = post_layout.get_virtual_bits()
-            qubit_index_map = {bit: index for index, bit in enumerate(dag.qubits)}
+            phys_map = list(range(len(new_dag.qubits)))
             for new_virt, new_phys in new_virtual_to_physical.items():
-                old_phys = qubit_index_map[new_virt]
+                old_phys = dag.find_bit(new_virt).index
                 old_virt = old_phys_to_virtual[old_phys]
+                phys_map[old_phys] = new_phys
                 full_layout.add(old_virt, new_phys)
             for reg in layout.get_registers():
                 full_layout.add_register(reg)
             # Apply new layout to the circuit
             for node in dag.topological_op_nodes():
                 qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
             self.property_set["layout"] = full_layout
+            if (final_layout := self.property_set["final_layout"]) is not None:
+                final_layout_mapping = {
+                    new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
+                    for old_virt, old_phys in final_layout.get_virtual_bits().items()
+                }
+                out_layout = Layout(final_layout_mapping)
+                self.property_set["final_layout"] = out_layout
         new_dag._global_phase = dag._global_phase
 
         return new_dag

@@ -140,13 +140,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return best_synth_circuit
 
     def _gate_sequence_to_dag(self, best_synth_circuit):
-        qubits = [Qubit()]
+        qubits = (Qubit(),)
         out_dag = DAGCircuit()
         out_dag.add_qubits(qubits)
         out_dag.global_phase = best_synth_circuit.global_phase
 
         for gate_name, angles in best_synth_circuit:
-            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits)
+            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits, check=False)
         return out_dag
 
     def _substitution_checks(self, dag, old_run, new_circ, basis, qubit):
@@ -190,9 +190,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         runs = dag.collect_1q_runs()
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
-            qubit = qubit_indices[run[0].qargs[0]]
+            qubit = dag.find_bit(run[0].qargs[0]).index
             operator = run[0].op.to_matrix()
             for node in run[1:]:
                 operator = node.op.to_matrix().dot(operator)

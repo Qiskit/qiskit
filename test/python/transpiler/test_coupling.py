@@ -442,16 +442,6 @@ class CouplingTest(QiskitTestCase):
         ]
         self.assertEqual(set(edges), set(expected))
 
-    def test_subgraph(self):
-        coupling = CouplingMap.from_line(6, bidirectional=False)
-        with self.assertWarns(DeprecationWarning):
-            subgraph = coupling.subgraph([4, 2, 3, 5])
-        self.assertEqual(subgraph.size(), 4)
-        self.assertEqual([0, 1, 2, 3], subgraph.physical_qubits)
-        edge_list = subgraph.get_edges()
-        expected = [(0, 1), (1, 2), (2, 3)]
-        self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
-
     def test_implements_iter(self):
         """Test that the object is implicitly iterable."""
         coupling = CouplingMap.from_line(3)
@@ -524,6 +514,7 @@ class CouplingTest(QiskitTestCase):
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(optionals.HAS_PIL, "Pillow not installed")
     def test_coupling_draw(self):
         """Test that the coupling map drawing with respect to the reference file is correct."""
         cmap = CouplingMap([[0, 1], [1, 2], [2, 3], [2, 4], [2, 5], [2, 6]])

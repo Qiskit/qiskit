@@ -22,7 +22,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 class UnrollCustomDefinitions(TransformationPass):
     """Unrolls instructions with custom definitions."""
 
-    def __init__(self, equivalence_library, basis_gates=None, target=None):
+    def __init__(self, equivalence_library, basis_gates=None, target=None, min_qubits=0):
         """Unrolls instructions with custom definitions.
 
         Args:
@@ -33,12 +33,15 @@ class UnrollCustomDefinitions(TransformationPass):
                 Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
+             min_qubits (int): The minimum number of qubits for operations in the input
+                 dag to translate.
         """
 
         super().__init__()
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
         self._target = target
+        self._min_qubits = min_qubits
 
     def run(self, dag):
         """Run the UnrollCustomDefinitions pass on `dag`.
@@ -60,7 +63,6 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._target is None:
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
             device_insts = basic_insts | set(self._basis_gates)
-        qubit_mapping = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
@@ -70,7 +72,7 @@ class UnrollCustomDefinitions(TransformationPass):
             if getattr(node.op, "_directive", False):
                 continue
 
-            if dag.has_calibration_for(node):
+            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 continue
 
             controlled_gate_open_ctrl = isinstance(node.op, ControlledGate) and node.op._open_ctrl
@@ -78,7 +80,7 @@ class UnrollCustomDefinitions(TransformationPass):
                 inst_supported = (
                     self._target.instruction_supported(
                         operation_name=node.op.name,
-                        qargs=tuple(qubit_mapping[x] for x in node.qargs),
+                        qargs=tuple(dag.find_bit(x).index for x in node.qargs),
                     )
                     if self._target is not None
                     else node.name in device_insts
@@ -98,10 +100,8 @@ class UnrollCustomDefinitions(TransformationPass):
                     "and no rule found to expand." % (str(self._basis_gates), node.op.name)
                 )
 
-            decomposition = circuit_to_dag(unrolled)
-            unrolled_dag = UnrollCustomDefinitions(
-                self._equiv_lib, self._basis_gates, target=self._target
-            ).run(decomposition)
+            decomposition = circuit_to_dag(unrolled, copy_operations=False)
+            unrolled_dag = self.run(decomposition)
             dag.substitute_node_with_dag(node, unrolled_dag)
 
         return dag

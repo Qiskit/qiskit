@@ -20,6 +20,7 @@ from qiskit.circuit import Qubit, Clbit
 from qiskit.visualization.circuit import _utils
 from qiskit.visualization import array_to_latex
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 
 class TestVisualizationUtils(QiskitTestCase):
@@ -355,10 +356,12 @@ class TestVisualizationUtils(QiskitTestCase):
             expected, [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops]
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_nomathmode(self):
         """Test generate latex label default."""
         self.assertEqual("abc", _utils.generate_latex_label("abc"))
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_nomathmode_utf8char(self):
         """Test generate latex label utf8 characters."""
         self.assertEqual(
@@ -366,6 +369,7 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label("∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_mathmode_utf8char(self):
         """Test generate latex label mathtext with utf8."""
         self.assertEqual(
@@ -373,6 +377,7 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label("$abc_$∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_mathmode_underscore_outside(self):
         """Test generate latex label with underscore outside mathmode."""
         self.assertEqual(
@@ -380,10 +385,12 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label("$abc$_∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_escaped_dollar_signs(self):
         """Test generate latex label with escaped dollarsign."""
         self.assertEqual("${\\ensuremath{\\forall}}$", _utils.generate_latex_label(r"\$∀\$"))
 
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_escaped_dollar_sign_in_mathmode(self):
         """Test generate latex label with escaped dollar sign in mathmode."""
         self.assertEqual(

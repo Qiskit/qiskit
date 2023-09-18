@@ -35,3 +35,4 @@ fi
 echo "Loading qpy files from $version with dev qiskit-terra"
 ../qiskit_venv/bin/python ../test_qpy.py load --version=$version
 popd
+rm -rf ./$version

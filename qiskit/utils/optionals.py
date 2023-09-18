@@ -13,7 +13,7 @@
 """
 .. currentmodule:: qiskit.utils.optionals
 
-Qiskit Terra, and many of the other Qiskit components, have several features that are enabled only
+Qiskit has several features that are enabled only
 if certain *optional* dependencies are satisfied.  This module is a collection of objects that can
 be used to test if certain functionality is available, and optionally raise
 :class:`.MissingOptionalLibraryError` if the functionality is not available.
@@ -30,7 +30,7 @@ Qiskit Components
 
     * - .. py:data:: HAS_AER
       - :mod:`Qiskit Aer <qiskit.providers.aer>` provides high-performance simulators for the
-        quantum circuits constructed within Qiskit Terra.
+        quantum circuits constructed within Qiskit.
 
     * - .. py:data:: HAS_IBMQ
       - The :mod:`Qiskit IBMQ Provider <qiskit.providers.ibmq>` is used for accessing IBM Quantum
@@ -58,7 +58,8 @@ External Python Libraries
     * - .. py:data:: HAS_CPLEX
       - The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
         high-performance mathematical programming solver for linear, mixed-integer and quadratic
-        programming.  It is required by the :class:`.BIPMapping` transpiler pass.
+        programming. This is no longer by Qiskit, but it weas historically and the optional
+        remains for backwards compatibility.
 
     * - .. py:data:: HAS_CVXPY
       - `CVXPY <https://www.cvxpy.org/>`__ is a Python package for solving convex optimization
@@ -68,7 +69,8 @@ External Python Libraries
     * - .. py:data:: HAS_DOCPLEX
       - `IBM Decision Optimization CPLEX Modelling
         <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-        analysis.  Like CPLEX, it is required for the :class:`.BIPMapping` transpiler pass.
+        analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
+        optional remains for backwards compatibility.
 
     * - .. py:data:: HAS_FIXTURES
       - The test suite has additional features that are available if the optional `fixtures
@@ -87,13 +89,17 @@ External Python Libraries
       - Some methods of gradient calculation within :mod:`.opflow.gradients` require `JAX
         <https://github.com/google/jax>`__ for autodifferentiation.
 
+    * - .. py:data:: HAS_JUPYTER
+      - Some of the tests require a complete `Jupyter <https://jupyter.org/>`__ installation to test
+        interactivity features.
+
     * - .. py:data:: HAS_MATPLOTLIB
-      - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.
+      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.
         Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
         be installed in order to use them.
 
     * - .. py:data:: HAS_NETWORKX
-      - No longer used by Terra.  Internally, Qiskit now uses the high-performance `rustworkx
+      - No longer used by Qiskit.  Internally, Qiskit now uses the high-performance `rustworkx
         <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
         change-over period, it was sometimes convenient to convert things into the Python-only
         `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
@@ -128,7 +134,7 @@ External Python Libraries
         <https://qiskit.github.io/qiskit-qasm3-import>`__.
 
     * - .. py:data:: HAS_SEABORN
-      - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.  Some
+      - Qiskit provides several visualisation tools in the :mod:`.visualization` module.  Some
         of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
         in order to use them.
 
@@ -152,13 +158,13 @@ External Python Libraries
         :class:`~.circuit.Parameter`\\ s if available.
 
     * - .. py:data:: HAS_TESTTOOLS
-      - Qiskit Terra's test suite has more advanced functionality available if the optional
+      - Qiskit's test suite has more advanced functionality available if the optional
         `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
         only needed for Qiskit developers.
 
     * - .. py:data:: HAS_TWEEDLEDUM
       - `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
-        synthesis and optimization of circuits that may involve classical oracles.  Qiskit Terra's
+        synthesis and optimization of circuits that may involve classical oracles.  Qiskit's
         :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
         the :class:`.AmplificationProblem`.
 
@@ -205,6 +211,9 @@ from :mod:`.utils` directly if required, such as::
 .. autoclass:: qiskit.utils.LazySubprocessTester
 """
 
+# NOTE: If you're changing this file, sync it with `requirements-optional.txt` and potentially
+# `setup.py` as well.
+
 import logging as _logging
 
 from .lazy_tester import (
@@ -239,13 +248,13 @@ HAS_CONSTRAINT = _LazyImportTester(
 
 HAS_CPLEX = _LazyImportTester(
     "cplex",
-    install="pip install 'qiskit-terra[bip-mapper]'",
+    install="pip install cplex",
     msg="This may not be possible for all Python versions and OSes",
 )
 HAS_CVXPY = _LazyImportTester("cvxpy", install="pip install cvxpy")
 HAS_DOCPLEX = _LazyImportTester(
     {"docplex": (), "docplex.mp.model": ("Model",)},
-    install="pip install 'qiskit-terra[bip-mapper]'",
+    install="pip install docplex",
     msg="This may not be possible for all Python versions and OSes",
 )
 HAS_FIXTURES = _LazyImportTester("fixtures", install="pip install fixtures")
@@ -256,6 +265,7 @@ HAS_JAX = _LazyImportTester(
     name="jax",
     install="pip install jax",
 )
+HAS_JUPYTER = _LazyImportTester(["jupyter", "nbformat", "nbconvert"], install="pip install jupyter")
 HAS_MATPLOTLIB = _LazyImportTester(
     ("matplotlib.patches", "matplotlib.pyplot"),
     name="matplotlib",

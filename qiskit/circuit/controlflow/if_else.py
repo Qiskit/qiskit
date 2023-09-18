@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union, Iterable
+from typing import Optional, Union, Iterable
 import itertools
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
@@ -148,7 +148,7 @@ class IfElseOp(ControlFlowOp):
 
         Args:
             blocks: Iterable of circuits for "if" and "else" condition. If there is no "else"
-                circuit it may be set to None or ommited.
+                circuit it may be set to None or omitted.
 
         Returns:
             New IfElseOp with replaced blocks.
@@ -182,9 +182,9 @@ class IfElsePlaceholder(InstructionPlaceholder):
 
     def __init__(
         self,
-        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         true_block: ControlFlowBuilderBlock,
-        false_block: Optional[ControlFlowBuilderBlock] = None,
+        false_block: ControlFlowBuilderBlock | None = None,
         *,
         label: Optional[str] = None,
     ):
@@ -333,10 +333,10 @@ class IfContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         *,
         in_loop: bool,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         self._circuit = circuit
         self._condition = validate_condition(condition)
@@ -354,7 +354,7 @@ class IfContext:
         return self._circuit
 
     @property
-    def condition(self) -> Tuple[Union[ClassicalRegister, Clbit], int]:
+    def condition(self) -> tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr:
         """Get the expression that this statement is conditioned on."""
         return self._condition
 
