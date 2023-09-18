@@ -122,6 +122,20 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=["u1", "u2", "u3", "cx"], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
 
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_7677(self, level):
+        """Melbourne (with inconsistency configuration/properties) should not fail with noise_adaptive
+        See: https://github.com/Qiskit/qiskit/issues/7677
+        """
+        qc = QuantumCircuit(12)  # circuit has 12 qubits (and only uses 3)
+        qc.cx(1, 8)
+        qc.cx(1, 11)
+        backend = FakeMelbourne()
+
+        result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
+
+        self.assertIsInstance(result, QuantumCircuit)
+
     def test_layout_3239(self, level=3):
         """Test final layout after preset level3 passmanager does not include diagonal gates
         See: https://github.com/Qiskit/qiskit-terra/issues/3239
