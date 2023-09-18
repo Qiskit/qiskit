@@ -844,7 +844,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
             result = vqe.compute_minimum_eigenvalue(hamiltonian)
 
-        optimal_circuit = vqe.ansatz.bind_parameters(result.optimal_point)
+        optimal_circuit = vqe.ansatz.assign_parameters(result.optimal_point)
         self.assertTrue(Statevector(result.eigenstate).equiv(optimal_circuit))
 
 

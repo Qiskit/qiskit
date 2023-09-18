@@ -47,6 +47,7 @@ from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 
 
 def mock_get_passmanager_stage(
@@ -69,7 +70,13 @@ def mock_get_passmanager_stage(
             ]
         )
         return pm
+    elif stage_name == "init":
+        return PassManager([])
     elif stage_name == "routing":
+        return PassManager([])
+    elif stage_name == "optimization":
+        return OptimizationPassManager().pass_manager(pm_config, optimization_level)
+    elif stage_name == "layout":
         return PassManager([])
     else:
         raise Exception("Failure, unexpected stage plugin combo for test")
@@ -910,22 +917,22 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout = {
             0: ancilla[0],
-            1: qr[4],
-            2: ancilla[1],
-            3: ancilla[2],
-            4: ancilla[3],
-            5: qr[1],
-            6: qr[0],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: qr[2],
+            6: qr[1],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: qr[3],
+            11: qr[0],
+            12: ancilla[9],
+            13: ancilla[10],
+            14: ancilla[11],
+            15: ancilla[5],
+            16: qr[4],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
@@ -933,22 +940,22 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout_lvl_2 = {
             0: ancilla[0],
-            1: qr[4],
-            2: ancilla[1],
-            3: ancilla[2],
-            4: ancilla[3],
-            5: qr[1],
-            6: qr[0],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: qr[2],
+            6: qr[1],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: qr[3],
+            11: qr[0],
+            12: ancilla[9],
+            13: ancilla[10],
+            14: ancilla[11],
+            15: ancilla[5],
+            16: qr[4],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
@@ -956,22 +963,22 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout_lvl_3 = {
             0: ancilla[0],
-            1: qr[4],
-            2: ancilla[1],
-            3: ancilla[2],
-            4: ancilla[3],
-            5: qr[1],
-            6: qr[0],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: qr[2],
+            6: qr[1],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: qr[3],
+            11: qr[0],
+            12: ancilla[9],
+            13: ancilla[10],
+            14: ancilla[11],
+            15: ancilla[5],
+            16: qr[4],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
@@ -1539,7 +1546,6 @@ class TestIntegrationControlFlow(QiskitTestCase):
         self.assertIn("Unroller", calls)
         self.assertNotIn("DenseLayout", calls)
         self.assertNotIn("SabreLayout", calls)
-        self.assertNotIn("BasisTranslator", calls)
 
     @data(0, 1, 2, 3)
     def test_invalid_methods_raise_on_control_flow(self, optimization_level):

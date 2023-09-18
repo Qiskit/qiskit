@@ -224,7 +224,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Gate A, B are overlapping if
         A is neither a descendant nor an ancestor of B.
-        Currenty overlaps (A,B) are considered when A is a 2q gate and
+        Currently overlaps (A,B) are considered when A is a 2q gate and
         B is either 2q or 1q gate.
         """
         for gate in dag.two_qubit_ops():

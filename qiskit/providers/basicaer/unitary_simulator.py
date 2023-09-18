@@ -292,7 +292,7 @@ class UnitarySimulatorPy(BackendV1):
         """Run an experiment (circuit) and return a single experiment result.
 
         Args:
-            experiment (QobjExperiment): experiment from qobj experiments list
+            experiment (QasmQobjExperiment): experiment from qobj experiments list
 
         Returns:
             dict: A result dictionary which looks something like::
@@ -312,8 +312,8 @@ class UnitarySimulatorPy(BackendV1):
                 }
 
         Raises:
-            BasicAerError: if the number of qubits in the circuit is greater than 24.
-            Note that the practical qubit limit is much lower than 24.
+            BasicAerError: if the number of qubits in the circuit is greater than 24.  Note that the
+                practical qubit limit is much lower than 24.
         """
         start = time.time()
         self._number_of_qubits = experiment.header.n_qubits

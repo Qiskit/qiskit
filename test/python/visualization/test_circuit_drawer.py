@@ -132,7 +132,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "                  ",
             ]
         )
-        result = visualization.circuit_drawer(circuit, wire_order=[2, 3, 0, 1])
+        result = visualization.circuit_drawer(circuit, output="text", wire_order=[2, 3, 0, 1])
         self.assertEqual(result.__str__(), expected)
 
     def test_wire_order_cregbundle(self):
@@ -164,7 +164,9 @@ class TestCircuitDrawer(QiskitTestCase):
                 "                  ",
             ]
         )
-        result = visualization.circuit_drawer(circuit, wire_order=[2, 3, 0, 1], cregbundle=True)
+        result = visualization.circuit_drawer(
+            circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True
+        )
         self.assertEqual(result.__str__(), expected)
 
     def test_wire_order_raises(self):

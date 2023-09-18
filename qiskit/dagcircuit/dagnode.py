@@ -259,9 +259,15 @@ class DAGOpNode(DAGNode):
         self.qargs = tuple(qargs)
         self.cargs = tuple(cargs)
         if dag is not None:
-            self.sort_key = ",".join(
-                f"{dag.find_bit(q).index:04d}" for q in itertools.chain(self.qargs, self.cargs)
-            )
+            cache_key = (self.qargs, self.cargs)
+            key = dag._key_cache.get(cache_key, None)
+            if key is not None:
+                self.sort_key = key
+            else:
+                self.sort_key = ",".join(
+                    f"{dag.find_bit(q).index:04d}" for q in itertools.chain(*cache_key)
+                )
+                dag._key_cache[cache_key] = self.sort_key
         else:
             self.sort_key = str(self.qargs)
 
