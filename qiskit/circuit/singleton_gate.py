@@ -61,7 +61,7 @@ class SingletonGate(Gate):
 
     _instance = None
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *_args, **kwargs):
         if kwargs and (
             "label" in kwargs or "_condition" in kwargs or "duration" in kwargs or "unit" in kwargs
         ):
