@@ -7,7 +7,7 @@ features:
     overhead of using multiple gates in a circuit with the tradeoff of having
     global shared state. For this reason this class is only applicable to
     gates that do not have any unique and/or mutable state stored in an instance.
-    For example, the best example of this is :class:`~XGate` doesn't contain
+    For example, the best example of this is :class:`.XGate` doesn't contain
     any state and could leveerage :class:`~.SingletonGate` (and does starting in
     this release), while :class:`~.RXGate` stores an angle parameter in an instance
     and thus can not use :class:`~.SingletonGate` because a single shared global
@@ -24,9 +24,9 @@ features:
     and it will raise an exception. If they are needed for a particular
     instance you must set them on the constructor (or via
     :meth:`~.SingletonGate.c_if` for :attr:`~.SingletonGate.condition`) when
-    creating a new object. When this is done the output from the constructo
+    creating a new object. When this is done the output from the constructor
     will be a separate instance with the custom state instead of the globally
-    shared instance. You can also use the :meth:`.SingeltonGate.to_mutable`
+    shared instance. You can also use the :meth:`.SingletonGate.to_mutable`
     method to get a mutable copy of a gate object and then mutate the attributes
     like you would on any other :class:`~.circuit.Instruction` object.
   - |
