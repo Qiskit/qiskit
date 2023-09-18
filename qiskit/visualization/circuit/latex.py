@@ -536,7 +536,7 @@ class QCircuitImage:
             register = get_bit_register(self._circuit, node.cargs[0])
             if register is not None:
                 wire2 = self._wire_map[register]
-                idx_str = str(node.cargs[0].index)
+                idx_str = str(self._circuit.find_bit(node.cargs[0]).registers[0][1])
             else:
                 wire2 = self._wire_map[node.cargs[0]]
 
