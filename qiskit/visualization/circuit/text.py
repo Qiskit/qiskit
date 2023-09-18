@@ -14,6 +14,7 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from io import StringIO
 from warnings import warn
 from shutil import get_terminal_size
 import collections
@@ -27,6 +28,8 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3.printer import BasicPrinter
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -732,19 +735,27 @@ class TextDrawing:
         self.vertical_compression = vertical_compression
         self._wire_map = {}
 
-        for node in itertools.chain.from_iterable(self.nodes):
-            if node.cargs and node.op.name != "measure":
-                if cregbundle:
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
-                self.cregbundle = False
-                break
-        else:
-            self.cregbundle = True if cregbundle is None else cregbundle
+        def check_clbit_in_inst(circuit, cregbundle):
+            if cregbundle is False:
+                return False
+            for inst in circuit.data:
+                if isinstance(inst.operation, ControlFlowOp):
+                    for block in inst.operation.blocks:
+                        if check_clbit_in_inst(block, cregbundle) is False:
+                            return False
+                elif inst.clbits and not isinstance(inst.operation, Measure):
+                    if cregbundle is not False:
+                        warn(
+                            "Cregbundle set to False since an instruction needs to refer"
+                            " to individual classical wire",
+                            RuntimeWarning,
+                            3,
+                        )
+                    return False
+
+            return True
+
+        self.cregbundle = check_clbit_in_inst(circuit, cregbundle)
 
         if encoding:
             self.encoding = encoding
@@ -1288,13 +1299,13 @@ class TextDrawing:
             circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
-            # Update the wire_map with the qubits and clbits from the inner circuit
+            # Update the wire_map with the qubits from the inner circuit
             flow_wire_map = wire_map.copy()
             flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.qargs, circuit.qubits)
-            )
-            flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.cargs, circuit.clbits)
+                {
+                    inner: wire_map[outer]
+                    for outer, inner in zip(node.qargs, circuit.qubits)
+                }
             )
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
@@ -1305,10 +1316,10 @@ class TextDrawing:
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
-                    qubits[: len(self.qubits)],
+                    self.qubits,
                     self.clbits,
                     self.cregbundle,
-                    circuit,
+                    self._circuit,
                     flow_wire_map,
                 )
                 for layer_node in layer_nodes:
@@ -1337,15 +1348,36 @@ class TextDrawing:
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
-        conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
+        self._expr_text = ""
+        op = node.op
+        if (isinstance(op, SwitchCaseOp) and isinstance(op.target, expr.Expr)) or (
+            getattr(op, "condition", None) and isinstance(op.condition, expr.Expr)
+        ):
+            condition = op.target if isinstance(op, SwitchCaseOp) else op.condition
+            builder = QASM3Builder(
+                self._circuit,
+                includeslist=("stdgates.inc",),
+                basis_gates=("U",),
+                disable_constants=False,
+                allow_aliasing=False,
+            )
+            stream = StringIO()
+            builder.build_classical_declarations()
+            BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
+            self._expr_text = stream.getvalue()
+            # Truncate expr_text at 27 chars
+            if len(self._expr_text) > 27:
+                self._expr_text = self._expr_text[:24] + "..."
+
+        conditional = (section == CF_LEFT and not isinstance(op, ForLoopOp))
         depth = str(self._nest_depth)
         if section == CF_LEFT:
-            if isinstance(node.op, IfElseOp):
-                label = "If-" + depth
-            elif isinstance(node.op, WhileLoopOp):
-                label = "While-" + depth
-            elif isinstance(node.op, ForLoopOp):
-                indexset = node.op.params[0]
+            if isinstance(op, IfElseOp):
+                label = "If-" + depth + " " + self._expr_text
+            elif isinstance(op, WhileLoopOp):
+                label = "While-" + depth + " " + self._expr_text
+            elif isinstance(op, ForLoopOp):
+                indexset = op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
                 if "range" not in str(indexset) and len(indexset) > 4:
                     index_str = str(indexset[:4])
@@ -1354,13 +1386,13 @@ class TextDrawing:
                     index_str = str(indexset)
                 label = "For-" + depth + " " + index_str
             else:
-                label = "Switch-" + depth
+                label = "Switch-" + depth + " " + self._expr_text
         elif section == CF_MID:
-            if isinstance(node.op, IfElseOp):
+            if isinstance(op, IfElseOp):
                 label = "Else-" + depth
             else:
                 jump_list = []
-                for jump_values, _ in list(node.op.cases_specifier()):
+                for jump_values, _ in list(op.cases_specifier()):
                     jump_list.append(jump_values)
 
                 if "default" in str(jump_list[circ_num][0]):
@@ -1626,7 +1658,7 @@ class Layer:
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
-            label = "<expression>"
+            label = "[expr]"
             out = []
             condition_bits = node_resources(condition).clbits
             registers = collections.defaultdict(list)
