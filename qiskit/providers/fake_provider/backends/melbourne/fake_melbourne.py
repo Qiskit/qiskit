@@ -23,7 +23,7 @@ from qiskit.providers.fake_provider import fake_backend
 
 
 class FakeMelbourneV2(fake_backend.FakeBackendV2):
-    """A fake 14 qubit backend."""
+    """A fake 15 qubit backend."""
 
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_melbourne.json"
@@ -32,16 +32,16 @@ class FakeMelbourneV2(fake_backend.FakeBackendV2):
 
 
 class FakeMelbourne(FakeBackend):
-    """A fake 14 qubit backend."""
+    """A fake 15 qubit backend."""
 
     def __init__(self):
         """
 
         .. code-block:: text
 
-            0 ← 1 →  2 →  3 ←  4 ← 5 → 6
-                ↑    ↑    ↑    ↓   ↓   ↓
-               13 → 12 ← 11 → 10 ← 9 → 8 ← 7
+             0  ← 1 →  2 →  3 ←  4 ← 5 → 6
+             ↑    ↑    ↑    ↑    ↓   ↓   ↓
+            14 → 13 → 12 ← 11 → 10 ← 9 → 8 ← 7
         """
         cmap = [
             [1, 0],
@@ -62,12 +62,14 @@ class FakeMelbourne(FakeBackend):
             [12, 2],
             [13, 1],
             [13, 12],
+            [0, 14],
+            [14, 13],
         ]
 
         configuration = QasmBackendConfiguration(
             backend_name="fake_melbourne",
             backend_version="0.0.0",
-            n_qubits=14,
+            n_qubits=15,
             basis_gates=["u1", "u2", "u3", "cx", "id"],
             simulator=False,
             local=True,
