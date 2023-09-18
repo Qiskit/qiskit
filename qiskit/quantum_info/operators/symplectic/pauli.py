@@ -466,6 +466,28 @@ class Pauli(BasePauli):
         circuit.append(gate, range(self.num_qubits))
         return circuit.to_instruction()
 
+    def to_xyz_qubits(self):
+        """
+        Output `xyz` can be used as `Pauli.from_xyz_qubits(*xyz)`.
+
+        Returns:
+            x_qubits (array of ints)
+            y_qubits (array of ints)
+            z_qubits (array of ints)
+            phase (int)
+            num_qubits (int)
+        """
+
+        y_array = np.logical_and(self.x, self.z)
+
+        x_qubits = np.where(np.logical_xor(self.x, y_array))[0]
+        y_qubits = np.where(y_array)[0]
+        z_qubits = np.where(np.logical_xor(self.z, y_array))[0]
+        phase = self.phase
+        num_qubits = len(self.x)
+
+        return x_qubits, y_qubits, z_qubits, num_qubits, phase
+
     # ---------------------------------------------------------------------
     # BaseOperator methods
     # ---------------------------------------------------------------------
@@ -720,6 +742,35 @@ class Pauli(BasePauli):
                     qargs = [instr.find_bit(tup).index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
+
+    @classmethod
+    def from_xyz_qubits(cls, x_qubits, y_qubits, z_qubits, num_qubits, phase=0):
+        """Concise way of defining a low-weight (mostly 'I') Pauli.
+        Args:
+            x_qubits (iterable of ints)
+            y_qubits (iterable of ints)
+            z_qubits (iterable of ints)
+            num_qubits (int)
+            phase (int)
+
+        Returns:
+            Pauli
+        """
+        num_x = len(x_qubits)
+        num_y = len(y_qubits)
+        num_z = len(z_qubits)
+        if num_x + num_y + num_z > len(set(x_qubits) | set(y_qubits) | set(z_qubits)):
+            raise ValueError("Sparse qubit lists must not contain duplicates.")
+
+        x_array = np.zeros(num_qubits)
+        x_array[list(x_qubits)] += 1
+        x_array[list(y_qubits)] += 1
+
+        z_array = np.zeros(num_qubits)
+        z_array[list(z_qubits)] += 1
+        z_array[list(y_qubits)] += 1
+
+        return cls((z_array, x_array, phase))
 
 
 # Update docstrings for API docs
