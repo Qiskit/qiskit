@@ -19,6 +19,25 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.exceptions import CircuitError
 
 
+SINGLETONGATE_ATTR_SET = frozenset((
+    "definition",
+    "unit",
+    "duration",
+    "condition",
+    "label",
+    "_label",
+    "_condition",
+    "_duration",
+    "_unit",
+    "_definition",
+    "_name",
+    "_num_qubits",
+    "_num_clbits",
+    "_params",
+    "params",
+))
+
+
 class SingletonGate(Gate):
     """A base class to use for Gate objects that by default are singleton instances
 
@@ -149,23 +168,7 @@ class SingletonGate(Gate):
         if self.mutable:
             super().__setattr__(name, value)
         else:
-            if name not in {
-                "definition",
-                "unit",
-                "duration",
-                "condition",
-                "label",
-                "_label",
-                "_condition",
-                "_duration",
-                "_unit",
-                "_definition",
-                "_name",
-                "_num_qubits",
-                "_num_clbits",
-                "_params",
-                "params",
-            }:
+            if name not in SINGLETONGATE_ATTR_SET:
                 raise NotImplementedError(
                     "Setting custom attributes is not allowed on a singleton gate"
                 )
