@@ -95,6 +95,9 @@ class SingletonGate(Gate):
     def to_mutable(self):
         if not self.mutable:
             instance = super().__new__(type(self))
+            # Coming from a shared singleton none of the arguments to
+            # __init__ can be set, so this is the correct behavior for
+            # initializing a new mutable instance
             instance.__init__()
             return instance
         else:
