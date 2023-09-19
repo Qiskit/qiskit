@@ -112,7 +112,7 @@ class Qubit(LogicalElement):
 class Coupler(LogicalElement):
     """Coupler logical element.
 
-    :class:`Coupler` represents an element which couples two qubits, and can be controlled on its own.
+    :class:`Coupler` represents an element which couples qubits, and can be controlled on its own.
     It is identified by the tuple of indices of the coupled qubits.
     """
 
