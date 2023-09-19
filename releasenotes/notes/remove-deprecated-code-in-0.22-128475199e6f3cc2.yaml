@@ -2,7 +2,7 @@
 upgrade:
   - |
     The method :meth:`qiskit.quantum_info.pauli_basis`
-    does not accept `pauli_list` any more.
+    does not accept `pauli_list` argument any more.
     It was deprecated in Qiskit 0.39 (with Terra 0.22), released on Oct 2022.
 
   - |
