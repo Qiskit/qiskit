@@ -156,7 +156,6 @@ class QubitFrame(Frame):
         Raises:
             PulseError: If ``identifier`` (index) is a negative integer.
         """
-        pass
         if not isinstance(index, (int, np.integer)) or index < 0:
             raise PulseError("Qubit index must be a non-negative integer")
 
