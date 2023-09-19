@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The argument ``pauli_list`` in the method :meth:`qiskit.quantum_info.operators.symplectic.pauli_utils.pauli_basis`, does not accept :bool:`pauli_list` any more. It was deprecated in Qiskit 0.39 (with Terra 0.22), released on Oct 2022.
+
+  - |
+    The function ``random_stabilizer_table`` in the class :class:`qiskit.quantum_info.random` is removed. It was deprecated in Qiskit 0.39 (with Terra 0.22), released on Oct 2022.
