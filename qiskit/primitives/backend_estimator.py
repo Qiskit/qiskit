@@ -245,7 +245,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         bound_circuits = [
             transpiled_circuits[circuit_index]
             if len(p) == 0
-            else transpiled_circuits[circuit_index].bind_parameters(p)
+            else transpiled_circuits[circuit_index].assign_parameters(p)
             for i, (p, n) in enumerate(zip(parameter_dicts, num_observables))
             for circuit_index in range(accum[i], accum[i] + n)
         ]
