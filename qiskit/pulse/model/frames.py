@@ -27,7 +27,7 @@ class Frame(metaclass=ABCMeta):
 
     Because pulses used in Quantum HW are typically AC pulses, the carrier frequency and phase
     must be defined. The :class:`Frame` is the object which sets the frequency and phase for the carrier,
-    and each pulse, and most instructions are associated with a frame. The different types of frames
+    and each pulse and most other instructions are associated with a frame. The different types of frames
     dictate how the frequency and phase duo are defined.
 
     Instructions on :class:`Frame`s like set/shift frequency/phase are broadcasted
