@@ -29,7 +29,7 @@ class MixedFrame:
     can be written without :class:`MixedFrame`s, by setting :class:`LogicalElement` and
     :class:`Frame` independently. However, in some cases using :class:`MixedFrame`s can
     better convey the meaning of the code, and change the compilation process. One example
-    are shift/set frequency/phase instructions which are not broadcasted to other
+    is the use of the shift/set frequency/phase instructions which are not broadcasted to other
     :class:`MixedFrame`s if applied on a specific :class:`MixedFrame` (unlike the behavior
     of :class:`Frame`). User can also use a subclass of :class:`MixedFrame` for a particular
     combination of logical elements and frames as if a syntactic sugar. This might
