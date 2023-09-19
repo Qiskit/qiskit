@@ -45,7 +45,7 @@ class LogicalElement(metaclass=ABCMeta):
         self._hash = hash((self._index, type(self)))
 
     @property
-    def index(self):
+    def index(self) -> Tuple[int, ...]:
         """Return the ``index`` of this logical element."""
         return self._index
 
