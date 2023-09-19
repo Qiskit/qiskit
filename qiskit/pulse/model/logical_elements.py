@@ -60,7 +60,7 @@ class LogicalElement(metaclass=ABCMeta):
 
     def __eq__(self, other: "LogicalElement") -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
-        and the same ``identifier``.
+        and the same ``index``.
 
         Args:
             other: The logical element to compare to this one.
