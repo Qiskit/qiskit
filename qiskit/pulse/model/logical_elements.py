@@ -23,12 +23,12 @@ from qiskit.pulse.exceptions import PulseError
 class LogicalElement(metaclass=ABCMeta):
     """Base class of logical elements.
 
-    :class:`LogicalElement`s are abstraction of the quantum HW component which can be controlled
-    by the user ("apply instructions on").
-    Every played pulse, and most instructions are associated with a :class:`LogicalElement` on which
-    it is being performed.
-    Logical elements identified by their index, and a unique name for each class such that the
-    objects name is given by ``<class name><index>``.
+    A :class:`LogicalElement` is an abstraction of a quantum HW component which can be controlled
+    by the user (instructions can be applied to it).
+    Every played pulse and most other instructions are associated with a :class:`LogicalElement` on which
+    they are performed.
+    A logical element is identified by its index and a unique name for its class such that the
+    object's name is given by ``<class name><index>``.
 
     To implement a new logical element inherit from :class:`LogicalElement` the ``name`` method needs to
     be overridden with a proper name for the class.
