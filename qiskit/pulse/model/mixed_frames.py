@@ -33,7 +33,7 @@ class MixedFrame:
     :class:`MixedFrame`s if applied on a specific :class:`MixedFrame` (unlike the behavior
     of :class:`Frame`). User can also use a subclass of :class:`MixedFrame` for a particular
     combination of logical elements and frames as if a syntactic sugar. This might
-    increase the readability of user pulse program. Such example may include cross
+    increase the readability of a user pulse program. As an example consider the cross
     resonance architecture, in which a pulse is played on a target qubit frame and applied
     to a control qubit logical element.
     """
