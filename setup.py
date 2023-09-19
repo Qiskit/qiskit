@@ -61,7 +61,7 @@ setup(
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/Qiskit/qiskit-terra",
+    url="https://github.com/Qiskit/qiskit",
     author="Qiskit Development Team",
     author_email="hello@qiskit.org",
     license="Apache 2.0",

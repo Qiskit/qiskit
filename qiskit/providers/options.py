@@ -48,7 +48,7 @@ class Options(Mapping):
 
     Runtime validators can be registered. See `set_validator`.
     Updates through `update_options` and indexing (`__setitem__`) validate
-    the new value before peforming the update and raise `ValueError` if
+    the new value before performing the update and raise `ValueError` if
     the new value is invalid.
 
     >>> options.set_validator("opt1", (1, 5))
@@ -191,7 +191,7 @@ class Options(Mapping):
         In this case whenever the ``"shots"`` option is updated by the user
         it will enforce that the value is >=1 and <=4096. A ``ValueError`` will
         be raised if it's outside those bounds. If a validator is already present
-        for the specified field it will be silently overriden.
+        for the specified field it will be silently overridden.
 
         Args:
             field (str): The field name to set the validator on

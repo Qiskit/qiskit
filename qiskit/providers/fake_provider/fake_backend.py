@@ -211,7 +211,7 @@ class FakeBackendV2(BackendV2):
         """Return the system time resolution of output signals
 
         Returns:
-            dtm: The output signal timestep in seconds.
+            The output signal timestep in seconds.
         """
         dtm = self._conf_dict.get("dtm")
         if dtm is not None:
@@ -227,7 +227,7 @@ class FakeBackendV2(BackendV2):
         scheduling.
 
         Returns:
-            meas_map: The grouping of measurements which are multiplexed
+            The grouping of measurements which are multiplexed
         """
         return self._conf_dict.get("meas_map")
 
@@ -316,7 +316,7 @@ class FakeBackendV2(BackendV2):
         Args:
             run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
                 individual or a list of
-                :class:`~qiskit.circuits.QuantumCircuit,
+                :class:`~qiskit.circuit.QuantumCircuit`,
                 :class:`~qiskit.pulse.ScheduleBlock`, or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
             options: Any kwarg options to pass to the backend for running the
@@ -324,11 +324,12 @@ class FakeBackendV2(BackendV2):
                 attribute/object then the expectation is that the value
                 specified will be used instead of what's set in the options
                 object.
+
         Returns:
             Job: The job object for the run
+
         Raises:
-            QiskitError: If a pulse job is supplied and qiskit-aer is not
-            installed.
+            QiskitError: If a pulse job is supplied and qiskit-aer is not installed.
         """
         circuits = run_input
         pulse_job = None
