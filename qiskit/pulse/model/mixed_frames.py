@@ -23,7 +23,7 @@ class MixedFrame:
 
     Most instructions need to be associated with both a :class:`LogicalElement` and a :class:`Frame`.
     The combination
-    of the two is called a mixed frame, and is represented by a :class:`MixedFrame` object.
+    of the two is called a mixed frame and is represented by a :class:`MixedFrame` object.
 
     In most cases the :class:`MixedFrame` is used more by the compiler, and a pulse program
     can be written without :class:`MixedFrame`s, by setting :class:`LogicalElement` and
