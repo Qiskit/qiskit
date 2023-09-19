@@ -161,9 +161,9 @@ class QubitFrame(Frame):
 
 
 class MeasurementFrame(Frame):
-    """A frame associated with the dispersive readout of a qubit.
+    """A frame associated with the measurement of a qubit.
 
-    ``MeasurementFrame`` is a frame associated with the dispersive readout of a specific qubit,
+    ``MeasurementFrame`` is a frame associated with the readout of a specific qubit,
     which requires a stimulus tone driven at frequency off resonant to qubit drive.
 
     If not set otherwise, the initial frequency of the frame will be taken as the default
