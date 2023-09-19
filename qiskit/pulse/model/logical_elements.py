@@ -30,7 +30,7 @@ class LogicalElement(metaclass=ABCMeta):
     A logical element is identified by its index and a unique name for its class such that the
     object's name is given by ``<class name><index>``.
 
-    To implement a new logical element inherit from :class:`LogicalElement` the ``name`` method needs to
+    To implement a new logical element, inherit from :class:`LogicalElement`. The ``name`` method needs to
     be overridden with a proper name for the class.
     """
 
