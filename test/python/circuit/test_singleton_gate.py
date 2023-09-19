@@ -245,3 +245,9 @@ class TestSingletonGate(QiskitTestCase):
         self.assertTrue(mutable_gate.mutable)
         mutable_gate.custom_foo = 12345
         self.assertEqual(12345, mutable_gate.custom_foo)
+
+    def test_positional_label(self):
+        gate = SXGate()
+        label_gate = SXGate("I am a little label")
+        self.assertIsNot(gate, label_gate)
+        self.assertEqual(label_gate.label, "I am a little label")

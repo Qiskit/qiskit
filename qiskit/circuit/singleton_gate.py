@@ -61,9 +61,15 @@ class SingletonGate(Gate):
 
     _instance = None
 
-    def __new__(cls, *_args, **kwargs):
-        if kwargs and (
-            "label" in kwargs or "_condition" in kwargs or "duration" in kwargs or "unit" in kwargs
+    def __new__(cls, *args, **kwargs):
+        if args or (  # pylint: disable=too-many-boolean-expressions
+            kwargs
+            and (
+                "label" in kwargs
+                or "_condition" in kwargs
+                or "duration" in kwargs
+                or "unit" in kwargs
+            )
         ):
             return super().__new__(cls)
         if cls._instance is None:
