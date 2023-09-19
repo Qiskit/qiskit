@@ -82,7 +82,7 @@ class Qubit(LogicalElement):
     """Qubit logical element.
 
     ``Qubit`` represents the different qubits in the system, as identified by
-    their (positive integer) index.
+    their (positive integer) index values.
     """
 
     def __init__(self, index: int):
