@@ -34,7 +34,7 @@ class LogicalElement(metaclass=ABCMeta):
     be overridden with a proper name for the class.
     """
 
-    def __init__(self, index: Tuple[int]):
+    def __init__(self, index: Tuple[int, ...]):
         """Create ``LogicalElement``.
 
         Args:
