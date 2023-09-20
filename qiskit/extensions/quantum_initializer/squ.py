@@ -21,7 +21,7 @@ import cmath
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, Qubit, QuantumCircuit
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -161,50 +161,3 @@ class SingleQubitUnitary(Gate):
             return parameter
         else:
             raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
-
-
-@deprecate_func(since="0.45.0", additional_msg="Instead, use the QuantumCircuit.unitary method.")
-def squ(
-    self,
-    unitary_matrix,
-    qubit,
-    mode="ZYZ",
-    up_to_diagonal=False,
-):
-    """Decompose an arbitrary 2*2 unitary into three rotation gates.
-
-    Note that the decomposition is up to a global phase shift.
-    (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
-    "Quantum computation and quantum information".)
-
-    Args:
-        unitary_matrix (ndarray): 2*2 unitary (given as a (complex) ndarray).
-        qubit (QuantumRegister or Qubit): The qubit which the gate is acting on.
-        mode (string): determines the used decomposition by providing the rotation axes.
-            The allowed modes are: "ZYZ" (default)
-        up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
-            a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
-            diagonal gate d with u = d.dot(u')
-
-    Returns:
-        InstructionSet: The single-qubit unitary instruction attached to the circuit.
-
-    Raises:
-        QiskitError: if the format is wrong; if the array u is not unitary
-    """
-
-    if isinstance(qubit, QuantumRegister):
-        qubit = qubit[:]
-        if len(qubit) == 1:
-            qubit = qubit[0]
-        else:
-            raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than one qubit."
-            )
-    # Check if there is one target qubit provided
-    if not isinstance(qubit, Qubit):
-        raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
-    return self.append(SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal), [qubit], [])
-
-
-QuantumCircuit.squ = squ

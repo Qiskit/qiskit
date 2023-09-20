@@ -13,10 +13,6 @@
 Simulator command to snapshot internal simulator representation.
 """
 
-import warnings
-
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.extensions.exceptions import QiskitError, ExtensionError
 
@@ -72,59 +68,3 @@ class Snapshot(Instruction):
 
     def c_if(self, classical, val):
         raise QiskitError("Snapshots are simulator directives and cannot be conditional.")
-
-
-@deprecate_func(
-    since="0.45.0",
-    additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
-    "instructions, see "
-    "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
-)
-def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
-    """Take a statevector snapshot of the internal simulator representation.
-    Works on all qubits, and prevents reordering (like barrier).
-
-    For other types of snapshots use the Snapshot extension directly.
-
-    Args:
-        label (str): a snapshot label to report the result.
-        snapshot_type (str): the type of the snapshot.
-        qubits (list or None): the qubits to apply snapshot to [Default: None].
-        params (list or None): the parameters for snapshot_type [Default: None].
-
-    Returns:
-        QuantumCircuit: with attached command
-
-    Raises:
-        ExtensionError: malformed command
-    """
-    # If no qubits are specified we add all qubits so it acts as a barrier
-    # This is needed for full register snapshots like statevector
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    if not qubits:
-        tuples = []
-        if isinstance(self, QuantumCircuit):
-            for register in self.qregs:
-                tuples.append(register)
-        if not tuples:
-            raise ExtensionError("no qubits for snapshot")
-        qubits = []
-        for tuple_element in tuples:
-            if isinstance(tuple_element, QuantumRegister):
-                for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
-            else:
-                qubits.append(tuple_element)
-
-    # catch deprecation warning from instantiating the Snapshot instruction,
-    # as a warning is already triggered from this method
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=DeprecationWarning)
-        snap = Snapshot(label, snapshot_type=snapshot_type, num_qubits=len(qubits), params=params)
-
-    return self.append(snap, qubits)
-
-
-# Add to QuantumCircuit class
-QuantumCircuit.snapshot = snapshot

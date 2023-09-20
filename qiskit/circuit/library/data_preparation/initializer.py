@@ -33,9 +33,9 @@ class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that initializes some flexible collection of qubit registers, implemented by calling
-    the :class:`qiskit.extensions.StatePreparation` Class.
-    Note that Initialize is an Instruction and not a Gate since it contains a reset instruction,
-    which is not unitary.
+    the :class:`~.library.StatePreparation` class.
+    Note that ``Initialize`` is an :class:`~.circuit.Instruction` and not a :class:`.Gate` since it
+    contains a reset instruction, which is not unitary.
     """
 
     def __init__(
