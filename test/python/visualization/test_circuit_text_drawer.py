@@ -5724,7 +5724,9 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with case(case.DEFAULT):
                 circuit.cx(0, 1)
 
-        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=120, initial_state=False)), expected
+        )
 
 
 if __name__ == "__main__":
