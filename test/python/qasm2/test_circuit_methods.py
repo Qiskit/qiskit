@@ -376,7 +376,7 @@ class LoadFromQasmTest(QiskitTestCase):
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
         expected.append(my_gate, [qr[0]])
-        expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqualUnroll("u", circuit, expected)
 
@@ -400,7 +400,7 @@ class LoadFromQasmTest(QiskitTestCase):
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
         expected.append(my_gate, [qr[0]])
-        expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqualUnroll("u", circuit, expected)
 
@@ -426,7 +426,7 @@ class LoadFromQasmTest(QiskitTestCase):
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
         expected.append(my_gate, [qr[0]])
-        expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqualUnroll(["rx", "ry"], circuit, expected)
 

@@ -766,8 +766,8 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
             )
             sys.stderr.write(msg)
             sys.exit(4)
-        reference = reference.bind_parameters(bind)
-        qpy = qpy.bind_parameters(bind)
+        reference = reference.assign_parameters(bind)
+        qpy = qpy.assign_parameters(bind)
     if reference != qpy:
         msg = (
             f"Reference Circuit {count}:\n{reference}\nis not equivalent to "

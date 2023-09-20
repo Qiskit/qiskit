@@ -58,7 +58,9 @@ def add_control(
         # attempt decomposition
         operation._define()
     cgate = control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
-    cgate.base_gate.label = operation.label
+    if operation.label is not None:
+        cgate.base_gate = cgate.base_gate.to_mutable()
+        cgate.base_gate.label = operation.label
     return cgate
 
 
