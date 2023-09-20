@@ -1,0 +1,36 @@
+
+upgrade:
+
+  - |
+    Removed the argument `qubit_channel_mapping` in :class:`qiskit.transpiler.passes.calibration.rzx_builder.RZXCalibrationBuilder`
+    
+    old:
+   	  # Create an RZXCalibrationBuilder object with the qubit_channel_mapping argument 
+      builder = RZXCalibrationBuilder(qubit_channel_mapping=[[0, 1]])
+    new:
+      # Create a target object for the Aer simulator
+      target = providers.aer.QasmSimulator().target()
+      # Create an RZXCalibrationBuilder object using the target object
+      builder = RZXCalibrationBuilder(target=target)
+      
+  - |
+    Replaced the argument `qobj[Qobj]` in :meth:`qiskit.providers.aer.QasmSimulator.run()` with `qcirc[QuantumCircuit]`
+    
+    old:
+      # Transpile the circuit for the target simulator
+      simulator = QasmSimulator()
+      transpiled_circuit = transpile(qc, simulator)
+      # Assemble the transpiled circuit into a Qobj
+      qobj = assemble(transpiled_circuit, shots=1024)
+      # Run the simulation
+      job = simulator.run(qobj)
+    new:
+      # Transpile the circuit for the target simulator
+      simulator = QasmSimulator()
+      transpiled_circuit = transpile(qc, simulator)
+      # Run the simulation
+      job = simulator.run(transpiled_circuit, shots=1024)
+     
+
+    All these were deprecated since 0.22 (released on October 13, 2022) and now they are removed.
+
