@@ -756,6 +756,16 @@ class Pauli(BasePauli):
         Returns:
             Pauli
         """
+
+        x_qubits = np.array(x_qubits)
+        y_qubits = np.array(y_qubits)
+        z_qubits = np.array(z_qubits)
+
+        # Convert allowed negative indices to positive, then check for duplicates:
+        x_qubits[-num_qubits <= x_qubits < 0] %= num_qubits
+        y_qubits[-num_qubits <= y_qubits < 0] %= num_qubits
+        z_qubits[-num_qubits <= z_qubits < 0] %= num_qubits
+        
         num_x = len(x_qubits)
         num_y = len(y_qubits)
         num_z = len(z_qubits)
