@@ -14,6 +14,7 @@
 
 import logging
 from copy import deepcopy
+import time
 
 import rustworkx
 
@@ -237,6 +238,7 @@ class SabreSwap(TransformationPass):
             self.coupling_map.size(),
             self._qubit_indices,
         )
+        sabre_start = time.perf_counter()
         *sabre_result, final_permutation = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -247,6 +249,8 @@ class SabreSwap(TransformationPass):
             self.trials,
             self.seed,
         )
+        sabre_stop = time.perf_counter()
+        logging.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
 
         self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, final_permutation)))
         if self.fake_run:

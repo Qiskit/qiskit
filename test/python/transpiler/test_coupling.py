@@ -111,13 +111,25 @@ class CouplingTest(QiskitTestCase):
         ans = [(1, 2), (3, 2), (0, 1)]
         self.assertEqual(set(out), set(ans))
 
-    def test_failed_reduced_map(self):
-        """Generate a bad disconnected reduced map"""
+    def test_bad_reduced_map(self):
+        """Generate disconnected reduced map"""
         fake = FakeRueschlikon()
         cmap = fake.configuration().coupling_map
         coupling_map = CouplingMap(cmap)
         with self.assertRaises(CouplingError):
             coupling_map.reduce([12, 11, 10, 3])
+
+    def test_disconnected_reduced_map_allowed(self):
+        """Generate disconnected reduced map but do not error"""
+        fake = FakeRueschlikon()
+        cmap = fake.configuration().coupling_map
+        coupling_map = CouplingMap(cmap)
+        reduced_map = coupling_map.reduce([12, 11, 10, 3], check_if_connected=False)
+        reduced_edges = reduced_map.get_edges()
+        qubits_expected = [0, 1, 2, 3]
+        edges_expected = [(0, 1), (1, 2)]
+        self.assertEqual(qubits_expected, reduced_map.physical_qubits)
+        self.assertEqual(set(reduced_edges), set(edges_expected))
 
     def test_symmetric_small_true(self):
         coupling_list = [[0, 1], [1, 0]]
@@ -441,16 +453,6 @@ class CouplingTest(QiskitTestCase):
             (15, 10),
         ]
         self.assertEqual(set(edges), set(expected))
-
-    def test_subgraph(self):
-        coupling = CouplingMap.from_line(6, bidirectional=False)
-        with self.assertWarns(DeprecationWarning):
-            subgraph = coupling.subgraph([4, 2, 3, 5])
-        self.assertEqual(subgraph.size(), 4)
-        self.assertEqual([0, 1, 2, 3], subgraph.physical_qubits)
-        edge_list = subgraph.get_edges()
-        expected = [(0, 1), (1, 2), (2, 3)]
-        self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
 
     def test_implements_iter(self):
         """Test that the object is implicitly iterable."""

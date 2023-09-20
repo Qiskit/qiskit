@@ -15,8 +15,8 @@ from math import sqrt
 import numpy as np
 
 from qiskit.circuit._utils import with_gate_array
-from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.singleton_gate import SingletonGate
 from .rzx import RZXGate
 from .x import XGate
 
@@ -24,7 +24,7 @@ from .x import XGate
 @with_gate_array(
     sqrt(0.5) * np.array([[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]])
 )
-class ECRGate(Gate):
+class ECRGate(SingletonGate):
     r"""An echoed cross-resonance gate.
 
     This gate is maximally entangling and is equivalent to a CNOT up to
@@ -84,9 +84,13 @@ class ECRGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, label=None, _condition=None, duration=None, unit=None):
         """Create new ECR gate."""
-        super().__init__("ecr", 2, [])
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "ecr", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         """

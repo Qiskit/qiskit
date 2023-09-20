@@ -251,7 +251,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual(qc.bind_parameters({theta: 3.14}), new_circ.bind_parameters({theta: 3.14}))
+        self.assertEqual(
+            qc.assign_parameters({theta: 3.14}), new_circ.assign_parameters({theta: 3.14})
+        )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_bound_parameter(self):
@@ -607,8 +609,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_standard_gate_with_label(self):
         """Test a standard gate with a label."""
         qc = QuantumCircuit(1)
-        gate = XGate()
-        gate.label = "My special X gate"
+        gate = XGate(label="My special X gate")
         qc.append(gate, [0])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
