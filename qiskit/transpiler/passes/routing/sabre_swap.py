@@ -347,6 +347,10 @@ def _apply_sabre_result(
             :class:`.DAGCircuit` that represents the same thing.
     """
 
+    # The swap gate is a singleton instance, so we don't need to waste time reconstructing it each
+    # time we need to use it.
+    swap_singleton = SwapGate()
+
     def empty_dag(block):
         empty = DAGCircuit()
         empty.add_qubits(out_dag.qubits)
@@ -362,7 +366,7 @@ def _apply_sabre_result(
         for a, b in swaps:
             qubits = (physical_qubits[a], physical_qubits[b])
             layout.swap_physical(a, b)
-            dest_dag.apply_operation_back(SwapGate(), qubits, (), check=False)
+            dest_dag.apply_operation_back(swap_singleton, qubits, (), check=False)
 
     def recurse(dest_dag, source_dag, result, root_logical_map, layout):
         """The main recursive worker.  Mutates ``dest_dag`` and ``layout`` and returns them.
