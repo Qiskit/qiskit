@@ -18,7 +18,6 @@ from io import StringIO
 from warnings import warn
 from shutil import get_terminal_size
 import collections
-import itertools
 import sys
 
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister
@@ -766,6 +765,7 @@ class TextDrawing:
                 self.encoding = "utf8"
 
         self._nest_depth = 0  # nesting depth for control flow ops
+        self._expr_text = ""  # expression text to display
 
         # Because jupyter calls both __repr__ and __repr_html__ for some backends,
         # the entire drawer can be run twice which can result in different output
@@ -1302,17 +1302,14 @@ class TextDrawing:
             # Update the wire_map with the qubits from the inner circuit
             flow_wire_map = wire_map.copy()
             flow_wire_map.update(
-                {
-                    inner: wire_map[outer]
-                    for outer, inner in zip(node.qargs, circuit.qubits)
-                }
+                {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}
             )
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
-            qubits, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            _, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
@@ -1369,13 +1366,16 @@ class TextDrawing:
             if len(self._expr_text) > 27:
                 self._expr_text = self._expr_text[:24] + "..."
 
-        conditional = (section == CF_LEFT and not isinstance(op, ForLoopOp))
+        conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
+            etext = ""
+            if self._expr_text:
+                etext = " " + self._expr_text
             if isinstance(op, IfElseOp):
-                label = "If-" + depth + " " + self._expr_text
+                label = "If-" + depth + etext
             elif isinstance(op, WhileLoopOp):
-                label = "While-" + depth + " " + self._expr_text
+                label = "While-" + depth + etext
             elif isinstance(op, ForLoopOp):
                 indexset = op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
@@ -1386,7 +1386,7 @@ class TextDrawing:
                     index_str = str(indexset)
                 label = "For-" + depth + " " + index_str
             else:
-                label = "Switch-" + depth + " " + self._expr_text
+                label = "Switch-" + depth + etext
         elif section == CF_MID:
             if isinstance(op, IfElseOp):
                 label = "Else-" + depth
@@ -1444,9 +1444,11 @@ class TextDrawing:
             )
         if conditional:
             if isinstance(node.op, SwitchCaseOp):
-                if isinstance(node.op.target, Clbit):
+                if isinstance(node.op.target, expr.Expr):
+                    condition = node.op.target
+                elif isinstance(node.op.target, Clbit):
                     condition = (node.op.target, 1)
-                else:
+                elif isinstance(node.op.target, ClassicalRegister):
                     condition = (node.op.target, 2 ** (node.op.target.size) - 1)
             else:
                 condition = node.op.condition

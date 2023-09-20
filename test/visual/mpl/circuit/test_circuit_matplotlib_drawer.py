@@ -1595,7 +1595,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_op.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1619,7 +1619,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_else_op.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1643,7 +1643,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_else_op_textbook.png"
-        self.circuit_drawer(circuit, style="textbook", filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, style="textbook", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1677,7 +1677,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0, label="X1i")
 
         fname = "if_else_body.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1827,7 +1827,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.x(0)
 
         fname = "while_loop.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1856,7 +1856,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.z(0)
 
         fname = "for_loop.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1888,7 +1888,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
 
         fname = "switch_case.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
