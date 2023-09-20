@@ -135,7 +135,7 @@ Version 10
 
 Version 10 adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
 0.45.0 release. The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
-WIth version 10 the ``LAYOUT`` struct is now:
+With version 10 the ``LAYOUT`` struct is now:
 
 .. code-block:: c
 

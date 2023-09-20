@@ -482,10 +482,10 @@ class TranspileLayout:
     _output_qubit_list: List[Qubit] | None = None
 
     def initial_virtual_layout(self, filter_ancillas: bool = False) -> Layout:
-        """Return a :class:`.Layout` object for the initial layout
+        """Return a :class:`.Layout` object for the initial layout.
 
         This returns a mapping of virtual :class:`~.Qubit` objects in the input
-        circuit to the physical qubit selected during layout. This is analgous
+        circuit to the physical qubit selected during layout. This is analogous
         to the :attr:`.initial_layout` attribute.
 
         Args:
@@ -511,11 +511,11 @@ class TranspileLayout:
 
         Args:
             filter_ancillas: If set to ``True`` any ancilla qubits added
-                to the transpiler will not be included in the output
+                to the transpiler will not be included in the output.
 
         Return:
-            A layout array that maps a position in the array to it's new position in the output
-            circuit
+            A layout array that maps a position in the array to its new position in the output
+            circuit.
         """
 
         virtual_map = self.initial_layout.get_virtual_bits()
