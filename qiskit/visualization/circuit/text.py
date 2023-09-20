@@ -1425,7 +1425,9 @@ class TextDrawing:
             )
         if conditional:
             if isinstance(op, SwitchCaseOp):
-                if isinstance(op.target, Clbit):
+                if isinstance(op.target, expr.Expr):
+                    condition = op.target
+                elif isinstance(op.target, Clbit):
                     condition = (op.target, 1)
                 else:
                     condition = (op.target, 2 ** (op.target.size) - 1)
