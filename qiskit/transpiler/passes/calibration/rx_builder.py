@@ -17,7 +17,7 @@ from functools import lru_cache
 import numpy as np
 
 from qiskit.circuit import Instruction
-from qiskit.pulse import Schedule, ScheduleBlock, builder
+from qiskit.pulse import Schedule, ScheduleBlock, builder, ScalableSymbolicPulse
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.library.symbolic_pulses import Drag
 from qiskit.transpiler.passes.calibration.base_builder import CalibrationBuilder
@@ -102,8 +102,11 @@ class RXCalibrationBuilder(CalibrationBuilder):
             and self.target.has_calibration("sx", tuple(qubits))
             and (len(self.target.get_calibration("sx", tuple(qubits)).instructions) == 1)
             and isinstance(
-                self.target.get_calibration("sx", tuple(qubits)).instructions[0][1].pulse, Drag
+                self.target.get_calibration("sx", tuple(qubits)).instructions[0][1].pulse,
+                ScalableSymbolicPulse,
             )
+            and self.target.get_calibration("sx", tuple(qubits)).instructions[0][1].pulse.pulse_type
+            == "Drag"
         )
 
     def get_calibration(self, node_op: Instruction, qubits: list) -> Union[Schedule, ScheduleBlock]:
