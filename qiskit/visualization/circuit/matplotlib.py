@@ -1559,9 +1559,10 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
 
+            spacer = 0.06 if isinstance(node.op, SwitchCaseOp) else 0.08
             # Indicate type of ControlFlowOp and if expression used, print below
             self._ax.text(
-                xpos - x_shift - 0.08,
+                xpos - x_shift - spacer,
                 ypos_max + 0.2 - y_shift,
                 flow_text,
                 ha="left",

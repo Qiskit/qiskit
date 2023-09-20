@@ -41,6 +41,7 @@ from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
+from qiskit.circuit.classical import expr
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 
@@ -1889,6 +1890,59 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "switch_case.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_if_with_expression(self):
+        """Test the IfElseOp with an expression"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 3)):
+            circuit.z(0)
+
+        fname = "if_op_expr.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_switch_with_expression(self):
+        """Test the SwitchCaseOp with an expression"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.switch(expr.bit_and(cr1, expr.bit_and(cr2, cr3))) as case:
+            with case(0, 1, 2, 3):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                circuit.cx(0, 1)
+
+        fname = "switch_expr.png"
+        self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
