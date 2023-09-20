@@ -14,5 +14,5 @@ features:
       print("sign of an unassigned Parameter is: ", sign_value)
       print("Sign of a Parameter assigned to -3 is: ", sign_value.assign(b,-3))
 
-    Refer to ' #10360<https://github.com/Qiskit/qiskit-terra/issues/10360>'__ for more details.
+    Refer to `#10360 <https://github.com/Qiskit/qiskit-terra/issues/10360>`__ for more details.
 
