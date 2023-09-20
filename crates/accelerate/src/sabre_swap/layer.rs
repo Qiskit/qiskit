@@ -230,7 +230,7 @@ impl ExtendedSet {
                 others.iter().map(move |b| dist[[a_index, b.index()]])
             })
             .sum::<f64>()
-            / (2.0 * self.len as f64)  // Factor of two is to remove double-counting of each gate.
+            / (2.0 * self.len as f64) // Factor of two is to remove double-counting of each gate.
     }
 
     /// Clear all nodes from the extended set.
