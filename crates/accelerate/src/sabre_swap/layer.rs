@@ -226,21 +226,11 @@ impl ExtendedSet {
         self.qubits
             .iter()
             .enumerate()
-            .map(move |(a_index, others)| {
-                others
-                    .iter()
-                    .map(|b| {
-                        let b_index = b.index();
-                        if a_index <= b_index {
-                            dist[[a_index, b_index]]
-                        } else {
-                            0.0
-                        }
-                    })
-                    .sum::<f64>()
+            .flat_map(move |(a_index, others)| {
+                others.iter().map(move |b| dist[[a_index, b.index()]])
             })
             .sum::<f64>()
-            / self.len as f64
+            / (2.0 * self.len as f64)  // Factor of two is to remove double-counting of each gate.
     }
 
     /// Clear all nodes from the extended set.
