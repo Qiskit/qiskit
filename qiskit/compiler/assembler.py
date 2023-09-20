@@ -27,7 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.qobj import Qobj, QobjHeader
+from qiskit.qobj import QasmQobj, PulseQobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def assemble(
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
     **run_config: Dict,
-) -> Qobj:
+) -> Union[QasmQobj, PulseQobj]:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,

@@ -193,7 +193,7 @@ def random_circuit(
                 if is_cond:
                     qc.measure(qc.qubits, cr)
                     # The condition values are required to be bigints, not Numpy's fixed-width type.
-                    operation.condition = (cr, int(condition_values[c_ptr]))
+                    operation = operation.c_if(cr, int(condition_values[c_ptr]))
                     c_ptr += 1
                 qc._append(CircuitInstruction(operation=operation, qubits=qubits[q_start:q_end]))
         else:
