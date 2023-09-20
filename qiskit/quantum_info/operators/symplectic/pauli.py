@@ -755,8 +755,11 @@ class Pauli(BasePauli):
 
         Returns:
             Pauli
-        """
 
+        Raises:
+            ValueError: if any qubit is specified more than once.
+        """
+        
         x_qubits = np.array(x_qubits)
         y_qubits = np.array(y_qubits)
         z_qubits = np.array(z_qubits)
