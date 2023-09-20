@@ -22,7 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.transpiler.exceptions import TranspilerError, CouplingError
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 
 from qiskit.synthesis.clifford import (
