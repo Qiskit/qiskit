@@ -192,8 +192,11 @@ class DynamicalDecoupling(TransformationPass):
         index_sequence_duration_map = {}
         for physical_qubit in self._qubits:
             dd_sequence_duration = 0
-            for gate in self._dd_sequence:
+            for index, gate in enumerate(self._dd_sequence):
+                gate = gate.to_mutable()
+                self._dd_sequence[index] = gate
                 gate.duration = self._durations.get(gate, physical_qubit)
+
                 dd_sequence_duration += gate.duration
             index_sequence_duration_map[physical_qubit] = dd_sequence_duration
 
