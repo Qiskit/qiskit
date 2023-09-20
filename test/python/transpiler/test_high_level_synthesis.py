@@ -534,17 +534,16 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
         self.assertEqual(qc_transpiled, qc_expected)
 
     def test_concrete_synthesis_over_disconnected_qubits(self):
-        """Test concrete synthesis of a permutation gate over a disconnected set of qubits.
-        In this case the plugin should return `None` and `HighLevelSynthesis`
-        should not change the original circuit.
+        """Test concrete synthesis of a permutation gate over a disconnected set of qubits,
+        when synthesis is possible.
         """
 
         # Permutation gate
-        perm = PermutationGate([4, 3, 2, 1, 0])
+        perm = PermutationGate([1, 0, 3, 2])
 
         # Circuit with permutation gate
         qc = QuantumCircuit(10)
-        qc.append(perm, [0, 2, 4, 6, 8])
+        qc.append(perm, [3, 2, 7, 8])
 
         coupling_map = CouplingMap.from_ring(10)
 
@@ -554,6 +553,38 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
                 synthesis_config, coupling_map=coupling_map, target=None, use_qubit_indices=True
             )
         ).run(qc)
+
+        qc_expected = QuantumCircuit(10)
+        qc_expected.swap(2, 3)
+        qc_expected.swap(7, 8)
+
+        # Even though the permutation is over a disconnected set of qubits, the synthesis
+        # is possible.
+        self.assertEqual(qc_transpiled, qc_expected)
+
+    def test_concrete_synthesis_is_not_possible(self):
+        """Test concrete synthesis of a permutation gate over a disconnected set of qubits,
+        when synthesis is not possible.
+        """
+
+        # Permutation gate
+        perm = PermutationGate([0, 2, 1, 3])
+
+        # Circuit with permutation gate
+        qc = QuantumCircuit(10)
+        qc.append(perm, [3, 2, 7, 8])
+
+        coupling_map = CouplingMap.from_ring(10)
+
+        synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10})])
+        qc_transpiled = PassManager(
+            HighLevelSynthesis(
+                synthesis_config, coupling_map=coupling_map, target=None, use_qubit_indices=True
+            )
+        ).run(qc)
+
+        # The synthesis is not possible. In this case the plugin should return `None`
+        # and `HighLevelSynthesis` should not change the original circuit.
         self.assertEqual(qc_transpiled, qc)
 
     def test_abstract_synthesis_all_permutations(self):

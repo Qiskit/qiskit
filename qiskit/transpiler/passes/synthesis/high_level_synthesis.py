@@ -428,9 +428,10 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
     when the synthesis is done before layout/routing.
 
     On the other hand, if both `coupling_map` and `qubits` are specified, the synthesized
-    circuit is supposed to adhere to connectivity constraint. At the moment, the plugin
-    only works when `qubits` represents a connected subset of `coupling_map` (if this is
-    not the case, the plugin outputs `None`).
+    circuit is supposed to adhere to connectivity constraints. At the moment, the
+    plugin only creates swap gates between qubits in `qubits`, i.e. it does not use
+    any other qubits in the coupling map (if such synthesis is not possible, the
+    plugin  outputs `None`).
 
     The plugin supports the following plugin-specific options:
 
@@ -463,21 +464,28 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
             used_coupling_map = CouplingMap.from_full(len(pattern))
         else:
             # The concrete synthesis uses the coupling map restricted to the set of
-            # qubits over which the permutation gate is defined. Currently, we require
-            # this set to be connected (otherwise, replacing the node in the DAGCircuit
-            # that defines this PermutationGate by the DAG corresponding to the constructed
-            # decomposition becomes problematic); note that the method `reduce` raises an
-            # error if the reduced coupling map is not connected.
-            try:
-                used_coupling_map = coupling_map.reduce(qubits)
-            except CouplingError:
-                return None
+            # qubits over which the permutation gate is defined. If we allow using other
+            # qubits in the coupling map, replacing the node in the DAGCircuit that
+            # defines this PermutationGate by the DAG corresponding to the constructed
+            # decomposition becomes problematic. Note that we allow the reduced
+            # coupling map to be disconnected.
+            used_coupling_map = coupling_map.reduce(qubits, check_if_connected=False)
 
         graph = rx.PyGraph()
         graph.extend_from_edge_list(list(used_coupling_map.get_edges()))
         swapper = ApproximateTokenSwapper(graph, seed=seed)
-        out = swapper.map(pattern_as_dict, trials, parallel_threshold=parallel_threshold)
-        decomposition = QuantumCircuit(len(graph.node_indices()))
-        for swap in out:
-            decomposition.swap(*swap)
-        return decomposition
+
+        try:
+            swapper_result = swapper.map(
+                pattern_as_dict, trials, parallel_threshold=parallel_threshold
+            )
+        except rx.InvalidMapping:
+            swapper_result = None
+
+        if swapper_result is not None:
+            decomposition = QuantumCircuit(len(graph.node_indices()))
+            for swap in swapper_result:
+                decomposition.swap(*swap)
+            return decomposition
+
+        return None
