@@ -5687,9 +5687,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         with circuit.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 3)):
             circuit.z(0)
 
-        self.assertEqual(
-            str(_text_circuit_drawer(circuit, initial_state=False)), expected
-        )
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
     def test_switch_with_expression(self):
         """Test an SwitchcaseOp with an expression"""
@@ -5726,9 +5724,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with case(case.DEFAULT):
                 circuit.cx(0, 1)
 
-        self.assertEqual(
-            str(_text_circuit_drawer(circuit, initial_state=False)), expected
-        )
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
 
 if __name__ == "__main__":
