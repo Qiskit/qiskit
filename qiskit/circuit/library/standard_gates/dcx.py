@@ -12,13 +12,13 @@
 
 """Double-CNOT gate."""
 
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 
 
 @with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
-class DCXGate(Gate):
+class DCXGate(SingletonGate):
     r"""Double-CNOT gate.
 
     A 2-qubit Clifford gate consisting of two back-to-back
@@ -48,9 +48,14 @@ class DCXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, label=None, duration=None, unit=None, _condition=None):
         """Create new DCX gate."""
-        super().__init__("dcx", 2, [])
+        if unit is None:
+            unit = "dt"
+
+        super().__init__(
+            "dcx", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         """

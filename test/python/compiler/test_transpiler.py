@@ -51,7 +51,6 @@ from qiskit.circuit.library import (
     SXGate,
     U1Gate,
     U2Gate,
-    U3Gate,
     UGate,
     XGate,
 )
@@ -802,20 +801,26 @@ class TestTranspile(QiskitTestCase):
             )
             self.assertTrue(is_last_measure)
 
-    def test_initialize_reset_should_be_removed(self):
-        """The reset in front of initializer should be removed when zero state"""
+    @data(0, 1, 2, 3)
+    def test_init_resets_kept_preset_passmanagers(self, optimization_level):
+        """Test initial resets kept at all preset transpilation levels"""
+        num_qubits = 5
+        qc = QuantumCircuit(num_qubits)
+        qc.reset(range(num_qubits))
+
+        num_resets = transpile(qc, optimization_level=optimization_level).count_ops()["reset"]
+        self.assertEqual(num_resets, num_qubits)
+
+    @data(0, 1, 2, 3)
+    def test_initialize_reset_is_not_removed(self, optimization_level):
+        """The reset in front of initializer should NOT be removed at beginning"""
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(np.pi / 2, 0, 0), [qr[0]])
-        expected.reset(qr[0])
-        expected.append(U3Gate(np.pi / 2, -np.pi, 0), [qr[0]])
-
-        after = transpile(qc, basis_gates=["reset", "u3"], optimization_level=1)
-        self.assertEqual(after, expected, msg=f"after:\n{after}\nexpected:\n{expected}")
+        after = transpile(qc, basis_gates=["reset", "u3"], optimization_level=optimization_level)
+        self.assertEqual(after.count_ops()["reset"], 2, msg=f"{after}\n does not have 2 resets.")
 
     def test_initialize_FakeMelbourne(self):
         """Test that the zero-state resets are remove in a device not supporting them."""
@@ -828,7 +833,7 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
-        self.assertEqual(reset_nodes, [])
+        self.assertEqual(len(reset_nodes), 3)
 
     def test_non_standard_basis(self):
         """Test a transpilation with a non-standard basis"""

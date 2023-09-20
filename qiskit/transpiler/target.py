@@ -442,7 +442,7 @@ class Target(Mapping):
         Args:
             instruction (str): The instruction name to update
             qargs (tuple): The qargs to update the properties of
-            properties (InstructionProperties): The properties to set for this nstruction
+            properties (InstructionProperties): The properties to set for this instruction
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
@@ -466,7 +466,7 @@ class Target(Mapping):
             inst_name_map (dict): An optional dictionary that maps any
                 instruction name in ``inst_map`` to an instruction object.
                 If not provided, instruction is pulled from the standard Qiskit gates,
-                and finally custom gate instnace is created with schedule name.
+                and finally custom gate instance is created with schedule name.
             error_dict (dict): A dictionary of errors of the form::
 
                 {gate_name: {qarg: error}}
@@ -1292,7 +1292,7 @@ class Target(Mapping):
         Raises:
             TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
             specified.
-            KeyError: If no mappign is available for a specified ``basis_gate``.
+            KeyError: If no mapping is available for a specified ``basis_gate``.
         """
         granularity = 1
         min_length = 1
