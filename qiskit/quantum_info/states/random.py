@@ -40,6 +40,10 @@ def random_statevector(
 
     Returns:
         Statevector: the random statevector.
+
+    Reference:
+        "Choosing a Point from the Surface of a Sphere" by George Marsaglia
+        http://doi.org/10.1214/aoms/1177692644
     """
     if seed is None:
         rng = np.random.default_rng()
