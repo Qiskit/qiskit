@@ -82,3 +82,17 @@ class TestSabrePreLayout(QiskitTestCase):
         pm = PassManager([SabrePreLayout(coupling_map=coupling_map, max_distance=3)])
         pm.run(qc)
         self.assertIn("sabre_starting_layouts", pm.property_set)
+
+    def test_call_limit_vf2(self):
+        """Test the ``call_limit_vf2`` option to SabrePreLayout."""
+        qc = QuantumCircuit(4)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 0)
+        coupling_map = CouplingMap.from_ring(5)
+        pm = PassManager(
+            [SabrePreLayout(coupling_map=coupling_map, call_limit_vf2=1, max_distance=3)]
+        )
+        pm.run(qc)
+        self.assertNotIn("sabre_starting_layouts", pm.property_set)

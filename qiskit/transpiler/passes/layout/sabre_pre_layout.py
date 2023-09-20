@@ -37,6 +37,7 @@ class SabrePreLayout(AnalysisPass):
         max_distance=2,
         error_rate=0.1,
         max_trials_vf2=100,
+        call_limit_vf2=None,
         improve_layout=True,
     ):
         """SabrePreLayout initializer.
@@ -62,6 +63,7 @@ class SabrePreLayout(AnalysisPass):
             max_trials_vf2 (int): specifies the maximum number of VF2 trials. A larger number
                 allows VF2 to explore more layouts, eventually choosing the one with the smallest
                 error rate.
+            call_limit_vf2 (int): limits each call to VF2 by bounding the number of VF2 state visits.
             improve_layout (bool): whether to improve the layout by minimizing the number of
                 extra edges involved. This might be time-consuming as this requires additional
                 VF2 calls.
@@ -75,6 +77,7 @@ class SabrePreLayout(AnalysisPass):
         self.max_distance = max_distance
         self.error_rate = error_rate
         self.max_trials_vf2 = max_trials_vf2
+        self.call_limit_vf2 = call_limit_vf2
         self.improve_layout = improve_layout
 
         if self.target is not None:
@@ -99,9 +102,14 @@ class SabrePreLayout(AnalysisPass):
 
         starting_layout = None
         cur_distance = 1
-        while True:
+        while cur_distance <= self.max_distance:
             augmented_map, augmented_error_map = self._add_extra_edges(cur_distance)
-            pass_ = VF2Layout(augmented_map, seed=0, max_trials=self.max_trials_vf2)
+            pass_ = VF2Layout(
+                augmented_map,
+                seed=0,
+                max_trials=self.max_trials_vf2,
+                call_limit=self.call_limit_vf2,
+            )
             pass_.property_set["vf2_avg_error_map"] = augmented_error_map
             pass_.run(dag)
 
@@ -110,8 +118,6 @@ class SabrePreLayout(AnalysisPass):
                 break
 
             cur_distance += 1
-            if cur_distance > self.max_distance:
-                break
 
         if cur_distance > 1 and starting_layout is not None:
             # optionally improve starting layout
@@ -130,19 +136,17 @@ class SabrePreLayout(AnalysisPass):
         """
         nq = len(self.coupling_map.graph.node_indices())
         augmented_coupling_map = CouplingMap()
+        augmented_coupling_map.graph = self.coupling_map.graph.copy()
         augmented_error_map = ErrorMap(nq)
-
-        for node in self.coupling_map.graph.node_indices():
-            augmented_coupling_map.add_physical_qubit(node)
 
         for (x, y) in itertools.combinations(self.coupling_map.graph.node_indices(), 2):
             d = self.coupling_map.distance(x, y)
-            if 0 < d <= distance:
-                error = 0 if d == 1 else self.error_rate
+            if 1 < d <= distance:
                 augmented_coupling_map.add_edge(x, y)
-                augmented_error_map.add_error((x, y), error)
+                augmented_error_map.add_error((x, y), self.error_rate)
                 augmented_coupling_map.add_edge(y, x)
-                augmented_error_map.add_error((y, x), error)
+                augmented_error_map.add_error((y, x), self.error_rate)
+
         return augmented_coupling_map, augmented_error_map
 
     def _get_extra_edges_used(self, dag, layout):
@@ -161,7 +165,7 @@ class SabrePreLayout(AnalysisPass):
     def _find_layout(self, dag, edges):
         """Checks if there is a layout for a given set of edges."""
         cm = CouplingMap(edges)
-        pass_ = VF2Layout(cm, seed=0, max_trials=1)
+        pass_ = VF2Layout(cm, seed=0, max_trials=1, call_limit=self.call_limit_vf2)
         pass_.run(dag)
         return pass_.property_set.get("layout", None)
 
@@ -198,7 +202,7 @@ class SabrePreLayout(AnalysisPass):
             )
 
             if layout is None:
-                # this edge is necessary
+                # without this edge the layout either does not exist or is too hard to find
                 extra_edges_necessary.append(edge_chosen)
 
             else:
