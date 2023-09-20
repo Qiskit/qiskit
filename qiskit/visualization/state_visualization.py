@@ -515,9 +515,6 @@ def plot_state_city(
     max_dzr = np.max(dzr)
     max_dzi = np.max(dzi)
 
-    # There seems to be a rounding error in which some zero bars are negative
-    dzr = np.clip(dzr, 0, None)
-
     # Figure scaling variables since fig.tight_layout won't work
     fig_width, fig_height = fig.get_size_inches()
     max_plot_size = min(fig_width / 2.25, fig_height)
