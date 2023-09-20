@@ -692,9 +692,9 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg[[0]])
+        true_body = QuantumCircuit(qreg[:], creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg[[0]])
+        false_body = QuantumCircuit(qreg[:], creg[[0]])
         false_body.cx(0, 4)
         qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.h(3)
@@ -724,11 +724,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(2, 3)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
-        expected.h(3)
         expected.swap(1, 2)
+        expected.h(3)
         expected.cx(3, 2)
         expected.barrier()
-        expected.measure(qreg, creg[[1, 2, 0, 3, 4]])
+        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):

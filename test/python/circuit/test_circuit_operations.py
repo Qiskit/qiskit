@@ -760,7 +760,7 @@ class TestCircuitOperations(QiskitTestCase):
         circuit = QuantumCircuit(1, global_phase=x)
         self.assertEqual(circuit.parameters, {x})
 
-        bound = circuit.bind_parameters({x: 2})
+        bound = circuit.assign_parameters({x: 2})
         self.assertEqual(bound.global_phase, 2)
         self.assertEqual(bound.parameters, set())
 
@@ -774,7 +774,7 @@ class TestCircuitOperations(QiskitTestCase):
         ref = QuantumCircuit(1, global_phase=2)
         ref.rx(2, 0)
 
-        bound = circuit.bind_parameters({x: 2})
+        bound = circuit.assign_parameters({x: 2})
         self.assertEqual(bound, ref)
         self.assertEqual(bound.parameters, set())
 
