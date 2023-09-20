@@ -5,3 +5,5 @@ fixes:
     sizes.
   - |
     Corrected the Z-ordering behavior of bars and the zero-amplitude plane.
+  - |
+    Corrected display of negative real value bars
