@@ -31,7 +31,7 @@ def random_statevector(
 ) -> Statevector:
     """Generator a random Statevector.
 
-    The statevector is sampled from the uniform (Haar) measure.
+    The statevector is sampled from the uniform distribution.
 
     Args:
         dims (int or tuple): the dimensions of the state.
@@ -49,14 +49,10 @@ def random_statevector(
         rng = default_rng(seed)
 
     dim = np.prod(dims)
-
-    # Random array over interval (0, 1]
-    x = rng.random(dim)
-    x += x == 0
-    x = -np.log(x)
-    sumx = sum(x)
-    phases = rng.random(dim) * 2.0 * np.pi
-    return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
+    vec = rng.standard_normal(dim).astype(complex)
+    vec += 1j * rng.standard_normal(dim)
+    vec /= np.linalg.norm(vec)
+    return Statevector(vec, dims=dims)
 
 
 def random_density_matrix(
