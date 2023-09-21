@@ -140,20 +140,6 @@ def schmidt_decomposition(state, qargs):
     orthonormal set of vectors in their respective spaces :math:`A` and :math:`B`,
     and the Schmidt coefficients :math:`\lambda_k` are positive real values.
 
-    Args:
-        state (Statevector or DensityMatrix): the input state.
-        qargs (list): the list of Input state positions corresponding to subsystem :math:`B`.
-
-    Returns:
-        list: list of tuples ``(s, u, v)``, where ``s`` (float) are the
-              Schmidt coefficients :math:`\lambda_k`, and ``u`` (Statevector),
-              ``v`` (Statevector) are the Schmidt vectors
-              :math:`|u_k\rangle_A`, :math:`|u_k\rangle_B`, respectively.
-
-    Raises:
-        QiskitError: if Input qargs is not a list of positions of the Input state.
-        QiskitError: if Input qargs is not a proper subset of Input state.
-
     ..note ::
         In Qiskit, qubits are ordered using little endian notation, with the least significant
         qubits having smaller indices. For example, a four-qubit system is represented as
@@ -162,6 +148,19 @@ def schmidt_decomposition(state, qargs):
         in this notation regardless of the order they are passed. For instance, passing either
         `qargs = [1,2]` or `qargs = [2,1]` will result in partitioning the state as
         :math:`|q_3q_0\rangle_A\otimes|q_2q_1\rangle_B`.
+
+    Args:
+        state (Statevector or DensityMatrix): the input state.
+        qargs (list): the list of Input state positions corresponding to subsystem :math:`B`.
+
+    Returns:
+        list: list of tuples ``(s, u, v)``, where ``s`` (float) are the Schmidt coefficients
+         :math:`\lambda_k`, and ``u`` (Statevector), ``v`` (Statevector) are the Schmidt vectors
+         :math:`|u_k\rangle_A`, :math:`|u_k\rangle_B`, respectively.
+
+    Raises:
+        QiskitError: if Input qargs is not a list of positions of the Input state.
+        QiskitError: if Input qargs is not a proper subset of Input state.
     """
     state = _format_state(state, validate=False)
 
