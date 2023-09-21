@@ -13,7 +13,9 @@
 Parameter Class for variable parameters.
 """
 
-from uuid import uuid4
+from __future__ import annotations
+
+from uuid import uuid4, UUID
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
@@ -56,7 +58,9 @@ class Parameter(ParameterExpression):
     # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialised
     # anyway, because `ParameterExpression` depends heavily on the structure of `Parameter`.
 
-    def __init__(self, name: str, *, uuid=None):  # pylint: disable=super-init-not-called
+    def __init__(
+        self, name: str, *, uuid: UUID | None = None
+    ):  # pylint: disable=super-init-not-called
         """Create a new named :class:`Parameter`.
 
         Args:
