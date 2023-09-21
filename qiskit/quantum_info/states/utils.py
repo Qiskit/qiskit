@@ -140,13 +140,13 @@ def schmidt_decomposition(state, qargs):
     orthonormal set of vectors in their respective spaces :math:`A` and :math:`B`,
     and the Schmidt coefficients :math:`\lambda_k` are positive real values.
 
-    ..note ::
-        In Qiskit, qubits are ordered using little endian notation, with the least significant
+    .. note::
+        In Qiskit, qubits are ordered using little-endian notation, with the least significant
         qubits having smaller indices. For example, a four-qubit system is represented as
-        :math:`|q_3q_2q_1q_0\rangle`. Using this convention, setting `qargs = [0]` will partition the
+        :math:`|q_3q_2q_1q_0\rangle`. Using this convention, setting ``qargs=[0]`` will partition the
         state as :math:`|q_3q_2q_1\rangle_A\otimes|q_0\rangle_B`. Furthermore, qubits will be organized
         in this notation regardless of the order they are passed. For instance, passing either
-        `qargs = [1,2]` or `qargs = [2,1]` will result in partitioning the state as
+        ``qargs=[1,2]`` or ``qargs=[2,1]`` will result in partitioning the state as
         :math:`|q_3q_0\rangle_A\otimes|q_2q_1\rangle_B`.
 
     Args:
@@ -155,8 +155,8 @@ def schmidt_decomposition(state, qargs):
 
     Returns:
         list: list of tuples ``(s, u, v)``, where ``s`` (float) are the Schmidt coefficients
-         :math:`\lambda_k`, and ``u`` (Statevector), ``v`` (Statevector) are the Schmidt vectors
-         :math:`|u_k\rangle_A`, :math:`|u_k\rangle_B`, respectively.
+        :math:`\lambda_k`, and ``u`` (Statevector), ``v`` (Statevector) are the Schmidt vectors
+        :math:`|u_k\rangle_A`, :math:`|u_k\rangle_B`, respectively.
 
     Raises:
         QiskitError: if Input qargs is not a list of positions of the Input state.
