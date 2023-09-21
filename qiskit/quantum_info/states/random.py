@@ -31,7 +31,7 @@ def random_statevector(
 ) -> Statevector:
     """Generator a random Statevector.
 
-    The statevector is sampled from the uniform distribution. This is the distribution
+    The statevector is sampled from the uniform distribution. This is the measure
     induced by the Haar measure on unitary matrices.
 
     Args:
@@ -43,8 +43,8 @@ def random_statevector(
         Statevector: the random statevector.
 
     Reference:
-        "Choosing a Point from the Surface of a Sphere" by George Marsaglia
-        http://doi.org/10.1214/aoms/1177692644
+        "Induced measures in the space of mixed quantum states"
+        https://arxiv.org/abs/quant-ph/0012101
     """
     if seed is None:
         rng = np.random.default_rng()
