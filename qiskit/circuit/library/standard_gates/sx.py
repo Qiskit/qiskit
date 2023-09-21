@@ -146,10 +146,6 @@ class SXdgGate(SingletonGate):
                     = e^{-i pi/4} \sqrt{X}^{\dagger}
 
     """
-    _ARRAY = numpy.array(
-        [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]], dtype=numpy.complex128
-    )
-    _ARRAY.setflags(write=False)
 
     def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new SXdg gate."""
