@@ -1016,14 +1016,11 @@ def plot_coupling_map(
         input_axes = True
 
     if font_size is None:
-        font_size = 20
+        qubit_digits = max(1, math.log10(num_qubits))
+        font_size = max(int(20 / qubit_digits), 1)
 
     if qubit_size is None:
         qubit_size = 30
-
-    if num_qubits > 20:
-        qubit_size = 20
-        font_size = 10
 
     if qubit_labels is None:
         qubit_labels = list(range(num_qubits))
