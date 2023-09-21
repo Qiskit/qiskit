@@ -14,7 +14,6 @@
 
 from math import pi
 from typing import Optional, Union
-import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
