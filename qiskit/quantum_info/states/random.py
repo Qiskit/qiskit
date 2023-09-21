@@ -31,7 +31,8 @@ def random_statevector(
 ) -> Statevector:
     """Generator a random Statevector.
 
-    The statevector is sampled from the uniform distribution.
+    The statevector is sampled from the uniform distribution. This is the distribution
+    induced by the Haar measure on unitary matrices.
 
     Args:
         dims (int or tuple): the dimensions of the state.
