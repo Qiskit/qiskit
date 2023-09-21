@@ -22,7 +22,6 @@ from qiskit.quantum_info.operators.random import (
     random_pauli_list,
     random_pauli_table,
     random_quantum_channel,
-    random_stabilizer_table,
     random_unitary,
 )
 from qiskit.quantum_info.states.random import random_density_matrix, random_statevector
