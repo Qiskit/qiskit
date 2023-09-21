@@ -65,7 +65,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    @deprecate_arg("qubit_channel_mapping", since="0.22.0")
+    @deprecate_arg("qubit_channel_mapping", since="0.22.0", package_name="qiskit-terra")
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,

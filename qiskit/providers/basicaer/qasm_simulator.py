@@ -391,6 +391,7 @@ class QasmSimulatorPy(BackendV1):
         "qobj",
         deprecation_description="Using a qobj for the first argument to QasmSimulatorPy.run()",
         since="0.22.0",
+        package_name="qiskit-terra",
         pending=True,
         predicate=lambda qobj: not isinstance(qobj, (QuantumCircuit, list)),
     )

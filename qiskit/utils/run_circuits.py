@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def find_regs_by_name(
@@ -107,6 +108,7 @@ def _safe_get_job_status(job: Job, job_id: str, max_job_retries: int, wait: floa
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def run_circuits(

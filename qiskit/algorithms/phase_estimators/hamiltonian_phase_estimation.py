@@ -100,6 +100,7 @@ class HamiltonianPhaseEstimation:
             "migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,

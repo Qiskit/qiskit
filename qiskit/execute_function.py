@@ -36,8 +36,18 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
-@deprecate_arg("qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore.")
-@deprecate_arg("qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore.")
+@deprecate_arg(
+    "qobj_id",
+    since="0.21.0",
+    additional_msg="This argument has no effect anymore.",
+    package_name="qiskit-terra",
+)
+@deprecate_arg(
+    "qobj_header",
+    since="0.21.0",
+    additional_msg="This argument has no effect anymore.",
+    package_name="qiskit-terra",
+)
 def execute(
     experiments,
     backend,

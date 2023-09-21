@@ -32,6 +32,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def get_measured_qubits(
@@ -80,6 +81,7 @@ def get_measured_qubits(
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
@@ -125,6 +127,7 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def build_measurement_error_mitigation_circuits(
@@ -204,6 +207,7 @@ def build_measurement_error_mitigation_circuits(
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def build_measurement_error_mitigation_qobj(

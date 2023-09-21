@@ -2793,10 +2793,7 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
-    @deprecate_func(
-        additional_msg=("Use assign_parameters() instead"),
-        since="0.45.0",
-    )
+    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
     ) -> "QuantumCircuit":

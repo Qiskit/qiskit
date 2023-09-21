@@ -127,7 +127,11 @@ class PauliTable(BaseOperator, AdjointMixin):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.24.0")
+    @deprecate_func(
+        additional_msg="Instead, use the class PauliList",
+        since="0.24.0",
+        package_name="qiskit-terra",
+    )
     def __init__(self, data: np.ndarray | str | ScalarOp | PauliTable):
         """Initialize the PauliTable.
 

@@ -69,6 +69,7 @@ class ParametricPulse(Pulse):
             "qiskit.pulse.library.symbolic_pulses for details."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -138,6 +139,7 @@ class Gaussian(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -250,6 +252,7 @@ class GaussianSquare(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -420,6 +423,7 @@ class Drag(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -543,6 +547,7 @@ class Constant(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(

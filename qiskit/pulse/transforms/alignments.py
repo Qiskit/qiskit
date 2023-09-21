@@ -45,7 +45,7 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
-    @deprecate_func(since="0.21")
+    @deprecate_func(since="0.21", package_name="qiskit-terra")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__}
@@ -330,7 +330,7 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
-    @deprecate_func(since="0.21")
+    @deprecate_func(since="0.21", package_name="qiskit-terra")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__, "duration": self.duration}
@@ -416,7 +416,7 @@ class AlignFunc(AlignmentKind):
 
         return aligned
 
-    @deprecate_func(since="0.21")
+    @deprecate_func(since="0.21", package_name="qiskit-terra")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment.
 

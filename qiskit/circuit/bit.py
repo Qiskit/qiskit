@@ -63,6 +63,7 @@ class Bit:
     @deprecate_func(
         is_property=True,
         since="0.17",
+        package_name="qiskit-terra",
         additional_msg=(
             "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
             "all the containing registers within a circuit and the index of the bit within the "
@@ -85,6 +86,7 @@ class Bit:
     @deprecate_func(
         is_property=True,
         since="0.17",
+        package_name="qiskit-terra",
         additional_msg=(
             "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
             "all the containing registers within a circuit and the index of the bit within the "

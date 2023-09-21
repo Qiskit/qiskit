@@ -64,6 +64,7 @@ class ClassicalRegister(Register):
             "provided, because the premise is wrong."
         ),
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def qasm(self):
         """Return OPENQASM string for this register."""

@@ -18,6 +18,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
 )
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
@@ -39,6 +40,7 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
 )
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
@@ -60,6 +62,7 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
 )
 def double_commutator(

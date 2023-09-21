@@ -22,6 +22,7 @@ class CXDirection(GateDirection):
     @deprecate_func(
         additional_msg="Instead, use the more generic :class:`~.GateDirection` pass.",
         since="0.21.0",
+        package_name="qiskit-terra",
     )
     def __init__(self, coupling_map):
         super().__init__(coupling_map)

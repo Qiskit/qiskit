@@ -40,6 +40,7 @@ class ASAPSchedule(BaseSchedulerTransform):
         ),
         since="0.21.0",
         pending=True,
+        package_name="qiskit-terra",
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

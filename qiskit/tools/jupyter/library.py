@@ -43,6 +43,7 @@ def _generate_circuit_library_visualization(circuit: QuantumCircuit):
 @deprecate_func(
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+    package_name="qiskit-terra",
 )
 def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
     """Create a HTML table widget for a given quantum circuit.
@@ -112,6 +113,7 @@ property_label = wid.HTML(
 @deprecate_func(
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+    package_name="qiskit-terra",
 )
 def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Create a HTML table widget with header for a given quantum circuit.
@@ -133,6 +135,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
 @deprecate_func(
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+    package_name="qiskit-terra",
 )
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Generate a QASM widget with header for a quantum circuit.
@@ -192,6 +195,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
 @deprecate_func(
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+    package_name="qiskit-terra",
 )
 def circuit_diagram_widget() -> wid.Box:
     """Create a circuit diagram widget.
@@ -218,6 +222,7 @@ def circuit_diagram_widget() -> wid.Box:
 @deprecate_func(
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
+    package_name="qiskit-terra",
 )
 def circuit_library_widget(circuit: QuantumCircuit) -> None:
     """Create a circuit library widget.

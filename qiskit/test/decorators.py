@@ -141,7 +141,9 @@ def _get_credentials():
     )
 
 
-@deprecate_func(additional_msg="Instead, use ``online_test``", since="0.17.0")
+@deprecate_func(
+    additional_msg="Instead, use ``online_test``", since="0.17.0", package_name="qiskit-terra"
+)
 def requires_qe_access(func):
     """Deprecated in favor of `online_test`"""
 

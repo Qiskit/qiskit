@@ -596,6 +596,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
             "Instead, use a float for ``amp`` (for the magnitude) and a float for ``angle``"
         ),
         since="0.25.0",
+        package_name="qiskit-terra",
         pending=False,
         predicate=lambda amp: isinstance(amp, complex),
     )

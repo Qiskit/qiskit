@@ -100,6 +100,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     @deprecate_arg(
         "threshold",
         since="0.24.0",
+        package_name="qiskit-terra",
         pending=True,
         new_alias="gradient_threshold",
     )
@@ -143,6 +144,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     @property
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         pending=True,
         is_property=True,
         additional_msg="Instead, use the gradient_threshold attribute.",
@@ -158,6 +160,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     @threshold.setter
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         pending=True,
         is_property=True,
         additional_msg="Instead, use the gradient_threshold attribute.",

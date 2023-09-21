@@ -49,6 +49,7 @@ class DerivativeBase(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self) -> None:
@@ -136,7 +137,9 @@ class DerivativeBase(ConverterBase):
 
     @staticmethod
     @deprecate_func(
-        since="0.18.0", additional_msg="Instead, use the ParameterExpression.gradient method."
+        since="0.18.0",
+        package_name="qiskit-terra",
+        additional_msg="Instead, use the ParameterExpression.gradient method.",
     )
     def parameter_expression_grad(
         param_expr: ParameterExpression, param: ParameterExpression

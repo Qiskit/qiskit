@@ -505,6 +505,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_acquire(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -512,6 +513,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_bundled_acquires(self, shift, instructions_):
         return self._convert_bundled_acquire(instructions_, shift)
@@ -519,6 +521,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_set_frequency(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -526,6 +529,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_shift_frequency(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -533,6 +537,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_set_phase(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -540,6 +545,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_shift_phase(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -547,6 +553,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_delay(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -554,6 +561,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_play(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -561,6 +569,7 @@ class InstructionToQobjConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_snapshot(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -958,6 +967,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_acquire(self, instruction):
         t0 = instruction.t0
@@ -969,6 +979,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_set_phase(self, instruction):
         t0 = instruction.t0
@@ -980,6 +991,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_shift_phase(self, instruction):
         t0 = instruction.t0
@@ -991,6 +1003,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_set_frequency(self, instruction):
         t0 = instruction.t0
@@ -1002,6 +1015,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_shift_frequency(self, instruction):
         t0 = instruction.t0
@@ -1013,6 +1027,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_delay(self, instruction):
         t0 = instruction.t0
@@ -1024,6 +1039,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def bind_pulse(self, pulse):
         if pulse.name not in self._pulse_library:
@@ -1032,6 +1048,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_parametric(self, instruction):
         t0 = instruction.t0
@@ -1043,6 +1060,7 @@ class QobjToInstructionConverter:
     @deprecate_func(
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def convert_snapshot(self, instruction):
         t0 = instruction.t0

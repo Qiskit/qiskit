@@ -563,7 +563,7 @@ class C3SXGate(ControlledGate):
 
         self.definition = qc
 
-    @deprecate_func(since="0.25.0")
+    @deprecate_func(since="0.25.0", package_name="qiskit-terra")
     def qasm(self):
         # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
         # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the

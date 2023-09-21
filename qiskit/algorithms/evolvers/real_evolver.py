@@ -35,6 +35,7 @@ class RealEvolver(ABC):
             "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(self) -> None:
         pass

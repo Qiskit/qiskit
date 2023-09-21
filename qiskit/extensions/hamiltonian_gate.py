@@ -119,6 +119,7 @@ class HamiltonianGate(Gate):
 
     @deprecate_func(
         since="0.25.0",
+        package_name="qiskit-terra",
     )
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""

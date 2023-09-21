@@ -230,6 +230,7 @@ class Instruction(ABC):
             "``qiskit.visualization.pulse_drawer``."
         ),
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(

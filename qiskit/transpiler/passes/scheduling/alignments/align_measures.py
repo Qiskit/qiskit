@@ -97,6 +97,7 @@ class AlignMeasures(TransformationPass):
         ),
         since="0.21.0",
         pending=True,
+        package_name="qiskit-terra",
     )
     def __init__(self, alignment: int = 1):
         """Create new pass.

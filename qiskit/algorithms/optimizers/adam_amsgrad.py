@@ -195,9 +195,13 @@ class ADAM(Optimizer):
         t = t[1:-1]
         self._t = np.fromstring(t, dtype=int, sep=" ")
 
-    @deprecate_arg("objective_function", new_alias="fun", since="0.19.0")
-    @deprecate_arg("initial_point", new_alias="fun", since="0.19.0")
-    @deprecate_arg("gradient_function", new_alias="jac", since="0.19.0")
+    @deprecate_arg(
+        "objective_function", new_alias="fun", since="0.19.0", package_name="qiskit-terra"
+    )
+    @deprecate_arg("initial_point", new_alias="fun", since="0.19.0", package_name="qiskit-terra")
+    @deprecate_arg(
+        "gradient_function", new_alias="jac", since="0.19.0", package_name="qiskit-terra"
+    )
     def minimize(
         self,
         fun: Callable[[POINT], float],

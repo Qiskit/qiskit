@@ -258,6 +258,7 @@ class QNSPSA(SPSA):
     @deprecate_arg(
         "backend",
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
         # We allow passing a sampler as the second argument because that will become a positional
         # argument for `sampler` after removing `backend` and `expectation`.
@@ -266,6 +267,7 @@ class QNSPSA(SPSA):
     @deprecate_arg(
         "expectation",
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
     def get_fidelity(
