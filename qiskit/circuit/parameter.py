@@ -52,34 +52,25 @@ class Parameter(ParameterExpression):
 
     __slots__ = ("_name", "_uuid", "_hash")
 
-    def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
-        # Parameter relies on self._uuid being set prior to other attributes
-        # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
-        # or __eq__ functions.
-        obj = object.__new__(cls)
+    # This `__init__` does not call the super init, because we can't construct the
+    # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialised
+    # anyway, because `ParameterExpression` depends heavily on the structure of `Parameter`.
 
-        if uuid is None:
-            obj._uuid = uuid4()
-        else:
-            obj._uuid = uuid
-
-        obj._hash = hash(obj._uuid)
-        return obj
-
-    def __getnewargs__(self):
-        # Unpickling won't in general call __init__ but will always call
-        # __new__. Specify arguments to be passed to __new__ when unpickling.
-
-        return (self.name, self._uuid)
-
-    def __init__(self, name: str):
+    def __init__(self, name: str, *, uuid=None):  # pylint: disable=super-init-not-called
         """Create a new named :class:`Parameter`.
 
         Args:
             name: name of the ``Parameter``, used for visual representation. This can
                 be any unicode string, e.g. "ϕ".
+            uuid: For advanced usage only.  Override the UUID of this parameter, in order to make it
+                compare equal to some other parameter object.  By default, two parameters with the
+                same name do not compare equal to help catch shadowing bugs when two circuits
+                containing the same named parameters are spurious combined.  Setting the ``uuid``
+                field when creating two parameters to the same thing (along with the same name)
+                allows them to be equal.  This is useful during serialization and deserialization.
         """
         self._name = name
+        self._uuid = uuid4() if uuid is None else uuid
         if not _optionals.HAS_SYMENGINE:
             from sympy import Symbol
 
@@ -88,7 +79,12 @@ class Parameter(ParameterExpression):
             import symengine
 
             symbol = symengine.Symbol(name)
-        super().__init__(symbol_map={self: symbol}, expr=symbol)
+
+        self._symbol_expr = symbol
+        self._parameter_keys = frozenset((self._hash_key(),))
+        self._hash = hash((self._parameter_keys, self._symbol_expr))
+        self._parameter_symbols = {self: symbol}
+        self._name_map = None
 
     def assign(self, parameter, value):
         if parameter != self:
@@ -144,20 +140,27 @@ class Parameter(ParameterExpression):
         else:
             return False
 
+    def _hash_key(self):
+        # This isn't the entirety of the object that's passed to `hash`, just the "key" part of
+        # individual parameters.  The hash of a full `ParameterExpression` needs to depend on the
+        # "keys" of `Parameter`s, and our hash needs to be computable before we can be fully
+        # initialised as a `ParameterExpression`, so we break the cycle by making our "key"
+        # accessible separately.
+        return (self._name, self._uuid)
+
     def __hash__(self):
+        # This is precached for performance, since it's used a lot and we are immutable.
         return self._hash
 
+    # We have to manually control the pickling so that the hash is computable before the unpickling
+    # operation attempts to put this parameter into a hashmap.
+
     def __getstate__(self):
-        return {"name": self._name}
+        return (self._name, self._uuid, self._symbol_expr)
 
     def __setstate__(self, state):
-        self._name = state["name"]
-        if not _optionals.HAS_SYMENGINE:
-            from sympy import Symbol
-
-            symbol = Symbol(self._name)
-        else:
-            import symengine
-
-            symbol = symengine.Symbol(self._name)
-        super().__init__(symbol_map={self: symbol}, expr=symbol)
+        self._name, self._uuid, self._symbol_expr = state
+        self._parameter_keys = frozenset((self._hash_key(),))
+        self._hash = hash((self._parameter_keys, self._symbol_expr))
+        self._parameter_symbols = {self: self._symbol_expr}
+        self._name_map = None
