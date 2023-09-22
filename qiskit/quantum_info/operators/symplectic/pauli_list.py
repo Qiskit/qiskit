@@ -376,7 +376,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if isinstance(ind, int):
             ind = [ind]
-
+        if len(ind) == 0:
+            return PauliList.from_symplectic(self._z, self._x, self.phase)
         # Row deletion
         if not qubit:
             if max(ind) >= len(self):

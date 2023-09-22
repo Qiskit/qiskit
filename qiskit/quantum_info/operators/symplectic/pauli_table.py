@@ -281,7 +281,8 @@ class PauliTable(BaseOperator, AdjointMixin):
         """
         if isinstance(ind, (int, np.integer)):
             ind = [ind]
-
+        if len(ind) == 0:
+            return PauliTable(self._array)
         # Row deletion
         if not qubit:
             if max(ind) >= self.size:
