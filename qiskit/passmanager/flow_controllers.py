@@ -107,7 +107,7 @@ class FlowController(metaclass=FlowControllerMeta):
         if isinstance(passes, BaseFlowController):
             instance = passes
         else:
-            instance = FlowControllerLiner(passes, options)
+            instance = FlowControllerLinear(passes, options)
 
         if controllers:
             # Alias in higher hierarchy becomes outer controller.
@@ -159,7 +159,7 @@ class FlowController(metaclass=FlowControllerMeta):
         cls.hierarchy.remove(name)
 
 
-class FlowControllerLiner(BaseFlowController):
+class FlowControllerLinear(BaseFlowController):
     """A standard flow controller that runs tasks one after the other."""
 
     def __iter__(self) -> Iterator[Task]:

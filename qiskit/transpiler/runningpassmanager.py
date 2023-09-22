@@ -29,7 +29,7 @@ from qiskit.utils.deprecation import deprecate_func
 from qiskit.passmanager.flow_controllers import (
     BaseFlowController,
     FlowController,
-    FlowControllerLiner,
+    FlowControllerLinear,
     # for backward compatibility
     ConditionalController,
     DoWhileController,
@@ -41,7 +41,7 @@ from .layout import TranspileLayout
 logger = logging.getLogger(__name__)
 
 
-class RunningPassManager(FlowControllerLiner):
+class RunningPassManager(FlowControllerLinear):
     """A RunningPassManager is a running pass manager.
 
     .. warning::

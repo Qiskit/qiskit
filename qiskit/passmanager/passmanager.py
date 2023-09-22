@@ -23,7 +23,7 @@ import dill
 from qiskit.tools.parallel import parallel_map
 from .base_tasks import Task
 from .exceptions import PassManagerError
-from .flow_controllers import FlowControllerLiner, FlowController
+from .flow_controllers import FlowControllerLinear, FlowController
 from .propertyset import PassState, PropertySet
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class BasePassManager(ABC):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        self._flow_controller = FlowControllerLiner()
+        self._flow_controller = FlowControllerLinear()
         self.max_iteration = max_iteration
         self.state = PassState()
 
@@ -131,7 +131,7 @@ class BasePassManager(ABC):
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_controller = FlowControllerLiner(self._flow_controller.pipeline[index])
+        new_controller = FlowControllerLinear(self._flow_controller.pipeline[index])
         new_passmanager._flow_controller = new_controller
         return new_passmanager
 
@@ -239,7 +239,7 @@ class BasePassManager(ABC):
             task_kwargs={"pass_manager_bin": dill.dumps(self)},
         )
 
-    def to_flow_controller(self) -> FlowControllerLiner:
+    def to_flow_controller(self) -> FlowControllerLinear:
         """Linearize this manager into a single :class:`.FlowControllerLiner`,
         so that it can be nested inside another pass manager.
 
