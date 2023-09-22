@@ -44,6 +44,13 @@ API Reference
    transpiler_builtin_plugins
    utils
    utils_mitigation
-   opflow
-   algorithms
    exceptions
+
+Deprecated Modules
+==================
+
+.. toctree::
+   :maxdepth: 1
+
+   Algorithms (``qiskit.algorithms``) is migrated to an independent package <algorithms>
+   Operators (``qiskit.opflow``) will be removed, visit https://qisk.it/opflow_migration for code migration guildelines <opflow>
