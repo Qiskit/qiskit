@@ -43,8 +43,8 @@ def random_statevector(
         Statevector: the random statevector.
 
     Reference:
-        "Induced measures in the space of mixed quantum states"
-        https://arxiv.org/abs/quant-ph/0012101
+        K. Zyczkowski and H. Sommers (2001), "Induced measures in the space of mixed quantum states",
+        `J. Phys. A: Math. Gen. 34 7111 <https://arxiv.org/abs/quant-ph/0012101>`__.
     """
     if seed is None:
         rng = np.random.default_rng()
