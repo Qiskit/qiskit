@@ -21,6 +21,8 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate, _EPS
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Operator
 
 
 def qs_decomposition(
@@ -79,6 +81,7 @@ def qs_decomposition(
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
+    dim_o2 = dim // 2
     nqubits = int(np.log2(dim))
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
@@ -101,12 +104,29 @@ def qs_decomposition(
             else:
                 decomposer_2q = two_qubit_decompose.two_qubit_cnot_decompose
         circ = decomposer_2q(mat)
+        circ_mat = Operator(circ).data
+        max_error = _check_matrix_error(circ_mat, mat)
+        if max_error != 0:
+            raise QSDError(f"two_qubit_cnot_decompose error of order {max_error}")
     else:
+        if _is_block_diagonal(mat, dim_o2):
+            # this about halves CX count over standard qsd for this special case
+            u1, u2 = mat[:dim_o2, :dim_o2], mat[dim_o2:, dim_o2:]
+            return _demultiplex(u1, u2, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         qr = QuantumRegister(nqubits)
         circ = QuantumCircuit(qr)
-        dim_o2 = dim // 2
         # perform cosine-sine decomposition
         (u1, u2), vtheta, (v1h, v2h) = scipy.linalg.cossin(mat, separate=True, p=dim_o2, q=dim_o2)
+        # for some matrices the decomposition seems to fail (some multi-controlled SU4?)
+        zmat = np.zeros((dim_o2, dim_o2))
+        umat = np.block([[u1, zmat], [zmat, u2]])
+        cmat = np.diag(np.cos(vtheta))
+        smat = np.diag(np.sin(vtheta))
+        csmat = np.block([[cmat, -smat], [smat, cmat]])
+        vmat = np.block([[v1h, zmat], [zmat, v2h]])
+        max_error = _check_matrix_error(mat, umat @ csmat @ vmat)
+        if max_error != 0:
+            raise QSDError(f"CS decomposition error of order {max_error}")
         # left circ
         left_circ = _demultiplex(v1h, v2h, opt_a1=opt_a1, opt_a2=opt_a2, _depth=_depth)
         circ.append(left_circ.to_instruction(), qr)
@@ -175,6 +195,9 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     else:
         evals, vmat = scipy.linalg.schur(um0um1, output="complex")
         eigvals = evals.diagonal()
+    max_error = _check_matrix_error(um0um1, vmat @ np.diag(eigvals) @ np.linalg.inv(vmat))
+    if max_error != 0:
+        raise QSDError(f"Error in eigen decomposition of order {max_error}")
     dvals = np.lib.scimath.sqrt(eigvals)
     dmat = np.diag(dvals)
     wmat = dmat @ vmat.T.conjugate() @ um1
@@ -197,12 +220,19 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     ).to_instruction()
     circ.append(right_gate, range(nqubits - 1))
 
+    zmat = np.zeros((dim // 2, dim // 2))
+    max_error = _check_matrix_error(
+        Operator(circ).data, Operator(np.block([[um0, zmat], [zmat, um1]])).data
+    )
+    if max_error != 0:
+        raise QSDError(f"qs_decomposition error of order {max_error}")
+
     return circ
 
 
 def _get_ucry_cz(nqubits, angles):
     """
-    Get uniformly controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
+    Get uniformly controlled Ry gate in CZ-Ry as in UCPauliRotGate.
     """
     nangles = len(angles)
     qc = QuantumCircuit(nqubits)
@@ -231,9 +261,6 @@ def _get_ucry_cz(nqubits, angles):
 
 def _apply_a2(circ):
     from qiskit import transpile
-    from qiskit.quantum_info import Operator
-
-    # from qiskit.extensions.unitary import UnitaryGate
     import qiskit.extensions.unitary
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
@@ -255,9 +282,41 @@ def _apply_a2(circ):
         mat2 = Operator(instr2.operation).data
         # rollover
         dmat, qc2cx = decomposer(mat1)
+        max_error = _check_matrix_error(mat1, dmat @ Operator(qc2cx).data)
+        if max_error != 0:
+            raise QSDError(f"diagonal decomposition error of order {max_error}")
         ccirc.data[ind1] = instr1.replace(operation=qc2cx.to_gate())
         mat2 = mat2 @ dmat
         ccirc.data[ind2] = instr2.replace(qiskit.extensions.unitary.UnitaryGate(mat2))
     qc3 = two_qubit_decompose.two_qubit_cnot_decompose(mat2)
     ccirc.data[ind2] = ccirc.data[ind2].replace(operation=qc3.to_gate())
     return ccirc
+
+
+def _is_block_diagonal(mat, dim_o2):
+    """
+    Check whether matrix is block diagonal
+
+    TODO: check for matrices which can be made block diagonal
+    """
+    return np.allclose(mat[:dim_o2, dim_o2:], 0) and np.allclose(mat[dim_o2:, :dim_o2], 0)
+
+
+def _check_matrix_error(mat1, mat2):
+    """
+    Checks whether the two matrices are considered nearly equal. If they are nearly equal,
+    as determined by numpy.allclose, this returns 0 otherwise it returns the maximum absolute
+    difference between the matrices.
+    """
+    if not np.allclose(mat1, mat2):
+        diff = np.abs(mat1 - mat2)
+        max_error = diff[np.unravel_index(diff.argmax(), diff.shape)]
+        return max_error
+    else:
+        return 0
+
+
+class QSDError(QiskitError):
+    """Quantum Shannon Decomposition Error"""
+
+    pass

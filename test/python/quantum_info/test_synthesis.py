@@ -1458,6 +1458,9 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
     def _qsd_l2_a2_mod(self, n):
         return 4 ** (n - 1) - 1
 
+    def _qsd_l2_a1a2_mod(self, n):
+        return (23 / 48) * 4**n - (3 / 2) * 2**n + 4 / 3
+
     @data(*list(range(1, 5)))
     def test_random_decomposition_l2_no_opt(self, nqubits):
         """test decomposition of random SU(n) down to 2 qubits without optimizations."""
@@ -1547,6 +1550,22 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
         elif nqubits == 2:
             self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
+
+    def test_block_diagonal(self):
+        """
+        Test catching block diagonal input matrices.
+        """
+        num_qubits = 4
+        dim = 2**num_qubits
+        halfdim = dim // 2
+        u1 = scipy.stats.unitary_group.rvs(halfdim, random_state=422)
+        u2 = scipy.stats.unitary_group.rvs(halfdim, random_state=423)
+        zmat = np.zeros((halfdim, halfdim))
+        mat = np.block([[u1, zmat], [zmat, u2]])
+        circ = self.qsd(mat)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertEqual(Operator(mat), Operator(ccirc))
+        self.assertLess(ccirc.count_ops().get("cx"), self._qsd_l2_a1a2_mod(num_qubits))
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
