@@ -17,6 +17,7 @@ from collections.abc import Generator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.reset import Reset
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -113,7 +114,7 @@ class ConstrainedReschedule(AnalysisPass):
 
         if isinstance(node.op, Gate):
             alignment = self.pulse_align
-        elif isinstance(node.op, Measure):
+        elif isinstance(node.op, Measure) or isinstance(node.op, Reset):
             alignment = self.acquire_align
         elif isinstance(node.op, Delay) or getattr(node.op, "_directive", False):
             # Directive or delay. These can start at arbitrary time.
