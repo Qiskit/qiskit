@@ -1784,9 +1784,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_wire_order.png"
-        self.circuit_drawer(
-            circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], cregbundle=False, filename=fname
-        )
+        self.circuit_drawer(circuit, wire_order=[2, 0, 3, 1, 4, 5, 6], filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1827,7 +1825,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
 
         fname = "if_else_op_fold.png"
-        self.circuit_drawer(circuit, fold=7, cregbundle=False, filename=fname)
+        self.circuit_drawer(circuit, fold=7, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

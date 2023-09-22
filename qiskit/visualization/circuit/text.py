@@ -1306,12 +1306,21 @@ class TextDrawing:
             flow_wire_map.update(
                 {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}
             )
+            for outer, inner in zip(node.cargs, circuit.clbits):
+                if self.cregbundle and (
+                    (in_reg := get_bit_register(self._circuit, inner)) is not None
+                ):
+                    out_reg = get_bit_register(self._circuit, outer)
+                    flow_wire_map.update({in_reg: wire_map[out_reg]})
+                else:
+                    flow_wire_map.update({inner: wire_map[outer]})
+
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
-            __, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            _, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
@@ -1343,16 +1352,15 @@ class TextDrawing:
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
-        op = node.op
-        conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
+        conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
-            if isinstance(op, IfElseOp):
+            if isinstance(node.op, IfElseOp):
                 label = "If-" + depth
-            elif isinstance(op, WhileLoopOp):
+            elif isinstance(node.op, WhileLoopOp):
                 label = "While-" + depth
-            elif isinstance(op, ForLoopOp):
-                indexset = op.params[0]
+            elif isinstance(node.op, ForLoopOp):
+                indexset = node.op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
                 if "range" not in str(indexset) and len(indexset) > 4:
                     index_str = str(indexset[:4])
@@ -1363,11 +1371,11 @@ class TextDrawing:
             else:
                 label = "Switch-" + depth
         elif section == CF_MID:
-            if isinstance(op, IfElseOp):
+            if isinstance(node.op, IfElseOp):
                 label = "Else-" + depth
             else:
                 jump_list = []
-                for jump_values, _ in list(op.cases_specifier()):
+                for jump_values, _ in list(node.op.cases_specifier()):
                     jump_list.append(jump_values)
 
                 if "default" in str(jump_list[circ_num][0]):
@@ -1424,15 +1432,15 @@ class TextDrawing:
                 ),
             )
         if conditional:
-            if isinstance(op, SwitchCaseOp):
-                if isinstance(op.target, expr.Expr):
-                    condition = op.target
-                elif isinstance(op.target, Clbit):
-                    condition = (op.target, 1)
+            if isinstance(node.op, SwitchCaseOp):
+                if isinstance(node.op.target, expr.Expr):
+                    condition = node.op.target
+                elif isinstance(node.op.target, Clbit):
+                    condition = (node.op.target, 1)
                 else:
-                    condition = (op.target, 2 ** (op.target.size) - 1)
+                    condition = (node.op.target, 2 ** (node.op.target.size) - 1)
             else:
-                condition = op.condition
+                condition = node.op.condition
             _ = flow_layer.set_cl_multibox(condition, flow_wire_map, top_connect="╨")
 
         return flow_layer
@@ -1639,14 +1647,16 @@ class Layer:
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
-            label = "<expression>"
+            label = "[expr]"
             out = []
             condition_bits = node_resources(condition).clbits
             registers = collections.defaultdict(list)
             for bit in condition_bits:
                 registers[get_bit_register(self._circuit, bit)].append(bit)
             if registerless := registers.pop(None, ()):
-                out.extend(self.set_cond_bullets(label, ["1"] * len(registerless), registerless))
+                out.extend(
+                    self.set_cond_bullets(label, ["1"] * len(registerless), registerless, wire_map)
+                )
             if self.cregbundle:
                 # It's hard to do something properly sensible here without more major rewrites, so
                 # as a minimum to *not crash* we'll just treat a condition that touches part of a
@@ -1655,7 +1665,7 @@ class Layer:
                     self.set_clbit(register[0], BoxOnClWire(label=label, top_connect=top_connect))
             else:
                 for register, bits in registers.items():
-                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits))
+                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits, wire_map))
             return out
 
         label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)
