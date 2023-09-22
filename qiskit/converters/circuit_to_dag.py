@@ -17,7 +17,7 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
 def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
-    """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
+    """Build a :class:`.DAGCircuit` object from a :class:`.QuantumCircuit`.
 
     Args:
         circuit (QuantumCircuit): the input circuit.
