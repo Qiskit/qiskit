@@ -80,24 +80,10 @@ class SingletonGate(Gate):
         super().__init__(*args, **kwargs)
         self._condition = _condition
 
-    def __setstate__(self, state):
-        if state is not None:
-            self.label = state[0]
-            self._condition = state[1]
-            self.duration = state[2]
-            self.unit = state[3]
-
-    def __reduce__(self):
+    def __getnewargs_ex__(self):
         if not self.mutable:
-            return (self.__class__, (), None)
-        # Argument list is set twice to force instantiation via __setstate__
-        # the first arg list is only passed to __new__ to create a mutable
-        # object
-        return (
-            self.__class__,
-            (self.label, self._condition, self.duration, self.unit),
-            (self.label, self._condition, self.duration, self.unit),
-        )
+            return ((), {})
+        return ((self.label, self._condition, self.duration, self.unit), {})
 
     def c_if(self, classical, val):
         if not isinstance(classical, (ClassicalRegister, Clbit)):
