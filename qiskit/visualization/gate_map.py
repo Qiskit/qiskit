@@ -1015,10 +1015,6 @@ def plot_coupling_map(
     if ax:
         input_axes = True
 
-    if font_size is None:
-        qubit_digits = max(1, math.log10(num_qubits))
-        font_size = max(int(20 / qubit_digits), 1)
-
     if qubit_size is None:
         qubit_size = 30
 
@@ -1058,6 +1054,10 @@ def plot_coupling_map(
     if qubit_coordinates:
         qubit_coordinates = [coordinates[::-1] for coordinates in qubit_coordinates]
 
+    if font_size is None:
+        max_characters = max(1, max(len(str(x)) for x in qubit_labels))
+        font_size = max(int(20 / max_characters), 1)
+
     def color_node(node):
         if qubit_coordinates:
             out_dict = {
@@ -1081,6 +1081,7 @@ def plot_coupling_map(
         out_dict["fontsize"] = str(font_size)
         out_dict["height"] = str(qubit_size * px)
         out_dict["fixedsize"] = "True"
+        out_dict["fontname"] = '"DejaVu Sans"'
         return out_dict
 
     def color_edge(edge):
