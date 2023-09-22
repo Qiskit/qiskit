@@ -1049,7 +1049,7 @@ def plot_coupling_map(
         graph.update_edge_by_index(edge_index, edge_index)
 
     # pixel-to-inch conversion
-    px = 1 / plt.rcParams["figure.dpi"]
+    px = 1.15 / plt.rcParams["figure.dpi"]
 
     if qubit_coordinates:
         qubit_coordinates = [coordinates[::-1] for coordinates in qubit_coordinates]
