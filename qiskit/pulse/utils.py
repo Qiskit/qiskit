@@ -18,7 +18,6 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
-from qiskit.utils.deprecation import deprecate_func, deprecate_function
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -108,22 +107,3 @@ def instruction_duration_validation(duration: int):
         raise QiskitError(
             f"Instruction duration must be a non-negative integer, got {duration} instead."
         )
-
-
-@deprecate_func(
-    additional_msg="Instead, use 'qiskit.utils.deprecate_func'.",
-    since="0.22.0",
-    package_name="qiskit-terra",
-)
-def deprecated_functionality(func):
-    """A decorator that raises deprecation warning without showing alternative method."""
-    return deprecate_function(
-        f"Calling {func.__name__} is being deprecated and will be removed soon. "
-        "No alternative method will be provided with this change. "
-        "If there is any practical usage of this functionality, please write "
-        "an issue in Qiskit/qiskit-terra repository.",
-        category=DeprecationWarning,
-        stacklevel=2,
-        since="0.22.0",
-        package_name="qiskit-terra",
-    )(func)

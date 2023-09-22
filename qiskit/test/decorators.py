@@ -22,7 +22,6 @@ from typing import Union, Callable, Type, Iterable
 import unittest
 
 from qiskit.utils import wrap_method
-from qiskit.utils.deprecation import deprecate_func
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None
@@ -140,27 +139,7 @@ def _get_credentials():
         "No IBMQ credentials found for running the test. This is required for running online tests."
     )
 
-
-@deprecate_func(
-    additional_msg="Instead, use ``online_test``", since="0.17.0", package_name="qiskit-terra"
-)
-def requires_qe_access(func):
-    """Deprecated in favor of `online_test`"""
-
-    @functools.wraps(func)
-    def _wrapper(self, *args, **kwargs):
-        if TEST_OPTIONS["skip_online"]:
-            raise unittest.SkipTest("Skipping online tests")
-
-        credentials = _get_credentials()
-        self.using_ibmq_credentials = credentials.is_ibmq()
-        kwargs.update({"qe_token": credentials.token, "qe_url": credentials.url})
-
-        return func(self, *args, **kwargs)
-
-    return _wrapper
-
-
+ 
 def online_test(func):
     """Decorator that signals that the test uses the network (and the online API):
 
