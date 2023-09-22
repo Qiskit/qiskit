@@ -17,9 +17,9 @@ import logging
 from collections.abc import Iterator, Callable
 from typing import Type
 
-from .base_optimization_tasks import (
+from .base_tasks import (
     BaseFlowController,
-    OptimizerTask,
+    Task,
 )
 from .propertyset import PropertySet
 from .exceptions import PassManagerError
@@ -52,7 +52,7 @@ class FlowControllerMeta(type):
     """
 
     def mro(cls) -> list[type]:
-        return [cls, BaseFlowController, OptimizerTask, object]
+        return [cls, BaseFlowController, Task, object]
 
     def __instancecheck__(cls, other):
         return isinstance(other, BaseFlowController)
@@ -87,7 +87,7 @@ class FlowController(metaclass=FlowControllerMeta):
     @classmethod
     def controller_factory(
         cls,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         options: dict,
         **controllers,
     ):
@@ -162,7 +162,7 @@ class FlowController(metaclass=FlowControllerMeta):
 class FlowControllerLiner(BaseFlowController):
     """A standard flow controller that runs tasks one after the other."""
 
-    def __iter__(self) -> Iterator[OptimizerTask]:
+    def __iter__(self) -> Iterator[Task]:
         yield from self.pipeline
 
 
@@ -171,14 +171,14 @@ class DoWhileController(BaseFlowController):
 
     def __init__(
         self,
-        passes: list[OptimizerTask] | None = None,
+        passes: list[Task] | None = None,
         options: dict | None = None,
         do_while: Callable[[PropertySet], bool] = None,
     ):
         super().__init__(passes=passes, options=options)
         self.do_while = do_while
 
-    def __iter__(self) -> Iterator[OptimizerTask]:
+    def __iter__(self) -> Iterator[Task]:
         max_iteration = self._options.get("max_iteration", 1000)
         for _ in range(max_iteration):
             yield from self.pipeline
@@ -194,14 +194,14 @@ class ConditionalController(BaseFlowController):
 
     def __init__(
         self,
-        passes: list[OptimizerTask] | None = None,
+        passes: list[Task] | None = None,
         options: dict | None = None,
         condition: Callable[[PropertySet], bool] = None,
     ):
         super().__init__(passes=passes, options=options)
         self.condition = condition
 
-    def __iter__(self) -> Iterator[OptimizerTask]:
+    def __iter__(self) -> Iterator[Task]:
         if self.condition(self.fenced_property_set):
             yield from self.pipeline
 

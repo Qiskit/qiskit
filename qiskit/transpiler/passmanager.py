@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import BasePassManager
-from qiskit.passmanager.base_optimization_tasks import OptimizerTask, GenericPass
+from qiskit.passmanager.base_tasks import Task, GenericPass
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
@@ -40,7 +40,7 @@ class PassManager(BasePassManager):
 
     def __init__(
         self,
-        passes: OptimizerTask | list[OptimizerTask] = None,
+        passes: Task | list[Task] = None,
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
@@ -112,7 +112,7 @@ class PassManager(BasePassManager):
     )
     def append(
         self,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -158,7 +158,7 @@ class PassManager(BasePassManager):
     def replace(
         self,
         index: int,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -444,7 +444,7 @@ class StagedPassManager(PassManager):
 
     def append(
         self,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:

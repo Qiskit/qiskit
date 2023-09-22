@@ -25,12 +25,11 @@ from .propertyset import PassState, PropertySet, FencedPropertySet, RunState
 logger = logging.getLogger(__name__)
 
 
-class OptimizerTask(ABC):
-    """A definition of optimization task.
+class Task(ABC):
+    """An interface of the pass manager task.
 
-    The optimizer task takes a passmanager IR, and outputs new passmanager IR
-    after program optimization. Optimization task can rely on the :class:`.PassState`
-    to communicate intermediate state with other tasks.
+    The task takes a Qiskit IR, and outputs new Qiskit IR after some operation on it.
+    A task can rely on the :class:`.PassState` to communicate intermediate state among tasks.
     """
 
     _state: PassState | None
@@ -60,27 +59,27 @@ class OptimizerTask(ABC):
         state: PassState | None = None,
         callback: Callable = None,
     ) -> Any:
-        """Execute optimization task for input passmanager IR.
+        """Execute optimization task for input Qiskit IR.
 
         Args:
-            passmanager_ir: Passmanager IR to optimize.
+            passmanager_ir: Qiskit IR to optimize.
             state: A local state information associated with this optimization workflow.
             callback: A callback function which is caller per execution of optimization task.
 
         Returns:
-            Optimized passmanager IR.
+            Optimized Qiskit IR.
         """
         pass
 
 
-class GenericPass(OptimizerTask, ABC):
+class GenericPass(Task, ABC):
     """Base class of a single optimization task.
 
     The optimization pass instance can read and write to the provided :class:`.PropertySet`.
     """
 
     def __init__(self):
-        self.requires: Iterable[OptimizerTask] = []
+        self.requires: Iterable[Task] = []
         self._state = None
 
     def name(self) -> str:
@@ -141,26 +140,26 @@ class GenericPass(OptimizerTask, ABC):
         """Run optimization task.
 
         Args:
-            passmanager_ir: Passmanager IR to optimize.
+            passmanager_ir: Qiskit IR to optimize.
 
         Returns:
-            Optimized passmanager IR.
+            Optimized Qiskit IR.
         """
         pass
 
 
-class BaseFlowController(OptimizerTask, ABC):
+class BaseFlowController(Task, ABC):
     """Base class of flow controller.
 
     Flow controller is built with a list of optimizer tasks, and executes them with an input
-    passmanager IR. Subclass must implement how the tasks are iterated over.
+    Qiskit IR. Subclass must implement how the tasks are iterated over.
     Note that the flow controller can be nested into another flow controller,
     and flow controller itself doesn't provide any optimization subroutine.
     """
 
     def __init__(
         self,
-        passes: OptimizerTask | list[OptimizerTask] | None = None,
+        passes: Task | list[Task] | None = None,
         options: dict[str, Any] | None = None,
     ):
         """Create new flow controller.
@@ -172,12 +171,12 @@ class BaseFlowController(OptimizerTask, ABC):
         self._options = options or {}
         self._state = None
 
-        self.pipeline: list[OptimizerTask] = []
+        self.pipeline: list[Task] = []
         if passes:
             self.append(passes)
 
     @property
-    def passes(self) -> list[OptimizerTask]:
+    def passes(self) -> list[Task]:
         """Alias of pipeline for backward compatibility."""
         return self.pipeline
 
@@ -186,12 +185,12 @@ class BaseFlowController(OptimizerTask, ABC):
         """Readonly property set of this flow controller."""
         return FencedPropertySet(self.state.property_set)
 
-    def __iter__(self) -> Iterator[OptimizerTask]:
+    def __iter__(self) -> Iterator[Task]:
         raise NotImplementedError()
 
     def append(
         self,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
     ):
         """Add new task to pipeline.
 

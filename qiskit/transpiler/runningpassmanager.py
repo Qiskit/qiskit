@@ -21,7 +21,7 @@ from typing import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.passmanager.base_optimization_tasks import OptimizerTask
+from qiskit.passmanager.base_tasks import Task
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_func
 
@@ -54,7 +54,7 @@ class RunningPassManager(FlowControllerLiner):
 
     def append(
         self,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         **flow_controller_conditions,
     ):
         """Append a passes to the schedule of passes.

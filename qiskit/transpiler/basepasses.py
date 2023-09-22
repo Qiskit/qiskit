@@ -20,7 +20,7 @@ from inspect import signature
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.base_optimization_tasks import GenericPass, OptimizerTask
+from qiskit.passmanager.base_tasks import GenericPass, Task
 from qiskit.passmanager.propertyset import PropertySet, PassState, RunState
 
 from .exceptions import TranspilerError
@@ -72,7 +72,7 @@ class MetaPass(type):
         mro_cls = super().mro()
         if GenericPass not in mro_cls:
             mro_cls.pop()
-            mro_cls += [GenericPass, OptimizerTask, object]
+            mro_cls += [GenericPass, Task, object]
         return mro_cls
 
 

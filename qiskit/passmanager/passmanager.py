@@ -21,7 +21,7 @@ from typing import Any
 import dill
 
 from qiskit.tools.parallel import parallel_map
-from .base_optimization_tasks import OptimizerTask
+from .base_tasks import Task
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLiner, FlowController
 from .propertyset import PassState, PropertySet
@@ -34,7 +34,7 @@ class BasePassManager(ABC):
 
     def __init__(
         self,
-        passes: list[OptimizerTask] = None,
+        passes: list[Task] = None,
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
@@ -58,7 +58,7 @@ class BasePassManager(ABC):
 
     def append(
         self,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         **flow_controller_conditions: Callable[[PropertySet], bool],
     ) -> None:
         """Append a Pass Set to the schedule of passes.
@@ -85,7 +85,7 @@ class BasePassManager(ABC):
     def replace(
         self,
         index: int,
-        passes: OptimizerTask | list[OptimizerTask],
+        passes: Task | list[Task],
         **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.

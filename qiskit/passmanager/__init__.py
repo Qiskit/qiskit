@@ -47,7 +47,7 @@ The pass state data is portable and handed over from pass to pass at execution.
 A pass manager is a wrapper of the flow controller, with responsibilities of
 
 * Scheduling optimization tasks,
-* Converting an input Python object to a particular pass manager IR,
+* Converting an input Python object to a particular Qiskit IR,
 * Initializing a pass state,
 * Running scheduled tasks to apply a series of transformations to the IR,
 * Converting the IR back to an output Python object.
@@ -214,6 +214,6 @@ Exceptions
 
 from .passmanager import BasePassManager
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
-from .base_optimization_tasks import GenericPass, BaseFlowController
+from .base_tasks import GenericPass, BaseFlowController
 from .propertyset import PropertySet, FencedPropertySet, PassState
 from .exceptions import PassManagerError
