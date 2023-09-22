@@ -62,6 +62,7 @@ def circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    expr_len=30,
 ):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -156,6 +157,9 @@ def circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        expr_len (int): Optional. The number of characters to display if an expr.Expr
+            is used for the condition in a ControlFlowOp. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -188,6 +192,8 @@ def circuit_drawer(
             circuit_drawer(qc, output='mpl', style={'backgroundcolor': '#EEEEEE'})
     """
     image = None
+    if expr_len < 0:
+        expr_len = 0
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
@@ -257,6 +263,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            expr_len=expr_len,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
@@ -304,6 +311,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            expr_len=expr_len,
         )
     else:
         raise VisualizationError(
@@ -334,6 +342,7 @@ def _text_circuit_drawer(
     cregbundle=None,
     encoding=None,
     wire_order=None,
+    expr_len=30,
 ):
     """Draws a circuit using ascii art.
 
@@ -363,6 +372,9 @@ def _text_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        expr_len (int): Optional. The number of characters to display if an expr.Expr
+            is used for the condition in a ControlFlowOp. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
@@ -387,6 +399,7 @@ def _text_circuit_drawer(
         cregbundle=cregbundle,
         encoding=encoding,
         with_layout=with_layout,
+        expr_len=expr_len,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -612,6 +625,7 @@ def _matplotlib_circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    expr_len=30,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -643,6 +657,9 @@ def _matplotlib_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        expr_len (int): Optional. The number of characters to display if an expr.Expr
+            is used for the condition in a ControlFlowOp. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -673,5 +690,6 @@ def _matplotlib_circuit_drawer(
         initial_state=initial_state,
         cregbundle=cregbundle,
         with_layout=with_layout,
+        expr_len=expr_len,
     )
     return qcd.draw(filename)

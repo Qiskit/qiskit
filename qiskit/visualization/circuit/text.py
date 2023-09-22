@@ -711,6 +711,7 @@ class TextDrawing:
         cregbundle=None,
         encoding=None,
         with_layout=False,
+        expr_len=30,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -729,6 +730,7 @@ class TextDrawing:
         self.plotbarriers = plotbarriers
         self.reverse_bits = reverse_bits
         self.line_length = line_length
+        self.expr_len = expr_len
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
@@ -1362,9 +1364,9 @@ class TextDrawing:
             builder.build_classical_declarations()
             BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
             self._expr_text = stream.getvalue()
-            # Truncate expr_text at 27 chars
-            if len(self._expr_text) > 27:
-                self._expr_text = self._expr_text[:24] + "..."
+            # Truncate expr_text at 30 chars or user-set expr_len
+            if len(self._expr_text) > self.expr_len:
+                self._expr_text = self._expr_text[:self.expr_len] + "..."
 
         conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)

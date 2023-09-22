@@ -105,6 +105,7 @@ class MatplotlibDrawer:
         initial_state=False,
         cregbundle=None,
         with_layout=False,
+        expr_len=30,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -133,6 +134,7 @@ class MatplotlibDrawer:
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
         self._calibrations = self._circuit.calibrations
+        self._expr_len = expr_len
 
         def check_clbit_in_inst(circuit, cregbundle):
             if cregbundle is False:
@@ -515,8 +517,8 @@ class MatplotlibDrawer:
                         BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
                         expr_text = stream.getvalue()
                         # Truncate expr_text so that first gate is no more than 3 x_index's over
-                        if len(expr_text) > 27:
-                            expr_text = expr_text[:24] + "..."
+                        if len(expr_text) > self._expr_len:
+                            expr_text = expr_text[:self._expr_len] + "..."
                         node_data[node].expr_text = expr_text
 
                         expr_width = self._get_text_width(
@@ -559,13 +561,13 @@ class MatplotlibDrawer:
                         )
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
-                        qubits, clbits, nodes = _get_layered_instructions(
+                        qubits, clbits, flow_nodes = _get_layered_instructions(
                             circuit, wire_map=flow_wire_map
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,
                             clbits,
-                            nodes,
+                            flow_nodes,
                             circuit,
                             style=self._style,
                             plot_barriers=self._plot_barriers,
@@ -580,12 +582,12 @@ class MatplotlibDrawer:
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(
-                            node_data, wire_map, outer_circuit, glob_data
+                            node_data, flow_wire_map, outer_circuit, glob_data
                         )
                         layer_widths.update(flow_widths)
 
                         # Gates within a SwitchCaseOp need to know which case they are in
-                        for flow_layer in nodes:
+                        for flow_layer in flow_nodes:
                             for flow_node in flow_layer:
                                 node_data[flow_node].circ_num = circ_num
 
