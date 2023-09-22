@@ -354,12 +354,12 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
 
     def test_iden(self):
-        self.circuit.i(self.qr[1])
+        self.circuit.id(self.qr[1])
         self.assertEqual(self.circuit[0].operation.name, "id")
         self.assertEqual(self.circuit[0].operation.params, [])
 
     def test_iden_wires(self):
-        self.circuit.i(1)
+        self.circuit.id(1)
         self.assertEqual(self.circuit[0].operation.name, "id")
         self.assertEqual(self.circuit[0].operation.params, [])
 
@@ -372,13 +372,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.i, 0.0)
 
     def test_iden_reg(self):
-        instruction_set = self.circuit.i(self.qr)
+        instruction_set = self.circuit.id(self.qr)
         self.assertEqual(len(instruction_set), 3)
         self.assertEqual(instruction_set[0].operation.name, "id")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
 
     def test_iden_reg_inv(self):
-        instruction_set = self.circuit.i(self.qr).inverse()
+        instruction_set = self.circuit.id(self.qr).inverse()
         self.assertEqual(len(instruction_set), 3)
         self.assertEqual(instruction_set[0].operation.name, "id")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))

@@ -83,7 +83,7 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.append(U3Gate(0.2, 0.1, 0.6), [0])
         ref_circuit.append(U2Gate(0.1, 0.6), [0])
         ref_circuit.append(U1Gate(0.6), [0])
-        ref_circuit.i(0)
+        ref_circuit.id(0)
         ref_circuit.cx(0, 1)
         # the standard single qubit gates
         ref_circuit.u(0.2, 0.1, 0.6, 0)

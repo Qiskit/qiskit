@@ -54,7 +54,7 @@ def synth_cnotdihedral_two_qubits(elem):
         if xpow0 == 1:
             circuit.x(0)
         if tpow0 == 0 and xpow0 == 0:
-            circuit.i(0)
+            circuit.id(0)
         return circuit
 
     # case elem.num_qubits == 2:
@@ -81,8 +81,8 @@ def synth_cnotdihedral_two_qubits(elem):
             if xpow1 == 1:
                 circuit.x(1)
             if tpow0 == 0 and tpow1 == 0 and xpow0 == 0 and xpow1 == 0:
-                circuit.i(0)
-                circuit.i(1)
+                circuit.id(0)
+                circuit.id(1)
 
         # CS-like class
         if (weight_2 == [2] and xpow0 == xpow1) or (weight_2 == [6] and xpow0 != xpow1):
