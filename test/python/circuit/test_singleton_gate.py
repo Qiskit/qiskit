@@ -262,6 +262,7 @@ class TestSingletonGate(QiskitTestCase):
             fd.seek(0)
             copied = pickle.load(fd)
         self.assertFalse(copied.mutable)
+        self.assertIs(copied, gate)
 
     def test_mutable_pickle(self):
         gate = SXGate()
