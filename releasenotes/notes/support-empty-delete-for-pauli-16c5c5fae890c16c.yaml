@@ -1,4 +1,5 @@
 ---
 fixes:
   - |
-    Passing empty list to delete method of Pauli, PauliList, and PauliTable returns a copy of the original object instead of throwing an error.
+    Passing an empty list to the methods :meth:`.Pauli.delete`, :meth:`.PauliList.delete`,
+    and :meth:`.PauliTable.delete` now returns a copy of the original object instead of throwing an error.
