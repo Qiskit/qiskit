@@ -109,7 +109,15 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
             from qiskit.providers.aer.noise import NoiseModel
             from qiskit import Aer
 
-            self.backend = Aer.get_backend("qasm_simulator")
+            msg = (
+                "The method ``qiskit.circuit.quantumcircuit.QuantumCircuit.i()`` is deprecated as "
+                + "of qiskit-terra 0.45.0. It will be removed no earlier than 3 months after the "
+                + "release date. Use QuantumCircuit.id as direct replacement."
+            )
+
+            with self.assertWarnsRegex(msg, DeprecationWarning):
+                self.backend = Aer.get_backend("qasm_simulator")
+
         except ImportError as ex:
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
