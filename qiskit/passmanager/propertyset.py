@@ -36,8 +36,8 @@ class FencedPropertySet(PropertySet):
 class RunState(IntEnum):
     """Allowed values for the result of a pass execution."""
 
-    FAIL = 0
-    SUCCESS = 1
+    SUCCESS = 0
+    FAIL = 1
     SKIP = 2
 
 
@@ -59,5 +59,5 @@ class PassState:
     completed_passes: set = field(default_factory=set)
     """Passes already run that have not been invalidated."""
 
-    previous_run: RunState = 0
+    previous_run: RunState = RunState.FAIL
     """Status of the latest pass run."""
