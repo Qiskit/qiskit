@@ -145,11 +145,11 @@ class Parameter(ParameterExpression):
             return False
 
     def _hash_key(self):
-        # This isn't the entirety of the object that's passed to `hash`, just the "key" part of
-        # individual parameters.  The hash of a full `ParameterExpression` needs to depend on the
-        # "keys" of `Parameter`s, and our hash needs to be computable before we can be fully
-        # initialised as a `ParameterExpression`, so we break the cycle by making our "key"
-        # accessible separately.
+        # `ParameterExpression` needs to be able to hash all its contained `Parameter` instances in
+        # its hash as part of the equality comparison but has its own more complete symbolic
+        # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
+        # This method lets containing expressions get only the bits they need for equality checks in
+        # the first value, without wasting time re-hashing individual Sympy/Symengine symbols.
         return (self._name, self._uuid)
 
     def __hash__(self):
