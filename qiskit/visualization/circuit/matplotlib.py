@@ -14,10 +14,10 @@
 
 """mpl circuit visualization backend."""
 
-from warnings import warn
 import collections
 import itertools
 import re
+from warnings import warn
 
 import numpy as np
 
@@ -534,6 +534,8 @@ class MatplotlibDrawer:
                             else:
                                 flow_wire_map.update({inner: wire_map[outer]})
 
+                        # Get the layered node lists and instantiate a new drawer class for
+                        # the circuit inside the ControlFlowOp.
                         qubits, clbits, flow_nodes = _get_layered_instructions(
                             circuit, wire_map=flow_wire_map
                         )
