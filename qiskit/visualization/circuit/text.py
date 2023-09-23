@@ -1366,7 +1366,7 @@ class TextDrawing:
             self._expr_text = stream.getvalue()
             # Truncate expr_text at 30 chars or user-set expr_len
             if len(self._expr_text) > self.expr_len:
-                self._expr_text = self._expr_text[:self.expr_len] + "..."
+                self._expr_text = self._expr_text[: self.expr_len] + "..."
 
         conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
@@ -1450,7 +1450,7 @@ class TextDrawing:
                     condition = node.op.target
                 elif isinstance(node.op.target, Clbit):
                     condition = (node.op.target, 1)
-                elif isinstance(node.op.target, ClassicalRegister):
+                else:
                     condition = (node.op.target, 2 ** (node.op.target.size) - 1)
             else:
                 condition = node.op.condition
@@ -1464,7 +1464,6 @@ class Layer:
 
     def __init__(self, qubits, clbits, cregbundle, circuit, wire_map):
         self.qubits = qubits
-        self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
 
         if cregbundle:
@@ -1669,7 +1668,9 @@ class Layer:
             for bit in condition_bits:
                 registers[get_bit_register(self._circuit, bit)].append(bit)
             if registerless := registers.pop(None, ()):
-                out.extend(self.set_cond_bullets(label, ["1"] * len(registerless), registerless))
+                out.extend(
+                    self.set_cond_bullets(label, ["1"] * len(registerless), registerless, wire_map)
+                )
             if self.cregbundle:
                 # It's hard to do something properly sensible here without more major rewrites, so
                 # as a minimum to *not crash* we'll just treat a condition that touches part of a

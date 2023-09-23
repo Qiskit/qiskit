@@ -15,10 +15,10 @@
 """mpl circuit visualization backend."""
 
 from io import StringIO
+from warnings import warn
 import collections
 import itertools
 import re
-from warnings import warn
 
 import numpy as np
 
@@ -518,7 +518,7 @@ class MatplotlibDrawer:
                         expr_text = stream.getvalue()
                         # Truncate expr_text so that first gate is no more than 3 x_index's over
                         if len(expr_text) > self._expr_len:
-                            expr_text = expr_text[:self._expr_len] + "..."
+                            expr_text = expr_text[: self._expr_len] + "..."
                         node_data[node].expr_text = expr_text
 
                         expr_width = self._get_text_width(
