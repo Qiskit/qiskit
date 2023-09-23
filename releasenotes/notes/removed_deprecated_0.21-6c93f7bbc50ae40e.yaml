@@ -1,35 +1,52 @@
 ---
 upgrade:
   - |
-    Deprecated code and tests in 0.21 are removed.
-    :func:`~qiskit.execute_function.execute` doesn't support
-    `qobj_id` and `qobj_header` arguments.
+    The function :func:`~qiskit.execute_function.execute`
+    does not accept the arguments `qobj_id` and  `qobj_header` any more.
+    Their use was deprecated in Qiskit 0.37 (with Terra 0.21), released on June 2022.    
     
   - |
-    :class:`.transpiler.passes.ALAPSchedule` is removed instead
-    use :class:`.transpiler.passes.ALAPScheduleAnalysis`.
+    The transpilation pass ``qiskit.transpiler.passes.ALAPSchedule`` is removed. It use was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022 and replaced by 
+    :class:`~.transpiler.passes.ALAPScheduleAnalysis`, which is an
+    analysis pass.
     
   - |
-    :class:`.transpiler.passes.ASAPSchedule` is removed instead
-    use :class:`.transpiler.passes.ASAPScheduleAnalysis`.
+    The transpilation pass ``qiskit.transpiler.passes.ASAPSchedule`` is removed. It use was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022. It has been superseded by
+    :class:`~.ASAPScheduleAnalysis` and the new scheduling workflow.
     
   - |
-    :class:`.transpiler.passes.DynamicalDecoupling` is removed instead
-    use :class:`.transpiler.passes.PadDynamicalDecoupling`.
+    The transpilation pass ``qiskit.transpiler.passes.DynamicalDecoupling`` is removed. It use was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use :class:`~.transpiler.passes.PadDynamicalDecoupling`, which performs the same
+    function but requires scheduling and alignment analysis passes to run prior to it.
         
   - |
-    :class:`.transpiler.passes.AlignMeasures` is removed instead
-    use :class:`.transpiler.passes.ConstrainedReschedule`.
+    The transpilation pass ``qiskit.transpiler.passes.AlignMeasures`` is removed. It use was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use :class:`~.ConstrainedReschedule`, which performs the same function 
+    and also supports aligning to additional timing constraints.
 
   - |
-    :class:`.transpiler.passes.CXDirection` is removed instead
-    use generic :class:`.transpiler.passes.GateDirection`.
+    The transpilation pass ``qiskit.transpiler.passes.CXDirection`` is removed. It use was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the more generic :class:`~.GateDirection` pass.
 
   - |
-    :class:`.transpiler.passes.CheckCXDirection` is removed instead
-    use generic :class:`.transpiler.passes.CheckGateDirection`.
+    The transpilation pass ``qiskit.transpiler.passes.CheckCXDirection`` is removed. It use was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the more generic :class:`~.CheckGateDirection` pass.
 
   - |
-    :class:`.pulse.transforms.AlignmentKind`, `.pulse.transforms.AlignEquispaced`,
-    and :class:`.pulse.transforms.AlignFunc` don't support :meth:`to_dict`.
+    The methods ``to_dict`` in the classes :class:`.pulse.transforms.AlignmentKind`,
+    `.pulse.transforms.AlignEquispaced`, and :class:`.pulse.transforms.AlignFunc` are removed.
+    They were deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+
+  - |
+    The argument ``circuits`` in the method :meth:`qiskit.qpy.interface.dump`
+    is removed as its usage was deprecated 
+    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the argument ``programs``, which behaves identically.
     
