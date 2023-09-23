@@ -192,8 +192,7 @@ def circuit_drawer(
             circuit_drawer(qc, output='mpl', style={'backgroundcolor': '#EEEEEE'})
     """
     image = None
-    if expr_len < 0:
-        expr_len = 0
+    expr_len = max(expr_len, 0)
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
