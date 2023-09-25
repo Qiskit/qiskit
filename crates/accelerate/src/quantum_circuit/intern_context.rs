@@ -95,6 +95,23 @@ impl InternContext {
             slot_lookup: HashMap::new(),
         }
     }
+
+    pub fn __str__(&self, py: Python<'_>) -> PyObject {
+        let mut str = String::new();
+        str.push_str("InternContext\n");
+        str.push_str("  slots:\n");
+        for (idx, s) in self.slots.iter().enumerate() {
+            if let Some(occupied) = s {
+                str.push_str(&*format!(
+                    "    Slot(idx={idx}, use_count={:?}, operands={:?})\n",
+                    occupied.use_count, occupied.operands
+                ));
+            }
+        }
+        str.push_str("  free_slots:\n");
+        str.push_str(&*format!("    {:?}", self.free_slots));
+        str.into_py(py)
+    }
 }
 
 impl Default for InternContext {

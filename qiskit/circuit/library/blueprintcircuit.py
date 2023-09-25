@@ -65,7 +65,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
-        self._data = []
+        self._data = super()._new_data()
         self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False

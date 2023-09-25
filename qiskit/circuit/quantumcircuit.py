@@ -240,8 +240,13 @@ class QuantumCircuit:
             "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock"
         ] = []
 
-        self.qregs: list[QuantumRegister] = []
-        self.cregs: list[ClassicalRegister] = []
+        # Skip initialization if a subclass (e.g. BlueprintCircuit) is overriding
+        # these via properties.
+        if not hasattr(type(self), "qregs"):
+            self.qregs: list[QuantumRegister] = []
+        if not hasattr(type(self), "cregs"):
+            self.cregs: list[ClassicalRegister] = []
+
         self._qubits: list[Qubit] = []
         self._clbits: list[Clbit] = []
 
