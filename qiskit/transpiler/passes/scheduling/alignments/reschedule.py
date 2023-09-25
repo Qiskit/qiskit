@@ -136,7 +136,7 @@ class ConstrainedReschedule(AnalysisPass):
         # Compute shifted t1 of this node separately for qreg and creg
         new_t1q = this_t0 + node.op.duration
         this_qubits = set(node.qargs)
-        if isinstance(node.op, Measure):
+        if isinstance(node.op, Measure) or isinstance(node.op, Reset):
             # creg access ends at the end of instruction
             new_t1c = new_t1q
             this_clbits = set(node.cargs)
@@ -154,7 +154,7 @@ class ConstrainedReschedule(AnalysisPass):
             # Compute next node start time separately for qreg and creg
             next_t0q = node_start_time[next_node]
             next_qubits = set(next_node.qargs)
-            if isinstance(next_node.op, Measure):
+            if isinstance(next_node.op, Measure) or isinstance(node.op, Reset):
                 # creg access starts after write latency
                 next_t0c = next_t0q + clbit_write_latency
                 next_clbits = set(next_node.cargs)
