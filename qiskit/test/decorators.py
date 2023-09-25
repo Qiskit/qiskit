@@ -139,7 +139,7 @@ def _get_credentials():
         "No IBMQ credentials found for running the test. This is required for running online tests."
     )
 
- 
+
 def online_test(func):
     """Decorator that signals that the test uses the network (and the online API):
 
