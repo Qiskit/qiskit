@@ -49,8 +49,12 @@ API Reference
 Deprecated Modules
 ==================
 
+.. warning::
+
+   These moduels are going to be removed in Qiskit 1.0.0. Consider pinning ``qiskit~=0.45`` in your dependencies if you need them.
+
 .. toctree::
    :maxdepth: 1
 
-   Algorithms (``qiskit.algorithms``) is migrated to an independent package <algorithms>
-   Operators (``qiskit.opflow``) will be removed, visit https://qisk.it/opflow_migration for code migration guildelines <opflow>
+   algorithms
+   opflow
