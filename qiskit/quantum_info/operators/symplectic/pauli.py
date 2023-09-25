@@ -363,6 +363,8 @@ class Pauli(BasePauli):
         """
         if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
+        if len(qubits) == 0:
+            return Pauli((self._z, self._x, self.phase))
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
                 "Qubit index is larger than the number of qubits "
