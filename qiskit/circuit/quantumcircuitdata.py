@@ -23,6 +23,13 @@ from .quantumregister import Qubit
 from .classicalregister import Clbit
 
 
+class _OperationWrapper:
+    operation: Operation
+
+    def __init__(self, op: Operation):
+        self.operation = op
+
+
 class CircuitInstruction:
     """A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
     various operands.
@@ -58,10 +65,20 @@ class CircuitInstruction:
         of distinct items, with no duplicates.
     """
 
-    __slots__ = ("operation", "qubits", "clbits")
+    __slots__ = ("_operation_wrapper", "qubits", "clbits")
 
-    operation: Operation
-    """The logical operation that this instruction represents an execution of."""
+    _operation_wrapper: _OperationWrapper
+
+    @property
+    def operation(self) -> Operation:
+        """The logical operation that this instruction represents an execution of."""
+        return self._operation_wrapper.operation
+
+    @operation.setter
+    def operation(self, op: Operation):
+        """Updates in place the logical operation that this instruction represents an execution of."""
+        self._operation_wrapper.operation = op
+
     qubits: Tuple[Qubit, ...]
     """A sequence of the qubits that the operation is applied to."""
     clbits: Tuple[Clbit, ...]
@@ -73,14 +90,16 @@ class CircuitInstruction:
         qubits: Iterable[Qubit] = (),
         clbits: Iterable[Clbit] = (),
     ):
-        self.operation = operation
+        self._operation_wrapper = (
+            operation if isinstance(operation, _OperationWrapper) else _OperationWrapper(operation)
+        )
         self.qubits = tuple(qubits)
         self.clbits = tuple(clbits)
 
     def copy(self) -> "CircuitInstruction":
         """Return a shallow copy of the :class:`CircuitInstruction`."""
         return self.__class__(
-            operation=self.operation,
+            operation=self._operation_wrapper,
             qubits=self.qubits,
             clbits=self.clbits,
         )
