@@ -12,8 +12,6 @@
 
 """Return a circuit with any adjacent barriers merged together."""
 
-import copy
-
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.barrier import Barrier
 
