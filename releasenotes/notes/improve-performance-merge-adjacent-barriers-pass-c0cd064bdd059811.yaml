@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Performance improvement of the :class:`~.MergeAdjacentBarriers` transpiler pass, which used to
+    rebuild the complete DAG to merge the barriers. It now iterates over the barriers instead of
+    the full graph, and applies the :meth:`.`DAGCircuit.replace_block_with_op` method when necessary.

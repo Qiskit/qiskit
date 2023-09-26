@@ -71,13 +71,12 @@ class MergeAdjacentBarriers(TransformationPass):
         if not node_to_barrier_qubits:
             return dag
 
-        new_dag = copy.copy(dag)
         for barrier in barriers:
             if barrier in node_to_barrier_qubits:
                 barrier_to_add, nodes = node_to_barrier_qubits[barrier]
-                new_dag.replace_block_with_op(nodes, barrier_to_add, wire_pos_map=indices)
+                dag.replace_block_with_op(nodes, barrier_to_add, wire_pos_map=indices)
 
-        return new_dag
+        return dag
 
     @staticmethod
     def _collect_potential_merges(dag, barriers):
