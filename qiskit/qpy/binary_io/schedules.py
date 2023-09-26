@@ -19,6 +19,7 @@ import warnings
 from io import BytesIO
 
 import numpy as np
+import symengine as sym
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
@@ -26,13 +27,7 @@ from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
-from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _read_channel(file_obj, version):
@@ -112,11 +107,7 @@ def _loads_symbolic_expr(expr_bytes):
     expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
     expr = parse_expr(expr_txt)
 
-    if _optional.HAS_SYMENGINE:
-        from symengine import sympify
-
-        return sympify(expr)
-    return expr
+    return sym.sympify(expr)
 
 
 def _read_symbolic_pulse(file_obj, version):

@@ -19,6 +19,7 @@ import struct
 import uuid
 
 import numpy as np
+import symengine
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr, types
@@ -26,7 +27,6 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
-from qiskit.utils import optionals as _optional
 
 
 def _write_parameter(file_obj, obj):
@@ -224,12 +224,7 @@ def _read_parameter_expression(file_obj):
     )
     from sympy.parsing.sympy_parser import parse_expr
 
-    if _optional.HAS_SYMENGINE:
-        import symengine
-
-        expr_ = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
-    else:
-        expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
+    expr_ = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
     symbol_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM(
@@ -265,12 +260,7 @@ def _read_parameter_expression_v3(file_obj, vectors):
     )
     from sympy.parsing.sympy_parser import parse_expr
 
-    if _optional.HAS_SYMENGINE:
-        import symengine
-
-        expr_ = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
-    else:
-        expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
+    expr_ = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
     symbol_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM_V3(

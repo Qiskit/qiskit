@@ -10,7 +10,7 @@ target-version = ['py38', 'py39', 'py310', 'py311']
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 skip = "pp* cp36-* cp37-* *musllinux*"
-test-skip = "cp310-win32 cp310-manylinux_i686 cp311-win32 cp311-manylinux_i686"
+test-skip = "*win32 *linux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
 # tendency to crash if they're installed from source by `pip install`, and since
@@ -25,6 +25,7 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.macos]
+environment = "MACOSX_DEPLOYMENT_TARGET=10.12"
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.windows]

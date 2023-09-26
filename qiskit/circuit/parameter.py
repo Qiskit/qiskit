@@ -15,8 +15,9 @@ Parameter Class for variable parameters.
 
 from uuid import uuid4
 
+import symengine
+
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import optionals as _optionals
 
 from .parameterexpression import ParameterExpression
 
@@ -80,14 +81,7 @@ class Parameter(ParameterExpression):
                 be any unicode string, e.g. "ϕ".
         """
         self._name = name
-        if not _optionals.HAS_SYMENGINE:
-            from sympy import Symbol
-
-            symbol = Symbol(name)
-        else:
-            import symengine
-
-            symbol = symengine.Symbol(name)
+        symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
     def assign(self, parameter, value):
@@ -102,11 +96,7 @@ class Parameter(ParameterExpression):
             return value
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
-        if _optionals.HAS_SYMENGINE:
-            from symengine import sympify
-        else:
-            from sympy import sympify
-        return ParameterExpression({}, sympify(value))
+        return ParameterExpression({}, symengine.sympify(value))
 
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
@@ -152,12 +142,5 @@ class Parameter(ParameterExpression):
 
     def __setstate__(self, state):
         self._name = state["name"]
-        if not _optionals.HAS_SYMENGINE:
-            from sympy import Symbol
-
-            symbol = Symbol(self._name)
-        else:
-            import symengine
-
-            symbol = symengine.Symbol(self._name)
+        symbol = symengine.Symbol(self._name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)

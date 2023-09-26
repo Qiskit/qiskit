@@ -23,18 +23,13 @@ from typing import Any, Dict, List, Optional, Union, Callable, Tuple
 from copy import deepcopy
 
 import numpy as np
+import symengine as sym
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.utils import optionals as _optional
 from qiskit.utils.deprecation import deprecate_arg
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _lifted_gaussian(
@@ -183,34 +178,31 @@ class LambdifiedExpression:
                     continue
                 params.append(p)
 
-            if _optional.HAS_SYMENGINE:
-                try:
-                    lamb = sym.lambdify(params, [value], real=False)
+            try:
+                lamb = sym.lambdify(params, [value], real=False)
 
-                    def _wrapped_lamb(*args):
-                        if isinstance(args[0], np.ndarray):
-                            # When the args[0] is a vector ("t"), tile other arguments args[1:]
-                            # to prevent evaluation from looping over each element in t.
-                            t = args[0]
-                            args = np.hstack(
-                                (
-                                    t.reshape(t.size, 1),
-                                    np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
-                                )
+                def _wrapped_lamb(*args):
+                    if isinstance(args[0], np.ndarray):
+                        # When the args[0] is a vector ("t"), tile other arguments args[1:]
+                        # to prevent evaluation from looping over each element in t.
+                        t = args[0]
+                        args = np.hstack(
+                            (
+                                t.reshape(t.size, 1),
+                                np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
                             )
-                        return lamb(args)
+                        )
+                    return lamb(args)
 
-                    func = _wrapped_lamb
-                except RuntimeError:
-                    # Currently symengine doesn't support complex_double version for
-                    # several functions such as comparison operator and piecewise.
-                    # If expression contains these function, it fall back to sympy lambdify.
-                    # See https://github.com/symengine/symengine.py/issues/406 for details.
-                    import sympy
+                func = _wrapped_lamb
+            except RuntimeError:
+                # Currently symengine doesn't support complex_double version for
+                # several functions such as comparison operator and piecewise.
+                # If expression contains these function, it fall back to sympy lambdify.
+                # See https://github.com/symengine/symengine.py/issues/406 for details.
+                import sympy
 
-                    func = sympy.lambdify(params, value)
-            else:
-                func = sym.lambdify(params, value)
+                func = sympy.lambdify(params, value)
 
             self.lambda_funcs[key] = func
 
