@@ -526,7 +526,7 @@ class ExprValue(TypeKeyBase):
         raise NotImplementedError
 
 
-class Encoding(TypeKeyBase):
+class SymExprEncoding(TypeKeyBase):
     """Type keys for the symbolic encoding field in the file header."""
 
     SYMPY = b"p"

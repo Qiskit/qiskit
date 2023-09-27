@@ -157,7 +157,7 @@ def dump(
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
-    encoding = type_keys.Encoding.assign(use_symengine)
+    encoding = type_keys.SymExprEncoding.assign(use_symengine)
     header = struct.pack(
         formats.FILE_HEADER_V10_PACK,
         b"QISKIT",
@@ -289,7 +289,7 @@ def load(
     if data.qpy_version < 10:
         use_symengine = False
     else:
-        use_symengine = data.symbolic_encoding == type_keys.Encoding.SYMENGINE
+        use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
 
     programs = []
     for _ in range(data.num_programs):
