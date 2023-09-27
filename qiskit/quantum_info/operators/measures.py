@@ -263,8 +263,7 @@ def diamond_norm(choi: Choi | QuantumChannel, **kwargs) -> float:
         kwargs: optional arguments to pass to CVXPY solver.
 
     Returns:
-        float: The completely-bounded trace norm
-               :math:`\|\mathcal{E}\|_{\diamond}`.
+        float: The completely-bounded trace norm :math:`\|\mathcal{E}\|_{\diamond}`.
 
     Raises:
         QiskitError: if CVXPY package cannot be found.
