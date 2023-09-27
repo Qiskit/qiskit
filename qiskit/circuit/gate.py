@@ -24,7 +24,15 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name: str, num_qubits: int, params: list, label: str | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        num_qubits: int,
+        params: list,
+        label: str | None = None,
+        duration=None,
+        unit="dt",
+    ) -> None:
         """Create a new gate.
 
         Args:
@@ -34,7 +42,7 @@ class Gate(Instruction):
             label: An optional label for the gate.
         """
         self.definition = None
-        super().__init__(name, num_qubits, 0, params, label=label)
+        super().__init__(name, num_qubits, 0, params, label=label, duration=duration, unit=unit)
 
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
@@ -100,15 +108,15 @@ class Gate(Instruction):
         """Return controlled version of gate. See :class:`.ControlledGate` for usage.
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default=1)
+            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
             label: optional gate label
             ctrl_state: The control state in decimal or as a bitstring
-                (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
+                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
 
         Returns:
             qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+            uses ``num_ctrl_qubits-1`` ancilla qubits so returns a gate of size
+            ``num_qubits + 2*num_ctrl_qubits - 1``.
 
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state

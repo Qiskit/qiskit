@@ -234,13 +234,14 @@ class AstInterpreter:
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             cx_gate = std.CXGate()
-            cx_gate.condition = self.condition
+            if self.condition:
+                cx_gate = cx_gate.c_if(*self.condition)
             if len(id0) > 1 and len(id1) > 1:
-                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [])
+                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[idx]], [], check=False)
             elif len(id0) > 1:
-                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[0]], [])
+                self.dag.apply_operation_back(cx_gate, [id0[idx], id1[0]], [], check=False)
             else:
-                self.dag.apply_operation_back(cx_gate, [id0[0], id1[idx]], [])
+                self.dag.apply_operation_back(cx_gate, [id0[0], id1[idx]], [], check=False)
 
     def _process_measure(self, node):
         """Process a measurement node."""
@@ -252,8 +253,9 @@ class AstInterpreter:
             )
         for idx, idy in zip(id0, id1):
             meas_gate = Measure()
-            meas_gate.condition = self.condition
-            self.dag.apply_operation_back(meas_gate, [idx], [idy])
+            if self.condition:
+                meas_gate = meas_gate.c_if(*self.condition)
+            self.dag.apply_operation_back(meas_gate, [idx], [idy], check=False)
 
     def _process_if(self, node):
         """Process an if node."""
@@ -335,14 +337,15 @@ class AstInterpreter:
             for qubit in ids:
                 for j, _ in enumerate(qubit):
                     qubits.append(qubit[j])
-            self.dag.apply_operation_back(Barrier(len(qubits)), qubits, [])
+            self.dag.apply_operation_back(Barrier(len(qubits)), qubits, [], check=False)
 
         elif node.type == "reset":
             id0 = self._process_bit_id(node.children[0])
             for i, _ in enumerate(id0):
                 reset = Reset()
-                reset.condition = self.condition
-                self.dag.apply_operation_back(reset, [id0[i]], [])
+                if self.condition:
+                    reset = reset.c_if(*self.condition)
+                self.dag.apply_operation_back(reset, [id0[i]], [], check=False)
 
         elif node.type == "if":
             self._process_if(node)
@@ -398,8 +401,9 @@ class AstInterpreter:
             QiskitError: if encountering a non-basis opaque gate
         """
         op = self._create_op(name, params)
-        op.condition = self.condition
-        self.dag.apply_operation_back(op, qargs, [])
+        if self.condition:
+            op = op.c_if(*self.condition)
+        self.dag.apply_operation_back(op, qargs, [], check=False)
 
     def _create_op(self, name, params):
         if name in self.standard_extension:

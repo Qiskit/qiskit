@@ -11,15 +11,14 @@
 # that they have been altered from the originals.
 
 """SI unit utilities"""
-
-from typing import Tuple, Optional, Union
+from __future__ import annotations
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
-def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
+def apply_prefix(value: float | ParameterExpression, unit: str) -> float | ParameterExpression:
     """
     Given a SI unit prefix and value, apply the prefix to convert to
     standard SI unit.
@@ -69,7 +68,7 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
     return value * pow(10, pow10)
 
 
-def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, str]:
+def detach_prefix(value: float, decimal: int | None = None) -> tuple[float, str]:
     """
     Given a SI unit value, find the most suitable prefix to scale the value.
 
