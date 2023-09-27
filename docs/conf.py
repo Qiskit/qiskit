@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from __future__ import annotations
+
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
@@ -18,6 +20,7 @@ import datetime
 import doctest
 import os
 import subprocess
+from pathlib import Path
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -50,6 +53,7 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "sphinx_remove_toctrees",
+    "sphinx_reredirects",
 ]
 
 templates_path = ["_templates"]
@@ -127,8 +131,12 @@ html_theme = "qiskit"
 html_favicon = "images/favicon.ico"
 html_last_updated_fmt = "%Y/%m/%d"
 html_context = {
-    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", ""))
-}  # enable segment analytics for qiskit.org/documentation
+    # Enable segment analytics for qiskit.org/documentation
+    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
+    "theme_announcement": "🎉 Qiskit is getting a new documentation experience on IBM Quantum!",
+    "announcement_url": "https://docs.quantum-computing.ibm.com/",
+    "announcement_url_text": "Check it out",
+}
 html_static_path = ["_static"]
 
 # This speeds up the docs build because it works around the Furo theme's slowdown from the left
@@ -228,6 +236,36 @@ nbsphinx_prolog = """
     __ https://github.com/Qiskit/qiskit-terra/blob/main/{{ docname }}
 
 """
+
+
+# ----------------------------------------------------------------------------------
+# Redirects
+# ----------------------------------------------------------------------------------
+
+def determine_api_redirects() -> dict[str, str]:
+    """Set up API redirects for functions that we moved to module pages.
+
+    Note that we have redirects in Cloudflare for methods moving to their class page. We
+    could not do this for functions because some functions still have dedicated
+    HTML pages, so we cannot use a generic rule.
+    """
+    lines = Path("api_redirects.txt").read_text().splitlines()
+    result = {}
+    for line in lines:
+        if not line:
+            continue
+        obj_name, new_module_page_name = line.split(" ")
+        # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
+        new_url = (
+            "https://qiskit.org/documentation/apidoc/" +
+            f"{new_module_page_name}.html#{obj_name}"
+        )
+        result[f"stubs/{obj_name}"] = new_url
+    return result
+
+
+redirects = determine_api_redirects()
+
 
 # ---------------------------------------------------------------------------------------
 # Prod changes

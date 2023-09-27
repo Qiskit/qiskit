@@ -392,7 +392,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         custom = QuantumCircuit(1)
         custom.rx(parameter_a, 0)
-        custom_gate = custom.bind_parameters({parameter_a: 0.5}).to_gate()
+        custom_gate = custom.assign_parameters({parameter_a: 0.5}).to_gate()
         custom_gate.name = "custom"
 
         circuit = QuantumCircuit(1)
@@ -453,8 +453,8 @@ class TestCircuitQASM3(QiskitTestCase):
         custom.rx(parameter_a, 0)
 
         circuit = QuantumCircuit(1)
-        circuit.append(custom.bind_parameters({parameter_a: 0.5}).to_gate(), [0])
-        circuit.append(custom.bind_parameters({parameter_a: 1}).to_gate(), [0])
+        circuit.append(custom.assign_parameters({parameter_a: 0.5}).to_gate(), [0])
+        circuit.append(custom.assign_parameters({parameter_a: 1}).to_gate(), [0])
 
         circuit_name_0 = circuit.data[0].operation.definition.name
         circuit_name_1 = circuit.data[1].operation.definition.name
@@ -1390,7 +1390,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         custom = QuantumCircuit(1)
         custom.rx(parameter_a, 0)
-        custom_gate = custom.bind_parameters({parameter_a: 0.5}).to_gate()
+        custom_gate = custom.assign_parameters({parameter_a: 0.5}).to_gate()
         custom_gate.name = "custom"
 
         loop_body = QuantumCircuit(1)

@@ -94,15 +94,42 @@ class Instruction(Operation):
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
-        self.condition = None
+        self._condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-
         self._duration = duration
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
+
+    @property
+    def mutable(self) -> bool:
+        """Is this instance is a mutable unique instance or not.
+
+        If this attribute is ``False`` the gate instance is a shared singleton
+        and is not mutable.
+        """
+        return True
+
+    def to_mutable(self):
+        """Return a mutable copy of this gate.
+
+        This method will return a new mutable copy of this gate instance.
+        If a singleton instance is being used this will be a new unique
+        instance that can be mutated. If the instance is already mutable it
+        will be a deepcopy of that instance.
+        """
+        return self.copy()
+
+    @property
+    def condition(self):
+        """The classical condition on the instruction."""
+        return self._condition
+
+    @condition.setter
+    def condition(self, condition):
+        self._condition = condition
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -409,7 +436,7 @@ class Instruction(Operation):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.
             val = bool(val)
-        self.condition = (classical, val)
+        self._condition = (classical, val)
         return self
 
     def copy(self, name=None):
@@ -460,7 +487,7 @@ class Instruction(Operation):
         """Return a default OpenQASM string for the instruction.
 
         Derived instructions may override this to print in a
-        different format (e.g. measure q[0] -> c[0];).
+        different format (e.g. ``measure q[0] -> c[0];``).
         """
         name_param = self.name
         if self.params:

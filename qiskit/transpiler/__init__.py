@@ -658,7 +658,7 @@ a heuristic pass that tries to find the best layout to use if a perfect layout c
 For the first stage there are 2 passes typically used for this:
 
 - :class:`~.VF2Layout`: Models layout selection as a subgraph isomorphism problem and tries
-  to find a subgraph of the connectivity graph that is isomporphic to the
+  to find a subgraph of the connectivity graph that is isomorphic to the
   graph of 2 qubit interactions in the circuit. If more than one isomorphic mapping is found a
   scoring heuristic is run to select the mapping which would result in the lowest average error
   when executing the circuit.
