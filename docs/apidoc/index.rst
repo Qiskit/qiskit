@@ -51,7 +51,7 @@ Deprecated Modules
 
 .. warning::
 
-   These moduels are going to be removed in Qiskit 1.0. Consider pinning ``qiskit~=0.45`` in your dependencies if you need them.
+   These modules are going to be removed in Qiskit 1.0. Consider pinning ``qiskit~=0.45`` in your dependencies if you need them.
 
 .. toctree::
    :maxdepth: 1
