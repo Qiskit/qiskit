@@ -107,7 +107,7 @@ def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     if expr_bytes == b"":
         return None
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("loads_symbolic_expr")
+        _optional.HAS_SYMENGINE.require_now("load a symengine expression")
         from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
             load_basic,
         )
