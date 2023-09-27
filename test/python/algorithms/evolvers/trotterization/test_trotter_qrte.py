@@ -220,7 +220,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         algorithm_globals.random_seed = 0
         with self.assertWarns(DeprecationWarning):
             evolution_problem = EvolutionProblem(operator, time, initial_state)
-            trotter_qrte = TrotterQRTE(product_formula=QDrift())
+            trotter_qrte = TrotterQRTE(product_formula=QDrift(seed=self.seed))
             evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 

@@ -36,7 +36,6 @@ class QiskitAlgorithmGlobals:
             "This algorithm utility has been migrated to an independent package: "
             "https://github.com/qiskit-community/qiskit-algorithms. You can run "
             "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
-            "There is no replacement in Qiskit."
         ),
         since="0.45.0",
     )

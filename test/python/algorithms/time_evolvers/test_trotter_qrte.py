@@ -174,8 +174,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         time = 1
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
-        algorithm_globals.random_seed = 0
-        trotter_qrte = TrotterQRTE(product_formula=QDrift())
+        trotter_qrte = TrotterQRTE(product_formula=QDrift(seed=0))
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
         np.testing.assert_array_almost_equal(

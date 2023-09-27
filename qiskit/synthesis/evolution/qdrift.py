@@ -16,7 +16,6 @@ from typing import Union, Optional, Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils import algorithm_globals
 
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
@@ -40,6 +39,7 @@ class QDrift(ProductFormula):
         atomic_evolution: Optional[
             Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
         ] = None,
+        seed: Optional[int] = None,
     ) -> None:
         r"""
         Args:
@@ -51,9 +51,11 @@ class QDrift(ProductFormula):
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
+            seed: An optional seed for reproducibility of the random sampling process.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
+        self.seed = seed
 
     def synthesize(self, evolution):
         # get operators and time to evolve
@@ -75,7 +77,9 @@ class QDrift(ProductFormula):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates
-        self.sampled_ops = algorithm_globals.random.choice(
+
+        rng = np.random.default_rng(self.seed)
+        self.sampled_ops = rng.choice(
             np.array(pauli_list, dtype=object),
             size=(num_gates,),
             p=weights / lambd,
