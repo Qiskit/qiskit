@@ -1136,6 +1136,10 @@ class TestPauliTableMethods(QiskitTestCase):
 
     def test_delete(self):
         """Test delete method."""
+        with self.subTest(msg="no rows"):
+            pauli = PauliTable.from_labels(["XX", "YY"])
+            self.assertEqual(pauli.delete([]), pauli)
+
         with self.subTest(msg="single row"):
             for j in range(1, 6):
                 with self.assertWarns(DeprecationWarning):
@@ -1150,6 +1154,10 @@ class TestPauliTableMethods(QiskitTestCase):
                     self.assertEqual(pauli.delete([0, 2]), PauliTable(j * "Y"))
                     self.assertEqual(pauli.delete([1, 2]), PauliTable(j * "X"))
                     self.assertEqual(pauli.delete([0, 1]), PauliTable(j * "Z"))
+
+        with self.subTest(msg="no rows"):
+            pauli = PauliTable.from_labels(["XX", "YY"])
+            self.assertEqual(pauli.delete([], qubit=True), pauli)
 
         with self.subTest(msg="single qubit"):
             with self.assertWarns(DeprecationWarning):

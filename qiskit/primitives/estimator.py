@@ -96,7 +96,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
-                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+                else self._circuits[i].assign_parameters(dict(zip(self._parameters[i], value)))
             )
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []

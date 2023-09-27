@@ -96,7 +96,6 @@ Random
 .. autofunction:: random_cnotdihedral
 .. autofunction:: random_pauli_table
 .. autofunction:: random_pauli_list
-.. autofunction:: random_stabilizer_table
 
 Analysis
 =========
@@ -152,7 +151,6 @@ from .random import (
     random_pauli_list,
     random_pauli_table,
     random_quantum_channel,
-    random_stabilizer_table,
     random_statevector,
     random_unitary,
 )
