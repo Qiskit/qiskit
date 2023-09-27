@@ -404,7 +404,7 @@ def _dumps_symbolic_expr(expr, use_symengine):
     if expr is None:
         return b""
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("dumps_symbolic_expr")
+        _optional.HAS_SYMENGINE.require_now("dump a symengine expression")
         expr_bytes = expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
