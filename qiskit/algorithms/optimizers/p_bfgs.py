@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import multiprocessing
 import platform
+import warnings
 from collections.abc import Callable
 from typing import SupportsFloat
 
@@ -73,7 +74,9 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if max_processes:
-            validate_min("max_processes", max_processes, 1)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                validate_min("max_processes", max_processes, 1)
 
         if options is None:
             options = {}

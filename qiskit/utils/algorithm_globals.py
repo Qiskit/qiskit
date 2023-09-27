@@ -18,6 +18,7 @@ import logging
 import numpy as np
 
 from qiskit.tools import parallel
+from qiskit.utils.deprecation import deprecate_func
 from ..user_config import get_config
 from ..exceptions import QiskitError
 
@@ -30,6 +31,15 @@ class QiskitAlgorithmGlobals:
 
     CPU_COUNT = parallel.local_hardware_info()["cpus"]
 
+    @deprecate_func(
+        additional_msg=(
+            "This algorithm utility has been migrated to an independent package: "
+            "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+            "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+            "There is no replacement in Qiskit."
+        ),
+        since="0.45.0",
+    )
     def __init__(self) -> None:
         self._random_seed = None  # type: Optional[int]
         self._num_processes = QiskitAlgorithmGlobals.CPU_COUNT
