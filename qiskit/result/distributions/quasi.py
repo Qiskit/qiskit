@@ -27,9 +27,17 @@ class QuasiDistribution(dict):
     """A dict-like class for representing quasi-probabilities."""
 
     _bitstring_regex = re.compile(r"^[01]+$")
+    __ndigits__ = 15
 
     def __init__(self, data, shots=None, stddev_upper_bound=None):
         """Builds a quasiprobability distribution object.
+
+        .. note::
+
+            The quasiprobability values might include floating-point errors.
+            ``QuasiDistribution.__repr__`` rounds using :meth:`numpy.round`
+            and the parameter ``ndigits`` can be manipulated with the
+            class attribute ``__ndigits__``. The default is ``15``.
 
         Parameters:
             data (dict): Input quasiprobability data. Where the keys
@@ -51,7 +59,6 @@ class QuasiDistribution(dict):
         self.shots = shots
         self._stddev_upper_bound = stddev_upper_bound
         self._num_bits = 0
-        self.decimal = 15
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
@@ -144,4 +151,4 @@ class QuasiDistribution(dict):
         return self._stddev_upper_bound
 
     def __repr__(self):
-        return str({key: round(value, ndigits=self.decimal) for key, value in self.items()})
+        return str({key: round(value, ndigits=self.__ndigits__) for key, value in self.items()})
