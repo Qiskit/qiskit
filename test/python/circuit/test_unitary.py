@@ -13,10 +13,13 @@
 """UnitaryGate tests"""
 
 import json
+import unittest
+
 import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
+from qiskit.extensions.quantum_initializer import _IS_BAD_NUMPY
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -303,6 +306,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         mat = numpy.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
         self.assertTrue(numpy.allclose(Operator(UnitaryGate(mat).definition).data, mat))
 
+    @unittest.skipIf(_IS_BAD_NUMPY, "known-bad OS+NumPy combination for Isometry")
     def test_unitary_control(self):
         """Test parameters of controlled - unitary."""
         mat = numpy.array([[0, 1], [1, 0]])

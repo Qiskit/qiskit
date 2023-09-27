@@ -25,10 +25,12 @@ from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
+from qiskit.extensions.quantum_initializer import _IS_BAD_NUMPY
 from qiskit.extensions.quantum_initializer.isometry import Isometry
 
 
 @ddt
+@unittest.skipIf(_IS_BAD_NUMPY, "known-bad OS+NumPy combination for Isometry")
 class TestIsometry(QiskitTestCase):
     """Qiskit isometry tests."""
 

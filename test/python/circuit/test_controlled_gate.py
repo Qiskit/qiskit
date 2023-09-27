@@ -78,6 +78,7 @@ from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
+from qiskit.extensions.quantum_initializer import _IS_BAD_NUMPY
 
 from .gate_utils import _get_free_params
 
@@ -843,6 +844,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(cop_mat, test_op.data))
 
     @data(1, 2, 3, 4, 5)
+    @unittest.skipIf(_IS_BAD_NUMPY, "known-bad OS+NumPy combination for Isometry")
     def test_controlled_random_unitary(self, num_ctrl_qubits):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
         num_target = 2

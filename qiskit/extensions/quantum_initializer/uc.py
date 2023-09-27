@@ -47,6 +47,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
+from qiskit.extensions.quantum_initializer import _warn_if_bad_numpy
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
@@ -134,6 +135,8 @@ class UCGate(Gate):
         up_to_diagonal=True, the circuit implements the gate up to a diagonal gate and
         the diagonal gate is also returned.
         """
+        _warn_if_bad_numpy("synthesis of multiplexed gates")
+
         diag = np.ones(2**self.num_qubits).tolist()
         q = QuantumRegister(self.num_qubits)
         q_controls = q[1:]

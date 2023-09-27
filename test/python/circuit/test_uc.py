@@ -23,6 +23,7 @@ from test import combine  # pylint: disable=wrong-import-order
 import numpy as np
 from scipy.linalg import block_diag
 
+from qiskit.extensions.quantum_initializer import _IS_BAD_NUMPY
 from qiskit.extensions.quantum_initializer.uc import UCGate
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
@@ -37,6 +38,7 @@ _not = np.matrix([[0, 1], [1, 0]])
 
 
 @ddt
+@unittest.skipIf(_IS_BAD_NUMPY, "known-bad OS+NumPy combination for UCGate")
 class TestUCGate(QiskitTestCase):
     """Qiskit UCGate tests."""
 

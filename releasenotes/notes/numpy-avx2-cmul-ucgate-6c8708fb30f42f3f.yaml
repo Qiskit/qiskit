@@ -1,0 +1,18 @@
+---
+issues:
+  - |
+    The PyPI versions of the NumPy 1.25 series and the current most recent release 1.26.0 are known
+    to have inconsistent behaviour with the complex `multiply` ufunc when running on Intel Macs with
+    AVX2 CPU extensions.  This bug destabilises the synthesis of :class:`.UCGate`, which is used by
+    :class:`.Isometry` and :meth:`.UnitaryGate.control`, to the degree of it returning completely
+    invalid results.
+
+    This bug only affects Intel Macs with AVX2 CPU extensions enabled with certain versions of NumPy.
+    If the bad code paths are used, a :exc:`RuntimeWarning` will be issued.  If you are affected,
+    you can install an older version of NumPy (the 1.24 series is known good), or you can disable
+    NumPy's use of AVX2 extensions by setting the environment variable
+    `NPY_DISABLE_CPU_FEATURES=AVX2` while importing `numpy`.  See
+    https://qisk.it/cmul-avx2-numpy-bug for more detail.
+
+    This bug also affects all prior versions of Qiskit with :class:`.UCGate` if the bad combination
+    of OS, CPU and NumPy version are present, but this is the first version that issues a warning.
