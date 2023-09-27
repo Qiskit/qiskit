@@ -1004,9 +1004,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """Generate a binary vector (a row of tableau representation) from a Pauli matrix.
         Return None if the non-Pauli matrix is supplied."""
         # pylint: disable=too-many-return-statements
+        decimals = 6
 
-        def find_one_index(x, decimals=6):
-            indices = np.where(np.round(np.abs(x), decimals) == 1)
+        def find_one_index(x):
+            indices = np.where(np.round(np.abs(x), decimals=decimals) == 1)
             return indices[0][0] if len(indices[0]) == 1 else None
 
         def bitvector(n, num_bits):
@@ -1027,7 +1028,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             expected = xint ^ i
             if index != expected:
                 return None
-            entries[i] = np.round(mat[i, index])
+            entries[i] = np.round(mat[i, index], decimals=decimals)
+            if entries[i] not in {1, -1, 1j, -1j}:
+                return None
 
         # compute z-bits
         zbits = np.empty(num_qubits, dtype=bool)
