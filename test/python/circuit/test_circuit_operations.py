@@ -1263,11 +1263,11 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         x, y = Parameter("x"), Parameter("y")
         test = QuantumCircuit(1, 1)
         test.rx(y, 0)
-        last_instructions = test.u(x, y, 0, 0)
+        last_instructions = list(test.u(x, y, 0, 0))
         self.assertEqual({x, y}, set(test.parameters))
 
         instruction = test._pop_previous_instruction_in_scope()
-        self.assertEqual(list(last_instructions), [instruction])
+        self.assertEqual(last_instructions, [instruction])
         self.assertEqual({y}, set(test.parameters))
 
     def test_decompose_gate_type(self):

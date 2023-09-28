@@ -1308,27 +1308,29 @@ class QuantumCircuit:
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         if self._control_flow_scopes:
+            circuit_data = self._control_flow_scopes[-1].instructions
             appender = self._control_flow_scopes[-1].append
             requester = self._control_flow_scopes[-1].request_classical_resource
         else:
+            circuit_data = self._data
             appender = self._append
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
         if isinstance(operation, Instruction):
             for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
                 self._check_dups(qarg)
-                instruction = CircuitInstruction(operation, qarg, carg)
-                appender(instruction)
-                instructions.add(instruction)
+                data_idx = len(circuit_data)
+                appender(CircuitInstruction(operation, qarg, carg))
+                instructions._add_ref(circuit_data, data_idx)
         else:
             # For Operations that are non-Instructions, we use the Instruction's default method
             for qarg, carg in Instruction.broadcast_arguments(
                 operation, expanded_qargs, expanded_cargs
             ):
                 self._check_dups(qarg)
-                instruction = CircuitInstruction(operation, qarg, carg)
-                appender(instruction)
-                instructions.add(instruction)
+                data_idx = len(circuit_data)
+                appender(CircuitInstruction(operation, qarg, carg))
+                instructions._add_ref(circuit_data, data_idx)
         return instructions
 
     # Preferred new style.

@@ -15,6 +15,8 @@ Instruction collection.
 """
 
 from __future__ import annotations
+
+from collections.abc import MutableSequence
 from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
@@ -52,7 +54,7 @@ class InstructionSet:
                     used.  It may throw an error if the resource is not valid for usage.
 
         """
-        self._instructions: list[CircuitInstruction] = []
+        self._instructions: list[CircuitInstruction | (MutableSequence[CircuitInstruction], int)] = []
         self._requester = resource_requester
 
     def __len__(self):
@@ -61,7 +63,11 @@ class InstructionSet:
 
     def __getitem__(self, i):
         """Return instruction at index"""
-        return self._instructions[i]
+        inst = self._instructions[i]
+        if isinstance(inst, CircuitInstruction):
+            return inst
+        data, idx = inst
+        return data[idx]
 
     def add(self, instruction, qargs=None, cargs=None):
         """Add an instruction and its context (where it is attached)."""
@@ -73,10 +79,22 @@ class InstructionSet:
             instruction = CircuitInstruction(instruction, tuple(qargs), tuple(cargs))
         self._instructions.append(instruction)
 
+    def _add_ref(self, data: MutableSequence[CircuitInstruction], pos: int):
+        """Add a reference to an instruction and its context within a mutable sequence.
+        Updates to the instruction set will modify the specified sequence in place."""
+        self._instructions.append((data, pos))
+
     def inverse(self):
         """Invert all instructions."""
         for i, instruction in enumerate(self._instructions):
-            self._instructions[i] = instruction.replace(operation=instruction.operation.inverse())
+            if isinstance(instruction, CircuitInstruction):
+                self._instructions[i] = instruction.replace(
+                    operation=instruction.operation.inverse()
+                )
+            else:
+                data, idx = instruction
+                instruction = data[idx]
+                data[idx] = instruction.replace(operation=instruction.operation.inverse())
         return self
 
     def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
@@ -132,26 +150,40 @@ class InstructionSet:
         if self._requester is not None:
             classical = self._requester(classical)
         for instruction in self._instructions:
-            instruction.operation = instruction.operation.c_if(classical, val)
+            if isinstance(instruction, CircuitInstruction):
+                updated = instruction.operation.c_if(classical, val)
+                if updated is not instruction.operation:
+                    raise CircuitError(
+                        "SingletonGate instances can only be added to InstructionSet via _add_ref"
+                    )
+            else:
+                data, idx = instruction
+                instruction = data[idx]
+                data[idx] = instruction.replace(
+                    operation=instruction.operation.c_if(classical, val)
+                )
         return self
 
     # Legacy support for properties.  Added in Terra 0.21 to support the internal switch in
     # `QuantumCircuit.data` from the 3-tuple to `CircuitInstruction`.
 
+    def _instructions_iter(self):
+        return (i if isinstance(i, CircuitInstruction) else i[0][i[1]] for i in self._instructions)
+
     @property
     def instructions(self):
         """Legacy getter for the instruction components of an instruction set.  This does not
         support mutation."""
-        return [instruction.operation for instruction in self._instructions]
+        return [instruction.operation for instruction in self._instructions_iter()]
 
     @property
     def qargs(self):
         """Legacy getter for the qargs components of an instruction set.  This does not support
         mutation."""
-        return [list(instruction.qubits) for instruction in self._instructions]
+        return [list(instruction.qubits) for instruction in self._instructions_iter()]
 
     @property
     def cargs(self):
         """Legacy getter for the cargs components of an instruction set.  This does not support
         mutation."""
-        return [list(instruction.clbits) for instruction in self._instructions]
+        return [list(instruction.clbits) for instruction in self._instructions_iter()]
