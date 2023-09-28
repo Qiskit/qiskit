@@ -21,7 +21,8 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Modifier:
-    """Modifier class."""
+    """The base class that all modifiers of :class:`~.AnnotatedOperation` should
+    inherit from."""
 
     pass
 
@@ -38,7 +39,7 @@ class ControlModifier(Modifier):
     """Control modifier: specifies that the operation is controlled by ``num_ctrl_qubits``
     and has control state ``ctrl_state``."""
 
-    num_ctrl_qubits: int
+    num_ctrl_qubits: int = 0
     ctrl_state: Union[int, str, None] = None
 
     def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: Union[int, str, None] = None):
@@ -59,6 +60,26 @@ class AnnotatedOperation(Operation):
     def __init__(self, base_op: Operation, modifiers: Union[Modifier, List[Modifier]]):
         """
         Create a new AnnotatedOperation.
+
+        An "annotated operation" allows to add a list of modifiers to the
+        "base" operation. For now, the only supported modifiers are of
+        types :class:`~.InverseModifier`, :class:`~.ControlModifier` and
+        :class:`~.PowerModifier`. In the future, we are planning to make
+        the modifier interface extendable, accommodating for user-supplied
+        modifiers.
+
+        An annotated operation can be viewed as an extension of
+        :class:`~.ControlledGate` (which also allows adding control to the
+        base operation). However, an important difference is that the
+        circuit definition of an annotated operation is not constructed when
+        the operation is declared, and instead happens during transpilation,
+        specifically during :class:`~.HighLevelSynthesis` transpiler pass.
+
+        An annotated operation can be also viewed as a "higher-level"
+        or "more abstract" object that can be added to a quantum circuit.
+        we are planning to add transpiler optimization passes that make use of
+        this higher-level representation, for instance removing a gate
+        that is immediately followed by its inverse.
 
         Args:
             base_op: base operation being modified
