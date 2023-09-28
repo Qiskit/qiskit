@@ -111,17 +111,14 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
             from qiskit import Aer
 
             msg = (
-                "The method ``qiskit.circuit.quantumcircuit.QuantumCircuit.i()`` is deprecated as "
-                + "of qiskit-terra 0.45.0. It will be removed no earlier than 3 months after the "
-                + "release date. Use QuantumCircuit.id as direct replacement."
+                r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
+                r"deprecated as of qiskit-terra 0\.45\.0\. It will be removed no earlier than 3 "
+                + r"months after the release date\. Use QuantumCircuit\.id as direct replacement\."
             )
 
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    "default",
-                    message=msg,
-                    category=DeprecationWarning,
-                    module=r"test\.python\.algorithms\.test_skip_qobj_validation",
+                    "default", message=msg, category=DeprecationWarning, module="qiskit_aer.*"
                 )
                 self.backend = Aer.get_backend("qasm_simulator")
 
