@@ -1019,7 +1019,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             return None
         xbits = bitvector(xint, num_qubits)
 
-        # extract non-zero elements from matrix (rounded to 1, -1, 1j or -1j)
+        # extract non-zero elements from matrix (each must be 1, -1, 1j or -1j for Pauli matrix)
         entries = np.empty(len(mat), dtype=complex)
         for i, row in enumerate(mat):
             index = find_one_index(row)
