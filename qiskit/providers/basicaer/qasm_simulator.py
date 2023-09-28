@@ -19,7 +19,7 @@ The simulator is run using
 
 .. code-block:: python
 
-    QasmSimulatorPy().run(qcirc)
+    QasmSimulatorPy().run(run_input)
 
 Where the input is a QuantumCircuit object and the output is a BasicAerJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
@@ -385,11 +385,21 @@ class QasmSimulatorPy(BackendV1):
             # measure sampling is allowed
             self._sample_measure = True
 
-    def run(self, qcirc, **backend_options):
-        """Run qcirc asynchronously.
+    def run(self, run_input, **backend_options):
+        """Run on the backend.
 
         Args:
-            qcirc (Union[QuantumCircuit, List[QuantumCircuit]]): circuit of the experiment
+            run_input (QuantumCircuit or Schedule or list): An individual or a
+                list of :class:`~qiskit.circuit.QuantumCircuit` or
+                :class:`~qiskit.pulse.Schedule` objects to run on the backend.
+                For legacy providers migrating to the new versioned providers,
+                provider interface a :class:`~qiskit.qobj.QasmQobj` or
+                :class:`~qiskit.qobj.PulseQobj` objects should probably be
+                supported too (but deprecated) for backwards compatibility. Be
+                sure to update the docstrings of subclasses implementing this
+                method to document that. New provider implementations should not
+                do this though as :mod:`qiskit.qobj` will be deprecated and
+                removed along with the legacy providers interface.
             backend_options (dict): backend options
 
         Returns:
@@ -402,7 +412,7 @@ class QasmSimulatorPy(BackendV1):
             The "initial_statevector" option specifies a custom initial
             initial statevector for the simulator to be used instead of the all
             zero state. This size of this vector must be correct for the number
-            of qubits in qcirc.
+            of qubits in run_input.
 
             Example::
 
@@ -420,7 +430,7 @@ class QasmSimulatorPy(BackendV1):
                 )
             else:
                 out_options[key] = backend_options[key]
-        qobj = assemble(qcirc, self, **out_options)
+        qobj = assemble(run_input, self, **out_options)
         qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())
