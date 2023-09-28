@@ -82,9 +82,7 @@ class QiskitAlgorithmGlobals:
     @property
     @deprecate_func(
         additional_msg=(
-            "This algorithm utility has been migrated to an independent package: "
-            "https://github.com/qiskit-community/qiskit-algorithms. You can run "
-            "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+            "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
         since="0.45.0",
         is_property=True,
@@ -96,9 +94,7 @@ class QiskitAlgorithmGlobals:
     @num_processes.setter
     @deprecate_func(
         additional_msg=(
-            "This algorithm utility has been migrated to an independent package: "
-            "https://github.com/qiskit-community/qiskit-algorithms. You can run "
-            "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+            "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
         since="0.45.0",
         is_property=True,
@@ -148,9 +144,7 @@ class QiskitAlgorithmGlobals:
     @property
     @deprecate_func(
         additional_msg=(
-            "This algorithm utility has been migrated to an independent package: "
-            "https://github.com/qiskit-community/qiskit-algorithms. You can run "
-            "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+            "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
         since="0.45.0",
         is_property=True,
@@ -162,9 +156,7 @@ class QiskitAlgorithmGlobals:
     @massive.setter
     @deprecate_func(
         additional_msg=(
-            "This algorithm utility has been migrated to an independent package: "
-            "https://github.com/qiskit-community/qiskit-algorithms. You can run "
-            "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+            "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
         since="0.45.0",
         is_property=True,
