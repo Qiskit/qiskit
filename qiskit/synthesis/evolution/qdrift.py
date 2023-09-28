@@ -55,7 +55,7 @@ class QDrift(ProductFormula):
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
-        self.seed = seed
+        self.rng = np.random.default_rng(seed)
 
     def synthesize(self, evolution):
         # get operators and time to evolve
@@ -78,8 +78,7 @@ class QDrift(ProductFormula):
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates
 
-        rng = np.random.default_rng(self.seed)
-        self.sampled_ops = rng.choice(
+        self.sampled_ops = self.rng.choice(
             np.array(pauli_list, dtype=object),
             size=(num_gates,),
             p=weights / lambd,
