@@ -353,7 +353,8 @@ Qiskit's default position is to interpret a usage of the standard-library ``rz``
 to use the phase conventions more implied by a direct interpretation of the ``gate`` statements in
 the header file, you can use :class:`CustomInstruction` to override how Qiskit builds the circuit.
 
-For the standard ``qelib1.inc`` include, the override needed to do this is:
+For the standard ``qelib1.inc`` include there is only one point of difference, and so the override
+needed to switch its phase convention is:
 
 .. code-block:: python
 
