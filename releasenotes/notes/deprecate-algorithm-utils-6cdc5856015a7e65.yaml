@@ -10,5 +10,5 @@ deprecations:
     longer used in the context of Qiskit. If your application allows it, we recommend that
     you migrate your code to use ``qiskit_algorithms``, where you will be able to import
     the relevant utilities in ``algorithm_globals`` and ``validation`` from
-    ``qiskit_algorithms.utils``. Please note than legacy functionality has not been migrated
+    ``qiskit_algorithms.utils``. Please note that legacy functionality has not been migrated
     to the new package.
