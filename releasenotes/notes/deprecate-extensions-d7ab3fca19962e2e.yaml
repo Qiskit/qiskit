@@ -1,10 +1,11 @@
 ---
 deprecations:
   - |
-    Progress towards deprecating the :mod:`qiskit.extensions` module to streamline the structure
-    of Qiskit. The following objects have been moved to :mod:`qiskit.circuit.library`
-    and will be deprecated in :mod:`qiskit.extensions` in a future release,
+    To streamline the structure of Qiskit's gates and operations, the :mod:`qiskit.extensions`
+    module is pending deprecation and will be deprecated in a future release.
+    The following objects have been moved to :mod:`qiskit.circuit.library`
 
+    * :class:`~.library.DiagonalGate`,
     * :class:`~.library.HamiltonianGateGate`,
     * :class:`~.library.Initialize`,
     * :class:`~.library.Isometry`,
@@ -14,9 +15,19 @@ deprecations:
     * :class:`~.library.UCRXGate`,
     * :class:`~.library.UCRYGate`,
     * :class:`~.library.UCRZGate`,
-    * :class:`~.library.UnitaryGate`,
+    * :class:`~.library.UnitaryGate`.
 
-    along with the following circuit methods,
+    These instructions have already been deprecated in this release,
+
+    * :class:`~.SingleQubitUnitary`, instead use :class:`.library.UnitaryGate`,
+    * :class:`~.extensions.Snapshot`, which has been superseded by Qiskit Aer's save instructions,
+
+    along with their circuit methods
+
+    * :meth:`.QuantumCircuit.snapshot`,
+    * :meth:`.QuantumCircuit.squ`.
+
+    In addition, the following circuit methods are pending deprecation
 
     * :meth:`.QuantumCircuit.hamiltonian`,
     * :meth:`.QuantumCircuit.isometry` and :meth:`.QuantumCircuit.iso`,
@@ -25,14 +36,4 @@ deprecations:
     * :meth:`.QuantumCircuit.ucry`,
     * :meth:`.QuantumCircuit.ucrz`.
 
-    The following instructions have been deprecated in this release,
-
-    * :class:`~.SingleQubitUnitary`, instead use :class:`.library.UnitaryGate`,
-    * :class:`~.extensions.Snapshot`, which has been superseded by Qiskit Aer's save instructions,
-
-    along with the following circuit methods,
-
-    * :meth:`.QuantumCircuit.snapshot`,
-    * :meth:`.QuantumCircuit.squ`.
-
-
+    Since the entire module is pending deprecation, so is :class:`.ExtensionError`.

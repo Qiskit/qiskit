@@ -4721,7 +4721,12 @@ class QuantumCircuit:
         # Check if there is one target qubit provided
         if not isinstance(qubit, Qubit):
             raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
-        return self.append(SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal), [qubit], [])
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            squ = SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal)
+
+        return self.append(squ, [qubit], [])
 
     @deprecate_func(
         since="0.45.0",
