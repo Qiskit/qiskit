@@ -2523,14 +2523,26 @@ class QuantumCircuit:
     @property
     def num_parameters(self) -> int:
         """The number of parameter objects in the circuit."""
+        # Avoid a (potential) object creation if we can.
+        if self._parameters is not None:
+            return len(self._parameters)
         return len(self._unsorted_parameters())
 
     def _unsorted_parameters(self) -> set[Parameter]:
-        """Efficiently get all parameters in the circuit, without any sorting overhead."""
-        parameters = set(self._parameter_table)
-        if isinstance(self.global_phase, ParameterExpression):
-            parameters.update(self.global_phase.parameters)
+        """Efficiently get all parameters in the circuit, without any sorting overhead.
 
+        .. warning::
+
+            The returned object may directly view onto the ``ParameterTable`` internals, and so
+            should not be mutated.  This is an internal performance detail.  Code outside of this
+            package should not use this method.
+        """
+        # This should be free, by accessing the actual backing data structure of the table, but that
+        # means that we need to copy it if adding keys from the global phase.
+        parameters = self._parameter_table.get_keys()
+        if isinstance(self.global_phase, ParameterExpression):
+            # Deliberate copy.
+            parameters = parameters | self.global_phase.parameters
         return parameters
 
     @overload
@@ -2648,6 +2660,7 @@ class QuantumCircuit:
         # 'target' so we can take advantage of any caching we might be doing.
         if isinstance(parameters, dict):
             raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
+            # Remember that we _must not_ mutate the output of `_unsorted_parameters`.
             our_parameters = self._unsorted_parameters()
             if strict and (extras := raw_mapping.keys() - our_parameters):
                 raise CircuitError(
@@ -2780,6 +2793,10 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
+    @deprecate_func(
+        additional_msg=("Use assign_parameters() instead"),
+        since="0.45.0",
+    )
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
     ) -> "QuantumCircuit":
