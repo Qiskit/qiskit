@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The algorithm utils in ``qiskit.utils.validation`` and ``qiskit.utils.algorithm_globals``
+    are now deprecated and will be removed from the codebase in no less than 3 months from
+    the release date. These have been migrated to the ``qiskit_algorithms`` standalone
+    `library <https://github.com/qiskit-community/qiskit-algorithms>`_, and can instead be
+    imported from ``qiskit_algorithms.utils``.
+
