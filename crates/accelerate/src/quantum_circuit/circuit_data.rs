@@ -40,10 +40,6 @@ pub struct CircuitData {
 
 #[derive(FromPyObject)]
 pub struct ElementType {
-    // Note that _operation_wrapper is used only to support c_if,
-    // which on the Python-side swaps out the operation that the
-    // wrapper points to.
-    #[pyo3(attribute("_operation_wrapper"))]
     operation: PyObject,
     qubits: Py<PyTuple>,
     clbits: Py<PyTuple>,
