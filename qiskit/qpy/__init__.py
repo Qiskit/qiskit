@@ -102,7 +102,7 @@ The QPY serialization format is a portable cross-platform binary
 serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
 file format is as follows:
 
-A QPY file (or memory object) always starts with the following 7
+A QPY file (or memory object) always starts with the following 6
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
 file header. The contents of the file header as defined as a C struct are:
 
@@ -116,6 +116,21 @@ file header. The contents of the file header as defined as a C struct are:
         uint64_t num_circuits;
     }
 
+
+From V10 on, a new field is added to the file header struct to represent the
+encoding scheme used for symbolic expressions:
+
+.. code-block:: c
+
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
+    }
+
 All values use network byte order [#f1]_ (big endian) for cross platform
 compatibility.
 
@@ -127,6 +142,34 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_10:
+
+Version 10
+==========
+
+Version 10 adds support for symengine-native serialization for objects of type
+:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks.
+
+The symbolic_encoding field is added to the file header, and a new encoding type char
+is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
+encoding and ``e`` refers to symengine encoding.
+
+FILE_HEADER
+-----------
+
+The contents of FILE_HEADER after V10 are defined as a C struct as:
+
+.. code-block:: c
+
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
+    }
 
 
 .. _qpy_version_9:
