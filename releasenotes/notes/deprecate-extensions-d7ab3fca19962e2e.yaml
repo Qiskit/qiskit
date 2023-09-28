@@ -29,6 +29,7 @@ deprecations:
 
     In addition, the following circuit methods are pending deprecation
 
+    * :meth:`.QuantumCircuit.diagonal`,
     * :meth:`.QuantumCircuit.hamiltonian`,
     * :meth:`.QuantumCircuit.isometry` and :meth:`.QuantumCircuit.iso`,
     * :meth:`.QuantumCircuit.uc`,
