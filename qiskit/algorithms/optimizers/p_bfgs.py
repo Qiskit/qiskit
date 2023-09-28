@@ -141,7 +141,9 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         # Start off as many other processes running the optimize (can be 0)
         processes = []
         for _ in range(num_procs):
-            i_pt = algorithm_globals.random.uniform(low, high)  # Another random point in bounds
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                i_pt = algorithm_globals.random.uniform(low, high)  # Another random point in bounds
             proc = multiprocessing.Process(target=optimize_runner, args=(queue, i_pt))
             processes.append(proc)
             proc.start()
