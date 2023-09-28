@@ -72,7 +72,9 @@ class MergeAdjacentBarriers(TransformationPass):
         for barrier in barriers:
             if barrier in node_to_barrier_qubits:
                 barrier_to_add, nodes = node_to_barrier_qubits[barrier]
-                dag.replace_block_with_op(nodes, barrier_to_add, wire_pos_map=indices, cycle_check=False)
+                dag.replace_block_with_op(
+                    nodes, barrier_to_add, wire_pos_map=indices, cycle_check=False
+                )
 
         return dag
 
