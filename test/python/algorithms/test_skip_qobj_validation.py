@@ -113,7 +113,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
             msg = (
                 r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
                 r"deprecated as of qiskit-terra 0\.45\.0\. It will be removed no earlier than 3 "
-                + r"months after the release date\. Use QuantumCircuit\.id as direct replacement\."
+                r"months after the release date\. Use QuantumCircuit\.id as direct replacement\."
             )
 
             with warnings.catch_warnings():
