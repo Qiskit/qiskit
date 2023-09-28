@@ -491,6 +491,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         expected_circuit.append(controlled_gate1, [0, 1, 2, 3])
         expected_circuit.append(controlled_gate2, [0, 1, 2])
         expected_circuit.append(controlled_gate3, [2, 3])
+
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_control_custom_gates(self):
@@ -763,20 +764,6 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         lazy_gate2 = AnnotatedOperation(lazy_gate1, PowerModifier(-1))
         circuit = QuantumCircuit(4)
         circuit.append(lazy_gate2, [0, 1, 2, 3])
-        transpiled_circuit = HighLevelSynthesis()(circuit)
-        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
-
-    def test_multiple_modifiers(self):
-        """Test involving gates with different modifiers."""
-        qc = QuantumCircuit(4)
-        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), InverseModifier())
-        lazy_gate2 = AnnotatedOperation(SwapGate(), ControlModifier(2))
-        qc.append(lazy_gate1, [0, 1, 2, 3])
-        qc.append(lazy_gate2, [0, 1, 2, 3])
-        custom_gate = qc.to_gate()
-        lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
-        circuit = QuantumCircuit(6)
-        circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
 

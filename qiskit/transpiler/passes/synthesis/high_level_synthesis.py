@@ -16,7 +16,7 @@
 from typing import Optional, Union, List
 
 from qiskit.circuit.operation import Operation
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
@@ -87,19 +87,16 @@ class HLSConfig:
     documentation for :class:`~.HighLevelSynthesis`.
     """
 
-    def __init__(self, use_default_on_unspecified=True, recurse=True, **kwargs):
+    def __init__(self, use_default_on_unspecified=True, **kwargs):
         """Creates a high-level-synthesis config.
 
         Args:
             use_default_on_unspecified (bool): if True, every higher-level-object without an
                 explicitly specified list of methods will be synthesized using the "default"
                 algorithm if it exists.
-            recurse (bool): if True, also recursively processes objects in gates' ``definition``
-                field, if such exists.
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
-        self.recurse = recurse
         self.methods = {}
 
         for key, value in kwargs.items():
@@ -195,17 +192,18 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
 
-        # If there are no high level operations / annotated gates to synthesize, return fast
-        hls_names = set(self.hls_plugin_manager.plugins_by_op)
-        node_names = dag.count_ops()
-        if 'annotated' not in node_names and not hls_names.intersection(node_names):
-            return dag
-
-        # The pass is recursive, as we may have annotated gates whose definitions
-        # consist of other annotated gates, whose definitions include for instance
+        # In the future this pass will be recursive as we may have annotated gates
+        # whose definitions consist of other annotated gates, whose definitions include
         # LinearFunctions. Note that in order to synthesize a controlled linear
         # function, we must first fully synthesize the linear function, and then
         # synthesize the circuit obtained by adding control logic.
+        # Additionally, see https://github.com/Qiskit/qiskit/pull/9846#pullrequestreview-1626991425.
+
+        # If there are no high level operations / annotated gates to synthesize, return fast
+        hls_names = set(self.hls_plugin_manager.plugins_by_op)
+        node_names = dag.count_ops()
+        if "annotated" not in node_names and not hls_names.intersection(node_names):
+            return dag
 
         # copy dag_op_nodes because we are modifying the DAG below
         dag_op_nodes = dag.op_nodes()
@@ -257,24 +255,7 @@ class HighLevelSynthesis(TransformationPass):
         if decomposition:
             return decomposition
 
-        # Third, optionally recursively descend into op's definition if exists
-        if self.hls_config.recurse:
-            try:
-                # extract definition
-                definition = op.definition
-            except TypeError as err:
-                raise TranspilerError(
-                    f"HighLevelSynthesis was unable to extract definition for {op.name}: {err}"
-                ) from err
-            except AttributeError:
-                # definition is None
-                definition = None
-
-            if definition is not None:
-                dag = circuit_to_dag(definition)
-                dag = self.run(dag)
-                op.definition = dag_to_circuit(dag)
-
+        # In the future, we will support recursion.
         return op
 
     def _synthesize_op_using_plugins(
