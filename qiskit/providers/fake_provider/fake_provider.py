@@ -75,7 +75,7 @@ class FakeProviderForBackendV2(ProviderV1):
     def get_backend(self, name=None, **kwargs):
         backend = self._backends[0]
         if name:
-            filtered_backends = [backend for backend in self._backends if backend.name() == name]
+            filtered_backends = [backend for backend in self._backends if backend.name == name]
             if not filtered_backends:
                 raise QiskitBackendNotFoundError()
 

@@ -35,14 +35,14 @@ Here is an example of using a fake backend for transpilation and simulation.
    :include-source:
 
    from qiskit import QuantumCircuit
-   from qiskit.providers.fake_provider import FakeManilaV2
+   from qiskit.providers.fake_provider import FakeProviderForBackendV2
    from qiskit import transpile
    from qiskit.tools.visualization import plot_histogram
 
-
    # Get a fake backend from the fake provider
-   backend = FakeManilaV2()
-
+   provider = FakeProviderForBackendV2()
+   backend = provider.get_backend('fake_manila_v2')
+    
    # Create a simple circuit
    circuit = QuantumCircuit(3)
    circuit.h(0)
