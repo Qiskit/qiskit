@@ -178,7 +178,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     else:
         evals, vmat = scipy.linalg.schur(um0um1, output="complex")
         eigvals = evals.diagonal()
-    dvals = np.lib.scimath.sqrt(eigvals)
+    dvals = np.emath.sqrt(eigvals)
     dmat = np.diag(dvals)
     wmat = dmat @ vmat.T.conjugate() @ um1
 

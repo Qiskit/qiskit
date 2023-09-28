@@ -39,11 +39,13 @@ class Chi(QuantumChannel):
 
     .. math::
 
-        \mathcal{E}(ρ) = \sum_{i, j} \chi_{i,j} P_i ρ P_j
+        \mathcal{E}(ρ) = \frac{1}{2^n} \sum_{i, j} \chi_{i,j} P_i ρ P_j
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order. It is related to the :class:`Choi` representation by a change
-    of basis of the Choi-matrix into the Pauli basis.
+    of basis of the Choi-matrix into the Pauli basis. The :math:`\frac{1}{2^n}`
+    in the definition above is a normalization factor that arises from scaling the
+    Pauli basis to make it orthonormal.
 
     See reference [1] for further details.
 
