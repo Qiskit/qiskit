@@ -118,7 +118,10 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
 
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    "default", message=msg, category=DeprecationWarning, module="qiskit_aer.*"
+                    "default",
+                    message=msg,
+                    category=DeprecationWarning,
+                    module="test.python.algorithms.test_skip_qobj_validation",
                 )
                 self.backend = Aer.get_backend("qasm_simulator")
 
