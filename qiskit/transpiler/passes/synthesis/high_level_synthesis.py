@@ -195,6 +195,12 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
 
+        # If there are no high level operations / annotated gates to synthesize, return fast
+        hls_names = set(self.hls_plugin_manager.plugins_by_op)
+        node_names = dag.count_ops()
+        if 'annotated' not in node_names and not hls_names.intersection(node_names):
+            return dag
+
         # The pass is recursive, as we may have annotated gates whose definitions
         # consist of other annotated gates, whose definitions include for instance
         # LinearFunctions. Note that in order to synthesize a controlled linear

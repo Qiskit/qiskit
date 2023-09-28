@@ -31,6 +31,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.synthesis.linear import calc_inverse_matrix
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
@@ -94,7 +95,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
     :class:`~qiskit.circuit.library.CYGate`, :class:`~qiskit.circuit.library.DXGate`,
     :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.iSwapGate`,
-    :class:`~qiskit.circuit.library.ECRGate`.
+    :class:`~qiskit.circuit.library.ECRGate`, :class:`~qiskit.circuit.library.LinearFunction`,
+    :class:`~qiskit.circuit.library.PermutationGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -130,6 +132,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
 
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library import LinearFunction, PermutationGate
+
         # Initialize from another Clifford
         if isinstance(data, Clifford):
             num_qubits = data.num_qubits
@@ -143,6 +148,16 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             self.tableau = np.fromfunction(
                 lambda i, j: i == j, (2 * num_qubits, 2 * num_qubits + 1)
             ).astype(bool)
+
+        # Initialize from LinearFunction
+        elif isinstance(data, LinearFunction):
+            num_qubits = len(data.linear)
+            self.tableau = self.from_linear_function(data)
+
+        # Initialize from PermutationGate
+        elif isinstance(data, PermutationGate):
+            num_qubits = len(data.pattern)
+            self.tableau = self.from_permutation(data)
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
@@ -370,7 +385,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def destab_phase(self):
-        """Return phase of destaibilizer with boolean representation."""
+        """Return phase of destabilizer with boolean representation."""
         return self.tableau[: self.num_qubits, -1]
 
     @destab_phase.setter
@@ -406,7 +421,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def stab_phase(self):
-        """Return phase of stablizer with boolean representation."""
+        """Return phase of stabilizer with boolean representation."""
         return self.tableau[self.num_qubits :, -1]
 
     @stab_phase.setter
@@ -621,6 +636,52 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             raise QiskitError("Non-Clifford matrix is not convertible")
         return cls(tableau)
 
+    @classmethod
+    def from_linear_function(cls, linear_function):
+        """Create a Clifford from a Linear Function.
+
+        If the linear function is represented by a nxn binary invertible matrix A,
+        then the corresponding Clifford has symplectic matrix [[A^t, 0], [0, A^{-1}]].
+
+        Args:
+            linear_function (LinearFunction): A linear function to be converted.
+
+        Returns:
+            Clifford: the Clifford object for this linear function.
+        """
+
+        mat = linear_function.linear
+        mat_t = np.transpose(mat)
+        mat_i = calc_inverse_matrix(mat)
+
+        dim = len(mat)
+        zero = np.zeros((dim, dim), dtype=int)
+        symplectic_mat = np.block([[mat_t, zero], [zero, mat_i]])
+        phase = np.zeros(2 * dim, dtype=int)
+        tableau = cls._stack_table_phase(symplectic_mat, phase)
+        return tableau
+
+    @classmethod
+    def from_permutation(cls, permutation_gate):
+        """Create a Clifford from a PermutationGate.
+
+        Args:
+            permutation_gate (PermutationGate): A permutation to be converted.
+
+        Returns:
+            Clifford: the Clifford object for this permutation.
+        """
+
+        pat = permutation_gate.pattern
+        dim = len(pat)
+        symplectic_mat = np.zeros((2 * dim, 2 * dim), dtype=int)
+        for i, j in enumerate(pat):
+            symplectic_mat[j, i] = True
+            symplectic_mat[j + dim, i + dim] = True
+        phase = np.zeros(2 * dim, dtype=bool)
+        tableau = cls._stack_table_phase(symplectic_mat, phase)
+        return tableau
+
     def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
@@ -813,8 +874,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         Args:
             array (bool): return a Numpy array if True, otherwise
                           return a list (Default: False).
-            mode (Literal["S", "D", "B"]): return both stabilizer and destablizer if "B",
-                return only stabilizer if "S" and return only destablizer if "D".
+            mode (Literal["S", "D", "B"]): return both stabilizer and destabilizer if "B",
+                return only stabilizer if "S" and return only destabilizer if "D".
 
         Returns:
             list or array: The rows of the StabilizerTable in label form.

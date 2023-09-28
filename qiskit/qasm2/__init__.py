@@ -15,15 +15,17 @@ r"""
 OpenQASM 2 (:mod:`qiskit.qasm2`)
 ================================
 
-Qiskit has support for interoperation with OpenQASM 2.0 programs, both parsing into Qiskit formats
-and exporting back to OpenQASM 2.  The parsing components live in this module, while currently the
-export capabilities are limited to being the :meth:`.QuantumCircuit.qasm` method.
+Qiskit has support for interoperation with OpenQASM 2.0 programs, both :ref:`parsing into Qiskit
+formats <qasm2-parse>` and :ref:`exporting back to OpenQASM 2 <qasm2-export>`.
 
 .. note::
 
     OpenQASM 2 is a simple language, and not suitable for general serialisation of Qiskit objects.
     See :ref:`some discussion of alternatives below <qasm2-alternatives>`, if that is what you are
     looking for.
+
+
+.. _qasm2-parse:
 
 Parsing API
 ===========
@@ -84,6 +86,21 @@ unnecessary (empty-statement) semicolons; the ``OPENQASM 2.0;`` version statemen
 a couple of other quality-of-life improvements without emitting any errors.  You can use the
 letter-of-the-spec mode with ``strict=True``.
 
+
+.. _qasm2-export:
+
+Exporting API
+=============
+
+Similar to other serialisation modules in Python, this module offers two public functions:
+:func:`dump` and :func:`dumps`, which take a :class:`.QuantumCircuit` and write out a representative
+OpenQASM 2 program to a file-like object or return a string, respectively.
+
+.. autofunction:: dump
+
+.. autofunction:: dumps
+
+
 Errors
 ======
 
@@ -98,10 +115,68 @@ file it occurred.
 
 .. autoexception:: QASM2ParseError
 
+When the exporters fail to export a circuit, likely because it has structure that cannot be
+represented by OpenQASM 2.0, they will also emit a custom error.
+
+.. autoexception:: QASM2ExportError
+
 .. _qasm2-examples:
 
 Examples
 ========
+
+Exporting examples
+------------------
+
+Export a simple :class:`.QuantumCircuit` to an OpenQASM 2 string:
+
+.. code-block:: python
+
+    import qiskit.qasm2
+    from qiskit.circuit import QuantumCircuit
+
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
+    print(qiskit.qasm2.dumps(qc))
+
+.. code-block:: text
+
+    OPENQASM 2.0;
+    include "qelib1.inc";
+    qreg q[2];
+    creg c[2];
+    h q[0];
+    cx q[0],q[1];
+    measure q[0] -> c[0];
+    measure q[1] -> c[1];
+
+Write out the same :class:`.QuantumCircuit` to a given filename:
+
+.. code-block:: python
+
+    qiskit.qasm2.dump(qc, "myfile.qasm")
+
+Similarly, one can use general :class:`os.PathLike` instances as the filename:
+
+.. code-block:: python
+
+    import pathlib
+
+    qiskit.qasm2.dump(qc, pathlib.Path.home() / "myfile.qasm")
+
+One can also dump the text to an already-open stream:
+
+.. code-block:: python
+
+    import io
+
+    with io.StringIO() as stream:
+        qiskit.qasm2.dump(qc, stream)
+
+Parsing examples
+----------------
 
 Use :func:`loads` to import an OpenQASM 2 program in a string into a :class:`.QuantumCircuit`:
 
@@ -275,10 +350,10 @@ In particular, in the legacy importers:
       The four-parameter version of a controlled-:math:`U`, corresponding to :class:`.CUGate`.
 
     ``rxx(theta) a, b``
-      Two-qubit rotation arond the :math:`XX` axis, corresponding to :class:`.RXXGate`.
+      Two-qubit rotation around the :math:`XX` axis, corresponding to :class:`.RXXGate`.
 
     ``rzz(theta) a, b``
-      Two-qubit rotation arond the :math:`ZZ` axis, corresponding to :class:`.RZZGate`.
+      Two-qubit rotation around the :math:`ZZ` axis, corresponding to :class:`.RZZGate`.
 
     ``rccx a, b, c``
       The double-controlled :math:`X` gate, but with relative phase differences over the standard
@@ -374,6 +449,8 @@ what you need, consider using :mod:`qiskit.qpy` instead.
 __all__ = [
     "load",
     "loads",
+    "dump",
+    "dumps",
     "CustomInstruction",
     "CustomClassical",
     "LEGACY_CUSTOM_INSTRUCTIONS",
@@ -403,6 +480,7 @@ from .parse import (
     LEGACY_CUSTOM_INSTRUCTIONS,
     LEGACY_CUSTOM_CLASSICAL,
 )
+from .export import dump, dumps
 
 
 LEGACY_INCLUDE_PATH = (
@@ -437,7 +515,7 @@ def loads(
 
     Args:
         string: The OpenQASM 2 program in a string.
-        include_path: order of directories to search when evluating ``include`` statements.
+        include_path: order of directories to search when evaluating ``include`` statements.
         custom_instructions: any custom constructors that should be used for specific gates or
             opaque instructions during circuit construction.  See :ref:`qasm2-custom-instructions`
             for more.
@@ -478,7 +556,7 @@ def load(
 
     Args:
         filename: The OpenQASM 2 program in a string.
-        include_path: order of directories to search when evluating ``include`` statements.
+        include_path: order of directories to search when evaluating ``include`` statements.
         include_input_directory: Whether to add the directory of the input file to the
             ``include_path``, and if so, whether to *append* it to search last, or *prepend* it to
             search first.  Pass ``None`` to suppress adding this directory entirely.
