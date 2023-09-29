@@ -153,8 +153,7 @@ class SabrePreLayout(AnalysisPass):
         """Returns the list of extra edges involved in the layout."""
         extra_edges_used = []
         virtual_bits = layout.get_virtual_bits()
-        for node in dag.op_nodes():
-            if len(node.qargs) == 2:
+        for node in dag.two_qubit_ops()
                 p0 = virtual_bits[node.qargs[0]]
                 p1 = virtual_bits[node.qargs[1]]
                 if self.coupling_map.distance(p0, p1) > 1:
