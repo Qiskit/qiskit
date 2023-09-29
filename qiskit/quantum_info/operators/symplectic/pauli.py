@@ -97,7 +97,7 @@ class Pauli(BasePauli):
         returned string for large numbers of qubits while :meth:`to_label`
         will return the full string with no truncation. The default
         truncation length is 50 characters. The default value can be
-        changed by setting the class `__truncate__` attribute to an integer
+        changed by setting the class ``__truncate__`` attribute to an integer
         value. If set to ``0`` no truncation will be performed.
 
     **Array Representation**
@@ -363,6 +363,8 @@ class Pauli(BasePauli):
         """
         if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
+        if len(qubits) == 0:
+            return Pauli((self._z, self._x, self.phase))
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
                 "Qubit index is larger than the number of qubits "

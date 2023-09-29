@@ -73,10 +73,10 @@ from qiskit.circuit.library import (
     C4XGate,
     MCPhaseGate,
     GlobalPhaseGate,
+    UnitaryGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
-from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
 
 from .gate_utils import _get_free_params
