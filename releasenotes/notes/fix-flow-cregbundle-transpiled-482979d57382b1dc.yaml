@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixed an issue with the matplotlib based visualization in the
+    :meth:`.QuantumCircuit.draw` method and the :func:`~.circuit_drawer`
+    function when visualizing circuits that had control flow instructions.
+    Previously in some situations, especially with a layout set, the output
+    visualization could have put gates inside a control flow block on the
+    wrong wires in the visualization.
+    Fixed `#10601 <https://github.com/Qiskit/qiskit-terra/issues/10601>`__
+  - |
+    Fixed an issue with the matplotlib based visualization in the
+    :meth:`.QuantumCircuit.draw` method and the :func:`~.circuit_drawer`
+    function when visualizing circuits that had control flow instructions.
+    Previously when the `cregbundle` option was set to None or True, the
+    drawer did not properly display the `cregs` as bundled.
