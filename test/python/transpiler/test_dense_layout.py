@@ -84,8 +84,8 @@ class TestDenseLayout(QiskitTestCase):
 
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
-        sub_map = cm.reduce(actual, check_if_connected=False)
-        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
+        # CouplingMap.reduce raises an error if the set is not connected.
+        cm.reduce(actual)
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map."""
@@ -102,8 +102,8 @@ class TestDenseLayout(QiskitTestCase):
 
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
-        sub_map = cm.reduce(actual, check_if_connected=False)
-        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
+        # CouplingMap.reduce raises an error if the set is not connected.
+        cm.reduce(actual)
 
     def test_5q_circuit_19q_target_with_noise(self):
         """Test layout works finds a dense 5q subgraph in a 19q heavy hex target."""
@@ -118,8 +118,8 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
-        sub_map = self.target_19.build_coupling_map().reduce(actual, check_if_connected=False)
-        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
+        # CouplingMap.reduce raises an error if the set is not connected.
+        self.target_19.build_coupling_map().reduce(actual)
 
     def test_5q_circuit_19q_target_without_noise(self):
         """Test layout works finds a dense 5q subgraph in a 19q heavy hex target with no noise."""
@@ -137,8 +137,8 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
-        sub_map = noiseless_target.build_coupling_map().reduce(actual, check_if_connected=False)
-        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
+        # CouplingMap.reduce raises an error if the set is not connected.
+        noiseless_target.build_coupling_map().reduce(actual)
 
     def test_ideal_target_no_coupling(self):
         """Test pass fails as expected if a target without edge constraints exists."""
@@ -239,8 +239,8 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
-        sub_map = cm.reduce(actual, check_if_connected=False)
-        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
+        # CouplingMap.reduce raises an error if the set is not connected.
+        cm.reduce(actual)
 
     def test_loose_bit_circuit(self):
         """Test dense layout works with loose bits outside a register."""
@@ -258,8 +258,8 @@ class TestDenseLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
-        sub_map = cm.reduce(actual, check_if_connected=False)
-        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
+        # CouplingMap.reduce raises an error if the set is not connected.
+        sub_map = cm.reduce(actual)
 
 
 if __name__ == "__main__":
