@@ -27,6 +27,7 @@ __all__ = [
     "RealAmplitudes",
     "PauliTwoDesign",
     "EfficientSU2",
-    "EvolvedOperatorAnsatz" "ExcitationPreserving",
+    "EvolvedOperatorAnsatz",
+    "ExcitationPreserving",
     "QAOAAnsatz",
 ]
