@@ -1608,8 +1608,8 @@ class QuantumCircuit:
                 interface for other serialisers in Qiskit.
 
         Args:
-            formatted (bool): Return formatted Qasm string.
-            filename (str): Save Qasm to file with name 'filename'.
+            formatted (bool): Return formatted OpenQASM 2.0 string.
+            filename (str): Save OpenQASM 2.0 to file with name 'filename'.
             encoding (str): Optionally specify the encoding to use for the
                 output file if ``filename`` is specified. By default this is
                 set to the system's default encoding (ie whatever
@@ -1634,7 +1634,7 @@ class QuantumCircuit:
                 print(out, file=file)
 
         if formatted:
-            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2.0 output")
 
             import pygments
             from pygments.formatters import (  # pylint: disable=no-name-in-module
@@ -2390,13 +2390,14 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_file(path: str) -> "QuantumCircuit":
-        """Take in a QASM file and generate a QuantumCircuit object.
+        """Read an OpenQASM 2.0 program from a file and convert to an instance of
+        :class:`.QuantumCircuit`.
 
         Args:
-          path (str): Path to the file for a QASM program
+          path (str): Path to the file for an OpenQASM 2 program
 
         Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
+          QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.
 
         See also:
             :func:`.qasm2.load`: the complete interface to the OpenQASM 2 importer.
@@ -2414,12 +2415,12 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
-        """Take in a QASM string and generate a QuantumCircuit object.
+        """Convert a string containing an OpenQASM 2.0 program to a :class:`.QuantumCircuit`.
 
         Args:
-          qasm_str (str): A QASM program string
+          qasm_str (str): A string containing an OpenQASM 2.0 program.
         Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
+          QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2
 
         See also:
             :func:`.qasm2.loads`: the complete interface to the OpenQASM 2 importer.

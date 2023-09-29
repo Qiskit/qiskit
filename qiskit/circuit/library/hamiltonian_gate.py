@@ -133,7 +133,7 @@ class HamiltonianGate(Gate):
     )
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""
-        raise CircuitError("HamiltonianGate has no QASM definition.")
+        raise CircuitError("HamiltonianGate has no OpenQASM 2 definition.")
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""
