@@ -150,15 +150,15 @@ class SabrePreLayout(AnalysisPass):
         return augmented_coupling_map, augmented_error_map
 
     def _get_extra_edges_used(self, dag, layout):
-        """Returns the list of extra edges involved in the layout."""
-        extra_edges_used = []
+        """Returns the set of extra edges involved in the layout."""
+        extra_edges_used = set()
         virtual_bits = layout.get_virtual_bits()
         for node in dag.two_qubit_ops():
             p0 = virtual_bits[node.qargs[0]]
             p1 = virtual_bits[node.qargs[1]]
             if self.coupling_map.distance(p0, p1) > 1:
                 extra_edge = (p0, p1) if p0 < p1 else (p1, p0)
-                extra_edges_used.append(extra_edge)
+                extra_edges_used.add(extra_edge)
         return extra_edges_used
 
     def _find_layout(self, dag, edges):
@@ -187,8 +187,7 @@ class SabrePreLayout(AnalysisPass):
         # a layout no longer exists
         extra_edges_necessary = []
 
-        extra_edges = self._get_extra_edges_used(dag, starting_layout)
-        extra_edges_unprocessed_set = set(extra_edges)
+        extra_edges_unprocessed_set = self._get_extra_edges_used(dag, starting_layout)
 
         while extra_edges_unprocessed_set:
             # choose some unprocessed edge
@@ -207,8 +206,7 @@ class SabrePreLayout(AnalysisPass):
             else:
                 # this edge is not necessary, furthermore we can trim the set of edges to examine based
                 # in the edges involved in the layout.
-                extra_edges = self._get_extra_edges_used(dag, layout)
-                extra_edges_unprocessed_set = set(extra_edges).difference(
+                extra_edges_unprocessed_set = self._get_extra_edges_used(dag, layout).difference(
                     set(extra_edges_necessary)
                 )
                 best_layout = layout
