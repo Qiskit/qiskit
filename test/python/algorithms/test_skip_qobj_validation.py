@@ -13,7 +13,6 @@
 """Test Skip Qobj Validation"""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer
@@ -110,17 +109,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
             from qiskit.providers.aer.noise import NoiseModel
             from qiskit import Aer
 
-            msg = (
-                r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
-                r"deprecated as of qiskit-terra 0\.45\.0\. It will be removed no earlier than 3 "
-                r"months after the release date\. Use QuantumCircuit\.id as direct replacement\."
-            )
-
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "default", message=msg, category=DeprecationWarning, module="qiskit_aer.*"
-                )
-                self.backend = Aer.get_backend("qasm_simulator")
+            self.backend = Aer.get_backend("qasm_simulator")
 
         except ImportError as ex:
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
