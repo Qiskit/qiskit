@@ -128,7 +128,7 @@ class AnnotatedOperation(Operation):
         )
 
     def copy(self) -> "AnnotatedOperation":
-        """Return a copy of the :class:`AnnotatedOperation`."""
+        """Return a copy of the :class:`~.AnnotatedOperation`."""
         return AnnotatedOperation(base_op=self.base_op, modifiers=self.modifiers.copy())
 
     def to_matrix(self):
