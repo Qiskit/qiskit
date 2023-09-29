@@ -16,7 +16,6 @@ N-qubit Pauli Operator Class
 from __future__ import annotations
 
 import re
-import warnings
 from typing import Literal, TYPE_CHECKING
 
 import numpy as np
@@ -156,14 +155,7 @@ class Pauli(BasePauli):
     _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
-    def __init__(
-        self,
-        data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None,
-        x=None,
-        *,
-        z=None,
-        label=None,
-    ):
+    def __init__(self, data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -197,27 +189,6 @@ class Pauli(BasePauli):
             base_z, base_x, base_phase = self._from_scalar_op(data)
         elif isinstance(data, (QuantumCircuit, Instruction)):
             base_z, base_x, base_phase = self._from_circuit(data)
-        elif x is not None:
-            if z is None:
-                # Using old Pauli initialization with positional args instead of kwargs
-                z = data
-            warnings.warn(
-                "Passing 'z' and 'x' arrays separately to 'Pauli' is deprecated as of"
-                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
-                " Use a tuple instead, such as 'Pauli((z, x[, phase]))'.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            base_z, base_x, base_phase = self._from_array(z, x)
-        elif label is not None:
-            warnings.warn(
-                "The 'label' keyword argument of 'Pauli' is deprecated as of"
-                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
-                " Pass the label positionally instead, such as 'Pauli(\"XYZ\")'.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            base_z, base_x, base_phase = self._from_label(label)
         else:
             raise QiskitError("Invalid input data for Pauli.")
 
