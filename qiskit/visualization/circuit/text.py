@@ -1307,7 +1307,7 @@ class TextDrawing:
             circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
-            # Update the wire_map with the qubits from the inner circuit
+            # Update the wire_map with the qubits and clbits from the inner circuit
             flow_wire_map = wire_map.copy()
             flow_wire_map.update(
                 {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}

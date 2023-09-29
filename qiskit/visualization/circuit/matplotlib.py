@@ -14,11 +14,11 @@
 
 """mpl circuit visualization backend."""
 
-from io import StringIO
-from warnings import warn
 import collections
 import itertools
 import re
+from warnings import warn
+from io import StringIO
 
 import numpy as np
 
