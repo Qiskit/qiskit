@@ -5,7 +5,7 @@ features:
     :class:`~.Operation` and represents some "base operation" modified by a
     list of "modifiers". The base operation is of type :class:`~.Operation`
     and the currently supported modifiers are of types :class:`~.InverseModifier`,
-    :class:`~.ControlModifier` and :class:`~.PowerModifier`. Applying
+    :class:`~.ControlModifier` and :class:`~.PowerModifier`.
     The modifiers are applied in the order they appear in the list.
 
     As an example::
@@ -20,7 +20,8 @@ features:
           ],
         )
 
-    is logically equivalent to ``gate = SGate().inverse().control(1).inverse().power(2)``, or to::
+    is logically equivalent to ``gate = SGate().inverse().control(1).inverse().power(2)``,
+    or to::
 
         gate = AnnotatedOperation(
           AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(1)]),
