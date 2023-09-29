@@ -10,26 +10,33 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Arbitrary unitary circuit instruction.
-"""
+"""Arbitrary unitary circuit instruction."""
 
+from __future__ import annotations
+
+import typing
 import numpy
 
-from qiskit.circuit import Gate, ControlledGate
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.library.standard_gates import UGate
-from qiskit.extensions.quantum_initializer import isometry
+from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+
+# pylint: disable=cyclic-import
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
-from qiskit.extensions.exceptions import ExtensionError
+
+from .isometry import Isometry
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U")
+
+if typing.TYPE_CHECKING:
+    from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class UnitaryGate(Gate):
@@ -44,7 +51,7 @@ class UnitaryGate(Gate):
         .. code-block:: python
 
             from qiskit import QuantumCircuit
-            from qiskit.extensions import UnitaryGate
+            from qiskit.circuit.library import UnitaryGate
 
             matrix = [[0, 0, 0, 1],
                       [0, 0, 1, 0],
@@ -56,15 +63,14 @@ class UnitaryGate(Gate):
             circuit.append(gate, [0, 1])
     """
 
-    def __init__(self, data, label=None):
-        """Create a gate from a numeric unitary matrix.
-
+    def __init__(self, data: numpy.ndarray | Gate | BaseOperator, label: str | None = None) -> None:
+        """
         Args:
-            data (matrix or Operator): unitary operator.
-            label (str): unitary name for backend [Default: None].
+            data: Unitary operator.
+            label: Unitary name for backend [Default: None].
 
         Raises:
-            ExtensionError: if input data is not an N-qubit unitary operator.
+            ValueError: If input data is not an N-qubit unitary operator.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -79,12 +85,12 @@ class UnitaryGate(Gate):
         data = numpy.array(data, dtype=complex)
         # Check input is unitary
         if not is_unitary_matrix(data):
-            raise ExtensionError("Input matrix is not unitary.")
+            raise ValueError("Input matrix is not unitary.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
-            raise ExtensionError("Input matrix is not an N-qubit operator.")
+            raise ValueError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
         super().__init__("unitary", num_qubits, [data], label=label)
@@ -137,25 +143,26 @@ class UnitaryGate(Gate):
 
             self.definition = qs_decomposition(self.to_matrix())
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return controlled version of gate
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: int | None = None,
+        ctrl_state: int | str | None = None,
+    ) -> ControlledGate:
+        """Return controlled version of gate.
 
         Args:
-            num_ctrl_qubits (int): number of controls to add to gate (default=1)
-            label (str): optional gate label
-            ctrl_state (int or str or None): The control state in decimal or as a
-                bit string (e.g. '1011'). If None, use 2**num_ctrl_qubits-1.
+            num_ctrl_qubits: Number of controls to add to gate (default is 1).
+            label: Optional gate label.
+            ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
+                If ``None``, use ``2**num_ctrl_qubits - 1``.
 
         Returns:
-            UnitaryGate: controlled version of gate.
-
-        Raises:
-            QiskitError: Invalid ctrl_state.
-            ExtensionError: Non-unitary controlled unitary.
+            Controlled version of gate.
         """
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
-        iso = isometry.Isometry(cmat, 0, 0)
+        iso = Isometry(cmat, 0, 0)
         return ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,
@@ -180,45 +187,3 @@ class UnitaryGate(Gate):
             return parameter
         else:
             raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
-
-
-def unitary(self, obj, qubits, label=None):
-    """Apply unitary gate specified by ``obj`` to ``qubits``.
-
-    Args:
-        obj (matrix or Operator): unitary operator.
-        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
-            transformation to.
-        label (str): unitary name for backend [Default: None].
-
-    Returns:
-        QuantumCircuit: The quantum circuit.
-
-    Raises:
-        ExtensionError: if input data is not an N-qubit unitary operator.
-
-    Example:
-
-        Apply a gate specified by a unitary matrix to a quantum circuit
-
-        .. code-block:: python
-
-            from qiskit import QuantumCircuit
-            matrix = [[0, 0, 0, 1],
-                      [0, 0, 1, 0],
-                      [1, 0, 0, 0],
-                      [0, 1, 0, 0]]
-            circuit = QuantumCircuit(2)
-            circuit.unitary(matrix, [0, 1])
-    """
-    gate = UnitaryGate(obj, label=label)
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    # for single qubit unitary gate, allow an 'int' or a 'list of ints' as qubits.
-    if gate.num_qubits == 1:
-        if isinstance(qubits, (int, Qubit)) or len(qubits) > 1:
-            qubits = [qubits]
-    return self.append(gate, qubits, [])
-
-
-QuantumCircuit.unitary = unitary
