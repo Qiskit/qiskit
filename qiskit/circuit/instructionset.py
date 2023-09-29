@@ -54,7 +54,9 @@ class InstructionSet:
                     used.  It may throw an error if the resource is not valid for usage.
 
         """
-        self._instructions: list[CircuitInstruction | (MutableSequence[CircuitInstruction], int)] = []
+        self._instructions: list[
+            CircuitInstruction | (MutableSequence[CircuitInstruction], int)
+        ] = []
         self._requester = resource_requester
 
     def __len__(self):
