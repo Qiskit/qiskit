@@ -18,8 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp
-from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate, CZGate, UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator

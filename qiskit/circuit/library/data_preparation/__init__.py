@@ -42,5 +42,6 @@ from .pauli_feature_map import PauliFeatureMap
 from .z_feature_map import ZFeatureMap
 from .zz_feature_map import ZZFeatureMap
 from .state_preparation import StatePreparation
+from .initializer import Initialize
 
-__all__ = ["PauliFeatureMap", "ZFeatureMap", "ZZFeatureMap", "StatePreparation"]
+__all__ = ["PauliFeatureMap", "ZFeatureMap", "ZZFeatureMap", "StatePreparation", "Initialize"]
