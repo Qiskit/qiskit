@@ -30,7 +30,7 @@ struct InternedInstruction(Option<PyObject>, IndexType, IndexType);
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     data: Vec<InternedInstruction>,
-    intern_context: Option<Py<InternContext>>,
+    intern_context: Py<InternContext>,
     new_callable: Option<PyObject>,
     qubits: Py<PyList>,
     clbits: Py<PyList>,
@@ -64,7 +64,7 @@ impl CircuitData {
     ) -> PyResult<Self> {
         Ok(CircuitData {
             data: Vec::new(),
-            intern_context: Some(intern_context),
+            intern_context,
             new_callable: Some(new_callable),
             qubits,
             clbits,
@@ -253,7 +253,6 @@ impl CircuitData {
         for InternedInstruction(op, _, _) in self.data.iter() {
             visit.call(op)?;
         }
-        visit.call(&self.intern_context)?;
         visit.call(&self.new_callable)?;
         visit.call(&self.qubits)?;
         visit.call(&self.clbits)?;
@@ -267,7 +266,6 @@ impl CircuitData {
         for InternedInstruction(op, _, _) in self.data.iter_mut() {
             *op = None;
         }
-        self.intern_context = None;
         self.new_callable = None;
     }
 }
@@ -279,12 +277,12 @@ enum IndexFor {
 
 impl CircuitData {
     fn context<'a>(&'a self, py: Python<'a>) -> PyResult<PyRef<InternContext>> {
-        let cell: &'a PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
+        let cell: &'a PyCell<InternContext> = self.intern_context.as_ref(py);
         Ok(cell.try_borrow()?)
     }
 
     fn context_mut<'a>(&'a self, py: Python<'a>) -> PyResult<PyRefMut<InternContext>> {
-        let cell: &PyCell<InternContext> = self.intern_context.as_ref().unwrap().as_ref(py);
+        let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
         Ok(cell.try_borrow_mut()?)
     }
 
