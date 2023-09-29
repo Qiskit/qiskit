@@ -30,8 +30,6 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import UnitaryGate, HamiltonianGate
-from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.circuit.library import (
     HGate,
@@ -47,6 +45,9 @@ from qiskit.circuit.library import (
     CU3Gate,
     CU1Gate,
     CPhaseGate,
+    UnitaryGate,
+    HamiltonianGate,
+    UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM

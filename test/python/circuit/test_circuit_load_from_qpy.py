@@ -40,12 +40,15 @@ from qiskit.circuit.library import (
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
+    UnitaryGate,
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.extensions import UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.quantum_info import Pauli, SparsePauliOp
@@ -1194,9 +1197,11 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_ucr_gates(self):
         """Test qpy with UCRX, UCRY, and UCRZ gates."""
         qc = QuantumCircuit(3)
-        qc.ucrz([0, 0, 0, -np.pi], [0, 1], 2)
-        qc.ucry([0, 0, 0, -np.pi], [0, 2], 1)
-        qc.ucrx([0, 0, 0, -np.pi], [2, 1], 0)
+        angles = [0, 0, 0, -np.pi]
+        ucrx, ucry, ucrz = UCRXGate(angles), UCRYGate(angles), UCRZGate(angles)
+        qc.append(ucrz, [2, 0, 1])
+        qc.append(ucry, [1, 0, 2])
+        qc.append(ucrx, [0, 2, 1])
         qc.measure_all()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1438,7 +1443,9 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
         qc = QuantumCircuit(2)
-        qc.diagonal([1, -1, -1, 1], [0, 1])
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.diagonal([1, -1, -1, 1], [0, 1])
+
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)
