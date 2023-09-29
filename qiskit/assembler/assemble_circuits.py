@@ -105,7 +105,7 @@ def _assemble_circuit(
     if calibrations:
         config.calibrations = calibrations
 
-    # Convert conditionals from OpenQASM2-style (creg ?= int) to qobj-style
+    # Convert conditionals from OpenQASM-2-style (creg ?= int) to qobj-style
     # (register_bit ?= 1), by assuming device has unlimited register slots
     # (supported only for simulators). Map all measures to a register matching
     # their clbit_index, create a new register slot for every conditional gate

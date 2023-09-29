@@ -54,8 +54,7 @@ class GateConfig:
             name (str): the gate name as it will be referred to in OpenQASM.
             parameters (list): variable names for the gate parameters (if any)
                                as a list of strings.
-            qasm_def (str): definition of this gate in terms of OpenQASM2 primitives
-                            U and CX.
+            qasm_def (str): definition of this gate in terms of OpenQASM 2 primitives U and CX.
             coupling_map (list): An optional coupling map for the gate. In
                 the form of a list of lists of integers representing the qubit
                 groupings which are coupled by this gate.

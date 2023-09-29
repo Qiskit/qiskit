@@ -2390,7 +2390,8 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_file(path: str) -> "QuantumCircuit":
-        """Read an OpenQASM 2.0 program from a file and convert to an instance of ``QuantumCircuit``.
+        """Read an OpenQASM 2.0 program from a file and convert to an instance of
+        :class:`.QuantumCircuit`.
 
         Args:
           path (str): Path to the file for an OpenQASM 2 program
@@ -2414,7 +2415,7 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
-        """Convert a string containing an OpenQASM 2.0 program to a ``QuantumCircuit``.
+        """Convert a string containing an OpenQASM 2.0 program to a :class:`.QuantumCircuit`.
 
         Args:
           qasm_str (str): A string containing an OpenQASM 2.0 program.
