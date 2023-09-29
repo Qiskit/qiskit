@@ -63,7 +63,12 @@ class UnitaryGate(Gate):
             circuit.append(gate, [0, 1])
     """
 
-    def __init__(self, data: numpy.ndarray | Gate | BaseOperator, label: str | None = None, check_input: bool = True) -> None:
+    def __init__(
+        self,
+        data: numpy.ndarray | Gate | BaseOperator,
+        label: str | None = None,
+        check_input: bool = True,
+    ) -> None:
         """Create a gate from a numeric unitary matrix.
 
         Args:
@@ -94,10 +99,10 @@ class UnitaryGate(Gate):
         if check_input:
             # Check input is unitary
             if not is_unitary_matrix(data):
-                raise ExtensionError("Input matrix is not unitary.")
+                raise ValueError("Input matrix is not unitary.")
             # Check input is N-qubit matrix
             if input_dim != output_dim or 2**num_qubits != input_dim:
-                raise ExtensionError("Input matrix is not an N-qubit operator.")
+                raise ValueError("Input matrix is not an N-qubit operator.")
         # Store instruction params
         super().__init__("unitary", num_qubits, [data], label=label)
 
