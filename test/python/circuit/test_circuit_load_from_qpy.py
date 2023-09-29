@@ -1281,7 +1281,6 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.append(mcx_recursive_gate, list(range(0, 5)))
         qc.append(mcx_vchain_gate, list(range(0, 5)))
         qc.mcp(np.pi, [0, 2], 1)
-        qc.mct([0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
         qpy_file = io.BytesIO()

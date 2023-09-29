@@ -2955,7 +2955,24 @@ class QuantumCircuit:
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.id as direct replacement.",
+    )
     def i(self, qubit: QubitSpecifier) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.IGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            qubit: The qubit(s) to apply the gate to.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        return self.id(qubit)
+
+    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -2969,22 +2986,6 @@ class QuantumCircuit:
         from .library.standard_gates.i import IGate
 
         return self.append(IGate(), [qubit], [])
-
-    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
-        """Apply :class:`~qiskit.circuit.library.IGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            qubit: The qubit(s) to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.i: the same function.
-        """
-        return self.i(qubit)
 
     def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MSGate`.
@@ -3555,6 +3556,10 @@ class QuantumCircuit:
             [],
         )
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.cswap as direct replacement.",
+    )
     def fredkin(
         self,
         control_qubit: QubitSpecifier,
@@ -3775,6 +3780,7 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
     def cnot(
         self,
         control_qubit: QubitSpecifier,
@@ -3848,6 +3854,7 @@ class QuantumCircuit:
             [],
         )
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
     def toffoli(
         self,
         control_qubit1: QubitSpecifier,
@@ -3949,6 +3956,7 @@ class QuantumCircuit:
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.mcx as direct replacement.")
     def mct(
         self,
         control_qubits: Sequence[QubitSpecifier],

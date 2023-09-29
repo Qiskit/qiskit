@@ -1104,8 +1104,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         def cnotnot(gate_label):
             gate_circuit = QuantumCircuit(3, name=gate_label)
-            gate_circuit.cnot(0, 1)
-            gate_circuit.cnot(0, 2)
+            gate_circuit.cx(0, 1)
+            gate_circuit.cx(0, 2)
             gate = gate_circuit.to_gate()
             return gate
 

@@ -648,8 +648,8 @@ class TestUnrollAllInstructions(QiskitTestCase):
 
     def test_unroll_i(self):
         """test unroll i"""
-        self.circuit.i(0)
-        self.ref_circuit.i(0)
+        self.circuit.id(0)
+        self.ref_circuit.id(0)
         self.compare_dags()
 
     def test_unroll_rx(self):
