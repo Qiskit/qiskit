@@ -23,7 +23,7 @@ from test import combine  # pylint: disable=wrong-import-order
 import numpy as np
 from scipy.linalg import block_diag
 
-from qiskit.extensions.quantum_initializer.uc import UCGate
+from qiskit.circuit.library.generalized_gates import UCGate
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.test import QiskitTestCase
@@ -58,7 +58,11 @@ class TestUCGate(QiskitTestCase):
         num_con = int(np.log2(len(squs)))
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
-        qc.uc(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
+
+        with self.assertWarns(PendingDeprecationWarning):
+            # TODO: change to directly appending UCGate once deprecation period of the method is over
+            qc.uc(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
+
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
@@ -78,7 +82,9 @@ class TestUCGate(QiskitTestCase):
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
 
-        qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
+        uc = UCGate(gates, up_to_diagonal=False)
+        qc.append(uc, q)
+
         simulator = BasicAer.get_backend("unitary_simulator")
         result = execute(qc, simulator).result()
         unitary = result.get_unitary(qc)
@@ -93,7 +99,8 @@ class TestUCGate(QiskitTestCase):
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
 
-        qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
+        uc = UCGate(gates, up_to_diagonal=False)
+        qc.append(uc, q)
         qc.append(qc.inverse(), qc.qubits)
 
         unitary = Operator(qc).data

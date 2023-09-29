@@ -36,9 +36,10 @@ from qiskit.circuit.library import (
     SGate,
     U1Gate,
     CPhaseGate,
+    HamiltonianGate,
+    Isometry,
 )
 from qiskit.circuit.library import MCXVChain
-from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
@@ -430,7 +431,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         # this import appears to be unused, but is actually needed to get snapshot instruction
         import qiskit.extensions.simulator  # pylint: disable=unused-import
 
-        circuit.snapshot("1")
+        with self.assertWarns(DeprecationWarning):
+            circuit.snapshot("1")
 
         # check the barriers plot properly when plot_barriers= True
         fname = "plot_barriers_true.png"
@@ -543,7 +545,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
         circuit = circuit.assign_parameters({theta: 1})
-        circuit.isometry(np.eye(4, 4), list(range(3, 5)), [])
+        circuit.append(Isometry(np.eye(4, 4), 0, 0), list(range(3, 5)))
 
         fname = "big_gates.png"
         self.circuit_drawer(circuit, filename=fname)
