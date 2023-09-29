@@ -23,7 +23,7 @@ from numpy import pi
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.providers.fake_provider import FakeTenerife, FakeBelemV2
 from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (
     XGate,
@@ -39,7 +39,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter, Qubit, Clbit
+from qiskit.circuit import Parameter, Qubit, Clbit, SwitchCaseOp, IfElseOp
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
@@ -1483,8 +1483,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
     def test_fold_with_conditions(self):
         """Test that gates with conditions draw correctly when folding"""
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(5)
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(5, "cr")
         circuit = QuantumCircuit(qr, cr)
 
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
@@ -1595,7 +1595,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_op.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1606,8 +1606,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
-    def test_if_else_op(self):
-        """Test the IfElseOp with else"""
+    def test_if_else_op_bundle_false(self):
+        """Test the IfElseOp with else with cregbundle False"""
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -1618,7 +1618,32 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         with _else:
             circuit.cx(0, 1)
 
-        fname = "if_else_op.png"
+        fname = "if_else_op_false.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_if_else_op_bundle_true(self):
+        """Test the IfElseOp with else with cregbundle True"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+
+        fname = "if_else_op_true.png"
         self.circuit_drawer(circuit, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
@@ -1643,7 +1668,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_else_op_textbook.png"
-        self.circuit_drawer(circuit, style="textbook", filename=fname)
+        self.circuit_drawer(circuit, style="textbook", cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1677,7 +1702,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0, label="X1i")
 
         fname = "if_else_body.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1827,7 +1852,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.x(0)
 
         fname = "while_loop.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1856,7 +1881,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.z(0)
 
         fname = "for_loop.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1888,8 +1913,71 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
 
         fname = "switch_case.png"
-        self.circuit_drawer(circuit, filename=fname)
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_control_flow_layout(self):
+        """Test control flow with a layout set."""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qreg, creg)
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.measure([0, 1], [0, 1])
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.z(0)
+            with case(1, 2):
+                qc.cx(0, 1)
+            with case(case.DEFAULT):
+                qc.h(0)
+        backend = FakeBelemV2()
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+        fname = "layout_control_flow.png"
+        self.circuit_drawer(tqc, filename=fname)
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_control_flow_nested_layout(self):
+        """Test nested control flow with a layout set."""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qreg, creg)
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.measure([0, 1], [0, 1])
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.z(0)
+            with case(1, 2):
+                with qc.if_test((creg[0], 0)):
+                    qc.cx(0, 1)
+            with case(case.DEFAULT):
+                with qc.if_test((creg[1], 0)):
+                    qc.h(0)
+        backend = FakeBelemV2()
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+        fname = "nested_layout_control_flow.png"
+        self.circuit_drawer(tqc, filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
             self._reference_path(fname),
