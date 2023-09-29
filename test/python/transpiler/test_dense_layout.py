@@ -259,7 +259,7 @@ class TestDenseLayout(QiskitTestCase):
         layout = pass_.property_set["layout"]
         actual = [layout[q] for q in circuit.qubits]
         # CouplingMap.reduce raises an error if the set is not connected.
-        sub_map = cm.reduce(actual)
+        cm.reduce(actual)
 
 
 if __name__ == "__main__":
