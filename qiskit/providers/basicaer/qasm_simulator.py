@@ -389,17 +389,7 @@ class QasmSimulatorPy(BackendV1):
         """Run on the backend.
 
         Args:
-            run_input (QuantumCircuit or Schedule or list): An individual or a
-                list of :class:`~qiskit.circuit.QuantumCircuit` or
-                :class:`~qiskit.pulse.Schedule` objects to run on the backend.
-                For legacy providers migrating to the new versioned providers,
-                provider interface a :class:`~qiskit.qobj.QasmQobj` or
-                :class:`~qiskit.qobj.PulseQobj` objects should probably be
-                supported too (but deprecated) for backwards compatibility. Be
-                sure to update the docstrings of subclasses implementing this
-                method to document that. New provider implementations should not
-                do this though as :mod:`qiskit.qobj` will be deprecated and
-                removed along with the legacy providers interface.
+            run_input (QuantumCircuit or Schedule or list): payload of the experiment
             backend_options (dict): backend options
 
         Returns:
