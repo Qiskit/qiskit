@@ -130,7 +130,7 @@ class TestSolovayKitaev(QiskitTestCase):
         """Test that ``SolovayKitaev`` returns an empty circuit when
         it approximates the I-gate."""
         circuit = QuantumCircuit(1)
-        circuit.i(0)
+        circuit.id(0)
 
         skd = SolovayKitaev(3, self.basic_approx)
 

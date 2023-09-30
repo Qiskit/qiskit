@@ -19,6 +19,8 @@ from collections.abc import Callable
 from qiskit import circuit
 from qiskit.circuit import ControlledGate, Gate, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
+
+# pylint: disable=cyclic-import
 from ..standard_gates import XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 
 
