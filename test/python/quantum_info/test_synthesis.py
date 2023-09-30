@@ -27,7 +27,6 @@ from ddt import ddt, data
 from qiskit import execute, QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (
     HGate,
     IGate,
@@ -51,6 +50,7 @@ from qiskit.circuit.library import (
     RXGate,
     RYGate,
     RZGate,
+    UnitaryGate,
 )
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
