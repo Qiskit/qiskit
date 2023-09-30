@@ -15,12 +15,11 @@
 from __future__ import annotations
 from collections.abc import Sequence
 
-from n_local import NLocal
-
 import numpy as np
 
-from library.pauli_evolution import PauliEvolutionGate
 
+from qiskit.circuit.library.n_local.n_local import NLocal
+from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
