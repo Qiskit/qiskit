@@ -785,6 +785,33 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         self.assertEqual(Operator(transpiled1), Operator(transpiled2))
         self.assertEqual(Operator(qc1), Operator(transpiled1))
 
+    def test_definition_with_annotations(self):
+        """Test annotated gates with definitions involving ather annotated gates."""
+        qc = QuantumCircuit(4)
+        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), InverseModifier())
+        lazy_gate2 = AnnotatedOperation(SwapGate(), ControlModifier(2))
+        qc.append(lazy_gate1, [0, 1, 2, 3])
+        qc.append(lazy_gate2, [0, 1, 2, 3])
+        custom_gate = qc.to_gate()
+        lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
+        circuit = QuantumCircuit(6)
+        circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+    def test_definition_with_high_level_objects(self):
+        """Test annotated gates with definitions involving annotations and
+        high-level-objects."""
+        def_circuit = QuantumCircuit(4)
+        def_circuit.append(AnnotatedOperation(PermutationGate([1, 0]), ControlModifier(2)), [0, 1, 2, 3])
+        gate = def_circuit.to_gate()
+        circuit = QuantumCircuit(6)
+        circuit.append(gate, [0, 1, 2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(6)
+        expected_circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
 
 if __name__ == "__main__":
     unittest.main()
