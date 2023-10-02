@@ -522,8 +522,29 @@ class QuantumCircuit:
             other, copy_operations=False
         )
 
+    def __deepcopy__(self, memo=None):
+        # This is overridden in addition to __{get,set}state__
+        # to minimize memory pressure when we don't actually
+        # need to pickle (i.e. the typical deepcopy case).
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k in self.__dict__.keys() - {"_intern_context", "_data"}:
+            setattr(result, k, copy.deepcopy(self.__dict__[k], memo))
+
+        # Reuse the intern context to save space!
+        # TODO: there appears to be a concurrency issue when this
+        #   is done in a multi-threaded context (e.g. w/ primitives).
+        # result._intern_context = self._intern_context
+        result._intern_context = InternContext()
+
+        # Avoids pulling self._data into a Python list
+        # like we would when pickling.
+        result._data = result._new_data((copy.deepcopy(i, memo) for i in self._data))
+        return result
+
     def __getstate__(self):
-        # Rust's CircuitData is not picklable, so we convert it to a list first.
+        # Rust's CircuitData is not picklable, so we unpack it into a list first.
+        # InternContext is not picklable, so we leave it behind.
         state = self.__dict__.copy()
         state["_data"] = list(self._data)
         del state["_intern_context"]
