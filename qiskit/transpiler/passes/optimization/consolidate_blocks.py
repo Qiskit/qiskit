@@ -122,10 +122,10 @@ class ConsolidateBlocks(TransformationPass):
                         qc.add_register(c)
                     for nd in block:
                         qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
-                    unitary = UnitaryGate(Operator(qc))
+                    unitary = UnitaryGate(Operator(qc), check_input=False)
                 else:
                     matrix = _block_to_matrix(block, block_index_map)
-                    unitary = UnitaryGate(matrix)
+                    unitary = UnitaryGate(matrix, check_input=False)
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
                 if (  # pylint: disable=too-many-boolean-expressions
@@ -151,7 +151,7 @@ class ConsolidateBlocks(TransformationPass):
             if any(gate in all_block_gates for gate in run):
                 continue
             if len(run) == 1 and not self._check_not_in_basis(dag, run[0].name, run[0].qargs):
-                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
+                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix(), check_input=False))
             else:
                 qubit = run[0].qargs[0]
                 operator = run[0].op.to_matrix()
@@ -162,7 +162,7 @@ class ConsolidateBlocks(TransformationPass):
                     operator = gate.op.to_matrix().dot(operator)
                 if already_in_block:
                     continue
-                unitary = UnitaryGate(operator)
+                unitary = UnitaryGate(operator, check_input=False)
                 if np.allclose(identity_1q, unitary.to_matrix()):
                     for node in run:
                         dag.remove_op_node(node)
