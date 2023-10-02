@@ -76,8 +76,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
 
 # PyBuilder
 target/
@@ -98,6 +96,7 @@ celerybeat-schedule
 .env
 
 # virtualenv
+.asv/
 .venv
 venv/
 ENV/
@@ -117,10 +116,6 @@ token.json
 tutorial/rst/_build/*
 
 test/python/test_qasm_python_simulator.pdf
-
-doc/_build/*
-
-doc/**/_autodoc
 
 qiskit/bin/*
 
@@ -142,15 +137,18 @@ src/qasm-simulator-cpp/test/qubit_vector_tests
 qiskit/transpiler/passes/**/cython/**/*.cpp
 qiskit/quantum_info/states/cython/*.cpp
 
-docs/stubs/*
+# Sphinx documentation
+/docs/_build
+/docs/stubs
+/docs/locale
+/executed_tutorials
 
 # Notebook testing images
-test/ipynb/mpl/circuit/*.png
-test/ipynb/mpl/circuit/*.zip
-test/ipynb/mpl/circuit/result_test.json
-test/ipynb/mpl/graph/*.png
-test/ipynb/mpl/graph/*.zip
-test/ipynb/mpl/graph/result_test.json
+test/visual/mpl/circuit/circuit_results/*.png
+test/visual/mpl/circuit/circuit_results/*.json
+test/visual/mpl/graph/graph_results/*.png
+test/visual/mpl/graph/graph_results/*.json
+test/visual/mpl/visual_test_failures/*.png
 
 # Added by cargo
 

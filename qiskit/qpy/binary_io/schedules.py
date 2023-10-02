@@ -16,6 +16,8 @@ import struct
 import zlib
 import warnings
 
+from io import BytesIO
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -25,6 +27,7 @@ from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
 from qiskit.utils import optionals as _optional
+from qiskit.pulse.configuration import Kernel, Discriminator
 
 if _optional.HAS_SYMENGINE:
     import symengine as sym
@@ -60,19 +63,65 @@ def _read_waveform(file_obj, version):
     )
 
 
-def _loads_symbolic_expr(expr_bytes):
-    from sympy import parse_expr
+def _loads_obj(type_key, binary_data, version, vectors):
+    """Wraps `value.loads_value` to deserialize binary data to dictionary
+    or list objects which are not supported by `value.loads_value`.
+    """
+    if type_key == b"D":
+        with BytesIO(binary_data) as container:
+            return common.read_mapping(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    elif type_key == b"l":
+        with BytesIO(binary_data) as container:
+            return common.read_sequence(
+                file_obj=container, deserializer=_loads_obj, version=version, vectors=vectors
+            )
+    else:
+        return value.loads_value(type_key, binary_data, version, vectors)
 
+
+def _read_kernel(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=_loads_obj,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Kernel(name=name, **params)
+
+
+def _read_discriminator(file_obj, version):
+    params = common.read_mapping(
+        file_obj=file_obj,
+        deserializer=_loads_obj,
+        version=version,
+        vectors={},
+    )
+    name = value.read_value(file_obj, version, {})
+    return Discriminator(name=name, **params)
+
+
+def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     if expr_bytes == b"":
         return None
+    if use_symengine:
+        _optional.HAS_SYMENGINE.require_now("load a symengine expression")
+        from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+            load_basic,
+        )
 
-    expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
-    expr = parse_expr(expr_txt)
+        expr = load_basic(zlib.decompress(expr_bytes))
+    else:
+        from sympy import parse_expr
 
-    if _optional.HAS_SYMENGINE:
-        from symengine import sympify
+        expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
+        expr = parse_expr(expr_txt)
+        if _optional.HAS_SYMENGINE:
+            from symengine import sympify
 
-        return sympify(expr)
+            return sympify(expr)
     return expr
 
 
@@ -158,7 +207,7 @@ def _read_symbolic_pulse(file_obj, version):
         raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-def _read_symbolic_pulse_v6(file_obj, version):
+def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
     make = formats.SYMBOLIC_PULSE_V2._make
     pack = formats.SYMBOLIC_PULSE_PACK_V2
     size = formats.SYMBOLIC_PULSE_SIZE_V2
@@ -171,9 +220,11 @@ def _read_symbolic_pulse_v6(file_obj, version):
     )
     class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
-    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size), use_symengine)
+    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size), use_symengine)
+    valid_amp_conditions = _loads_symbolic_expr(
+        file_obj.read(header.valid_amp_conditions_size), use_symengine
+    )
     parameters = common.read_mapping(
         file_obj,
         deserializer=value.loads_value,
@@ -229,29 +280,46 @@ def _read_alignment_context(file_obj, version):
     return instance
 
 
-def _loads_operand(type_key, data_bytes, version):
+# pylint: disable=too-many-return-statements
+def _loads_operand(type_key, data_bytes, version, use_symengine):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
         if version < 6:
             return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
         else:
-            return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
+            return common.data_from_binary(
+                data_bytes, _read_symbolic_pulse_v6, version=version, use_symengine=use_symengine
+            )
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
     if type_key == type_keys.ScheduleOperand.OPERAND_STR:
         return data_bytes.decode(common.ENCODE)
+    if type_key == type_keys.ScheduleOperand.KERNEL:
+        return common.data_from_binary(
+            data_bytes,
+            _read_kernel,
+            version=version,
+        )
+    if type_key == type_keys.ScheduleOperand.DISCRIMINATOR:
+        return common.data_from_binary(
+            data_bytes,
+            _read_discriminator,
+            version=version,
+        )
 
     return value.loads_value(type_key, data_bytes, version, {})
 
 
-def _read_element(file_obj, version, metadata_deserializer):
+def _read_element(file_obj, version, metadata_deserializer, use_symengine):
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        return read_schedule_block(file_obj, version, metadata_deserializer)
+        return read_schedule_block(file_obj, version, metadata_deserializer, use_symengine)
 
-    operands = common.read_sequence(file_obj, deserializer=_loads_operand, version=version)
+    operands = common.read_sequence(
+        file_obj, deserializer=_loads_operand, version=version, use_symengine=use_symengine
+    )
     name = value.read_value(file_obj, version, {})
 
     instance = object.__new__(type_keys.ScheduleInstruction.retrieve(type_key))
@@ -300,22 +368,57 @@ def _write_waveform(file_obj, data):
     value.write_value(file_obj, data.name)
 
 
-def _dumps_symbolic_expr(expr):
-    from sympy import srepr, sympify
+def _dumps_obj(obj):
+    """Wraps `value.dumps_value` to serialize dictionary and list objects
+    which are not supported by `value.dumps_value`.
+    """
+    if isinstance(obj, dict):
+        with BytesIO() as container:
+            common.write_mapping(file_obj=container, mapping=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"D", binary_data
+    elif isinstance(obj, list):
+        with BytesIO() as container:
+            common.write_sequence(file_obj=container, sequence=obj, serializer=_dumps_obj)
+            binary_data = container.getvalue()
+        return b"l", binary_data
+    else:
+        return value.dumps_value(obj)
 
+
+def _write_kernel(file_obj, data):
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
+
+
+def _write_discriminator(file_obj, data):
+    name = data.name
+    params = data.params
+    common.write_mapping(file_obj=file_obj, mapping=params, serializer=_dumps_obj)
+    value.write_value(file_obj, name)
+
+
+def _dumps_symbolic_expr(expr, use_symengine):
     if expr is None:
         return b""
+    if use_symengine:
+        _optional.HAS_SYMENGINE.require_now("dump a symengine expression")
+        expr_bytes = expr.__reduce__()[1][0]
+    else:
+        from sympy import srepr, sympify
 
-    expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
+        expr_bytes = srepr(sympify(expr)).encode(common.ENCODE)
     return zlib.compress(expr_bytes)
 
 
-def _write_symbolic_pulse(file_obj, data):
+def _write_symbolic_pulse(file_obj, data, use_symengine):
     class_name_bytes = data.__class__.__name__.encode(common.ENCODE)
     pulse_type_bytes = data.pulse_type.encode(common.ENCODE)
-    envelope_bytes = _dumps_symbolic_expr(data.envelope)
-    constraints_bytes = _dumps_symbolic_expr(data.constraints)
-    valid_amp_conditions_bytes = _dumps_symbolic_expr(data.valid_amp_conditions)
+    envelope_bytes = _dumps_symbolic_expr(data.envelope, use_symengine)
+    constraints_bytes = _dumps_symbolic_expr(data.constraints, use_symengine)
+    valid_amp_conditions_bytes = _dumps_symbolic_expr(data.valid_amp_conditions, use_symengine)
 
     header_bytes = struct.pack(
         formats.SYMBOLIC_PULSE_PACK_V2,
@@ -351,26 +454,34 @@ def _write_alignment_context(file_obj, context):
     )
 
 
-def _dumps_operand(operand):
+def _dumps_operand(operand, use_symengine):
     if isinstance(operand, library.Waveform):
         type_key = type_keys.ScheduleOperand.WAVEFORM
         data_bytes = common.data_to_binary(operand, _write_waveform)
     elif isinstance(operand, library.SymbolicPulse):
         type_key = type_keys.ScheduleOperand.SYMBOLIC_PULSE
-        data_bytes = common.data_to_binary(operand, _write_symbolic_pulse)
+        data_bytes = common.data_to_binary(
+            operand, _write_symbolic_pulse, use_symengine=use_symengine
+        )
     elif isinstance(operand, channels.Channel):
         type_key = type_keys.ScheduleOperand.CHANNEL
         data_bytes = common.data_to_binary(operand, _write_channel)
     elif isinstance(operand, str):
         type_key = type_keys.ScheduleOperand.OPERAND_STR
         data_bytes = operand.encode(common.ENCODE)
+    elif isinstance(operand, Kernel):
+        type_key = type_keys.ScheduleOperand.KERNEL
+        data_bytes = common.data_to_binary(operand, _write_kernel)
+    elif isinstance(operand, Discriminator):
+        type_key = type_keys.ScheduleOperand.DISCRIMINATOR
+        data_bytes = common.data_to_binary(operand, _write_discriminator)
     else:
         type_key, data_bytes = value.dumps_value(operand)
 
     return type_key, data_bytes
 
 
-def _write_element(file_obj, element, metadata_serializer):
+def _write_element(file_obj, element, metadata_serializer, use_symengine):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
         write_schedule_block(file_obj, element, metadata_serializer)
@@ -381,6 +492,7 @@ def _write_element(file_obj, element, metadata_serializer):
             file_obj,
             sequence=element.operands,
             serializer=_dumps_operand,
+            use_symengine=use_symengine,
         )
         value.write_value(file_obj, element.name)
 
@@ -399,7 +511,7 @@ def _dumps_reference_item(schedule, metadata_serializer):
     return type_key, data_bytes
 
 
-def read_schedule_block(file_obj, version, metadata_deserializer=None):
+def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symengine=False):
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -412,7 +524,10 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-
+        use_symengine (bool): If True, symbolic objects will be serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
     Returns:
         ScheduleBlock: The schedule block object from the file.
 
@@ -421,7 +536,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         QiskitError: QPY version is earlier than block support.
     """
     if version < 5:
-        QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+        raise QiskitError(f"QPY version {version} does not support ScheduleBlock.")
 
     data = formats.SCHEDULE_BLOCK_HEADER._make(
         struct.unpack(
@@ -440,7 +555,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
         alignment_context=context,
     )
     for _ in range(data.num_elements):
-        block_elm = _read_element(file_obj, version, metadata_deserializer)
+        block_elm = _read_element(file_obj, version, metadata_deserializer, use_symengine)
         block.append(block_elm, inplace=True)
 
     # Load references
@@ -462,7 +577,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None):
     return block
 
 
-def write_schedule_block(file_obj, block, metadata_serializer=None):
+def write_schedule_block(file_obj, block, metadata_serializer=None, use_symengine=False):
     """Write a single ScheduleBlock object in the file like object.
 
     Args:
@@ -472,7 +587,10 @@ def write_schedule_block(file_obj, block, metadata_serializer=None):
             will be passed the :attr:`.ScheduleBlock.metadata` dictionary for
             ``block`` and will be used as the ``cls`` kwarg
             on the ``json.dump()`` call to JSON serialize that dictionary.
-
+        use_symengine (bool): If True, symbolic objects will be serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
     Raises:
         TypeError: If any of the instructions is invalid data format.
     """
@@ -496,7 +614,7 @@ def write_schedule_block(file_obj, block, metadata_serializer=None):
     for block_elm in block._blocks:
         # Do not call block.blocks. This implicitly assigns references to instruction.
         # This breaks original reference structure.
-        _write_element(file_obj, block_elm, metadata_serializer)
+        _write_element(file_obj, block_elm, metadata_serializer, use_symengine)
 
     # Write references
     flat_key_refdict = {}

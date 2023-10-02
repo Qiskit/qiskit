@@ -113,7 +113,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         Args:
             data: Counts object
             diagonal: Optional, the vector of diagonal values for summing the
-                      expectation value. If ``None`` the the default value is
+                      expectation value. If ``None`` the default value is
                       :math:`[1, -1]^\otimes n`.
             qubits: Optional, the measured physical qubits the count
                     bitstrings correspond to. If None qubits are assumed to be
@@ -181,7 +181,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
                 be calculated as the sum of all counts.
 
         Returns:
-            QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
+            QuasiDistribution: A dictionary containing pairs of [output, mean] where "output"
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
@@ -275,7 +275,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         else:
             qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
             gammas = self._gammas[qubit_indices]
-        return np.product(gammas)
+        return np.prod(gammas)
 
     def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
         """Return an upper bound on standard deviation of expval estimator.

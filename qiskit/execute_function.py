@@ -90,18 +90,17 @@ def execute(
 
         basis_gates (list[str]):
             List of basis gate names to unroll to.
-            e.g: ``['u1', 'u2', 'u3', 'cx']``
+            e.g: ``['u1', 'u2', 'u3', 'cx']``.
             If ``None``, do not unroll.
 
         coupling_map (CouplingMap or list): Coupling map (perhaps custom) to
             target in mapping. Multiple formats are supported:
 
-            #. CouplingMap instance
-            #. list
-               Must be given as an adjacency matrix, where each entry
+            #. :class:`.CouplingMap` instance
+            #. ``list``:
+               must be given as an adjacency matrix, where each entry
                specifies all two-qubit interactions supported by backend
-               e.g:
-               ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+               e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate
@@ -148,10 +147,12 @@ def execute(
         optimization_level (int): How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
-            #. No optimization
-            #. Light optimization
-            #. Heavy optimization
-            #. Highest optimization
+
+            * 0: no optimization
+            * 1: light optimization
+            * 2: heavy optimization
+            * 3: even heavier optimization
+
             If None, level 1 will be chosen as default.
 
         pass_manager (PassManager): The pass manager to use during transpilation. If this

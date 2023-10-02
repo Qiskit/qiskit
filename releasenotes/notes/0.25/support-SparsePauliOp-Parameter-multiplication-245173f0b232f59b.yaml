@@ -1,0 +1,15 @@
+features:
+  - |
+    Adds support for multiplication of :class:`.SparsePauliOp` objects
+    with :class:`.Parameter` objects by using the * operator, for example::
+
+      from qiskit.circuit import Parameter
+      from qiskit.quantum_info import SparsePauliOp
+
+      param = Parameter("a")
+      op = SparsePauliOp("X")
+      param * op
+
+fixes:
+  - |
+    Fixes issue `#10185 <https://github.com/Qiskit/qiskit-terra/issues/10185>`.

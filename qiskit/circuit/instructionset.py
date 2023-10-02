@@ -15,79 +15,12 @@ Instruction collection.
 """
 
 from __future__ import annotations
-import functools
 from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_arg
 from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
-
-
-# ClassicalRegister is hashable, and generally the registers in a circuit are completely fixed after
-# its creation, so caching this allows us to only pay the register-unrolling penalty once.  The
-# cache does not need to be large, because in general only one circuit is constructed at once.
-@functools.lru_cache(4)
-def _requester_from_cregs(
-    cregs: tuple[ClassicalRegister],
-) -> Callable[[Clbit | ClassicalRegister | int], ClassicalRegister | Clbit]:
-    """Get a classical resource requester from an iterable of classical registers.
-
-    This implements the deprecated functionality of constructing an :obj:`.InstructionSet` with a
-    sequence of :obj:`.ClassicalRegister` instances.  This is the old method of resolving integer
-    indices to a :obj:`.Clbit`, which is now replaced by using a requester from the
-    :obj:`.QuantumCircuit` instance for consistency.
-
-    .. note::
-
-        This function has "incorrect" behaviour if any classical bit is in more than one register.
-        This is to maintain compatibility with the legacy usage of :obj:`.InstructionSet`, and
-        should not be used for any internal Qiskit code.  Instead, use the proper requester methods
-        within :obj:`.QuantumCircuit`.
-
-    This function can be removed when the deprecation of the ``circuit_cregs`` argument in
-    :obj:`.InstructionSet` expires.
-
-    Args:
-        cregs: A tuple (needs to be immutable for the caching) of the classical registers to produce
-            a requester over.
-
-    Returns:
-        A requester function that checks that a passed condition variable is valid, resolves
-        integers into concrete :obj:`.Clbit` instances, and returns a valid :obj:`.Clbit` or
-        :obj:`.ClassicalRegister` condition resource.
-    """
-
-    clbit_flat = tuple(clbit for creg in cregs for clbit in creg)
-    clbit_set = frozenset(clbit_flat)
-    creg_set = frozenset(cregs)
-
-    def requester(classical: Clbit | ClassicalRegister | int) -> ClassicalRegister | Clbit:
-        if isinstance(classical, Clbit):
-            if classical not in clbit_set:
-                raise CircuitError(
-                    f"Condition bit {classical} is not in the registers known here: {creg_set}"
-                )
-            return classical
-        if isinstance(classical, ClassicalRegister):
-            if classical not in creg_set:
-                raise CircuitError(
-                    f"Condition register {classical} is not one of the registers known here:"
-                    f" {creg_set}"
-                )
-            return classical
-        if isinstance(classical, int):
-            try:
-                return clbit_flat[classical]
-            except IndexError:
-                raise CircuitError(f"Bit index {classical} is out-of-range.") from None
-        raise CircuitError(
-            "Invalid classical condition. Must be an int, Clbit or ClassicalRegister, but received"
-            f" '{classical}'."
-        )
-
-    return requester
 
 
 class InstructionSet:
@@ -95,19 +28,8 @@ class InstructionSet:
 
     __slots__ = ("_instructions", "_requester")
 
-    @deprecate_arg(
-        "circuit_cregs",
-        since="0.19.0",
-        additional_msg=(
-            "Instead, pass a complete resource requester with the 'resource_requester' argument. "
-            "The classical registers are insufficient to access all classical resources in a "
-            "circuit, as there may be loose classical bits as well. It can also cause integer "
-            "indices to be resolved incorrectly if any registers overlap."
-        ),
-    )
     def __init__(  # pylint: disable=bad-docstring-quotes
         self,
-        circuit_cregs: list[ClassicalRegister] | None = None,
         *,
         resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,
     ):
@@ -117,8 +39,6 @@ class InstructionSet:
         separately for each instruction.
 
         Args:
-            circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
-                circuit to which the instruction is added. Default: `None`.
             resource_requester: A callable that takes in the classical resource used in the
                 condition, verifies that it is present in the attached circuit, resolves any indices
                 into concrete :obj:`.Clbit` instances, and returns the concrete resource.  If this
@@ -131,19 +51,9 @@ class InstructionSet:
                     :meth:`.c_if`, and assumes that a call implies that the resource will now be
                     used.  It may throw an error if the resource is not valid for usage.
 
-        Raises:
-            CircuitError: if both ``resource_requester`` and ``circuit_cregs`` are passed.  Only one
-                of these may be passed, and it should be ``resource_requester``.
         """
         self._instructions: list[CircuitInstruction] = []
-        if circuit_cregs is not None:
-            if resource_requester is not None:
-                raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")
-            self._requester: Callable[..., ClassicalRegister | Clbit] = _requester_from_cregs(
-                tuple(circuit_cregs)
-            )
-        else:
-            self._requester = resource_requester
+        self._requester = resource_requester
 
     def __len__(self):
         """Return number of instructions in set"""
@@ -222,7 +132,7 @@ class InstructionSet:
         if self._requester is not None:
             classical = self._requester(classical)
         for instruction in self._instructions:
-            instruction.operation.c_if(classical, val)
+            instruction.operation = instruction.operation.c_if(classical, val)
         return self
 
     # Legacy support for properties.  Added in Terra 0.21 to support the internal switch in

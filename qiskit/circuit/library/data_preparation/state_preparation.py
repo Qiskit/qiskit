@@ -17,7 +17,8 @@ import math
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -25,7 +26,7 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -43,6 +44,7 @@ class StatePreparation(Gate):
         num_qubits: Optional[int] = None,
         inverse: bool = False,
         label: Optional[str] = None,
+        normalize: bool = False,
     ):
         r"""
         Args:
@@ -63,6 +65,7 @@ class StatePreparation(Gate):
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
             inverse: if True, the inverse state is constructed.
             label: An optional label for the gate
+            normalize (bool): Whether to normalize an input array to a unit vector.
 
         Raises:
             QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
@@ -96,8 +99,15 @@ class StatePreparation(Gate):
         self._from_label = isinstance(params, str)
         self._from_int = isinstance(params, int)
 
-        num_qubits = self._get_num_qubits(num_qubits, params)
+        # if initialized from a vector, check that the parameters are normalized
+        if not self._from_label and not self._from_int:
+            norm = np.linalg.norm(params)
+            if normalize:
+                params = np.array(params, dtype=np.complex128) / norm
+            elif not math.isclose(norm, 1.0, abs_tol=_EPS):
+                raise QiskitError(f"Sum of amplitudes-squared is not 1, but {norm}.")
 
+        num_qubits = self._get_num_qubits(num_qubits, params)
         params = [params] if isinstance(params, int) else params
 
         super().__init__(self._name, num_qubits, params, label=self._label)
@@ -196,10 +206,6 @@ class StatePreparation(Gate):
             # Check if param is a power of 2
             if num_qubits == 0 or not num_qubits.is_integer():
                 raise QiskitError("Desired statevector length not a positive power of 2.")
-
-            # Check if probabilities (amplitudes squared) sum to 1
-            if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
-                raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
             num_qubits = int(num_qubits)
         return num_qubits
@@ -409,7 +415,7 @@ class StatePreparation(Gate):
         return circuit
 
 
-def prepare_state(self, state, qubits=None, label=None):
+def prepare_state(self, state, qubits=None, label=None, normalize=False):
     r"""Prepare qubits in a specific state.
 
     This class implements a state preparing unitary. Unlike
@@ -433,6 +439,7 @@ def prepare_state(self, state, qubits=None, label=None):
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
         label (str): An optional label for the gate
+        normalize (bool): Whether to normalize an input array to a unit vector.
 
     Returns:
         qiskit.circuit.Instruction: a handle to the instruction that was just initialized
@@ -511,7 +518,9 @@ def prepare_state(self, state, qubits=None, label=None):
 
     num_qubits = len(qubits) if isinstance(state, int) else None
 
-    return self.append(StatePreparation(state, num_qubits, label=label), qubits)
+    return self.append(
+        StatePreparation(state, num_qubits, label=label, normalize=normalize), qubits
+    )
 
 
 QuantumCircuit.prepare_state = prepare_state

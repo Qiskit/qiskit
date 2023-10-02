@@ -22,7 +22,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -30,8 +30,7 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import UnitaryGate, HamiltonianGate
-from qiskit.extensions.quantum_initializer import UCGate
+from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -46,9 +45,17 @@ from qiskit.circuit.library import (
     CU3Gate,
     CU1Gate,
     CPhaseGate,
+    UnitaryGate,
+    HamiltonianGate,
+    UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+
+if HAS_TWEEDLEDUM:
+    from qiskit.circuit.classicalfunction import classical_function
+    from qiskit.circuit.classicalfunction.types import Int1
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -314,21 +321,30 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         """Test the wire_order option"""
         expected = "\n".join(
             [
-                "                    ",
-                "q_2: |0>────────────",
-                "        ┌───┐       ",
-                "q_1: |0>┤ X ├───────",
-                "        ├───┤ ┌───┐ ",
-                "q_3: |0>┤ H ├─┤ X ├─",
-                "        ├───┤ └─╥─┘ ",
-                "q_0: |0>┤ H ├───╫───",
-                "        └───┘┌──╨──┐",
-                " c: 0 4/═════╡ 0xa ╞",
-                "             └─────┘",
-                "ca: 0 2/════════════",
-                "                    ",
+                "                  ",
+                "q_2: |0>──────────",
+                "        ┌───┐     ",
+                "q_1: |0>┤ X ├─────",
+                "        ├───┤┌───┐",
+                "q_3: |0>┤ H ├┤ X ├",
+                "        ├───┤└─╥─┘",
+                "q_0: |0>┤ H ├──╫──",
+                "        └───┘  ║  ",
+                " c_2: 0 ═══════o══",
+                "               ║  ",
+                "ca_0: 0 ═══════╬══",
+                "               ║  ",
+                "ca_1: 0 ═══════╬══",
+                "               ║  ",
+                " c_1: 0 ═══════■══",
+                "               ║  ",
+                " c_0: 0 ═══════o══",
+                "               ║  ",
+                " c_3: 0 ═══════■══",
+                "              0xa ",
             ]
         )
+
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(4, "c")
         cr2 = ClassicalRegister(2, "ca")
@@ -338,7 +354,12 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.x(1)
         circuit.x(3).c_if(cr, 10)
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7])), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, cregbundle=False, wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7]
+                )
+            ),
+            expected,
         )
 
     def test_text_swap(self):
@@ -1216,6 +1237,31 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.rz(11111, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
+    def test_text_synth_no_registerless(self):
+        """Test synthesis's label when registerless=False.
+        See https://github.com/Qiskit/qiskit-terra/issues/9363"""
+        expected = "\n".join(
+            [
+                "                ",
+                "     a: |0>──■──",
+                "             │  ",
+                "     b: |0>──■──",
+                "             │  ",
+                "     c: |0>──o──",
+                "           ┌─┴─┐",
+                "return: |0>┤ X ├",
+                "           └───┘",
+            ]
+        )
+
+        @classical_function
+        def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
+            return a and b and not c
+
+        circuit = grover_oracle.synth(registerless=False)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerLabels(QiskitTestCase):
     """Gates with labels."""
@@ -1888,7 +1934,7 @@ class TestTextDrawerParams(QiskitTestCase):
         qr = QuantumRegister(1, name="qr")
         circuit = QuantumCircuit(qr, name="circuit")
         circuit.append(my_u2, [qr[0]])
-        circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        circuit = circuit.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -5050,7 +5096,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         matrix = numpy.zeros((2, 2))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_draw_hamiltonian_multi(self):
@@ -5070,7 +5116,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         matrix = numpy.zeros((4, 4))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
@@ -5179,7 +5225,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.tdg(qr[0])
         circuit.sx(qr[0])
         circuit.sxdg(qr[0])
-        circuit.i(qr[0])
+        circuit.id(qr[0])
         circuit.reset(qr[0])
         circuit.rx(pi, qr[0])
         circuit.ry(pi, qr[0])
@@ -5230,6 +5276,414 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
             self.fail("_text_circuit_drawer() should be cp437.")
         self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
+
+
+class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
+    """Test ControlFlowOps."""
+
+    def test_if_op_bundle_false(self):
+        """Test an IfElseOp with if only and cregbundle false"""
+        expected = "\n".join(
+            [
+                "      ┌────── ┌───┐      ───────┐ ",
+                " q_0: ┤       ┤ H ├──■──        ├─",
+                "      │ If-0  └───┘┌─┴─┐  End-0 │ ",
+                " q_1: ┤       ─────┤ X ├        ├─",
+                "      └──╥───      └───┘ ───────┘ ",
+                " q_2: ───╫────────────────────────",
+                "         ║                        ",
+                " q_3: ───╫────────────────────────",
+                "         ║                        ",
+                "cr_0: ═══╬════════════════════════",
+                "         ║                        ",
+                "cr_1: ═══■════════════════════════",
+                "                                  ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
+
+    def test_if_op_bundle_true(self):
+        """Test an IfElseOp with if only and cregbundle true"""
+        expected = "\n".join(
+            [
+                "        ┌──────   ┌───┐      ───────┐ ",
+                " q_0: ──┤       ──┤ H ├──■──        ├─",
+                "        │ If-0    └───┘┌─┴─┐  End-0 │ ",
+                " q_1: ──┤       ───────┤ X ├        ├─",
+                "        └──╥───        └───┘ ───────┘ ",
+                " q_2: ─────╫──────────────────────────",
+                "           ║                          ",
+                " q_3: ─────╫──────────────────────────",
+                "      ┌────╨─────┐                    ",
+                "cr: 2/╡ cr_1=0x1 ╞════════════════════",
+                "      └──────────┘                    ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
+    def test_if_else_with_body_specified(self):
+        """Test an IfElseOp where the body is directly specified."""
+
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐             ┌────── ┌───┐     ┌─────┐ ───────┐ ┌─────┐",
+                " q_0: ┤ H ├┤M├─────────────┤       ┤ Z ├─────┤ X1i ├        ├─┤ X1i ├",
+                "      ├───┤└╥┘┌─┐          │       ├───┤┌───┐└──╥──┘        │ └─────┘",
+                " q_1: ┤ H ├─╫─┤M├──────────┤ If-0  ┤ X ├┤ Y ├───╫───  End-0 ├────────",
+                "      ├───┤ ║ └╥┘┌────────┐│       └───┘└───┘   ║           │        ",
+                " q_2: ┤ X ├─╫──╫─┤ XLabel ├┤       ─────────────╫───        ├────────",
+                "      └───┘ ║  ║ └───╥────┘└──╥───              ║    ───────┘        ",
+                " q_3: ──────╫──╫─────╫────────╫─────────────────╫────────────────────",
+                "            ║  ║     ║        ║                 ║                    ",
+                "cr_0: ══════╬══╬═════o════════╬═════════════════o════════════════════",
+                "            ║  ║     ║        ║                 ║                    ",
+                "cr_1: ══════╩══╬═════■════════■═════════════════o════════════════════",
+                "               ║     ║                          ║                    ",
+                "cr_2: ═════════╩═════o══════════════════════════■════════════════════",
+                "                    0x2                        0x4                   ",
+            ]
+        )
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, 1)
+        circuit.measure(1, 2)
+        circuit.x(2)
+        circuit.x(2, label="XLabel").c_if(cr, 2)
+
+        qr2 = QuantumRegister(3, "qr2")
+        circuit2 = QuantumCircuit(qr2, cr)
+        circuit2.x(1)
+        circuit2.y(1)
+        circuit2.z(0)
+        circuit2.x(0, label="X1i").c_if(cr, 4)
+
+        circuit.if_else((cr[1], 1), circuit2, None, [0, 1, 2], [0, 1, 2])
+        circuit.x(0, label="X1i")
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
+
+    def test_if_op_nested_wire_order(self):
+        """Test IfElseOp with nested if's and wire_order change."""
+        expected = "\n".join(
+            [
+                "           ┌──────           ┌──────      ┌────── ┌───┐                     »",
+                " q_2: ─────┤       ──────────┤       ─────┤       ┤ Z ├─────────────────────»",
+                "      ┌───┐│       ┌────────┐│       ┌───┐│       └───┘┌──────      ┌────── »",
+                " q_0: ┤ H ├┤       ┤ X c_if ├┤       ┤ Z ├┤       ─────┤       ──■──┤       »",
+                "      └───┘│ If-0  └───╥────┘│ If-1  └───┘│ If-2       │         │  │       »",
+                " q_3: ─────┤       ────╫─────┤       ─────┤       ─────┤ If-3  ──┼──┤ If-4  »",
+                "           │           ║     │       ┌───┐│       ┌───┐│       ┌─┴─┐│       »",
+                " q_1: ─────┤       ────╫─────┤       ┤ Y ├┤       ┤ Y ├┤       ┤ X ├┤       »",
+                "           └──╥───     ║     └──╥─── └───┘└──╥─── └───┘└──╥─── └───┘└──╥─── »",
+                "cr_0: ════════╬════════o════════╬════════════╬════════════╬════════════╬════»",
+                "              ║        ║        ║            ║            ║            ║    »",
+                "cr_1: ════════■════════o════════╬════════════■════════════╬════════════■════»",
+                "                       ║        ║                         ║                 »",
+                "cr_2: ═════════════════■════════■═════════════════════════■═════════════════»",
+                "                      0x4                                                   »",
+                "«                                ───────┐  ───────┐ ┌────────              »",
+                "« q_2: ─────────────────────────        ├─        ├─┤         ─────────────»",
+                "«      ┌───┐ ───────┐  ───────┐         │         │ │              ┌────── »",
+                "« q_0: ┤ H ├        ├─        ├─        ├─        ├─┤         ─────┤       »",
+                "«      └───┘        │         │   End-2 │   End-1 │ │ Else-0       │       »",
+                "« q_3: ─────  End-4 ├─  End-3 ├─        ├─        ├─┤         ─────┤ If-1  »",
+                "«      ┌───┐        │         │         │         │ │         ┌───┐│       »",
+                "« q_1: ┤ X ├        ├─        ├─        ├─        ├─┤         ┤ Y ├┤       »",
+                "«      └───┘ ───────┘  ───────┘  ───────┘  ───────┘ └──────── └───┘└──╥─── »",
+                "«cr_0: ═══════════════════════════════════════════════════════════════╬════»",
+                "«                                                                     ║    »",
+                "«cr_1: ═══════════════════════════════════════════════════════════════╬════»",
+                "«                                                                     ║    »",
+                "«cr_2: ═══════════════════════════════════════════════════════════════■════»",
+                "«                                                                          »",
+                "«                               ───────┐      ",
+                "« q_2: ────────────────────────        ├──────",
+                "«      ┌───┐ ───────┐ ┌───────┐        │ ┌───┐",
+                "« q_0: ┤ X ├        ├─┤0      ├        ├─┤ X ├",
+                "«      └───┘        │ │       │  End-0 │ └───┘",
+                "« q_3: ─────  End-1 ├─┤       ├        ├──────",
+                "«      ┌───┐        │ │       │        │      ",
+                "« q_1: ┤ X ├        ├─┤1 Inst ├        ├──────",
+                "«      └───┘ ───────┘ │       │ ───────┘      ",
+                "«cr_0: ═══════════════╡0      ╞═══════════════",
+                "«                     │       │               ",
+                "«cr_1: ═══════════════╡1      ╞═══════════════",
+                "«                     └───────┘               ",
+                "«cr_2: ═══════════════════════════════════════",
+                "«                                             ",
+            ]
+        )
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.x(0, label="X c_if").c_if(cr, 4)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+                circuit.y(1)
+                with circuit.if_test((cr[1], 1)):
+                    circuit.y(1)
+                    circuit.z(2)
+                    with circuit.if_test((cr[2], 1)):
+                        circuit.cx(0, 1)
+                        with circuit.if_test((cr[1], 1)):
+                            circuit.h(0)
+                            circuit.x(1)
+        with _else:
+            circuit.y(1)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+                circuit.x(1)
+            inst = QuantumCircuit(2, 2, name="Inst").to_instruction()
+            circuit.append(inst, [qr[0], qr[1]], [cr[0], cr[1]])
+        circuit.x(0)
+        self.assertEqual(
+            str(
+                _text_circuit_drawer(
+                    circuit,
+                    fold=77,
+                    initial_state=False,
+                    wire_order=[2, 0, 3, 1, 4, 5, 6],
+                )
+            ),
+            expected,
+        )
+
+    def test_while_loop(self):
+        """Test WhileLoopOp."""
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐┌───────── ┌───┐     ┌─┐┌────── ┌───┐ ───────┐  ───────┐ ",
+                " q_0: ┤ H ├┤M├┤          ┤ H ├──■──┤M├┤ If-1  ┤ X ├  End-1 ├─        ├─",
+                "      └───┘└╥┘│ While-0  └───┘┌─┴─┐└╥┘└──╥─── └───┘ ───────┘   End-0 │ ",
+                " q_1: ──────╫─┤          ─────┤ X ├─╫────╫───────────────────        ├─",
+                "            ║ └────╥────      └───┘ ║    ║                    ───────┘ ",
+                " q_2: ──────╫──────╫────────────────╫────╫─────────────────────────────",
+                "            ║      ║                ║    ║                             ",
+                " q_3: ──────╫──────╫────────────────╫────╫─────────────────────────────",
+                "            ║      ║                ║    ║                             ",
+                "cr_0: ══════╬══════o════════════════╩════╬═════════════════════════════",
+                "            ║                            ║                             ",
+                "cr_1: ══════╬════════════════════════════╬═════════════════════════════",
+                "            ║                            ║                             ",
+                "cr_2: ══════╩════════════════════════════■═════════════════════════════",
+                "                                                                       ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.while_loop((cr[0], 0)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.x(0)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
+
+    def test_for_loop(self):
+        """Test ForLoopOp."""
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐┌─────────────────                 ┌─┐┌────── ┌───┐ ───────┐  ───────┐ ",
+                " q_0: ┤ H ├┤M├┤                  ──■─────────────┤M├┤ If-1  ┤ Z ├  End-1 ├─        ├─",
+                "      └───┘└╥┘│ For-0 (2, 4, 8)  ┌─┴─┐┌─────────┐└╥┘└──╥─── └───┘ ───────┘   End-0 │ ",
+                " q_1: ──────╫─┤                  ┤ X ├┤ Rx(π/a) ├─╫────╫───────────────────        ├─",
+                "            ║ └───────────────── └───┘└─────────┘ ║    ║                    ───────┘ ",
+                " q_2: ──────╫─────────────────────────────────────╫────╫─────────────────────────────",
+                "            ║                                     ║    ║                             ",
+                " q_3: ──────╫─────────────────────────────────────╫────╫─────────────────────────────",
+                "            ║                                     ║    ║                             ",
+                "cr_0: ══════╬═════════════════════════════════════╩════╬═════════════════════════════",
+                "            ║                                          ║                             ",
+                "cr_1: ══════╬══════════════════════════════════════════╬═════════════════════════════",
+                "            ║                                          ║                             ",
+                "cr_2: ══════╩══════════════════════════════════════════■═════════════════════════════",
+                "                                                                                     ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        a = Parameter("a")
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.for_loop((2, 4, 8), loop_parameter=a):
+            circuit.cx(0, 1)
+            circuit.rx(pi / a, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=-1, initial_state=False, cregbundle=False)),
+            expected,
+        )
+
+    def test_switch_case(self):
+        """Test SwitchCaseOp."""
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐      ┌────────── ┌────────────────── ┌───┐┌────────────────── »",
+                " q_0: ┤ H ├┤M├──────┤           ┤                   ┤ X ├┤                   »",
+                "      ├───┤└╥┘┌─┐   │ Switch-0  │ Case-0 (0, 1, 2)  ├───┤│ Case-0 (3, 4, 5)  »",
+                " q_1: ┤ H ├─╫─┤M├───┤           ┤                   ┤ X ├┤                   »",
+                "      ├───┤ ║ └╥┘┌─┐└────╥───── └────────────────── └───┘└────────────────── »",
+                " q_2: ┤ H ├─╫──╫─┤M├─────╫───────────────────────────────────────────────────»",
+                "      └───┘ ║  ║ └╥┘     ║                                                   »",
+                "cr_0: ══════╩══╬══╬══════■═══════════════════════════════════════════════════»",
+                "               ║  ║      ║                                                   »",
+                "cr_1: ═════════╩══╬══════■═══════════════════════════════════════════════════»",
+                "                  ║      ║                                                   »",
+                "cr_2: ════════════╩══════■═══════════════════════════════════════════════════»",
+                "                        0x7                                                  »",
+                "«      ┌───┐┌───┐┌────────────────       ───────┐ ┌───┐",
+                "« q_0: ┤ Y ├┤ Y ├┤                 ──■──        ├─┤ H ├",
+                "«      ├───┤└───┘│ Case-0 default  ┌─┴─┐  End-0 │ └───┘",
+                "« q_1: ┤ Y ├─────┤                 ┤ X ├        ├──────",
+                "«      └───┘     └──────────────── └───┘ ───────┘      ",
+                "« q_2: ────────────────────────────────────────────────",
+                "«                                                      ",
+                "«cr_0: ════════════════════════════════════════════════",
+                "«                                                      ",
+                "«cr_1: ════════════════════════════════════════════════",
+                "«                                                      ",
+                "«cr_2: ════════════════════════════════════════════════",
+                "«                                                      ",
+            ]
+        )
+
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+                circuit.x(1)
+            with case(3, 4, 5):
+                circuit.y(1)
+                circuit.y(0)
+                circuit.y(0)
+            with case(case.DEFAULT):
+                circuit.cx(0, 1)
+        circuit.h(0)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=78, initial_state=False, cregbundle=False)),
+            expected,
+        )
+
+    def test_inner_wire_map_control_op(self):
+        """Test that the gates inside ControlFlowOps land on correct qubits when transpiled"""
+        expected = "\n".join(
+            [
+                "                                                                  ",
+                "     qr_1 -> 0 ───────────────────────────────────────────────────",
+                "                                                                  ",
+                "ancilla_0 -> 1 ───────────────────────────────────────────────────",
+                "                                                                  ",
+                "ancilla_1 -> 2 ───────────────────────────────────────────────────",
+                "                                                                  ",
+                "ancilla_2 -> 3 ───────────────────────────────────────────────────",
+                "               ┌────── ┌────────┐┌────── ┌───┐ ───────┐  ───────┐ ",
+                "     qr_0 -> 4 ┤ If-0  ┤ Rz(-π) ├┤ If-1  ┤ X ├  End-1 ├─  End-0 ├─",
+                "               └──╥─── └────────┘└──╥─── └───┘ ───────┘  ───────┘ ",
+                "         cr_0: ═══o═════════════════╬═════════════════════════════",
+                "                  ║                 ║                             ",
+                "         cr_1: ═══■═════════════════■═════════════════════════════",
+                "                 0x2                                              ",
+            ]
+        )
+
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qreg, creg)
+
+        with qc.if_test((creg, 2)):
+            qc.z(0)
+            with qc.if_test((creg[1], 1)):
+                qc.x(0)
+
+        backend = FakeBelemV2()
+        backend.target.add_instruction(IfElseOp, name="if_else")
+
+        circuit = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=78, initial_state=False, cregbundle=False)),
+            expected,
+        )
+
+    def test_if_else_op_from_circuit_with_conditions(self):
+        """Test an IfElseOp built from circuit with conditions inside the if using inner creg"""
+        expected = "\n".join(
+            [
+                "      ┌───┐┌────── ┌────┐       ───────┐ ",
+                " q_0: ┤ H ├┤       ┤ X1 ├──────        ├─",
+                "      └───┘│       └─╥──┘┌────┐        │ ",
+                " q_1: ─────┤ If-0  ──╫───┤ X2 ├  End-0 ├─",
+                "      ┌───┐│         ║   └─╥──┘        │ ",
+                " q_2: ┤ X ├┤       ──╫─────╫───        ├─",
+                "      └─╥─┘└──╥───   ║     ║    ───────┘ ",
+                " q_3: ──╫─────╫──────╫─────╫─────────────",
+                "        ║     ║      ║     ║             ",
+                "cr_0: ══╬═════╬══════o═════╬═════════════",
+                "        ║     ║      ║     ║             ",
+                "cr_1: ══■═════■══════o═════■═════════════",
+                "                     ║                   ",
+                "cr_2: ═══════════════■═══════════════════",
+                "                    0x4                  ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(0)
+        circuit.x(2).c_if(cr[1], 2)
+
+        qr2 = QuantumRegister(3, "qr2")
+        qc2 = QuantumCircuit(qr2, cr)
+        qc2.x(0, label="X1").c_if(cr, 4)
+        qc2.x(1, label="X2").c_if(cr[1], 1)
+
+        circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
 
 
 if __name__ == "__main__":

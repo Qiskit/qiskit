@@ -12,6 +12,7 @@
 
 """Test circuits with variable parameters."""
 import unittest
+import warnings
 import cmath
 import math
 import copy
@@ -108,6 +109,14 @@ def raise_if_parameter_table_invalid(circuit):
 class TestParameters(QiskitTestCase):
     """Test Parameters."""
 
+    def setUp(self):
+        super().setUp()
+        # TODO: delete once bind_parameters is removed from the codebase
+        #  and related tests are also removed.
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+        )
+
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
         theta = Parameter("θ")
@@ -192,6 +201,18 @@ class TestParameters(QiskitTestCase):
         b = Parameter("b")
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
+
+    @data(QuantumCircuit.assign_parameters, QuantumCircuit.bind_parameters)
+    def test_bind_parameters_custom_definition_global_phase(self, assigner):
+        """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
+        x = Parameter("x")
+        custom = QuantumCircuit(1, global_phase=x).to_gate()
+        base = QuantumCircuit(1)
+        base.append(custom, [0], [])
+
+        test = Operator(assigner(base, {x: math.pi}))
+        expected = Operator(numpy.array([[-1, 0], [0, -1]]))
+        self.assertEqual(test, expected)
 
     def test_bind_half_single_precision(self):
         """Test binding with 16bit and 32bit floats."""
@@ -474,12 +495,14 @@ class TestParameters(QiskitTestCase):
         y = Parameter("y")
         z = ParameterVector("z", 3)
         qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
 
         # test for both `bind_parameters` and `assign_parameters`
         for assign_fun in ["bind_parameters", "assign_parameters"]:
             qc = QuantumCircuit(qr)
             with self.subTest(assign_fun=assign_fun):
+                # TODO: delete once bind_parameters is removed from the codebase
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
                 qc.p(x, qr[0])
@@ -927,6 +950,15 @@ class TestParameters(QiskitTestCase):
                 self.assertEqual(expected1, output1)
                 self.assertEqual(expected2, output2)
 
+    def test_sign_of_parameter(self):
+        """Test returning the sign of the value of the parameter"""
+
+        b = Parameter("phi")
+        sign_of_parameter = b.sign()
+        self.assertEqual(sign_of_parameter.assign(b, -3), -1)
+        self.assertEqual(sign_of_parameter.assign(b, 2), 1)
+        self.assertEqual(sign_of_parameter.assign(b, 0), 0)
+
     @combine(target_type=["gate", "instruction"], parameter_type=["numbers", "parameters"])
     def test_decompose_propagates_bound_parameters(self, target_type, parameter_type):
         """Verify bind-before-decompose preserves bound values."""
@@ -1258,6 +1290,14 @@ class TestParameterExpressions(QiskitTestCase):
 
     supported_operations = [add, sub, mul, truediv]
 
+    def setUp(self):
+        super().setUp()
+        # TODO: delete once bind_parameters is removed from the codebase
+        #  and related tests are also removed.
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+        )
+
     def test_compare_to_value_when_bound(self):
         """Verify expression can be compared to a fixed value
         when fully bound."""
@@ -1289,6 +1329,22 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(abs(x) * abs(y), abs(x * y))
         self.assertEqual(abs(x) / abs(y), abs(x / y))
 
+    def test_cast_to_complex_when_bound(self):
+        """Verify that the cast to complex works for bound objects."""
+        x = Parameter("x")
+        y = Parameter("y")
+        bound_expr = (x + y).bind({x: 1.0, y: 1j})
+        self.assertEqual(complex(bound_expr), 1 + 1j)
+
+    def test_raise_if_cast_to_complex_when_not_fully_bound(self):
+        """Verify raises if casting to complex and not fully bound."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+        bound_expr = (x + y).bind({x: 1j})
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            complex(bound_expr)
+
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
 
@@ -1302,6 +1358,22 @@ class TestParameterExpressions(QiskitTestCase):
         x = Parameter("x")
         expr = x - x + 2.3
         self.assertEqual(float(expr), 2.3)
+
+    def test_cast_to_float_intermediate_complex_value(self):
+        """Verify expression can be cast to a float when it is fully bound, but an intermediate part
+        of the expression evaluation involved complex types.  Sympy is generally more permissive
+        than symengine here, and sympy's tends to be the expected behaviour for our users."""
+        x = Parameter("x")
+        bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
+        self.assertEqual(float(bound_expr), 1.0)
+
+    def test_cast_to_float_of_complex_fails(self):
+        """Test that an attempt to produce a float from a complex value fails if there is an
+        imaginary part, with a sensible error message."""
+        x = Parameter("x")
+        bound_expr = (x + 1.0j).bind({x: 1.0})
+        with self.assertRaisesRegex(TypeError, "could not cast expression to float"):
+            float(bound_expr)
 
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
         """Verify raises if casting to float and not fully bound."""
@@ -2128,6 +2200,18 @@ class TestParameterView(QiskitTestCase):
         """Test __eq__."""
         self.assertTrue(self.view1 != self.view2)
         self.assertFalse(self.view3 != self.view3)
+
+
+class TestBindParametersDeprecation(QiskitTestCase):
+    """Test deprecation of bind_parameters()."""
+
+    def test_circuit_bind_parameters_raises(self):
+        """Test that the deprecated bind_parameters method raises a deprecation warning."""
+        qc = QuantumCircuit(1)
+        qc.rx(Parameter("x"), 0)
+
+        with self.assertWarns(DeprecationWarning):
+            _ = qc.bind_parameters([1])
 
 
 if __name__ == "__main__":

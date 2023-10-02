@@ -31,12 +31,12 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
-
 # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
-
+# If modifying these optional extras, make sure to sync with `requirements-optional.txt` and
+# `qiskit.utils.optionals` as well.
 qasm3_import_extras = [
     "qiskit-qasm3-import>=0.1.0",
 ]
@@ -52,17 +52,16 @@ visualization_extras = [
 z3_requirements = [
     "z3-solver>=4.7",
 ]
-bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
-toqm_requirements = ["qiskit-toqm>=0.1.0"]
+
 
 setup(
     name="qiskit-terra",
-    version="0.25.0",
+    version="0.45.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/Qiskit/qiskit-terra",
+    url="https://github.com/Qiskit/qiskit",
     author="Qiskit Development Team",
     author_email="hello@qiskit.org",
     license="Apache 2.0",
@@ -89,12 +88,8 @@ setup(
     extras_require={
         "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
-        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
         "csp-layout-pass": csp_requirements,
-        "toqm": toqm_requirements,
-        # Note: 'all' only includes extras that are stable and work on the majority of Python
-        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
         "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
@@ -110,9 +105,13 @@ setup(
             debug=rust_debug,
         ),
         RustExtension(
-            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+            "qiskit._qasm2",
+            "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
         ),
     ],
+    options={"bdist_wheel": {"py_limited_api": "cp38"}},
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
@@ -135,12 +134,35 @@ setup(
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
         ],
+        "qiskit.transpiler.init": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager",
+        ],
+        "qiskit.transpiler.translation": [
+            "translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager",
+            "unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager",
+            "synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager",
+        ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
             "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
             "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
             "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
             "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
+        "qiskit.transpiler.optimization": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager",
+        ],
+        "qiskit.transpiler.layout": [
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager",
+            "trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager",
+            "dense = qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager",
+            "noise_adaptive = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoiseAdaptiveLayoutPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager",
+        ],
+        "qiskit.transpiler.scheduling": [
+            "alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager",
+            "asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager",
+            "default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager",
         ],
     },
 )

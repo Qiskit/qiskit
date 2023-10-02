@@ -17,15 +17,18 @@ from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 from .p import PhaseGate
 
+_Z_ARRAY = [[1, 0], [0, -1]]
 
-class ZGate(Gate):
+
+@with_gate_array(_Z_ARRAY)
+class ZGate(SingletonGate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -71,9 +74,13 @@ class ZGate(Gate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "z", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -109,8 +116,7 @@ class ZGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CZGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CZGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
@@ -118,15 +124,12 @@ class ZGate(Gate):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Z gate."""
-        return numpy.array([[1, 0], [0, -1]], dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(numpy.pi * exponent)
 
 
+@with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
 class CZGate(ControlledGate):
     r"""Controlled-Z gate.
 
@@ -160,10 +163,21 @@ class CZGate(ControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+    ):
         """Create new CZ gate."""
         super().__init__(
-            "cz", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()
+            "cz",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(label=_base_label),
         )
 
     def _define(self):
@@ -188,18 +202,8 @@ class CZGate(ControlledGate):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CZ gate."""
-        if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=dtype
-            )
-        else:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
-            )
 
-
+@with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
 class CCZGate(ControlledGate):
     r"""CCZ gate.
 
@@ -266,12 +270,3 @@ class CCZGate(ControlledGate):
     def inverse(self):
         """Return inverted CCZ gate (itself)."""
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CCZ gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat

@@ -180,7 +180,7 @@ class XXDecomposer:
 
         return {"point": best_point, "cost": best_cost, "sequence": best_sequence}
 
-    def num_basis_gates(self, unitary):
+    def num_basis_gates(self, unitary: Operator | np.ndarray):
         """
         Counts the number of gates that would be emitted during re-synthesis.
 
@@ -251,7 +251,7 @@ class XXDecomposer:
             basis_fidelity, approximate=approximate
         )
 
-        from qiskit.extensions import UnitaryGate  # pylint: disable=cyclic-import
+        from qiskit.circuit.library import UnitaryGate  # pylint: disable=cyclic-import
 
         # get the associated _positive_ canonical coordinate
         weyl_decomposition = TwoQubitWeylDecomposition(unitary)

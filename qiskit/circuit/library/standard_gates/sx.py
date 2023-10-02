@@ -14,13 +14,18 @@
 
 from math import pi
 from typing import Optional, Union
-import numpy
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
 
-class SXGate(Gate):
+_SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
+_SXDG_ARRAY = [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]]
+
+
+@with_gate_array(_SX_ARRAY)
+class SXGate(SingletonGate):
     r"""The single-qubit Sqrt(X) gate (:math:`\sqrt{X}`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -58,9 +63,13 @@ class SXGate(Gate):
 
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new SX gate."""
-        super().__init__("sx", 1, [], label=label)
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "sx", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         """
@@ -102,17 +111,13 @@ class SXGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CSXGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SX gate."""
-        return numpy.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=dtype) / 2
 
-
-class SXdgGate(Gate):
+@with_gate_array(_SXDG_ARRAY)
+class SXdgGate(SingletonGate):
     r"""The inverse single-qubit Sqrt(X) gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -141,9 +146,13 @@ class SXdgGate(Gate):
 
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new SXdg gate."""
-        super().__init__("sxdg", 1, [], label=label)
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "sxdg", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         """
@@ -165,11 +174,8 @@ class SXdgGate(Gate):
         """Return inverse SXdg gate (i.e. SX)."""
         return SXGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SXdg gate."""
-        return numpy.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]], dtype=dtype) / 2
 
-
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
 class CSXGate(ControlledGate):
     r"""Controlled-√X gate.
 
@@ -225,28 +231,22 @@ class CSXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
-            [0, 0, 1, 0],
-            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2],
-        ]
-    )
-    _matrix0 = numpy.array(
-        [
-            [(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
-            [0, 1, 0, 0],
-            [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
-            [0, 0, 0, 1],
-        ]
-    )
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+    ):
         """Create new CSX gate."""
         super().__init__(
-            "csx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
+            "csx",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXGate(label=_base_label),
         )
 
     def _define(self):
@@ -264,10 +264,3 @@ class CSXGate(ControlledGate):
         for operation, qubits, clbits in rules:
             qc._append(operation, qubits, clbits)
         self.definition = qc
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CSX gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat

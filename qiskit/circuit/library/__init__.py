@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
+   DiagonalGate
    MCMT
    MCMTVChain
    Permutation
@@ -198,6 +199,13 @@ set the amount of qubits involved at instantiation time.
    RVGate
    PauliGate
    LinearFunction
+   Isometry
+   UnitaryGate
+   UCGate
+   UCPauliRotGate
+   UCRXGate
+   UCRYGate
+   UCRZGate
 
 Boolean Logic Circuits
 ======================
@@ -324,6 +332,7 @@ Particular Quantum Circuits
    PhaseOracle
    EvolvedOperatorAnsatz
    PauliEvolutionGate
+   HamiltonianGate
 
 
 N-local circuits
@@ -360,6 +369,7 @@ data in quantum states and are used as feature maps for classification.
    ZFeatureMap
    ZZFeatureMap
    StatePreparation
+   Initialize
 
 Template circuits
 =================
@@ -394,98 +404,91 @@ Maslov, D. and Dueck, G. W. and Miller, D. M.,
 Techniques for the synthesis of reversible Toffoli networks, 2007
 http://dx.doi.org/10.1145/1278349.1278355
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   templates.nct.template_nct_2a_1
-   templates.nct.template_nct_2a_2
-   templates.nct.template_nct_2a_3
-   templates.nct.template_nct_4a_1
-   templates.nct.template_nct_4a_2
-   templates.nct.template_nct_4a_3
-   templates.nct.template_nct_4b_1
-   templates.nct.template_nct_4b_2
-   templates.nct.template_nct_5a_1
-   templates.nct.template_nct_5a_2
-   templates.nct.template_nct_5a_3
-   templates.nct.template_nct_5a_4
-   templates.nct.template_nct_6a_1
-   templates.nct.template_nct_6a_2
-   templates.nct.template_nct_6a_3
-   templates.nct.template_nct_6a_4
-   templates.nct.template_nct_6b_1
-   templates.nct.template_nct_6b_2
-   templates.nct.template_nct_6c_1
-   templates.nct.template_nct_7a_1
-   templates.nct.template_nct_7b_1
-   templates.nct.template_nct_7c_1
-   templates.nct.template_nct_7d_1
-   templates.nct.template_nct_7e_1
-   templates.nct.template_nct_9a_1
-   templates.nct.template_nct_9c_1
-   templates.nct.template_nct_9c_2
-   templates.nct.template_nct_9c_3
-   templates.nct.template_nct_9c_4
-   templates.nct.template_nct_9c_5
-   templates.nct.template_nct_9c_6
-   templates.nct.template_nct_9c_7
-   templates.nct.template_nct_9c_8
-   templates.nct.template_nct_9c_9
-   templates.nct.template_nct_9c_10
-   templates.nct.template_nct_9c_11
-   templates.nct.template_nct_9c_12
-   templates.nct.template_nct_9d_1
-   templates.nct.template_nct_9d_2
-   templates.nct.template_nct_9d_3
-   templates.nct.template_nct_9d_4
-   templates.nct.template_nct_9d_5
-   templates.nct.template_nct_9d_6
-   templates.nct.template_nct_9d_7
-   templates.nct.template_nct_9d_8
-   templates.nct.template_nct_9d_9
-   templates.nct.template_nct_9d_10
+.. currentmodule:: qiskit.circuit.library.templates.nct
+.. autofunction:: template_nct_2a_1
+.. autofunction:: template_nct_2a_2
+.. autofunction:: template_nct_2a_3
+.. autofunction:: template_nct_4a_1
+.. autofunction:: template_nct_4a_2
+.. autofunction:: template_nct_4a_3
+.. autofunction:: template_nct_4b_1
+.. autofunction:: template_nct_4b_2
+.. autofunction:: template_nct_5a_1
+.. autofunction:: template_nct_5a_2
+.. autofunction:: template_nct_5a_3
+.. autofunction:: template_nct_5a_4
+.. autofunction:: template_nct_6a_1
+.. autofunction:: template_nct_6a_2
+.. autofunction:: template_nct_6a_3
+.. autofunction:: template_nct_6a_4
+.. autofunction:: template_nct_6b_1
+.. autofunction:: template_nct_6b_2
+.. autofunction:: template_nct_6c_1
+.. autofunction:: template_nct_7a_1
+.. autofunction:: template_nct_7b_1
+.. autofunction:: template_nct_7c_1
+.. autofunction:: template_nct_7d_1
+.. autofunction:: template_nct_7e_1
+.. autofunction:: template_nct_9a_1
+.. autofunction:: template_nct_9c_1
+.. autofunction:: template_nct_9c_2
+.. autofunction:: template_nct_9c_3
+.. autofunction:: template_nct_9c_4
+.. autofunction:: template_nct_9c_5
+.. autofunction:: template_nct_9c_6
+.. autofunction:: template_nct_9c_7
+.. autofunction:: template_nct_9c_8
+.. autofunction:: template_nct_9c_9
+.. autofunction:: template_nct_9c_10
+.. autofunction:: template_nct_9c_11
+.. autofunction:: template_nct_9c_12
+.. autofunction:: template_nct_9d_1
+.. autofunction:: template_nct_9d_2
+.. autofunction:: template_nct_9d_3
+.. autofunction:: template_nct_9d_4
+.. autofunction:: template_nct_9d_5
+.. autofunction:: template_nct_9d_6
+.. autofunction:: template_nct_9d_7
+.. autofunction:: template_nct_9d_8
+.. autofunction:: template_nct_9d_9
+.. autofunction:: template_nct_9d_10
+.. currentmodule:: qiskit.circuit.library
 
 Clifford template circuits
 --------------------------
 
 Template circuits over Clifford gates.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   clifford_2_1
-   clifford_2_2
-   clifford_2_3
-   clifford_2_4
-   clifford_3_1
-   clifford_4_1
-   clifford_4_2
-   clifford_4_3
-   clifford_4_4
-   clifford_5_1
-   clifford_6_1
-   clifford_6_2
-   clifford_6_3
-   clifford_6_4
-   clifford_6_5
-   clifford_8_1
-   clifford_8_2
-   clifford_8_3
+.. autofunction:: clifford_2_1
+.. autofunction:: clifford_2_2
+.. autofunction:: clifford_2_3
+.. autofunction:: clifford_2_4
+.. autofunction:: clifford_3_1
+.. autofunction:: clifford_4_1
+.. autofunction:: clifford_4_2
+.. autofunction:: clifford_4_3
+.. autofunction:: clifford_4_4
+.. autofunction:: clifford_5_1
+.. autofunction:: clifford_6_1
+.. autofunction:: clifford_6_2
+.. autofunction:: clifford_6_3
+.. autofunction:: clifford_6_4
+.. autofunction:: clifford_6_5
+.. autofunction:: clifford_8_1
+.. autofunction:: clifford_8_2
+.. autofunction:: clifford_8_3
 
 RZXGate template circuits
 -------------------------
 
 Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   rzx_yz
-   rzx_xz
-   rzx_cy
-   rzx_zz1
-   rzx_zz2
-   rzx_zz3
+.. autofunction:: rzx_yz
+.. autofunction:: rzx_xz
+.. autofunction:: rzx_cy
+.. autofunction:: rzx_zz1
+.. autofunction:: rzx_zz2
+.. autofunction:: rzx_zz3
 
 """
 
@@ -499,6 +502,7 @@ from ..reset import Reset
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
+    DiagonalGate,
     MCMT,
     MCMTVChain,
     Permutation,
@@ -512,8 +516,16 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
     LinearFunction,
+    Isometry,
+    UnitaryGate,
+    UCGate,
+    UCPauliRotGate,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
 )
 from .pauli_evolution import PauliEvolutionGate
+from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
     OR,
@@ -549,7 +561,13 @@ from .n_local import (
     ExcitationPreserving,
     QAOAAnsatz,
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap,
+    StatePreparation,
+    Initialize,
+)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState

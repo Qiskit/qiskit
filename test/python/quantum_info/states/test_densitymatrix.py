@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 logger = logging.getLogger(__name__)
 
@@ -1191,6 +1192,8 @@ class TestDensityMatrix(QiskitTestCase):
         state2 = DensityMatrix.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFT(5)
@@ -1218,6 +1221,15 @@ class TestDensityMatrix(QiskitTestCase):
             rho1 = DensityMatrix([[0, 0, 0, -0.5], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [-0.5, 0, 0, 0]])
             self.assertEqual(rho.partial_transpose([0]), DensityMatrix(rho1))
             self.assertEqual(rho.partial_transpose([1]), DensityMatrix(rho1))
+
+        with self.subTest(msg="dims(3,3)"):
+            mat = np.zeros((9, 9))
+            mat1 = np.zeros((9, 9))
+            mat[8, 0] = 1
+            mat1[0, 8] = 1
+            rho = DensityMatrix(mat, dims=(3, 3))
+            rho1 = DensityMatrix(mat1, dims=(3, 3))
+            self.assertEqual(rho.partial_transpose([0, 1]), rho1)
 
     def test_clip_probabilities(self):
         """Test probabilities are clipped to [0, 1]."""

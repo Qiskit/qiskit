@@ -1,18 +1,21 @@
 [package]
 name = "qiskit_accelerate"
-# The following options can be inherited with (e.g.) `version.workspace = true` once we hit Rust
-# 1.64.  Until then, keep in sync with the root `Cargo.toml`.
-version = "0.25.0"
-edition = "2021"
-rust-version = "1.61"
-license = "Apache-2.0"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lib]
 name = "qiskit_accelerate"
 crate-type = ["cdylib"]
 
+[features]
+# This is a test-only shim removable feature.  See the root `Cargo.toml`.
+default = ["extension-module"]
+extension-module = ["pyo3/extension-module"]
+
 [dependencies]
-rayon = "1.7"
+rayon = "1.8"
 numpy = "0.19.0"
 rand = "0.8"
 rand_pcg = "0.3"
@@ -20,22 +23,24 @@ rand_distr = "0.4.3"
 ahash = "0.8.3"
 num-complex = "0.4"
 num-bigint = "0.4"
-rustworkx-core = "0.12"
+rustworkx-core = "0.13"
 
-# The base version of PyO3 and setting a minimum feature set (e.g. probably just 'extension-module')
-# can be done in the workspace and inherited once we hit Rust 1.64.
+[dependencies.smallvec]
+version = "1.11"
+features = ["union"]
+
 [dependencies.pyo3]
-version = "0.19.0"
-features = ["extension-module", "hashbrown", "indexmap", "num-complex", "num-bigint"]
+workspace = true
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.13.2"
+version = "0.14.0"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "1.9"
+version = "2.0.1"
 features = ["rayon"]

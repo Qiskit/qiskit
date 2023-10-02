@@ -24,7 +24,6 @@ from qiskit.quantum_info import (
     Operator,
     PauliList,
     PauliTable,
-    StabilizerTable,
     Stinespring,
 )
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
@@ -34,7 +33,6 @@ from qiskit.quantum_info.random import (
     random_pauli_list,
     random_pauli_table,
     random_quantum_channel,
-    random_stabilizer_table,
     random_unitary,
 )
 from qiskit.test import QiskitTestCase
@@ -59,8 +57,8 @@ class TestRandomUnitary(QiskitTestCase):
         value = random_unitary(dim)
         self.assertIsInstance(value, Operator)
         self.assertTrue(value.is_unitary())
-        self.assertEqual(np.product(value.input_dims()), dim)
-        self.assertEqual(np.product(value.output_dims()), dim)
+        self.assertEqual(np.prod(value.input_dims()), dim)
+        self.assertEqual(np.prod(value.output_dims()), dim)
 
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
@@ -99,8 +97,8 @@ class TestRandomHermitian(QiskitTestCase):
         value = random_hermitian(dim)
         self.assertIsInstance(value, Operator)
         self.assertTrue(is_hermitian_matrix(value.data))
-        self.assertEqual(np.product(value.input_dims()), dim)
-        self.assertEqual(np.product(value.output_dims()), dim)
+        self.assertEqual(np.prod(value.input_dims()), dim)
+        self.assertEqual(np.prod(value.output_dims()), dim)
 
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
@@ -139,8 +137,8 @@ class TestRandomQuantumChannel(QiskitTestCase):
         value = random_quantum_channel(dim)
         self.assertIsInstance(value, Stinespring)
         self.assertTrue(value.is_cptp())
-        self.assertEqual(np.product(value.input_dims()), dim)
-        self.assertEqual(np.product(value.output_dims()), dim)
+        self.assertEqual(np.prod(value.input_dims()), dim)
+        self.assertEqual(np.prod(value.output_dims()), dim)
 
     @combine(rank=[1, 2, 3, 4])
     def test_rank(self, rank):
@@ -280,43 +278,6 @@ class TestRandomPauliList(QiskitTestCase):
         random_pauli_list(10, size=10, seed=seed)
         rng_before = np.random.randint(1000, size=test_cases)
         random_pauli_list(10, seed=seed)
-        rng_after = np.random.randint(1000, size=test_cases)
-        self.assertFalse(np.all(rng_before == rng_after))
-
-
-@ddt
-class TestRandomStabilizerTable(QiskitTestCase):
-    """Testing random_stabilizer_table function."""
-
-    @combine(num_qubits=[1, 2, 3, 4, 5, 10, 50, 100, 200, 250], size=[1, 10, 100])
-    def test_valid(self, num_qubits, size):
-        """Test random_stabilizer_table {num_qubits}-qubits, size {size}."""
-        with self.assertWarns(DeprecationWarning):
-            value = random_stabilizer_table(num_qubits, size=size)
-        with self.subTest(msg="Test type"):
-            self.assertIsInstance(value, StabilizerTable)
-        with self.subTest(msg="Test num_qubits"):
-            self.assertEqual(value.num_qubits, num_qubits)
-        with self.subTest(msg="Test type"):
-            self.assertEqual(len(value), size)
-
-    def test_fixed_seed(self):
-        """Test fixing seed fixes output"""
-        seed = 1532
-        with self.assertWarns(DeprecationWarning):
-            value1 = random_stabilizer_table(10, size=10, seed=seed)
-            value2 = random_stabilizer_table(10, size=10, seed=seed)
-            self.assertEqual(value1, value2)
-
-    def test_not_global_seed(self):
-        """Test fixing random_hermitian seed is locally scoped."""
-        seed = 314159
-        test_cases = 100
-        with self.assertWarns(DeprecationWarning):
-            random_stabilizer_table(10, size=10, seed=seed)
-        rng_before = np.random.randint(1000, size=test_cases)
-        with self.assertWarns(DeprecationWarning):
-            random_stabilizer_table(10, seed=seed)
         rng_after = np.random.randint(1000, size=test_cases)
         self.assertFalse(np.all(rng_before == rng_after))
 
