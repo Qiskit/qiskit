@@ -20,6 +20,7 @@ This table tracks the metapackage versions and the version of each legacy Qiskit
 ==========================  ============  ==========  ============  ====================  ===========  ============
 Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-provider  qiskit-aqua  Release Date
 ==========================  ============  ==========  ============  ====================  ===========  ============
+0.44.2                      0.25.2                                                                     2023-10-02
 0.44.1                      0.25.1                                                                     2023-08-17
 0.44.0                      0.25.0                                                                     2023-07-27
 0.43.3                      0.24.2        0.12.2                    0.20.2                             2023-07-19
@@ -124,6 +125,90 @@ Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-
 
    For the ``0.7.0``, ``0.7.1``, and ``0.7.2`` meta-package releases the
    meta-package versioning strategy was not formalized yet.
+
+#############
+Qiskit 0.44.2
+#############
+
+.. _Release Notes_0.25.2:
+
+Terra 0.25.2
+============
+
+.. _Release Notes_Terra_0.25.2_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.25.2-69e6db49ca39da3f.yaml @ b'57a96b84c58337a4c1b83c141219972e0cf2a2be'
+
+Qiskit Terra 0.25.2 is a small patch release, fixing several bugs found in the 0.25 series.
+
+
+.. _Release Notes_Terra_0.25.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/dd-pg-10833-ddddee68ffd913c4.yaml @ b'382514f9a82967244b8dc4c6364d0fb6b9808d8f'
+
+- Fixed a bug in the :class:`.PadDynamicalDecoupling` transpiler pass which
+  would cause the pass to fail if a circuit contained a pulse gate
+  calibration for one of the gates in the decoupling sequence. Fixed `#10833
+  <https://github.com/Qiskit/qiskit/issues/10833>`_.
+
+.. releasenotes/notes/fix-clifford-from-diagonal-7708654373bd5b8b.yaml @ b'a29b959af14789bdfef6e0f4298481dd2d6d889e'
+
+- Fixed a bug where :meth:`.Clifford.from_matrix` and :meth:`~.Clifford.from_operator`
+  do not fail with non-Clifford diagonal operators (matrices) and return incorrect
+  Clifford objects. This has been corrected so that they raise an error in the cases.
+  Fixed `#10903 <https://github.com/Qiskit/qiskit-terra/issues/10903>`__
+
+.. releasenotes/notes/fix-flow-cregbundle-transpiled-482979d57382b1dc.yaml @ b'6046106caf348824d698912f30c9dd6cee3dddf9'
+
+- Fixed an issue with the matplotlib based visualization in the
+  :meth:`.QuantumCircuit.draw` method and the :func:`~.circuit_drawer`
+  function when visualizing circuits that had control flow instructions.
+  Previously in some situations, especially with a layout set, the output
+  visualization could have put gates inside a control flow block on the
+  wrong wires in the visualization.
+  Fixed `#10601 <https://github.com/Qiskit/qiskit-terra/issues/10601>`__
+
+.. releasenotes/notes/fix-gate-direction-d8bc96b62b27dba8.yaml @ b'93b571bc87f3375b93f2474088fbdfebdc9b31db'
+
+- Fixes a bug with the :class:`.GateDirection` transpiler pass where it
+  unnecessarily raised an exception for input DAGs with more than 1
+  quantum register.
+  Fixed `#10824 <https://github.com/Qiskit/qiskit/issues/10824>`__.
+
+.. releasenotes/notes/fix-qasm2-final-comment-f0904c3e13215a00.yaml @ b'946aa28604bac5f3afde95581afc24a521c06d48'
+
+- OpenQASM 2 programs that end in comments with no terminating newline character will now parse
+  successfully.  Fixed `#10770 <https://github.com/Qiskit/qiskit/issues/10770>`__.
+
+.. releasenotes/notes/fix-qpy-repeated-controlled-gates-e19fc4ee65a22756.yaml @ b'e4b04718f42754b63bc240579d0ad2406980bd15'
+
+- Fixed a bug in QPY serialization (:mod:`qiskit.qpy`) where if a circuit contained
+  multiple instances of parametrized controlled gates of the same class (not custom),
+  the parameter values from the first instance were used to build the gate definitions
+  of subsequent instances. The gates were rendered correctly despite this bug because
+  the correct parameter values were stored, but not used to build the gates. Fixed
+  `#10735 <https://github.com/Qiskit/qiskit-terra/issues/10735>`__.
+
+.. releasenotes/notes/fix_pauli_new_style_bit-0704933127b4debe.yaml @ b'cc0f30cc8a2ea2f10d1eaef49ae53fe27f48f412'
+
+- The class :class:`.Pauli` now supports creation from :class:`.QuantumCircuit`\ s
+  that use new-style :class:`.Bit`\ s.
+
+.. releasenotes/notes/sampler-with-no-measure-6cd3a05555187b58.yaml @ b'391647504ab88cc569e8f678b0053bc1bf5bf0c9'
+
+- Add early validation for :class:`.BaseSampler` when input :class:`.QuantumCircuit` does not
+  have measurements.
+
+.. releasenotes/notes/support-empty-delete-for-pauli-16c5c5fae890c16c.yaml @ b'9361538393340f4b3d4b80cc190c6143974dbbbf'
+
+- Passing an empty list to the methods :meth:`.Pauli.delete`, :meth:`.PauliList.delete`,
+  and :meth:`.PauliTable.delete` now returns a copy of the original object instead of throwing an error.
 
 #############
 Qiskit 0.44.1

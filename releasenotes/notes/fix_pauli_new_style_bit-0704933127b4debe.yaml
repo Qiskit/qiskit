@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    The class :class:`.Pauli` now support creation from :class:`.QuantumCircuit`
-    that use new-style :class:`.Bit`.
+    The class :class:`.Pauli` now supports creation from :class:`.QuantumCircuit`\ s
+    that use new-style :class:`.Bit`\ s.
