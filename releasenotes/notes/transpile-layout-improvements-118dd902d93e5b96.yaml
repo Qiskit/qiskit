@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    Added new methods to :class:`.TranspileLayout`, :meth:`~.TranspileLayout.initial_layout_list`
-    and :meth:`~.TranspileLayout.final_layout_list`, which are used to generate a list view of
+    Added new methods to :class:`.TranspileLayout`, :meth:`~.TranspileLayout.initial_index_layout`
+    and :meth:`~.TranspileLayout.routing_permutation`, which are used to generate a list view of
     the :attr:`.TranspileLayout.initial_layout` and
     :attr:`.TranspileLayout.final_layout` attributes respectively. For example,
     if the :attr:`~.TranspileLayout.final_layout` attribute was::
@@ -14,15 +14,22 @@ features:
           qr[3]: 1,
         })
 
-    then :meth:`~.TranspileLayout.final_layout_list` will return::
+    then :meth:`~.TranspileLayout.routing_permutation` will return::
 
         [2, 3, 0, 1]
-
   - |
-    Added a new method, :meth:`~.TranspileLayout.full_layout`, to the :class:`~.TranspileLayout`
-    class. This method is used to return a full layout as a list to show the output position
-    for each qubit in the input circuit to the transpiler. For example, with
-    an original circuit::
+    Added a new method to :class:`.TranspileLayout`, :meth:`~.TranspileLayout.initial_virtual_layout`,
+    which is equivalent to the :attr:`.TranspileLayout.initial_layout` attribute but gives the option
+    to filter ancilla qubits that were added to the circuit. By default the :attr:`.TranspileLayout.initial_layout`
+    will typically include any ancillas added by the transpiler.
+  - |
+    Added a new methods, :meth:`~.TranspileLayout.final_index_layout` and :meth:`~.TranspileLayout.final_virtual_layout`
+    to the :class:`~.TranspileLayout` class. These methods are used to return a final layout
+    (the mapping of input circuit qubits to the final position in the output). This is distinct
+    from the :attr:`~.TranspileLayout.final_layout` attribute which is the permutation caused by
+    routing as a :class:`.Layout` object. The :meth:`~.TranspileLayout.final_index_layout` method
+    returns a list to showthe output position for each qubit in the input circuit to the transpiler.
+    For example, with an original circuit::
 
         qc = QuantumCircuit(3)
         qc.h(0)
@@ -32,12 +39,21 @@ features:
     and the output from the transpiler was::
 
         tqc = QuantumCircuit(3)
-        qc.h(2)
-        qc.cx(2, 1)
-        qc.swap(0, 1)
-        qc.cx(2, 1)
+        tqc.h(2)
+        tqc.cx(2, 1)
+        tqc.swap(0, 1)
+        tqc.cx(2, 1)
 
-    then the output from :func:`~.TranspileLayout.full_layout` would return a
+    then the output from :meth:`~.TranspileLayout.final_index_layout` would return a
     list of::
 
         [2, 0, 1]
+
+    The :meth:`~.TranspileLayout.final_virtual_layout` returns this as a :class:`.Layout` object,
+    so the return from the above example would be::
+
+        Layout({
+          qc.qubits[0]: 2,
+          qc.qubits[1]: 0,
+          qc.qubits[2]: 1,
+        })

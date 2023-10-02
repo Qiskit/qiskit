@@ -506,7 +506,7 @@ class TranspileLayout:
         )
 
     def initial_index_layout(self, filter_ancillas: bool = False) -> List[int]:
-        """Generate an initial layout as a
+        """Generate an initial layout as an array of integers
 
         Args:
             filter_ancillas: If set to ``True`` any ancilla qubits added
@@ -530,7 +530,7 @@ class TranspileLayout:
         return output
 
     def routing_permutation(self) -> List[int]:
-        """Generate a final layout as a an array of integers
+        """Generate a final layout as an array of integers
 
         If there is no :attr:`.final_layout` attribute present then that indicates
         there was no output permutation caused by routing or other transpiler
@@ -538,7 +538,7 @@ class TranspileLayout:
         to indicate this
 
         Returns:
-            A layout array that maps a position in the array to it's new position in the output
+            A layout array that maps a position in the array to its new position in the output
             circuit
         """
         if self.final_layout is None:
@@ -547,7 +547,7 @@ class TranspileLayout:
         return [virtual_map[virt] for virt in self._output_qubit_list]
 
     def final_index_layout(self, filter_ancillas: bool = True) -> List[int]:
-        """Generate the final layout as a list of integers
+        """Generate the final layout as an array of integers
 
         This method will generate an array of final positions for each qubit in the output circuit.
         For example, if you had an input circuit like::
