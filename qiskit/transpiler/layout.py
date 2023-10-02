@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
-from qiskit.quantum_info.operators.symplectic.sparse_pauli_op import SparsePauliOp
 
 
 class Layout:
@@ -656,17 +655,3 @@ class TranspileLayout:
         res = self.final_index_layout(filter_ancillas=filter_ancillas)
         pos_to_virt = {v: k for k, v in self.input_qubit_mapping.items()}
         return Layout({pos_to_virt[index]: phys for index, phys in enumerate(res)})
-
-    def permute_sparse_pauli_op(self, operator: SparsePauliOp) -> SparsePauliOp:
-        """Permute an operator based on a transpiled circuit's layout
-
-        Args:
-            operator: An input :class:`.SparsePauliOp` to permute according to the
-                permutation caused by the transpiler.
-
-        Return:
-            A new sparse Pauli op which has been permuted according to the output of the transpiler
-        """
-        identity = SparsePauliOp("I" * len(self._output_qubit_list))
-        qargs = self.final_index_layout()
-        return identity.compose(operator, qargs=qargs)

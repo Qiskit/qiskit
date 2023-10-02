@@ -14,17 +14,11 @@
 
 """Tests the layout object"""
 
-import numpy as np
-
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import EfficientSU2
-from qiskit.quantum_info import SparsePauliOp
-from qiskit.primitives import BackendEstimator
-from qiskit.providers.fake_provider import FakeNairobiV2
 
 
 class TranspileLayoutTest(QiskitTestCase):
@@ -188,33 +182,6 @@ class TranspileLayoutTest(QiskitTestCase):
             }
         )
         self.assertEqual(res, expected)
-
-    def test_permute_sparse_pauli_op(self):
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
-        op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
-        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
-        permuted_op = transpiled_psi.layout.permute_sparse_pauli_op(op)
-        identity_op = SparsePauliOp("I" * 7)
-        initial_layout = transpiled_psi.layout.initial_index_layout(filter_ancillas=True)
-        final_layout = transpiled_psi.layout.routing_permutation()
-        qargs = [final_layout[x] for x in initial_layout]
-        expected_op = identity_op.compose(op, qargs=qargs)
-        self.assertNotEqual(op, permuted_op)
-        self.assertEqual(permuted_op, expected_op)
-
-    def test_permute_sparse_pauli_op_estimator_example(self):
-        psi = EfficientSU2(4, reps=4, entanglement="circular")
-        op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
-        backend.set_options(seed_simulator=123)
-        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
-        thetas = list(range(len(psi.parameters)))
-        transpiled_psi = transpile(psi, backend, optimization_level=3)
-        permuted_op = transpiled_psi.layout.permute_sparse_pauli_op(op)
-        job = estimator.run(transpiled_psi, permuted_op, thetas)
-        res = job.result().values
-        np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
 
     def test_routing_permutation(self):
         qr = QuantumRegister(5)
