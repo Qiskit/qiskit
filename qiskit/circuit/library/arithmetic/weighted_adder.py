@@ -261,7 +261,7 @@ class WeightedAdder(BlueprintCircuit):
                         # - controlled by q_state[i]
                         circuit.x(qr_sum[j])
                         circuit.x(qr_carry[j - 1])
-                        circuit.mct(
+                        circuit.mcx(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,

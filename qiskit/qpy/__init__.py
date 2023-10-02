@@ -102,7 +102,7 @@ The QPY serialization format is a portable cross-platform binary
 serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
 file format is as follows:
 
-A QPY file (or memory object) always starts with the following 7
+A QPY file (or memory object) always starts with the following 6
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
 file header. The contents of the file header as defined as a C struct are:
 
@@ -114,6 +114,21 @@ file header. The contents of the file header as defined as a C struct are:
         uint8_t qiskit_minor_version;
         uint8_t qiskit_patch_version;
         uint64_t num_circuits;
+    }
+
+
+From V10 on, a new field is added to the file header struct to represent the
+encoding scheme used for symbolic expressions:
+
+.. code-block:: c
+
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
     }
 
 All values use network byte order [#f1]_ (big endian) for cross platform
@@ -133,12 +148,36 @@ circuits in the data.
 Version 10
 ==========
 
-Version 10 adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
-0.45.0 release. The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
-With version 10 the ``LAYOUT`` struct is now:
+Version 10 adds support for symengine-native serialization for objects of type
+:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks.
+adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
+0.45.0 release.
+
+The symbolic_encoding field is added to the file header, and a new encoding type char
+is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
+encoding and ``e`` refers to symengine encoding.
+
+FILE_HEADER
+-----------
+
+The contents of FILE_HEADER after V10 are defined as a C struct as:
 
 .. code-block:: c
 
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
+    }
+
+LAYOUT
+------
+
+The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
+With version 10 the ``LAYOUT`` struct is now:
     struct {
         char exists;
         int32_t initial_layout_size;
@@ -151,7 +190,6 @@ With version 10 the ``LAYOUT`` struct is now:
 The rest of the layout data after the ``LAYOUT`` struct is represented as in previous versions. If
 ``input qubit_count`` is < 0 that indicates that both ``_input_qubit_count``
 and ``_output_qubit_list`` in the :class:`~.TranspileLayout` object are ``None``.
-
 
 .. _qpy_version_9:
 

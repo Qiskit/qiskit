@@ -18,6 +18,22 @@ import struct
 from collections import namedtuple
 
 
+# FILE_HEADER_V10
+FILE_HEADER_V10 = namedtuple(
+    "FILE_HEADER",
+    [
+        "preface",
+        "qpy_version",
+        "major_version",
+        "minor_version",
+        "patch_version",
+        "num_programs",
+        "symbolic_encoding",
+    ],
+)
+FILE_HEADER_V10_PACK = "!6sBBBBQc"
+FILE_HEADER_V10_SIZE = struct.calcsize(FILE_HEADER_V10_PACK)
+
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",

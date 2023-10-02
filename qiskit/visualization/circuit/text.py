@@ -17,7 +17,6 @@ A module for drawing circuits in ascii art or some other text representation
 from warnings import warn
 from shutil import get_terminal_size
 import collections
-import itertools
 import sys
 
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister
@@ -732,19 +731,27 @@ class TextDrawing:
         self.vertical_compression = vertical_compression
         self._wire_map = {}
 
-        for node in itertools.chain.from_iterable(self.nodes):
-            if node.cargs and node.op.name != "measure":
-                if cregbundle:
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
-                self.cregbundle = False
-                break
-        else:
-            self.cregbundle = True if cregbundle is None else cregbundle
+        def check_clbit_in_inst(circuit, cregbundle):
+            if cregbundle is False:
+                return False
+            for inst in circuit.data:
+                if isinstance(inst.operation, ControlFlowOp):
+                    for block in inst.operation.blocks:
+                        if check_clbit_in_inst(block, cregbundle) is False:
+                            return False
+                elif inst.clbits and not isinstance(inst.operation, Measure):
+                    if cregbundle is not False:
+                        warn(
+                            "Cregbundle set to False since an instruction needs to refer"
+                            " to individual classical wire",
+                            RuntimeWarning,
+                            3,
+                        )
+                    return False
+
+            return True
+
+        self.cregbundle = check_clbit_in_inst(circuit, cregbundle)
 
         if encoding:
             self.encoding = encoding
@@ -1257,7 +1264,13 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, self._wire_map)
+            layer = Layer(
+                self.qubits,
+                self.clbits,
+                self.cregbundle,
+                self._circuit,
+                self._wire_map,
+            )
             for node in node_layer:
                 if isinstance(node.op, ControlFlowOp):
                     self._nest_depth = 0
@@ -1291,25 +1304,27 @@ class TextDrawing:
             # Update the wire_map with the qubits and clbits from the inner circuit
             flow_wire_map = wire_map.copy()
             flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.qargs, circuit.qubits)
+                {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}
             )
-            flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.cargs, circuit.clbits)
-            )
+            for outer, inner in zip(node.cargs, circuit.clbits):
+                if self.cregbundle and (
+                    (in_reg := get_bit_register(self._circuit, inner)) is not None
+                ):
+                    out_reg = get_bit_register(self._circuit, outer)
+                    flow_wire_map.update({in_reg: wire_map[out_reg]})
+                else:
+                    flow_wire_map.update({inner: wire_map[outer]})
+
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
-            qubits, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            _, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
-                    qubits[: len(self.qubits)],
-                    self.clbits,
-                    self.cregbundle,
-                    circuit,
-                    flow_wire_map,
+                    self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map
                 )
                 for layer_node in layer_nodes:
                     if isinstance(layer_node.op, ControlFlowOp):
@@ -1372,7 +1387,13 @@ class TextDrawing:
         else:
             label = "End-" + depth
 
-        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map)
+        flow_layer = Layer(
+            self.qubits,
+            self.clbits,
+            self.cregbundle,
+            self._circuit,
+            flow_wire_map,
+        )
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
             flow_layer.set_qubit(
@@ -1412,7 +1433,9 @@ class TextDrawing:
             )
         if conditional:
             if isinstance(node.op, SwitchCaseOp):
-                if isinstance(node.op.target, Clbit):
+                if isinstance(node.op.target, expr.Expr):
+                    condition = node.op.target
+                elif isinstance(node.op.target, Clbit):
                     condition = (node.op.target, 1)
                 else:
                     condition = (node.op.target, 2 ** (node.op.target.size) - 1)
@@ -1428,9 +1451,7 @@ class Layer:
 
     def __init__(self, qubits, clbits, cregbundle, circuit, wire_map):
         self.qubits = qubits
-        self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
-
         if cregbundle:
             self.clbits = []
             previous_creg = None
@@ -1626,14 +1647,16 @@ class Layer:
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
-            label = "<expression>"
+            label = "[expr]"
             out = []
             condition_bits = node_resources(condition).clbits
             registers = collections.defaultdict(list)
             for bit in condition_bits:
                 registers[get_bit_register(self._circuit, bit)].append(bit)
             if registerless := registers.pop(None, ()):
-                out.extend(self.set_cond_bullets(label, ["1"] * len(registerless), registerless))
+                out.extend(
+                    self.set_cond_bullets(label, ["1"] * len(registerless), registerless, wire_map)
+                )
             if self.cregbundle:
                 # It's hard to do something properly sensible here without more major rewrites, so
                 # as a minimum to *not crash* we'll just treat a condition that touches part of a
@@ -1642,7 +1665,7 @@ class Layer:
                     self.set_clbit(register[0], BoxOnClWire(label=label, top_connect=top_connect))
             else:
                 for register, bits in registers.items():
-                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits))
+                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits, wire_map))
             return out
 
         label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)
