@@ -80,7 +80,7 @@ class UnitaryGate(Gate):
                 input is unitary, setting this to ``False`` and passing in
                 a non-unitary matrix will result unexpected behavior and errors.
 
-        Raises
+        Raises:
             ValueError: If input data is not an N-qubit unitary operator.
         """
         if hasattr(data, "to_matrix"):
