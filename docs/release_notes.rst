@@ -159,7 +159,7 @@ Bug Fixes
 
 .. releasenotes/notes/fix-clifford-from-diagonal-7708654373bd5b8b.yaml @ b'a29b959af14789bdfef6e0f4298481dd2d6d889e'
 
-- Fixed a bug where :meth:`~.Clifford.from_matrix` and :meth:`~.Clifford.from_operator`
+- Fixed a bug where :meth:`.Clifford.from_matrix` and :meth:`~.Clifford.from_operator`
   do not fail with non-Clifford diagonal operators (matrices) and return incorrect
   Clifford objects. This has been corrected so that they raise an error in the cases.
   Fixed `#10903 <https://github.com/Qiskit/qiskit-terra/issues/10903>`__
@@ -197,8 +197,8 @@ Bug Fixes
 
 .. releasenotes/notes/fix_pauli_new_style_bit-0704933127b4debe.yaml @ b'cc0f30cc8a2ea2f10d1eaef49ae53fe27f48f412'
 
-- The class :class:`.Pauli` now support creation from :class:`.QuantumCircuit`
-  that use new-style :class:`.Bit`.
+- The class :class:`.Pauli` now supports creation from :class:`.QuantumCircuit`\ s
+  that use new-style :class:`.Bit`\ s.
 
 .. releasenotes/notes/sampler-with-no-measure-6cd3a05555187b58.yaml @ b'391647504ab88cc569e8f678b0053bc1bf5bf0c9'
 
