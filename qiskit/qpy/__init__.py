@@ -178,6 +178,9 @@ LAYOUT
 
 The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
 With version 10 the ``LAYOUT`` struct is now:
+
+.. code-block:: c
+
     struct {
         char exists;
         int32_t initial_layout_size;
