@@ -31,11 +31,17 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
+from qiskit.providers.models import (
+    PulseDefaults,
+    Command,
+)
+from qiskit.qobj import PulseQobjInstruction
 
 
 class FakeGeneric(BackendV2):
     """
-    Generate a generic fake backend, this backend will have properties and configuration according to the settings passed in the argument.
+    Generate a generic fake backend, this backend will have properties and configuration according
+    to the settings passed in the argument.
 
     Arguments:
         num_qubits:
@@ -50,7 +56,8 @@ class FakeGeneric(BackendV2):
                         This map will be in accordance with the argument coupling_map_type.
 
         coupling_map_type:
-                            Pass in the type of coupling map to be generated. If coupling map is passed then this option will be overriden.
+                            Pass in the type of coupling map to be generated. If coupling map is passed
+                            then this option will be overriden.
                             Valid types of coupling map: 'grid', 'heavy_hex'
 
                             Heavy Hex Lattice Reference:
@@ -82,6 +89,9 @@ class FakeGeneric(BackendV2):
             The system time resolution of input signals in seconds.
             Default is 0.2222ns
 
+        skip_calibration_gates:
+            Optional list of gates where we do not wish to append a calibration schedule.
+
 
 
     Returns:
@@ -104,18 +114,20 @@ class FakeGeneric(BackendV2):
         replace_cx_with_ecr: bool = True,
         enable_reset: bool = True,
         dt: float = 0.222e-9,
+        skip_calibration_gates: Optional[List[str]] = [],
     ):
 
         super().__init__(
             provider=None,
             name="fake_generic",
-            description=f"This {num_qubits} qubit fake generic device, with generic settings has been generated right now!",
+            description=f"This {num_qubits} qubit fake generic device, "
+            f"with generic settings has been generated right now!",
             backend_version="",
         )
 
         self.basis_gates = basis_gates
-        self.__rng = np.random.default_rng(seed=123456789123456)
-        self.__coupling_map_type = coupling_map_type
+        self._rng = np.random.default_rng(seed=123456789123456)
+        self._coupling_map_type = coupling_map_type
         if replace_cx_with_ecr:
             self.basis_gates = list(map(lambda gate: gate.replace("cx", "ecr"), basis_gates))
 
@@ -125,13 +137,13 @@ class FakeGeneric(BackendV2):
             self.basis_gates.append("measure")
 
         if not coupling_map:
-            if self.__coupling_map_type == "heavy_hex":
+            if self._coupling_map_type == "heavy_hex":
                 distance = self._get_cmap_args(num_qubits=num_qubits)
                 coupling_map = CouplingMap().from_heavy_hex(
                     distance=distance, bidirectional=bidirectional_cp_mp
                 )
 
-            elif self.__coupling_map_type == "grid":
+            elif self._coupling_map_type == "grid":
                 num_rows, num_columns = self._get_cmap_args(num_qubits=num_qubits)
                 coupling_map = CouplingMap().from_grid(
                     num_rows=num_rows, num_columns=num_columns, bidirectional=bidirectional_cp_mp
@@ -147,9 +159,9 @@ class FakeGeneric(BackendV2):
             dt=dt,
             qubit_properties=[
                 QubitProperties(
-                    t1=self.__rng.uniform(100e-6, 200e-6),
-                    t2=self.__rng.uniform(100e-6, 200e-6),
-                    frequency=self.__rng.uniform(5e9, 5.5e9),
+                    t1=self._rng.uniform(100e-6, 200e-6),
+                    t2=self._rng.uniform(100e-6, 200e-6),
+                    frequency=self._rng.uniform(5e9, 5.5e9),
                 )
                 for _ in range(num_qubits)
             ],
@@ -175,6 +187,25 @@ class FakeGeneric(BackendV2):
                 Reset(), {(qubit_idx,): None for qubit_idx in range(num_qubits)}
             )
 
+        defaults = self._build_calibration_defaults(skip_calibration_gates)
+
+        inst_map = defaults.instruction_schedule_map
+        for inst in inst_map.instructions:
+            for qarg in inst_map.qubits_with_instruction(inst):
+                try:
+                    qargs = tuple(qarg)
+                except TypeError:
+                    qargs = (qarg,)
+                # Do NOT call .get method. This parses Qpbj immediately.
+                # This operation is computationally expensive and should be bypassed.
+                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
+                if inst in self._target._gate_map:
+                    if inst == "measure":
+                        for qubit in qargs:
+                            self._target._gate_map[inst][(qubit,)].calibration = calibration_entry
+                    elif qargs in self._target._gate_map[inst] and inst != "delay":
+                        self._target._gate_map[inst][qargs].calibration = calibration_entry
+
     @property
     def target(self):
         return self._target
@@ -184,7 +215,7 @@ class FakeGeneric(BackendV2):
         return None
 
     def _get_cmap_args(self, num_qubits):
-        if self.__coupling_map_type == "heavy_hex":
+        if self._coupling_map_type == "heavy_hex":
             for d in range(3, 20, 2):
                 # The description of the formula: 5*d**2 - 2*d -1 is explained in
                 # https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022 Page 011022-4
@@ -192,20 +223,21 @@ class FakeGeneric(BackendV2):
                 if n >= num_qubits:
                     return int(d)
 
-        elif self.__coupling_map_type == "grid":
+        elif self._coupling_map_type == "grid":
             factors = [x for x in range(2, num_qubits + 1) if num_qubits % x == 0]
             first_factor = statistics.median_high(factors)
             second_factor = int(num_qubits / first_factor)
             return (first_factor, second_factor)
 
     def _get_instruction_dict(self, num_qubits, coupling_map):
+
         instruction_dict = {
             "ecr": (
                 ECRGate(),
                 {
                     edge: InstructionProperties(
-                        error=self.__rng.uniform(1e-5, 5e-3),
-                        duration=self.__rng.uniform(1e-8, 9e-7),
+                        error=self._rng.uniform(1e-5, 5e-3),
+                        duration=self._rng.uniform(1e-8, 9e-7),
                     )
                     for edge in coupling_map
                 },
@@ -214,8 +246,8 @@ class FakeGeneric(BackendV2):
                 CXGate(),
                 {
                     edge: InstructionProperties(
-                        error=self.__rng.uniform(1e-5, 5e-3),
-                        duration=self.__rng.uniform(1e-8, 9e-7),
+                        error=self._rng.uniform(1e-5, 5e-3),
+                        duration=self._rng.uniform(1e-8, 9e-7),
                     )
                     for edge in coupling_map
                 },
@@ -238,8 +270,8 @@ class FakeGeneric(BackendV2):
                 SXGate(),
                 {
                     (qubit_idx,): InstructionProperties(
-                        error=self.__rng.uniform(1e-6, 1e-4),
-                        duration=self.__rng.uniform(1e-8, 9e-7),
+                        error=self._rng.uniform(1e-6, 1e-4),
+                        duration=self._rng.uniform(1e-8, 9e-7),
                     )
                     for qubit_idx in range(num_qubits)
                 },
@@ -248,8 +280,8 @@ class FakeGeneric(BackendV2):
                 XGate(),
                 {
                     (qubit_idx,): InstructionProperties(
-                        error=self.__rng.uniform(1e-6, 1e-4),
-                        duration=self.__rng.uniform(1e-8, 9e-7),
+                        error=self._rng.uniform(1e-6, 1e-4),
+                        duration=self._rng.uniform(1e-8, 9e-7),
                     )
                     for qubit_idx in range(num_qubits)
                 },
@@ -258,8 +290,8 @@ class FakeGeneric(BackendV2):
                 Measure(),
                 {
                     (qubit_idx,): InstructionProperties(
-                        error=self.__rng.uniform(1e-3, 1e-1),
-                        duration=self.__rng.uniform(1e-8, 9e-7),
+                        error=self._rng.uniform(1e-3, 1e-1),
+                        duration=self._rng.uniform(1e-8, 9e-7),
                     )
                     for qubit_idx in range(num_qubits)
                 },
@@ -274,6 +306,92 @@ class FakeGeneric(BackendV2):
     @classmethod
     def _default_options(cls):
         return Options(shots=1024)
+
+    def _build_calibration_defaults(self, skip_calibration_gates) -> PulseDefaults:
+        """Build calibration defaults."""
+
+        qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
+        meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
+        pulse_library = [
+            {"name": "test_pulse_1", "samples": [[0.0, 0.0], [0.0, 0.1]]},
+            {"name": "test_pulse_2", "samples": [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]},
+            {"name": "test_pulse_3", "samples": [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]},
+            {
+                "name": "test_pulse_4",
+                "samples": 7 * [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]],
+            },
+        ]
+
+        measure_command_sequence = [
+            PulseQobjInstruction(
+                name="acquire",
+                duration=10,
+                t0=0,
+                qubits=list(range(self.num_qubits)),
+                memory_slot=list(range(self.num_qubits)),
+            ).to_dict()
+        ]
+        measure_command_sequence += [
+            PulseQobjInstruction(name="test_pulse_1", ch=f"m{i}", t0=0).to_dict()
+            for i in range(self.num_qubits)
+        ]
+
+        measure_command = Command.from_dict(
+            {
+                "name": "measure",
+                "qubits": list(range(self.num_qubits)),
+                "sequence": measure_command_sequence,
+            }
+        ).to_dict()
+
+        cmd_def = [measure_command]
+
+        for gate in self.basis_gates:
+            for i in range(self.num_qubits):
+                sequence = []
+                if gate not in skip_calibration_gates:
+                    sequence = [
+                        PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0").to_dict(),
+                        PulseQobjInstruction(name="test_pulse_3", ch=f"d{i}", t0=0).to_dict(),
+                    ]
+                cmd_def.append(
+                    Command.from_dict(
+                        {
+                            "name": gate,
+                            "qubits": [i],
+                            "sequence": sequence,
+                        }
+                    ).to_dict()
+                )
+
+        for qubit1, qubit2 in self.coupling_map:
+            sequence = []
+            if gate not in skip_calibration_gates:
+                sequence = [
+                    PulseQobjInstruction(name="test_pulse_1", ch=f"d{qubit1}", t0=0).to_dict(),
+                    PulseQobjInstruction(name="test_pulse_2", ch=f"u{qubit1}", t0=10).to_dict(),
+                    PulseQobjInstruction(name="test_pulse_1", ch=f"d{qubit2}", t0=20).to_dict(),
+                    PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1).to_dict(),
+                ]
+            cmd_def += [
+                Command.from_dict(
+                    {
+                        "name": "cx",
+                        "qubits": [qubit1, qubit2],
+                        "sequence": sequence,
+                    }
+                ).to_dict()
+            ]
+
+        return PulseDefaults.from_dict(
+            {
+                "qubit_freq_est": qubit_freq_est,
+                "meas_freq_est": meas_freq_est,
+                "buffer": 0,
+                "pulse_library": pulse_library,
+                "cmd_def": cmd_def,
+            }
+        )
 
     def run(self, circuit, **kwargs):
         noise_model = None
