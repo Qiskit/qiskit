@@ -63,11 +63,22 @@ class UnitaryGate(Gate):
             circuit.append(gate, [0, 1])
     """
 
-    def __init__(self, data: numpy.ndarray | Gate | BaseOperator, label: str | None = None) -> None:
-        """
+    def __init__(
+        self,
+        data: numpy.ndarray | Gate | BaseOperator,
+        label: str | None = None,
+        check_input: bool = True,
+    ) -> None:
+        """Create a gate from a numeric unitary matrix.
+
         Args:
             data: Unitary operator.
             label: Unitary name for backend [Default: None].
+            check_input: If set to ``False`` this asserts the input
+                is known to be unitary and the checking to validate this will
+                be skipped. This should only ever be used if you know the
+                input is unitary, setting this to ``False`` and passing in
+                a non-unitary matrix will result unexpected behavior and errors.
 
         Raises:
             ValueError: If input data is not an N-qubit unitary operator.
@@ -82,16 +93,16 @@ class UnitaryGate(Gate):
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
         # Convert to numpy array in case not already an array
-        data = numpy.array(data, dtype=complex)
-        # Check input is unitary
-        if not is_unitary_matrix(data):
-            raise ValueError("Input matrix is not unitary.")
-        # Check input is N-qubit matrix
+        data = numpy.asarray(data, dtype=complex)
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2**num_qubits != input_dim:
-            raise ValueError("Input matrix is not an N-qubit operator.")
-
+        if check_input:
+            # Check input is unitary
+            if not is_unitary_matrix(data):
+                raise ValueError("Input matrix is not unitary.")
+            # Check input is N-qubit matrix
+            if input_dim != output_dim or 2**num_qubits != input_dim:
+                raise ValueError("Input matrix is not an N-qubit operator.")
         # Store instruction params
         super().__init__("unitary", num_qubits, [data], label=label)
 
