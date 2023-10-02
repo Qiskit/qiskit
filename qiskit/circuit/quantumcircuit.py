@@ -2127,10 +2127,10 @@ class QuantumCircuit:
         )
 
         cpy._data.extend(
-            [
+            (
                 instruction.replace(operation=operation_copies[id(instruction.operation)])
                 for instruction in self._data
-            ]
+            )
         )
 
         return cpy
