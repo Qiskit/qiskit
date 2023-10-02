@@ -159,6 +159,11 @@ between two different circuits.  In this case, one can use :func:`structurally_e
 suitable "key" functions to do the comparison.
 
 .. autofunction:: structurally_equivalent
+
+Some expressions have associated memory locations with them, and some may be purely temporaries.
+You can use :func:`is_lvalue` to determine whether an expression has such a memory backing.
+
+.. autofunction:: is_lvalue
 """
 
 __all__ = [
@@ -171,6 +176,7 @@ __all__ = [
     "ExprVisitor",
     "iter_vars",
     "structurally_equivalent",
+    "is_lvalue",
     "lift",
     "cast",
     "bit_not",
@@ -190,7 +196,7 @@ __all__ = [
 ]
 
 from .expr import Expr, Var, Value, Cast, Unary, Binary
-from .visitors import ExprVisitor, iter_vars, structurally_equivalent
+from .visitors import ExprVisitor, iter_vars, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
     cast,
