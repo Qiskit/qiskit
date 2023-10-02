@@ -27,7 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
-from qiskit.qobj import Qobj, QobjHeader
+from qiskit.qobj import QasmQobj, PulseQobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def assemble(
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
     **run_config: Dict,
-) -> Qobj:
+) -> Union[QasmQobj, PulseQobj]:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
 
     This function serializes the payloads, which could be either circuits or schedules,
@@ -113,8 +113,8 @@ def assemble(
             ``n_qubits.``
         schedule_los: Experiment level (ie circuit or schedule) LO frequency configurations for
             qubit drive and measurement channels. These values override the job level values from
-            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
-            and pulse jobs.
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for
+            OpenQASM 2 and pulse jobs.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.
 

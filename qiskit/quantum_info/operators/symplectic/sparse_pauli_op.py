@@ -467,8 +467,9 @@ class SparsePauliOp(LinearOp):
         paulis_z = self.paulis.z[non_zero]
         nz_coeffs = self.coeffs[non_zero]
 
-        # Pack bool vectors into np.uint8 vectors by np.packbits
-        array = np.packbits(paulis_x, axis=1) * 256 + np.packbits(paulis_z, axis=1)
+        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
+            paulis_z, axis=1
+        )
         indexes, inverses = unordered_unique(array)
 
         if np.all(non_zero) and indexes.shape[0] == array.shape[0]:

@@ -12,12 +12,15 @@
 
 """Initialize qubit registers to desired arbitrary state."""
 
+from qiskit.circuit.library import (
+    UCPauliRotGate,
+    UCRZGate,
+    UCRYGate,
+    UCRXGate,
+    DiagonalGate,
+    UCGate,
+    Isometry,
+    Initialize,
+)
+
 from .squ import SingleQubitUnitary
-from .uc_pauli_rot import UCPauliRotGate
-from .ucrz import UCRZGate
-from .ucry import UCRYGate
-from .ucrx import UCRXGate
-from .diagonal import DiagonalGate
-from .uc import UCGate
-from .isometry import Isometry
-from .initializer import Initialize
