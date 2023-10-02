@@ -35,65 +35,27 @@ __all__ = [
     "lift_legacy_condition",
 ]
 
-import enum
 import typing
 
 from .expr import Expr, Var, Value, Unary, Binary, Cast
+from ..types import CastKind, cast_kind
 from .. import types
 
 if typing.TYPE_CHECKING:
     import qiskit
 
 
-class _CastKind(enum.Enum):
-    EQUAL = enum.auto()
-    """The two types are equal; no cast node is required at all."""
-    IMPLICIT = enum.auto()
-    """The 'from' type can be cast to the 'to' type implicitly.  A ``Cast(implicit=True)`` node is
-    the minimum required to specify this."""
-    LOSSLESS = enum.auto()
-    """The 'from' type can be cast to the 'to' type explicitly, and the cast will be lossless.  This
-    requires a ``Cast(implicit=False)`` node, but there's no danger from inserting one."""
-    DANGEROUS = enum.auto()
-    """The 'from' type has a defined cast to the 'to' type, but depending on the value, it may lose
-    data.  A user would need to manually specify casts."""
-    NONE = enum.auto()
-    """There is no casting permitted from the 'from' type to the 'to' type."""
-
-
-def _uint_cast(from_: types.Uint, to_: types.Uint, /) -> _CastKind:
-    if from_.width == to_.width:
-        return _CastKind.EQUAL
-    if from_.width < to_.width:
-        return _CastKind.LOSSLESS
-    return _CastKind.DANGEROUS
-
-
-_ALLOWED_CASTS = {
-    (types.Bool, types.Bool): lambda _a, _b, /: _CastKind.EQUAL,
-    (types.Bool, types.Uint): lambda _a, _b, /: _CastKind.LOSSLESS,
-    (types.Uint, types.Bool): lambda _a, _b, /: _CastKind.IMPLICIT,
-    (types.Uint, types.Uint): _uint_cast,
-}
-
-
-def _cast_kind(from_: types.Type, to_: types.Type, /) -> _CastKind:
-    if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
-        return _CastKind.NONE
-    return coercer(from_, to_)
-
-
 def _coerce_lossless(expr: Expr, type: types.Type) -> Expr:
     """Coerce ``expr`` to ``type`` by inserting a suitable :class:`Cast` node, if the cast is
     lossless.  Otherwise, raise a ``TypeError``."""
-    kind = _cast_kind(expr.type, type)
-    if kind is _CastKind.EQUAL:
+    kind = cast_kind(expr.type, type)
+    if kind is CastKind.EQUAL:
         return expr
-    if kind is _CastKind.IMPLICIT:
+    if kind is CastKind.IMPLICIT:
         return Cast(expr, type, implicit=True)
-    if kind is _CastKind.LOSSLESS:
+    if kind is CastKind.LOSSLESS:
         return Cast(expr, type, implicit=False)
-    if kind is _CastKind.DANGEROUS:
+    if kind is CastKind.DANGEROUS:
         raise TypeError(f"cannot cast '{expr}' to '{type}' without loss of precision")
     raise TypeError(f"no cast is defined to take '{expr}' to '{type}'")
 
@@ -198,7 +160,7 @@ def cast(operand: typing.Any, type: types.Type, /) -> Expr:
             Cast(Value(5, types.Uint(32)), types.Uint(8), implicit=False)
     """
     operand = lift(operand)
-    if _cast_kind(operand.type, type) is _CastKind.NONE:
+    if cast_kind(operand.type, type) is CastKind.NONE:
         raise TypeError(f"cannot cast '{operand}' to '{type}'")
     return Cast(operand, type)
 
