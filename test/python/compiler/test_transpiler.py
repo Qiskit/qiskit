@@ -51,7 +51,6 @@ from qiskit.circuit.library import (
     RYGate,
     RZGate,
     SXGate,
-    U1Gate,
     U2Gate,
     UGate,
     XGate,
@@ -1857,7 +1856,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         transpiled = transpile(
             self._control_flow_expr_circuit(),
             backend=backend,
-            basis_gates=backend.configuration().basis_gates
+            basis_gates=backend.basis_gates
             + ["if_else", "for_loop", "while_loop", "switch_case"],
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
@@ -1925,11 +1924,6 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qasm3_output_control_flow_expr(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
         dumped into OpenQASM 3."""
-#         backend = FakeMumbaiV2()
-#         backend.target.add_instruction(IfElseOp, name="if_else")
-#         backend.target.add_instruction(ForLoopOp, name="for_loop")
-#         backend.target.add_instruction(WhileLoopOp, name="while_loop")
-#         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=FakeGeneric(num_qubits=27, dynamic=True),
@@ -1986,7 +1980,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 vf2_post_layout_called = True
                 self.assertIsNotNone(kwargs["property_set"]["post_layout"])
 
-        backend = FakeGeneric(num_qubits=5, coupling_map=[[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]])
+        backend = FakeGeneric(num_qubits=5, coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]])
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
@@ -2146,10 +2140,10 @@ class TestTranspileParallel(QiskitTestCase):
 
         backend = FakeGeneric(num_qubits=4)
 
-        # This target has PulseQobj entries that provides a serialized schedule data
+        # This target has PulseQobj entries that provide a serialized schedule data
         pass_ = TestAddCalibration(backend.target)
         pm = PassManager(passes=[pass_])
-        # self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
+        self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
 
         qc = QuantumCircuit(1)
         qc.sx(0)
@@ -2764,7 +2758,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
-        # This shoulde be in the first ocmponent
+        # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
         op_node = tqc_dag._multi_graph.find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
