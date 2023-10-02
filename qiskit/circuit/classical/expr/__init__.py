@@ -39,8 +39,8 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
-The entry point from general circuit objects to the expression system is by wrapping the object
-in a :class:`Var` node and associating a :class:`~.types.Type` with it.
+The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed runtime
+variable, or a wrapper around an old-style :class:`.Clbit` or :class:`.ClassicalRegister`.
 
 .. autoclass:: Var
 
@@ -86,9 +86,17 @@ suitable :class:`Cast` nodes.
 The functions and methods described in this section are a more user-friendly way to build the
 expression tree, while staying close to the internal representation.  All these functions will
 automatically lift valid Python scalar values into corresponding :class:`Var` or :class:`Value`
-objects, and will resolve any required implicit casts on your behalf.
+objects, and will resolve any required implicit casts on your behalf.  If you want to directly use
+some scalar value as an :class:`Expr` node, you can manually lift it yourself.
 
 .. autofunction:: lift
+
+Typically you should create memory-owning :class:`Var` instances by using the
+:meth:`.QuantumCircuit.add_var` method to declare them in some circuit context, since a
+:class:`.QuantumCircuit` will not accept an :class:`Expr` that contains variables that are not
+already declared in it, since it needs to know how to allocate the storage and how the variable will
+be initialised.  However, should you want to do this manually, you should use the low-level
+:meth:`Var.new` call to safely generate a named variable for usage.
 
 You can manually specify casts in cases where the cast is allowed in explicit form, but may be
 lossy (such as the cast of a higher precision :class:`~.types.Uint` to a lower precision one).
