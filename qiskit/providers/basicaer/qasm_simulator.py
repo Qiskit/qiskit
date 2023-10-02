@@ -12,7 +12,7 @@
 
 """Contains a (slow) Python simulator.
 
-It simulates a qasm quantum circuit (an experiment) that has been compiled
+It simulates an OpenQASM 2 quantum circuit (an experiment) that has been compiled
 to run on the simulator. It is exponential in the number of qubits.
 
 The simulator is run using
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 class QasmSimulatorPy(BackendV1):
-    """Python implementation of a qasm simulator."""
+    """Python implementation of an OpenQASM 2 simulator."""
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
