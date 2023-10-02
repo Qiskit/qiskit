@@ -468,9 +468,9 @@ class TranspileLayout:
         position after routing. It is **not** a mapping from the original
         input circuit's position to the final position at the end of the
         transpiled circuit. If you need this you can use the
-        :meth:`.full_layout` to generate this. If this is set to ``None`` this
-        indicates that routing was not run and it can be considered equivalent
-        to a trivial layout with the qubits from the output circuit's
+        :meth:`.final_index_layout` to generate this. If this is set to ``None``
+        this indicates that routing was not run and it can be considered
+        equivalent to a trivial layout with the qubits from the output circuit's
         :attr:`~.QuantumCircuit.qubits` list.
     """
 

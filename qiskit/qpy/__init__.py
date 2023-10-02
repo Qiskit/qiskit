@@ -149,8 +149,8 @@ Version 10
 ==========
 
 Version 10 adds support for symengine-native serialization for objects of type
-:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks.
-adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
+:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks. Version
+10 also adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
 0.45.0 release.
 
 The symbolic_encoding field is added to the file header, and a new encoding type char
