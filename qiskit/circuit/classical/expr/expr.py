@@ -31,6 +31,7 @@ __all__ = [
 import abc
 import enum
 import typing
+import uuid
 
 from .. import types
 
@@ -108,24 +109,56 @@ class Cast(Expr):
 
 @typing.final
 class Var(Expr):
-    """A classical variable."""
+    """A classical variable.
 
-    __slots__ = ("var",)
+    These variables take two forms: a new-style variable that owns its storage location and has an
+    associated name; and an old-style variable that wraps a :class:`.Clbit` or
+    :class:`.ClassicalRegister` instance that is owned by some containing circuit.  In general,
+    construction of variables for use in programs should use :meth:`Var.new` or
+    :meth:`.QuantumCircuit.add_var`."""
+
+    __slots__ = ("var", "name")
 
     def __init__(
-        self, var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, type: types.Type
+        self,
+        var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister | uuid.UUID,
+        type: types.Type,
+        *,
+        name: str | None = None,
     ):
         self.type = type
         self.var = var
+        """A reference to the backing data storage of the :class:`Var` instance.  When lifting
+        old-style :class:`.Clbit` or :class:`.ClassicalRegister` instances into a :class:`Var`,
+        this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`.  If the variable is a
+        new-style classical variable (one that owns its own storage separate to the old
+        :class:`.Clbit`/:class:`.ClassicalRegister` model), this field will be a :class:`~uuid.UUID`
+        to uniquely identify it."""
+        self.name = name
+        """The name of the variable.  This is required to exist if the backing :attr:`var` attribute
+        is a :class:`~uuid.UUID`, i.e. if it is a new-style variable, and must be ``None`` if it is
+        an old-style variable."""
+
+    @classmethod
+    def new(cls, name: str, type: types.Type) -> typing.Self:
+        """Generate a new named variable that owns its own backing storage."""
+        return cls(uuid.uuid4(), type, name=name)
 
     def accept(self, visitor, /):
         return visitor.visit_var(self)
 
     def __eq__(self, other):
-        return isinstance(other, Var) and self.type == other.type and self.var == other.var
+        return (
+            isinstance(other, Var)
+            and self.type == other.type
+            and self.var == other.var
+            and self.name == other.name
+        )
 
     def __repr__(self):
-        return f"Var({self.var}, {self.type})"
+        if self.name is None:
+            return f"Var({self.var}, {self.type})"
+        return f"Var({self.var}, {self.type}, name='{self.name}')"
 
 
 @typing.final
