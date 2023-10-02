@@ -130,11 +130,7 @@ Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-
 Qiskit 0.44.2
 #############
 
-===================
-Release Notes_Terra
-===================
-
-.. _Release Notes_Terra_0.25.2:
+.. _Release Notes_0.25.2:
 
 Terra 0.25.2
 ============
