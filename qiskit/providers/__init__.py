@@ -64,9 +64,9 @@ just for Terra's supported versions. Part of this lengthy window prior to
 deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
 prior to bumping their version. For example, let's say we changed the signature
-to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way, before
-Aer could update its :class:`~qiskit.providers.aer.aerbackend.AerBackend` class
-to use version 34 they'd need to deprecate the old signature prior to switching
+to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way. Before
+Aer could update its :class:`~qiskit_aer.AerSimulator` class
+to be based on version 34 they'd need to deprecate the old signature prior to switching
 over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
 need to ensure there is a sufficient amount of time for Aer to complete its
 deprecation cycle prior to removing version 33 (ie making version 34
@@ -125,13 +125,11 @@ Job Status
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   QiskitBackendNotFoundError
-   BackendPropertyError
-   JobError
-   JobTimeoutError
+.. autoexception:: QiskitBackendNotFoundError
+.. autoexception:: BackendPropertyError
+.. autoexception:: JobError
+.. autoexception:: JobTimeoutError
+.. autoexception:: BackendConfigurationError
 
 ======================
 Writing a New Provider
@@ -628,7 +626,7 @@ post-processing, batching, caching, error mitigation, etc. The concept of
 the :mod:`qiskit.primitives` module is to explicitly enable this as the
 primitive objects are higher level abstractions to produce processed higher
 level outputs (such as probability distributions and expectation values)
-that abstract away the mechanics of getting the best result efficienctly, to
+that abstract away the mechanics of getting the best result efficiently, to
 concentrate on higher level applications using these outputs.
 
 For example, if your backends were well suited to leverage
@@ -737,13 +735,13 @@ with :obj:`~BackendV2`:
      -
    * - ``backend.properties().readout_error(0)``
      - ``backend.target["measure"][(0,)].error``
-     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.Measure`
+     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.library.Measure`
        operation on a given qubit is used to model the readout error. However a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
    * - ``backend.properties().readout_length(0)``
      - ``backend.target["measure"][(0,)].duration``
-     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.Measure`
+     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.library.Measure`
        operation on a given qubit is used to model the readout length. However, a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
@@ -777,7 +775,6 @@ from qiskit.providers.exceptions import (
 from qiskit.providers.jobstatus import JobStatus
 
 
-# Allow extending this namespace.
-# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
-# qiskit-ibmq-provider package is retired/archived.
+# Support for the deprecated extending this namespace.
+# Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)

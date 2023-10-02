@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from ._utils import _ctrl_state_to_int
 
@@ -55,7 +55,9 @@ def add_control(
         # attempt decomposition
         operation._define()
     cgate = control(operation, num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
-    cgate.base_gate.label = operation.label
+    if operation.label is not None:
+        cgate.base_gate = cgate.base_gate.to_mutable()
+        cgate.base_gate.label = operation.label
     return cgate
 
 
@@ -103,7 +105,7 @@ def control(
     if operation.name == "x" or (
         isinstance(operation, controlledgate.ControlledGate) and operation.base_gate.name == "x"
     ):
-        controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
+        controlled_circ.mcx(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
@@ -124,7 +126,7 @@ def control(
         for instruction in definition.data:
             gate, qargs = instruction.operation, instruction.qubits
             if gate.name == "x":
-                controlled_circ.mct(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
+                controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
             elif gate.name == "rx":
                 controlled_circ.mcrx(
                     gate.definition.data[0].operation.params[0],
@@ -148,6 +150,7 @@ def control(
                     q_target[bit_indices[qargs[0]]],
                     use_basis_gates=True,
                 )
+                continue
             elif gate.name == "p":
                 from qiskit.circuit.library import MCPhaseGate
 
@@ -156,7 +159,7 @@ def control(
                     q_control[:] + [q_target[bit_indices[qargs[0]]]],
                 )
             elif gate.name == "cx":
-                controlled_circ.mct(
+                controlled_circ.mcx(
                     q_control[:] + [q_target[bit_indices[qargs[0]]]],
                     q_target[bit_indices[qargs[1]]],
                     q_ancillae,
@@ -184,13 +187,9 @@ def control(
                             use_basis_gates=True,
                         )
                     elif theta == 0 and phi == 0:
-                        controlled_circ.mcrz(
-                            lamb, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+                        controlled_circ.mcp(lamb, q_control, q_target[bit_indices[qargs[0]]])
                     else:
-                        controlled_circ.mcrz(
-                            lamb, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+                        controlled_circ.mcp(lamb, q_control, q_target[bit_indices[qargs[0]]])
                         controlled_circ.mcry(
                             theta,
                             q_control,
@@ -198,9 +197,7 @@ def control(
                             q_ancillae,
                             use_basis_gates=True,
                         )
-                        controlled_circ.mcrz(
-                            phi, q_control, q_target[bit_indices[qargs[0]]], use_basis_gates=True
-                        )
+                        controlled_circ.mcp(phi, q_control, q_target[bit_indices[qargs[0]]])
             elif gate.name == "z":
                 controlled_circ.h(q_target[bit_indices[qargs[0]]])
                 controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)

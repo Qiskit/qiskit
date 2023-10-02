@@ -21,11 +21,8 @@ the :mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qis
 ..  attention::
 
     Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
-    can be replaced with instances of the:
-
-    - Aer primitives (:class:`qiskit_aer.primitives.Sampler`, :class:`qiskit_aer.primitives.Estimator`)
-    - Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`, :class:`qiskit_ibm_runtime.Estimator`)
-    - Terra backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
+    can be replaced with instances of any primitive implementation. For example Aer primitives (:class:`qiskit_aer.primitives.Sampler`/:class:`qiskit_aer.primitives.Estimator`) or IBM's Qiskit Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`/:class:`qiskit_ibm_runtime.Estimator`).
+    Specific backends can be wrapped with (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`) to also present primitive-compatible interfaces.
 
     Certain classes, such as the
     :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
@@ -1007,8 +1004,8 @@ delayed synthesis of the gates or efficient transpilation of the circuits, so th
     (for example, :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE`\).
 
     In a similar manner, the :class:`qiskit.opflow.evolutions.MatrixEvolution` class performs evolution by classical matrix exponentiation,
-    constructing a circuit with :class:`.UnitaryGate`\s or :class:`.HamiltonianGate`\s containing the exponentiation of the operator.
-    This class is no longer necessary, as the :class:`.HamiltonianGate`\s can be directly handled by the algorithms.
+    constructing a circuit with :class:`~.library.UnitaryGate`\s or :class:`~.library.HamiltonianGate`\s containing the exponentiation of the operator.
+    This class is no longer necessary, as the :class:`~.library.HamiltonianGate`\s can be directly handled by the algorithms.
 
 Trotterizations
 ---------------
@@ -1049,7 +1046,7 @@ Other Evolution Classes
      - No direct replacement. The workflow no longer requires a specific operator for evolutions.
 
    * - :class:`~qiskit.opflow.evolutions.MatrixEvolution`
-     - :class:`.HamiltonianGate`
+     - :class:`~.library.HamiltonianGate`
 
    * - :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution`
      - :class:`.PauliEvolutionGate`

@@ -271,7 +271,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 initial_point = validate_initial_point(initial_points[step - 1], self.ansatz)
 
             if step > 1:
-                prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
+                prev_states.append(self.ansatz.assign_parameters(result.optimal_points[-1]))
 
             self._eval_count = 0
             energy_evaluation = self._get_evaluate_energy(
@@ -448,7 +448,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             else np.array([opt_result.x])
         )
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
-        result.optimal_values = np.concatenate([result.optimal_points, [opt_result.x]])
+        result.optimal_values = np.concatenate([result.optimal_values, [opt_result.fun]])
         result.cost_function_evals = np.concatenate([result.cost_function_evals, [opt_result.nfev]])
         result.optimizer_times = np.concatenate([result.optimizer_times, [eval_time]])
         result.eigenvalues.append(opt_result.fun + 0j)

@@ -65,7 +65,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         result = varqrte.evolve(evolution_problem)
 
         final_parameters = result.parameter_values[-1]
-        final_state = Statevector(circuit.bind_parameters(final_parameters)).to_dict()
+        final_state = Statevector(circuit.assign_parameters(final_parameters)).to_dict()
         final_expected_state = expected_state(final_time)
 
         for key, expected_value in final_state.items():

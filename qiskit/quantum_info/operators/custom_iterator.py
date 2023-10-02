@@ -13,6 +13,7 @@
 Custom Lazy Iterator class
 """
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
 
 
@@ -26,7 +27,7 @@ class CustomIterator(ABC):
     @abstractmethod
     def __getitem__(self, key):
         """Get next item"""
-        # This method should be overriden for lazy conversion of
+        # This method should be overridden for lazy conversion of
         # iterator only at a given key value
         pass
 

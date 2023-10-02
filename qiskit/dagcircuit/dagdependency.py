@@ -19,6 +19,7 @@ from collections import OrderedDict, defaultdict
 
 import rustworkx as rx
 
+from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
@@ -47,7 +48,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class DAGDependency:
-    """Object to represent a quantum circuit as a directed acyclic graph
+    """Object to represent a quantum circuit as a Directed Acyclic Graph (DAG)
     via operation dependencies (i.e. lack of commutation).
 
     The nodes in the graph are operations represented by quantum gates.
@@ -142,7 +143,7 @@ class DAGDependency:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
-            {'gate_name': {(qubits, params): schedule}}
+        ``{'gate_name': {(qubits, params): schedule}}``.
         """
         return dict(self._calibrations)
 
@@ -394,11 +395,8 @@ class DAGDependency:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                if isinstance(operation.condition[0], Clbit):
-                    condition_bits = [operation.condition[0]]
-                else:
-                    condition_bits = operation.condition[0]
-                cindices_list = [self.clbits.index(clbit) for clbit in condition_bits]
+                cond_bits = condition_resources(operation.condition).clbits
+                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
         else:
@@ -532,8 +530,7 @@ class DAGDependency:
                          'color' (default): color input/output/op nodes
 
         Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file,
-                otherwise None.
+            Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
@@ -591,8 +588,10 @@ class DAGDependency:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if nd.op.condition:
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_resources(cond).clbits)
 
         # Create replacement node
         new_node = self._create_op_node(

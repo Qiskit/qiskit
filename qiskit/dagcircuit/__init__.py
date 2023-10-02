@@ -17,8 +17,8 @@ DAG Circuits (:mod:`qiskit.dagcircuit`)
 
 .. currentmodule:: qiskit.dagcircuit
 
-DAG Circuits
-============
+Circuits as Directed Acyclic Graphs
+===================================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -34,13 +34,11 @@ DAG Circuits
 Exceptions
 ==========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   DAGCircuitError
+.. autoexception:: DAGCircuitError
+.. autoexception:: DAGDependencyError
 """
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
-from .exceptions import DAGCircuitError
+from .exceptions import DAGCircuitError, DAGDependencyError
 from .dagdependency import DAGDependency

@@ -11,12 +11,12 @@
 # that they have been altered from the originals.
 
 """Dynamical Decoupling insertion pass."""
+from __future__ import annotations
 
 import logging
-from typing import List, Optional
-
 import numpy as np
-from qiskit.circuit import Qubit, Gate
+
+from qiskit.circuit import Gate, ParameterExpression, Qubit
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
@@ -106,9 +106,9 @@ class PadDynamicalDecoupling(BasePadding):
     def __init__(
         self,
         durations: InstructionDurations = None,
-        dd_sequence: List[Gate] = None,
-        qubits: Optional[List[int]] = None,
-        spacing: Optional[List[float]] = None,
+        dd_sequence: list[Gate] = None,
+        qubits: list[int] | None = None,
+        spacing: list[float] | None = None,
         skip_reset_qubits: bool = True,
         pulse_alignment: int = 1,
         extra_slack_distribution: str = "middle",
@@ -166,8 +166,8 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._no_dd_qubits = set()
-        self._dd_sequence_lengths = {}
+        self._no_dd_qubits: set[int] = set()
+        self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
         if target is not None:
             self._durations = target.durations()
@@ -224,10 +224,11 @@ class PadDynamicalDecoupling(BasePadding):
                 continue
 
             sequence_lengths = []
-            for gate in self._dd_sequence:
+            for index, gate in enumerate(self._dd_sequence):
                 try:
                     # Check calibration.
-                    gate_length = dag.calibrations[gate.name][(physical_index, gate.params)]
+                    params = self._resolve_params(gate)
+                    gate_length = dag.calibrations[gate.name][((physical_index,), params)].duration
                     if gate_length % self._alignment != 0:
                         # This is necessary to implement lightweight scheduling logic for this pass.
                         # Usually the pulse alignment constraint and pulse data chunk size take
@@ -245,6 +246,8 @@ class PadDynamicalDecoupling(BasePadding):
                     gate_length = self._durations.get(gate, physical_index)
                 sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
+                gate = gate.to_mutable()
+                self._dd_sequence[index] = gate
                 gate.duration = gate_length
             self._dd_sequence_lengths[qubit] = sequence_lengths
 
@@ -393,6 +396,17 @@ class PadDynamicalDecoupling(BasePadding):
                 idle_after += gate_length
 
         dag.global_phase = self._mod_2pi(dag.global_phase + sequence_gphase)
+
+    @staticmethod
+    def _resolve_params(gate: Gate) -> tuple:
+        """Return gate params with any bound parameters replaced with floats"""
+        params = []
+        for p in gate.params:
+            if isinstance(p, ParameterExpression) and not p.parameters:
+                params.append(float(p))
+            else:
+                params.append(p)
+        return tuple(params)
 
     @staticmethod
     def _mod_2pi(angle: float, atol: float = 0):

@@ -18,9 +18,8 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Barrier, Measure, Reset, Gate, Operation
-from qiskit.circuit.library import XGate, CXGate
+from qiskit.circuit.library import XGate, CXGate, Initialize, Isometry
 from qiskit.quantum_info.operators import Clifford, CNOTDihedral, Pauli
-from qiskit.extensions.quantum_initializer import Initialize, Isometry
 
 
 class TestOperationClass(QiskitTestCase):

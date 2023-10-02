@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import itertools
 
-from typing import Tuple, Union, Optional, Dict, List, Any
+from typing import Optional, List, Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -43,7 +43,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
@@ -70,9 +70,9 @@ class InstructionProperties:
 
     def __init__(
         self,
-        duration: float = None,
-        error: float = None,
-        calibration: Union[Schedule, ScheduleBlock, CalibrationEntry] = None,
+        duration: float | None = None,
+        error: float | None = None,
+        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -83,7 +83,7 @@ class InstructionProperties:
                 set of qubits.
             calibration: The pulse representation of the instruction.
         """
-        self._calibration = None
+        self._calibration: CalibrationEntry | None = None
 
         self.duration = duration
         self.error = error
@@ -122,7 +122,7 @@ class InstructionProperties:
         return self._calibration.get_schedule()
 
     @calibration.setter
-    def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
+    def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
             new_entry.define(calibration, user_provided=True)
@@ -239,6 +239,7 @@ class Target(Mapping):
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
+        "concurrent_measurements",
     )
 
     @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
@@ -252,6 +253,7 @@ class Target(Mapping):
         pulse_alignment=1,
         acquire_alignment=1,
         qubit_properties=None,
+        concurrent_measurements=None,
     ):
         """
         Create a new Target object
@@ -287,7 +289,9 @@ class Target(Mapping):
                 matches the qubit number the properties are defined for. If some
                 qubits don't have properties available you can set that entry to
                 ``None``
-        Raises:
+            concurrent_measurements(list): A list of sets of qubits that must be
+                measured together. This must be provided
+                as a nested list like [[0, 1], [2, 3, 4]].
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
             defined and the value of ``num_qubits`` differs from the length of
             ``qubit_properties``.
@@ -322,6 +326,7 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
+        self.concurrent_measurements = concurrent_measurements
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -437,7 +442,7 @@ class Target(Mapping):
         Args:
             instruction (str): The instruction name to update
             qargs (tuple): The qargs to update the properties of
-            properties (InstructionProperties): The properties to set for this nstruction
+            properties (InstructionProperties): The properties to set for this instruction
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
@@ -461,7 +466,7 @@ class Target(Mapping):
             inst_name_map (dict): An optional dictionary that maps any
                 instruction name in ``inst_map`` to an instruction object.
                 If not provided, instruction is pulled from the standard Qiskit gates,
-                and finally custom gate instnace is created with schedule name.
+                and finally custom gate instance is created with schedule name.
             error_dict (dict): A dictionary of errors of the form::
 
                 {gate_name: {qarg: error}}
@@ -500,7 +505,11 @@ class Target(Mapping):
                     # It only copies user-provided calibration from the inst map.
                     # Backend defined entry must already exist in Target.
                     if self.dt is not None:
-                        duration = entry.get_schedule().duration * self.dt
+                        try:
+                            duration = entry.get_schedule().duration * self.dt
+                        except UnassignedDurationError:
+                            # duration of schedule is parameterized
+                            duration = None
                     else:
                         duration = None
                     props = InstructionProperties(
@@ -860,7 +869,7 @@ class Target(Mapping):
     def has_calibration(
         self,
         operation_name: str,
-        qargs: Tuple[int, ...],
+        qargs: tuple[int, ...],
     ) -> bool:
         """Return whether the instruction (operation + qubits) defines a calibration.
 
@@ -881,10 +890,10 @@ class Target(Mapping):
     def get_calibration(
         self,
         operation_name: str,
-        qargs: Tuple[int, ...],
+        qargs: tuple[int, ...],
         *args: ParameterValueType,
         **kwargs: ParameterValueType,
-    ) -> Union[Schedule, ScheduleBlock]:
+    ) -> Schedule | ScheduleBlock:
         """Get calibrated pulse schedule for the instruction.
 
         If calibration is templated with parameters, one can also provide those values
@@ -1209,15 +1218,16 @@ class Target(Mapping):
     @classmethod
     def from_configuration(
         cls,
-        basis_gates: List[str],
-        num_qubits: Optional[int] = None,
-        coupling_map: Optional[CouplingMap] = None,
-        inst_map: Optional[InstructionScheduleMap] = None,
-        backend_properties: Optional[BackendProperties] = None,
-        instruction_durations: Optional[InstructionDurations] = None,
-        dt: Optional[float] = None,
-        timing_constraints: Optional[TimingConstraints] = None,
-        custom_name_mapping: Optional[Dict[str, Any]] = None,
+        basis_gates: list[str],
+        num_qubits: int | None = None,
+        coupling_map: CouplingMap | None = None,
+        inst_map: InstructionScheduleMap | None = None,
+        backend_properties: BackendProperties | None = None,
+        instruction_durations: InstructionDurations | None = None,
+        concurrent_measurements: Optional[List[List[int]]] = None,
+        dt: float | None = None,
+        timing_constraints: TimingConstraints | None = None,
+        custom_name_mapping: dict[str, Any] | None = None,
     ) -> Target:
         """Create a target object from the individual global configuration
 
@@ -1263,6 +1273,9 @@ class Target(Mapping):
             instruction_durations: Optional instruction durations for instructions. If specified
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
+            concurrent_measurements(list): A list of sets of qubits that must be
+                measured together. This must be provided
+                as a nested list like [[0, 1], [2, 3, 4]].
             dt: The system time resolution of input signals in seconds
             timing_constraints: Optional timing constraints to include in the
                 :class:`~.Target`
@@ -1279,7 +1292,7 @@ class Target(Mapping):
         Raises:
             TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
             specified.
-            KeyError: If no mappign is available for a specified ``basis_gate``.
+            KeyError: If no mapping is available for a specified ``basis_gate``.
         """
         granularity = 1
         min_length = 1
@@ -1306,6 +1319,7 @@ class Target(Mapping):
             pulse_alignment=pulse_alignment,
             acquire_alignment=acquire_alignment,
             qubit_properties=qubit_properties,
+            concurrent_measurements=concurrent_measurements,
         )
         name_mapping = get_standard_gate_name_mapping()
         if custom_name_mapping is not None:
@@ -1351,7 +1365,7 @@ class Target(Mapping):
                         "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
                     )
             for gate in one_qubit_gates:
-                gate_properties = {}
+                gate_properties: dict[tuple, InstructionProperties] = {}
                 for qubit in range(num_qubits):
                     error = None
                     duration = None
@@ -1441,7 +1455,7 @@ class Target(Mapping):
 def target_to_backend_properties(target: Target):
     """Convert a :class:`~.Target` object into a legacy :class:`~.BackendProperties`"""
 
-    properties_dict = {
+    properties_dict: dict[str, Any] = {
         "backend_name": "",
         "backend_version": "",
         "last_update_date": None,
@@ -1481,7 +1495,7 @@ def target_to_backend_properties(target: Target):
                         }
                     )
         else:
-            qubit_props = {x: None for x in range(target.num_qubits)}
+            qubit_props: dict[int, Any] = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
                 if qargs is None:
                     continue

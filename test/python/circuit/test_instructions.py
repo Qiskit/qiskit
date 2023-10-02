@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unsubscriptable-object
+
 """Test Qiskit's Instruction class."""
 
 import unittest.mock
@@ -22,6 +24,7 @@ from qiskit.circuit import Instruction, InstructionSet
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister, Qubit, Clbit
 from qiskit.circuit.library.standard_gates.h import HGate
+from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.s import SGate
 from qiskit.circuit.library.standard_gates.t import TGate
@@ -159,7 +162,7 @@ class TestInstructions(QiskitTestCase):
         circ1 = QuantumCircuit(q, c, name="circuit1")
         circ1.h(q[0])
         circ1.crz(0.1, q[0], q[1])
-        circ1.i(q[1])
+        circ1.id(q[1])
         circ1.u(0.1, 0.2, -0.2, q[0])
         circ1.barrier()
         circ1.measure(q, c)
@@ -204,13 +207,13 @@ class TestInstructions(QiskitTestCase):
         circ = QuantumCircuit(q, name="circ")
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
-        circ.i(q[1])
+        circ.id(q[1])
         circ.u(0.1, 0.2, -0.2, q[0])
         gate = circ.to_gate()
 
         circ = QuantumCircuit(q, name="circ")
         circ.u(0.1, 0.2, -0.2, q[0])
-        circ.i(q[1])
+        circ.id(q[1])
         circ.crz(0.1, q[0], q[1])
         circ.h(q[0])
         gate_reverse = circ.to_gate()
@@ -269,12 +272,12 @@ class TestInstructions(QiskitTestCase):
         circ = QuantumCircuit(q, name="circ")
         circ.h(q[0])
         circ.crz(0.1, q[0], q[1])
-        circ.i(q[1])
+        circ.id(q[1])
         circ.u(0.1, 0.2, -0.2, q[0])
         gate = circ.to_instruction()
         circ = QuantumCircuit(q, name="circ")
         circ.u(-0.1, 0.2, -0.2, q[0])
-        circ.i(q[1])
+        circ.id(q[1])
         circ.crz(-0.1, q[0], q[1])
         circ.h(q[0])
         gate_inverse = circ.to_instruction()
@@ -292,12 +295,12 @@ class TestInstructions(QiskitTestCase):
         qr1 = QuantumRegister(4)
         circ1 = QuantumCircuit(qr1, name="circuit1")
         circ1.cp(-0.1, qr1[0], qr1[2])
-        circ1.i(qr1[1])
+        circ1.id(qr1[1])
         circ1.append(little_gate, [qr1[2], qr1[3]])
 
         circ_inv = QuantumCircuit(qr1, name="circ1_dg")
         circ_inv.append(little_gate.inverse(), [qr1[2], qr1[3]])
-        circ_inv.i(qr1[1])
+        circ_inv.id(qr1[1])
         circ_inv.cp(0.1, qr1[0], qr1[2])
 
         self.assertEqual(circ1.inverse(), circ_inv)
@@ -539,102 +542,25 @@ class TestInstructions(QiskitTestCase):
         arbitrary :obj:`.Clbit` and `:obj:`.ClassicalRegister` instances, but rejects integers."""
 
         with self.subTest("accepts arbitrary register"):
-            instruction = HGate()
+            instruction = RZGate(0)
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
             instructions.c_if(register, 0)
             self.assertIs(instruction.condition[0], register)
         with self.subTest("accepts arbitrary bit"):
-            instruction = HGate()
+            instruction = RZGate(0)
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             bit = Clbit()
             instructions.c_if(bit, 0)
             self.assertIs(instruction.condition[0], bit)
         with self.subTest("rejects index"):
-            instruction = HGate()
+            instruction = RZGate(0)
             instructions = InstructionSet()
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(CircuitError, r"Cannot pass an index as a condition .*"):
                 instructions.c_if(0, 0)
-
-    def test_instructionset_c_if_deprecated_resolution(self):
-        r"""Test that the deprecated path of passing an iterable of :obj:`.ClassicalRegister`\ s to
-        :obj:`.InstructionSet` works, issues a deprecation warning, and resolves indices in the
-        simple cases it was meant to handle."""
-        # The deprecated path can only cope with non-overlapping classical registers, with no loose
-        # clbits in the mix.
-        registers = [ClassicalRegister(2), ClassicalRegister(3), ClassicalRegister(1)]
-        bits = [bit for register in registers for bit in register]
-
-        deprecated_regex = r".* argument ``circuit_cregs`` is deprecated .*"
-
-        def dummy_requester(specifier):
-            """A dummy requester that technically fulfills the spec."""
-            raise CircuitError
-
-        with self.subTest("cannot pass both registers and requester"):
-            with self.assertWarns(DeprecationWarning), self.assertRaisesRegex(
-                CircuitError, r"Cannot pass both 'circuit_cregs' and 'resource_requester'\."
-            ):
-                InstructionSet(registers, resource_requester=dummy_requester)
-
-        with self.subTest("classical register"):
-            instruction = HGate()
-            with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(registers)
-            instructions.add(instruction, [Qubit()], [])
-            instructions.c_if(registers[0], 0)
-            self.assertIs(instruction.condition[0], registers[0])
-        with self.subTest("classical bit"):
-            instruction = HGate()
-            with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(registers)
-            instructions.add(instruction, [Qubit()], [])
-            instructions.c_if(registers[0][1], 0)
-            self.assertIs(instruction.condition[0], registers[0][1])
-        for i, bit in enumerate(bits):
-            with self.subTest("bit index", index=i):
-                instruction = HGate()
-                with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                    instructions = InstructionSet(registers)
-                instructions.add(instruction, [Qubit()], [])
-                instructions.c_if(i, 0)
-                self.assertIs(instruction.condition[0], bit)
-
-        with self.subTest("raises on bad register"):
-            instruction = HGate()
-            with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(registers)
-            instructions.add(instruction, [Qubit()], [])
-            with self.assertRaisesRegex(
-                CircuitError, r"Condition register .* is not one of the registers known here: .*"
-            ):
-                instructions.c_if(ClassicalRegister(2), 0)
-        with self.subTest("raises on bad bit"):
-            instruction = HGate()
-            with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(registers)
-            instructions.add(instruction, [Qubit()], [])
-            with self.assertRaisesRegex(
-                CircuitError, "Condition bit .* is not in the registers known here: .*"
-            ):
-                instructions.c_if(Clbit(), 0)
-        with self.subTest("raises on bad index"):
-            instruction = HGate()
-            with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(registers)
-            instructions.add(instruction, [Qubit()], [])
-            with self.assertRaisesRegex(CircuitError, r"Bit index .* is out-of-range\."):
-                instructions.c_if(len(bits), 0)
-        with self.subTest("raises on bad type"):
-            instruction = HGate()
-            with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(registers)
-            instructions.add(instruction, [Qubit()], [])
-            with self.assertRaisesRegex(CircuitError, r"Invalid classical condition\. .*"):
-                instructions.c_if([0], 0)
 
     def test_instructionset_c_if_calls_custom_requester(self):
         """Test that :meth:`.InstructionSet.c_if` calls a custom requester, and uses its output."""
@@ -655,7 +581,7 @@ class TestInstructions(QiskitTestCase):
 
         with self.subTest("calls requester with bit"):
             dummy_requester.reset_mock()
-            instruction = HGate()
+            instruction = RZGate(0)
             instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             bit = Clbit()
@@ -664,7 +590,7 @@ class TestInstructions(QiskitTestCase):
             self.assertIs(instruction.condition[0], sentinel_bit)
         with self.subTest("calls requester with index"):
             dummy_requester.reset_mock()
-            instruction = HGate()
+            instruction = RZGate(0)
             instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             index = 0
@@ -673,7 +599,7 @@ class TestInstructions(QiskitTestCase):
             self.assertIs(instruction.condition[0], sentinel_bit)
         with self.subTest("calls requester with register"):
             dummy_requester.reset_mock()
-            instruction = HGate()
+            instruction = RZGate(0)
             instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
@@ -682,7 +608,7 @@ class TestInstructions(QiskitTestCase):
             self.assertIs(instruction.condition[0], sentinel_register)
         with self.subTest("calls requester only once when broadcast"):
             dummy_requester.reset_mock()
-            instruction_list = [HGate(), HGate(), HGate()]
+            instruction_list = [RZGate(0), RZGate(0), RZGate(0)]
             instructions = InstructionSet(resource_requester=dummy_requester)
             for instruction in instruction_list:
                 instructions.add(instruction, [Qubit()], [])
@@ -702,8 +628,17 @@ class TestInstructions(QiskitTestCase):
                 Instruction("h", 1, 0, [], label=0)
         with self.subTest("raises when a non-string label is provided to setter"):
             with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
-                instruction = HGate()
+                instruction = RZGate(0)
                 instruction.label = 0
+
+    def test_deprecation_warnings_qasm_methods(self):
+        """Test deprecation warnings for qasm methods."""
+        with self.subTest("built in gates"):
+            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
+                HGate().qasm()
+        with self.subTest("User constructed Instruction"):
+            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
+                Instruction("v", 1, 0, [0.4, 0.5, 0.5]).qasm()
 
 
 if __name__ == "__main__":

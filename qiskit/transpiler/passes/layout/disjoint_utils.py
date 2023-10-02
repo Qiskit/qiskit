@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 
 """This module contains common utils for disjoint coupling maps."""
-
+from __future__ import annotations
 from collections import defaultdict
 from typing import List, Callable, TypeVar, Dict, Union
 import uuid
 
 import rustworkx as rx
+from qiskit.dagcircuit import DAGOpNode
 
 from qiskit.circuit import Qubit, Barrier, Clbit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -65,7 +66,7 @@ def run_pass_over_connected_components(
             for qreg in dag.qregs:
                 out_dag.add_qreg(qreg)
             for creg in dag.cregs:
-                out_dag.add_cregs(creg)
+                out_dag.add_creg(creg)
             out_dag.compose(dag, qubits=dag.qubits, clbits=dag.clbits)
         out_component_pairs.append((out_dag, cmap_components[cmap_index]))
     res = [run_func(out_dag, cmap) for out_dag, cmap in out_component_pairs]
@@ -111,7 +112,9 @@ def split_barriers(dag: DAGCircuit):
         split_dag.add_qubits([Qubit() for _ in range(num_qubits)])
         for i in range(num_qubits):
             split_dag.apply_operation_back(
-                Barrier(1, label=barrier_uuid), qargs=[split_dag.qubits[i]]
+                Barrier(1, label=barrier_uuid),
+                qargs=(split_dag.qubits[i],),
+                check=False,
             )
         dag.substitute_node_with_dag(node, split_dag)
 
@@ -119,7 +122,7 @@ def split_barriers(dag: DAGCircuit):
 def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     """Mutate input dag to combine barriers with UUID labels into a single barrier."""
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-    uuid_map = {}
+    uuid_map: dict[uuid.UUID, DAGOpNode] = {}
     for node in dag.op_nodes(Barrier):
         if isinstance(node.op.label, uuid.UUID):
             barrier_uuid = node.op.label
@@ -139,23 +142,36 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
 
 def require_layout_isolated_to_component(
     dag: DAGCircuit, components_source: Union[Target, CouplingMap]
-) -> bool:
-    """Check that the layout of the dag does not require connectivity across connected components
-    in the CouplingMap"""
+):
+    """
+    Check that the layout of the dag does not require connectivity across connected components
+    in the CouplingMap
+
+    Args:
+        dag: DAGCircuit to check.
+        components_source: Target to check against.
+
+    Raises:
+        TranspilerError: Chosen layout is not valid for the target disjoint connectivity.
+    """
     if isinstance(components_source, Target):
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
         coupling_map = components_source
-    qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():
         component_index = None
         for i, component_set in enumerate(component_sets):
-            if qubit_indices[inst.qargs[0]] in component_set:
+            if dag.find_bit(inst.qargs[0]).index in component_set:
                 component_index = i
                 break
-        if qubit_indices[inst.qargs[1]] not in component_sets[component_index]:
-            raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
+        if dag.find_bit(inst.qargs[1]).index not in component_sets[component_index]:
+            raise TranspilerError(
+                "The circuit has an invalid layout as two qubits need to interact in disconnected "
+                "components of the coupling map. The physical qubit "
+                f"{dag.find_bit(inst.qargs[1]).index} needs to interact with the "
+                f"qubit {dag.find_bit(inst.qargs[0]).index} and they belong to different components"
+            )
 
 
 def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
@@ -166,7 +182,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     connected_components = rx.weakly_connected_components(im_graph)
     component_qubits = []
     for component in connected_components:
-        component_qubits.append(set(qubit_map[x] for x in component))
+        component_qubits.append({qubit_map[x] for x in component})
 
     qubits = set(dag.qubits)
 
@@ -177,7 +193,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
         new_dag.global_phase = 0
         for node in dag.topological_op_nodes():
             if dag_qubits.issuperset(node.qargs):
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
         idle_clbits = []
         for bit, node in new_dag.input_map.items():
             succ_node = next(new_dag.successors(node))

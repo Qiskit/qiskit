@@ -19,15 +19,19 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import ClassicalRegister
-from qiskit import transpile
-from qiskit import execute, assemble, BasicAer
+from qiskit import (
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+    BasicAer,
+    transpile,
+    execute,
+    assemble,
+)
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.quantum_initializer import Initialize
+from qiskit.circuit.library import Initialize
 
 
 @ddt
@@ -236,6 +240,17 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         self.assertRaises(QiskitError, qc.initialize, desired_vector, [qr[0], qr[1]])
+
+    def test_normalize(self):
+        """Test initializing with a non-normalized vector is normalized, if specified."""
+        desired_vector = [1, 1]
+        normalized = np.asarray(desired_vector) / np.linalg.norm(desired_vector)
+
+        qc = QuantumCircuit(1)
+        qc.initialize(desired_vector, [0], normalize=True)
+        op = qc.data[0].operation
+        self.assertAlmostEqual(np.linalg.norm(op.params), 1)
+        self.assertEqual(Statevector(qc), Statevector(normalized))
 
     def test_wrong_vector_size(self):
         """Initializing to a vector with a size different to the qubit parameter length.
@@ -475,24 +490,6 @@ class TestInitialize(QiskitTestCase):
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
-
-    def test_diag(self):
-        """Verify diagonal gate converts numpy.complex to complex."""
-        # ref: https://github.com/Qiskit/qiskit-aer/issues/696
-        diag = np.array([1 + 0j, 1 + 0j])
-        qc = QuantumCircuit(1)
-        qc.diagonal(list(diag), [0])
-
-        params = qc.data[0].operation.params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
-
-        qobj = assemble(qc)
-        params = qobj.experiments[0].instructions[0].params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
 
     def test_init(self):
         """Verify initialize gate converts numpy.complex to complex."""

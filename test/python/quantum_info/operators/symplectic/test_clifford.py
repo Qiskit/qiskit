@@ -14,6 +14,7 @@
 """Tests for Clifford class."""
 
 import unittest
+
 from test import combine
 
 import numpy as np
@@ -51,6 +52,7 @@ from qiskit.circuit.library import (
     ZGate,
     iSwapGate,
     LinearFunction,
+    PermutationGate,
     PauliGate,
 )
 from qiskit.exceptions import QiskitError
@@ -64,6 +66,7 @@ from qiskit.synthesis.clifford import (
     synth_clifford_bm,
     synth_clifford_greedy,
 )
+from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.test import QiskitTestCase
 
 
@@ -521,6 +524,51 @@ class TestCliffordGates(QiskitTestCase):
         expected_cliff2 = Clifford.compose(expected_cliff2, cliff2, qargs=[1, 2], front=False)
         self.assertEqual(expected_cliff1, expected_cliff2)
 
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_from_linear_function(self, num_qubits):
+        """Test initialization from linear function."""
+        rng = np.random.default_rng(1234)
+        samples = 50
+
+        for _ in range(samples):
+            mat = random_invertible_binary_matrix(num_qubits, seed=rng)
+            lin = LinearFunction(mat)
+            cliff = Clifford(lin)
+            self.assertTrue(Operator(cliff).equiv(Operator(lin)))
+
+    def test_from_circuit_with_linear_function(self):
+        """Test initialization from a quantum circuit that contains a linear function."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        mat = [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]
+        lin = LinearFunction(mat)
+        qc.append(lin, [0, 1, 2, 3])
+        qc.h(1)
+        cliff = Clifford(qc)
+        self.assertTrue(Operator(cliff).equiv(Operator(qc)))
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_from_permutation_gate(self, num_qubits):
+        """Test initialization from permutation gate."""
+        np.random.seed(1234)
+        samples = 50
+
+        for _ in range(samples):
+            pat = np.random.permutation(num_qubits)
+            perm = PermutationGate(pat)
+            cliff = Clifford(perm)
+            self.assertTrue(Operator(cliff).equiv(Operator(perm)))
+
+    def test_from_circuit_with_permutation_gate(self):
+        """Test initialization from a quantum circuit that contains a permutation gate."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        perm = PermutationGate([2, 1, 0, 3])
+        qc.append(perm, [0, 1, 2, 3])
+        qc.h(1)
+        cliff = Clifford(qc)
+        self.assertTrue(Operator(cliff).equiv(Operator(qc)))
+
     def test_from_circuit_with_all_types(self):
         """Test initialization from circuit containing various Clifford-like objects."""
 
@@ -554,39 +602,6 @@ class TestCliffordGates(QiskitTestCase):
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)
-
-    def test_from_gate_with_cyclic_definition(self):
-        """Test if a Clifford can be created from gate with cyclic definition"""
-
-        class MyHGate(HGate):
-            """Custom HGate class for test"""
-
-            def __init__(self):
-                super().__init__()
-                self.name = "my_h"
-
-            def _define(self):
-                qc = QuantumCircuit(1, name=self.name)
-                qc.s(0)
-                qc.append(MySXGate(), [0])
-                qc.s(0)
-                self.definition = qc
-
-        class MySXGate(SXGate):
-            """Custom SXGate class for test"""
-
-            def __init__(self):
-                super().__init__()
-                self.name = "my_sx"
-
-            def _define(self):
-                qc = QuantumCircuit(1, name=self.name)
-                qc.sdg(0)
-                qc.append(MyHGate(), [0])
-                qc.sdg(0)
-                self.definition = qc
-
-        Clifford(MyHGate())
 
 
 @ddt
@@ -1052,6 +1067,12 @@ class TestCliffordOperators(QiskitTestCase):
             expected = random_clifford(num_qubits, seed=42 + i)
             actual = Clifford.from_matrix(expected.to_matrix())
             self.assertEqual(expected, actual)
+
+    def test_from_non_clifford_diagonal_operator(self):
+        """Test if failing with non-clifford diagonal operator.
+        See https://github.com/Qiskit/qiskit/issues/10903"""
+        with self.assertRaises(QiskitError):
+            Clifford.from_operator(Operator(RZZGate(0.2)))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_from_operator_round_trip(self, num_qubits):

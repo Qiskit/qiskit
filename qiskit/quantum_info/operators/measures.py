@@ -14,6 +14,7 @@
 A collection of useful quantum information functions for operators.
 """
 
+from __future__ import annotations
 import logging
 import warnings
 import numpy as np
@@ -31,7 +32,12 @@ from qiskit.utils import optionals as _optionals
 logger = logging.getLogger(__name__)
 
 
-def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
+def process_fidelity(
+    channel: Operator | QuantumChannel,
+    target: Operator | QuantumChannel | None = None,
+    require_cp: bool = True,
+    require_tp: bool = True,
+) -> float:
     r"""Return the process fidelity of a noisy quantum channel.
 
 
@@ -137,7 +143,12 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
     return state_fidelity(state1, state2, validate=False)
 
 
-def average_gate_fidelity(channel, target=None, require_cp=True, require_tp=False):
+def average_gate_fidelity(
+    channel: QuantumChannel | Operator,
+    target: Operator | None = None,
+    require_cp: bool = True,
+    require_tp: bool = False,
+) -> float:
     r"""Return the average gate fidelity of a noisy quantum channel.
 
     The average gate fidelity :math:`F_{\text{ave}}` is given by
@@ -192,7 +203,12 @@ def average_gate_fidelity(channel, target=None, require_cp=True, require_tp=Fals
     return (dim * f_pro + 1) / (dim + 1)
 
 
-def gate_error(channel, target=None, require_cp=True, require_tp=False):
+def gate_error(
+    channel: QuantumChannel,
+    target: Operator | None = None,
+    require_cp: bool = True,
+    require_tp: bool = False,
+) -> float:
     r"""Return the gate error of a noisy quantum channel.
 
     The gate error :math:`E` is given by the average gate infidelity
@@ -234,7 +250,7 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
     )
 
 
-def diamond_norm(choi, **kwargs):
+def diamond_norm(choi: Choi | QuantumChannel, **kwargs) -> float:
     r"""Return the diamond norm of the input quantum channel object.
 
     This function computes the completely-bounded trace-norm (often
@@ -247,8 +263,7 @@ def diamond_norm(choi, **kwargs):
         kwargs: optional arguments to pass to CVXPY solver.
 
     Returns:
-        float: The completely-bounded trace norm
-               :math:`\|\mathcal{E}\|_{\diamond}`.
+        float: The completely-bounded trace norm :math:`\|\mathcal{E}\|_{\diamond}`.
 
     Raises:
         QiskitError: if CVXPY package cannot be found.
