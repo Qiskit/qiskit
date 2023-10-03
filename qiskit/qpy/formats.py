@@ -278,6 +278,21 @@ MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
 MAP_ITEM_PACK = "!H1cH"
 MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
 
+LAYOUT_V2 = namedtuple(
+    "LAYOUT",
+    [
+        "exists",
+        "initial_layout_size",
+        "input_mapping_size",
+        "final_layout_size",
+        "extra_registers",
+        "input_qubit_count",
+    ],
+)
+LAYOUT_V2_PACK = "!?iiiIi"
+LAYOUT_V2_SIZE = struct.calcsize(LAYOUT_V2_PACK)
+
+
 LAYOUT = namedtuple(
     "LAYOUT",
     ["exists", "initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"],
