@@ -119,7 +119,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         states = bound_ansatz
         expected_result = self.get_exact_expectation(bound_ansatz, observables)
         estimator = Estimator()
@@ -140,7 +140,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
@@ -162,7 +162,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator(options={"shots": 2048})
         with self.assertWarns(DeprecationWarning):

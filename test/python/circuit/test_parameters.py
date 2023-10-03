@@ -12,6 +12,7 @@
 
 """Test circuits with variable parameters."""
 import unittest
+import warnings
 import cmath
 import math
 import copy
@@ -107,6 +108,14 @@ def raise_if_parameter_table_invalid(circuit):
 @ddt
 class TestParameters(QiskitTestCase):
     """Test Parameters."""
+
+    def setUp(self):
+        super().setUp()
+        # TODO: delete once bind_parameters is removed from the codebase
+        #  and related tests are also removed.
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+        )
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -486,12 +495,14 @@ class TestParameters(QiskitTestCase):
         y = Parameter("y")
         z = ParameterVector("z", 3)
         qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
 
         # test for both `bind_parameters` and `assign_parameters`
         for assign_fun in ["bind_parameters", "assign_parameters"]:
             qc = QuantumCircuit(qr)
             with self.subTest(assign_fun=assign_fun):
+                # TODO: delete once bind_parameters is removed from the codebase
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+
                 qc.p(0.1, qr[0])
                 self.assertRaises(CircuitError, getattr(qc, assign_fun), {x: 1})
                 qc.p(x, qr[0])
@@ -939,6 +950,15 @@ class TestParameters(QiskitTestCase):
                 self.assertEqual(expected1, output1)
                 self.assertEqual(expected2, output2)
 
+    def test_sign_of_parameter(self):
+        """Test returning the sign of the value of the parameter"""
+
+        b = Parameter("phi")
+        sign_of_parameter = b.sign()
+        self.assertEqual(sign_of_parameter.assign(b, -3), -1)
+        self.assertEqual(sign_of_parameter.assign(b, 2), 1)
+        self.assertEqual(sign_of_parameter.assign(b, 0), 0)
+
     @combine(target_type=["gate", "instruction"], parameter_type=["numbers", "parameters"])
     def test_decompose_propagates_bound_parameters(self, target_type, parameter_type):
         """Verify bind-before-decompose preserves bound values."""
@@ -1269,6 +1289,14 @@ class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
     supported_operations = [add, sub, mul, truediv]
+
+    def setUp(self):
+        super().setUp()
+        # TODO: delete once bind_parameters is removed from the codebase
+        #  and related tests are also removed.
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+        )
 
     def test_compare_to_value_when_bound(self):
         """Verify expression can be compared to a fixed value
@@ -2171,6 +2199,18 @@ class TestParameterView(QiskitTestCase):
         """Test __eq__."""
         self.assertTrue(self.view1 != self.view2)
         self.assertFalse(self.view3 != self.view3)
+
+
+class TestBindParametersDeprecation(QiskitTestCase):
+    """Test deprecation of bind_parameters()."""
+
+    def test_circuit_bind_parameters_raises(self):
+        """Test that the deprecated bind_parameters method raises a deprecation warning."""
+        qc = QuantumCircuit(1)
+        qc.rx(Parameter("x"), 0)
+
+        with self.assertWarns(DeprecationWarning):
+            _ = qc.bind_parameters([1])
 
 
 if __name__ == "__main__":

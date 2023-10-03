@@ -2174,6 +2174,20 @@ class TestTranspileParallel(QiskitTestCase):
             self.assertEqual(added_cal, ref_cal)
 
     @data(0, 1, 2, 3)
+    def test_parallel_singleton_conditional_gate(self, opt_level):
+        """Test that singleton mutable instance doesn't lose state in parallel."""
+        backend = FakeNairobiV2()
+        circ = QuantumCircuit(2, 1)
+        circ.h(0)
+        circ.measure(0, circ.clbits[0])
+        circ.z(1).c_if(circ.clbits[0], 1)
+        res = transpile(
+            [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
+        )
+        self.assertTrue(res[0].data[-1].operation.mutable)
+        self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
+
+    @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):
         """Test transpile() with BackendV2 and basis_gates set."""
         backend = FakeNairobiV2()

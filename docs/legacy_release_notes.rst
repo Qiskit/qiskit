@@ -3619,7 +3619,7 @@ Bug Fixes
 .. releasenotes/notes/0.24/qasm2-exporter-rewrite-8993dd24f930b180.yaml @ b'4152009ee6d1bae8704f1e7b9ccc5727a53933bd'
 
 - The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now handle multiple and nested
-  definitions of :class:`.UnitaryGate`.  See
+  definitions of :class:`~.library.UnitaryGate`.  See
   `#4623 <https://github.com/Qiskit/qiskit-terra/issues/4623>`__,
   `#6712 <https://github.com/Qiskit/qiskit-terra/issues/6712>`__,
   `#7772 <https://github.com/Qiskit/qiskit-terra/issues/7772>`__, and
@@ -5123,7 +5123,7 @@ New Features
   library gate classes have been updated to return more specific
   gate objects that result in a less lossy and more efficient output.
   For example, running :meth:`~.IGate.power` now returns an :class:`~.IGate`
-  instance instead of :class:`~.UnitaryGate` as was done previously.
+  instance instead of :class:`~.library.UnitaryGate` as was done previously.
 
   The full list of output types that have been improved are:
 
@@ -9148,7 +9148,7 @@ Bug Fixes
 .. releasenotes/notes/0.22/fix-qasm2-identity-as-unitary-aa2feeb05707a597.yaml @ b'618770367f7a5a3a22fd43ea9fcfb7f17393eb6a'
 
 - The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now correctly
-  define the qubit parameters for :class:`.UnitaryGate` operations that do
+  define the qubit parameters for :class:`~.library.UnitaryGate` operations that do
   not affect all the qubits they are defined over.
   Fixed `#8224 <https://github.com/Qiskit/qiskit-terra/issues/8224>`__.
 
@@ -9372,7 +9372,7 @@ Known Issues
 .. releasenotes/notes/0.11/non-x86_ibm_cpu-493e51313ba222a6.yaml @ b'b7c4a322f8409fc2809b57b0701d1da6717c7efd'
 
 - When running on Linux s390x platforms (or other big endian platforms)
-  running circuits that contain :class:`~.UnitaryGate` operations will not
+  running circuits that contain :class:`~.library.UnitaryGate` operations will not
   work because of an endianess bug.
   See `#1506 <https://github.com/Qiskit/qiskit-aer/issues/1506>`__ for more
   details.
@@ -9692,7 +9692,7 @@ Bug Fixes
 .. releasenotes/notes/fix-evolvedop-to-instruction-c90c4f1aa6b4232a.yaml @ b'664747a66e2199a4b20abb9b7180cccb12c61a3f'
 
 - Fix :meth:`~.EvolvedOp.to_instruction` which previously tried to create a
-  :class:`~.UnitaryGate` without exponentiating the operator to evolve.
+  :class:`~.library.UnitaryGate` without exponentiating the operator to evolve.
   Since this operator is generally not unitary, this raised an error (and if
   the operator would have been unitary by chance, it would not have been the expected result).
 
@@ -10076,7 +10076,7 @@ New Features
   Shannon Decomposition of arbitrary unitaries. This functionality replaces
   the previous isometry-based approach in the default unitary synthesis
   transpiler pass as well as when adding unitaries to a circuit using a
-  :class:`.UnitaryGate`.
+  :class:`~.library.UnitaryGate`.
 
   The Quantum Shannon Decomposition uses about half the cnot gates as the
   isometry implementation when decomposing unitary matrices of greater than
@@ -10732,7 +10732,7 @@ Bug Fixes
 .. releasenotes/notes/fix-qasm2-identity-as-unitary-aa2feeb05707a597.yaml @ b'd7f932c8b242f69c5577afd5593bf36f839657f7'
 
 - The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now correctly
-  define the qubit parameters for :class:`.UnitaryGate` operations that do
+  define the qubit parameters for :class:`~.library.UnitaryGate` operations that do
   not affect all the qubits they are defined over.
   Fixed `#8224 <https://github.com/Qiskit/qiskit-terra/issues/8224>`__.
 
@@ -10914,10 +10914,10 @@ Known Issues
 .. releasenotes/notes/ucr-gates-qpy-b8f6fb1e34fae258.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
 
 - QPY deserialization with the :func:`.qpy.load` function of a directly
-  instantiated :class:`~.UCPauliRotGate` object in a circuit will fail
+  instantiated :class:`~.library.UCPauliRotGate` object in a circuit will fail
   because the rotation axis argument to the class isn't stored in a standard
   place. To workaround this you can instead use the subclasses:
-  :class:`~.UCRXGate`, :class:`~.UCRYGate`, or :class:`~.UCRZGate` (based on
+  :class:`~.library.UCRXGate`, :class:`~.library.UCRYGate`, or :class:`~.library.UCRZGate` (based on
   whether you're using a rotation axis of ``"X"``, ``"Y"``, or ``"Z"``
   respectively) which embeds the rotation axis in the class constructor and
   will work correctly in QPY.
@@ -11016,7 +11016,7 @@ Bug Fixes
 .. releasenotes/notes/ucr-gates-qpy-b8f6fb1e34fae258.yaml @ b'625b202a4dd0c223579dca44eec530b8a0813d76'
 
 - Fixed an issue with QPY deserialization via the :func:`.qpy.load` function
-  of the :class:`~.UCRXGate`, :class:`~.UCRYGate`, and :class:`~.UCRZGate`
+  of the :class:`~.library.UCRXGate`, :class:`~.library.UCRYGate`, and :class:`~.library.UCRZGate`
   classes.
   Previously, a QPY file that contained any of these gates would error
   when trying to load the file.

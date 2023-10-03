@@ -30,8 +30,6 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import UnitaryGate, HamiltonianGate
-from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.circuit.library import (
     HGate,
@@ -47,6 +45,9 @@ from qiskit.circuit.library import (
     CU3Gate,
     CU1Gate,
     CPhaseGate,
+    UnitaryGate,
+    HamiltonianGate,
+    UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
@@ -1933,7 +1934,7 @@ class TestTextDrawerParams(QiskitTestCase):
         qr = QuantumRegister(1, name="qr")
         circuit = QuantumCircuit(qr, name="circuit")
         circuit.append(my_u2, [qr[0]])
-        circuit = circuit.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        circuit = circuit.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -5095,7 +5096,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         matrix = numpy.zeros((2, 2))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
     def test_draw_hamiltonian_multi(self):
@@ -5115,7 +5116,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         matrix = numpy.zeros((4, 4))
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[0], qr[1]])
-        circuit = circuit.bind_parameters({theta: 1})
+        circuit = circuit.assign_parameters({theta: 1})
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
@@ -5224,7 +5225,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.tdg(qr[0])
         circuit.sx(qr[0])
         circuit.sxdg(qr[0])
-        circuit.i(qr[0])
+        circuit.id(qr[0])
         circuit.reset(qr[0])
         circuit.rx(pi, qr[0])
         circuit.ry(pi, qr[0])
@@ -5280,8 +5281,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
 class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
     """Test ControlFlowOps."""
 
-    def test_if_op(self):
-        """Test an IfElseOp with if only"""
+    def test_if_op_bundle_false(self):
+        """Test an IfElseOp with if only and cregbundle false"""
         expected = "\n".join(
             [
                 "      ┌────── ┌───┐      ───────┐ ",
@@ -5297,6 +5298,35 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
                 "         ║                        ",
                 "cr_1: ═══■════════════════════════",
                 "                                  ",
+            ]
+        )
+
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        with circuit.if_test((cr[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
+
+    def test_if_op_bundle_true(self):
+        """Test an IfElseOp with if only and cregbundle true"""
+        expected = "\n".join(
+            [
+                "        ┌──────   ┌───┐      ───────┐ ",
+                " q_0: ──┤       ──┤ H ├──■──        ├─",
+                "        │ If-0    └───┘┌─┴─┐  End-0 │ ",
+                " q_1: ──┤       ───────┤ X ├        ├─",
+                "        └──╥───        └───┘ ───────┘ ",
+                " q_2: ─────╫──────────────────────────",
+                "           ║                          ",
+                " q_3: ─────╫──────────────────────────",
+                "      ┌────╨─────┐                    ",
+                "cr: 2/╡ cr_1=0x1 ╞════════════════════",
+                "      └──────────┘                    ",
             ]
         )
 
@@ -5350,7 +5380,9 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         circuit.if_else((cr[1], 1), circuit2, None, [0, 1, 2], [0, 1, 2])
         circuit.x(0, label="X1i")
-        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
 
     def test_if_op_nested_wire_order(self):
         """Test IfElseOp with nested if's and wire_order change."""
@@ -5432,7 +5464,10 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         self.assertEqual(
             str(
                 _text_circuit_drawer(
-                    circuit, fold=77, initial_state=False, wire_order=[2, 0, 3, 1, 4, 5, 6]
+                    circuit,
+                    fold=77,
+                    initial_state=False,
+                    wire_order=[2, 0, 3, 1, 4, 5, 6],
                 )
             ),
             expected,
@@ -5472,7 +5507,9 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             circuit.measure(0, 0)
             with circuit.if_test((cr[2], 1)):
                 circuit.x(0)
-        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
 
     def test_for_loop(self):
         """Test ForLoopOp."""
@@ -5509,7 +5546,10 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             circuit.measure(0, 0)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
-        self.assertEqual(str(_text_circuit_drawer(circuit, fold=-1, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=-1, initial_state=False, cregbundle=False)),
+            expected,
+        )
 
     def test_switch_case(self):
         """Test SwitchCaseOp."""
@@ -5562,7 +5602,10 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with case(case.DEFAULT):
                 circuit.cx(0, 1)
         circuit.h(0)
-        self.assertEqual(str(_text_circuit_drawer(circuit, fold=78, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=78, initial_state=False, cregbundle=False)),
+            expected,
+        )
 
     def test_inner_wire_map_control_op(self):
         """Test that the gates inside ControlFlowOps land on correct qubits when transpiled"""
@@ -5599,7 +5642,10 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         backend.target.add_instruction(IfElseOp, name="if_else")
 
         circuit = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
-        self.assertEqual(str(_text_circuit_drawer(circuit, fold=78, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, fold=78, initial_state=False, cregbundle=False)),
+            expected,
+        )
 
     def test_if_else_op_from_circuit_with_conditions(self):
         """Test an IfElseOp built from circuit with conditions inside the if using inner creg"""
@@ -5630,13 +5676,14 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         circuit.x(2).c_if(cr[1], 2)
 
         qr2 = QuantumRegister(3, "qr2")
-        cr2 = ClassicalRegister(3, "cr2")
-        qc2 = QuantumCircuit(qr2, cr2)
-        qc2.x(0, label="X1").c_if(cr2, 4)
-        qc2.x(1, label="X2").c_if(cr2[1], 1)
+        qc2 = QuantumCircuit(qr2, cr)
+        qc2.x(0, label="X1").c_if(cr, 4)
+        qc2.x(1, label="X2").c_if(cr[1], 1)
 
         circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
-        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, cregbundle=False)), expected
+        )
 
 
 if __name__ == "__main__":

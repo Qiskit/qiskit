@@ -121,7 +121,7 @@ hardware or simulators to Qiskit. The backend class includes a common interface 
 * https://github.com/qiskit-community/qiskit-quantinuum-provider
 * https://github.com/rigetti/qiskit-rigetti
 
-<!-- This is not an exhasutive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
+<!-- This is not an exhaustive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
 
 You can refer to the documentation of these packages for further instructions
 on how to get access and use these systems.
