@@ -115,9 +115,23 @@ class Var(Expr):
     associated name; and an old-style variable that wraps a :class:`.Clbit` or
     :class:`.ClassicalRegister` instance that is owned by some containing circuit.  In general,
     construction of variables for use in programs should use :meth:`Var.new` or
-    :meth:`.QuantumCircuit.add_var`."""
+    :meth:`.QuantumCircuit.add_var`.
+
+    Variables are immutable after construction, so they can be used as dictionary keys."""
 
     __slots__ = ("var", "name")
+
+    var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister | uuid.UUID
+    """A reference to the backing data storage of the :class:`Var` instance.  When lifting
+    old-style :class:`.Clbit` or :class:`.ClassicalRegister` instances into a :class:`Var`,
+    this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`.  If the variable is a
+    new-style classical variable (one that owns its own storage separate to the old
+    :class:`.Clbit`/:class:`.ClassicalRegister` model), this field will be a :class:`~uuid.UUID`
+    to uniquely identify it."""
+    name: str | None
+    """The name of the variable.  This is required to exist if the backing :attr:`var` attribute
+    is a :class:`~uuid.UUID`, i.e. if it is a new-style variable, and must be ``None`` if it is
+    an old-style variable."""
 
     def __init__(
         self,
@@ -126,26 +140,31 @@ class Var(Expr):
         *,
         name: str | None = None,
     ):
-        self.type = type
-        self.var = var
-        """A reference to the backing data storage of the :class:`Var` instance.  When lifting
-        old-style :class:`.Clbit` or :class:`.ClassicalRegister` instances into a :class:`Var`,
-        this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`.  If the variable is a
-        new-style classical variable (one that owns its own storage separate to the old
-        :class:`.Clbit`/:class:`.ClassicalRegister` model), this field will be a :class:`~uuid.UUID`
-        to uniquely identify it."""
-        self.name = name
-        """The name of the variable.  This is required to exist if the backing :attr:`var` attribute
-        is a :class:`~uuid.UUID`, i.e. if it is a new-style variable, and must be ``None`` if it is
-        an old-style variable."""
+        super().__setattr__("type", type)
+        super().__setattr__("var", var)
+        super().__setattr__("name", name)
 
     @classmethod
     def new(cls, name: str, type: types.Type) -> typing.Self:
         """Generate a new named variable that owns its own backing storage."""
         return cls(uuid.uuid4(), type, name=name)
 
+    @property
+    def standalone(self) -> bool:
+        """Whether this :class:`Var` is a standalone variable that owns its storage location.  If
+        false, this is a wrapper :class:`Var` around some pre-existing circuit object."""
+        return isinstance(self.var, uuid.UUID)
+
     def accept(self, visitor, /):
         return visitor.visit_var(self)
+
+    def __setattr__(self, key, value):
+        if hasattr(self, key):
+            raise AttributeError(f"'Var' object attribute '{key}' is read-only")
+        raise AttributeError(f"'Var' object has no attribute '{key}'")
+
+    def __hash__(self):
+        return hash((self.type, self.var, self.name))
 
     def __eq__(self, other):
         return (
@@ -159,6 +178,23 @@ class Var(Expr):
         if self.name is None:
             return f"Var({self.var}, {self.type})"
         return f"Var({self.var}, {self.type}, name='{self.name}')"
+
+    def __getstate__(self):
+        return (self.var, self.type, self.name)
+
+    def __setstate__(self, state):
+        var, type, name = state
+        super().__setattr__("type", type)
+        super().__setattr__("var", var)
+        super().__setattr__("name", name)
+
+    def __copy__(self):
+        # I am immutable...
+        return self
+
+    def __deepcopy__(self, memo):
+        # ... as are all my consituent parts.
+        return self
 
 
 @typing.final
