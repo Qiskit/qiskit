@@ -109,6 +109,13 @@ class TestCircuitVars(QiskitTestCase):
         ]
         self.assertEqual(operations, [("store", b, b_init)])
 
+    def test_add_uninitialized_var(self):
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit()
+        qc.add_uninitialized_var(a)
+        self.assertEqual({a}, set(qc.iter_vars()))
+        self.assertEqual([], list(qc.data))
+
     def test_add_var_returns_good_var(self):
         qc = QuantumCircuit()
         a = qc.add_var("a", expr.lift(True))

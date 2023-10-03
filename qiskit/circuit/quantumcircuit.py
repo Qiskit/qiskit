@@ -1656,6 +1656,36 @@ class QuantumCircuit:
         self._append(CircuitInstruction(store, (), ()))
         return var
 
+    def add_uninitialized_var(self, var: expr.Var, /):
+        """Add a variable with no initializer.
+
+        In most cases, you should use :meth:`add_var` to initialize the variable.  To use this
+        function, you must already hold a :class:`~.expr.Var` instance, as the use of the function
+        typically only makes sense in copying contexts.
+
+        .. warning::
+
+            Qiskit makes no assertions about what an uninitialized variable will evaluate to at
+            runtime, and some hardware may reject this as an error.
+
+            You should treat this function with caution, and as a low-level primitive that is useful
+            only in special cases of programmatically rebuilding two like circuits.
+
+        Args:
+            var: the variable to add.
+        """
+        # This function is deliberately meant to be a bit harder to find, to have a long descriptive
+        # name, and to be a bit less ergonomic than `add_var` (i.e. not allowing the (name, type)
+        # overload) to discourage people from using it when they should use `add_var`.
+        #
+        # This function exists so that there is a method to emulate `copy_empty_like`'s behaviour of
+        # adding uninitialised variables, which there's no obvious way around.  We need to be sure
+        # that _some_ sort of handling of uninitialised variables is taken into account in our
+        # structures, so that doesn't become a huge edge case, even though we make no assertions
+        # about the _meaning_ if such an expression was run on hardware.
+        var = self._prepare_new_var(var, None)
+        self._vars_local[var.name] = var
+
     def add_capture(self, var: expr.Var):
         """Add a variable to the circuit that it should capture from a scope it will be contained
         within.
@@ -2446,6 +2476,14 @@ class QuantumCircuit:
             * global phase
             * all the qubits and clbits, including the registers
 
+        .. warning::
+
+            If the circuit contains any local variable declarations (those added by the
+            ``declarations`` argument to the circuit constructor, or using :meth:`add_var`), they
+            will be **uninitialized** in the output circuit.  You will need to manually add store
+            instructions for them (see :class:`.Store` and :meth:`.QuantumCircuit.store`) to
+            initialize them.
+
         Args:
             name (str): Name for the copied circuit. If None, then the name stays the same.
 
@@ -2463,6 +2501,13 @@ class QuantumCircuit:
         cpy._ancillas = self._ancillas.copy()
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
+
+        # Note that this causes the local variables to be uninitialised, because the stores are not
+        # copied.  This can leave the circuit in a potentially dangerous state for users if they
+        # don't re-add initialiser stores.
+        cpy._vars_local = self._vars_local.copy()
+        cpy._vars_input = self._vars_input.copy()
+        cpy._vars_capture = self._vars_capture.copy()
 
         cpy._parameter_table = ParameterTable()
         cpy._data = CircuitData(self._data.qubits, self._data.clbits)
