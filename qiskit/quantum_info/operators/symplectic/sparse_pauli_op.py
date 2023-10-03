@@ -1118,7 +1118,7 @@ class SparsePauliOp(LinearOp):
             num_qubits: The number of qubits to expand the operator to. If not
                 provided then if ``layout`` is a :class:`~.TranspileLayout` the
                 number of the transpiler output circuit qubits will be used by
-                default. If ``layout is a list of integers the permutation
+                default. If ``layout`` is a list of integers the permutation
                 specified will be applied without any expansion.
 
 
