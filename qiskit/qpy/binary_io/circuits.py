@@ -43,12 +43,14 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
 def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
+
     data = formats.CIRCUIT_HEADER_V2._make(
         struct.unpack(
             formats.CIRCUIT_HEADER_V2_PACK,
             file_obj.read(formats.CIRCUIT_HEADER_V2_SIZE),
         )
     )
+
     name = file_obj.read(data.name_size).decode(common.ENCODE)
     global_phase = value.loads_value(
         data.global_phase_type,
@@ -63,6 +65,7 @@ def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
         "num_registers": data.num_registers,
         "num_instructions": data.num_instructions,
     }
+
     metadata_raw = file_obj.read(data.metadata_size)
     metadata = json.loads(metadata_raw, cls=metadata_deserializer)
     return header, name, metadata
@@ -125,7 +128,9 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registers, circuit):
+def _loads_instruction_parameter(
+    type_key, data_bytes, version, vectors, registers, circuit, use_symengine
+):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
     elif type_key == type_keys.Container.RANGE:
@@ -140,6 +145,7 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
                 vectors=vectors,
                 registers=registers,
                 circuit=circuit,
+                use_symengine=use_symengine,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -152,7 +158,13 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
         param = value.loads_value(
-            type_key, data_bytes, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+            type_key,
+            data_bytes,
+            version,
+            vectors,
+            clbits=circuit.clbits,
+            cregs=registers["c"],
+            use_symengine=use_symengine,
         )
 
     return param
@@ -166,7 +178,9 @@ def _loads_register_param(data_bytes, circuit, registers):
     return registers["c"][data_bytes]
 
 
-def _read_instruction(file_obj, circuit, registers, custom_operations, version, vectors):
+def _read_instruction(
+    file_obj, circuit, registers, custom_operations, version, vectors, use_symengine
+):
     if version < 5:
         instruction = formats.CIRCUIT_INSTRUCTION._make(
             struct.unpack(
@@ -197,7 +211,12 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         )
     elif version >= 5 and instruction.conditional_key == type_keys.Condition.EXPRESSION:
         condition = value.read_value(
-            file_obj, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
+            file_obj,
+            version,
+            vectors,
+            clbits=circuit.clbits,
+            cregs=registers["c"],
+            use_symengine=use_symengine,
         )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
@@ -233,14 +252,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     for _param in range(instruction.num_parameters):
         type_key, data_bytes = common.read_generic_typed_data(file_obj)
         param = _loads_instruction_parameter(
-            type_key, data_bytes, version, vectors, registers, circuit
+            type_key, data_bytes, version, vectors, registers, circuit, use_symengine
         )
         params.append(param)
 
     # Load Gate object
     if gate_name in {"Gate", "Instruction", "ControlledGate"}:
         inst_obj = _parse_custom_operation(
-            custom_operations, gate_name, params, version, vectors, registers
+            custom_operations, gate_name, params, version, vectors, registers, use_symengine
         )
         inst_obj.condition = condition
         if instruction.label_size > 0:
@@ -251,7 +270,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
         return None
     elif gate_name in custom_operations:
         inst_obj = _parse_custom_operation(
-            custom_operations, gate_name, params, version, vectors, registers
+            custom_operations, gate_name, params, version, vectors, registers, use_symengine
         )
         inst_obj.condition = condition
         if instruction.label_size > 0:
@@ -335,7 +354,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     return None
 
 
-def _parse_custom_operation(custom_operations, gate_name, params, version, vectors, registers):
+def _parse_custom_operation(
+    custom_operations, gate_name, params, version, vectors, registers, use_symengine
+):
     if version >= 5:
         (
             type_str,
@@ -364,7 +385,7 @@ def _parse_custom_operation(custom_operations, gate_name, params, version, vecto
     if version >= 5 and type_key == type_keys.CircuitInstruction.CONTROLLED_GATE:
         with io.BytesIO(base_gate_raw) as base_gate_obj:
             base_gate = _read_instruction(
-                base_gate_obj, None, registers, custom_operations, version, vectors
+                base_gate_obj, None, registers, custom_operations, version, vectors, use_symengine
             )
         if ctrl_state < 2**num_ctrl_qubits - 1:
             # If open controls, we need to discard the control suffix when setting the name.
@@ -515,7 +536,7 @@ def _dumps_register(register, index_map):
     return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
 
 
-def _dumps_instruction_parameter(param, index_map):
+def _dumps_instruction_parameter(param, index_map, use_symengine):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
@@ -525,7 +546,7 @@ def _dumps_instruction_parameter(param, index_map):
     elif isinstance(param, tuple):
         type_key = type_keys.Container.TUPLE
         data_bytes = common.sequence_to_binary(
-            param, _dumps_instruction_parameter, index_map=index_map
+            param, _dumps_instruction_parameter, index_map=index_map, use_symengine=use_symengine
         )
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
@@ -539,13 +560,15 @@ def _dumps_instruction_parameter(param, index_map):
         type_key = type_keys.Value.REGISTER
         data_bytes = _dumps_register(param, index_map)
     else:
-        type_key, data_bytes = value.dumps_value(param, index_map=index_map)
+        type_key, data_bytes = value.dumps_value(
+            param, index_map=index_map, use_symengine=use_symengine
+        )
 
     return type_key, data_bytes
 
 
 # pylint: disable=too-many-boolean-expressions
-def _write_instruction(file_obj, instruction, custom_operations, index_map):
+def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
     gate_class_name = instruction.operation.__class__.__name__
     custom_operations_list = []
     if (
@@ -625,7 +648,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         value.write_value(file_obj, op_condition, index_map=index_map)
     else:
         file_obj.write(condition_register)
-    # Encode instruciton args
+    # Encode instruction args
     for qbit in instruction.qubits:
         instruction_arg_raw = struct.pack(
             formats.CIRCUIT_INSTRUCTION_ARG_PACK, b"q", index_map["q"][qbit]
@@ -638,7 +661,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
     for param in instruction_params:
-        type_key, data_bytes = _dumps_instruction_parameter(param, index_map)
+        type_key, data_bytes = _dumps_instruction_parameter(param, index_map, use_symengine)
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
 
@@ -683,7 +706,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_custom_operation(file_obj, name, operation, custom_operations):
+def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
     size = 0
@@ -722,7 +745,11 @@ def _write_custom_operation(file_obj, name, operation, custom_operations):
     else:
         with io.BytesIO() as base_gate_buffer:
             new_custom_instruction = _write_instruction(
-                base_gate_buffer, CircuitInstruction(base_gate, (), ()), custom_operations, {}
+                base_gate_buffer,
+                CircuitInstruction(base_gate, (), ()),
+                custom_operations,
+                {},
+                use_symengine,
             )
             base_gate_raw = base_gate_buffer.getvalue()
     name_raw = name.encode(common.ENCODE)
@@ -810,7 +837,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
 def _write_layout(file_obj, circuit):
     if circuit.layout is None:
         # Write a null header if there is no layout present
-        file_obj.write(struct.pack(formats.LAYOUT_PACK, False, -1, -1, -1, 0))
+        file_obj.write(struct.pack(formats.LAYOUT_V2_PACK, False, -1, -1, -1, 0, 0))
         return
     initial_size = -1
     input_qubit_mapping = {}
@@ -853,14 +880,18 @@ def _write_layout(file_obj, circuit):
             virtual_bit = final_layout_physical[i]
             final_layout_array.append(circuit.find_bit(virtual_bit).index)
 
+    input_qubit_count = circuit._layout._input_qubit_count
+    if input_qubit_count is None:
+        input_qubit_count = -1
     file_obj.write(
         struct.pack(
-            formats.LAYOUT_PACK,
+            formats.LAYOUT_V2_PACK,
             True,
             initial_size,
             input_qubit_size,
             final_layout_size,
             len(extra_registers),
+            input_qubit_count,
         )
     )
     _write_registers(
@@ -889,6 +920,10 @@ def _read_layout(file_obj, circuit):
     )
     if not header.exists:
         return
+    _read_common_layout(file_obj, header, circuit)
+
+
+def _read_common_layout(file_obj, header, circuit):
     registers = {
         name: QuantumRegister(len(v[1]), name)
         for name, v in _read_registers_v4(file_obj, header.extra_registers)["q"].items()
@@ -937,7 +972,19 @@ def _read_layout(file_obj, circuit):
     circuit._layout = TranspileLayout(initial_layout, input_qubit_mapping, final_layout)
 
 
-def write_circuit(file_obj, circuit, metadata_serializer=None):
+def _read_layout_v2(file_obj, circuit):
+    header = formats.LAYOUT_V2._make(
+        struct.unpack(formats.LAYOUT_V2_PACK, file_obj.read(formats.LAYOUT_V2_SIZE))
+    )
+    if not header.exists:
+        return
+    _read_common_layout(file_obj, header, circuit)
+    if header.input_qubit_count >= 0:
+        circuit._layout._input_qubit_count = header.input_qubit_count
+        circuit._layout._output_qubit_list = circuit.qubits
+
+
+def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=False):
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
@@ -947,6 +994,10 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
             will be passed the :attr:`.QuantumCircuit.metadata` dictionary for
             ``circuit`` and will be used as the ``cls`` kwarg
             on the ``json.dump()`` call to JSON serialize that dictionary.
+        use_symengine (bool): If True, symbolic objects will be serialized using symengine's
+            native mechanism. This is a faster serialization alternative, but not supported in all
+            platforms. Please check that your target platform is supported by the symengine library
+            before setting this option, as it will be required by qpy to deserialize the payload.
     """
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -986,7 +1037,9 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     index_map["q"] = {bit: index for index, bit in enumerate(circuit.qubits)}
     index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
     for instruction in circuit.data:
-        _write_instruction(instruction_buffer, instruction, custom_operations, index_map)
+        _write_instruction(
+            instruction_buffer, instruction, custom_operations, index_map, use_symengine
+        )
 
     with io.BytesIO() as custom_operations_buffer:
         new_custom_operations = list(custom_operations.keys())
@@ -997,7 +1050,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
                 operation = custom_operations[name]
                 new_custom_operations.extend(
                     _write_custom_operation(
-                        custom_operations_buffer, name, operation, custom_operations
+                        custom_operations_buffer, name, operation, custom_operations, use_symengine
                     )
                 )
 
@@ -1012,7 +1065,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     _write_layout(file_obj, circuit)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None):
+def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=False):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -1025,7 +1078,11 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-
+        use_symengine (bool): If True, symbolic objects will be de-serialized using
+            symengine's native mechanism. This is a faster serialization alternative, but not
+            supported in all platforms. Please check that your target platform is supported by
+            the symengine library before setting this option, as it will be required by qpy to
+            deserialize the payload.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
@@ -1045,7 +1102,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
-    # `out_registers` is two "name: registter" maps segregated by type for the rest of QPY, and
+    # `out_registers` is two "name: register" maps segregated by type for the rest of QPY, and
     # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
     all_registers = []
@@ -1111,7 +1168,9 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     )
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
-        _read_instruction(file_obj, circ, out_registers, custom_operations, version, vectors)
+        _read_instruction(
+            file_obj, circ, out_registers, custom_operations, version, vectors, use_symengine
+        )
 
     # Read calibrations
     if version >= 5:
@@ -1128,5 +1187,8 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
                 UserWarning,
             )
     if version >= 8:
-        _read_layout(file_obj, circ)
+        if version >= 10:
+            _read_layout_v2(file_obj, circ)
+        else:
+            _read_layout(file_obj, circ)
     return circ

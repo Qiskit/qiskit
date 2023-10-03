@@ -116,8 +116,8 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
                 variance = sq_exp_val - expectation_value**2
                 variance = max(variance, 0)
-                standard_deviation = np.sqrt(variance / shots)
-                expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
+                standard_error = np.sqrt(variance / shots)
+                expectation_value_with_error = rng.normal(expectation_value, standard_error)
                 expectation_values.append(expectation_value_with_error)
                 metadatum["variance"] = variance
                 metadatum["shots"] = shots

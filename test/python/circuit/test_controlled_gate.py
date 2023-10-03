@@ -74,10 +74,10 @@ from qiskit.circuit.library import (
     C4XGate,
     MCPhaseGate,
     GlobalPhaseGate,
+    UnitaryGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
-from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
 
 from .gate_utils import _get_free_params
@@ -516,7 +516,7 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = None
 
         # apply hadamard on control qubits and toffoli gate
-        qc.mct(q_controls, q_target[0], q_ancillas, mode="basic")
+        qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic")
 
         # execute the circuit and obtain statevector result
         backend = BasicAer.get_backend("unitary_simulator")
@@ -549,7 +549,7 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mct(q_controls, q_target[0], q_ancillas, mode="basic-dirty-ancilla")
+        qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic-dirty-ancilla")
 
         simulated = execute(qc, BasicAer.get_backend("unitary_simulator")).result().get_unitary(qc)
         if num_ancillas > 0:
@@ -578,7 +578,7 @@ class TestControlledGate(QiskitTestCase):
             q_ancillas = QuantumRegister(num_ancillas)
             qc.add_register(q_ancillas)
 
-        qc.mct(q_controls, q_target[0], q_ancillas, mode="advanced")
+        qc.mcx(q_controls, q_target[0], q_ancillas, mode="advanced")
 
         simulated = execute(qc, BasicAer.get_backend("unitary_simulator")).result().get_unitary(qc)
         if num_ancillas > 0:
@@ -599,7 +599,7 @@ class TestControlledGate(QiskitTestCase):
         q_target = QuantumRegister(1)
         qc = QuantumCircuit(q_controls, q_target)
 
-        qc.mct(q_controls, q_target[0], None, mode="noancilla")
+        qc.mcx(q_controls, q_target[0], None, mode="noancilla")
 
         simulated = execute(qc, BasicAer.get_backend("unitary_simulator")).result().get_unitary(qc)
 

@@ -1060,18 +1060,19 @@ class PauliTable(BaseOperator, AdjointMixin):
         z = symp[num_qubits : 2 * num_qubits]
 
         dim = 2**num_qubits
-        twos_array = 1 << np.arange(num_qubits)
+        twos_array = 1 << np.arange(num_qubits, dtype=np.uint)
         x_indices = np.array(x).dot(twos_array)
         z_indices = np.array(z).dot(twos_array)
 
         indptr = np.arange(dim + 1, dtype=np.uint)
         indices = indptr ^ x_indices
-        data = (-1) ** np.mod(count1(z_indices & indptr), 2)
+        parity = np.mod(count1(z_indices & indptr), 2)
         if real_valued:
-            dtype = float
+            dtype = np.float64
+            data = np.where(parity, -1.0, 1.0)
         else:
-            dtype = complex
-            data = (-1j) ** np.sum(x & z) * data
+            dtype = np.complex64
+            data = (-1j) ** np.sum(x & z) * np.where(parity, (-1 + 0j), (1 + 0j))
 
         if sparse:
             # Return sparse matrix
