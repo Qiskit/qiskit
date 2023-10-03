@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Fake qasm simulator.
+Fake OpenQASM simulator.
 """
 
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration

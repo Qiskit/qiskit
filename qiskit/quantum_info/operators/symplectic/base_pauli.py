@@ -438,7 +438,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             phase %= 4
 
         dim = 2**num_qubits
-        twos_array = 1 << np.arange(num_qubits)
+        twos_array = 1 << np.arange(num_qubits, dtype=np.uint)
         x_indices = np.asarray(x).dot(twos_array)
         z_indices = np.asarray(z).dot(twos_array)
 
