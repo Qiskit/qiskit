@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This release fixes the fake backend and makes it check that the 
+    number of qubits is compatible with the simulated provider and it 
+    ensures that the basis gates used are supported by the provider.
