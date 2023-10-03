@@ -28,7 +28,14 @@ from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import (
+    ApplyLayout,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    Optimize1qGatesDecomposition,
+    SetLayout,
+)
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -136,8 +143,8 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         self._grouping = list(zip(range(len(self._circuits)), range(len(self._observables))))
         self._skip_transpilation = skip_transpilation
 
-        self._circuit_ids = {}
-        self._observable_ids = {}
+        self._circuit_ids: dict[tuple, int] = {}
+        self._observable_ids: dict[tuple, int] = {}
 
     @property
     def transpile_options(self) -> Options:
@@ -209,9 +216,27 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     perm_pattern = list(range(transpiled_circuit.num_qubits))
 
             # 2. transpile diff circuits
-            transpile_opts = copy.copy(self.transpile_options)
-            transpile_opts.update_options(initial_layout=perm_pattern)
-            diff_circuits = transpile(diff_circuits, self.backend, **transpile_opts.__dict__)
+            passmanager = PassManager([SetLayout(perm_pattern)])
+            if isinstance(self.backend, BackendV2):
+                opt1q = Optimize1qGatesDecomposition(target=self.backend.target)
+            else:
+                opt1q = Optimize1qGatesDecomposition(basis=self.backend.configuration().basis_gates)
+            passmanager.append(opt1q)
+            if isinstance(self.backend, BackendV2) and isinstance(
+                self.backend.coupling_map, CouplingMap
+            ):
+                coupling_map = self.backend.coupling_map
+                passmanager.append(FullAncillaAllocation(coupling_map))
+                passmanager.append(EnlargeWithAncilla())
+            elif (
+                isinstance(self.backend, BackendV1)
+                and self.backend.configuration().coupling_map is not None
+            ):
+                coupling_map = CouplingMap(self.backend.configuration().coupling_map)
+                passmanager.append(FullAncillaAllocation(coupling_map))
+                passmanager.append(EnlargeWithAncilla())
+            passmanager.append(ApplyLayout())
+            diff_circuits = passmanager.run(diff_circuits)
             # 3. combine
             transpiled_circuits = []
             for diff_circuit in diff_circuits:
@@ -283,7 +308,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 observable_indices.append(len(self._observables))
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
                 self._observables.append(observable)
-        job = PrimitiveJob(
+        job: PrimitiveJob[EstimatorResult] = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
         job.submit()
@@ -333,7 +358,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     }
                     diff_circuits.append(meas_circuit)
             else:
-                for basis, obs in zip(observable.paulis, observable):  # type: ignore
+                for basis, obs in zip(observable.paulis, observable):
                     meas_circuit, indices = self._measurement_circuit(circuit.num_qubits, basis)
                     paulis = PauliList.from_symplectic(
                         obs.paulis.z[:, indices],
