@@ -129,7 +129,7 @@ class FakeGeneric(BackendV2):
         self._rng = np.random.default_rng(seed=123456789123456)
         self._coupling_map_type = coupling_map_type
         if replace_cx_with_ecr:
-            self.basis_gates = list(map(lambda gate: gate.replace("cx", "ecr"), basis_gates))
+            self.basis_gates = [gate.replace("cx", "ecr") for gate in basis_gates]
 
         if "delay" not in basis_gates:
             self.basis_gates.append("delay")
