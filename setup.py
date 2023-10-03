@@ -59,7 +59,7 @@ toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.25.2",
+    version="0.25.2.post0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
