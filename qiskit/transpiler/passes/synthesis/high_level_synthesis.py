@@ -26,6 +26,7 @@ from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -162,7 +163,7 @@ class HighLevelSynthesis(TransformationPass):
         coupling_map: Optional[CouplingMap] = None,
         target: Optional[Target] = None,
         use_qubit_indices: bool = False,
-        equivalence_library: Optional[EquivalenceLibrary] = None,
+        equivalence_library: EquivalenceLibrary = sel,
         basis_gates: Optional[list[str]] = None,
         min_qubits: int = 0,
         top_level_only: bool = False,
@@ -180,8 +181,8 @@ class HighLevelSynthesis(TransformationPass):
             use_qubit_indices: a flag indicating whether this synthesis pass is running before or after
                 the layout is set, that is, whether the qubit indices of higher-level-objects correspond
                 to qubit indices on the target backend.
-            equivalence_library: Optional, the equivalence library used.
-                (instructions in this library will not be unrolled by this pass.)
+            equivalence_library: The equivalence library used (instructions in this library will not
+                be unrolled by this pass). By default, the default SessionEquivalenceLibrary is used.
             basis_gates: Optional, target basis names to unroll to, e.g. `['u3', 'cx']`.
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
