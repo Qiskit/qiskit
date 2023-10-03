@@ -3,7 +3,7 @@
 # standard pip conventions, even though none of these are required.
 #
 # If updating this, you probably want to update `qiskit.utils.optionals` and
-# maybe `setup.py` too.
+# maybe `pyproject.toml` too.
 
 # Test-runner enhancements.
 fixtures
