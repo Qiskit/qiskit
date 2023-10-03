@@ -3,8 +3,9 @@ features:
   - |
     Added a new method, :meth:`~.SparsePauliOp.apply_layout`,
     to the :class:~.SparsePauliOp` class. This method is used to take
-    a :class:`~.TranspileLayout` observable for a given input circuit and permute
-    it based on the layout from the transpiler. This enables working with
+    a :class:`~.TranspileLayout` layout from the transpiler and apply
+    it to an :class:~.SparsePauliOp` observable that was built for the
+    the input circuit to the transpiler. This enables working with
     the :class:`~.BaseEstimator` implementations and local transpilation more
     easily. For example::
 
