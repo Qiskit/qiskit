@@ -431,7 +431,9 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         """Check that passing target (and constructing coupling map from the target)
         works correctly.
         """
-        qc = self.create_circ()
+        qc = QuantumCircuit(3)
+        qc.append(OpA(), [0])
+
         mock_plugin_manager = MockPluginManager
         with unittest.mock.patch(
             "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
@@ -786,7 +788,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         self.assertEqual(Operator(qc1), Operator(transpiled1))
 
     def test_definition_with_annotations(self):
-        """Test annotated gates with definitions involving ather annotated gates."""
+        """Test annotated gates with definitions involving ather annotated gates.
+        Note that passing basis_gates makes the pass recursive.
+        """
         qc = QuantumCircuit(4)
         lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), InverseModifier())
         lazy_gate2 = AnnotatedOperation(SwapGate(), ControlModifier(2))
@@ -796,21 +800,23 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
         circuit = QuantumCircuit(6)
         circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
-        transpiled_circuit = HighLevelSynthesis()(circuit)
+        transpiled_circuit = HighLevelSynthesis(basis_gates=["cx", "u"])(circuit)
         self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
 
     def test_definition_with_high_level_objects(self):
         """Test annotated gates with definitions involving annotations and
         high-level-objects."""
         def_circuit = QuantumCircuit(4)
-        def_circuit.append(AnnotatedOperation(PermutationGate([1, 0]), ControlModifier(2)), [0, 1, 2, 3])
+        def_circuit.append(
+            AnnotatedOperation(PermutationGate([1, 0]), ControlModifier(2)), [0, 1, 2, 3]
+        )
         gate = def_circuit.to_gate()
         circuit = QuantumCircuit(6)
         circuit.append(gate, [0, 1, 2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(6)
         expected_circuit.append(SwapGate().control(2), [0, 1, 2, 3])
-        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+        self.assertEqual(circuit, transpiled_circuit)
 
 
 if __name__ == "__main__":

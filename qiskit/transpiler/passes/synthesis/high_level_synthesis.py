@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Synthesize higher-level objects."""
+"""Synthesize higher-level objects and unroll custom definitions."""
 
 from typing import Optional, Union, List, Tuple
 
@@ -20,7 +20,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -114,12 +114,17 @@ class HLSConfig:
 
 
 class HighLevelSynthesis(TransformationPass):
-    """Synthesize higher-level objects.
+    """Synthesize higher-level objects and unroll custom definitions.
 
     The input to this pass is a DAG that may contain higher-level objects,
-    including abstract mathematical objects (e.g., objects of type :class:`.LinearFunction`)
-    and annotated operations (objects of type :class:`.AnnotatedOperation`).
-    By default, all higher-level objects are synthesized, so the output is a DAG without such objects.
+    including abstract mathematical objects (e.g., objects of type :class:`.LinearFunction`),
+    annotated operations (objects of type :class:`.AnnotatedOperation`), and
+    custom gates.
+
+    In the most common use-case when either ``basis_gates`` or ``target`` is specified,
+    all higher-level objects are synthesized, so the output is a DAG without such objects.
+    More precisely, every gate in the output DAG is either directly supported by the target,
+    or is in ``equivalence_library``.
 
     The abstract mathematical objects are synthesized using synthesis plugins, applying
     synthesis methods specified in the high-level-synthesis config (refer to the documentation
@@ -141,6 +146,14 @@ class HighLevelSynthesis(TransformationPass):
     The annotated operations (consisting of a base operation and a list of inverse, control and power
     modifiers) are synthesizing recursively, first synthesizing the base operation, and then applying
     synthesis methods for creating inverted, controlled, or powered versions of that).
+
+    The custom gates are synthesized by recursively unrolling their definitions, until every gate
+    is either supported by the target or is in the equivalence library.
+
+    When neither ``basis_gates`` nor ``target`` is specified, the pass synthesizes only the top-level
+    abstract mathematical objects and annotated operations, without descending into the gate
+    ``definitions``. This is consistent with the older behavior of the pass, allowing to synthesize
+    some higher-level objects using plugins and leaving the others gates untouched.
     """
 
     def __init__(
@@ -149,10 +162,10 @@ class HighLevelSynthesis(TransformationPass):
         coupling_map: Optional[CouplingMap] = None,
         target: Optional[Target] = None,
         use_qubit_indices: bool = False,
-        equivalence_library=None,
-        basis_gates=None,
-        min_qubits=0,
-        recurse=True,
+        equivalence_library: Optional[EquivalenceLibrary] = None,
+        basis_gates: Optional[list[str]] = None,
+        min_qubits: int = 0,
+        top_level_only: bool = False,
     ):
         """
         HighLevelSynthesis initializer.
@@ -167,14 +180,13 @@ class HighLevelSynthesis(TransformationPass):
             use_qubit_indices: a flag indicating whether this synthesis pass is running before or after
                 the layout is set, that is, whether the qubit indices of higher-level-objects correspond
                 to qubit indices on the target backend.
-            equivalence_library (EquivalenceLibrary): The equivalence library used.
+            equivalence_library: Optional, the equivalence library used.
                 (instructions in this library will not be unrolled by this pass.)
-            basis_gates (Optional[list[str]]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
+            basis_gates: Optional, target basis names to unroll to, e.g. `['u3', 'cx']`.
                 Ignored if ``target`` is also specified.
-            min_qubits (int): The minimum number of qubits for operations in the input
+            min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
-            recurse (bool): if True, also recursively processes objects in gates' ``definition``
-                field, if such exists.
+            top_level_only: if True, does not recursively process gates' ``definitions``.
         """
         super().__init__()
 
@@ -192,9 +204,16 @@ class HighLevelSynthesis(TransformationPass):
         if target is not None:
             self._coupling_map = self._target.build_coupling_map()
         self._equiv_lib = equivalence_library
-        self._basis_gates = basis_gates if basis_gates is not None else []
+        self._basis_gates = basis_gates
         self._min_qubits = min_qubits
-        self._recurse = recurse
+
+        self._top_level_only = top_level_only
+        if self._basis_gates is None and self._target is None:
+            self._top_level_only = True
+
+        if not self._top_level_only and self._target is None:
+            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
+            self._device_insts = basic_insts | set(self._basis_gates)
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -210,34 +229,8 @@ class HighLevelSynthesis(TransformationPass):
             (for instance, when the specified synthesis method is not available).
         """
 
-        # Comments:
-        # - This pass will be recursive as for example we may have annotated gates
-        #   whose definitions consist of other annotated gates, whose definitions include
-        #   LinearFunctions.
-        # - In order to synthesize a linear function annotated by ControlModifier, we must
-        #   first fully synthesize the linear function, and then synthesize the circuit
-        #   obtained by adding control logic.
-        # - Additionally, see https://github.com/Qiskit/qiskit/pull/9846#pullrequestreview-1626991425.
-
-        # Question: since the pass is now recursive, this is no longer a safe optimization.
-        # # If there are no high level operations / annotated gates to synthesize, return fast
-        # hls_names = set(self.hls_plugin_manager.plugins_by_op)
-        # node_names = dag.count_ops()
-        # if "annotated" not in node_names and not hls_names.intersection(node_names):
-        #     return dag
-
-        # Questions: Should we skip synthesizing higher-level-objects when both basis_gates and target
-        # are None? This is what we do in UnrollCustomDefinitions but not in the older version of
-        # HighLevelSynthesis. Ho should we handle backward compatibility?
-        # if self._basis_gates is None and self._target is None:
-        #    return dag
-
         # copy dag_op_nodes because we are modifying the DAG below
         dag_op_nodes = dag.op_nodes()
-
-        if self._target is None:
-            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
-            device_insts = basic_insts | set(self._basis_gates)
 
         for node in dag_op_nodes:
             if isinstance(node.op, ControlFlowOp):
@@ -250,21 +243,14 @@ class HighLevelSynthesis(TransformationPass):
             if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 continue
 
-            # ToDo: fix open-controlled controlled gates
-
-            if self._equiv_lib and self._equiv_lib.has_entry(node.op):
-                continue
-
             qubits = (
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
+
             decomposition, modified = self._recursively_handle_op(node.op, qubits)
 
             if not modified:
                 continue
-
-            if not isinstance(decomposition, (QuantumCircuit, Operation)):
-                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {node.op}.")
 
             if isinstance(decomposition, QuantumCircuit):
                 dag.substitute_node_with_dag(
@@ -280,24 +266,21 @@ class HighLevelSynthesis(TransformationPass):
     ) -> Tuple[Union[QuantumCircuit, Operation, None], bool]:
         """Recursively synthesizes a single operation.
 
-        We need this function because a base operation of an annotated
-        operation is neither a quantum circuit nor a node.
+        Note: the reason that this function accepts an operation and not a dag node
+        is that it's also used for synthesizing the base operation for an annotated
+        gate (i.e. no dag node is available).
 
         There are several possible results:
 
-        - The given operation is unchanged
-        - The result is a quantum circuit: for example, synthesizing
-          a LinearFunction produces a quantum circuit
-        - The result is an Operation: for example, adding control
-          to CX-gate results in CCX-gate
-        - The given operation could not be synthesized
+        - The given operation is unchanged: e.g., it is supported by the target or is
+          in the equivalence library
+        - The result is a quantum circuit: e.g., synthesizing Clifford using plugin
+        - The result is an Operation: e.g., adding control to CXGate results in CCXGate
+        - The given operation could not be synthesized, raising a transpiler error
 
-        So the function returns the result of the synthesis
-        (either a quantum circuit, or an operation, or None),
-        and a boolean whether synthesis did anything.
-
-        The function recursively handles operation's definition,
-        if it exists.
+        The function returns the result of the synthesis (either a quantum circuit or
+        an Operation), and, as an optimization, a boolean indicating whether
+        synthesis did anything.
         """
 
         # Try to apply plugin mechanism
@@ -310,25 +293,44 @@ class HighLevelSynthesis(TransformationPass):
         if decomposition:
             return decomposition, True
 
-        if self._recurse:
-            try:
-                # extract definition
-                definition = op.definition
-            except TypeError as err:
-                raise TranspilerError(
-                    f"HighLevelSynthesis was unable to extract definition for {op.name}: {err}"
-                ) from err
-            except AttributeError:
-                # definition is None
-                definition = None
+        # Don't do anything else if processing only top-level
+        if self._top_level_only:
+            return op, False
 
-            if definition is not None:
-                dag = circuit_to_dag(definition)
-                dag = self.run(dag)
-                op.definition = dag_to_circuit(dag)
+        # For non-controlled-gates, check if it's already supported by the target
+        # or is in equivalence library
+        controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
+        if not controlled_gate_open_ctrl:
+            qargs = tuple(qubits) if qubits is not None else None
+            inst_supported = (
+                self._target.instruction_supported(
+                    operation_name=op.name,
+                    qargs=qargs,
+                )
+                if self._target is not None
+                else op.name in self._device_insts
+            )
+            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
+                return op, False
 
-        # In the future, we will support recursion.
-        return op, False
+        try:
+            # extract definition
+            definition = op.definition
+        except TypeError as err:
+            raise TranspilerError(
+                f"HighLevelSynthesis was unable to extract definition for {op.name}: {err}"
+            ) from err
+        except AttributeError:
+            # definition is None
+            definition = None
+
+        if definition is None:
+            raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op}.")
+
+        dag = circuit_to_dag(definition)
+        dag = self.run(dag)
+        new_definition = dag_to_circuit(dag)
+        return new_definition, True
 
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List
