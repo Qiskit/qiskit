@@ -143,8 +143,8 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         self._grouping = list(zip(range(len(self._circuits)), range(len(self._observables))))
         self._skip_transpilation = skip_transpilation
 
-        self._circuit_ids: dict[tuple, int] = {}
-        self._observable_ids: dict[tuple, int] = {}
+        self._circuit_ids = {}
+        self._observable_ids = {}
 
     @property
     def transpile_options(self) -> Options:
@@ -308,7 +308,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 observable_indices.append(len(self._observables))
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
                 self._observables.append(observable)
-        job: PrimitiveJob[EstimatorResult] = PrimitiveJob(
+        job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
         job.submit()
