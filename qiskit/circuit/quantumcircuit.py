@@ -1592,7 +1592,7 @@ class QuantumCircuit:
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
-        return dag_to_circuit(dag)
+        return dag_to_circuit(dag, copy_operations=True)
 
     def qasm(
         self,
