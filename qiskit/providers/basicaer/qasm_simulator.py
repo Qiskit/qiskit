@@ -402,7 +402,7 @@ class QasmSimulatorPy(BackendV1):
             The "initial_statevector" option specifies a custom initial
             initial statevector for the simulator to be used instead of the all
             zero state. This size of this vector must be correct for the number
-            of qubits in run_input.
+            of qubits in ``run_input`` parameter.
 
             Example::
 
