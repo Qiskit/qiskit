@@ -93,4 +93,6 @@ class ParameterizedCircuitBindBench:
         self.circuit, self.params = build_parameterized_circuit(width, gates, params)
 
     def time_bind_params(self, _, __, ___):
-        self.circuit.bind_parameters({x: 3.14 for x in self.params})
+        # TODO: write more complete benchmarks of assign_parameters
+        #  that test more of the input formats / combinations
+        self.circuit.assign_parameters({x: 3.14 for x in self.params})

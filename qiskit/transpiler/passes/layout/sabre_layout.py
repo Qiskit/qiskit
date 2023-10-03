@@ -16,6 +16,7 @@
 import copy
 import dataclasses
 import logging
+import functools
 import time
 
 import numpy as np
@@ -73,6 +74,34 @@ class SabreLayout(TransformationPass):
     You can use the ``routing_pass`` argument to have this pass operate as a typical
     layout pass. When specified this will use the specified routing pass to select an
     initial layout only and will not run multiple seed trials.
+
+    In addition to starting with a random initial `Layout` the pass can also take in
+    an additional list of starting layouts which will be used for additional
+    trials. If the ``sabre_starting_layouts`` is present in the property set
+    when this pass is run, that will be used for additional trials. There will still
+    be ``layout_trials`` of full random starting layouts run and the contents of
+    ``sabre_starting_layouts`` will be run in addition to those. The output which results
+    in the lowest amount of swap gates (whether from the random trials or the property
+    set starting point) will be used. The value for this property set field should be a
+    list of :class:`.Layout` objects representing the starting layouts to use. If a
+    virtual qubit is missing from an :class:`.Layout` object in the list a random qubit
+    will be selected.
+
+    Property Set Fields Read
+    ------------------------
+
+    ``sabre_starting_layouts`` (``list[Layout]``)
+        An optional list of :class:`~.Layout` objects to use for additional layout trials. This is
+        in addition to the full random trials specified with the ``layout_trials`` argument.
+
+    Property Set Values Written
+    ---------------------------
+
+    ``layout`` (:class:`.Layout`)
+        The chosen initial mapping of virtual to physical qubits, including the ancilla allocation.
+
+    ``final_layout`` (:class:`.Layout`)
+        A permutation of how swaps have been applied to the input qubits at the end of the circuit.
 
     **References:**
 
@@ -232,8 +261,12 @@ class SabreLayout(TransformationPass):
             target.make_symmetric()
         else:
             target = self.coupling_map
-
-        components = disjoint_utils.run_pass_over_connected_components(dag, target, self._inner_run)
+        inner_run = self._inner_run
+        if "sabre_starting_layouts" in self.property_set:
+            inner_run = functools.partial(
+                self._inner_run, starting_layouts=self.property_set["sabre_starting_layouts"]
+            )
+        components = disjoint_utils.run_pass_over_connected_components(dag, target, inner_run)
         self.property_set["layout"] = Layout(
             {
                 component.dag.qubits[logic]: component.coupling_map.graph[phys]
@@ -314,7 +347,7 @@ class SabreLayout(TransformationPass):
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
         return mapped_dag
 
-    def _inner_run(self, dag, coupling_map):
+    def _inner_run(self, dag, coupling_map, starting_layouts=None):
         if not coupling_map.is_symmetric:
             # deepcopy is needed here to avoid modifications updating
             # shared references in passes which require directional
@@ -323,8 +356,26 @@ class SabreLayout(TransformationPass):
             coupling_map.make_symmetric()
         neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
         dist_matrix = coupling_map.distance_matrix
+        original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        partial_layouts = []
+        if starting_layouts is not None:
+            coupling_map_reverse_mapping = {
+                coupling_map.graph[x]: x for x in coupling_map.graph.node_indices()
+            }
+            for layout in starting_layouts:
+                virtual_bits = layout.get_virtual_bits()
+                out_layout = [None] * len(dag.qubits)
+                for bit, phys in virtual_bits.items():
+                    pos = original_qubit_indices.get(bit, None)
+                    if pos is None:
+                        continue
+                    out_layout[pos] = coupling_map_reverse_mapping[phys]
+                partial_layouts.append(out_layout)
+
         sabre_dag, circuit_to_dag_dict = _build_sabre_dag(
-            dag, coupling_map.size(), {bit: index for index, bit in enumerate(dag.qubits)}
+            dag,
+            coupling_map.size(),
+            original_qubit_indices,
         )
         sabre_start = time.perf_counter()
         (initial_layout, final_permutation, sabre_result) = sabre_layout_and_routing(
@@ -336,6 +387,7 @@ class SabreLayout(TransformationPass):
             self.swap_trials,
             self.layout_trials,
             self.seed,
+            partial_layouts,
         )
         sabre_stop = time.perf_counter()
         logger.debug(

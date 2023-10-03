@@ -786,7 +786,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[type(v)]
             if len(embodiment.parameters) == 1:
-                embodiments[strength] = embodiment.bind_parameters([strength])
+                embodiments[strength] = embodiment.assign_parameters([strength])
             else:
                 embodiments[strength] = embodiment
             # basis equivalent to CX are well optimized so use for the pi/2 angle if available
