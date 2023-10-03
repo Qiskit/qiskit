@@ -831,7 +831,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
 def _write_layout(file_obj, circuit):
     if circuit.layout is None:
         # Write a null header if there is no layout present
-        file_obj.write(struct.pack(formats.LAYOUT_PACK, False, -1, -1, -1, 0))
+        file_obj.write(struct.pack(formats.LAYOUT_V2_PACK, False, -1, -1, -1, 0, 0))
         return
     initial_size = -1
     input_qubit_mapping = {}
@@ -874,14 +874,18 @@ def _write_layout(file_obj, circuit):
             virtual_bit = final_layout_physical[i]
             final_layout_array.append(circuit.find_bit(virtual_bit).index)
 
+    input_qubit_count = circuit._layout._input_qubit_count
+    if input_qubit_count is None:
+        input_qubit_count = -1
     file_obj.write(
         struct.pack(
-            formats.LAYOUT_PACK,
+            formats.LAYOUT_V2_PACK,
             True,
             initial_size,
             input_qubit_size,
             final_layout_size,
             len(extra_registers),
+            input_qubit_count,
         )
     )
     _write_registers(
@@ -910,6 +914,10 @@ def _read_layout(file_obj, circuit):
     )
     if not header.exists:
         return
+    _read_common_layout(file_obj, header, circuit)
+
+
+def _read_common_layout(file_obj, header, circuit):
     registers = {
         name: QuantumRegister(len(v[1]), name)
         for name, v in _read_registers_v4(file_obj, header.extra_registers)["q"].items()
@@ -956,6 +964,18 @@ def _read_layout(file_obj, circuit):
         final_layout = Layout(layout_dict)
 
     circuit._layout = TranspileLayout(initial_layout, input_qubit_mapping, final_layout)
+
+
+def _read_layout_v2(file_obj, circuit):
+    header = formats.LAYOUT_V2._make(
+        struct.unpack(formats.LAYOUT_V2_PACK, file_obj.read(formats.LAYOUT_V2_SIZE))
+    )
+    if not header.exists:
+        return
+    _read_common_layout(file_obj, header, circuit)
+    if header.input_qubit_count >= 0:
+        circuit._layout._input_qubit_count = header.input_qubit_count
+        circuit._layout._output_qubit_list = circuit.qubits
 
 
 def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=False):
@@ -1161,5 +1181,8 @@ def read_circuit(file_obj, version, metadata_deserializer=None, use_symengine=Fa
                 UserWarning,
             )
     if version >= 8:
-        _read_layout(file_obj, circ)
+        if version >= 10:
+            _read_layout_v2(file_obj, circ)
+        else:
+            _read_layout(file_obj, circ)
     return circ
