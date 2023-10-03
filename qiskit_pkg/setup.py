@@ -26,7 +26,7 @@ README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.m
 with open(README_PATH) as readme_file:
     README = readme_file.read()
 
-requirements = ["qiskit-terra==0.25.2.post0"]
+requirements = ["qiskit-terra==0.25.2.1"]
 
 setup(
     name="qiskit",
