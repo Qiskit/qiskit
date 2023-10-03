@@ -191,6 +191,7 @@ class CSGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
         _condition=None,
         duration=None,
         unit=None,
@@ -198,6 +199,11 @@ class CSGate(SingletonControlledGate):
         """Create new CS gate."""
         if unit is None:
             unit = "dt"
+        if _base_label is not None:
+            base_gate = SGate(label=_base_label)
+        else:
+            base_gate = SGate()
+
         super().__init__(
             "cs",
             2,
@@ -205,8 +211,9 @@ class CSGate(SingletonControlledGate):
             label=label,
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
-            base_gate=SGate(),
+            base_gate=base_gate,
             duration=duration,
+            _base_label=_base_label,
             _condition=_condition,
             unit=unit,
         )
@@ -260,6 +267,7 @@ class CSdgGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
         _condition=None,
         duration=None,
         unit=None,
@@ -272,7 +280,7 @@ class CSdgGate(SingletonControlledGate):
             label=label,
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
-            base_gate=SdgGate(),
+            base_gate=SdgGate(label=_base_label),
             duration=duration,
             _condition=_condition,
             unit=unit,

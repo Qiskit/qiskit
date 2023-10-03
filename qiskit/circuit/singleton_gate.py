@@ -65,6 +65,7 @@ SINGLETOCONTROLED_NGATE_ATTR_SET = frozenset(
         "_num_ctrl_qubits",
         "num_ctrl_qubits",
         "ctrl_state",
+        "_base_label",
     )
 )
 
@@ -260,15 +261,30 @@ class SingletonControlledGate(ControlledGate):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, *args, _condition=None, **kwargs):
+    def __init__(self, *args, _condition=None, _base_label=None, **kwargs):
         if self is self._instance:
             self._num_ctrl_qubits = kwargs.get("num_ctrl_qubits", 1)
             self._ctrl_state = _ctrl_state_to_int(
                 kwargs.get("ctrl_state", None), self._num_ctrl_qubits
             )
-        kwargs.pop("_base_label", None)
+        self._base_label = _base_label
         super().__init__(*args, **kwargs)
         self._condition = _condition
+
+    def __getnewargs_ex__(self):
+        if not self.mutable:
+            return ((), {})
+        return (
+            (
+                self.label,
+                self._condition,
+                self.duration,
+                self.unit,
+                self.ctrl_state,
+                self._base_label,
+            ),
+            {},
+        )
 
     def c_if(self, classical, val):
         if not isinstance(classical, (ClassicalRegister, Clbit)):
@@ -285,6 +301,7 @@ class SingletonControlledGate(ControlledGate):
         else:
             instance = type(self)(
                 label=self.label,
+                _base_label=self._base_label,
                 _condition=(classical, val),
                 duration=self.duration,
                 unit=self.unit,
@@ -364,6 +381,7 @@ class SingletonControlledGate(ControlledGate):
         else:
             return type(self)(
                 label=self.label,
+                _base_label=self._base_label,
                 _condition=self.condition,
                 duration=self.duration,
                 unit=self.unit,

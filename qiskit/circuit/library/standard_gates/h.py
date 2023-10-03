@@ -176,7 +176,7 @@ class CHGate(SingletonControlledGate):
         """Create new CH gate."""
         if unit is None:
             unit = "dt"
-        if _base_label:
+        if _base_label is not None:
             base_gate = HGate(label=_base_label)
         else:
             base_gate = HGate()

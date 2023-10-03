@@ -216,6 +216,7 @@ class CXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
+            _base_label=_base_label,
             duration=duration,
             _condition=_condition,
             unit=unit,
@@ -603,7 +604,10 @@ class C3SXGate(SingletonControlledGate):
         # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
         # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
         old_name = self.name
-        self.name = "c3sqrtx"
+        if not self.mutable:
+            copy_self = self.to_mutable()
+            copy_self.name = "c3sqrtx"
+            return copy_self.qasm()
         try:
             return super().qasm()
         finally:
