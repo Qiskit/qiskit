@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    QPY supports the use of symengine-native serialization and deserialization
+    for objects of type ``ParameterExpression`` as well as symbolic expressions in
+    Pulse schedule blocks. This is a faster serialization alternative, but not
+    supported in all platforms. Please check that your target platform is supported
+    by the symengine library before setting this option, as it will be **required**
+    by qpy to deserialize the payload.
+
+    The feature can be enabled through the ``use_symengine`` parameter
+    in :meth:`.qpy.dump`:
+
+    .. code-block:: python
+
+      from qiskit.circuit import QuantumCircuit, Parameter
+      from qiskit import qpy
+
+      theta = Parameter("theta")
+      phi = Parameter("phi")
+      sum_param = theta + phi
+
+      qc = QuantumCircuit(1)
+      qc.rz(sum_param, 0)
+      qc.measure_all()
+
+      with open('bell.qpy', 'wb') as fd:
+          qpy.dump(qc, fd, use_symengine=True)
+
+      with open('bell.qpy', 'rb') as fd:
+          new_qc = qpy.load(fd)[0]

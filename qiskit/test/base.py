@@ -240,13 +240,20 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-        # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
-        warnings.filterwarnings(
-            "default",
-            category=DeprecationWarning,
-            module="qiskit_aer.*",
-            message="Setting metadata to None.*",
-        )
+
+        allow_aer_DeprecationWarning_message = [
+            # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
+            "Setting metadata to None.*",
+            # and this one once Qiskit/qiskit-aer#1945 is merged and released.
+            r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
+            r"deprecated as of qiskit-terra 0\.45\.0\. It will be removed no earlier than 3 "
+            r"months after the release date\. Use QuantumCircuit\.id as direct replacement\.",
+        ]
+
+        for msg in allow_aer_DeprecationWarning_message:
+            warnings.filterwarnings(
+                "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
+            )
 
 
 class FullQiskitTestCase(QiskitTestCase):

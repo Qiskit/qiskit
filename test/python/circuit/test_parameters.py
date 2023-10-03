@@ -950,6 +950,15 @@ class TestParameters(QiskitTestCase):
                 self.assertEqual(expected1, output1)
                 self.assertEqual(expected2, output2)
 
+    def test_sign_of_parameter(self):
+        """Test returning the sign of the value of the parameter"""
+
+        b = Parameter("phi")
+        sign_of_parameter = b.sign()
+        self.assertEqual(sign_of_parameter.assign(b, -3), -1)
+        self.assertEqual(sign_of_parameter.assign(b, 2), 1)
+        self.assertEqual(sign_of_parameter.assign(b, 0), 0)
+
     @combine(target_type=["gate", "instruction"], parameter_type=["numbers", "parameters"])
     def test_decompose_propagates_bound_parameters(self, target_type, parameter_type):
         """Verify bind-before-decompose preserves bound values."""

@@ -13,39 +13,36 @@
 # The structure of the code is based on Emanuel Malvetti's semester thesis at ETH in 2018,
 # which was supervised by Raban Iten and Prof. Renato Renner.
 
-"""
-(Abstract) base class for uniformly controlled (also called multiplexed) single-qubit rotations R_t.
-This class provides a basis for the decomposition of uniformly controlled R_x,R_y and R_z gates
-(i.e., for t=x,y,z). These gates can have several control qubits and a single target qubit.
-If the k control qubits are in the state ket(i) (in the computational bases),
-a single-qubit rotation R_t(a_i) is applied to the target qubit for a (real) angle a_i.
-"""
+"""Uniformly controlled Pauli rotations."""
+
+from __future__ import annotations
 
 import math
 
 import numpy as np
 
-from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.circuit.quantumcircuit import QuantumRegister
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
 class UCPauliRotGate(Gate):
-    """
-    Uniformly controlled rotations (also called multiplexed rotations).
-    The decomposition is based on 'Synthesis of Quantum Logic Circuits'
-    by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf)
+    r"""Uniformly controlled Pauli rotations.
 
-    Input:
-    angle_list = list of (real) rotation angles [a_0,...,a_{2^k-1}]. Must have at least one entry.
-
-    rot_axis = rotation axis for the single qubit rotations
-               (currently, 'X', 'Y' and 'Z' are supported)
+    Implements the :class:`.UCGate` for the special case that all unitaries are Pauli rotations,
+    :math:`U_i = R_P(a_i)` where :math:`P \in \{X, Y, Z\}` and :math:`a_i \in \mathbb{R}` is
+    the rotation angle.
     """
 
-    def __init__(self, angle_list, rot_axis):
+    def __init__(self, angle_list: list[float], rot_axis: str) -> None:
+        r"""
+        Args:
+            angle_list: List of rotation angles :math:`[a_0, ..., a_{2^{k-1}}]`.
+            rot_axis: Rotation axis. Must be either of ``"X"``, ``"Y"`` or ``"Z"``.
+        """
         self.rot_axes = rot_axis
         # Check if angle_list has type "list"
         if not isinstance(angle_list, list):
