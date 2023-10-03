@@ -571,7 +571,7 @@ class FakeBackend(BackendV1):
                                     set(self.configuration().basis_gates),
                                 )
                             )
-        elif not isinstance(circuits, QasmQobj):
+        elif not isinstance(circuits, QasmQobj) and not isinstance(circuits, pulse.ScheduleBlock):
             if not circuits.num_qubits <= self.configuration().n_qubits:
                 raise QiskitError(
                     "Invalid number of qubits, %s, attempted be run on "
