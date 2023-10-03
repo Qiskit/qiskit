@@ -1586,7 +1586,8 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        dag = circuit_to_dag(self)
+        # do not copy operations, this is done in the conversion from dag_to_circuit
+        dag = circuit_to_dag(self,copy_operations=False)
         dag = HighLevelSynthesis().run(dag)
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
