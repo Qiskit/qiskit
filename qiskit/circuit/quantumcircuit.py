@@ -2285,7 +2285,7 @@ class QuantumCircuit:
         if add_bits:
             new_creg = circ._create_creg(len(circ.qubits), "meas")
             circ.add_register(new_creg)
-            # inline calls to barrier and measure
+            # inline call to barrier
             circ._append(Barrier(len(circ.qubits), label=None), circ.qubits, [])
             circ.measure(circ.qubits, new_creg)
         else:
@@ -2294,7 +2294,7 @@ class QuantumCircuit:
                     "The number of classical bits must be equal or greater than "
                     "the number of qubits."
                 )
-            # inline calls to barrier and measure
+            # inline call to barrier
             circ._append(Barrier(len(circ.qubits), label=None), circ.qubits, [])
             circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
 
