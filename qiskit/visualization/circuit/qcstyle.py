@@ -278,6 +278,15 @@ def load_style(style):
         else:
             style = "default"
 
+    if style == "default":
+        warn(
+            'The default matplotlib drawer scheme will be changed to "iqp" in a following release. '
+            'To silence this warning, specify the current default explicitly as style="clifford", '
+            'or the new default as style="iqp".',
+            category=FutureWarning,
+            stacklevel=2,
+        )
+
     if style is False:
         style_name = "bw"
     elif isinstance(style, dict) and "name" in style:
@@ -293,9 +302,16 @@ def load_style(style):
     if style_name.endswith(".json"):
         style_name = style_name[:-5]
 
+    # Alias IQP<->IQX, where we hardcode both "iqx" and "iqx-dark" instead of only replacing the
+    # first three letters, in case users have a custom name starting with "iqx" too.
+    # Also replace "default" with the new name "clifford".
+    replacements = {"iqx": "iqp", "iqx-dark": "iqp-dark", "default": "clifford"}
+    if style_name in replacements.keys():
+        style_name = replacements[style_name]
+
     # Search for file in 'styles' dir, then config_path, and finally 'cwd'
     style_path = []
-    if style_name != "default":
+    if style_name != "clifford":
         style_name = style_name + ".json"
         spath = os.path.dirname(os.path.abspath(__file__))
         style_path.append(os.path.join(spath, "styles", style_name))
