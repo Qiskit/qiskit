@@ -40,6 +40,7 @@ import numpy as np
 from qiskit._accelerate.quantum_circuit import CircuitData
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
+from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
@@ -2284,7 +2285,8 @@ class QuantumCircuit:
         if add_bits:
             new_creg = circ._create_creg(len(circ.qubits), "meas")
             circ.add_register(new_creg)
-            circ.barrier()
+            # inline calls to barrier and measure
+            circ._append(Barrier(len(circ.qubits), label=None), circ.qubits, [])
             circ.measure(circ.qubits, new_creg)
         else:
             if len(circ.clbits) < len(circ.qubits):
@@ -2292,7 +2294,8 @@ class QuantumCircuit:
                     "The number of classical bits must be equal or greater than "
                     "the number of qubits."
                 )
-            circ.barrier()
+            # inline calls to barrier and measure
+            circ._append(Barrier(len(circ.qubits), label=None), circ.qubits, [])
             circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
 
         if not inplace:
