@@ -14,7 +14,7 @@
 
 
 from ._builder_utils import condition_resources, node_resources, LegacyResources
-from .control_flow import ControlFlowOp
+from .control_flow import ControlFlowOp, VarUsage
 from .continue_loop import ContinueLoopOp
 from .break_loop import BreakLoopOp
 

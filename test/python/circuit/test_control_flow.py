@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack, idata
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
+from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources, VarUsage
 from qiskit.circuit.library import XGate, RXGate
 from qiskit.circuit.exceptions import CircuitError
 
@@ -1062,3 +1062,68 @@ class TestAddingControlFlowOperations(QiskitTestCase):
                 [0],
                 [0],
             )
+
+
+class TestControlFlowMethods(QiskitTestCase):
+    """Tests for general control-flow helper methods."""
+
+    def test_captured_var_usage_detects_writes(self):
+        """Test that we see the write on one variable and not the other."""
+        written = expr.Var.new("written", types.Bool())
+        not_written = expr.Var.new("not_written", types.Bool())
+        expected = {written: VarUsage(written=True), not_written: VarUsage(written=False)}
+
+        use_body = QuantumCircuit(captures=[written, not_written])
+        use_body.store(written, not_written)
+        no_use_body = QuantumCircuit(captures=[written, not_written])
+
+        if_test = IfElseOp((Clbit(), False), use_body, None)
+        self.assertEqual(if_test.captured_var_usage(), expected)
+        if_else_1 = IfElseOp((Clbit(), False), use_body, no_use_body)
+        self.assertEqual(if_else_1.captured_var_usage(), expected)
+        if_else_2 = IfElseOp((Clbit(), False), no_use_body, use_body)
+        self.assertEqual(if_else_2.captured_var_usage(), expected)
+
+        for_loop = ForLoopOp(range(3), None, use_body)
+        self.assertEqual(for_loop.captured_var_usage(), expected)
+        while_loop = WhileLoopOp((Clbit(), False), use_body)
+        self.assertEqual(while_loop.captured_var_usage(), expected)
+
+        switch_1 = SwitchCaseOp(Clbit(), [(0, use_body)])
+        self.assertEqual(switch_1.captured_var_usage(), expected)
+        switch_2 = SwitchCaseOp(Clbit(), [(0, no_use_body), (1, use_body)])
+        self.assertEqual(switch_2.captured_var_usage(), expected)
+
+    def test_capture_var_usage_detects_nested_writes(self):
+        """Test that we can detect a write that happens in a nested control-flow block."""
+        # We're not going to cross-check the entire control-flow op matrix here, since the logic is
+        # abstract and we already verified that the base case of each op works.
+
+        written = expr.Var.new("written", types.Bool())
+        not_written = expr.Var.new("not_written", types.Bool())
+        expected = {written: VarUsage(written=True), not_written: VarUsage(written=False)}
+
+        use_body = QuantumCircuit(1, 1, captures=[written, not_written])
+        use_body.store(written, not_written)
+        no_use_body = QuantumCircuit(1, 1, captures=[written, not_written])
+
+        no_use_inner_body = QuantumCircuit(1, 1, captures=[written, not_written])
+        no_use_inner_body.if_test((0, False), no_use_body, [0], [0])
+
+        use_inner_body_1 = QuantumCircuit(1, 1, captures=[written, not_written])
+        use_inner_body_1.if_else((0, False), use_body, no_use_body, [0], [0])
+        use_inner_body_2 = QuantumCircuit(1, 1, captures=[written, not_written])
+        use_inner_body_2.if_else((0, False), no_use_body, use_body, [0], [0])
+
+        if_else_1 = IfElseOp((Clbit(), False), use_inner_body_1, None)
+        self.assertEqual(if_else_1.captured_var_usage(), expected)
+        if_else_2 = IfElseOp((Clbit(), False), no_use_inner_body, use_inner_body_1)
+        self.assertEqual(if_else_2.captured_var_usage(), expected)
+        if_else_3 = IfElseOp((Clbit(), False), no_use_inner_body, use_inner_body_2)
+        self.assertEqual(if_else_3.captured_var_usage(), expected)
+
+        switch_1 = SwitchCaseOp(
+            ClassicalRegister(2),
+            [(0, no_use_inner_body), (1, use_inner_body_1), (2, use_inner_body_2)],
+        )
+        self.assertEqual(switch_1.captured_var_usage(), expected)
