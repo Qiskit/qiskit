@@ -215,26 +215,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     perm_pattern = list(range(transpiled_circuit.num_qubits))
 
             # 2. transpile diff circuits
-            passmanager = PassManager([SetLayout(perm_pattern)])
-            if isinstance(self.backend, BackendV2):
-                opt1q = Optimize1qGatesDecomposition(target=self.backend.target)
-            else:
-                opt1q = Optimize1qGatesDecomposition(basis=self.backend.configuration().basis_gates)
-            passmanager.append(opt1q)
-            if isinstance(self.backend, BackendV2) and isinstance(
-                self.backend.coupling_map, CouplingMap
-            ):
-                coupling_map = self.backend.coupling_map
-                passmanager.append(FullAncillaAllocation(coupling_map))
-                passmanager.append(EnlargeWithAncilla())
-            elif (
-                isinstance(self.backend, BackendV1)
-                and self.backend.configuration().coupling_map is not None
-            ):
-                coupling_map = CouplingMap(self.backend.configuration().coupling_map)
-                passmanager.append(FullAncillaAllocation(coupling_map))
-                passmanager.append(EnlargeWithAncilla())
-            passmanager.append(ApplyLayout())
+            passmanager = _passmanager_for_measurement_circuits(perm_pattern, self.backend)
             diff_circuits = passmanager.run(diff_circuits)
             # 3. combine
             transpiled_circuits = []
@@ -468,3 +449,22 @@ def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.n
     # Compute variance
     variances = 1 - expvals**2
     return expvals, variances
+
+
+def _passmanager_for_measurement_circuits(layout, backend) -> PassManager:
+    passmanager = PassManager([SetLayout(layout)])
+    if isinstance(backend, BackendV2):
+        opt1q = Optimize1qGatesDecomposition(target=backend.target)
+    else:
+        opt1q = Optimize1qGatesDecomposition(basis=backend.configuration().basis_gates)
+    passmanager.append(opt1q)
+    if isinstance(backend, BackendV2) and isinstance(backend.coupling_map, CouplingMap):
+        coupling_map = backend.coupling_map
+        passmanager.append(FullAncillaAllocation(coupling_map))
+        passmanager.append(EnlargeWithAncilla())
+    elif isinstance(backend, BackendV1) and backend.configuration().coupling_map is not None:
+        coupling_map = CouplingMap(backend.configuration().coupling_map)
+        passmanager.append(FullAncillaAllocation(coupling_map))
+        passmanager.append(EnlargeWithAncilla())
+    passmanager.append(ApplyLayout())
+    return passmanager
