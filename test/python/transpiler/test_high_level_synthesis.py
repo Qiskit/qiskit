@@ -42,6 +42,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
+from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap, Target
@@ -857,6 +858,49 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         backend = FakeBackend5QV2()
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_transpile_controlled_high_level_object(self):
+        """Test full transpilation of high level gates with control modifier."""
+        linear_circuit = QuantumCircuit(2)
+        linear_circuit.cx(0, 1)
+        linear_circuit.cx(1, 0)
+        linear_function = LinearFunction(linear_circuit)
+        controlled_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
+        qc = QuantumCircuit(3)
+        qc.append(controlled_linear_function, [0, 1, 2])
+        backend = FakeBackend5QV2()
+        qct = transpile(qc, target=backend.target)
+        ops = qct.count_ops().keys()
+        for op in ops:
+            self.assertIn(op, ["u", "cx", "ecr", "measure"])
+
+    def test_inverse_high_level_object(self):
+        """Test synthesis of high level gates with inverse modifier."""
+        linear_circuit = QuantumCircuit(2)
+        linear_circuit.cx(0, 1)
+        linear_circuit.cx(1, 0)
+        linear_function = LinearFunction(linear_circuit)
+        controlled_linear_function = AnnotatedOperation(linear_function, InverseModifier())
+        qc = QuantumCircuit(3)
+        qc.append(controlled_linear_function, [0, 1])
+        backend = FakeBackend5QV2()
+        qct = HighLevelSynthesis(target=backend.target)(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
+
+    def test_transpile_inverse_high_level_object(self):
+        """Test synthesis of high level gates with inverse modifier."""
+        linear_circuit = QuantumCircuit(2)
+        linear_circuit.cx(0, 1)
+        linear_circuit.cx(1, 0)
+        linear_function = LinearFunction(linear_circuit)
+        controlled_linear_function = AnnotatedOperation(linear_function, InverseModifier())
+        qc = QuantumCircuit(3)
+        qc.append(controlled_linear_function, [0, 1])
+        backend = FakeBackend5QV2()
+        qct = transpile(qc, target=backend.target)
+        ops = qct.count_ops().keys()
+        for op in ops:
+            self.assertIn(op, ["u", "cx", "ecr", "measure"])
 
 
 class TestUnrollerCompatability(QiskitTestCase):
