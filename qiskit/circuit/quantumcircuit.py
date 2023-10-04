@@ -522,6 +522,14 @@ class QuantumCircuit:
             other, copy_operations=False
         )
 
+    def __copy__(self):
+        # Overridden to prevent copy.copy from using __{get,set}state__
+        # which currently unpacks _data into a Python list.
+        cls = self.__class__
+        cpy = cls.__new__(cls)
+        cpy.__dict__.update(self.__dict__)
+        return cpy
+
     def __deepcopy__(self, memo=None):
         # This is overridden in addition to __{get,set}state__
         # to minimize memory pressure when we don't actually
@@ -2185,8 +2193,8 @@ class QuantumCircuit:
         cpy._clbit_indices = self._clbit_indices.copy()
 
         cpy._parameter_table = ParameterTable()
-        # Note that copies will share the same intern context
-        # (copied via copy.copy above)
+        # TODO: reuse context once it is threadsafe
+        cpy._intern_context = InternContext()
         cpy._data = cpy._new_data()
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
