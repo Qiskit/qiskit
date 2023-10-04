@@ -1312,7 +1312,6 @@ class TextDrawing:
             stream = StringIO()
             BasicPrinter(stream, indent="  ").visit(self._builder.build_expression(condition))
             self._expr_text = stream.getvalue()
-            print(self._expr_text)
             # Truncate expr_text at 30 chars or user-set expr_len
             if len(self._expr_text) > self.expr_len:
                 self._expr_text = self._expr_text[: self.expr_len] + "..."

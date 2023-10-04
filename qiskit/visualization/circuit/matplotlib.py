@@ -516,7 +516,7 @@ class MatplotlibDrawer:
                         stream = StringIO()
                         BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
                         expr_text = stream.getvalue()
-                        # Truncate expr_text so that first gate is no more than 3 x_index's over
+                        # Truncate expr_text so that first gate is no more than about 3 x_index's over
                         if len(expr_text) > self._expr_len:
                             expr_text = expr_text[: self._expr_len] + "..."
                         node_data[node].expr_text = expr_text
