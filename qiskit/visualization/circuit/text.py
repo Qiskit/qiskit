@@ -768,6 +768,7 @@ class TextDrawing:
 
         self._nest_depth = 0  # nesting depth for control flow ops
         self._expr_text = ""  # expression text to display
+        self._builder = None  # QASM3Builder class instance for expressions
 
         # Because jupyter calls both __repr__ and __repr_html__ for some backends,
         # the entire drawer can be run twice which can result in different output
@@ -1295,6 +1296,27 @@ class TextDrawing:
     def add_control_flow(self, node, layers, wire_map):
         """Add control flow ops to the circuit drawing."""
 
+        if (isinstance(node.op, SwitchCaseOp) and isinstance(node.op.target, expr.Expr)) or (
+            getattr(node.op, "condition", None) and isinstance(node.op.condition, expr.Expr)
+        ):
+            condition = node.op.target if isinstance(node.op, SwitchCaseOp) else node.op.condition
+            if self._builder is None:
+                self._builder = QASM3Builder(
+                    self._circuit,
+                    includeslist=("stdgates.inc",),
+                    basis_gates=("U",),
+                    disable_constants=False,
+                    allow_aliasing=False,
+                )
+                self._builder.build_classical_declarations()
+            stream = StringIO()
+            BasicPrinter(stream, indent="  ").visit(self._builder.build_expression(condition))
+            self._expr_text = stream.getvalue()
+            print(self._expr_text)
+            # Truncate expr_text at 30 chars or user-set expr_len
+            if len(self._expr_text) > self.expr_len:
+                self._expr_text = self._expr_text[: self.expr_len] + "..."
+
         # # Draw a left box such as If, While, For, and Switch
         flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT)
         layers.append(flow_layer.full_layer)
@@ -1358,27 +1380,7 @@ class TextDrawing:
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
-        self._expr_text = ""
         op = node.op
-        if (isinstance(op, SwitchCaseOp) and isinstance(op.target, expr.Expr)) or (
-            getattr(op, "condition", None) and isinstance(op.condition, expr.Expr)
-        ):
-            condition = op.target if isinstance(op, SwitchCaseOp) else op.condition
-            builder = QASM3Builder(
-                self._circuit,
-                includeslist=("stdgates.inc",),
-                basis_gates=("U",),
-                disable_constants=False,
-                allow_aliasing=False,
-            )
-            stream = StringIO()
-            builder.build_classical_declarations()
-            BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
-            self._expr_text = stream.getvalue()
-            # Truncate expr_text at 30 chars or user-set expr_len
-            if len(self._expr_text) > self.expr_len:
-                self._expr_text = self._expr_text[: self.expr_len] + "..."
-
         conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:

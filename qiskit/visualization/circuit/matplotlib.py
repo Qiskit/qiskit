@@ -414,7 +414,7 @@ class MatplotlibDrawer:
             matplotlib_close_if_inline(mpl_figure)
             return mpl_figure
 
-    def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data):
+    def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data, builder=None):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
@@ -504,15 +504,16 @@ class MatplotlibDrawer:
                         getattr(op, "condition", None) and isinstance(op.condition, expr.Expr)
                     ):
                         condition = op.target if isinstance(op, SwitchCaseOp) else op.condition
-                        builder = QASM3Builder(
-                            self._circuit,
-                            includeslist=("stdgates.inc",),
-                            basis_gates=("U",),
-                            disable_constants=False,
-                            allow_aliasing=False,
-                        )
+                        if builder is None:
+                            builder = QASM3Builder(
+                                outer_circuit,
+                                includeslist=("stdgates.inc",),
+                                basis_gates=("U",),
+                                disable_constants=False,
+                                allow_aliasing=False,
+                            )
+                            builder.build_classical_declarations()
                         stream = StringIO()
-                        builder.build_classical_declarations()
                         BasicPrinter(stream, indent="  ").visit(builder.build_expression(condition))
                         expr_text = stream.getvalue()
                         # Truncate expr_text so that first gate is no more than 3 x_index's over
@@ -590,7 +591,7 @@ class MatplotlibDrawer:
 
                         # Recursively call _get_layer_widths for the circuit inside the ControlFlowOp
                         flow_widths = flow_drawer._get_layer_widths(
-                            node_data, flow_wire_map, outer_circuit, glob_data
+                            node_data, flow_wire_map, outer_circuit, glob_data, builder
                         )
                         layer_widths.update(flow_widths)
 
