@@ -234,7 +234,6 @@ class SteppableOptimizer(Optimizer):
         self.tell(ask_data=ask_data, tell_data=tell_data)
 
     # pylint: disable=invalid-name
-
     @abstractmethod
     def start(
         self,

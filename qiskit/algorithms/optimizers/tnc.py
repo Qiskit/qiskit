@@ -35,7 +35,6 @@ class TNC(SciPyOptimizer):
     _OPTIONS = ["maxiter", "disp", "accuracy", "ftol", "xtol", "gtol", "eps"]
 
     # pylint: disable=unused-argument
-
     def __init__(
         self,
         maxiter: int = 100,
