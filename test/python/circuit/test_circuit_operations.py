@@ -1025,7 +1025,7 @@ class TestCircuitOperations(QiskitTestCase):
     def test_cnot_alias(self):
         """Test that the cnot method alias adds a cx gate."""
         qc = QuantumCircuit(2)
-        qc.cnot(0, 1)
+        qc.cx(0, 1)
 
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
@@ -1235,6 +1235,28 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
+
+    def test_duplicated_methods_deprecation(self):
+        """Test the now deprecated, duplicated gate method emit a deprecation warning."""
+
+        # {duplicate: (use_this_instead, args)}
+        methods = {
+            "i": ("id", [0]),
+            "cnot": ("cx", [0, 1]),
+            "toffoli": ("ccx", [0, 1, 2]),
+            "mct": ("mcx", [[0, 1], 2]),
+            "fredkin": ("cswap", [0, 1, 2]),
+        }
+
+        for old, (new, args) in methods.items():
+            circuit = QuantumCircuit(3)
+
+            with self.subTest(method=old):
+
+                # check (1) the (pending) deprecation is raised
+                # and (2) the new method is documented there
+                with self.assertWarnsRegex(DeprecationWarning, new):
+                    getattr(circuit, old)(*args)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):

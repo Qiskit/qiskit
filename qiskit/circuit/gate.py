@@ -68,13 +68,15 @@ class Gate(Instruction):
             exponent (float): Gate^exponent
 
         Returns:
-            qiskit.extensions.UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+            .library.UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
 
         Raises:
             CircuitError: If Gate is not unitary
         """
-        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators import Operator
+        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
+
         from scipy.linalg import schur
 
         # Should be diagonalized because it's a unitary.
@@ -108,15 +110,15 @@ class Gate(Instruction):
         """Return controlled version of gate. See :class:`.ControlledGate` for usage.
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default=1)
+            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
             label: optional gate label
             ctrl_state: The control state in decimal or as a bitstring
-                (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
+                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
 
         Returns:
             qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+            uses ``num_ctrl_qubits-1`` ancilla qubits so returns a gate of size
+            ``num_qubits + 2*num_ctrl_qubits - 1``.
 
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state

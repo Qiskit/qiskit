@@ -1068,6 +1068,12 @@ class TestCliffordOperators(QiskitTestCase):
             actual = Clifford.from_matrix(expected.to_matrix())
             self.assertEqual(expected, actual)
 
+    def test_from_non_clifford_diagonal_operator(self):
+        """Test if failing with non-clifford diagonal operator.
+        See https://github.com/Qiskit/qiskit/issues/10903"""
+        with self.assertRaises(QiskitError):
+            Clifford.from_operator(Operator(RZZGate(0.2)))
+
     @combine(num_qubits=[1, 2, 3, 4])
     def test_from_operator_round_trip(self, num_qubits):
         """Test round trip conversion to and from operator"""
