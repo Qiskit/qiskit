@@ -410,18 +410,11 @@ class HighLevelSynthesis(TransformationPass):
         is not an annotated operation).
         """
         if isinstance(op, AnnotatedOperation):
-            # Currently, we ignore the qubits when recursively synthesizing the base operation.
+            # Recursively handle the base operation
+            # This results in QuantumCircuit, DAGCircuit or Gate
             synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
 
-            # Currently, we depend on recursive synthesis producing either a QuantumCircuit,
-            # DAGCircuit or a Gate.
-            # If in the future we will want to allow HighLevelSynthesis to synthesize, say,
-            # a LinearFunction to a Clifford, we will need to rethink this.
-            if not synthesized_op or not isinstance(
-                synthesized_op, (QuantumCircuit, DAGCircuit, Gate)
-            ):
-                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
-
+            # DAGCircuit is converted to QuantumCircuit
             if isinstance(synthesized_op, DAGCircuit):
                 synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
 
@@ -429,13 +422,26 @@ class HighLevelSynthesis(TransformationPass):
                 if isinstance(modifier, InverseModifier):
                     # Both QuantumCircuit and Gate have inverse method
                     synthesized_op = synthesized_op.inverse()
+
                 elif isinstance(modifier, ControlModifier):
-                    # Both QuantumCircuit and Gate have inverse method
+                    # Both QuantumCircuit and Gate have control method, however for circuits
+                    # it is more efficient to avoid constructing the controlled quantum circuit.
+                    if isinstance(synthesized_op, QuantumCircuit):
+                        synthesized_op = synthesized_op.to_gate()
+
+                    # Adding control (this creates a ControlledGate)
                     synthesized_op = synthesized_op.control(
                         num_ctrl_qubits=modifier.num_ctrl_qubits,
                         label=None,
                         ctrl_state=modifier.ctrl_state,
                     )
+
+                    # Unrolling
+                    synthesized_op, _ = self._recursively_handle_op(synthesized_op)
+
+                    if isinstance(synthesized_op, DAGCircuit):
+                        synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
+
                 elif isinstance(modifier, PowerModifier):
                     # QuantumCircuit has power method, and Gate needs to be converted
                     # to a quantum circuit.

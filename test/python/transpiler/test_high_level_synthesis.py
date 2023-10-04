@@ -39,6 +39,7 @@ from qiskit.circuit.library import (
     CU3Gate,
     CU1Gate,
 )
+from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
@@ -843,6 +844,19 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         expected_circuit = QuantumCircuit(6)
         expected_circuit.append(SwapGate().control(2), [0, 1, 2, 3])
         self.assertEqual(circuit, transpiled_circuit)
+
+    def test_controlled_high_level_object(self):
+        """Test synthesis of high level gates with control modifier."""
+        linear_circuit = QuantumCircuit(2)
+        linear_circuit.cx(0, 1)
+        linear_circuit.cx(1, 0)
+        linear_function = LinearFunction(linear_circuit)
+        controlled_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
+        qc = QuantumCircuit(3)
+        qc.append(controlled_linear_function, [0, 1, 2])
+        backend = FakeBackend5QV2()
+        qct = HighLevelSynthesis(target=backend.target)(qc)
+        self.assertEqual(Operator(qc), Operator(qct))
 
 
 class TestUnrollerCompatability(QiskitTestCase):
