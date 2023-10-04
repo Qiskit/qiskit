@@ -463,7 +463,7 @@ class PauliBasisChange(ConverterBase):
             cnots.swap(origin_anchor_bit, dest_anchor_bit)
 
         # Need to do this or a Terra bug sometimes flips cnots. No time to investigate.
-        cnots.i(0)
+        cnots.id(0)
 
         # Step 6)
         for i in sig_in_dest_only_indices:

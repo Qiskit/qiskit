@@ -204,7 +204,7 @@ class Operator(LinearOp):
 
         else:
             raise ValueError(
-                f"""'{output}' is not a valid option for drawing {type(self).__name__} objects. 
+                f"""'{output}' is not a valid option for drawing {type(self).__name__} objects.
             Please choose from: 'text', 'latex', or 'latex_source'."""
             )
 
@@ -441,7 +441,7 @@ class Operator(LinearOp):
     def to_instruction(self):
         """Convert to a UnitaryGate instruction."""
         # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate
+        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         return UnitaryGate(self.data)
 
