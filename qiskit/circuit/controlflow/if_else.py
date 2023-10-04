@@ -14,10 +14,10 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, Iterable
+from typing import Optional, Union, Iterable, TYPE_CHECKING
 import itertools
 
-from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
@@ -30,6 +30,9 @@ from ._builder_utils import (
     validate_condition,
     condition_resources,
 )
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 # This is just an indication of what's actually meant to be the public API.
@@ -82,6 +85,9 @@ class IfElseOp(ControlFlowOp):
         false_body: QuantumCircuit | None = None,
         label: str | None = None,
     ):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         # Type checking generally left to @params.setter, but required here for
         # finding num_qubits and num_clbits.
         if not isinstance(true_body, QuantumCircuit):
@@ -103,6 +109,9 @@ class IfElseOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         true_body, false_body = parameters
 
         if not isinstance(true_body, QuantumCircuit):

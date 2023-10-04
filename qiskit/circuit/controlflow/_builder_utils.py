@@ -15,14 +15,16 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Iterable, Tuple, Set, Union, TypeVar
+from typing import Iterable, Tuple, Set, Union, TypeVar, TYPE_CHECKING
 
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.register import Register
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.quantumregister import QuantumRegister
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 _ConditionT = TypeVar(
     "_ConditionT", bound=Union[Tuple[ClassicalRegister, int], Tuple[Clbit, int], expr.Expr]
@@ -159,6 +161,9 @@ def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's t
 
     This function will always rebuild the objects into new :class:`.QuantumCircuit` instances.
     """
+    # pylint: disable=cyclic-import
+    from qiskit.circuit import QuantumCircuit
+
     qubits, clbits = set(), set()
     for circuit in circuits:
         qubits.update(circuit.qubits)
