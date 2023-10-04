@@ -24,7 +24,6 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -233,9 +232,6 @@ def generate_unroll_3q(
     if basis_gates is None and target is None:
         unroll_3q.append(Unroll3qOrMore(target, basis_gates))
     else:
-        unroll_3q.append(
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target, min_qubits=3)
-        )
         unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
     return unroll_3q
 
@@ -448,7 +444,6 @@ def generate_translation_passmanager(
                 equivalence_library=sel,
                 basis_gates=basis_gates,
             ),
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
