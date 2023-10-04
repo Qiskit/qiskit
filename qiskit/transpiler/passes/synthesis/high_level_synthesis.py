@@ -253,7 +253,11 @@ class HighLevelSynthesis(TransformationPass):
                 continue
 
             if isinstance(decomposition, QuantumCircuit):
-                dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
+                dag.substitute_node_with_dag(
+                    node, circuit_to_dag(decomposition, copy_operations=False)
+                )
+            elif isinstance(decomposition, DAGCircuit):
+                dag.substitute_node_with_dag(node, decomposition)
             elif isinstance(decomposition, Operation):
                 dag.substitute_node(node, decomposition)
 
@@ -261,7 +265,7 @@ class HighLevelSynthesis(TransformationPass):
 
     def _recursively_handle_op(
         self, op: Operation, qubits: Optional[List] = None
-    ) -> Tuple[Union[QuantumCircuit, Operation, None], bool]:
+    ) -> Tuple[Union[QuantumCircuit, DAGCircuit, Operation], bool]:
         """Recursively synthesizes a single operation.
 
         Note: the reason that this function accepts an operation and not a dag node
@@ -273,6 +277,7 @@ class HighLevelSynthesis(TransformationPass):
         - The given operation is unchanged: e.g., it is supported by the target or is
           in the equivalence library
         - The result is a quantum circuit: e.g., synthesizing Clifford using plugin
+        - The result is a DAGCircuit: e.g., when unrolling custom gates
         - The result is an Operation: e.g., adding control to CXGate results in CCXGate
         - The given operation could not be synthesized, raising a transpiler error
 
@@ -325,10 +330,9 @@ class HighLevelSynthesis(TransformationPass):
         if definition is None:
             raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op}.")
 
-        dag = circuit_to_dag(definition)
+        dag = circuit_to_dag(definition, copy_operations=False)
         dag = self.run(dag)
-        new_definition = dag_to_circuit(dag)
-        return new_definition, True
+        return dag, True
 
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List
@@ -409,11 +413,17 @@ class HighLevelSynthesis(TransformationPass):
             # Currently, we ignore the qubits when recursively synthesizing the base operation.
             synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
 
-            # Currently, we depend on recursive synthesis producing either a QuantumCircuit or a Gate.
+            # Currently, we depend on recursive synthesis producing either a QuantumCircuit,
+            # DAGCircuit or a Gate.
             # If in the future we will want to allow HighLevelSynthesis to synthesize, say,
             # a LinearFunction to a Clifford, we will need to rethink this.
-            if not synthesized_op or not isinstance(synthesized_op, (QuantumCircuit, Gate)):
+            if not synthesized_op or not isinstance(
+                synthesized_op, (QuantumCircuit, DAGCircuit, Gate)
+            ):
                 raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
+
+            if isinstance(synthesized_op, DAGCircuit):
+                synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
 
             for modifier in op.modifiers:
                 if isinstance(modifier, InverseModifier):
