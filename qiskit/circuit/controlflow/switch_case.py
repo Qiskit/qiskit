@@ -17,15 +17,18 @@ from __future__ import annotations
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
 import contextlib
-from typing import Union, Iterable, Any, Tuple, Optional, List, Literal
+from typing import Union, Iterable, Any, Tuple, Optional, List, Literal, TYPE_CHECKING
 
-from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
 from ._builder_utils import unify_circuit_resources, partition_registers, node_resources
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class _DefaultCaseType:
@@ -71,6 +74,9 @@ class SwitchCaseOp(ControlFlowOp):
         *,
         label: Optional[str] = None,
     ):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         if isinstance(target, expr.Expr):
             if target.type.kind not in (types.Uint, types.Bool):
                 raise CircuitError(

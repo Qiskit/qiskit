@@ -48,6 +48,13 @@ from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
 from ._utils import sort_parameters
+from .controlflow import ControlFlowOp
+from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
+from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
+from .controlflow.for_loop import ForLoopOp, ForLoopContext
+from .controlflow.if_else import IfElseOp, IfContext
+from .controlflow.switch_case import SwitchCaseOp, SwitchContext
+from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
 from .classical import expr, types
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
@@ -900,8 +907,6 @@ class QuantumCircuit:
                 lcr_1: 0 ═══════════                           lcr_1: 0 ═══════════════════════
 
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
 
         if inplace and front and self._control_flow_scopes:
             # If we're composing onto ourselves while in a stateful control-flow builder context,
@@ -1124,6 +1129,38 @@ class QuantumCircuit:
         """
         return self._ancillas
 
+    @property
+    def num_vars(self) -> int:
+        """The number of runtime classical variables in the circuit.
+
+        This is the length of the :meth:`iter_vars` iterable."""
+        return self.num_input_vars + self.num_captured_vars + self.num_declared_vars
+
+    @property
+    def num_input_vars(self) -> int:
+        """The number of runtime classical variables in the circuit marked as circuit inputs.
+
+        This is the length of the :meth:`iter_input_vars` iterable.  If this is non-zero,
+        :attr:`num_captured_vars` must be zero."""
+        return len(self._vars_input)
+
+    @property
+    def num_captured_vars(self) -> int:
+        """The number of runtime classical variables in the circuit marked as captured from an
+        enclosing scope.
+
+        This is the length of the :meth:`iter_captured_vars` iterable.  If this is non-zero,
+        :attr:`num_input_vars` must be zero."""
+        return len(self._vars_capture)
+
+    @property
+    def num_declared_vars(self) -> int:
+        """The number of runtime classical variables in the circuit that are declared by this
+        circuit scope, excluding inputs or captures.
+
+        This is the length of the :meth:`iter_declared_vars` iterable."""
+        return len(self._vars_local)
+
     def iter_vars(self) -> typing.Iterable[expr.Var]:
         """Get an iterable over all runtime classical variables in scope within this circuit.
 
@@ -1341,6 +1378,20 @@ class QuantumCircuit:
                     self._validate_expr(param)
             if is_parameter:
                 operation = copy.deepcopy(operation)
+        if isinstance(operation, ControlFlowOp):
+            # Verify that any variable bindings are valid.  Control-flow ops are already compelled
+            # by the class not to contain 'input' variables.
+            if bad_captures := {
+                var
+                for var in itertools.chain.from_iterable(
+                    block.iter_captured_vars() for block in operation.blocks
+                )
+                if not self.has_var(var)
+            }:
+                raise CircuitError(
+                    f"control-flow op attempts to capture '{bad_captures}'"
+                    " which are not in this circuit"
+                )
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -5235,7 +5286,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> "qiskit.circuit.controlflow.while_loop.WhileLoopContext":
+    ) -> WhileLoopContext:
         ...
 
     @typing.overload
@@ -5293,9 +5344,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if an incorrect calling convention is used.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
-
         if isinstance(condition, expr.Expr):
             condition = self._validate_expr(condition)
         else:
@@ -5325,7 +5373,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> "qiskit.circuit.controlflow.for_loop.ForLoopContext":
+    ) -> ForLoopContext:
         ...
 
     @typing.overload
@@ -5393,9 +5441,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if an incorrect calling convention is used.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.for_loop import ForLoopOp, ForLoopContext
-
         if body is None:
             if qubits is not None or clbits is not None:
                 raise CircuitError(
@@ -5418,7 +5463,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> "qiskit.circuit.controlflow.if_else.IfContext":
+    ) -> IfContext:
         ...
 
     @typing.overload
@@ -5501,9 +5546,6 @@ class QuantumCircuit:
         Returns:
             A handle to the instruction created.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.if_else import IfElseOp, IfContext
-
         if isinstance(condition, expr.Expr):
             condition = self._validate_expr(condition)
         else:
@@ -5570,9 +5612,6 @@ class QuantumCircuit:
         Returns:
             A handle to the instruction created.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.if_else import IfElseOp
-
         if isinstance(condition, expr.Expr):
             condition = self._validate_expr(condition)
         else:
@@ -5589,7 +5628,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: Optional[str],
-    ) -> "qiskit.circuit.controlflow.switch_case.SwitchContext":
+    ) -> SwitchContext:
         ...
 
     @typing.overload
@@ -5655,8 +5694,6 @@ class QuantumCircuit:
         Raises:
             CircuitError: if an incorrect calling convention is used.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp, SwitchContext
 
         if isinstance(target, expr.Expr):
             target = self._validate_expr(target)
@@ -5695,9 +5732,6 @@ class QuantumCircuit:
             CircuitError: if this method was called within a builder context, but not contained
                 within a loop.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
-
         if self._control_flow_scopes:
             operation = BreakLoopPlaceholder()
             resources = operation.placeholder_resources()
@@ -5725,9 +5759,6 @@ class QuantumCircuit:
             CircuitError: if this method was called within a builder context, but not contained
                 within a loop.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
-
         if self._control_flow_scopes:
             operation = ContinueLoopPlaceholder()
             resources = operation.placeholder_resources()

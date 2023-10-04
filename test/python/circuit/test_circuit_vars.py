@@ -25,11 +25,19 @@ class TestCircuitVars(QiskitTestCase):
         vars_ = [expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Uint(16))]
         qc = QuantumCircuit(inputs=vars_)
         self.assertEqual(set(vars_), set(qc.iter_vars()))
+        self.assertEqual(qc.num_vars, len(vars_))
+        self.assertEqual(qc.num_input_vars, len(vars_))
+        self.assertEqual(qc.num_captured_vars, 0)
+        self.assertEqual(qc.num_declared_vars, 0)
 
     def test_initialise_captures(self):
         vars_ = [expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Uint(16))]
         qc = QuantumCircuit(captures=vars_)
         self.assertEqual(set(vars_), set(qc.iter_vars()))
+        self.assertEqual(qc.num_vars, len(vars_))
+        self.assertEqual(qc.num_input_vars, 0)
+        self.assertEqual(qc.num_captured_vars, len(vars_))
+        self.assertEqual(qc.num_declared_vars, 0)
 
     def test_initialise_declarations_iterable(self):
         vars_ = [
@@ -39,6 +47,10 @@ class TestCircuitVars(QiskitTestCase):
         qc = QuantumCircuit(declarations=vars_)
 
         self.assertEqual({var for var, _initialiser in vars_}, set(qc.iter_vars()))
+        self.assertEqual(qc.num_vars, len(vars_))
+        self.assertEqual(qc.num_input_vars, 0)
+        self.assertEqual(qc.num_captured_vars, 0)
+        self.assertEqual(qc.num_declared_vars, len(vars_))
         operations = [
             (instruction.operation.name, instruction.operation.lvalue, instruction.operation.rvalue)
             for instruction in qc.data
@@ -88,6 +100,10 @@ class TestCircuitVars(QiskitTestCase):
         self.assertEqual({a}, set(qc.iter_input_vars()))
         self.assertEqual({b}, set(qc.iter_declared_vars()))
         self.assertEqual({a, b}, set(qc.iter_vars()))
+        self.assertEqual(qc.num_vars, 2)
+        self.assertEqual(qc.num_input_vars, 1)
+        self.assertEqual(qc.num_captured_vars, 0)
+        self.assertEqual(qc.num_declared_vars, 1)
         operations = [
             (instruction.operation.name, instruction.operation.lvalue, instruction.operation.rvalue)
             for instruction in qc.data
@@ -103,6 +119,10 @@ class TestCircuitVars(QiskitTestCase):
         self.assertEqual({a}, set(qc.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_declared_vars()))
         self.assertEqual({a, b}, set(qc.iter_vars()))
+        self.assertEqual(qc.num_vars, 2)
+        self.assertEqual(qc.num_input_vars, 0)
+        self.assertEqual(qc.num_captured_vars, 1)
+        self.assertEqual(qc.num_declared_vars, 1)
         operations = [
             (instruction.operation.name, instruction.operation.lvalue, instruction.operation.rvalue)
             for instruction in qc.data

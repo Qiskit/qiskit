@@ -33,7 +33,7 @@ from qiskit.circuit.register import Register
 from ._builder_utils import condition_resources, node_resources
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 
 class InstructionResources(typing.NamedTuple):
@@ -401,6 +401,7 @@ class ControlFlowBuilderBlock:
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more

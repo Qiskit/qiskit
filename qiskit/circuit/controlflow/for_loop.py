@@ -10,15 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"Circuit operation representing a ``for`` loop."
+"""Circuit operation representing a ``for`` loop."""
+
+from __future__ import annotations
 
 import warnings
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Union, TYPE_CHECKING
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from .control_flow import ControlFlowOp
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class ForLoopOp(ControlFlowOp):
@@ -69,6 +73,9 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         indexset, loop_parameter, body = parameters
 
         if not isinstance(loop_parameter, (Parameter, type(None))):
