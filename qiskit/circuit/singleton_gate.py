@@ -80,6 +80,11 @@ class SingletonGate(Gate):
         super().__init__(*args, **kwargs)
         self._condition = _condition
 
+    def __getnewargs_ex__(self):
+        if not self.mutable:
+            return ((), {})
+        return ((self.label, self._condition, self.duration, self.unit), {})
+
     def c_if(self, classical, val):
         if not isinstance(classical, (ClassicalRegister, Clbit)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
