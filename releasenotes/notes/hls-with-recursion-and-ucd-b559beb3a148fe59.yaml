@@ -3,7 +3,7 @@ features:
   - |
     The constructor for :class:`.HighLevelSynthesis` transpiler pass now accepts
     additional arguments ``equivalence_library``, ``basis_gates``, and ``min_qubits``.
-    THe pass can now unroll custom definitions similarly to :class:`.UnrollCustomDefinitions`,
+    The pass can now unroll custom definitions similarly to :class:`.UnrollCustomDefinitions`,
     and as such completely subsumes the functionality of the latter pass.
     In particular, :class:`.HighLevelSynthesis` is now recursive, fixing an oversight
     in the initial implementation. Thus, when either ``target`` or ``basis_gates`` are specified,
