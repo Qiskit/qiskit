@@ -163,7 +163,7 @@ class HighLevelSynthesis(TransformationPass):
         target: Optional[Target] = None,
         use_qubit_indices: bool = False,
         equivalence_library: Optional[EquivalenceLibrary] = None,
-        basis_gates: Optional[list[str]] = None,
+        basis_gates: Optional[List[str]] = None,
         min_qubits: int = 0,
         top_level_only: bool = False,
     ):
