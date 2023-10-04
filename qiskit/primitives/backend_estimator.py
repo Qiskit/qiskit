@@ -15,7 +15,6 @@ Expectation value class
 
 from __future__ import annotations
 
-import copy
 import typing
 from collections.abc import Sequence
 from itertools import accumulate
