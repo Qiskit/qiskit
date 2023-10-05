@@ -6,7 +6,7 @@ features:
     a :class:`~.TranspileLayout` layout from the transpiler
     to a :class:~.SparsePauliOp` observable that was built for an
     input circuit to the transpiler. This enables working with
-   :class:`~.BaseEstimator` implementations and local transpilation more
+    :class:`~.BaseEstimator` implementations and local transpilation more
     easily. For example::
 
         from qiskit.circuit.library import RealAmplitudes
