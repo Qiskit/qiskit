@@ -73,6 +73,21 @@ impl CircuitData {
         })
     }
 
+    pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
+        // TODO: reuse intern context once concurrency is properly
+        //  handled.
+        let intern_context = Py::new(py,self.context(py)?.clone())?;
+        Ok(CircuitData {
+            data: self.data.clone(),
+            intern_context,
+            new_callable: self.new_callable.as_ref().map(|c| c.clone_ref(py)),
+            qubits: self.qubits.clone_ref(py),
+            clbits: self.clbits.clone_ref(py),
+            qubit_indices: self.qubit_indices.clone_ref(py),
+            clbit_indices: self.clbit_indices.clone_ref(py),
+        })
+    }
+
     pub fn __len__(&self) -> usize {
         self.data.len()
     }

@@ -869,6 +869,7 @@ class QuantumCircuit:
 
         return controlled_circ
 
+
     def compose(
         self,
         other: Union["QuantumCircuit", Instruction],
@@ -970,7 +971,7 @@ class QuantumCircuit:
                 clbits = self.clbits[: other.num_clbits]
             if front:
                 # Need to keep a reference to the data for use after we've emptied it.
-                old_data = dest._new_data(dest.data)
+                old_data = dest._data.copy()
                 dest.clear()
                 dest.append(other, qubits, clbits)
                 for instruction in old_data:
@@ -1026,7 +1027,7 @@ class QuantumCircuit:
 
         if front:
             # adjust new instrs before original ones and update all parameters
-            mapped_instrs.extend(dest.data)
+            mapped_instrs.extend(dest._data)
             dest.clear()
         append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
