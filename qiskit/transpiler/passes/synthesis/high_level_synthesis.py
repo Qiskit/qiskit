@@ -218,7 +218,9 @@ class HighLevelSynthesis(TransformationPass):
                 raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {node.op}.")
 
             if isinstance(decomposition, QuantumCircuit):
-                dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
+                dag.substitute_node_with_dag(
+                    node, circuit_to_dag(decomposition, copy_operations=False)
+                )
             elif isinstance(decomposition, Operation):
                 dag.substitute_node(node, decomposition)
 
@@ -239,7 +241,9 @@ class HighLevelSynthesis(TransformationPass):
         Synthesizing a LinearFunction produces a quantum circuit consisting of
         CX-gates.
 
-        The function recursively handles operation's definition, if it exists.
+        The function is recursive as synthesizing an annotated operation
+        involves synthesizing its "base operation" which might also be
+        an annotated operation.
         """
 
         # First, try to apply plugin mechanism

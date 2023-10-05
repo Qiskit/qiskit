@@ -37,10 +37,10 @@ features:
 
     A distinguishing feature of an annotated operation is that circuit definition
     is not constructed when the operation is declared, and instead happens only during
-    transpilation, specifically during :class:`~.HighLevelSynthesis` transpiler pass.
+    transpilation, specifically during the :class:`~.HighLevelSynthesis` transpiler pass.
 
     An annotated operation can be also viewed as a "higher-level" or a "more abstract"
-    object that can be added onto a quantum circuit. Later we are planning to add transpiler
+    object that can be added onto a quantum circuit. This enables writing transpiler
     optimization passes that make use of this higher-level representation, for instance
     removing a gate that is immediately followed by its inverse (note that this reduction
     might not be possible if both the gate and its inverse are first synthesized into simpler
@@ -55,9 +55,6 @@ features:
     As of now, the annotated operations can appear only in the top-level of a quantum
     circuit, that is they cannot appear inside of the recursively-defined ``definition``
     circuit. We are planning to remove this limitation later.
-
-    In the future, we are also planning to make the modifier interface extendable,
-    accommodating for user-supplied modifiers.
   - |
     The :class:`.HighLevelSynthesis` is extended to synthesize circuits with objects
     of type :class:`~.AnnotatedOperation`.
