@@ -300,7 +300,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         )
 
     _skip_target = False
-    _given_inst_map = False if inst_map is None else True
+    _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
     # If a target is specified have it override any implicit selections from a backend
     if target is not None:
         if coupling_map is None:
