@@ -10,18 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Generic FakeBackendV2 class"""
+
+from __future__ import annotations
+import statistics
+
+from collections.abc import Iterable
 
 import numpy as np
-import statistics
-from typing import Optional, List, Tuple
 
-from qiskit.transpiler import CouplingMap
-from qiskit.providers.basicaer import BasicAer
-from qiskit.transpiler import Target, InstructionProperties, QubitProperties
-from qiskit.providers.backend import BackendV2
-from qiskit.providers.options import Options
-from qiskit.exceptions import QiskitError
-from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate
+from qiskit import pulse
 from qiskit.circuit import Measure, Parameter, Delay, Reset
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -31,11 +29,19 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
+from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate
+
+from qiskit.exceptions import QiskitError
+from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitProperties
+from qiskit.providers.basicaer import BasicAer
+from qiskit.providers.backend import BackendV2
 from qiskit.providers.models import (
     PulseDefaults,
     Command,
 )
-from qiskit.qobj import PulseQobjInstruction
+from qiskit.providers.options import Options
+from qiskit.pulse import InstructionScheduleMap
+from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 
 
 class FakeGeneric(BackendV2):
@@ -44,118 +50,80 @@ class FakeGeneric(BackendV2):
     to the settings passed in the argument.
 
     Arguments:
-        num_qubits:
-                    Pass in the integer which is the number of qubits of the backend.
+        num_qubits: Pass in the integer which is the number of qubits of the backend.
                     Example: num_qubits = 19
 
-        coupling_map:
-                        Pass in the coupling Map of the backend as a list of tuples.
-                        Example: [(1, 2), (2, 3), (3, 4), (4, 5)].
+        coupling_map: Pass in the coupling Map of the backend as a list of tuples.
+                     Example: [(1, 2), (2, 3), (3, 4), (4, 5)]. If None passed then the
+                     coupling map will be generated randomly
+                     This map will be in accordance with the argument coupling_map_type.
 
-                        If None passed then the coupling map will be generated.
-                        This map will be in accordance with the argument coupling_map_type.
+        coupling_map_type: Pass in the type of coupling map to be generated. If coupling map
+                    is passed, then this option will be overriden. Valid types of coupling
+                    map: 'grid', 'heavy_hex'. Heavy Hex Lattice Reference:
+                    https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022
 
-        coupling_map_type:
-                            Pass in the type of coupling map to be generated. If coupling map is passed
-                            then this option will be overriden.
-                            Valid types of coupling map: 'grid', 'heavy_hex'
+        basis_gates: Pass in the basis gates of the backend as list of strings.
+                     Example: ['cx', 'id', 'rz', 'sx', 'x']  -->
+                     This is the default basis gates of the backend.
 
-                            Heavy Hex Lattice Reference:
-                                                    https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022
+        dynamic: Enable/Disable dynamic circuits on this backend. True: Enable,
+                 False: Disable (Default)
 
-
-        basis_gates:
-                        Pass in the basis gates of the backend as list of strings.
-                        Example: ['cx', 'id', 'rz', 'sx', 'x']  --> This is the default basis gates of the backend.
-
-        dynamic:
-                    Enable/Disable dynamic circuits on this backend.
-                    True: Enable
-                    False: Disable (Default)
-
-        bidirectional_cp_mp:
-                             Enable/Disable bi-directional coupling map.
+        bidirectional_cp_mp: Enable/Disable bi-directional coupling map.
                              True: Enable
                              False: Disable (Default)
-        replace_cx_with_ecr:
-                    True: (Default) Replace every occurrence of 'cx' with 'ecr'
+        replace_cx_with_ecr: True: (Default) Replace every occurrence of 'cx' with 'ecr'
                     False: Do not replace 'cx' with 'ecr'
 
-        enable_reset:
-                    True: (Default) this enables the reset on the backend
+        enable_reset: True: (Default) this enables the reset on the backend
                     False: This disables the reset on the backend
 
-        dt:
-            The system time resolution of input signals in seconds.
+        dt: The system time resolution of input signals in seconds.
             Default is 0.2222ns
 
-        skip_calibration_gates:
-            Optional list of gates where we do not wish to append a calibration schedule.
-
-
-
+        skip_calibration_gates: Optional list of gates where we do not wish to
+                                append a calibration schedule.
     Returns:
             None
 
     Raises:
             QiskitError: If argument basis_gates has a gate which is not a valid basis gate.
-
-
     """
 
     def __init__(
         self,
-        num_qubits: int,
-        coupling_map: Optional[List[Tuple[str, str]]] = None,
-        coupling_map_type: Optional[str] = "grid",
-        basis_gates: List[str] = ["cx", "id", "rz", "sx", "x"],
+        num_qubits: int = None,
+        *,
+        coupling_map: list | tuple[str, str] = None,
+        coupling_map_type: str = "grid",
+        basis_gates: list[str] = None,
         dynamic: bool = False,
-        bidirectional_cp_mp: bool = False,
+        bidirectional_cmap: bool = False,
         replace_cx_with_ecr: bool = True,
         enable_reset: bool = True,
         dt: float = 0.222e-9,
-        skip_calibration_gates: Optional[List[str]] = [],
+        skip_calibration_gates: list[str] = None,
+        instruction_schedule_map: InstructionScheduleMap = None,
     ):
 
         super().__init__(
             provider=None,
             name="fake_generic",
-            description=f"This {num_qubits} qubit fake generic device, "
-            f"with generic settings has been generated right now!",
+            description=f"This is a {num_qubits} qubit fake device, "
+            f"with generic settings. It has been generated right now!",
             backend_version="",
         )
 
-        self.basis_gates = basis_gates
-        self._rng = np.random.default_rng(seed=123456789123456)
-        self._coupling_map_type = coupling_map_type
-        if replace_cx_with_ecr:
-            self.basis_gates = [gate.replace("cx", "ecr") for gate in basis_gates]
+        self._rng = np.random.default_rng(seed=42)
+        self._num_qubits = num_qubits
 
-        if "delay" not in basis_gates:
-            self.basis_gates.append("delay")
-        if "measure" not in basis_gates:
-            self.basis_gates.append("measure")
-
-        if not coupling_map:
-            if self._coupling_map_type == "heavy_hex":
-                distance = self._get_cmap_args(num_qubits=num_qubits)
-                coupling_map = CouplingMap().from_heavy_hex(
-                    distance=distance, bidirectional=bidirectional_cp_mp
-                )
-
-            elif self._coupling_map_type == "grid":
-                num_rows, num_columns = self._get_cmap_args(num_qubits=num_qubits)
-                coupling_map = CouplingMap().from_grid(
-                    num_rows=num_rows, num_columns=num_columns, bidirectional=bidirectional_cp_mp
-                )
-        else:
-            coupling_map = CouplingMap(coupling_map)
-
-        num_qubits = coupling_map.size()
+        self._set_basis_gates(basis_gates, replace_cx_with_ecr)
+        self._set_coupling_map(coupling_map, coupling_map_type, bidirectional_cmap)
 
         self._target = Target(
             description="Fake Generic Backend",
-            num_qubits=num_qubits,
+            num_qubits=self._num_qubits,
             dt=dt,
             qubit_properties=[
                 QubitProperties(
@@ -165,14 +133,155 @@ class FakeGeneric(BackendV2):
                 )
                 for _ in range(num_qubits)
             ],
+            concurrent_measurements=[list(range(num_qubits))],
         )
 
-        instruction_dict = self._get_instruction_dict(num_qubits, coupling_map)
-        for gate in self.basis_gates:
+        self._add_gate_instructions_to_target(dynamic, enable_reset)
+        self._add_calibration_defaults_to_target(instruction_schedule_map, skip_calibration_gates)
+        self._build_default_channels()
+
+    @property
+    def target(self):
+        return self._target
+
+    @property
+    def max_circuits(self):
+        return None
+
+    @property
+    def meas_map(self) -> list[list[int]]:
+        return self._target.concurrent_measurements
+
+    def drive_channel(self, qubit: int):
+        """Return the drive channel for the given qubit.
+
+        Returns:
+            DriveChannel: The Qubit drive channel
+        """
+        drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
+        qubits = (qubit,)
+        if qubits in drive_channels_map:
+            return drive_channels_map[qubits][0]
+        return None
+
+    def measure_channel(self, qubit: int):
+        """Return the measure stimulus channel for the given qubit.
+
+        Returns:
+            MeasureChannel: The Qubit measurement stimulus line
+        """
+        measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
+        qubits = (qubit,)
+        if qubits in measure_channels_map:
+            return measure_channels_map[qubits][0]
+        return None
+
+    def acquire_channel(self, qubit: int):
+        """Return the acquisition channel for the given qubit.
+
+        Returns:
+            AcquireChannel: The Qubit measurement acquisition line.
+        """
+        acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
+        qubits = (qubit,)
+        if qubits in acquire_channels_map:
+            return acquire_channels_map[qubits][0]
+        return None
+
+    def control_channel(self, qubits: Iterable[int]):
+        """Return the secondary drive channel for the given qubit
+
+        This is typically utilized for controlling multiqubit interactions.
+        This channel is derived from other channels.
+
+        Args:
+            qubits: Tuple or list of qubits of the form
+                ``(control_qubit, target_qubit)``.
+
+        Returns:
+            List[ControlChannel]: The multi qubit control line.
+        """
+        control_channels_map = getattr(self, "channels_map", {}).get("control", {})
+        qubits = tuple(qubits)
+        if qubits in control_channels_map:
+            return control_channels_map[qubits]
+        return []
+
+    def run(self, circuit, **kwargs):
+        return BasicAer.get_backend("qasm_simulator").run(circuit, **kwargs)
+
+    @classmethod
+    def _default_options(cls):
+        return Options(shots=1024)
+
+    def _set_basis_gates(self, basis_gates: list[str] = None, replace_cx_with_ecr=None):
+
+        default_gates = ["cx", "id", "rz", "sx", "x"]
+
+        if basis_gates is not None:
+            self._basis_gates = basis_gates
+        else:
+            self._basis_gates = default_gates
+
+        if replace_cx_with_ecr:
+            self._basis_gates = [gate.replace("cx", "ecr") for gate in self._basis_gates]
+
+        if "delay" not in self._basis_gates:
+            self._basis_gates.append("delay")
+        if "measure" not in self._basis_gates:
+            self._basis_gates.append("measure")
+
+    def _set_coupling_map(self, coupling_map, coupling_map_type, bidirectional_cmap):
+
+        if not coupling_map:
+            if not self._num_qubits:
+                raise QiskitError(
+                    "Please provide either `num_qubits` or `coupling_map` "
+                    "to generate a new fake backend."
+                )
+
+            if coupling_map_type == "heavy_hex":
+                distance = self._get_cmap_args(coupling_map_type)
+                self._coupling_map = CouplingMap().from_heavy_hex(
+                    distance=distance, bidirectional=bidirectional_cmap
+                )
+            elif coupling_map_type == "grid":
+                num_rows, num_columns = self._get_cmap_args(coupling_map_type)
+                self._coupling_map = CouplingMap().from_grid(
+                    num_rows=num_rows, num_columns=num_columns, bidirectional=bidirectional_cmap
+                )
+            else:
+                raise QiskitError("Provided coupling map type not recognized")
+        else:
+            self._coupling_map = CouplingMap(coupling_map)
+            self._num_qubits = self._coupling_map.size()
+
+    def _get_cmap_args(self, coupling_map_type):
+        if coupling_map_type == "heavy_hex":
+            for d in range(3, 20, 2):
+                # The description of the formula: 5*d**2 - 2*d -1 is explained in
+                # https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022 Page 011022-4
+                n = (5 * (d**2) - (2 * d) - 1) / 2
+                if n >= self._num_qubits:
+                    return d
+
+        elif coupling_map_type == "grid":
+            factors = [x for x in range(2, self._num_qubits + 1) if self._num_qubits % x == 0]
+            first_factor = statistics.median_high(factors)
+            second_factor = int(self._num_qubits / first_factor)
+            return (first_factor, second_factor)
+
+        return None
+
+    def _add_gate_instructions_to_target(self, dynamic, enable_reset):
+
+        instruction_dict = self._get_instruction_dict()
+
+        for gate in self._basis_gates:
             try:
                 self._target.add_instruction(*instruction_dict[gate])
-            except:
-                raise QiskitError(f"{gate} is not a valid basis gate")
+            except Exception as exc:
+                raise QiskitError(f"{gate} is not a valid basis gate") from exc
 
         if dynamic:
             self._target.add_instruction(IfElseOp, name="if_else")
@@ -184,53 +293,10 @@ class FakeGeneric(BackendV2):
 
         if enable_reset:
             self._target.add_instruction(
-                Reset(), {(qubit_idx,): None for qubit_idx in range(num_qubits)}
+                Reset(), {(qubit_idx,): None for qubit_idx in range(self._num_qubits)}
             )
 
-        defaults = self._build_calibration_defaults(skip_calibration_gates)
-
-        inst_map = defaults.instruction_schedule_map
-        for inst in inst_map.instructions:
-            for qarg in inst_map.qubits_with_instruction(inst):
-                try:
-                    qargs = tuple(qarg)
-                except TypeError:
-                    qargs = (qarg,)
-                # Do NOT call .get method. This parses Qpbj immediately.
-                # This operation is computationally expensive and should be bypassed.
-                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
-                if inst in self._target._gate_map:
-                    if inst == "measure":
-                        for qubit in qargs:
-                            self._target._gate_map[inst][(qubit,)].calibration = calibration_entry
-                    elif qargs in self._target._gate_map[inst] and inst != "delay":
-                        self._target._gate_map[inst][qargs].calibration = calibration_entry
-
-    @property
-    def target(self):
-        return self._target
-
-    @property
-    def max_circuits(self):
-        return None
-
-    def _get_cmap_args(self, num_qubits):
-        if self._coupling_map_type == "heavy_hex":
-            for d in range(3, 20, 2):
-                # The description of the formula: 5*d**2 - 2*d -1 is explained in
-                # https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022 Page 011022-4
-                n = (5 * (d**2) - (2 * d) - 1) / 2
-                if n >= num_qubits:
-                    return int(d)
-
-        elif self._coupling_map_type == "grid":
-            factors = [x for x in range(2, num_qubits + 1) if num_qubits % x == 0]
-            first_factor = statistics.median_high(factors)
-            second_factor = int(num_qubits / first_factor)
-            return (first_factor, second_factor)
-
-    def _get_instruction_dict(self, num_qubits, coupling_map):
-
+    def _get_instruction_dict(self):
         instruction_dict = {
             "ecr": (
                 ECRGate(),
@@ -239,7 +305,7 @@ class FakeGeneric(BackendV2):
                         error=self._rng.uniform(1e-5, 5e-3),
                         duration=self._rng.uniform(1e-8, 9e-7),
                     )
-                    for edge in coupling_map
+                    for edge in self.coupling_map
                 },
             ),
             "cx": (
@@ -249,21 +315,21 @@ class FakeGeneric(BackendV2):
                         error=self._rng.uniform(1e-5, 5e-3),
                         duration=self._rng.uniform(1e-8, 9e-7),
                     )
-                    for edge in coupling_map
+                    for edge in self.coupling_map
                 },
             ),
             "id": (
                 IGate(),
                 {
                     (qubit_idx,): InstructionProperties(error=0.0, duration=0.0)
-                    for qubit_idx in range(num_qubits)
+                    for qubit_idx in range(self._num_qubits)
                 },
             ),
             "rz": (
                 RZGate(Parameter("theta")),
                 {
                     (qubit_idx,): InstructionProperties(error=0.0, duration=0.0)
-                    for qubit_idx in range(num_qubits)
+                    for qubit_idx in range(self._num_qubits)
                 },
             ),
             "sx": (
@@ -273,7 +339,7 @@ class FakeGeneric(BackendV2):
                         error=self._rng.uniform(1e-6, 1e-4),
                         duration=self._rng.uniform(1e-8, 9e-7),
                     )
-                    for qubit_idx in range(num_qubits)
+                    for qubit_idx in range(self._num_qubits)
                 },
             ),
             "x": (
@@ -283,7 +349,7 @@ class FakeGeneric(BackendV2):
                         error=self._rng.uniform(1e-6, 1e-4),
                         duration=self._rng.uniform(1e-8, 9e-7),
                     )
-                    for qubit_idx in range(num_qubits)
+                    for qubit_idx in range(self._num_qubits)
                 },
             ),
             "measure": (
@@ -293,106 +359,137 @@ class FakeGeneric(BackendV2):
                         error=self._rng.uniform(1e-3, 1e-1),
                         duration=self._rng.uniform(1e-8, 9e-7),
                     )
-                    for qubit_idx in range(num_qubits)
+                    for qubit_idx in range(self._num_qubits)
                 },
             ),
             "delay": (
                 Delay(Parameter("Time")),
-                {(qubit_idx,): None for qubit_idx in range(num_qubits)},
+                {(qubit_idx,): None for qubit_idx in range(self._num_qubits)},
             ),
         }
         return instruction_dict
 
-    @classmethod
-    def _default_options(cls):
-        return Options(shots=1024)
+    def _add_calibration_defaults_to_target(self, instruction_schedule_map, skip_calibration_gates):
+
+        if skip_calibration_gates is None:
+            skip_calibration_gates = []
+
+        if not instruction_schedule_map:
+            defaults = self._build_calibration_defaults(skip_calibration_gates)
+            inst_map = defaults.instruction_schedule_map
+        else:
+            inst_map = instruction_schedule_map
+
+        for inst in inst_map.instructions:
+            for qarg in inst_map.qubits_with_instruction(inst):
+                try:
+                    qargs = tuple(qarg)
+                except TypeError:
+                    qargs = (qarg,)
+                # Do NOT call .get method. This parses Qpbj immediately.
+                # This operation is computationally expensive and should be bypassed.
+                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
+                if inst in self._target:
+                    if inst == "measure":
+                        for qubit in qargs:
+                            self._target[inst][(qubit,)].calibration = calibration_entry
+                    elif qargs in self._target[inst] and inst != "delay":
+                        self._target[inst][qargs].calibration = calibration_entry
 
     def _build_calibration_defaults(self, skip_calibration_gates) -> PulseDefaults:
         """Build calibration defaults."""
 
-        qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
-        meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
-        pulse_library = [
-            {"name": "test_pulse_1", "samples": [[0.0, 0.0], [0.0, 0.1]]},
-            {"name": "test_pulse_2", "samples": [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]},
-            {"name": "test_pulse_3", "samples": [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]},
-            {
-                "name": "test_pulse_4",
-                "samples": 7 * [[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]],
-            },
-        ]
-
         measure_command_sequence = [
             PulseQobjInstruction(
                 name="acquire",
-                duration=10,
+                duration=1792,
                 t0=0,
                 qubits=list(range(self.num_qubits)),
                 memory_slot=list(range(self.num_qubits)),
-            ).to_dict()
+            )
         ]
+
         measure_command_sequence += [
-            PulseQobjInstruction(name="test_pulse_1", ch=f"m{i}", t0=0).to_dict()
+            PulseQobjInstruction(name="pulse_1", ch=f"m{i}", duration=1792, t0=0)
             for i in range(self.num_qubits)
         ]
 
-        measure_command = Command.from_dict(
-            {
-                "name": "measure",
-                "qubits": list(range(self.num_qubits)),
-                "sequence": measure_command_sequence,
-            }
-        ).to_dict()
+        measure_command = Command(
+            name="measure",
+            qubits=list(range(self.num_qubits)),
+            sequence=measure_command_sequence,
+        )
 
         cmd_def = [measure_command]
 
-        for gate in self.basis_gates:
+        for gate in self._basis_gates:
             for i in range(self.num_qubits):
                 sequence = []
                 if gate not in skip_calibration_gates:
                     sequence = [
-                        PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0").to_dict(),
-                        PulseQobjInstruction(name="test_pulse_3", ch=f"d{i}", t0=0).to_dict(),
+                        PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0"),
+                        PulseQobjInstruction(name="pulse_3", ch=f"d{i}", t0=0),
                     ]
                 cmd_def.append(
-                    Command.from_dict(
-                        {
-                            "name": gate,
-                            "qubits": [i],
-                            "sequence": sequence,
-                        }
-                    ).to_dict()
+                    Command(
+                        name=gate,
+                        qubits=[i],
+                        sequence=sequence,
+                    )
                 )
 
-        for qubit1, qubit2 in self.coupling_map:
-            sequence = []
-            if gate not in skip_calibration_gates:
-                sequence = [
-                    PulseQobjInstruction(name="test_pulse_1", ch=f"d{qubit1}", t0=0).to_dict(),
-                    PulseQobjInstruction(name="test_pulse_2", ch=f"u{qubit1}", t0=10).to_dict(),
-                    PulseQobjInstruction(name="test_pulse_1", ch=f"d{qubit2}", t0=20).to_dict(),
-                    PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1).to_dict(),
-                ]
-            cmd_def += [
-                Command.from_dict(
-                    {
-                        "name": "cx",
-                        "qubits": [qubit1, qubit2],
-                        "sequence": sequence,
-                    }
-                ).to_dict()
-            ]
+            for qubit1, qubit2 in self.coupling_map:
+                sequence = []
+                if gate not in skip_calibration_gates:
+                    sequence = [
+                        PulseQobjInstruction(name="pulse_1", ch=f"d{qubit1}", t0=0),
+                        PulseQobjInstruction(name="pulse_2", ch=f"u{qubit1}", t0=10),
+                        PulseQobjInstruction(name="pulse_1", ch=f"d{qubit2}", t0=20),
+                        PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1),
+                    ]
+                if "cx" in self._basis_gates:
+                    cmd_def += [
+                        Command(
+                            name="cx",
+                            qubits=[qubit1, qubit2],
+                            sequence=sequence,
+                        )
+                    ]
+                if "ecr" in self._basis_gates:
+                    cmd_def += [
+                        Command(
+                            name="ecr",
+                            qubits=[qubit1, qubit2],
+                            sequence=sequence,
+                        )
+                    ]
 
-        return PulseDefaults.from_dict(
-            {
-                "qubit_freq_est": qubit_freq_est,
-                "meas_freq_est": meas_freq_est,
-                "buffer": 0,
-                "pulse_library": pulse_library,
-                "cmd_def": cmd_def,
-            }
+        qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
+        meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
+        pulse_library = [
+            PulseLibraryItem(name="pulse_1", samples=[[0.0, 0.0], [0.0, 0.1]]),
+            PulseLibraryItem(name="pulse_2", samples=[[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]),
+            PulseLibraryItem(
+                name="pulse_3", samples=[[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
+            ),
+        ]
+
+        return PulseDefaults(
+            qubit_freq_est=qubit_freq_est,
+            meas_freq_est=meas_freq_est,
+            buffer=0,
+            pulse_library=pulse_library,
+            cmd_def=cmd_def,
         )
 
-    def run(self, circuit, **kwargs):
-        noise_model = None
-        return BasicAer.get_backend("qasm_simulator").run(circuit, **kwargs)
+    def _build_default_channels(self):
+        """Create default channel map and set "channels_map" attribute"""
+        channels_map = {
+            "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
+            "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
+            "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
+            "control": {
+                (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self.coupling_map)
+            },
+        }
+        setattr(self, "channels_map", channels_map)
