@@ -514,6 +514,37 @@ class TestUnrollerCompatability(QiskitTestCase):
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
+    def test_basic_unroll_min_qubits(self):
+        """Test decompose a single H into u2."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ["u2"], min_qubits=3)
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ["u2"], min_qubits=3)
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(op_nodes[0].name, "h")
+
+    def test_unroll_toffoli_min_qubits(self):
+        """Test unroll toffoli on multi regs to h, t, tdg, cx."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.ccx(qr1[0], qr1[1], qr2[0])
+        circuit.sx(qr1[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ["h", "t", "tdg", "cx"], min_qubits=3)
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ["h", "t", "tdg", "cx"], min_qubits=3)
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 16)
+        for node in op_nodes:
+            self.assertIn(node.name, ["h", "t", "tdg", "cx", "sx"])
+
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional."""
 
@@ -613,7 +644,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.cy(qr[1], qr[2])
         circuit.cz(qr[2], qr[0])
         circuit.h(qr[1])
-        circuit.i(qr[0])
+        circuit.id(qr[0])
         circuit.rx(0.1, qr[0])
         circuit.ry(0.2, qr[1])
         circuit.rz(0.3, qr[2])
@@ -711,7 +742,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U3Gate(0, 0, pi / 2), [qr[2]])
         ref_circuit.cx(qr[2], qr[0])
         ref_circuit.append(U3Gate(pi / 2, 0, pi), [qr[0]])
-        ref_circuit.i(qr[0])
+        ref_circuit.id(qr[0])
         ref_circuit.append(U3Gate(0.1, -pi / 2, pi / 2), [qr[0]])
         ref_circuit.cx(qr[1], qr[0])
         ref_circuit.append(U3Gate(0, 0, 0.6), [qr[0]])

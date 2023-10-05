@@ -153,6 +153,70 @@ class Operator(LinearOp):
             "output_dims": self.output_dims(),
         }
 
+    def draw(self, output=None, **drawer_args):
+        """Return a visualization of the Operator.
+
+        **repr**: String of the state's ``__repr__``.
+
+        **text**: ASCII TextMatrix that can be printed in the console.
+
+        **latex**: An IPython Latex object for displaying in Jupyter Notebooks.
+
+        **latex_source**: Raw, uncompiled ASCII source to generate array using LaTeX.
+
+        Args:
+            output (str): Select the output method to use for drawing the
+                state. Valid choices are `repr`, `text`, `latex`, `latex_source`,
+                Default is `repr`.
+            drawer_args: Arguments to be passed directly to the relevant drawing
+                function or constructor (`TextMatrix()`, `array_to_latex()`).
+                See the relevant function under `qiskit.visualization` for that function's
+                documentation.
+
+        Returns:
+            :class:`str` or :class:`TextMatrix` or :class:`IPython.display.Latex`:
+            Drawing of the Operator.
+
+        Raises:
+            ValueError: when an invalid output method is selected.
+
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import array_to_latex
+
+        default_output = "repr"
+        if output is None:
+            output = default_output
+
+        if output == "repr":
+            return self.__repr__()
+
+        elif output == "text":
+            from qiskit.visualization.state_visualization import TextMatrix
+
+            return TextMatrix(self, **drawer_args)
+
+        elif output == "latex":
+            return array_to_latex(self, **drawer_args)
+
+        elif output == "latex_source":
+            return array_to_latex(self, source=True, **drawer_args)
+
+        else:
+            raise ValueError(
+                f"""'{output}' is not a valid option for drawing {type(self).__name__} objects.
+            Please choose from: 'text', 'latex', or 'latex_source'."""
+            )
+
+    def _ipython_display_(self):
+        out = self.draw()
+        if isinstance(out, str):
+            print(out)
+        else:
+            from IPython.display import display
+
+            display(out)
+
     @classmethod
     def from_label(cls, label: str) -> Operator:
         """Return a tensor product of single-qubit operators.
@@ -377,7 +441,7 @@ class Operator(LinearOp):
     def to_instruction(self):
         """Convert to a UnitaryGate instruction."""
         # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate
+        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         return UnitaryGate(self.data)
 

@@ -1,14 +1,16 @@
 [workspace]
 members = ["crates/*"]
 
-# This has no meaning until we're on Rust 1.64, but once we get there, the subpackages will be able
-# to inherit from this rather than needing to duplicate its content themselves.  Until we get there,
-# keep this in sync with each subpackage `Cargo.toml`'s `package` key.
 [workspace.package]
 version = "0.45.0"
 edition = "2021"
-rust-version = "1.61"  # Keep in sync with README.md and rust-toolchain.toml.
+rust-version = "1.64"  # Keep in sync with README.md and rust-toolchain.toml.
 license = "Apache-2.0"
+
+[workspace.dependencies]
+# This doesn't set `extension-module` as a shared feature because we need to be able to disable it
+# during Rust-only testing (see # https://github.com/PyO3/pyo3/issues/340).
+pyo3 = { version = "0.19.2", features = ["abi3-py38"] }
 
 [profile.release]
 lto = 'fat'
