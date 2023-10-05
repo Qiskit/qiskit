@@ -19,7 +19,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -457,6 +457,13 @@ class HighLevelSynthesis(TransformationPass):
 
                     qc = qc.power(modifier.power)
                     synthesized_op = qc.to_gate()
+
+                    # Unrolling
+                    synthesized_op, _ = self._recursively_handle_op(synthesized_op)
+
+                    if isinstance(synthesized_op, DAGCircuit):
+                        synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
+
                 else:
                     raise TranspilerError(f"Unknown modifier {modifier}.")
 
