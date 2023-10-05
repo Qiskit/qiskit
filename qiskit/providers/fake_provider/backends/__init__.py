@@ -14,6 +14,7 @@
 """
 Mocked versions of real quantum backends.
 """
+import warnings
 
 # BackendV2 Backends
 from .almaden import FakeAlmadenV2
@@ -108,3 +109,12 @@ from .valencia import FakeValencia
 from .vigo import FakeVigo
 from .washington import FakeWashington
 from .yorktown import FakeYorktown
+
+warnings.warn(
+    "This import path is deprecated as of qiskit 0.45.0, please import "
+    "device-specific fake backends using "
+    "``from qiskit_ibm_provider.fake_provider import FakeExample`` "
+    "instead of ``from qiskit.providers.fake_provider import FakeExample``.",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
