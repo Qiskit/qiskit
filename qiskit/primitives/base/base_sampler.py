@@ -84,7 +84,7 @@ from qiskit.circuit import ControlFlowOp, Measure, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 
-from .base_primitive import BasePrimitive
+from .base_primitive import BasePrimitive, CircuitLike
 
 T = TypeVar("T", bound=Job)
 
@@ -112,7 +112,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
 
     def run(
         self,
-        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        circuits: CircuitLike | Sequence[CircuitLike],
         parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ) -> T:

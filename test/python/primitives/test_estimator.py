@@ -342,6 +342,34 @@ class TestEstimator(QiskitTestCase):
         keys = [_observable_key(get_op(i)) for i in range(5)]
         self.assertEqual(len(keys), len(set(keys)))
 
+    def test_qasm3_string(self):
+        """ "Test QASM3 string."""
+        qasm3_str = """OPENQASM 3;
+include "stdgates.inc";
+input float[64] _θ_0_;
+input float[64] _θ_1_;
+input float[64] _θ_2_;
+input float[64] _θ_3_;
+input float[64] _θ_4_;
+input float[64] _θ_5_;
+gate RealAmplitudes(_θ_0_, _θ_1_, _θ_2_, _θ_3_, _θ_4_, _θ_5_) _gate_q_0, _gate_q_1 {
+  ry(_θ_0_) _gate_q_0;
+  ry(_θ_1_) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  ry(_θ_2_) _gate_q_0;
+  ry(_θ_3_) _gate_q_1;
+  cx _gate_q_0, _gate_q_1;
+  ry(_θ_4_) _gate_q_0;
+  ry(_θ_5_) _gate_q_1;
+}
+qubit[2] q;
+RealAmplitudes(_θ_0_, _θ_1_, _θ_2_, _θ_3_, _θ_4_, _θ_5_) q[0], q[1];
+"""
+        est = Estimator()
+        result = est.run([qasm3_str], [self.observable], [0, 1, 1, 2, 3, 5]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.284366511861733])
+
 
 @ddt
 class TestObservableValidation(QiskitTestCase):

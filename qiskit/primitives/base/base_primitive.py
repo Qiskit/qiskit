@@ -16,11 +16,15 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
+from typing import Union
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import Options
+from qiskit.qasm3 import loads
+
+CircuitLike = Union[QuantumCircuit, str]
 
 
 class BasePrimitive(ABC):
@@ -50,15 +54,16 @@ class BasePrimitive(ABC):
 
     @staticmethod
     def _validate_circuits(
-        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        circuits: Sequence[CircuitLike] | CircuitLike,
     ) -> tuple[QuantumCircuit, ...]:
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
-        elif not isinstance(circuits, Sequence) or not all(
+        circuits = tuple(loads(circ) if isinstance(circ, str) else circ for circ in circuits)
+        if not isinstance(circuits, Sequence) or not all(
             isinstance(cir, QuantumCircuit) for cir in circuits
         ):
             raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
-        elif not isinstance(circuits, tuple):
+        if not isinstance(circuits, tuple):
             circuits = tuple(circuits)
         if len(circuits) == 0:
             raise ValueError("No circuits were provided.")

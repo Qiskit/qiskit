@@ -414,6 +414,25 @@ class TestSampler(QiskitTestCase):
         sampler_result = sampler.run([circuit]).result()
         self.assertDictAlmostEqual(sampler_result.quasi_dists[0], {0: 1, 1: 0})
 
+    def test_qasm3_string(self):
+        """Test QASM3 string"""
+        bell = """OPENQASM 3;
+include "stdgates.inc";
+bit[2] meas;
+qubit[2] q;
+h q[0];
+cx q[0], q[1];
+barrier q[0], q[1];
+meas[0] = measure q[0];
+meas[1] = measure q[1];
+"""
+        sampler = Sampler()
+        job = sampler.run(circuits=[bell])
+        self.assertIsInstance(job, JobV1)
+        result = job.result()
+        self.assertIsInstance(result, SamplerResult)
+        self._compare_probs(result.quasi_dists, self._target[1])
+
 
 if __name__ == "__main__":
     unittest.main()

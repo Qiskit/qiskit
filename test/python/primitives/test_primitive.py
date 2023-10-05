@@ -16,6 +16,7 @@ import json
 
 from ddt import data, ddt, unpack
 from numpy import array, float32, float64, int32, int64
+from openqasm3.parser import QASM3ParsingError
 
 from qiskit import QuantumCircuit, pulse, transpile
 from qiskit.circuit.random import random_circuit
@@ -44,7 +45,8 @@ class TestCircuitValidation(QiskitTestCase):
     @data(None, "ERROR", True, 0, 1.0, 1j, [0.0])
     def test_type_error(self, circuits):
         """Test type error if invalid input."""
-        with self.assertRaises(TypeError):
+        error_type = QASM3ParsingError if isinstance(circuits, str) else TypeError
+        with self.assertRaises(error_type):
             BasePrimitive._validate_circuits(circuits)
 
     @data((), [], "")
