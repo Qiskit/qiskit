@@ -99,6 +99,8 @@ class BasePass(GenericPass):
                 initial_layout=layout,
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
                 final_layout=final_layout,
+                _input_qubit_count=len(circuit.qubits),
+                _output_qubit_list=result_circuit.qubits,
             )
         if self.property_set["clbit_write_latency"] is not None:
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]

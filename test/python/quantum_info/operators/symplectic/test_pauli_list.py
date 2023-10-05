@@ -1495,6 +1495,10 @@ class TestPauliListMethods(QiskitTestCase):
 
     def test_delete(self):
         """Test delete method."""
+        with self.subTest(msg="no rows"):
+            pauli = PauliList(["XX", "ZZ"])
+            self.assertEqual(pauli.delete([]), pauli)
+
         with self.subTest(msg="single row"):
             for j in range(1, 6):
                 pauli = PauliList([j * "X", j * "Y"])
@@ -1507,6 +1511,10 @@ class TestPauliListMethods(QiskitTestCase):
                 self.assertEqual(pauli.delete([0, 2]), PauliList("-i" + j * "Y"))
                 self.assertEqual(pauli.delete([1, 2]), PauliList(j * "X"))
                 self.assertEqual(pauli.delete([0, 1]), PauliList(j * "Z"))
+
+        with self.subTest(msg="no qubits"):
+            pauli = PauliList(["XX", "ZZ"])
+            self.assertEqual(pauli.delete([], qubit=True), pauli)
 
         with self.subTest(msg="single qubit"):
             pauli = PauliList(["IIX", "iIYI", "ZII"])
