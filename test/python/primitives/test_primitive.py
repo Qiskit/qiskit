@@ -30,10 +30,10 @@ class TestCircuitValidation(QiskitTestCase):
     """Test circuits validation logic."""
 
     @data(
-        (random_circuit(2, 2, seed=0), (random_circuit(2, 2, seed=0),)),
+        (random_circuit(2, 2, seed=0), [random_circuit(2, 2, seed=0)]),
         (
             [random_circuit(2, 2, seed=0), random_circuit(2, 2, seed=1)],
-            (random_circuit(2, 2, seed=0), random_circuit(2, 2, seed=1)),
+            [random_circuit(2, 2, seed=0), random_circuit(2, 2, seed=1)],
         ),
     )
     @unpack

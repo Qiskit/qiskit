@@ -80,17 +80,18 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
+import typing
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
-import typing
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.transpiler.layout import TranspileLayout
 
 from ..utils import init_observable
 from .base_primitive import BasePrimitive
@@ -109,11 +110,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
 
     __hash__ = None
 
-    def __init__(
-        self,
-        *,
-        options: dict | None = None,
-    ):
+    def __init__(self, *, options: dict | None = None, apply_layout: bool = True):
         """
         Creating an instance of an Estimator, or using one in a ``with`` context opens a session that
         holds resources until the instance is ``close()`` ed or the context is exited.
@@ -124,6 +121,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         self._circuits = []
         self._observables = []
         self._parameters = []
+        self._apply_layout = apply_layout
         super().__init__(options)
 
     def run(
@@ -179,15 +177,17 @@ class BaseEstimator(BasePrimitive, Generic[T]):
 
         # Cross-validation
         self._cross_validate_circuits_parameter_values(circuits, parameter_values)
-        self._cross_validate_circuits_observables(circuits, observables)
+        circuits, observables = self._cross_validate_circuits_observables(
+            circuits, observables, self._apply_layout
+        )
 
         # Options
         run_opts = copy(self.options)
         run_opts.update_options(**run_options)
 
         return self._run(
-            circuits,
-            observables,
+            tuple(circuits),
+            tuple(observables),
             parameter_values,
             **run_opts.__dict__,
         )
@@ -205,29 +205,42 @@ class BaseEstimator(BasePrimitive, Generic[T]):
     @staticmethod
     def _validate_observables(
         observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
-    ) -> tuple[SparsePauliOp, ...]:
+    ) -> list[SparsePauliOp]:
         if isinstance(observables, str) or not isinstance(observables, Sequence):
-            observables = (observables,)
+            observables = [observables]
         if len(observables) == 0:
             raise ValueError("No observables were provided.")
-        return tuple(init_observable(obs) for obs in observables)
+        return [init_observable(obs) for obs in observables]
 
     @staticmethod
     def _cross_validate_circuits_observables(
-        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
-    ) -> None:
+        circuits: list[QuantumCircuit],
+        observables: list[SparsePauliOp],
+        apply_layout: bool,
+    ) -> tuple[list[QuantumCircuit], list[SparsePauliOp]]:
         if len(circuits) != len(observables):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of observables ({len(observables)})."
             )
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
+            if apply_layout and isinstance(circuit.layout, TranspileLayout):
+                observable = observable.apply_layout(circuit.layout)
+                observables[i] = observable
             if circuit.num_qubits != observable.num_qubits:
                 raise ValueError(
                     f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
                     f"not match the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
+        # Remove layout not to apply layout again.
+        if apply_layout:
+            for i, circuit in enumerate(circuits):
+                if isinstance(circuit.layout, TranspileLayout):
+                    circuit = circuit.copy()
+                    circuit._layout = None
+                    circuits[i] = circuit
+        return circuits, observables
 
     @property
     def circuits(self) -> tuple[QuantumCircuit, ...]:

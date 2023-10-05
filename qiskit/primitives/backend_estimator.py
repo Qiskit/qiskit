@@ -114,6 +114,8 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         abelian_grouping: bool = True,
         bound_pass_manager: PassManager | None = None,
         skip_transpilation: bool = False,
+        *,
+        apply_layout: bool = True,
     ):
         """Initialize a new BackendEstimator instance
 
@@ -128,7 +130,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
         """
-        super().__init__(options=options)
+        super().__init__(options=options, apply_layout=apply_layout)
 
         self._abelian_grouping = abelian_grouping
 

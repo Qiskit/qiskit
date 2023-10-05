@@ -17,6 +17,7 @@ import unittest
 import numpy as np
 from ddt import data, ddt, unpack
 
+from qiskit import transpile
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
@@ -24,6 +25,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
+from qiskit.providers.fake_provider import FakeBelem
 from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -340,36 +342,53 @@ class TestEstimator(QiskitTestCase):
         keys = [_observable_key(get_op(i)) for i in range(5)]
         self.assertEqual(len(keys), len(set(keys)))
 
+    def test_transpiled_circuits(self):
+        """Test for transpiled circuits"""
+        n = 3
+        qc = QuantumCircuit(n)
+        qc.x(n - 1)
+        qc.h(range(n))
+        qc.cx(range(n - 1), n - 1)
+        qc.h(range(n - 1))
+
+        op = SparsePauliOp("IZI")
+
+        backend = FakeBelem()
+        trans_qc = transpile(qc, backend)
+
+        expval = Estimator().run(trans_qc, op).result().values[0]
+        self.assertAlmostEqual(expval, -1)
+
 
 @ddt
 class TestObservableValidation(QiskitTestCase):
     """Test observables validation logic."""
 
     @data(
-        ("IXYZ", (SparsePauliOp("IXYZ"),)),
-        (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliList("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
+        ("IXYZ", [SparsePauliOp("IXYZ")]),
+        (Pauli("IXYZ"), [SparsePauliOp("IXYZ")]),
+        (PauliList("IXYZ"), [SparsePauliOp("IXYZ")]),
+        (SparsePauliOp("IXYZ"), [SparsePauliOp("IXYZ")]),
+        (PauliSumOp(SparsePauliOp("IXYZ")), [SparsePauliOp("IXYZ")]),
         (
             ["IXYZ", "ZYXI"],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
         ),
         (
             [Pauli("IXYZ"), Pauli("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
         ),
         (
             [PauliList("IXYZ"), PauliList("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
         ),
         (
             [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
         ),
         (
             [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
         ),
     )
     @unpack

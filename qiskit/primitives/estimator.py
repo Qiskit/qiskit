@@ -15,9 +15,9 @@ Estimator class
 
 from __future__ import annotations
 
+import typing
 from collections.abc import Sequence
 from typing import Any
-import typing
 
 import numpy as np
 
@@ -28,12 +28,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import (
-    _circuit_key,
-    _observable_key,
-    bound_circuit_to_instruction,
-    init_observable,
-)
+from .utils import _circuit_key, _observable_key, bound_circuit_to_instruction, init_observable
 
 if typing.TYPE_CHECKING:
     from qiskit.opflow import PauliSumOp
@@ -55,15 +50,16 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
           this option is ignored.
     """
 
-    def __init__(self, *, options: dict | None = None):
+    def __init__(self, *, options: dict | None = None, apply_layout: bool = True):
         """
         Args:
             options: Default options.
+            apply_layout: if True, apply layout to observables.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
         """
-        super().__init__(options=options)
+        super().__init__(options=options, apply_layout=apply_layout)
         self._circuit_ids = {}
         self._observable_ids = {}
 

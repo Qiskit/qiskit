@@ -492,7 +492,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
     def expectation_value(
         self, oper: BaseOperator | QuantumCircuit | Instruction, qargs: None | list[int] = None
-    ) -> complex:
+    ) -> numpy.complex128:
         """Compute the expectation value of an operator.
 
         Args:

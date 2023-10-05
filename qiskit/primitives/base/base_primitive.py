@@ -51,15 +51,15 @@ class BasePrimitive(ABC):
     @staticmethod
     def _validate_circuits(
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-    ) -> tuple[QuantumCircuit, ...]:
+    ) -> list[QuantumCircuit, ...]:
         if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
+            circuits = [circuits]
         elif not isinstance(circuits, Sequence) or not all(
             isinstance(cir, QuantumCircuit) for cir in circuits
         ):
             raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
-        elif not isinstance(circuits, tuple):
-            circuits = tuple(circuits)
+        elif not isinstance(circuits, list):
+            circuits = list(circuits)
         if len(circuits) == 0:
             raise ValueError("No circuits were provided.")
         return circuits
@@ -104,7 +104,7 @@ class BasePrimitive(ABC):
 
     @staticmethod
     def _cross_validate_circuits_parameter_values(
-        circuits: tuple[QuantumCircuit, ...], parameter_values: tuple[tuple[float, ...], ...]
+        circuits: list[QuantumCircuit, ...], parameter_values: tuple[tuple[float, ...], ...]
     ) -> None:
         if len(circuits) != len(parameter_values):
             raise ValueError(
