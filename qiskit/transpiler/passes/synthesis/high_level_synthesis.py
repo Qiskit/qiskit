@@ -442,7 +442,7 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
       in the graph beyond which the algorithm will use parallel processing.
 
     For more details on the token swapper algorithm, see to the paper:
-    `arXiv:1809.03452 <https://arxiv.org/abs/1809.03452>`__.
+    `arXiv:1902.09102 <https://arxiv.org/abs/1902.09102>`__.
 
     """
 
