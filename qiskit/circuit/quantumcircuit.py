@@ -1586,12 +1586,13 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        dag = circuit_to_dag(self)
+        dag = circuit_to_dag(self, copy_operations=True)
         dag = HighLevelSynthesis().run(dag)
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
-        return dag_to_circuit(dag)
+        # do not copy operations, this is done in the conversion with circuit_to_dag
+        return dag_to_circuit(dag, copy_operations=False)
 
     def qasm(
         self,
