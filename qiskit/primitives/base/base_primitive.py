@@ -104,7 +104,7 @@ class BasePrimitive(ABC):
 
     @staticmethod
     def _cross_validate_circuits_parameter_values(
-        circuits: list[QuantumCircuit, ...], parameter_values: tuple[tuple[float, ...], ...]
+        circuits: list[QuantumCircuit], parameter_values: tuple[tuple[float, ...], ...]
     ) -> None:
         if len(circuits) != len(parameter_values):
             raise ValueError(
