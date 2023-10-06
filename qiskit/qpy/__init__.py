@@ -74,6 +74,11 @@ API documentation
 .. autofunction:: load
 .. autofunction:: dump
 
+These functions will raise a custom subclass of :exc:`.QiskitError` if they encounter problems
+during serialization or deserialization.
+
+.. autoexception:: QpyError
+
 QPY Compatibility
 =================
 
@@ -97,7 +102,7 @@ The QPY serialization format is a portable cross-platform binary
 serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
 file format is as follows:
 
-A QPY file (or memory object) always starts with the following 7
+A QPY file (or memory object) always starts with the following 6
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
 file header. The contents of the file header as defined as a C struct are:
 
@@ -109,6 +114,21 @@ file header. The contents of the file header as defined as a C struct are:
         uint8_t qiskit_minor_version;
         uint8_t qiskit_patch_version;
         uint64_t num_circuits;
+    }
+
+
+From V10 on, a new field is added to the file header struct to represent the
+encoding scheme used for symbolic expressions:
+
+.. code-block:: c
+
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
     }
 
 All values use network byte order [#f1]_ (big endian) for cross platform
@@ -123,13 +143,63 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_10:
+
+Version 10
+==========
+
+Version 10 adds support for symengine-native serialization for objects of type
+:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks. Version
+10 also adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
+0.45.0 release.
+
+The symbolic_encoding field is added to the file header, and a new encoding type char
+is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
+encoding and ``e`` refers to symengine encoding.
+
+FILE_HEADER
+-----------
+
+The contents of FILE_HEADER after V10 are defined as a C struct as:
+
+.. code-block:: c
+
+    struct {
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
+        uint64_t num_circuits;
+        char symbolic_encoding;
+    }
+
+LAYOUT
+------
+
+The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
+With version 10 the ``LAYOUT`` struct is now:
+
+.. code-block:: c
+
+    struct {
+        char exists;
+        int32_t initial_layout_size;
+        int32_t input_mapping_size;
+        int32_t final_layout_size;
+        uint32_t extra_registers;
+        int32_t input_qubit_count;
+    }
+
+The rest of the layout data after the ``LAYOUT`` struct is represented as in previous versions. If
+``input qubit_count`` is < 0 that indicates that both ``_input_qubit_count``
+and ``_output_qubit_list`` in the :class:`~.TranspileLayout` object are ``None``.
 
 .. _qpy_version_9:
 
 Version 9
 =========
 
-Version 9 addds support for classical :class:`~.expr.Expr` nodes and their associated
+Version 9 adds support for classical :class:`~.expr.Expr` nodes and their associated
 :class:`~.types.Type`\\ s.
 
 
@@ -316,7 +386,7 @@ with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
 bytes for a ``utf8`` encoded string for the register name.
 
 Following the initial layout there is ``input_mapping_size`` array of
-``uint32_t`` integers representing the positions of the phyiscal bit from the
+``uint32_t`` integers representing the positions of the physical bit from the
 initial layout. This enables constructing a list of virtual bits where the
 array index is its input mapping position.
 
@@ -492,7 +562,7 @@ The context type char is mapped to each alignment subclass as follows:
 - ``s``: :class:`~.AlignSequential`
 - ``e``: :class:`~.AlignEquispaced`
 
-Note that :class:`~.AlignFunc` context is not supported becasue of the callback function
+Note that :class:`~.AlignFunc` context is not supported because of the callback function
 stored in the context parameters.
 
 .. _qpy_schedule_instructions:
@@ -506,7 +576,7 @@ Each schedule instruction starts with ``char`` representing the instruction type
 followed by the :ref:`qpy_sequence` block representing the instruction
 :attr:`~qiskit.pulse.instructions.Instruction.operands`.
 Note that the data structure of pulse :class:`~qiskit.pulse.instructions.Instruction`
-is unified so that instance can be uniquely determied by the class and a tuple of operands.
+is unified so that instance can be uniquely determined by the class and a tuple of operands.
 The mapping of type char to the instruction subclass is defined as follows:
 
 - ``a``: :class:`~qiskit.pulse.instructions.Acquire` instruction
@@ -662,7 +732,7 @@ The calibration definition header is then followed by ``name_size`` utf8 bytes o
 the gate name, ``num_qubits`` length of integers representing a sequence of qubits,
 and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
 associated to the custom instruction.
-The ``type`` indicates the class of pulse program which is either, in pricinple,
+The ``type`` indicates the class of pulse program which is either, in principle,
 :class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
 only :class:`~.ScheduleBlock` payload is supported.
 Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
@@ -786,7 +856,7 @@ A RANGE is a representation of a ``range`` object. It is defined as:
 SEQUENCE
 --------
 
-A SEQUENCE is a reprentation of a arbitrary sequence object. As sequence are just fixed length
+A SEQUENCE is a representation of an arbitrary sequence object. As sequence are just fixed length
 containers of arbitrary python objects their QPY can't fully represent any sequence,
 but as long as the contents in a sequence are other QPY serializable types for
 the INSTRUCTION_PARAM payload the ``sequence`` object can be serialized.
@@ -1265,6 +1335,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 
+from .exceptions import QpyError
 from .interface import dump, load
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
