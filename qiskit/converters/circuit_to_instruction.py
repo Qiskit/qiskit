@@ -109,14 +109,14 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     ]
 
     # fix condition
-    for rule in definition:
+    for idx, rule in enumerate(definition):
         condition = getattr(rule.operation, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                rule.operation = rule.operation.c_if(clbit_map[reg], val)
+                definition[idx] = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
             elif reg.size == c.size:
-                rule.operation = rule.operation.c_if(c, val)
+                definition[idx] = rule.replace(operation=rule.operation.c_if(c, val))
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "

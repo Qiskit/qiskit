@@ -76,7 +76,7 @@ impl CircuitData {
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
         // TODO: reuse intern context once concurrency is properly
         //  handled.
-        let intern_context = Py::new(py,self.context(py)?.clone())?;
+        let intern_context = Py::new(py, self.context(py)?.clone())?;
         Ok(CircuitData {
             data: self.data.clone(),
             intern_context,
