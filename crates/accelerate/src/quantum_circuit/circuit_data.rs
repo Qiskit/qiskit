@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::quantum_circuit::circuit_data::SliceOrInt::{Int, Slice};
+use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
@@ -31,18 +32,10 @@ struct InternedInstruction(Option<PyObject>, IndexType, IndexType);
 pub struct CircuitData {
     data: Vec<InternedInstruction>,
     intern_context: Py<InternContext>,
-    new_callable: Option<PyObject>,
     qubits: Py<PyList>,
     clbits: Py<PyList>,
     qubit_indices: Py<PyDict>,
     clbit_indices: Py<PyDict>,
-}
-
-#[derive(FromPyObject)]
-pub struct ElementType {
-    operation: PyObject,
-    qubits: Py<PyTuple>,
-    clbits: Py<PyTuple>,
 }
 
 #[derive(FromPyObject)]
@@ -56,7 +49,6 @@ impl CircuitData {
     #[new]
     pub fn new(
         intern_context: Py<InternContext>,
-        new_callable: PyObject,
         qubits: Py<PyList>,
         clbits: Py<PyList>,
         qubit_indices: Py<PyDict>,
@@ -65,7 +57,6 @@ impl CircuitData {
         Ok(CircuitData {
             data: Vec::new(),
             intern_context,
-            new_callable: Some(new_callable),
             qubits,
             clbits,
             qubit_indices,
@@ -80,7 +71,6 @@ impl CircuitData {
         Ok(CircuitData {
             data: self.data.clone(),
             intern_context,
-            new_callable: self.new_callable.as_ref().map(|c| c.clone_ref(py)),
             qubits: self.qubits.clone_ref(py),
             clbits: self.clbits.clone_ref(py),
             qubit_indices: self.qubit_indices.clone_ref(py),
@@ -117,14 +107,17 @@ impl CircuitData {
                     let context = self.context(py)?;
                     let qargs = context.lookup(*qargs_slot);
                     let cargs = context.lookup(*cargs_slot);
-                    self.new_callable.as_ref().unwrap().call1(
+                    Py::new(
                         py,
-                        (
-                            op,
-                            extract_args(self.qubits.as_ref(py), qargs)?,
-                            extract_args(self.clbits.as_ref(py), cargs)?,
-                        ),
+                        CircuitInstruction {
+                            operation: op.as_ref().unwrap().clone_ref(py),
+                            qubits: PyTuple::new(py, extract_args(self.qubits.as_ref(py), qargs)?)
+                                .into_py(py),
+                            clbits: PyTuple::new(py, extract_args(self.clbits.as_ref(py), cargs)?)
+                                .into_py(py),
+                        },
                     )
+                    .map(|i| i.into_py(py))
                 } else {
                     Err(PyIndexError::new_err(format!(
                         "No element at index {index} in circuit data",
@@ -167,7 +160,7 @@ impl CircuitData {
             Slice(slice) => {
                 let indices = slice.indices(self.data.len().try_into().unwrap())?;
                 let slice = self.convert_py_slice(py, slice)?;
-                let values = value.iter()?.collect::<PyResult<Vec<_>>>()?;
+                let values = value.iter()?.collect::<PyResult<Vec<&PyAny>>>()?;
                 if indices.step != 1 && slice.len() != values.len() {
                     return Err(PyValueError::new_err(format!(
                         "attempt to assign sequence of size {:?} to extended slice of size {:?}",
@@ -194,7 +187,7 @@ impl CircuitData {
                 } else {
                     // Insert any extra values.
                     for v in values.iter().skip(slice.len()).rev() {
-                        let v: ElementType = (*v).extract()?;
+                        let v: PyRef<CircuitInstruction> = v.extract()?;
                         self.insert(py, indices.stop, v)?;
                     }
                 }
@@ -203,7 +196,7 @@ impl CircuitData {
             }
             Int(index) => {
                 let index = self.convert_py_index(index, IndexFor::Lookup)?;
-                let value: ElementType = value.extract()?;
+                let value: PyRef<CircuitInstruction> = value.extract()?;
                 let mut cached_entry = self.get_or_cache(py, value)?;
                 swap(&mut cached_entry, &mut self.data[index]);
                 self.drop_from_cache(py, cached_entry)
@@ -211,7 +204,12 @@ impl CircuitData {
         }
     }
 
-    pub fn insert(&mut self, py: Python<'_>, index: isize, value: ElementType) -> PyResult<()> {
+    pub fn insert(
+        &mut self,
+        py: Python<'_>,
+        index: isize,
+        value: PyRef<CircuitInstruction>,
+    ) -> PyResult<()> {
         let index = self.convert_py_index(index, IndexFor::Insertion)?;
         let cache_entry = self.get_or_cache(py, value)?;
         self.data.insert(index, cache_entry);
@@ -225,7 +223,7 @@ impl CircuitData {
         Ok(item)
     }
 
-    pub fn append(&mut self, py: Python<'_>, value: ElementType) -> PyResult<()> {
+    pub fn append(&mut self, py: Python<'_>, value: PyRef<CircuitInstruction>) -> PyResult<()> {
         self.insert(py, self.data.len() as isize, value)
     }
 
@@ -268,7 +266,6 @@ impl CircuitData {
         for InternedInstruction(op, _, _) in self.data.iter() {
             visit.call(op)?;
         }
-        visit.call(&self.new_callable)?;
         visit.call(&self.qubits)?;
         visit.call(&self.clbits)?;
         visit.call(&self.qubit_indices)?;
@@ -277,11 +274,10 @@ impl CircuitData {
     }
 
     fn __clear__(&mut self) {
-        // TODO: do we need to explicitly clear qubits, clbit, qubit_indices, and clbit_indices?
+        // Clear anything that could have a reference cycle.
         for InternedInstruction(op, _, _) in self.data.iter_mut() {
             *op = None;
         }
-        self.new_callable = None;
     }
 }
 
@@ -371,11 +367,14 @@ impl CircuitData {
         Ok(())
     }
 
-    fn get_or_cache(&mut self, py: Python<'_>, elem: ElementType) -> PyResult<InternedInstruction> {
+    fn get_or_cache(
+        &mut self,
+        py: Python<'_>,
+        elem: PyRef<CircuitInstruction>,
+    ) -> PyResult<InternedInstruction> {
         let mut context = self.context_mut(py)?;
-        let mut cache_args = |indices: &PyDict, bits: Py<PyTuple>| -> PyResult<IndexType> {
+        let mut cache_args = |indices: &PyDict, bits: &PyTuple| -> PyResult<IndexType> {
             let args = bits
-                .as_ref(py)
                 .into_iter()
                 .map(|b| {
                     let py_idx = indices.as_ref().get_item(b)?;
@@ -388,9 +387,9 @@ impl CircuitData {
         };
 
         Ok(InternedInstruction(
-            Some(elem.operation),
-            cache_args(self.qubit_indices.as_ref(py), elem.qubits)?,
-            cache_args(self.clbit_indices.as_ref(py), elem.clbits)?,
+            Some(elem.operation.clone_ref(py)),
+            cache_args(self.qubit_indices.as_ref(py), elem.qubits.as_ref(py))?,
+            cache_args(self.clbit_indices.as_ref(py), elem.clbits.as_ref(py))?,
         ))
     }
 }

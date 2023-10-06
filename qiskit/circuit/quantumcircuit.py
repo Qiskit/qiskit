@@ -287,7 +287,6 @@ class QuantumCircuit:
     def _new_data(self, iterable: Iterable[CircuitInstruction] = ()):
         data = CircuitData(
             self._intern_context,
-            CircuitInstruction,
             self._qubits,
             self._clbits,
             self._qubit_indices,

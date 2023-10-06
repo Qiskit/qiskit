@@ -18,9 +18,9 @@ use pyo3::{PyObject, PyResult};
 #[pyclass(sequence, get_all, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
-    operation: PyObject,
-    qubits: Py<PyTuple>,
-    clbits: Py<PyTuple>,
+    pub operation: PyObject,
+    pub qubits: Py<PyTuple>,
+    pub clbits: Py<PyTuple>,
 }
 
 #[pymethods]
