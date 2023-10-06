@@ -22,7 +22,6 @@ from qiskit.quantum_info.states.utils import (
     partial_trace,
     shannon_entropy,
     _format_state,
-    _funm_svd,
 )
 
 
@@ -72,9 +71,7 @@ def state_fidelity(
         fid = arr2.conj().dot(arr1).dot(arr2)
     else:
         # Fidelity of two DensityMatrices
-        s1sq = _funm_svd(arr1, np.sqrt)
-        s2sq = _funm_svd(arr2, np.sqrt)
-        fid = np.linalg.norm(s1sq.dot(s2sq), ord="nuc") ** 2
+        fid = np.sum(np.sqrt(np.linalg.eigvals(arr1.dot(arr2)))) ** 2
     # Convert to py float rather than return np.float
     return float(np.real(fid))
 
