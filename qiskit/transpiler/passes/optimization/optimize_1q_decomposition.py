@@ -51,9 +51,10 @@ NAME_MAP = {
     "ry": RYGate,
     "rz": RZGate,
     "r": RGate,
-    "sx": SXGate,
-    "x": XGate,
+    "sx": SXGate(),
+    "x": XGate(),
 }
+
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
@@ -146,7 +147,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         out_dag.global_phase = best_synth_circuit.global_phase
 
         for gate_name, angles in best_synth_circuit:
-            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits, check=False)
+            if gate_name == "x" or gate_name == "sx":
+                out_dag.apply_operation_back(NAME_MAP[gate_name], qubits, check=False)
+            else:
+                out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits, check=False)
         return out_dag
 
     def _substitution_checks(self, dag, old_run, new_circ, basis, qubit):
