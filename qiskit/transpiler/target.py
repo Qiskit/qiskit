@@ -454,7 +454,9 @@ class Target(Mapping):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
-    def update_from_instruction_schedule_map(self, inst_map, inst_name_map=None, error_dict=None):
+    def update_from_instruction_schedule_map(
+        self, inst_map, inst_name_map=None, error_dict=None, ignore_instruction=None
+    ):
         """Update the target from an instruction schedule map.
 
         If the input instruction schedule map contains new instructions not in
@@ -479,7 +481,14 @@ class Target(Mapping):
             a when updating the ``Target`` the error value will be pulled from
             this dictionary. If one is not found in ``error_dict`` then
             ``None`` will be used.
+            ignore_instruction (list): An optionional list filterring out gates
+                that are ignored when updating the ``Target`` from the instruction
+                schedule map.
         """
+        # ['u1', 'u2', 'u3'] is set as the default because the
+        # current IBM providers don't support them as basis gates.
+        if ignore_instruction is None:
+            ignore_instruction = ["u1", "u2", "u3"]
         get_calibration = getattr(inst_map, "_get_calibration_entry")
 
         # Expand name mapping with custom gate name provided by user.
@@ -487,6 +496,8 @@ class Target(Mapping):
         if inst_name_map is not None:
             qiskit_inst_name_map.update(inst_name_map)
         for inst_name in inst_map.instructions:
+            if inst_name in ignore_instruction:
+                continue
             # Prepare dictionary of instruction properties
             out_props = {}
             for qargs in inst_map.qubits_with_instruction(inst_name):
@@ -500,9 +511,7 @@ class Target(Mapping):
                     props = None
 
                 entry = get_calibration(inst_name, qargs)
-                if getattr(props, "_calibration", None) != entry:
-                    if not entry.user_provided:
-                        continue
+                if entry.user_provided and getattr(props, "_calibration", None) != entry:
                     if self.dt is not None:
                         try:
                             duration = entry.get_schedule().duration * self.dt
@@ -515,6 +524,13 @@ class Target(Mapping):
                         duration=duration,
                         calibration=entry,
                     )
+                else:
+                    if props is None:
+                        duration = None
+                        props = InstructionProperties(
+                            duration=duration,
+                            calibration=entry,
+                        )
                 try:
                     # Update gate error if provided.
                     props.error = error_dict[inst_name][qargs]
