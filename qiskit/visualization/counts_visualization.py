@@ -57,17 +57,6 @@ def _is_deprecated_data_format(data) -> bool:
     return False
 
 
-@deprecate_arg(
-    "data",
-    deprecation_description=(
-        "Using plot_histogram() ``data`` argument with QuasiDistribution, ProbDistribution, or a "
-        "distribution dictionary"
-    ),
-    since="0.22.0",
-    additional_msg="Instead, use ``plot_distribution()``.",
-    predicate=_is_deprecated_data_format,
-    pending=True,
-)
 def plot_histogram(
     data,
     figsize=(7, 5),
@@ -86,6 +75,26 @@ def plot_histogram(
     Args:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex ``{'001': 130}``)
+            Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary 
+            to the `data` argument is deprecated.
+
+            Migration Guide:
+            ----------------
+            If you used `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary 
+            with `plot_histogram`, you should now use `plot_distribution()`.
+
+            Example:
+            ```python
+            # Old way using plot_histogram with a hypothetical QuasiDistribution
+            quasi_data = QuasiDistribution(...)  
+            plot_histogram(quasi_data)
+
+            # New recommended way
+            plot_distribution(quasi_data)
+            ```
+
+            For other data types, continue using `plot_histogram` as usual.
+            
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
