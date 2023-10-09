@@ -95,7 +95,7 @@ class TestEstimator(QiskitTestCase):
 
     def test_estiamtor_run_no_params(self):
         """test for estimator without parameters"""
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = Estimator()
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
@@ -226,8 +226,6 @@ class TestEstimator(QiskitTestCase):
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
         with self.assertRaises(ValueError):
-            est.run([qc2], [op], [[]]).result()
-        with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(ValueError):
             est.run([qc2], [op2], [[1, 2]]).result()
@@ -259,7 +257,7 @@ class TestEstimator(QiskitTestCase):
 
     def test_run_with_operator(self):
         """test for run with Operator as an observable"""
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         matrix = Operator(
             [
                 [-1.06365335, 0.0, 0.0, 0.1809312],

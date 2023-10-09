@@ -21,7 +21,7 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RZGate
+from qiskit.circuit.library import RZGate, UnitaryGate
 import qiskit.quantum_info.operators
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 from qiskit.quantum_info.synthesis.xx_decompose.circuits import (
@@ -111,13 +111,9 @@ class TestMonodromyCircuits(unittest.TestCase):
             source_coordinate, interaction, target_coordinate = self._generate_xxyy_test_case()
 
             source_embodiment = qiskit.QuantumCircuit(2)
-            source_embodiment.append(
-                qiskit.extensions.UnitaryGate(canonical_matrix(*source_coordinate)), [0, 1]
-            )
+            source_embodiment.append(UnitaryGate(canonical_matrix(*source_coordinate)), [0, 1])
             interaction_embodiment = qiskit.QuantumCircuit(2)
-            interaction_embodiment.append(
-                qiskit.extensions.UnitaryGate(canonical_matrix(*interaction)), [0, 1]
-            )
+            interaction_embodiment.append(UnitaryGate(canonical_matrix(*interaction)), [0, 1])
 
             prefix_circuit, affix_circuit = itemgetter("prefix_circuit", "affix_circuit")(
                 xx_circuit_step(
