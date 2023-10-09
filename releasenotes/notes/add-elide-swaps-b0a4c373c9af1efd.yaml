@@ -33,4 +33,4 @@ features:
        qc.cx(1, 0)
        qc.measure_all()
 
-       ElideSwaps()(qc).draw("mpl")
+       ElidePermutations()(qc).draw("mpl")
