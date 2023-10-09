@@ -239,7 +239,7 @@ def sampler(sample_function: Callable) -> Callable:
             """Replace the call to the continuous function with a call to the sampler applied
             to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
-            return np.asarray(sampled_pulse, dtype=np.complex_)
+            return np.asarray(sampled_pulse, dtype=np.complex128)
 
         # Update type annotations for wrapped continuous function to be discrete
         call_sampler = _update_annotations(call_sampler)
