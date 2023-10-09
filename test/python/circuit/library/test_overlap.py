@@ -15,6 +15,7 @@ import unittest
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
+from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.circuit.library import EfficientSU2, UnitaryOverlap
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.exceptions import CircuitError
@@ -73,6 +74,37 @@ class TestUnitaryOverlap(QiskitTestCase):
         U = EfficientSU2(2)
         U.measure_all()
         V = EfficientSU2(2)
+
+        with self.assertRaises(CircuitError):
+            _ = UnitaryOverlap(U, V)
+
+    def test_rest(self):
+        """Test that exception is thrown for rest"""
+        U = EfficientSU2(1, reps=0)
+        U.reset(0)
+        V = EfficientSU2(1, reps=1)
+
+        with self.assertRaises(CircuitError):
+            _ = UnitaryOverlap(U, V)
+
+    def test_controlflow(self):
+        """Test that exception is thrown for controlflow"""
+        bit = Clbit()
+        U = QuantumCircuit([Qubit(), bit])
+        U.h(0)
+        with U.if_test((bit, 0)):
+            U.x(0)
+
+        V = QuantumCircuit(1)
+        V.rx(0.2, 0)
+
+        with self.assertRaises(CircuitError):
+            _ = UnitaryOverlap(U, V)
+
+    def test_mismatching_qubits(self):
+        """Test that exception is thrown for mismatching circuit"""
+        U = EfficientSU2(2)
+        V = EfficientSU2(1)
 
         with self.assertRaises(CircuitError):
             _ = UnitaryOverlap(U, V)
