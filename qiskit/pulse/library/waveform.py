@@ -44,7 +44,7 @@ class Waveform(Pulse):
         """
 
         super().__init__(duration=len(samples), name=name, limit_amplitude=limit_amplitude)
-        samples = np.asarray(samples, dtype=np.complex_)
+        samples = np.asarray(samples, dtype=np.complex128)
         self.epsilon = epsilon
         self._samples = self._clip(samples, epsilon=epsilon)
 
@@ -78,7 +78,7 @@ class Waveform(Pulse):
             # first try normalizing by the abs value
             clip_where = np.argwhere(to_clip)
             clip_angle = np.angle(samples[clip_where])
-            clipped_samples = np.exp(1j * clip_angle, dtype=np.complex_)
+            clipped_samples = np.exp(1j * clip_angle, dtype=np.complex128)
 
             # if norm still exceed one subtract epsilon
             # required for some platforms
@@ -87,7 +87,7 @@ class Waveform(Pulse):
             if np.any(to_clip_epsilon):
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
                 clipped_samples_epsilon = (1 - epsilon) * np.exp(
-                    1j * clip_angle[clip_where_epsilon], dtype=np.complex_
+                    1j * clip_angle[clip_where_epsilon], dtype=np.complex128
                 )
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
 
