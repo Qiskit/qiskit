@@ -227,19 +227,18 @@ class SingletonControlledGate(ControlledGate):
     """A base class to use for ControlledGate objects that by default are singleton instances
 
     This class should be used for gate classes that have fixed definitions and
-    do not contain any unique state by default. The excpetion being if a custom control
+    do not contain any unique state by default. The exception being if a custom control
     state is set. The canonical example of something like this is :class:`~.CHGate` which
     has an immutable definition and any instance of :class:`~.CHGate` without a ``ctrl_state``
-    set is the same. Using singleton gate enables using as a base class for these types of gate
-    classes it provides a large advantage in the memory footprint.
+    set is the same. Using singleton gate as a base class for these types of gate
+    classes provides a large advantage in memory footprint.
 
-    The exception to be aware of with this class though are the :class:`~.ControlledGate`
+    Users of this class must consider that mutable access to :class:`~.ControlledGate`
     attributes :attr:`.label`, :attr:`.condition`, :attr:`.duration`, :attr`.unit`,
-    :attr:`ctrl_state` which can be set differently for specific instances of gates.
-    For :class:`~.SingletonControlledGate` usage to be sound setting these attributes
-    is not available and they can only be set at creation time. If any of these
-    attributes are used instead of using a single shared global instance of
-    the same gate a new separate instance will be created.
+    and :attr:`ctrl_state` is not permitted. These attributes can only be set at creation
+    time. However, method :meth:`~.SingletonControlledGate.to_mutable` can be used
+    to create a copy of the singleton instance, which permits mutable access to these
+    attributes.
     """
 
     _instance = None

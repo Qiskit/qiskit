@@ -63,27 +63,24 @@ features:
     overhead of using multiple gates in a circuit with the tradeoff of having
     global shared state. For this reason this class is only applicable to
     gates that do not have any unique and/or mutable state stored in an instance.
-    For example, the best example of this is :class:`.CXGate` doesn't contain
-    any state and could leveerage :class:`~.SingletonControlledGate` (and does starting in
-    this release), while :class:`~.CRXGate` stores an angle parameter in an instance
-    and thus can not use :class:`~.SingletonControlledGate` because a single shared global
-    instance can not represent the parameter values.
+    For example, a :class:`.CXGate` doesn't contain any state and thus can
+    leverage :class:`~.SingletonControlledGate` (and does starting in
+    this release). In contrast, :class:`~.CRXGate` stores an angle parameter as
+    part of its instance data and thus can not use :class:`~.SingletonControlledGate`.
 
-    The other potential issue to be aware of when using this class is around the
-    use of the :class:`~.SingletonControlledGate` class is that the :class:`~.ControlledGate`
-    data model supports some mutable state. Specifically, the
+    The other potential issue to be aware of when using
+    :class:`~.SingletonControlledGate` is that the original data model
+    of :class:`~.ControlledGate` supports mutation. Specifically, the
     :attr:`~.ControlledGate.label`, :attr:`~.ControlledGate.duration`,
     :attr:`~.ControlledGate.unit`, :attr:`~.ControlledGate.condition`, and
     :attr:`~.ControlledGate.ctrl_state` attributes are all accessible and mutable in the
-    :class:`~.ControlledGate` and its direct subclasses. However, this is incompatible
-    with having a shared object via :class:`~.SingletonControlledGate`. For instances of
-    :class:`~.SingletonControlledGate` setting these attributes directly is not allowed
-    and it will raise an exception. If they are needed for a particular
-    instance you must set them on the constructor (or via
-    :meth:`~.SingletonControlledGate.c_if` for :attr:`~.SingletonControlledGate.condition`) when
-    creating a new object. When this is done the output from the constructor
-    will be a separate instance with the custom state instead of the globally
-    shared instance. You can also use the :meth:`.SingletonControlledGate.to_mutable`
+    :class:`~.ControlledGate` and its direct subclasses, but mutation of these attributes
+    on :class:`~.SingletonControlledGate` and its subclasses is disallowed, and will raise
+    and exception. These attributes can be customized but only at creation time (i.e. via
+    the constructor, or through :meth:`~.SingletonControlledGate.c_if` in the case of
+    :attr:`~.SingletonControlledGate.condition`). In that case,
+    the newly constructed gate will be a separate instance with the custom state instead
+    of the globally shared instance. You can also use the :meth:`.SingletonControlledGate.to_mutable`
     method to get a mutable copy of a gate object and then mutate the attributes
     like you would on any other :class:`~.circuit.Instruction` object.
 
