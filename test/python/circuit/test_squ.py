@@ -19,10 +19,7 @@ from test import combine
 import numpy as np
 from ddt import ddt
 from qiskit.quantum_info.random import random_unitary
-from qiskit import BasicAer
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import execute
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 from qiskit.compiler import transpile
@@ -48,15 +45,17 @@ class TestSingleQubitUnitary(QiskitTestCase):
         """Tests for single-qubit unitary decomposition."""
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
-        qc.squ(u, qr[0], up_to_diagonal=up_to_diagonal)
+        with self.assertWarns(DeprecationWarning):
+            qc.squ(u, qr[0], up_to_diagonal=up_to_diagonal)
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
         simulator = BasicAer.get_backend("unitary_simulator")
-        result = execute(qc, simulator).result()
+        result = simulator.run(qc).result()
         unitary = result.get_unitary(qc)
         if up_to_diagonal:
-            squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
+            with self.assertWarns(DeprecationWarning):
+                squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
             unitary = np.dot(np.diagflat(squ.diag), unitary)
         unitary_desired = u
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))

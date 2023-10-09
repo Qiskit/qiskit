@@ -69,29 +69,22 @@ class MergeAdjacentBarriers(TransformationPass):
         if not node_to_barrier_qubits:
             return dag
 
-        # add the merged barriers to a new DAG
-        new_dag = dag.copy_empty_like()
+        for barrier in barriers:
+            if barrier in node_to_barrier_qubits:
+                barrier_to_add, nodes = node_to_barrier_qubits[barrier]
+                dag.replace_block_with_op(
+                    nodes, barrier_to_add, wire_pos_map=indices, cycle_check=False
+                )
 
-        # go over current nodes, and add them to the new dag
-        for node in dag.topological_op_nodes():
-            if node.name == "barrier":
-                if node in node_to_barrier_qubits:
-                    qubits = node_to_barrier_qubits[node]
-                    # qubits are stored as a set, need to convert to a list
-                    new_dag.apply_operation_back(
-                        Barrier(len(qubits)), qargs=sorted(qubits, key=indices.get)
-                    )
-            else:
-                # copy the condition over too
-                new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
-        return new_dag
+        return dag
 
     @staticmethod
     def _collect_potential_merges(dag, barriers):
         """Return the potential merges.
 
-        Returns a dict of DAGOpNode: Barrier objects, where the barrier needs to be
-        inserted where the corresponding DAGOpNode appears in the main DAG.
+        Returns a dict of DAGOpNode: (Barrier, [DAGOpNode]) objects, where the barrier needs to be
+        inserted where the corresponding index DAGOpNode appears in the main DAG, in replacement of
+        the listed DAGOpNodes.
         """
         # if only got 1 or 0 barriers then can't merge
         if len(barriers) < 2:
@@ -144,14 +137,13 @@ class MergeAdjacentBarriers(TransformationPass):
 
                     end_of_barrier = next_barrier
                     current_barrier_nodes.append(end_of_barrier)
-
                     continue
 
             # Fallback if barriers are not adjacent or not mergeable.
 
             # store the previously made barrier
             if barrier_to_add:
-                node_to_barrier_qubits[end_of_barrier] = current_qubits
+                node_to_barrier_qubits[end_of_barrier] = (barrier_to_add, current_barrier_nodes)
 
             # reset the properties
             current_qubits = set(next_barrier.qargs)
@@ -165,6 +157,6 @@ class MergeAdjacentBarriers(TransformationPass):
             current_barrier_nodes.append(end_of_barrier)
 
         if barrier_to_add:
-            node_to_barrier_qubits[end_of_barrier] = current_qubits
+            node_to_barrier_qubits[end_of_barrier] = (barrier_to_add, current_barrier_nodes)
 
         return node_to_barrier_qubits

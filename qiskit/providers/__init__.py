@@ -64,9 +64,9 @@ just for Terra's supported versions. Part of this lengthy window prior to
 deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
 prior to bumping their version. For example, let's say we changed the signature
-to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way, before
-Aer could update its :class:`~qiskit.providers.aer.aerbackend.AerBackend` class
-to use version 34 they'd need to deprecate the old signature prior to switching
+to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way. Before
+Aer could update its :class:`~qiskit_aer.AerSimulator` class
+to be based on version 34 they'd need to deprecate the old signature prior to switching
 over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
 need to ensure there is a sufficient amount of time for Aer to complete its
 deprecation cycle prior to removing version 33 (ie making version 34
@@ -735,13 +735,13 @@ with :obj:`~BackendV2`:
      -
    * - ``backend.properties().readout_error(0)``
      - ``backend.target["measure"][(0,)].error``
-     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.Measure`
+     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.library.Measure`
        operation on a given qubit is used to model the readout error. However a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
    * - ``backend.properties().readout_length(0)``
      - ``backend.target["measure"][(0,)].duration``
-     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.Measure`
+     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.library.Measure`
        operation on a given qubit is used to model the readout length. However, a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
