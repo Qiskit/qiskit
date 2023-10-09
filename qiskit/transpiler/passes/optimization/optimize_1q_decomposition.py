@@ -55,6 +55,7 @@ NAME_MAP = {
     "x": XGate(),
 }
 
+PARAMETER_FREE_GATE_NAMES = {"x", "sx"}
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
@@ -147,7 +148,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         out_dag.global_phase = best_synth_circuit.global_phase
 
         for gate_name, angles in best_synth_circuit:
-            if gate_name == "x" or gate_name == "sx":
+            if gate_name in PARAMETER_FREE_GATE_NAMES:
                 out_dag.apply_operation_back(NAME_MAP[gate_name], qubits, check=False)
             else:
                 out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits, check=False)
