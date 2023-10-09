@@ -23,7 +23,7 @@ features:
     .. plot::
        :include-source:
 
-       from qiskit.transpiler.passes import ElideSwaps
+       from qiskit.transpiler.passes import ElidePermutations
        from qiskit.circuit import QuantumCircuit
 
        qc = QuantumCircuit(3)
