@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Remove ``qiskit.test.mock`` 
