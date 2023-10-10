@@ -344,7 +344,7 @@ def diamond_norm(choi: Choi | QuantumChannel, **kwargs) -> float:
     # Objective function
     obj = cvxpy.Maximize(cvxpy.trace(choi_rt_r @ x_r) + cvxpy.trace(choi_rt_i @ x_i))
     prob = cvxpy.Problem(obj, cons)
-    sol = prob.solve(**kwargs)
+    sol = prob.solve(solver="SCS", **kwargs)
     return sol
 
 
