@@ -87,6 +87,10 @@ class BasePass(metaclass=MetaPass):
         return self._hash
 
     def __eq__(self, other):
+        # Note that this implementation is incorrect.
+        # This must be reimplemented in the future release.
+        # See the discussion below for details.
+        # https://github.com/Qiskit/qiskit/pull/10127#discussion_r1329982732
         return hash(self) == hash(other)
 
     @abstractmethod

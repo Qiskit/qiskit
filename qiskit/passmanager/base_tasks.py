@@ -81,6 +81,10 @@ class GenericPass(Task, ABC):
         state: PassState | None = None,
         callback: Callable = None,
     ) -> Any:
+        # Overriding this method is not safe.
+        # Pass subclass must keep current implementation.
+        # Especially, task execution may break when method signature is modified.
+
         self.state = state or PassState()
         self.property_set = property_set if property_set is not None else PropertySet()
 
@@ -209,6 +213,10 @@ class BaseFlowController(Task, ABC):
         state: PassState | None = None,
         callback: Callable = None,
     ):
+        # Overriding this method is not safe.
+        # Pass subclass must keep current implementation.
+        # Especially, task execution may break when method signature is modified.
+
         self.state = state or PassState()
         self.property_set = property_set if property_set is not None else PropertySet()
 

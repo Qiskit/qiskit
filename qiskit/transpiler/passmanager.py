@@ -52,7 +52,10 @@ class PassManager(BasePassManager):
         """
         super().__init__(max_iteration=max_iteration)
 
-        # Override type
+        # This is just for backward compatibility.
+        # RunningPassManager is now almost just an alias of FlowControllerLinear,
+        # but there is slight API difference and backward compatible RunningPassManager object
+        # must come here. Once after the API is aligned, this line will be removed.
         self._flow_controller = RunningPassManager()
 
         # For backward compatibility.
