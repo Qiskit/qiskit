@@ -129,17 +129,15 @@ def gen_sched_gate(
     except AttributeError:
         label = "n/a"
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        meta = {
-            "name": gate.operand.name,
-            "label": label,
-            "bits": ", ".join([bit.register.name for bit in gate.bits]),
-            "t0": gate.t0,
-            "duration": gate.duration,
-            "unitary": unitary,
-            "parameters": ", ".join(map(str, gate.operand.params)),
-        }
+    meta = {
+        "name": gate.operand.name,
+        "label": label,
+        "bits": gate.bits,
+        "t0": gate.t0,
+        "duration": gate.duration,
+        "unitary": unitary,
+        "parameters": ", ".join(map(str, gate.operand.params)),
+    }
 
     # find color
     color = formatter["color.gates"].get(gate.operand.name, formatter["color.default_gate"])

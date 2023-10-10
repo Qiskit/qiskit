@@ -148,7 +148,7 @@ class IfElseOp(ControlFlowOp):
 
         Args:
             blocks: Iterable of circuits for "if" and "else" condition. If there is no "else"
-                circuit it may be set to None or ommited.
+                circuit it may be set to None or omitted.
 
         Returns:
             New IfElseOp with replaced blocks.

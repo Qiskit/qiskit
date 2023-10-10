@@ -150,6 +150,7 @@ class TestSparsePauliOpInit(QiskitTestCase):
             self.assertEqual(spp_op, ref_op)
 
 
+@ddt
 class TestSparsePauliOpConversions(QiskitTestCase):
     """Tests SparsePauliOp representation conversions."""
 
@@ -227,6 +228,22 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+
+    @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
+    def test_from_empty_iterable(self, iterable, num_qubits):
+        """Test from_list method for empty iterable input."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_list(iterable)
+        spp_op = SparsePauliOp.from_list(iterable, num_qubits=num_qubits)
+        self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
+        np.testing.assert_array_equal(spp_op.coeffs, [0])
+
+    @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
+    def test_from_sparse_empty_iterable(self, iterable, num_qubits):
+        """Test from_sparse_list method for empty iterable input."""
+        spp_op = SparsePauliOp.from_sparse_list(iterable, num_qubits)
+        self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
+        np.testing.assert_array_equal(spp_op.coeffs, [0])
 
     def test_to_matrix(self):
         """Test to_matrix method."""
@@ -1014,6 +1031,14 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         bound = op.assign_parameters([3])
         with self.subTest(msg="fully bound"):
             self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
+
+    def test_paulis_setter_rejects_bad_inputs(self):
+        """Test that the setter for `paulis` rejects different-sized inputs."""
+        op = SparsePauliOp(["XY", "ZX"], coeffs=[1, 1j])
+        with self.assertRaisesRegex(ValueError, "incorrect number of qubits"):
+            op.paulis = PauliList([Pauli("X"), Pauli("Y")])
+        with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
+            op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
 
 
 if __name__ == "__main__":
