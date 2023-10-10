@@ -29,33 +29,17 @@ class Task(ABC):
     """An interface of the pass manager task.
 
     The task takes a Qiskit IR, and outputs new Qiskit IR after some operation on it.
-    A task can rely on the :class:`.PassState` to communicate intermediate state among tasks.
+    A task can rely on the :class:`.PropertySet` to communicate intermediate data among tasks.
     """
 
-    _state: PassState | None
-
-    @property
-    def state(self) -> PassState:
-        """A local state information associated with this optimization workflow."""
-        if self._state is None:
-            # Allocate state information as needed basis.
-            # This slightly reduces memory footprint for instantiation.
-            self._state = PassState()
-        return self._state
-
-    @property
-    def property_set(self) -> PropertySet:
-        """Property set of this flow controller."""
-        return self.state.property_set
-
-    @property_set.setter
-    def property_set(self, new_property_set: PropertySet):
-        self.state.property_set = new_property_set
+    property_set: PropertySet | None
+    state: PassState | None
 
     @abstractmethod
     def execute(
         self,
         passmanager_ir: Any,
+        property_set: PropertySet | None = None,
         state: PassState | None = None,
         callback: Callable = None,
     ) -> Any:
@@ -63,6 +47,7 @@ class Task(ABC):
 
         Args:
             passmanager_ir: Qiskit IR to optimize.
+            property_set: A mutable data collection shared among all tasks.
             state: A local state information associated with this optimization workflow.
             callback: A callback function which is caller per execution of optimization task.
 
@@ -73,14 +58,16 @@ class Task(ABC):
 
 
 class GenericPass(Task, ABC):
-    """Base class of a single optimization task.
+    """Base class of a single pass manager task.
 
-    The optimization pass instance can read and write to the provided :class:`.PropertySet`.
+    A pass instance can read and write to the provided :class:`.PropertySet`,
+    and may modify the input pass manager IR.
     """
 
     def __init__(self):
         self.requires: Iterable[Task] = []
-        self._state = None
+        self.state = None
+        self.property_set = None
 
     def name(self) -> str:
         """Name of the pass."""
@@ -89,15 +76,17 @@ class GenericPass(Task, ABC):
     def execute(
         self,
         passmanager_ir: Any,
+        property_set: PropertySet | None = None,
         state: PassState | None = None,
         callback: Callable = None,
     ) -> Any:
-        if state is not None:
-            self._state = state
+        self.state = state or PassState()
+        self.property_set = property_set if property_set is not None else PropertySet()
 
         for required in self.requires:
             passmanager_ir = required.execute(
                 passmanager_ir=passmanager_ir,
+                property_set=self.property_set,
                 state=self.state,
                 callback=callback,
             )
@@ -123,7 +112,7 @@ class GenericPass(Task, ABC):
                 callback(
                     task=self,
                     passmanager_ir=ret,
-                    property_set=self.state.property_set,
+                    property_set=self.property_set,
                     running_time=running_time,
                     count=self.state.count,
                 )
@@ -151,10 +140,10 @@ class GenericPass(Task, ABC):
 class BaseFlowController(Task, ABC):
     """Base class of flow controller.
 
-    Flow controller is built with a list of optimizer tasks, and executes them with an input
+    Flow controller is built with a list of pass manager tasks, and executes them with an input
     Qiskit IR. Subclass must implement how the tasks are iterated over.
     Note that the flow controller can be nested into another flow controller,
-    and flow controller itself doesn't provide any optimization subroutine.
+    and flow controller itself doesn't provide any subroutine to modify the IR.
     """
 
     def __init__(
@@ -169,7 +158,8 @@ class BaseFlowController(Task, ABC):
             options: Option for this flow controller.
         """
         self._options = options or {}
-        self._state = None
+        self.state = None
+        self.property_set = None
 
         self.pipeline: list[Task] = []
         if passes:
@@ -183,7 +173,7 @@ class BaseFlowController(Task, ABC):
     @property
     def fenced_property_set(self) -> FencedPropertySet:
         """Readonly property set of this flow controller."""
-        return FencedPropertySet(self.state.property_set)
+        return FencedPropertySet(self.property_set)
 
     def __iter__(self) -> Iterator[Task]:
         raise NotImplementedError()
@@ -209,16 +199,18 @@ class BaseFlowController(Task, ABC):
     def execute(
         self,
         passmanager_ir: Any,
+        property_set: PropertySet | None = None,
         state: PassState | None = None,
         callback: Callable = None,
     ):
-        if state is not None:
-            self._state = state
+        self.state = state or PassState()
+        self.property_set = property_set if property_set is not None else PropertySet()
 
         for task in self:
             try:
                 passmanager_ir = task.execute(
                     passmanager_ir=passmanager_ir,
+                    property_set=self.property_set,
                     state=self.state,
                     callback=callback,
                 )

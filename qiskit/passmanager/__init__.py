@@ -30,32 +30,36 @@ The passes may consume the hardware constraints that Qiskit backend may provide.
 Finally, the IR is converted back to some Python object.
 Note that the input type and output type are not necessary consistent.
 
-Compilation in the pass manager is a chain of :class:`.OptimizerTask` execution that
+Compilation in the pass manager is a chain of :class:`~.passmanager.Task` execution that
 takes an IR and outputs new IR with some optimization or data analysis.
 An atomic task is a `pass` which is a subclass of  the :class:`.GenericPass` that implements
 a :meth:`.~GenericPass.run` method that performs some work on the received IR.
 A set of passes may form a `flow controller` which is a subclass of the
 :class:`.BaseFlowController`, that may repeatedly execute registered passes
 based on user provided conditions.
-Passes can share intermediate status via the :class:`.PassState` data structure
-involving the :class:`.PropertySet` and several status information.
-A pass can populate the property set dictionary during the task execution.
-A flow controller can also consume the pass state to trigger the pass iteration,
+Passes can share intermediate data via the :class:`.PropertySet` object which is
+a free form dictionary. A pass can populate the property set dictionary during the task execution.
+A flow controller can also consume the property set to control the pass execution,
 but this access must be read-only.
-The pass state data is portable and handed over from pass to pass at execution.
+The property set is portable and handed over from pass to pass at execution.
+In addition to the property set, task can also receive :class:`.PassState` data structure.
+This object is updated once after every pass logic is run, and thus the lifetime of the
+data is only during execution of a single pass.
+Pass or flow controller may determine termination condition based on the pass status.
+
 
 A pass manager is a wrapper of the flow controller, with responsibilities of
 
 * Scheduling optimization tasks,
 * Converting an input Python object to a particular Qiskit IR,
-* Initializing a pass state,
+* Initializing a property set and pass state,
 * Running scheduled tasks to apply a series of transformations to the IR,
 * Converting the IR back to an output Python object.
 
 This indicates that the flow controller itself is type-agnostic, and a developer must
-implement a subclass of the :class:`BasePassRunner` to manage the data conversion steps.
+implement a subclass of the :class:`BasePassManager` to manage the data conversion steps.
 This `veil of ignorance` allows us to choose the most efficient data representation
-for a particular optimization task, while we can reuse the flow control machinery
+for a particular pass manager task, while we can reuse the flow control machinery
 for different input and output types.
 
 A single flow controller always takes a single IR object, and returns a single
@@ -78,10 +82,10 @@ Examples:
 
         class ToyPassManager(BasePassManager):
 
-            def _passmanager_frontend(self, input_program: int, **kwargs):
+            def _passmanager_frontend(self, input_program: int, **kwargs) -> str:
                 return str(input_program)
 
-            def _passmanager_backend(self, passmanager_ir: int, **kwargs):
+            def _passmanager_backend(self, passmanager_ir: str, **kwargs) -> int:
                 return int(passmanager_ir)
 
     This pass manager inputs and outputs an integer number, while

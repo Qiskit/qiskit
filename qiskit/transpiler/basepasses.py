@@ -187,6 +187,7 @@ class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     def execute(
         self,
         passmanager_ir: DAGCircuit,
+        property_set: PropertySet | None = None,
         state: PassState | None = None,
         callback: Callable = None,
     ) -> DAGCircuit:
@@ -194,6 +195,7 @@ class AnalysisPass(BasePass):  # pylint: disable=abstract-method
 
         Args:
             passmanager_ir: Passmanager IR to optimize.
+            property_set: A mutable data collection shared among all tasks.
             state: A local state information associated with this optimization workflow.
             callback: A callback function which is caller per execution of optimization task.
 
@@ -206,6 +208,7 @@ class AnalysisPass(BasePass):  # pylint: disable=abstract-method
         # analysis pass returns nothing, just mutates the property set
         super().execute(
             passmanager_ir=fenced_dag,
+            property_set=property_set,
             state=state,
             callback=callback,
         )
@@ -219,6 +222,7 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
     def execute(
         self,
         passmanager_ir: DAGCircuit,
+        property_set: PropertySet | None = None,
         state: PassState | None = None,
         callback: Callable = None,
     ) -> DAGCircuit:
@@ -226,6 +230,7 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
 
         Args:
             passmanager_ir: Passmanager IR to optimize.
+            property_set: A mutable data collection shared among all tasks.
             state: A local state information associated with this optimization workflow.
             callback: A callback function which is caller per execution of optimization task.
 
@@ -234,12 +239,13 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
         """
         new_dag = super().execute(
             passmanager_ir=passmanager_ir,
+            property_set=property_set,
             state=state,
             callback=callback,
         )
 
         if self.state.previous_run == RunState.SUCCESS:
-            self._state.completed_passes.intersection_update(set(self.preserves))
+            self.state.completed_passes.intersection_update(set(self.preserves))
 
             if isinstance(new_dag, DAGCircuit):
                 # Copy calibration data from the original program

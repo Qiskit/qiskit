@@ -46,15 +46,11 @@ class BasePassManager(ABC):
         """
         self._flow_controller = FlowControllerLinear()
         self.max_iteration = max_iteration
+        self.property_set = PropertySet()
         self.state = PassState()
 
         if passes is not None:
             self.append(passes)
-
-    @property
-    def property_set(self) -> PropertySet:
-        """Property set of this pass manager."""
-        return self.state.property_set
 
     def append(
         self,
@@ -269,6 +265,7 @@ def _run_workflow(
     passmanager_ir = pass_manager._passmanager_frontend(input_program=program, **kwargs)
     passmanager_ir = flow_controller.execute(
         passmanager_ir=passmanager_ir,
+        property_set=pass_manager.property_set,
         state=pass_manager.state,
         callback=kwargs.get("callback", None),
     )

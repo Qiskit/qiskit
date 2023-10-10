@@ -43,15 +43,13 @@ class RunState(IntEnum):
 
 @dataclass
 class PassState:
-    """Collection of compilation status.
+    """Collection of compilation status of a single pass.
 
     This information is initialized in the pass manager instance at construction time,
     and recursively passed to flow controllers at running time.
-    Passes can mutate the information in this data set.
+    Pass will update the status once after being executed, and the status will alive
+    during the execution of a single pass.
     """
-
-    property_set: PropertySet = field(default_factory=PropertySet)
-    """Property set dictionary that shares intermediate information across passes."""
 
     count: int = 0
     """Current number of pass execution."""
