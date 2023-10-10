@@ -25,7 +25,17 @@ but it is designed to take Python object as an input instead of plain source cod
 
 The pass manager converts the input Python object into an intermediate representation (IR),
 and it can be optimized and get lowered with a variety of transformations over multiple passes.
-This representation must be preserved throughout the transformation.
+The pass manager framework may employ multiple IRs with interleaved conversion passes,
+depending on the context of the optimization.
+
+.. note::
+
+    Currently there is no actual use/design of multiple IRs in builtin Qiskit pass managers.
+    At lest implementation of the :mod:`~.passmanager` module is agnostic to
+    actual IR types (i.e. no strict type check is performed), and the pass manager works
+    as long as the IR implements all methods required by subsequent passes.
+    Concrete design for the use of multiple IR might be provided in the future release.
+
 The passes may consume the hardware constraints that Qiskit backend may provide.
 Finally, the IR is converted back to some Python object.
 Note that the input type and output type are not necessary consistent.
