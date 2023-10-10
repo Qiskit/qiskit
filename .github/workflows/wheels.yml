@@ -5,9 +5,70 @@ on:
     tags:
       - '*'
 jobs:
+  build_wheels:
+    name: Build wheels
+    runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.13.0
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
+  build_wheels_macos_arm:
+    name: Build wheels on macOS arm
+    runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.13.0
+        env:
+          CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+          CIBW_ARCHS_MACOS: arm64 universal2
+          CIBW_ENVIRONMENT: >-
+            CARGO_BUILD_TARGET="aarch64-apple-darwin"
+            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
   build_wheels_s390x:
     name: Build wheels on s390x
     runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -31,16 +92,16 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
   build_wheels_ppc64le:
     name: Build wheels on ppc64le
     runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -64,16 +125,16 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
   build_wheels_aarch64:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -96,10 +157,57 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
-      - name: Install twine
-        run: python -m pip install twine
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: wheelhouse/
+  sdist:
+    name: Build and publish terra sdist
+    runs-on: ${{ matrix.os }}
+    needs: ["build_wheels"]
+    environment: release
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - name: Install deps
+        run: pip install -U twine setuptools-rust wheel build
+      - name: Build sdist
+        run: python -m build . --sdist
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+  metapackage:
+    name: Build and publish terra sdist
+    runs-on: ${{ matrix.os }}
+    needs: ["sdist"]
+    environment: release
+    permissions:
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - name: Install deps
+        run: pip install -U twine setuptools-rust wheel build
+      - name: Build sdist
+        run: |
+          cd qiskit_pkg
+          python -m build .
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: qiskit_pkg/dist
