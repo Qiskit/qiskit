@@ -235,7 +235,7 @@ class Options(Mapping):
         """Update options with kwargs"""
         for field in fields:
             field_validator = self.validator.get(field, None)
-            if isinstance(field_validator, tuple):
+            if isinstance(field_validator, tuple) and fields[field] is not None:
                 if fields[field] > field_validator[1] or fields[field] < field_validator[0]:
                     raise ValueError(
                         f"Specified value for '{field}' is not a valid value, "
