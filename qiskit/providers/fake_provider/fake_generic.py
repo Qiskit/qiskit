@@ -154,6 +154,10 @@ class FakeGeneric(BackendV2):
         return self._coupling_map
 
     @property
+    def basis_gates(self):
+        return self._basis_gates
+    
+    @property
     def max_circuits(self):
         return None
 
