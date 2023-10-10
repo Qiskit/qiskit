@@ -75,18 +75,18 @@ def plot_histogram(
     Args:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex ``{'001': 130}``)
-            Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary 
+            Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
             to the `data` argument is deprecated.
 
             Migration Guide:
             ----------------
-            If you used `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary 
+            If you used `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
             with `plot_histogram`, you should now use `plot_distribution()`.
 
             Example:
             ```python
             # Old way using plot_histogram with a hypothetical QuasiDistribution
-            quasi_data = QuasiDistribution(...)  
+            quasi_data = QuasiDistribution(...)
             plot_histogram(quasi_data)
 
             # New recommended way
@@ -94,7 +94,7 @@ def plot_histogram(
             ```
 
             For other data types, continue using `plot_histogram` as usual.
-            
+
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
