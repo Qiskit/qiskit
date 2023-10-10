@@ -673,15 +673,6 @@ class TestControlFlowPlugin(SchedulerTestCase):
         """Tries to remove a plugin that does not exist."""
         self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
 
-    def test_bad_conditional(self):
-        """Flow controller are not allowed to modify the property set."""
-
-        def bad_condition(property_set):
-            property_set["property"] = "forbidden write"
-
-        self.passmanager.append(PassA_TP_NR_NP(), condition=bad_condition)
-        self.assertRaises(TranspilerError, self.passmanager.run, self.circuit)
-
 
 class TestDumpPasses(SchedulerTestCase):
     """Testing the passes method."""

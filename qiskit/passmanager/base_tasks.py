@@ -19,6 +19,7 @@ from abc import abstractmethod, ABC
 from collections.abc import Iterable, Callable, Iterator, Sequence
 from typing import Any
 
+from qiskit.utils.deprecation import deprecate_func
 from .exceptions import PassManagerError
 from .propertyset import PassState, PropertySet, FencedPropertySet, RunState
 
@@ -171,6 +172,11 @@ class BaseFlowController(Task, ABC):
         return self.pipeline
 
     @property
+    @deprecate_func(
+        since="0.26.0",
+        pending=True,
+        is_property=True,
+    )
     def fenced_property_set(self) -> FencedPropertySet:
         """Readonly property set of this flow controller."""
         return FencedPropertySet(self.property_set)

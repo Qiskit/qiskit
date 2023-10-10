@@ -183,7 +183,7 @@ class DoWhileController(BaseFlowController):
         for _ in range(max_iteration):
             yield from self.pipeline
 
-            if not self.do_while(self.fenced_property_set):
+            if not self.do_while(self.property_set):
                 return
 
         raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
@@ -202,7 +202,7 @@ class ConditionalController(BaseFlowController):
         self.condition = condition
 
     def __iter__(self) -> Iterator[Task]:
-        if self.condition(self.fenced_property_set):
+        if self.condition(self.property_set):
             yield from self.pipeline
 
 
