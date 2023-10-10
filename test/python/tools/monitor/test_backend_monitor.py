@@ -21,7 +21,7 @@ from io import StringIO
 import qiskit
 from qiskit import providers
 from qiskit.tools.monitor import backend_overview, backend_monitor
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeProviderFactory, FakeBackend, FakeVigo
 
 

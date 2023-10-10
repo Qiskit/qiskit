@@ -14,7 +14,7 @@
 
 import unittest
 import numpy as np
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate

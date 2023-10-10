@@ -67,7 +67,7 @@ from qiskit.synthesis.clifford import (
     synth_clifford_greedy,
 )
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class VGate(Gate):

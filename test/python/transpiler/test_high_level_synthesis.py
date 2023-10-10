@@ -18,7 +18,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import unittest.mock
 
 from qiskit.circuit import QuantumCircuit, Operation
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap
 from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig

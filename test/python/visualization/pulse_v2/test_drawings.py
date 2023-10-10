@@ -13,7 +13,7 @@
 """Tests for core modules of pulse drawer."""
 
 from qiskit import pulse
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types
 
 

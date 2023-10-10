@@ -23,7 +23,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister

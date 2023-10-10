@@ -20,7 +20,7 @@ from numpy import pi
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix

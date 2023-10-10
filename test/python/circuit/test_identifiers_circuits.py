@@ -16,7 +16,7 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestAnonymousIds(QiskitTestCase):

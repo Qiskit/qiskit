@@ -13,7 +13,7 @@
 """Tests the classicalfunction parser."""
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 if HAS_TWEEDLEDUM:

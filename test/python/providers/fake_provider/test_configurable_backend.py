@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Test of configurable backend generation."""
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend
 
 

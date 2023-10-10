@@ -43,7 +43,7 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 def raise_if_dagcircuit_invalid(dag):

@@ -21,7 +21,7 @@ from qiskit.transpiler.target import Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon
 
 

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Test for deprecation of qiskit.test.mock module."""
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class MockModuleDeprecationTest(QiskitTestCase):

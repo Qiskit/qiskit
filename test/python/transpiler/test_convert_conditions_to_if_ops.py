@@ -13,7 +13,7 @@
 # pylint: disable=missing-class-docstring,missing-module-docstring
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit, Clbit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import ConvertConditionsToIfOps

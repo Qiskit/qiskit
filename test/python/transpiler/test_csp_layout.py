@@ -19,7 +19,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeYorktownV2
 from qiskit.utils import optionals
 

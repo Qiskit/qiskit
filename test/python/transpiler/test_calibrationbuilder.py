@@ -33,7 +33,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse import builder
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.calibration.builders import (
     RZXCalibrationBuilder,

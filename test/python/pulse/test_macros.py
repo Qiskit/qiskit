@@ -25,7 +25,7 @@ from qiskit.pulse import (
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeHanoi, FakeHanoiV2
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestMeasure(QiskitTestCase):

@@ -19,7 +19,7 @@ from typing import List, Any
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
 from qiskit.utils import has_aer
 

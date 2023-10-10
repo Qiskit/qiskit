@@ -18,7 +18,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestEnlargeWithAncilla(QiskitTestCase):

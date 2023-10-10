@@ -21,7 +21,7 @@ from test.python.transpiler.aqc.fast_gradient.utils_for_testing import rand_circ
 import numpy as np
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestCompareGradientImpls(QiskitTestCase):

@@ -27,7 +27,7 @@ from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 

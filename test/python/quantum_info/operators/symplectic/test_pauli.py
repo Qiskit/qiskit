@@ -39,7 +39,7 @@ from qiskit.circuit.library import (
     SwapGate,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator

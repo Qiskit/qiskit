@@ -17,7 +17,7 @@ from ddt import data, ddt, unpack
 import numpy as np
 
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import CouplingMap
 
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import SwapStrategy

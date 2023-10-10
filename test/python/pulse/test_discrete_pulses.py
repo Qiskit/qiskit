@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.pulse import Waveform, PulseError, library
 from qiskit.pulse.library import continuous
 

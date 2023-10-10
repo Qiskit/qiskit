@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit.quantum_info.operators import Operator, ScalarOp
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class ScalarOpTestCase(QiskitTestCase):

@@ -34,7 +34,7 @@ from qiskit.qobj import (
     GateCalibration,
 )
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestQASMQobj(QiskitTestCase):

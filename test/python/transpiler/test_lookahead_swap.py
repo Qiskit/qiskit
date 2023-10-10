@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne
 
 

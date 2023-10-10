@@ -13,7 +13,7 @@
 """With some utils"""
 
 from ddt import data, unpack
-from qiskit.test.utils import generate_cases
+from .utils.base import generate_cases
 
 
 def combine(**kwargs):

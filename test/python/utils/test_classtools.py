@@ -27,7 +27,7 @@ import unittest
 import sys
 
 from qiskit.utils import wrap_method
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 def call_first_argument_with(*args, **kwargs):

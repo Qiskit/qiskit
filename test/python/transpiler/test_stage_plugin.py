@@ -20,7 +20,7 @@ import ddt
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import BasicSwapPassManager
 from qiskit.transpiler.preset_passmanagers.plugin import (

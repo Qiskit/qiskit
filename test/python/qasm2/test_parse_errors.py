@@ -19,7 +19,7 @@ import ddt
 
 import qiskit.qasm2
 from qiskit.circuit import Gate, library as lib
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from test import combine  # pylint: disable=wrong-import-order
 

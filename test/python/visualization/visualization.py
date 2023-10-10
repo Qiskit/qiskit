@@ -20,7 +20,7 @@ import unittest
 from filecmp import cmp as cmpfile
 from shutil import copyfile
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import optionals as _optionals
 
 if _optionals.HAS_MATPLOTLIB:

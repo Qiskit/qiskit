@@ -33,7 +33,7 @@ from qiskit.result.mitigation.utils import (
     str2diag,
 )
 from qiskit.result.utils import marginal_counts
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeYorktown
 
 

@@ -27,7 +27,7 @@ from qiskit.pulse.channels import (
     SnapshotChannel,
     PulseError,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestChannel(QiskitTestCase):

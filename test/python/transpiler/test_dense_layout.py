@@ -23,7 +23,7 @@ from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeTokyo
 from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
 

@@ -23,7 +23,7 @@ from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 def pauli_mat(label):

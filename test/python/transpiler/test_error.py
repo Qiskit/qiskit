@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit.transpiler.passes import Error
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
 
 

@@ -17,7 +17,7 @@ import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions.simulator import Snapshot
 

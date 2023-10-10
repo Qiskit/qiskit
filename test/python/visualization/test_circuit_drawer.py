@@ -17,7 +17,7 @@ import os
 from unittest.mock import patch
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import optionals
 from qiskit import visualization
 from qiskit.visualization.circuit import text

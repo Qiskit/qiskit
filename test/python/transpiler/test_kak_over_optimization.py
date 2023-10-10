@@ -16,7 +16,7 @@ import unittest
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import CU1Gate
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestKAKOverOptim(QiskitTestCase):

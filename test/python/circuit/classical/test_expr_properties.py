@@ -17,7 +17,7 @@ import pickle
 
 import ddt
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.classical import expr, types
 

@@ -25,7 +25,7 @@ from qiskit.circuit import (
     Gate,
 )
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestCircuitRegisters(QiskitTestCase):

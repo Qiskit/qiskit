@@ -19,7 +19,7 @@ import sys
 import ddt
 
 import qiskit.qasm2
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt.ddt

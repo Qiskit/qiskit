@@ -28,7 +28,7 @@ from qiskit.synthesis.linear import (
 
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

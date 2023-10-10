@@ -35,7 +35,7 @@ from qiskit.compiler import assemble, transpile
 from qiskit.execute_function import execute
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOurense
 from qiskit.tools import parallel_map
 

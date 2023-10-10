@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit
 from qiskit.circuit import Delay, Parameter
 from qiskit.circuit.library.standard_gates import XGate, YGate, CXGate
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling

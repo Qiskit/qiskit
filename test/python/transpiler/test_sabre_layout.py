@@ -19,7 +19,7 @@ from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
 from qiskit.transpiler.passes import SabreLayout, DenseLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
 from qiskit.providers.fake_provider import FakeKolkata

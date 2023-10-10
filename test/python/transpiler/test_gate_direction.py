@@ -33,7 +33,7 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt.ddt

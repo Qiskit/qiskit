@@ -20,7 +20,7 @@ from qiskit.circuit.library import CXGate, XGate
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeLima, FakeYorktown, FakeLimaV2, FakeYorktownV2
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile

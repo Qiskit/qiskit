@@ -15,6 +15,7 @@
 
 import unittest
 from typing import List
+from test.utils import QiskitTestCase
 
 import numpy as np
 from ddt import ddt, data
@@ -31,7 +32,6 @@ from qiskit.circuit.library import EfficientSU2, RealAmplitudes
 from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.primitives import Sampler
 from qiskit.result import QuasiDistribution
-from qiskit.test import QiskitTestCase
 
 from .logging_primitives import LoggingSampler
 

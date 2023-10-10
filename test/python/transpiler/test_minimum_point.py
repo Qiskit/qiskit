@@ -16,7 +16,7 @@ import math
 
 from qiskit.transpiler.passes import MinimumPoint
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestMinimumPointtPass(QiskitTestCase):

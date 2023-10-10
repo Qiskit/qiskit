@@ -20,7 +20,7 @@ from qiskit.compiler import sequence, transpile, schedule
 from qiskit.pulse.transforms import pad
 from qiskit.providers.fake_provider import FakeParis
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestSequence(QiskitTestCase):

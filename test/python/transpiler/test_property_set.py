@@ -14,7 +14,7 @@
 
 import unittest
 from qiskit.transpiler import PropertySet
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestPropertySet(QiskitTestCase):

@@ -27,7 +27,7 @@ from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeTenerife,
     FakeVigoV2,

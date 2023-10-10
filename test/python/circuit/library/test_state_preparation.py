@@ -21,7 +21,7 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Statevector, Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import StatePreparation
 

@@ -31,7 +31,7 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

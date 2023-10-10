@@ -45,7 +45,7 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
 

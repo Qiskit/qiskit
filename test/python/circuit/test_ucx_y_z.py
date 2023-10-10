@@ -20,7 +20,7 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler import transpile

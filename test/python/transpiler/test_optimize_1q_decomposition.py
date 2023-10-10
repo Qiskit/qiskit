@@ -37,7 +37,7 @@ from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 θ = Parameter("θ")

@@ -19,7 +19,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
 
 

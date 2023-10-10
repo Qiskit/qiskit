@@ -26,7 +26,7 @@ from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 

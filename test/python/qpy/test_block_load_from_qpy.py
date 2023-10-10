@@ -38,7 +38,7 @@ from qiskit.pulse.channels import (
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator

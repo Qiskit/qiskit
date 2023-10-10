@@ -23,7 +23,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import Target
 from qiskit.transpiler.passes import Collect1qRuns

@@ -18,7 +18,7 @@ from uuid import uuid4
 
 from unittest import mock
 from qiskit import exceptions
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit import user_config
 
 

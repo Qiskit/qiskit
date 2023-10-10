@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.library import CXGate, U1Gate, U2Gate, RXXGate, RXGate, RZGate
 
 

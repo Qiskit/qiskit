@@ -14,7 +14,7 @@
 
 from qiskit import __qiskit_version__
 from qiskit import __version__
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestVersion(QiskitTestCase):

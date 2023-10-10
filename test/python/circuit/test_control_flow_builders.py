@@ -31,7 +31,7 @@ from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchC
 from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 
 

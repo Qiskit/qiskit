@@ -14,7 +14,7 @@
 """Test Qiskit's QuantumCircuit class for multiple registers."""
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 
 

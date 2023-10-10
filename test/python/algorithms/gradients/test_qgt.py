@@ -15,6 +15,7 @@
 
 import unittest
 from ddt import ddt, data
+from test.utils import QiskitTestCase
 
 import numpy as np
 
@@ -23,7 +24,6 @@ from qiskit.algorithms.gradients import DerivativeType, LinCombQGT, ReverseQGT
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Estimator
-from qiskit.test import QiskitTestCase
 
 from .logging_primitives import LoggingEstimator
 

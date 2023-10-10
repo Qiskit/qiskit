@@ -48,7 +48,7 @@ from qiskit.pulse.library import (
 )
 
 from qiskit.pulse import functional_pulse, PulseError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import optionals as _optional
 
 if _optional.HAS_SYMENGINE:

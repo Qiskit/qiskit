@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CollectMultiQBlocks
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestCollect2qBlocks(QiskitTestCase):

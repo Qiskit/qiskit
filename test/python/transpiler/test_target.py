@@ -42,7 +42,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBackendV2,
     FakeMumbaiFractionalCX,

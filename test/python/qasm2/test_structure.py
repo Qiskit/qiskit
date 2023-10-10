@@ -34,7 +34,7 @@ from qiskit.circuit import (
     Qubit,
     library as lib,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from . import gate_builder
 

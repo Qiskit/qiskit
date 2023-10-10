@@ -22,7 +22,7 @@ from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import execute
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.generalized_gates import Isometry

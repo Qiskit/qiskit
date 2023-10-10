@@ -30,7 +30,7 @@ from qiskit.transpiler.passes import (
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
 )
-from qiskit.test import QiskitTestCase
+from tools.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBelem,
     FakeTenerife,

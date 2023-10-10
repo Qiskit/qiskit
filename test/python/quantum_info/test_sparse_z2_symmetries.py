@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 from qiskit.quantum_info.analysis.z2_symmetries import Z2Symmetries

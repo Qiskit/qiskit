@@ -22,7 +22,7 @@ from qiskit.circuit.library import LinearFunction, PermutationGate
 from qiskit.synthesis import synth_permutation_acg
 from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms, synth_permutation_basic
 from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

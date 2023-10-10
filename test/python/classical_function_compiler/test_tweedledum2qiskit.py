@@ -14,7 +14,7 @@
 import unittest
 
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate

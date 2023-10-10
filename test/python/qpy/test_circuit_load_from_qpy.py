@@ -19,7 +19,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
 from qiskit.qpy import dump, load
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
 from qiskit.compiler import transpile

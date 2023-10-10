@@ -23,7 +23,7 @@ from qiskit.converters import (
     dag_to_circuit,
     dagdependency_to_circuit,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Measure, Clbit
 from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
 

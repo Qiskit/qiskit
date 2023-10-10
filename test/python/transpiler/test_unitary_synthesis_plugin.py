@@ -23,7 +23,7 @@ import stevedore
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes.synthesis.plugin import (

@@ -19,7 +19,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
 from qiskit.visualization.circuit import _utils
 from qiskit.visualization import array_to_latex
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import optionals
 
 

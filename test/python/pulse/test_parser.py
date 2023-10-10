@@ -12,7 +12,7 @@
 
 """Parser Test."""
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.exceptions import PulseError
 

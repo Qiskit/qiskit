@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import ZGate
 from qiskit.transpiler.passes import Unroller
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import PropertySet
 from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP, PassN_AP_NR_NP

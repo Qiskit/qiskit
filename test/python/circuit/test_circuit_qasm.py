@@ -17,7 +17,7 @@ from math import pi
 import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
 from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, PermutationGate
 from qiskit.qasm.exceptions import QasmError

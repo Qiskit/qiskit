@@ -47,7 +47,7 @@ from qiskit.qobj.converters import (
     QobjToInstructionConverter,
     LoConfigConverter,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
 

@@ -22,7 +22,7 @@ from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import (
     EchoRZXWeylDecomposition,
 )
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeParis
 
 import qiskit.quantum_info as qi

@@ -16,7 +16,7 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Clifford
 

@@ -13,7 +13,7 @@
 """Tests LogicNetwork.simulate method."""
 import unittest
 from ddt import ddt, data
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 from . import utils

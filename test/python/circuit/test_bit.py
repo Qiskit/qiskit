@@ -16,7 +16,7 @@
 import copy
 from unittest import mock
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import bit, QuantumRegister
 
 

@@ -28,7 +28,7 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, Sampler
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import algorithm_globals
 
 

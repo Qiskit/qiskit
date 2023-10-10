@@ -22,7 +22,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.primitives.base.base_primitive import BasePrimitive
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers.fake_provider import FakeAlmaden
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

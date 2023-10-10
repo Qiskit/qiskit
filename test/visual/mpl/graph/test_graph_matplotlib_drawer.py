@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from qiskit import BasicAer, execute
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
 from qiskit.visualization.state_visualization import state_drawer

@@ -19,7 +19,7 @@ import ddt
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm.node.node import Node
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 def parse(file_path):

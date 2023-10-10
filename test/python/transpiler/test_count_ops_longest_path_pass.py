@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import CountOpsLongestPath
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestCountOpsLongestPathPass(QiskitTestCase):

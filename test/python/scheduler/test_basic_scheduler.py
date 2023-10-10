@@ -31,7 +31,7 @@ from qiskit.pulse import (
 from qiskit.pulse import build, macros, play, InstructionScheduleMap
 
 from qiskit.providers.fake_provider import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestBasicSchedule(QiskitTestCase):

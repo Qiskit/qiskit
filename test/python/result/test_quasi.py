@@ -15,7 +15,7 @@ from math import sqrt
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.result import QuasiDistribution, marginal_distribution
 
 

@@ -13,7 +13,7 @@
 Test the BackendStatus.
 """
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeLondon
 
 from qiskit.providers.models import BackendStatus

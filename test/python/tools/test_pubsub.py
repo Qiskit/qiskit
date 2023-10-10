@@ -13,7 +13,7 @@
 """Tests for qiskit/tools/events/_pubsub.py"""
 
 from qiskit.tools.events.pubsub import Publisher, Subscriber
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class DummySubscriber(Subscriber):

@@ -25,7 +25,7 @@ from qiskit.transpiler.synthesis.graysynth import (
     cnot_synth,
     graysynth,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt.ddt

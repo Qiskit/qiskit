@@ -14,7 +14,7 @@
 
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import apply_prefix, detach_prefix
 
 

@@ -17,7 +17,7 @@ import ddt
 from qiskit import pulse, circuit, transpile
 from qiskit.providers.fake_provider import FakeAthens, FakeAthensV2
 from qiskit.quantum_info.random import random_unitary
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt.ddt

@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestCircuitRandom(QiskitTestCase):

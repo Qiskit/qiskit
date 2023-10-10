@@ -18,7 +18,7 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

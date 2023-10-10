@@ -29,7 +29,7 @@ from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import Decompose
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,

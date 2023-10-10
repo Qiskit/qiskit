@@ -17,7 +17,7 @@ import unittest
 from ddt import data, ddt, unpack
 
 from qiskit.quantum_info import SparsePauliOp, anti_commutator, commutator, double_commutator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 I = SparsePauliOp("I")
 X = SparsePauliOp("X")

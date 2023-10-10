@@ -12,7 +12,7 @@
 
 """Tests classicalfunction compiler synthesis."""
 import unittest
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 from qiskit import QuantumCircuit, QuantumRegister

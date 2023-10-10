@@ -18,7 +18,7 @@ from unittest import mock
 import ddt
 
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils import LazyImportTester, LazySubprocessTester
 
 

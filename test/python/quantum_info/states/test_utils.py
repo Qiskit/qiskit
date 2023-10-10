@@ -15,7 +15,7 @@
 import unittest
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
 from qiskit.quantum_info.states import partial_trace, shannon_entropy, schmidt_decomposition
 

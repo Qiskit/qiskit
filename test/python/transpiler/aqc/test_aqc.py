@@ -17,7 +17,7 @@ from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THE
 import numpy as np
 from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit

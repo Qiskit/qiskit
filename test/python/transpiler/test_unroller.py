@@ -20,7 +20,7 @@ from qiskit.extensions.simulator import Snapshot
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate

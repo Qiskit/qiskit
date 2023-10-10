@@ -30,7 +30,7 @@ from qiskit import (
 )
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.library import Initialize
 
 

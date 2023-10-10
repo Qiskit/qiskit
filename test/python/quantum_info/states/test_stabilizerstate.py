@@ -20,7 +20,7 @@ from ddt import ddt, data, unpack
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit import QuantumCircuit
 
 from qiskit.quantum_info.random import random_clifford, random_pauli

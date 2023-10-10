@@ -15,7 +15,7 @@
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.pulse import library
 from qiskit.pulse.library import samplers
 

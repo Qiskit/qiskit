@@ -25,7 +25,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements

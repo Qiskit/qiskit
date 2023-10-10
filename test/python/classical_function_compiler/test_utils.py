@@ -12,7 +12,7 @@
 """Tests .utils.get_truthtable_from_function function"""
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .utils import get_truthtable_from_function
 from . import examples

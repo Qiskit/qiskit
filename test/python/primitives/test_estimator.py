@@ -25,7 +25,7 @@ from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestEstimator(QiskitTestCase):

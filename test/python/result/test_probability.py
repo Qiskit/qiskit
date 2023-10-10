@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Test conversion to probability distribution"""
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.result import ProbDistribution
 
 

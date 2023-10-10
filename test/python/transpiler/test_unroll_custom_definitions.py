@@ -14,7 +14,7 @@
 
 from qiskit.transpiler.passes.basis import UnrollCustomDefinitions
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import EquivalenceLibrary, Gate, Qubit, Clbit, Parameter
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag

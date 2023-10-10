@@ -19,7 +19,7 @@ import scipy
 
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit

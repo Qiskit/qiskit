@@ -16,7 +16,7 @@ import unittest
 import numpy as np
 
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import purity

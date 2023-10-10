@@ -20,7 +20,7 @@ from qiskit.circuit.library import U1Gate, CU1Gate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):

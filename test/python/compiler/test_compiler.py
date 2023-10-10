@@ -21,7 +21,7 @@ from qiskit.transpiler import PassManager
 from qiskit import execute
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
 

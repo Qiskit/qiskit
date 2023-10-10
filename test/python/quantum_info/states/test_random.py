@@ -17,7 +17,7 @@ from test import combine
 from ddt import ddt
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.quantum_info import Statevector, DensityMatrix
 from qiskit.quantum_info.random import random_statevector
 from qiskit.quantum_info.random import random_density_matrix

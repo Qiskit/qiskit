@@ -15,7 +15,7 @@
 
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.quantum_info.operators.symplectic import PauliTable, pauli_basis
 
 

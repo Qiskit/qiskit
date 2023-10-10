@@ -17,7 +17,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit import BasicAer
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestNamingTranspiledCircuits(QiskitTestCase):

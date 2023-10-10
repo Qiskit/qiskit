@@ -24,7 +24,7 @@ from qiskit.transpiler.passes.synthesis import (
     HighLevelSynthesis,
     LinearFunctionsToPermutations,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.transpiler import PassManager

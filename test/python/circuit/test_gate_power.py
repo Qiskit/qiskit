@@ -47,7 +47,7 @@ from qiskit.circuit.library import (
     iSwapGate,
 )
 from qiskit.quantum_info.operators import Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

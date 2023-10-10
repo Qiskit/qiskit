@@ -34,7 +34,7 @@ from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
 
 

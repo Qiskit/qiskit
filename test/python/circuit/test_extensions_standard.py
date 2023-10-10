@@ -22,7 +22,7 @@ from ddt import data, ddt, unpack
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit.library import (
     U1Gate,

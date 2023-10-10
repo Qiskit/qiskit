@@ -17,7 +17,7 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types, stylesheet, device_info
 from qiskit.visualization.pulse_v2.generators import barrier, chart, frame, snapshot, waveform
 

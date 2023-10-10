@@ -14,7 +14,7 @@
 
 import unittest
 import numpy as np
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RZGate

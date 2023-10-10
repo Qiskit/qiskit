@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from textwrap import dedent
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.utils.deprecation import (
     add_deprecation_to_docstring,
     deprecate_arg,

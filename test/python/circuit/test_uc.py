@@ -26,7 +26,7 @@ from scipy.linalg import block_diag
 from qiskit.circuit.library.generalized_gates import UCGate
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal

@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import SetLayout, ApplyLayout, FullAncillaAllocation
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspilerError
 
 

@@ -20,7 +20,7 @@ from ddt import data, ddt
 from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth, BasicSwap
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

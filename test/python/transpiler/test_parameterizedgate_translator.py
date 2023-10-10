@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import ParameterVector, Parameter, Gate, QuantumCircuit
 from qiskit.circuit.library import TwoLocal
 from qiskit.exceptions import QiskitError

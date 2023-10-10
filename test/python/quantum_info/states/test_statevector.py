@@ -20,7 +20,7 @@ from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile

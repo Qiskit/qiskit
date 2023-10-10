@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.circuit.library import CXGate
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestBasicSwap(QiskitTestCase):

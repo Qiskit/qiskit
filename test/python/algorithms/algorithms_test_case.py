@@ -12,7 +12,7 @@
 
 """Algorithms Test Case"""
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class QiskitAlgorithmsTestCase(QiskitTestCase):

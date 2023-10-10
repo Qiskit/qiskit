@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate, TGate, TdgGate
 
 

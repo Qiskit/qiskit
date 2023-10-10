@@ -19,7 +19,7 @@ from qiskit.result import marginal_counts
 from qiskit.result import marginal_distribution
 from qiskit.result import Result
 from qiskit.qobj import QobjExperimentHeader
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
 

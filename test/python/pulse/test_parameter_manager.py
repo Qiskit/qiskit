@@ -23,7 +23,7 @@ from qiskit.circuit import Parameter
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class ParameterTestBase(QiskitTestCase):

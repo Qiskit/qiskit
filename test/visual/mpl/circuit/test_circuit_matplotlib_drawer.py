@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 from numpy import pi
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife, FakeBelemV2
 from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer

@@ -79,7 +79,7 @@ from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, S
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class CommonUtilitiesMixin:

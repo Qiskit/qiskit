@@ -20,7 +20,7 @@ from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
 
 from qiskit.circuit.library import standard_gates

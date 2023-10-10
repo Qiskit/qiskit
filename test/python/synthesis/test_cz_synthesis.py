@@ -21,7 +21,7 @@ from qiskit.circuit.library import Permutation
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 from qiskit.quantum_info import Clifford
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt

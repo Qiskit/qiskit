@@ -17,7 +17,7 @@ import unittest
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Nduv, Gate
 

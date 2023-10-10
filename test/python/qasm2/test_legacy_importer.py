@@ -23,7 +23,7 @@ from qiskit.circuit import Gate, Parameter
 from qiskit.converters import ast_to_dag, dag_to_circuit
 from qiskit.exceptions import QiskitError
 from qiskit.qasm import Qasm
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 

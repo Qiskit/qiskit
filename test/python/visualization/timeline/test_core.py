@@ -13,7 +13,7 @@
 """Tests for core modules of timeline drawer."""
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.visualization.timeline import core, stylesheet, generators, layouts
 
 

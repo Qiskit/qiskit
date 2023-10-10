@@ -16,7 +16,7 @@ import unittest
 from qiskit.transpiler.passes import RemoveBarriers
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestMergeAdjacentBarriers(QiskitTestCase):

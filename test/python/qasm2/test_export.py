@@ -21,7 +21,7 @@ import unittest
 from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, qasm2
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate, library as lib
 
 # Regex pattern to match valid OpenQASM identifiers

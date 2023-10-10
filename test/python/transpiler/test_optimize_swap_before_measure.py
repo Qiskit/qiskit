@@ -18,7 +18,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):

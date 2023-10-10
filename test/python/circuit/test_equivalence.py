@@ -18,7 +18,7 @@ import numpy as np
 
 import rustworkx as rx
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate

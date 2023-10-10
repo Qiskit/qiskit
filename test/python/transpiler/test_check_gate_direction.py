@@ -21,7 +21,7 @@ from qiskit.circuit.library import CXGate, CZGate, ECRGate
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt.ddt

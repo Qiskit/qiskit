@@ -19,7 +19,7 @@ from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
 from qiskit.circuit.library import (
     U1Gate,

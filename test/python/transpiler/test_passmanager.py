@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass, FlowController
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestPassManager(QiskitTestCase):

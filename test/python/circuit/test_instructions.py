@@ -28,7 +28,7 @@ from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.s import SGate
 from qiskit.circuit.library.standard_gates.t import TGate
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
 

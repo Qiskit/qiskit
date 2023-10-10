@@ -17,7 +17,7 @@ import ddt
 
 from qiskit.circuit import Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr, types
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 @ddt.ddt

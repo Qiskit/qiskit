@@ -12,7 +12,7 @@
 
 """Testing a Faulty Ourense Backend."""
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from .faulty_backends import (
     FakeOurenseFaultyCX01CX10,
     FakeOurenseFaultyQ1,

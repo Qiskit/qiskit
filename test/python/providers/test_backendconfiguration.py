@@ -15,7 +15,7 @@ Test that the PulseBackendConfiguration methods work as expected with a mocked P
 import collections
 import copy
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeProvider
 
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel

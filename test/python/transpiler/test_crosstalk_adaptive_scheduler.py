@@ -20,7 +20,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
 from qiskit.transpiler.passes.optimization import CrosstalkAdaptiveSchedule
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Nduv, Gate

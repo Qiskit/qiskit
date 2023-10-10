@@ -14,6 +14,7 @@
 
 import unittest
 from test import combine
+from test.utils import QiskitTestCase
 
 import numpy as np
 from ddt import ddt
@@ -21,7 +22,6 @@ from scipy.sparse import csr_matrix
 
 from qiskit import QiskitError
 from qiskit.quantum_info.operators.symplectic import PauliTable
-from qiskit.test import QiskitTestCase
 
 
 def pauli_mat(label):

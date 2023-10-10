@@ -16,7 +16,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Clbit, Qubit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CXCancellation
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestCXCancellation(QiskitTestCase):

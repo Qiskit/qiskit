@@ -33,7 +33,7 @@ from numpy import random
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
 
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestGeneral(QiskitTestCase):

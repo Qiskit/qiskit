@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passmanager_config import PassManagerConfig

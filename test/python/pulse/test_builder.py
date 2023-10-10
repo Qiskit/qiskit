@@ -20,7 +20,7 @@ from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from qiskit.providers.fake_provider.utils.configurable_backend import (
     ConfigurableFakeBackend as ConfigurableBackend,

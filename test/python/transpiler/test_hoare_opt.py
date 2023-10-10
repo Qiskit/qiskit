@@ -18,7 +18,7 @@ from qiskit.utils import optionals
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector

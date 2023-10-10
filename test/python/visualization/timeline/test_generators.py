@@ -15,7 +15,7 @@
 """Tests for generator of timeline drawer."""
 
 import qiskit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.visualization.timeline import generators, types, stylesheet
 from qiskit.circuit import library, Delay
 

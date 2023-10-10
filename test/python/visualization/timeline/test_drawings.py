@@ -15,7 +15,7 @@
 import numpy as np
 
 import qiskit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.visualization.timeline import drawings, types
 
 

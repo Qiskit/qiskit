@@ -22,7 +22,7 @@ from qiskit.transpiler import CouplingMap, PassManager, Layout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit

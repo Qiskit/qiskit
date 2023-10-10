@@ -20,7 +20,7 @@ from ddt import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
 

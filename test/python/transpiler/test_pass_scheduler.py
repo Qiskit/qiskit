@@ -24,7 +24,7 @@ from qiskit.transpiler.runningpassmanager import (
     ConditionalController,
     FlowController,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from ._dummy_passes import (
     PassA_TP_NR_NP,
     PassB_TP_RA_PA,

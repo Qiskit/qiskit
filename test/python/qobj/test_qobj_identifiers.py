@@ -18,7 +18,7 @@ import unittest
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import assemble
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestQobjIdentifiers(QiskitTestCase):

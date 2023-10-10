@@ -34,7 +34,7 @@ from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeAthens
 
 

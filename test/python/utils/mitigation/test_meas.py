@@ -31,7 +31,7 @@ import unittest
 import numpy as np
 
 import qiskit
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.result.result import Result
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
