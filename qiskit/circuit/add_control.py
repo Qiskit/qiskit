@@ -14,10 +14,11 @@
 from __future__ import annotations
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from ._utils import _ctrl_state_to_int
 
@@ -108,7 +109,7 @@ def control(
     if operation.name == "x" or (
         isinstance(operation, controlledgate.ControlledGate) and operation.base_gate.name == "x"
     ):
-        controlled_circ.mct(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
+        controlled_circ.mcx(q_control[:] + q_target[:-1], q_target[-1], q_ancillae)
         if operation.definition is not None and operation.definition.global_phase:
             global_phase += operation.definition.global_phase
     else:
@@ -129,7 +130,7 @@ def control(
         for instruction in definition.data:
             gate, qargs = instruction.operation, instruction.qubits
             if gate.name == "x":
-                controlled_circ.mct(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
+                controlled_circ.mcx(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
             elif gate.name == "rx":
                 controlled_circ.mcrx(
                     gate.definition.data[0].operation.params[0],
@@ -162,7 +163,7 @@ def control(
                     q_control[:] + [q_target[bit_indices[qargs[0]]]],
                 )
             elif gate.name == "cx":
-                controlled_circ.mct(
+                controlled_circ.mcx(
                     q_control[:] + [q_target[bit_indices[qargs[0]]]],
                     q_target[bit_indices[qargs[1]]],
                     q_ancillae,
