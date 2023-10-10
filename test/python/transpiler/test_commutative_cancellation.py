@@ -769,9 +769,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circ = QuantumCircuit(1)
 
         circ.x(0)
-        circ.i(0)
+        circ.id(0)
         circ.h(0)
-        circ.i(0)
+        circ.id(0)
         circ.x(0)
 
         passmanager = PassManager([CommutationAnalysis(), CommutativeCancellation()])
