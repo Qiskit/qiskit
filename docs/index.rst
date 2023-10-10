@@ -12,7 +12,7 @@ them on real quantum computers or classical simulators. Qiskit is already in use
 around the world by beginners, hobbyists, educators, researchers, and commercial companies.
 
 .. qiskit-card::
-  :header: Starting on December 1, 2023 Qiskit Documentation will only live on IBM Quantum ->
+  :header: Starting on December 1, 2023 Qiskit Documentation will only live on IBM Quantum. Learn more ->
   :card_description: We are reorganizing Qiskit documentation on IBM Quantum to better support your research and development workflows.
   :image: _static/images/1xp.png
   :link: https://docs.quantum-computing.ibm.com/
