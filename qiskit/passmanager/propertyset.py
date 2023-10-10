@@ -14,7 +14,7 @@
 
 
 from dataclasses import dataclass, field
-from enum import IntEnum
+from enum import Enum
 
 from qiskit.utils.deprecation import deprecate_func
 from .exceptions import PassManagerError
@@ -46,7 +46,7 @@ class FencedPropertySet(PropertySet):
         raise PassManagerError("The fenced PropertySet has the property __setitem__ protected.")
 
 
-class RunState(IntEnum):
+class RunState(Enum):
     """Allowed values for the result of a pass execution."""
 
     SUCCESS = 0
