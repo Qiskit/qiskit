@@ -14,13 +14,14 @@
 
 from __future__ import annotations
 import statistics
+import warnings
 
 from collections.abc import Iterable
 
 import numpy as np
 
 from qiskit import pulse
-from qiskit.circuit import Measure, Parameter, Delay, Reset
+from qiskit.circuit import Measure, Parameter, Delay, Reset, QuantumCircuit
 from qiskit.circuit.controlflow import (
     IfElseOp,
     WhileLoopOp,
@@ -39,9 +40,9 @@ from qiskit.providers.models import (
     PulseDefaults,
     Command,
 )
-from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
+from qiskit.utils import optionals as _optionals
 
 
 class FakeGeneric(BackendV2):
@@ -84,6 +85,8 @@ class FakeGeneric(BackendV2):
 
         skip_calibration_gates: Optional list of gates where we do not wish to
                                 append a calibration schedule.
+        seed: )ptional seed for error and duration value generation.
+
     Returns:
             None
 
@@ -105,6 +108,7 @@ class FakeGeneric(BackendV2):
         dt: float = 0.222e-9,
         skip_calibration_gates: list[str] = None,
         instruction_schedule_map: InstructionScheduleMap = None,
+        seed: int = 42,
     ):
 
         super().__init__(
@@ -114,8 +118,9 @@ class FakeGeneric(BackendV2):
             f"with generic settings. It has been generated right now!",
             backend_version="",
         )
+        self.sim = None
 
-        self._rng = np.random.default_rng(seed=42)
+        self._rng = np.random.default_rng(seed=seed)
         self._num_qubits = num_qubits
 
         self._set_basis_gates(basis_gates, replace_cx_with_ecr)
@@ -143,6 +148,10 @@ class FakeGeneric(BackendV2):
     @property
     def target(self):
         return self._target
+
+    @property
+    def coupling_map(self):
+        return self._coupling_map
 
     @property
     def max_circuits(self):
@@ -207,12 +216,101 @@ class FakeGeneric(BackendV2):
             return control_channels_map[qubits]
         return []
 
-    def run(self, circuit, **kwargs):
-        return BasicAer.get_backend("qasm_simulator").run(circuit, **kwargs)
+    def run(self, run_input, **options):
+        """Run on the fake backend using a simulator.
+
+        This method runs circuit jobs (an individual or a list of QuantumCircuit
+        ) and pulse jobs (an individual or a list of Schedule or ScheduleBlock)
+        using BasicAer or Aer simulator and returns a
+        :class:`~qiskit.providers.Job` object.
+
+        If qiskit-aer is installed, jobs will be run using AerSimulator with
+        noise model of the fake backend. Otherwise, jobs will be run using
+        BasicAer simulator without noise.
+
+        Currently noisy simulation of a pulse job is not supported yet in
+        FakeBackendV2.
+
+        Args:
+            run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
+                individual or a list of
+                :class:`~qiskit.circuit.QuantumCircuit`,
+                :class:`~qiskit.pulse.ScheduleBlock`, or
+                :class:`~qiskit.pulse.Schedule` objects to run on the backend.
+            options: Any kwarg options to pass to the backend for running the
+                config. If a key is also present in the options
+                attribute/object then the expectation is that the value
+                specified will be used instead of what's set in the options
+                object.
+
+        Returns:
+            Job: The job object for the run
+
+        Raises:
+            QiskitError: If a pulse job is supplied and qiskit-aer is not installed.
+        """
+        circuits = run_input
+        pulse_job = None
+        if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
+            pulse_job = True
+        elif isinstance(circuits, QuantumCircuit):
+            pulse_job = False
+        elif isinstance(circuits, list):
+            if circuits:
+                if all(isinstance(x, (pulse.Schedule, pulse.ScheduleBlock)) for x in circuits):
+                    pulse_job = True
+                elif all(isinstance(x, QuantumCircuit) for x in circuits):
+                    pulse_job = False
+        if pulse_job is None:  # submitted job is invalid
+            raise QiskitError(
+                "Invalid input object %s, must be either a "
+                "QuantumCircuit, Schedule, or a list of either" % circuits
+            )
+        if pulse_job:  # pulse job
+            raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
+        # circuit job
+        if not _optionals.HAS_AER:
+            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+        if self.sim is None:
+            self._setup_sim()
+        self.sim._options = self._options
+        job = self.sim.run(circuits, **options)
+        return job
+
+    def _setup_sim(self):
+        if _optionals.HAS_AER:
+            from qiskit_aer import AerSimulator
+            from qiskit_aer.noise import NoiseModel
+
+            self.sim = AerSimulator()
+            noise_model = NoiseModel.from_backend(self)
+            self.sim.set_options(noise_model=noise_model)
+            # Update fake backend default too to avoid overwriting
+            # it when run() is called
+            self.set_options(noise_model=noise_model)
+
+        else:
+            self.sim = BasicAer.get_backend("qasm_simulator")
 
     @classmethod
     def _default_options(cls):
-        return Options(shots=1024)
+        """Return the default options
+
+        This method will return a :class:`qiskit.providers.Options`
+        subclass object that will be used for the default options. These
+        should be the default parameters to use for the options of the
+        backend.
+
+        Returns:
+            qiskit.providers.Options: A options object with
+                default values set
+        """
+        if _optionals.HAS_AER:
+            from qiskit_aer import AerSimulator
+
+            return AerSimulator._default_options()
+        else:
+            return BasicAer.get_backend("qasm_simulator")._default_options()
 
     def _set_basis_gates(self, basis_gates: list[str] = None, replace_cx_with_ecr=None):
 
@@ -275,7 +373,7 @@ class FakeGeneric(BackendV2):
 
     def _add_gate_instructions_to_target(self, dynamic, enable_reset):
 
-        instruction_dict = self._get_instruction_dict()
+        instruction_dict = self._get_default_instruction_dict()
 
         for gate in self._basis_gates:
             try:
@@ -296,7 +394,8 @@ class FakeGeneric(BackendV2):
                 Reset(), {(qubit_idx,): None for qubit_idx in range(self._num_qubits)}
             )
 
-    def _get_instruction_dict(self):
+    def _get_default_instruction_dict(self):
+
         instruction_dict = {
             "ecr": (
                 ECRGate(),
@@ -312,8 +411,8 @@ class FakeGeneric(BackendV2):
                 CXGate(),
                 {
                     edge: InstructionProperties(
-                        error=self._rng.uniform(1e-5, 5e-3),
-                        duration=self._rng.uniform(1e-8, 9e-7),
+                        error=self._rng.uniform(1e-3, 5e-2),
+                        duration=self._rng.uniform(2e-7, 8e-7),
                     )
                     for edge in self.coupling_map
                 },
@@ -332,22 +431,22 @@ class FakeGeneric(BackendV2):
                     for qubit_idx in range(self._num_qubits)
                 },
             ),
-            "sx": (
-                SXGate(),
-                {
-                    (qubit_idx,): InstructionProperties(
-                        error=self._rng.uniform(1e-6, 1e-4),
-                        duration=self._rng.uniform(1e-8, 9e-7),
-                    )
-                    for qubit_idx in range(self._num_qubits)
-                },
-            ),
             "x": (
                 XGate(),
                 {
                     (qubit_idx,): InstructionProperties(
                         error=self._rng.uniform(1e-6, 1e-4),
-                        duration=self._rng.uniform(1e-8, 9e-7),
+                        duration=self._rng.uniform(2e-8, 4e-8),
+                    )
+                    for qubit_idx in range(self._num_qubits)
+                },
+            ),
+            "sx": (
+                SXGate(),
+                {
+                    (qubit_idx,): InstructionProperties(
+                        error=self._rng.uniform(1e-6, 1e-4),
+                        duration=self._rng.uniform(1e-8, 2e-8),
                     )
                     for qubit_idx in range(self._num_qubits)
                 },
