@@ -12,7 +12,14 @@
 
 """Functionality and helpers for testing Qiskit."""
 
+import warnings
 from .base import QiskitTestCase
 from .decorators import requires_aer_provider, online_test, slow_test
 from .reference_circuits import ReferenceCircuits
 from .utils import Path
+
+warnings.warn(
+    "The qiskit.test module is deprecated in Qiskit 0.46 and it going to be removed in Qiskit 1.0.",
+    DeprecationWarning,
+    stacklevel=2,
+)
