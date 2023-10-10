@@ -11,3 +11,9 @@ numpy<1.25
 # eigensystem code for one of the test cases.  See
 # https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
 scipy<1.11
+
+# cvxpy 1.4.0 caused an instability in some diamond-norm tests.  That's
+# likely to be an unreliable measure already given its nature, so this
+# pin may be relaxed by modifying the tests slightly to choose known-safe
+# operators.
+cvxpy==1.3.2
