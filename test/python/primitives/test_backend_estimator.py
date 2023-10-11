@@ -25,12 +25,13 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
 
 
 @ddt
@@ -359,7 +360,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER:
+            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
                 self.assertEqual(value, -0.916)
             else:
                 self.assertEqual(value, -1)
@@ -374,7 +375,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER:
+            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
                 self.assertEqual(value, -0.8902)
             else:
                 self.assertEqual(value, -1)
