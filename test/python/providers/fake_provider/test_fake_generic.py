@@ -16,12 +16,15 @@ from qiskit.test import QiskitTestCase
 
 
 class TestFakeGeneric(QiskitTestCase):
+    """Test class for FakeGeneric backend"""
+
     def test_heavy_hex_num_qubits(self):
-        """Test if num_qubits=5 and coupling_map_type is heavy_hex the number of qubits generated is 19"""
+        """Test if num_qubits=5 and coupling_map_type
+        is heavy_hex the number of qubits generated is 19."""
         self.assertEqual(FakeGeneric(num_qubits=5, coupling_map_type="heavy_hex").num_qubits, 19)
 
     def test_heavy_hex_coupling_map(self):
-        """Test if coupling_map of heavy_hex is generated right"""
+        """Test if coupling_map of heavy_hex is generated correctly."""
         cp_mp = [
             (0, 13),
             (1, 13),
@@ -52,7 +55,7 @@ class TestFakeGeneric(QiskitTestCase):
         )
 
     def test_grid_coupling_map(self):
-        """Test if grid coupling map is generated correct.
+        """Test if grid coupling map is generated correctly.
         In this test num_qubits=8, so a grid of 2x4 qubits need to be constructed"""
         cp_mp = [(0, 2), (0, 1), (1, 3), (2, 4), (2, 3), (3, 5), (4, 6), (4, 5), (5, 7), (6, 7)]
         self.assertEqual(
@@ -61,7 +64,7 @@ class TestFakeGeneric(QiskitTestCase):
         )
 
     def test_basis_gates(self):
-        """Test if the backend has a default basis gates, that includes delay and measure"""
+        """Test if the backend has default basis gates that include delay and measure"""
         self.assertEqual(
             FakeGeneric(num_qubits=8).operation_names,
             ["ecr", "id", "rz", "sx", "x", "delay", "measure", "reset"],

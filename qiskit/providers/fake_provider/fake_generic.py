@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Generic FakeBackendV2 class"""
+"""Generic fake BackendV2 class"""
 
 from __future__ import annotations
 import statistics
 import warnings
 
 from collections.abc import Iterable
-
 import numpy as np
 
 from qiskit import pulse
@@ -31,61 +30,69 @@ from qiskit.circuit.controlflow import (
     ContinueLoopOp,
 )
 from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate
-
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitProperties
+from qiskit.providers import Options
 from qiskit.providers.basicaer import BasicAer
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.models import (
     PulseDefaults,
     Command,
 )
-from qiskit.pulse import InstructionScheduleMap
+from qiskit.pulse import (
+    InstructionScheduleMap,
+    AcquireChannel,
+    ControlChannel,
+    DriveChannel,
+    MeasureChannel,
+)
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
 
 
 class FakeGeneric(BackendV2):
     """
-    Generate a generic fake backend, this backend will have properties and configuration according
-    to the settings passed in the argument.
+    Configurable fake BackendV2 generator for unit testing purposes. This class will
+    generate a fake backend from a combination of random defaults
+    (with a fixable `seed`) and properties and configuration driven from a series of
+    optional input arguments.
 
     Arguments:
-        num_qubits: Pass in the integer which is the number of qubits of the backend.
-                    Example: num_qubits = 19
+        num_qubits (int): Minimum number of qubits in the fake backend.
+                        The final number of qubits will be updated to be coherent
+                        with the specified coupling map/ coupling map type.
 
-        coupling_map: Pass in the coupling Map of the backend as a list of tuples.
-                     Example: [(1, 2), (2, 3), (3, 4), (4, 5)]. If None passed then the
-                     coupling map will be generated randomly
-                     This map will be in accordance with the argument coupling_map_type.
+        coupling_map (list[tuple[int]]): Backend's coupling map as a list of tuples.
+                     Example: [(1, 2), (2, 3), (3, 4), (4, 5)]. If None is passed then the
+                     coupling map will be generated randomly, in
+                     accordance with the coupling_map_type argument.
 
-        coupling_map_type: Pass in the type of coupling map to be generated. If coupling map
+        coupling_map_type (str): Type of coupling map to be generated. If coupling map
                     is passed, then this option will be overriden. Valid types of coupling
-                    map: 'grid', 'heavy_hex'. Heavy Hex Lattice Reference:
-                    https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022
+                    map: 'grid' (default), 'heavy_hex'.
 
-        basis_gates: Pass in the basis gates of the backend as list of strings.
-                     Example: ['cx', 'id', 'rz', 'sx', 'x']  -->
-                     This is the default basis gates of the backend.
+        basis_gates (list[str]): Basis gates supported by the backend as list of strings.
+                                If None is passed, this parameter will be set internally
+                                to ['cx', 'id', 'rz', 'sx', 'x'].
 
-        dynamic: Enable/Disable dynamic circuits on this backend. True: Enable,
-                 False: Disable (Default)
+        dynamic (bool): If True, enable dynamic circuits on this backend.
+                        Defaults to False.
 
-        bidirectional_cp_mp: Enable/Disable bi-directional coupling map.
-                             True: Enable
-                             False: Disable (Default)
-        replace_cx_with_ecr: True: (Default) Replace every occurrence of 'cx' with 'ecr'
-                    False: Do not replace 'cx' with 'ecr'
+        bidirectional_cp_mp (bool): If True, enable bi-directional coupling map.
+                                    Defaults to False.
+        replace_cx_with_ecr (bool): If True, replace every occurrence of 'cx' with 'ecr'.
+                                    Defaults to True.
 
-        enable_reset: True: (Default) this enables the reset on the backend
-                    False: This disables the reset on the backend
+        enable_reset (bool): If True, enable reset on the backend.
+                             Defaults to True.
 
-        dt: The system time resolution of input signals in seconds.
-            Default is 0.2222ns
+        dt (float): The system time resolution of input signals in seconds.
+                    Default is 0.2222ns
 
-        skip_calibration_gates: Optional list of gates where we do not wish to
-                                append a calibration schedule.
-        seed: )ptional seed for error and duration value generation.
+        skip_calibration_gates (list[str]): Optional list of gates where you do not wish to
+                                            append a calibration schedule.
+
+        seed (int): Optional seed for error and duration value generation.
 
     Returns:
             None
@@ -98,7 +105,7 @@ class FakeGeneric(BackendV2):
         self,
         num_qubits: int = None,
         *,
-        coupling_map: list | tuple[str, str] = None,
+        coupling_map: list[tuple[int]] = None,
         coupling_map_type: str = "grid",
         basis_gates: list[str] = None,
         dynamic: bool = False,
@@ -114,17 +121,16 @@ class FakeGeneric(BackendV2):
         super().__init__(
             provider=None,
             name="fake_generic",
-            description=f"This is a {num_qubits} qubit fake device, "
-            f"with generic settings. It has been generated right now!",
+            description=f"This is a fake device with at least {num_qubits} "
+            f"and generic settings. It has been generated right now!",
             backend_version="",
         )
         self.sim = None
 
         self._rng = np.random.default_rng(seed=seed)
-        self._num_qubits = num_qubits
 
         self._set_basis_gates(basis_gates, replace_cx_with_ecr)
-        self._set_coupling_map(coupling_map, coupling_map_type, bidirectional_cmap)
+        self._set_coupling_map(num_qubits, coupling_map, coupling_map_type, bidirectional_cmap)
 
         self._target = Target(
             description="Fake Generic Backend",
@@ -146,26 +152,50 @@ class FakeGeneric(BackendV2):
         self._build_default_channels()
 
     @property
-    def target(self):
+    def target(self) -> Target:
+        """Return the target.
+
+        Returns:
+            Target: The backend's target.
+        """
         return self._target
 
     @property
-    def coupling_map(self):
+    def coupling_map(self) -> CouplingMap:
+        """Return the coupling map.
+
+        Returns:
+            CouplingMap: The backend's coupling map.
+        """
         return self._coupling_map
 
     @property
-    def basis_gates(self):
+    def basis_gates(self) -> list[str]:
+        """Return the basis gates.
+
+        Returns:
+            list[str]: The list of accepted basis gates
+        """
         return self._basis_gates
 
     @property
-    def max_circuits(self):
+    def max_circuits(self) -> None:
+        """Placeholder to be able to query max_circuits. Set to None.
+
+        Returns: None
+        """
         return None
 
     @property
     def meas_map(self) -> list[list[int]]:
+        """Return the measurement map in a V1-compatible way.
+
+        Returns:
+            list[list[int]]: The list of concurrent measurements/measurement map
+        """
         return self._target.concurrent_measurements
 
-    def drive_channel(self, qubit: int):
+    def drive_channel(self, qubit: int) -> DriveChannel | None:
         """Return the drive channel for the given qubit.
 
         Returns:
@@ -177,7 +207,7 @@ class FakeGeneric(BackendV2):
             return drive_channels_map[qubits][0]
         return None
 
-    def measure_channel(self, qubit: int):
+    def measure_channel(self, qubit: int) -> MeasureChannel | None:
         """Return the measure stimulus channel for the given qubit.
 
         Returns:
@@ -189,7 +219,7 @@ class FakeGeneric(BackendV2):
             return measure_channels_map[qubits][0]
         return None
 
-    def acquire_channel(self, qubit: int):
+    def acquire_channel(self, qubit: int) -> AcquireChannel | None:
         """Return the acquisition channel for the given qubit.
 
         Returns:
@@ -201,7 +231,7 @@ class FakeGeneric(BackendV2):
             return acquire_channels_map[qubits][0]
         return None
 
-    def control_channel(self, qubits: Iterable[int]):
+    def control_channel(self, qubits: Iterable[int]) -> list[ControlChannel]:
         """Return the secondary drive channel for the given qubit
 
         This is typically utilized for controlling multiqubit interactions.
@@ -212,7 +242,7 @@ class FakeGeneric(BackendV2):
                 ``(control_qubit, target_qubit)``.
 
         Returns:
-            List[ControlChannel]: The multi qubit control line.
+            list[ControlChannel]: The multi qubit control line.
         """
         control_channels_map = getattr(self, "channels_map", {}).get("control", {})
         qubits = tuple(qubits)
@@ -297,7 +327,7 @@ class FakeGeneric(BackendV2):
             self.sim = BasicAer.get_backend("qasm_simulator")
 
     @classmethod
-    def _default_options(cls):
+    def _default_options(cls) -> Options:
         """Return the default options
 
         This method will return a :class:`qiskit.providers.Options`
@@ -306,7 +336,7 @@ class FakeGeneric(BackendV2):
         backend.
 
         Returns:
-            qiskit.providers.Options: A options object with
+            qiskit.providers.Options: An options object with
                 default values set
         """
         if _optionals.HAS_AER:
@@ -316,7 +346,7 @@ class FakeGeneric(BackendV2):
         else:
             return BasicAer.get_backend("qasm_simulator")._default_options()
 
-    def _set_basis_gates(self, basis_gates: list[str] = None, replace_cx_with_ecr=None):
+    def _set_basis_gates(self, basis_gates: list[str], replace_cx_with_ecr: bool) -> None:
 
         default_gates = ["cx", "id", "rz", "sx", "x"]
 
@@ -333,22 +363,28 @@ class FakeGeneric(BackendV2):
         if "measure" not in self._basis_gates:
             self._basis_gates.append("measure")
 
-    def _set_coupling_map(self, coupling_map, coupling_map_type, bidirectional_cmap):
+    def _set_coupling_map(
+        self,
+        num_qubits: int | None,
+        coupling_map: list[tuple[int]],
+        coupling_map_type: str,
+        bidirectional_cmap: bool,
+    ) -> None:
 
         if not coupling_map:
-            if not self._num_qubits:
+            if not num_qubits:
                 raise QiskitError(
-                    "Please provide either `num_qubits` or `coupling_map` "
+                    "Please provide either ``num_qubits`` or ``coupling_map`` "
                     "to generate a new fake backend."
                 )
 
             if coupling_map_type == "heavy_hex":
-                distance = self._get_cmap_args(coupling_map_type)
+                distance = self._get_cmap_args(coupling_map_type, num_qubits)
                 self._coupling_map = CouplingMap().from_heavy_hex(
                     distance=distance, bidirectional=bidirectional_cmap
                 )
             elif coupling_map_type == "grid":
-                num_rows, num_columns = self._get_cmap_args(coupling_map_type)
+                num_rows, num_columns = self._get_cmap_args(coupling_map_type, num_qubits)
                 self._coupling_map = CouplingMap().from_grid(
                     num_rows=num_rows, num_columns=num_columns, bidirectional=bidirectional_cmap
                 )
@@ -359,24 +395,24 @@ class FakeGeneric(BackendV2):
 
         self._num_qubits = self._coupling_map.size()
 
-    def _get_cmap_args(self, coupling_map_type):
+    def _get_cmap_args(self, coupling_map_type: str, num_qubits: int) -> int | tuple[int] | None:
         if coupling_map_type == "heavy_hex":
             for d in range(3, 20, 2):
                 # The description of the formula: 5*d**2 - 2*d -1 is explained in
                 # https://journals.aps.org/prx/pdf/10.1103/PhysRevX.10.011022 Page 011022-4
                 n = (5 * (d**2) - (2 * d) - 1) / 2
-                if n >= self._num_qubits:
+                if n >= num_qubits:
                     return d
 
         elif coupling_map_type == "grid":
-            factors = [x for x in range(2, self._num_qubits + 1) if self._num_qubits % x == 0]
+            factors = [x for x in range(2, num_qubits + 1) if num_qubits % x == 0]
             first_factor = statistics.median_high(factors)
-            second_factor = int(self._num_qubits / first_factor)
+            second_factor = int(num_qubits / first_factor)
             return (first_factor, second_factor)
 
         return None
 
-    def _add_gate_instructions_to_target(self, dynamic, enable_reset):
+    def _add_gate_instructions_to_target(self, dynamic: bool, enable_reset: bool) -> None:
 
         instruction_dict = self._get_default_instruction_dict()
 
@@ -399,7 +435,7 @@ class FakeGeneric(BackendV2):
                 Reset(), {(qubit_idx,): None for qubit_idx in range(self._num_qubits)}
             )
 
-    def _get_default_instruction_dict(self):
+    def _get_default_instruction_dict(self) -> dict[str, tuple]:
 
         instruction_dict = {
             "ecr": (
@@ -473,7 +509,9 @@ class FakeGeneric(BackendV2):
         }
         return instruction_dict
 
-    def _add_calibration_defaults_to_target(self, instruction_schedule_map, skip_calibration_gates):
+    def _add_calibration_defaults_to_target(
+        self, instruction_schedule_map: InstructionScheduleMap, skip_calibration_gates: bool
+    ) -> None:
 
         if skip_calibration_gates is None:
             skip_calibration_gates = []
@@ -500,7 +538,7 @@ class FakeGeneric(BackendV2):
                     elif qargs in self._target[inst] and inst != "delay":
                         self._target[inst][qargs].calibration = calibration_entry
 
-    def _build_calibration_defaults(self, skip_calibration_gates) -> PulseDefaults:
+    def _build_calibration_defaults(self, skip_calibration_gates: list[str]) -> PulseDefaults:
         """Build calibration defaults."""
 
         measure_command_sequence = [
@@ -586,7 +624,7 @@ class FakeGeneric(BackendV2):
             cmd_def=cmd_def,
         )
 
-    def _build_default_channels(self):
+    def _build_default_channels(self) -> None:
         """Create default channel map and set "channels_map" attribute"""
         channels_map = {
             "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
