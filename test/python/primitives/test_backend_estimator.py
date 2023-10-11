@@ -113,12 +113,12 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
 
-    @combine(backend=BACKENDS)
-    def test_run_1qubit(self, backend):
+    @combine(backend=BACKENDS, creg=[True, False])
+    def test_run_1qubit(self, backend, creg):
         """Test for 1-qubit cases"""
         backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(1)
-        qc2 = QuantumCircuit(1)
+        qc = QuantumCircuit(1, 1) if creg else QuantumCircuit(1)
+        qc2 = QuantumCircuit(1, 1) if creg else QuantumCircuit(1)
         qc2.x(0)
 
         op = SparsePauliOp.from_list([("I", 1)])
@@ -141,12 +141,12 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1], rtol=0.1)
 
-    @combine(backend=BACKENDS)
-    def test_run_2qubits(self, backend):
+    @combine(backend=BACKENDS, creg=[True, False])
+    def test_run_2qubits(self, backend, creg):
         """Test for 2-qubit cases (to check endian)"""
         backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(2)
-        qc2 = QuantumCircuit(2)
+        qc = QuantumCircuit(2, 1) if creg else QuantumCircuit(2)
+        qc2 = QuantumCircuit(2, 1) if creg else QuantumCircuit(2, 1)
         qc2.x(0)
 
         op = SparsePauliOp.from_list([("II", 1)])
@@ -191,8 +191,6 @@ class TestBackendEstimator(QiskitTestCase):
         est = BackendEstimator(backend=backend)
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
-        with self.assertRaises(ValueError):
-            est.run([qc2], [op], [[]]).result()
         with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(ValueError):
@@ -269,10 +267,6 @@ class TestBackendEstimator(QiskitTestCase):
                 return 1
 
         backend = FakeNairobiLimitedCircuits()
-        backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(1)
-        qc2 = QuantumCircuit(1)
-        qc2.x(0)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -384,6 +378,45 @@ class TestBackendEstimator(QiskitTestCase):
                 self.assertEqual(value, -0.8902)
             else:
                 self.assertEqual(value, -1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_circuit_with_measurement(self):
+        """Test estimator with a dynamic circuit"""
+        from qiskit_aer import AerSimulator
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure_all()
+        observable = SparsePauliOp("ZZ")
+
+        backend = AerSimulator()
+        backend.set_options(seed_simulator=15)
+        estimator = BackendEstimator(backend, skip_transpilation=True)
+        estimator.set_transpile_options(seed_transpiler=15)
+        result = estimator.run(bell, observable).result()
+        self.assertAlmostEqual(result.values[0], 1, places=1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_dynamic_circuit(self):
+        """Test estimator with a dynamic circuit"""
+        from qiskit_aer import AerSimulator
+
+        qc = QuantumCircuit(2, 1)
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(1, 0)
+            qc.break_loop().c_if(0, True)
+
+        observable = SparsePauliOp("IZ")
+
+        backend = AerSimulator()
+        backend.set_options(seed_simulator=15)
+        estimator = BackendEstimator(backend, skip_transpilation=True)
+        estimator.set_transpile_options(seed_transpiler=15)
+        result = estimator.run(qc, observable).result()
+        self.assertAlmostEqual(result.values[0], 0, places=1)
 
 
 if __name__ == "__main__":
