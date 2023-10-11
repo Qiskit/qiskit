@@ -89,9 +89,6 @@ class FakeGeneric(BackendV2):
         dt (float): The system time resolution of input signals in seconds.
                     Default is 0.2222ns
 
-        skip_calibration_gates (list[str]): Optional list of gates where you do not wish to
-                                            append a calibration schedule.
-
         seed (int): Optional seed for error and duration value generation.
 
     Returns:
@@ -113,7 +110,6 @@ class FakeGeneric(BackendV2):
         replace_cx_with_ecr: bool = True,
         enable_reset: bool = True,
         dt: float = 0.222e-9,
-        skip_calibration_gates: list[str] = None,
         instruction_schedule_map: InstructionScheduleMap = None,
         seed: int = 42,
     ):
@@ -148,7 +144,7 @@ class FakeGeneric(BackendV2):
         )
 
         self._add_gate_instructions_to_target(dynamic, enable_reset)
-        self._add_calibration_defaults_to_target(instruction_schedule_map, skip_calibration_gates)
+        self._add_calibration_defaults_to_target(instruction_schedule_map)
         self._build_default_channels()
 
     @property
@@ -510,14 +506,11 @@ class FakeGeneric(BackendV2):
         return instruction_dict
 
     def _add_calibration_defaults_to_target(
-        self, instruction_schedule_map: InstructionScheduleMap, skip_calibration_gates: bool
+        self, instruction_schedule_map: InstructionScheduleMap
     ) -> None:
 
-        if skip_calibration_gates is None:
-            skip_calibration_gates = []
-
         if not instruction_schedule_map:
-            defaults = self._build_calibration_defaults(skip_calibration_gates)
+            defaults = self._build_calibration_defaults()
             inst_map = defaults.instruction_schedule_map
         else:
             inst_map = instruction_schedule_map
@@ -538,7 +531,7 @@ class FakeGeneric(BackendV2):
                     elif qargs in self._target[inst] and inst != "delay":
                         self._target[inst][qargs].calibration = calibration_entry
 
-    def _build_calibration_defaults(self, skip_calibration_gates: list[str]) -> PulseDefaults:
+    def _build_calibration_defaults(self) -> PulseDefaults:
         """Build calibration defaults."""
 
         measure_command_sequence = [
@@ -566,12 +559,10 @@ class FakeGeneric(BackendV2):
 
         for gate in self._basis_gates:
             for i in range(self.num_qubits):
-                sequence = []
-                if gate not in skip_calibration_gates:
-                    sequence = [
-                        PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0"),
-                        PulseQobjInstruction(name="pulse_3", ch=f"d{i}", t0=0),
-                    ]
+                sequence = [
+                    PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0"),
+                    PulseQobjInstruction(name="pulse_3", ch=f"d{i}", t0=0),
+                ]
                 cmd_def.append(
                     Command(
                         name=gate,
@@ -581,14 +572,12 @@ class FakeGeneric(BackendV2):
                 )
 
             for qubit1, qubit2 in self.coupling_map:
-                sequence = []
-                if gate not in skip_calibration_gates:
-                    sequence = [
-                        PulseQobjInstruction(name="pulse_1", ch=f"d{qubit1}", t0=0),
-                        PulseQobjInstruction(name="pulse_2", ch=f"u{qubit1}", t0=10),
-                        PulseQobjInstruction(name="pulse_1", ch=f"d{qubit2}", t0=20),
-                        PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1),
-                    ]
+                sequence = [
+                    PulseQobjInstruction(name="pulse_1", ch=f"d{qubit1}", t0=0),
+                    PulseQobjInstruction(name="pulse_2", ch=f"u{qubit1}", t0=10),
+                    PulseQobjInstruction(name="pulse_1", ch=f"d{qubit2}", t0=20),
+                    PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1),
+                ]
                 if "cx" in self._basis_gates:
                     cmd_def += [
                         Command(
