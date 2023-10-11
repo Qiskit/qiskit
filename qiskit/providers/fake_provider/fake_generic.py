@@ -136,9 +136,9 @@ class FakeGeneric(BackendV2):
                     t2=self._rng.uniform(100e-6, 200e-6),
                     frequency=self._rng.uniform(5e9, 5.5e9),
                 )
-                for _ in range(num_qubits)
+                for _ in range(self._num_qubits)
             ],
-            concurrent_measurements=[list(range(num_qubits))],
+            concurrent_measurements=[list(range(self._num_qubits))],
         )
 
         self._add_gate_instructions_to_target(dynamic, enable_reset)
@@ -156,7 +156,7 @@ class FakeGeneric(BackendV2):
     @property
     def basis_gates(self):
         return self._basis_gates
-    
+
     @property
     def max_circuits(self):
         return None
@@ -356,7 +356,8 @@ class FakeGeneric(BackendV2):
                 raise QiskitError("Provided coupling map type not recognized")
         else:
             self._coupling_map = CouplingMap(coupling_map)
-            self._num_qubits = self._coupling_map.size()
+
+        self._num_qubits = self._coupling_map.size()
 
     def _get_cmap_args(self, coupling_map_type):
         if coupling_map_type == "heavy_hex":
