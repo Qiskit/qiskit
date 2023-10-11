@@ -27,7 +27,7 @@ from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -36,11 +36,8 @@ from .utils import matplotlib_close_if_inline
 from .exceptions import VisualizationError
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_state_hinton(
-    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
-):
+def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, filename=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     The hinton diagram represents the values of a matrix using
@@ -254,14 +251,12 @@ def plot_bloch_vector(
     return None
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
     state,
     title="",
     figsize=None,
     *,
-    rho=None,
     reverse_bits=False,
     filename=None,
     font_size=None,
@@ -362,7 +357,6 @@ def plot_bloch_multivector(
         return fig.savefig(filename)
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_city(
     state,
@@ -373,7 +367,6 @@ def plot_state_city(
     ax_real=None,
     ax_imag=None,
     *,
-    rho=None,
     filename=None,
 ):
     """Plot the cityscape of quantum state.
@@ -622,11 +615,8 @@ def plot_state_city(
         return fig.savefig(filename)
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_state_paulivec(
-    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
-):
+def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, filename=None):
     r"""Plot the Pauli-vector representation of a quantum state as bar graph.
 
     The Pauli-vector of a density matrix :math:`\rho` is defined by the expectation of each
@@ -796,7 +786,6 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1", package_name="qiskit-terra")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_state_qsphere(
@@ -807,7 +796,6 @@ def plot_state_qsphere(
     show_state_phases=False,
     use_degrees=False,
     *,
-    rho=None,
     filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
