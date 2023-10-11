@@ -78,13 +78,19 @@ class FakeGeneric(BackendV2):
         dynamic (bool): If True, enable dynamic circuits on this backend.
                         Defaults to False.
 
-        bidirectional_cp_mp (bool): If True, enable bi-directional coupling map.
+        bidirectional_cmap (bool): If True, enable bi-directional coupling map.
                                     Defaults to False.
         replace_cx_with_ecr (bool): If True, replace every occurrence of 'cx' with 'ecr'.
                                     Defaults to True.
 
         enable_reset (bool): If True, enable reset on the backend.
                              Defaults to True.
+
+        add_calibration_entries (bool): If True, pulse calibration defaults will be added to
+                            the target. Defaults to False.
+
+        instruction_schedule_map (InstructionScheduleMap): An optional instruction schedule map
+                                               to replace the randomly generated pulse defaults.
 
         dt (float): The system time resolution of input signals in seconds.
                     Default is 0.2222ns
@@ -109,8 +115,9 @@ class FakeGeneric(BackendV2):
         bidirectional_cmap: bool = False,
         replace_cx_with_ecr: bool = True,
         enable_reset: bool = True,
-        dt: float = 0.222e-9,
+        add_calibration_entries: bool = False,
         instruction_schedule_map: InstructionScheduleMap = None,
+        dt: float = 0.222e-9,
         seed: int = 42,
     ):
 
@@ -144,8 +151,10 @@ class FakeGeneric(BackendV2):
         )
 
         self._add_gate_instructions_to_target(dynamic, enable_reset)
-        self._add_calibration_defaults_to_target(instruction_schedule_map)
-        self._build_default_channels()
+
+        if add_calibration_entries:
+            self._add_calibration_defaults_to_target(instruction_schedule_map)
+            self._build_default_channels()
 
     @property
     def target(self) -> Target:
@@ -307,7 +316,7 @@ class FakeGeneric(BackendV2):
         job = self.sim.run(circuits, **options)
         return job
 
-    def _setup_sim(self):
+    def _setup_sim(self) -> None:
         if _optionals.HAS_AER:
             from qiskit_aer import AerSimulator
             from qiskit_aer.noise import NoiseModel
