@@ -2140,7 +2140,8 @@ class TestTranspileParallel(QiskitTestCase):
                 )
                 return dag
 
-        backend = FakeGeneric(num_qubits=4, skip_calibration_gates=["sx"])
+        # Remove calibration for sx gate
+        backend = FakeGeneric(num_qubits=4, add_cal_entries=True, empty_cal_gates=["sx"])
 
         # This target has PulseQobj entries that provide a serialized schedule data
         pass_ = TestAddCalibration(backend.target)

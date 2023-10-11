@@ -86,8 +86,10 @@ class FakeGeneric(BackendV2):
         enable_reset (bool): If True, enable reset on the backend.
                              Defaults to True.
 
-        add_calibration_entries (bool): If True, pulse calibration defaults will be added to
+        add_cal_entries (bool): If True, pulse calibration defaults will be added to
                             the target. Defaults to False.
+        empty_cal_gates (list[str): List of gates defined a strings which should have
+                                        calibration entries with an empty schedule.
 
         instruction_schedule_map (InstructionScheduleMap): An optional instruction schedule map
                                                to replace the randomly generated pulse defaults.
@@ -108,14 +110,15 @@ class FakeGeneric(BackendV2):
         self,
         num_qubits: int = None,
         *,
-        coupling_map: list[tuple[int]] = None,
+        coupling_map: list[tuple[int]] | None = None,
         coupling_map_type: str = "grid",
-        basis_gates: list[str] = None,
+        basis_gates: list[str] | None = None,
         dynamic: bool = False,
         bidirectional_cmap: bool = False,
         replace_cx_with_ecr: bool = True,
         enable_reset: bool = True,
-        add_calibration_entries: bool = False,
+        add_cal_entries: bool = False,
+        empty_cal_gates: list[str] | None = None,
         instruction_schedule_map: InstructionScheduleMap = None,
         dt: float = 0.222e-9,
         seed: int = 42,
@@ -152,8 +155,8 @@ class FakeGeneric(BackendV2):
 
         self._add_gate_instructions_to_target(dynamic, enable_reset)
 
-        if add_calibration_entries:
-            self._add_calibration_defaults_to_target(instruction_schedule_map)
+        if add_cal_entries:
+            self._add_calibration_defaults_to_target(instruction_schedule_map, empty_cal_gates)
             self._build_default_channels()
 
     @property
@@ -515,11 +518,11 @@ class FakeGeneric(BackendV2):
         return instruction_dict
 
     def _add_calibration_defaults_to_target(
-        self, instruction_schedule_map: InstructionScheduleMap
+        self, instruction_schedule_map: InstructionScheduleMap, empty_cal_gates: list[str] | None
     ) -> None:
 
         if not instruction_schedule_map:
-            defaults = self._build_calibration_defaults()
+            defaults = self._build_calibration_defaults(empty_cal_gates)
             inst_map = defaults.instruction_schedule_map
         else:
             inst_map = instruction_schedule_map
@@ -540,8 +543,11 @@ class FakeGeneric(BackendV2):
                     elif qargs in self._target[inst] and inst != "delay":
                         self._target[inst][qargs].calibration = calibration_entry
 
-    def _build_calibration_defaults(self) -> PulseDefaults:
+    def _build_calibration_defaults(self, empty_cal_gates: list[str] | None) -> PulseDefaults:
         """Build calibration defaults."""
+
+        if empty_cal_gates is None:
+            empty_cal_gates = []
 
         measure_command_sequence = [
             PulseQobjInstruction(
@@ -568,10 +574,12 @@ class FakeGeneric(BackendV2):
 
         for gate in self._basis_gates:
             for i in range(self.num_qubits):
-                sequence = [
-                    PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0"),
-                    PulseQobjInstruction(name="pulse_3", ch=f"d{i}", t0=0),
-                ]
+                sequence = []
+                if gate not in empty_cal_gates:
+                    sequence = [
+                        PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0"),
+                        PulseQobjInstruction(name="pulse_3", ch=f"d{i}", t0=0),
+                    ]
                 cmd_def.append(
                     Command(
                         name=gate,
@@ -580,29 +588,34 @@ class FakeGeneric(BackendV2):
                     )
                 )
 
-            for qubit1, qubit2 in self.coupling_map:
-                sequence = [
-                    PulseQobjInstruction(name="pulse_1", ch=f"d{qubit1}", t0=0),
-                    PulseQobjInstruction(name="pulse_2", ch=f"u{qubit1}", t0=10),
-                    PulseQobjInstruction(name="pulse_1", ch=f"d{qubit2}", t0=20),
-                    PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1),
+        for qubit1, qubit2 in self.coupling_map:
+            sequence = [
+                PulseQobjInstruction(name="pulse_1", ch=f"d{qubit1}", t0=0),
+                PulseQobjInstruction(name="pulse_2", ch=f"u{qubit1}", t0=10),
+                PulseQobjInstruction(name="pulse_1", ch=f"d{qubit2}", t0=20),
+                PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1),
+            ]
+
+            if "cx" in self._basis_gates:
+                if "cx" in empty_cal_gates:
+                    sequence = []
+                cmd_def += [
+                    Command(
+                        name="cx",
+                        qubits=[qubit1, qubit2],
+                        sequence=sequence,
+                    )
                 ]
-                if "cx" in self._basis_gates:
-                    cmd_def += [
-                        Command(
-                            name="cx",
-                            qubits=[qubit1, qubit2],
-                            sequence=sequence,
-                        )
-                    ]
-                if "ecr" in self._basis_gates:
-                    cmd_def += [
-                        Command(
-                            name="ecr",
-                            qubits=[qubit1, qubit2],
-                            sequence=sequence,
-                        )
-                    ]
+            if "ecr" in self._basis_gates:
+                if "ecr" in empty_cal_gates:
+                    sequence = []
+                cmd_def += [
+                    Command(
+                        name="ecr",
+                        qubits=[qubit1, qubit2],
+                        sequence=sequence,
+                    )
+                ]
 
         qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
         meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
