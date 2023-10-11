@@ -70,8 +70,7 @@ def lower_gates(
     # convert the unit of durations from SI to dt before lowering
     circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
 
-    def get_measure_schedule(
-        qubit_mem_slots: Dict[int, int], backend: Optional[Union[BackendV1, BackendV2]] = None
+    def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
     ) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
