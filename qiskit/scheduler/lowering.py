@@ -71,7 +71,6 @@ def lower_gates(
     circuit = convert_durations_to_dt(circuit, dt_in_sec=schedule_config.dt, inplace=False)
 
     def get_measure_schedule(qubit_mem_slots: Dict[int, int]) -> CircuitPulseDef:
-    ) -> CircuitPulseDef:
         """Create a schedule to measure the qubits queued for measuring."""
         sched = Schedule()
         # Exclude acquisition on these qubits, since they are handled by the user calibrations
@@ -181,6 +180,6 @@ def lower_gates(
                 ) from ex
 
     if qubit_mem_slots:
-        circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots, backend))
+        circ_pulse_defs.append(get_measure_schedule(qubit_mem_slots))
 
     return circ_pulse_defs
