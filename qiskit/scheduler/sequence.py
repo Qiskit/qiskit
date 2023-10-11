@@ -15,6 +15,7 @@ Mapping a scheduled QuantumCircuit to a pulse Schedule.
 """
 from collections import defaultdict
 
+from typing import Optional, Union
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -24,7 +25,6 @@ from qiskit.pulse.transforms import pad
 from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.lowering import lower_gates
 from qiskit.providers import BackendV1, BackendV2
-from typing import Optional, Union
 
 
 def sequence(
@@ -41,7 +41,8 @@ def sequence(
     Args:
         scheduled_circuit: The scheduled quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
-        backend: Pass in the backend used to build the schedule, the backend could be either BackendV1 or BackendV2
+        backend: Pass in the backend used to build the schedule, the backend could be either BackendV1
+                 or BackendV2
 
     Returns:
         A schedule corresponding to the input ``circuit``.
