@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::{PyObject, PyResult};
 
-#[pyclass(sequence, get_all, module = "qiskit._accelerate.quantum_circuit")]
+#[pyclass(freelist = 100, sequence, get_all, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
     pub operation: PyObject,
