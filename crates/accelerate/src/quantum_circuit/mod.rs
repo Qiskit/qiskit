@@ -20,6 +20,5 @@ use pyo3::prelude::*;
 pub fn quantum_circuit(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
-    m.add_class::<intern_context::InternContext>()?;
     Ok(())
 }

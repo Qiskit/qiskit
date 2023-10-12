@@ -17,7 +17,7 @@ use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyList, PySlice, PyTuple};
+use pyo3::types::{IntoPyDict, PyDict, PyIterator, PyList, PySlice, PyTuple};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::cmp::{max, min};
 use std::iter::zip;
@@ -31,7 +31,7 @@ struct InternedInstruction(Option<PyObject>, IndexType, IndexType);
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     data: Vec<InternedInstruction>,
-    intern_context: Py<InternContext>,
+    intern_context: InternContext,
     qubits: Py<PyList>,
     clbits: Py<PyList>,
     qubit_indices: Py<PyDict>,
@@ -48,7 +48,6 @@ pub enum SliceOrInt<'a> {
 impl CircuitData {
     #[new]
     pub fn new(
-        intern_context: Py<InternContext>,
         qubits: Py<PyList>,
         clbits: Py<PyList>,
         qubit_indices: Py<PyDict>,
@@ -56,7 +55,7 @@ impl CircuitData {
     ) -> PyResult<Self> {
         Ok(CircuitData {
             data: Vec::new(),
-            intern_context,
+            intern_context: InternContext::new(),
             qubits,
             clbits,
             qubit_indices,
@@ -65,12 +64,11 @@ impl CircuitData {
     }
 
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
-        // TODO: reuse intern context once concurrency is properly
-        //  handled.
-        let intern_context = Py::new(py, self.context(py)?.clone())?;
         Ok(CircuitData {
             data: self.data.clone(),
-            intern_context,
+            // TODO: reuse intern context once concurrency is properly
+            //  handled.
+            intern_context: self.intern_context.clone(),
             qubits: self.qubits.clone_ref(py),
             clbits: self.clbits.clone_ref(py),
             qubit_indices: self.qubit_indices.clone_ref(py),
@@ -104,9 +102,8 @@ impl CircuitData {
 
                 if let Some(InternedInstruction(op, qargs_slot, cargs_slot)) = self.data.get(index)
                 {
-                    let context = self.context(py)?;
-                    let qargs = context.lookup(*qargs_slot);
-                    let cargs = context.lookup(*cargs_slot);
+                    let qargs = self.intern_context.lookup(*qargs_slot);
+                    let cargs = self.intern_context.lookup(*cargs_slot);
                     Py::new(
                         py,
                         CircuitInstruction {
@@ -120,7 +117,8 @@ impl CircuitData {
                     .map(|i| i.into_py(py))
                 } else {
                     Err(PyIndexError::new_err(format!(
-                        "No element at index {index} in circuit data",
+                        "No element at index {:?} in circuit data",
+                        index
                     )))
                 }
             }
@@ -139,11 +137,12 @@ impl CircuitData {
             Int(index) => {
                 let index = self.convert_py_index(index, IndexFor::Lookup)?;
                 if self.data.get(index).is_some() {
-                    let cached_entry = self.data.remove(index);
-                    self.drop_from_cache(py, cached_entry)
+                    self.data.remove(index);
+                    Ok(())
                 } else {
                     Err(PyIndexError::new_err(format!(
-                        "No element at index {index} in circuit data",
+                        "No element at index {:?} in circuit data",
+                        index
                     )))
                 }
             }
@@ -199,7 +198,7 @@ impl CircuitData {
                 let value: PyRef<CircuitInstruction> = value.extract()?;
                 let mut cached_entry = self.get_or_cache(py, value)?;
                 swap(&mut cached_entry, &mut self.data[index]);
-                self.drop_from_cache(py, cached_entry)
+                Ok(())
             }
         }
     }
@@ -228,21 +227,33 @@ impl CircuitData {
     }
 
     pub fn extend(&mut self, py: Python<'_>, itr: &PyAny) -> PyResult<()> {
-        if let Ok(len) = itr.len() {
-            self.data.reserve(len);
-        }
-        for v in itr.iter()? {
-            self.append(py, v?.extract()?)?;
+        // if let Ok(len) = itr.len() {
+        //     self.data.reserve(len);
+        // }
+        let itr: Py<PyIterator> = itr.iter()?.into_py(py);
+        loop {
+            // Create a new pool, so that PyO3 can clear memory at the end of the loop.
+            let pool = unsafe { py.new_pool() };
+
+            // It is recommended to *always* immediately set py to the pool's Python, to help
+            // avoid creating references with invalid lifetimes.
+            let py = pool.python();
+
+            match itr.as_ref(py).next() {
+                None => {
+                    break;
+                }
+                Some(v) => {
+                    self.append(py, v?.extract()?)?;
+                }
+            }
         }
         Ok(())
     }
 
-    pub fn clear(&mut self, py: Python<'_>) -> PyResult<()> {
+    pub fn clear(&mut self, _py: Python<'_>) -> PyResult<()> {
         let mut to_drop = vec![];
         swap(&mut self.data, &mut to_drop);
-        for entry in to_drop.into_iter() {
-            self.drop_from_cache(py, entry)?;
-        }
         Ok(())
     }
 
@@ -264,7 +275,9 @@ impl CircuitData {
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
         for InternedInstruction(op, _, _) in self.data.iter() {
-            visit.call(op)?;
+            if let Some(op) = op {
+                visit.call(op)?;
+            }
         }
         visit.call(&self.qubits)?;
         visit.call(&self.clbits)?;
@@ -275,8 +288,8 @@ impl CircuitData {
 
     fn __clear__(&mut self) {
         // Clear anything that could have a reference cycle.
-        for InternedInstruction(op, _, _) in self.data.iter_mut() {
-            *op = None;
+        for inst in self.data.iter_mut() {
+            inst.0 = None;
         }
     }
 }
@@ -287,16 +300,6 @@ enum IndexFor {
 }
 
 impl CircuitData {
-    fn context<'a>(&'a self, py: Python<'a>) -> PyResult<PyRef<InternContext>> {
-        let cell: &'a PyCell<InternContext> = self.intern_context.as_ref(py);
-        Ok(cell.try_borrow()?)
-    }
-
-    fn context_mut<'a>(&'a self, py: Python<'a>) -> PyResult<PyRefMut<InternContext>> {
-        let cell: &PyCell<InternContext> = self.intern_context.as_ref(py);
-        Ok(cell.try_borrow_mut()?)
-    }
-
     fn convert_py_slice(&self, py: Python<'_>, slice: &PySlice) -> PyResult<Vec<isize>> {
         let dict: HashMap<&str, PyObject> =
             HashMap::from([("s", slice.into()), ("length", self.data.len().into_py(py))]);
@@ -319,7 +322,8 @@ impl CircuitData {
             IndexFor::Lookup => {
                 if index < 0 || index >= self.data.len() as isize {
                     return Err(PyIndexError::new_err(format!(
-                        "Index {index} is out of bounds.",
+                        "Index {:?} is out of bounds.",
+                        index,
                     )));
                 }
                 index
@@ -359,31 +363,21 @@ impl CircuitData {
         }
     }
 
-    fn drop_from_cache(&self, py: Python<'_>, entry: InternedInstruction) -> PyResult<()> {
-        let mut context = self.context_mut(py)?;
-        let InternedInstruction(_, qargs_idx, cargs_idx) = entry;
-        context.drop_use(qargs_idx);
-        context.drop_use(cargs_idx);
-        Ok(())
-    }
-
     fn get_or_cache(
         &mut self,
         py: Python<'_>,
         elem: PyRef<CircuitInstruction>,
     ) -> PyResult<InternedInstruction> {
-        let mut context = self.context_mut(py)?;
         let mut cache_args = |indices: &PyDict, bits: &PyTuple| -> PyResult<IndexType> {
             let args = bits
                 .into_iter()
                 .map(|b| {
                     let py_idx = indices.as_ref().get_item(b)?;
-                    let bit_locations = py_idx.extract::<(BitType, PyObject)>()?;
-                    Ok(bit_locations.0)
+                    let bit_locations = py_idx.downcast_exact::<PyTuple>()?;
+                    Ok(bit_locations.get_item(0)?.extract::<BitType>()?)
                 })
                 .collect::<PyResult<Vec<BitType>>>()?;
-            // TODO: handle context being full instead of just faithfully unwrapping
-            Ok(context.intern(args).unwrap())
+            Ok(self.intern_context.intern(args))
         };
 
         Ok(InternedInstruction(
@@ -391,11 +385,5 @@ impl CircuitData {
             cache_args(self.qubit_indices.as_ref(py), elem.qubits.as_ref(py))?,
             cache_args(self.clbit_indices.as_ref(py), elem.clbits.as_ref(py))?,
         ))
-    }
-}
-
-impl Drop for CircuitData {
-    fn drop(&mut self) {
-        Python::with_gil(|py| self.clear(py)).unwrap();
     }
 }

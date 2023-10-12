@@ -37,7 +37,7 @@ from typing import (
     overload,
 )
 import numpy as np
-from qiskit._accelerate.quantum_circuit import CircuitData, InternContext
+from qiskit._accelerate.quantum_circuit import CircuitData
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -259,9 +259,6 @@ class QuantumCircuit:
         self._qubit_indices: dict[Qubit, BitLocations] = {}
         self._clbit_indices: dict[Clbit, BitLocations] = {}
 
-        # An opaque context use to intern circuit instructions on the Rust side.
-        self._intern_context = InternContext()
-
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data: CircuitData = self._new_data()
@@ -286,13 +283,12 @@ class QuantumCircuit:
 
     def _new_data(self, iterable: Iterable[CircuitInstruction] = ()):
         data = CircuitData(
-            self._intern_context,
             self._qubits,
             self._clbits,
             self._qubit_indices,
             self._clbit_indices,
         )
-        if iterable is not None:
+        if iterable != ():
             data.extend(iterable)
         return data
 
@@ -537,31 +533,24 @@ class QuantumCircuit:
         # need to pickle (i.e. the typical deepcopy case).
         cls = self.__class__
         result = cls.__new__(cls)
-        for k in self.__dict__.keys() - {"_intern_context", "_data"}:
+        for k in self.__dict__.keys() - {"_data"}:
             setattr(result, k, copy.deepcopy(self.__dict__[k], memo))
-
-        # Reuse the intern context to save space!
-        # TODO: there appears to be a concurrency issue when this
-        #   is done in a multi-threaded context (e.g. w/ primitives).
-        # result._intern_context = self._intern_context
-        result._intern_context = InternContext()
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
-        result._data = result._new_data((copy.deepcopy(i, memo) for i in self._data))
+        result._data = result._new_data(
+            (i.replace(operation=copy.deepcopy(i.operation, memo)) for i in self._data)
+        )
         return result
 
     def __getstate__(self):
         # Rust's CircuitData is not picklable, so we unpack it into a list first.
-        # InternContext is not picklable, so we leave it behind.
         state = self.__dict__.copy()
         state["_data"] = list(self._data)
-        del state["_intern_context"]
         return state
 
     def __setstate__(self, state):
         self.__dict__ = state
-        self._intern_context = InternContext()
         data = self._new_data(self._data)
         self._data = data
 
@@ -867,7 +856,6 @@ class QuantumCircuit:
         controlled_circ.append(controlled_gate, controlled_circ.qubits)
 
         return controlled_circ
-
 
     def compose(
         self,
@@ -2196,8 +2184,6 @@ class QuantumCircuit:
         cpy._clbit_indices = self._clbit_indices.copy()
 
         cpy._parameter_table = ParameterTable()
-        # TODO: reuse context once it is threadsafe
-        cpy._intern_context = InternContext()
         cpy._data = cpy._new_data()
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
