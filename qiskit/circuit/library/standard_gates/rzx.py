@@ -117,9 +117,11 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, duration=None, unit=None
+    ):
         """Create new RZX gate."""
-        super().__init__("rzx", 2, [theta], label=label)
+        super().__init__("rzx", 2, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

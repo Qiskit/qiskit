@@ -50,10 +50,15 @@ class RGate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        label: Optional[str] = None,
+        duration=None,
+        unit=None,
     ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi], label=label)
+        super().__init__("r", 1, [theta, phi], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

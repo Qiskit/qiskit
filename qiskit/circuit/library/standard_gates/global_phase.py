@@ -34,13 +34,15 @@ class GlobalPhaseGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, phase: ParameterValueType, label: Optional[str] = None, duration=None, unit=None
+    ):
         """
         Args:
             phase: The value of phase it takes.
             label: An optional label for the gate.
         """
-        super().__init__("global_phase", 0, [phase], label=label)
+        super().__init__("global_phase", 0, [phase], label=label, duration=duration, unit=unit)
 
     def _define(self):
         q = QuantumRegister(0, "q")
