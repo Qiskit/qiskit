@@ -18,6 +18,8 @@ Tests for singleton gate behavior
 """
 
 import copy
+import io
+import pickle
 
 from qiskit.circuit.library import HGate, SXGate
 from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -251,3 +253,27 @@ class TestSingletonGate(QiskitTestCase):
         label_gate = SXGate("I am a little label")
         self.assertIsNot(gate, label_gate)
         self.assertEqual(label_gate.label, "I am a little label")
+
+    def test_immutable_pickle(self):
+        gate = SXGate()
+        self.assertFalse(gate.mutable)
+        with io.BytesIO() as fd:
+            pickle.dump(gate, fd)
+            fd.seek(0)
+            copied = pickle.load(fd)
+        self.assertFalse(copied.mutable)
+        self.assertIs(copied, gate)
+
+    def test_mutable_pickle(self):
+        gate = SXGate()
+        clbit = Clbit()
+        condition_gate = gate.c_if(clbit, 0)
+        self.assertIsNot(gate, condition_gate)
+        self.assertEqual(condition_gate.condition, (clbit, 0))
+        self.assertTrue(condition_gate.mutable)
+        with io.BytesIO() as fd:
+            pickle.dump(condition_gate, fd)
+            fd.seek(0)
+            copied = pickle.load(fd)
+        self.assertEqual(copied, condition_gate)
+        self.assertTrue(copied.mutable)
