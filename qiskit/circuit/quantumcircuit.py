@@ -2848,11 +2848,11 @@ class QuantumCircuit:
         """
         from .barrier import Barrier
 
-        qubits: list[QubitSpecifier] = []
 
         if not qargs:  # None
-            qubits.extend(self.qubits)
+            self._append(Barrier(len(self.qubits), label=label), self.qubits, [])
 
+        qubits: list[QubitSpecifier] = []
         for qarg in qargs:
             if isinstance(qarg, QuantumRegister):
                 qubits.extend([qarg[j] for j in range(qarg.size)])
@@ -2865,7 +2865,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        return self._append(Barrier(len(qubits), label=label), qubits, [])
+        return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
         self,
