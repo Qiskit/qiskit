@@ -2312,7 +2312,7 @@ class QuantumCircuit:
             new_creg = circ._create_creg(len(circ.qubits), "meas")
             circ.add_register(new_creg)
             circ.barrier()
-            circ.measure(circ.qubits, new_creg)
+            self._append(Measure(), circ.qubits, new_creg)
         else:
             if len(circ.clbits) < len(circ.qubits):
                 raise CircuitError(
@@ -2320,7 +2320,7 @@ class QuantumCircuit:
                     "the number of qubits."
                 )
             circ.barrier()
-            circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
+            self._append(Measure(), circ.qubits, circ.clbits[0 : len(circ.qubits)])
 
         if not inplace:
             return circ
@@ -2865,7 +2865,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        return self.append(Barrier(len(qubits), label=label), qubits, [])
+        return self._append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
         self,
