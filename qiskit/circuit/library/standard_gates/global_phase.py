@@ -34,7 +34,7 @@ class GlobalPhaseGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phase: ParameterValueType, label: Optional[str] = None, duration=None, unit=None):
         """
         Args:
             phase: The value of phase it takes.

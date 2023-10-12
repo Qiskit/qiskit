@@ -49,7 +49,7 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None, duration=None, unit=None):
         """Create new RY gate."""
         super().__init__("ry", 1, [theta], label=label)
 
