@@ -25,7 +25,7 @@ class TestSabrePreLayout(QiskitTestCase):
     def test_no_constraints(self):
         """Test we raise at runtime if no target or coupling graph are provided."""
         qc = QuantumCircuit(2)
-        empty_pass = SabrePreLayout()
+        empty_pass = SabrePreLayout(coupling_map=None)
         with self.assertRaises(TranspilerError):
             empty_pass.run(circuit_to_dag(qc))
 

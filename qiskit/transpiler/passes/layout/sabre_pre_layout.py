@@ -14,7 +14,7 @@
 
 import itertools
 
-from qiskit.transpiler import CouplingMap, AnalysisPass, TranspilerError
+from qiskit.transpiler import CouplingMap, Target, AnalysisPass, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout
 from qiskit._accelerate.error_map import ErrorMap
 
@@ -32,8 +32,7 @@ class SabrePreLayout(AnalysisPass):
 
     def __init__(
         self,
-        target=None,
-        coupling_map=None,
+        coupling_map,
         max_distance=2,
         error_rate=0.1,
         max_trials_vf2=100,
@@ -56,7 +55,8 @@ class SabrePreLayout(AnalysisPass):
         Args:
             target (Target): A target representing the backend device. If specified, it will
                 supersede a set value for ``coupling_map``.
-            coupling_map (CouplingMap): directed graph representing the original coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing the
+                original coupling map.
             max_distance (int): the maximum distance to consider for augmented coupling maps.
             error_rate (float): the error rate to assign to the "extra" edges. A non-zero
                 error rate prioritizes VF2 to choose original edges over extra edges.
@@ -72,16 +72,18 @@ class SabrePreLayout(AnalysisPass):
             TranspilerError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
 
-        self.target = target
-        self.coupling_map = coupling_map
         self.max_distance = max_distance
         self.error_rate = error_rate
         self.max_trials_vf2 = max_trials_vf2
         self.call_limit_vf2 = call_limit_vf2
         self.improve_layout = improve_layout
 
-        if self.target is not None:
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
             self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
 
         super().__init__()
 
