@@ -18,6 +18,7 @@ from enum import Enum
 
 import re
 import logging
+import warnings
 from typing import Any
 
 import numpy as np
@@ -129,8 +130,10 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
             threshold: once all gradients have an absolute value smaller than this threshold, the
                 algorithm has converged and terminates. Defaults to ``1e-5``.
         """
-        validate_min("gradient_threshold", gradient_threshold, 1e-15)
-        validate_min("eigenvalue_threshold", eigenvalue_threshold, 1e-15)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            validate_min("gradient_threshold", gradient_threshold, 1e-15)
+            validate_min("eigenvalue_threshold", eigenvalue_threshold, 1e-15)
 
         self.solver = solver
         self.gradient_threshold = gradient_threshold

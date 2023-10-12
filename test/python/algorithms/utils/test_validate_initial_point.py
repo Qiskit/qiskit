@@ -12,6 +12,8 @@
 
 """Test validate initial point."""
 
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from unittest.mock import Mock
@@ -27,7 +29,9 @@ class TestValidateInitialPoint(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
         self.ansatz = Mock()
         self.ansatz.num_parameters = 1
 
