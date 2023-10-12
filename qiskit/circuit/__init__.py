@@ -279,6 +279,7 @@ Gates and Instructions
    InstructionSet
    Operation
    EquivalenceLibrary
+   SingletonInstruction
    SingletonGate
 
 Control Flow Operations
@@ -367,7 +368,7 @@ from .gate import Gate
 
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
-from .singleton_gate import SingletonGate
+from .singleton import SingletonInstruction, SingletonGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .operation import Operation
