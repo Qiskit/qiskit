@@ -100,32 +100,35 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
     clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
 
-    definition = [
-        instruction.replace(
-            qubits=[qubit_map[y] for y in instruction.qubits],
-            clbits=[clbit_map[y] for y in instruction.clbits],
-        )
-        for instruction in target.data
-    ]
+    # TODO: assuming we keep CircuitData.qubit_indices as a PyDict ref,
+    #       can't we skip the need to adjust the bit mappings? We can just
+    #       copy CircuitData but replace the {qubits,clbits} and
+    #       {qubit,clbit}_indices with the canonical regs, right?
+    def definition():
+        for instruction in target.data:
+            rule = instruction.replace(
+                qubits=[qubit_map[y] for y in instruction.qubits],
+                clbits=[clbit_map[y] for y in instruction.clbits],
+            )
 
-    # fix condition
-    for idx, rule in enumerate(definition):
-        condition = getattr(rule.operation, "condition", None)
-        if condition:
-            reg, val = condition
-            if isinstance(reg, Clbit):
-                definition[idx] = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
-            elif reg.size == c.size:
-                definition[idx] = rule.replace(operation=rule.operation.c_if(c, val))
-            else:
-                raise QiskitError(
-                    "Cannot convert condition in circuit with "
-                    "multiple classical registers to instruction"
-                )
+            # fix condition
+            condition = getattr(rule.operation, "condition", None)
+            if condition:
+                reg, val = condition
+                if isinstance(reg, Clbit):
+                    rule = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
+                elif reg.size == c.size:
+                    rule = rule.replace(operation=rule.operation.c_if(c, val))
+                else:
+                    raise QiskitError(
+                        "Cannot convert condition in circuit with "
+                        "multiple classical registers to instruction"
+                    )
+            yield rule
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
-    for instruction in definition:
-        qc._append(instruction)
+    for i in definition():
+        qc._append(i)
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
 
