@@ -18,17 +18,18 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class UnitaryOverlap(QuantumCircuit):
-    r"""Circuit that returns the overlap between two unitaries :math:`V^{\dag} U`.
+    r"""Circuit that returns the overlap between two unitaries :math:`U_2^{\dag} U_1`.
 
     The input quantum circuits must represent unitary operations, since they must be invertible.
     If the inputs will have parameters, they are replaced by :class:`.ParameterVector`\s with
-    names `"a"` (for circuit ``U``) and `"b"` (for circuit ``V``) in the output circut.
+    names `"p1"` (for circuit ``unitary1``) and `"p2"` (for circuit ``unitary_2``) in the output
+    circuit.
 
     This circuit is usually employed in computing the fidelity::
 
         .. math::
 
-            \left|\langle 0| V^{\dag} U|0\rangle\right|^{2}
+            \left|\langle 0| U_2^{\dag} U_1|0\rangle\right|^{2}
 
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
@@ -41,11 +42,11 @@ class UnitaryOverlap(QuantumCircuit):
 
         # get two circuit to prepare states of which we comput the overlap
         circuit = EfficientSU2(2, reps=1)
-        U = circuit.assign_parameters(np.random.random(circuit.num_parameters))
-        V = circuit.assign_parameters(np.random.random(circuit.num_parameters))
+        unitary1 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
+        unitary2 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
 
         # create the overlap circuit
-        overlap = UnitaryOverap(U, V)
+        overlap = UnitaryOverap(unitary1, unitary2)
 
         # sample from the overlap
         sampler = Sampler(options={"shots": 100})
@@ -56,37 +57,44 @@ class UnitaryOverlap(QuantumCircuit):
 
     """
 
-    def __init__(self, U: QuantumCircuit, V: QuantumCircuit):
+    def __init__(
+        self, unitary1: QuantumCircuit, unitary2: QuantumCircuit, prefix1="p1", prefix2="p2"
+    ):
         """
         Args:
-            U: Unitary acting on the ket vector.
-            V: Unitary whose inverse operates on the bra vector.
+            unitary1: Unitary acting on the ket vector.
+            unitary2: Unitary whose inverse operates on the bra vector.
+            prefix1: The name of the parameter vector associated to ``unitary1``,
+                if it is parameterized. Defaults to ``"p1"``.
+            prefix2: The name of the parameter vector associated to ``unitary2``,
+                if it is parameterized. Defaults to ``"p2"``.
 
         Raises:
-            CircuitError: Number of qubits in ``U`` and ``V`` does not match.
+            CircuitError: Number of qubits in ``unitary1`` and ``unitary2`` does not match.
             CircuitError: Inputs contain measurements and/or resets.
         """
         # check inputs are valid
-        if U.num_qubits != V.num_qubits:
+        if unitary1.num_qubits != unitary2.num_qubits:
             raise CircuitError(
                 f"Number of qubits in unitaries does "
-                f"not match: {U.num_qubits} != {V.num_qubits}."
+                f"not match: {unitary1.num_qubits} != {unitary2.num_qubits}."
             )
-        _check_unitary(U)
-        _check_unitary(V)
 
-        # Vectors of new parameters, if any
-        a_vec = ParameterVector("a", U.num_parameters)
-        b_vec = ParameterVector("b", V.num_parameters)
+        unitaries = [unitary1, unitary2]
+        for unitary in unitaries:
+            _check_unitary(unitary)
 
-        # Assign new labels so that alphabetical order matches insertion order
-        circ1 = U.assign_parameters(a_vec)
-        circ2 = V.assign_parameters(b_vec)
+        # Vectors of new parameters, if any. Need the unitaries in a list here to ensure
+        # we can overwrite them.
+        for i, prefix in enumerate([prefix1, prefix2]):
+            if unitaries[i].num_parameters > 0:
+                new_params = ParameterVector(prefix, unitaries[i].num_parameters)
+                unitaries[i] = unitaries[i].assign_parameters(new_params)
 
         # Generate the actual overlap circuit
-        super().__init__(*circ1.qregs, name="UnitaryOverlap")
-        self.compose(circ1, inplace=True)
-        self.compose(circ2.inverse(), inplace=True)
+        super().__init__(unitaries[0].num_qubits, name="UnitaryOverlap")
+        self.compose(unitaries[0], inplace=True)
+        self.compose(unitaries[1].inverse(), inplace=True)
 
 
 def _check_unitary(circuit):
