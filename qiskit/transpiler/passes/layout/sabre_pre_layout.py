@@ -142,10 +142,11 @@ class SabrePreLayout(AnalysisPass):
         for (x, y) in itertools.combinations(self.coupling_map.graph.node_indices(), 2):
             d = self.coupling_map.distance(x, y)
             if 1 < d <= distance:
+                error_rate = 1 - ((1 - self.error_rate) ** d)
                 augmented_coupling_map.add_edge(x, y)
-                augmented_error_map.add_error((x, y), self.error_rate)
+                augmented_error_map.add_error((x, y), error_rate)
                 augmented_coupling_map.add_edge(y, x)
-                augmented_error_map.add_error((y, x), self.error_rate)
+                augmented_error_map.add_error((y, x), error_rate)
 
         return augmented_coupling_map, augmented_error_map
 
