@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 
 import numpy as np
@@ -197,7 +198,9 @@ class PVQD(RealTimeEvolver):
         loss, gradient = self.get_loss(hamiltonian, ansatz, dt, theta)
 
         if initial_guess is None:
-            initial_guess = algorithm_globals.random.random(self.initial_parameters.size) * 0.01
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                initial_guess = algorithm_globals.random.random(self.initial_parameters.size) * 0.01
 
         if isinstance(self.optimizer, Optimizer):
             optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
