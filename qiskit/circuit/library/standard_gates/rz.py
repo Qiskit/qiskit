@@ -59,9 +59,9 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: Optional[str] = None, duration=None, unit=None):
         """Create new RZ gate."""
-        super().__init__("rz", 1, [phi], label=label)
+        super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
