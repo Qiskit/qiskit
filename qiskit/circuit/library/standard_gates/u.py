@@ -73,6 +73,8 @@ class UGate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
+        duration=None,
+        unit=None,
     ):
         """Create new U gate."""
         super().__init__("u", 1, [theta, phi, lam], label=label)

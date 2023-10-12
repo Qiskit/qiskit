@@ -84,7 +84,7 @@ class RZZGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None, duration=None, unit=None):
         """Create new RZZ gate."""
         super().__init__("rzz", 2, [theta], label=label)
 

@@ -85,6 +85,8 @@ class U3Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
+        duration=None,
+        unit=None
     ):
         """Create new U3 gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label)

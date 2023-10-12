@@ -92,7 +92,7 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta: ParameterValueType, label: str | None = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None, duration=None, unit=None):
         """Create new U1 gate."""
         super().__init__("u1", 1, [theta], label=label)
 
