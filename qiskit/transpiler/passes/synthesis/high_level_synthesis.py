@@ -13,7 +13,7 @@
 
 """Synthesize higher-level objects."""
 
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 
 from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag
@@ -212,10 +212,10 @@ class HighLevelSynthesis(TransformationPass):
             qubits = (
                 [dag.find_bit(x).index for x in node.qargs] if self._use_qubit_indices else None
             )
-            decomposition = self._recursively_handle_op(node.op, qubits)
+            decomposition, modified = self._recursively_handle_op(node.op, qubits)
 
-            if not isinstance(decomposition, (QuantumCircuit, Operation)):
-                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {node.op}.")
+            if not modified:
+                continue
 
             if isinstance(decomposition, QuantumCircuit):
                 dag.substitute_node_with_dag(
@@ -228,18 +228,18 @@ class HighLevelSynthesis(TransformationPass):
 
     def _recursively_handle_op(
         self, op: Operation, qubits: Optional[List] = None
-    ) -> Union[Operation, QuantumCircuit]:
+    ) -> Tuple[Union[Operation, QuantumCircuit], bool]:
         """Recursively synthesizes a single operation.
 
-        The result can be either another operation or a quantum circuit.
+        There are several possible results:
 
-        Some examples when the result can be another operation:
-        Adding control to CX-gate results in CCX-gate,
-        Adding inverse to SGate results in SdgGate.
+        - The given operation is unchanged
+        - The result is a quantum circuit: e.g., synthesizing Clifford using plugin
+        - The result is an Operation: e.g., adding control to CXGate results in CCXGate
 
-        Some examples when the result can be a quantum circuit:
-        Synthesizing a LinearFunction produces a quantum circuit consisting of
-        CX-gates.
+        The function returns the result of the synthesis (either a quantum circuit or
+        an Operation), and, as an optimization, a boolean indicating whether
+        synthesis did anything.
 
         The function is recursive as synthesizing an annotated operation
         involves synthesizing its "base operation" which might also be
@@ -249,16 +249,16 @@ class HighLevelSynthesis(TransformationPass):
         # First, try to apply plugin mechanism
         decomposition = self._synthesize_op_using_plugins(op, qubits)
         if decomposition:
-            return decomposition
+            return decomposition, True
 
         # Second, handle annotated operations
         # For now ignore the qubits over which the annotated operation is defined.
         decomposition = self._synthesize_annotated_op(op)
         if decomposition:
-            return decomposition
+            return decomposition, True
 
         # In the future, we will support recursion.
-        return op
+        return op, False
 
     def _synthesize_op_using_plugins(
         self, op: Operation, qubits: List
@@ -337,7 +337,7 @@ class HighLevelSynthesis(TransformationPass):
         """
         if isinstance(op, AnnotatedOperation):
             # Currently, we ignore the qubits when recursively synthesizing the base operation.
-            synthesized_op = self._recursively_handle_op(op.base_op, qubits=None)
+            synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
 
             # Currently, we depend on recursive synthesis producing either a QuantumCircuit or a Gate.
             # If in the future we will want to allow HighLevelSynthesis to synthesize, say,
