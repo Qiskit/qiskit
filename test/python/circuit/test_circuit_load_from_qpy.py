@@ -176,11 +176,13 @@ class TestLoadFromQPY(QiskitTestCase):
         unitary = np.array([[0, 1], [1, 0]])
         gate = UnitaryGate(unitary)
         qc.append(gate.control(1), [0, 1])
+
         with io.BytesIO() as qpy_file:
             dump(qc, qpy_file)
             qpy_file.seek(0)
             new_circ = load(qpy_file)[0]
-        self.assertEqual(qc.decompose(reps=6), new_circ.decompose(reps=6))
+
+        self.assertEqual(qc.decompose(reps=5), new_circ.decompose(reps=5))
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_opaque_gate(self):
