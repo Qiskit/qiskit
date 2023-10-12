@@ -2266,6 +2266,8 @@ class QuantumCircuit:
         in the already existing classical bits, with qubit ``n`` being measured into classical bit
         ``n``.
 
+        A barrier gate is inserted before the measurement statements.
+
         Returns a new circuit with measurements if ``inplace=False``.
 
         Args:
@@ -2818,14 +2820,23 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
         """
-        from .barrier import Barrier
+        qubits: list[QubitSpecifier] = []
 
-        qubits = (
-            # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
-            list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
-            if qargs
-            else self.qubits.copy()
-        )
+        if not qargs:  # None
+            qubits.extend(self.qubits)
+
+        for qarg in qargs:
+            if isinstance(qarg, QuantumRegister):
+                qubits.extend([qarg[j] for j in range(qarg.size)])
+            elif isinstance(qarg, list):
+                qubits.extend(qarg)
+            elif isinstance(qarg, range):
+                qubits.extend(list(qarg))
+            elif isinstance(qarg, slice):
+                qubits.extend(self.qubits[qarg])
+            else:
+                qubits.append(qarg)
+
         return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
