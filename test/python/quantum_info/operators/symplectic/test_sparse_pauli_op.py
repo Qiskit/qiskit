@@ -24,6 +24,10 @@ from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library import EfficientSU2
+from qiskit.primitives import BackendEstimator
+from qiskit.providers.fake_provider import FakeNairobiV2
+from qiskit.compiler.transpiler import transpile
 
 
 def pauli_mat(label):
@@ -150,6 +154,7 @@ class TestSparsePauliOpInit(QiskitTestCase):
             self.assertEqual(spp_op, ref_op)
 
 
+@ddt
 class TestSparsePauliOpConversions(QiskitTestCase):
     """Tests SparsePauliOp representation conversions."""
 
@@ -227,6 +232,22 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+
+    @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
+    def test_from_empty_iterable(self, iterable, num_qubits):
+        """Test from_list method for empty iterable input."""
+        with self.assertRaises(QiskitError):
+            _ = SparsePauliOp.from_list(iterable)
+        spp_op = SparsePauliOp.from_list(iterable, num_qubits=num_qubits)
+        self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
+        np.testing.assert_array_equal(spp_op.coeffs, [0])
+
+    @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
+    def test_from_sparse_empty_iterable(self, iterable, num_qubits):
+        """Test from_sparse_list method for empty iterable input."""
+        spp_op = SparsePauliOp.from_sparse_list(iterable, num_qubits)
+        self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
+        np.testing.assert_array_equal(spp_op.coeffs, [0])
 
     def test_to_matrix(self):
         """Test to_matrix method."""
@@ -615,7 +636,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         if value == 0:
             np.testing.assert_array_equal(value_mat, target.astype(complex))
         else:
-            np.testing.assert_allclose(value_mat, target)
+            np.testing.assert_allclose(value_mat, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
         target = spp_op.to_matrix() * value
         op = spp_op * value
@@ -930,12 +951,21 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
 
-    @combine(parameterized=[True, False])
-    def test_group_commuting(self, parameterized):
+    @combine(parameterized=[True, False], qubit_wise=[True, False])
+    def test_group_commuting(self, parameterized, qubit_wise):
         """Test general grouping commuting operators"""
 
-        def commutes(left: Pauli, right: Pauli) -> bool:
-            return len(left) == len(right) and left.commutes(right)
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
 
         input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "YX", "ZX", "ZY", "XZ", "YZ"]
         np.random.shuffle(input_labels)
@@ -944,7 +974,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         else:
             coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
         sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
-        groups = sparse_pauli_list.group_commuting()
+        groups = sparse_pauli_list.group_commuting(qubit_wise)
         # checking that every input Pauli in sparse_pauli_list is in a group in the ouput
         output_labels = [pauli.to_label() for group in groups for pauli in group.paulis]
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
@@ -957,14 +987,17 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         # Within each group, every operator commutes with every other operator.
         for group in groups:
             self.assertTrue(
-                all(commutes(pauli1, pauli2) for pauli1, pauli2 in it.combinations(group.paulis, 2))
+                all(
+                    commutes(pauli1, pauli2, qubit_wise)
+                    for pauli1, pauli2 in it.combinations(group.paulis, 2)
+                )
             )
         # For every pair of groups, at least one element from one group does not commute with
         # at least one element of the other.
         for group1, group2 in it.combinations(groups, 2):
             self.assertFalse(
                 all(
-                    commutes(group1_pauli, group2_pauli)
+                    commutes(group1_pauli, group2_pauli, qubit_wise)
                     for group1_pauli, group2_pauli in it.product(group1.paulis, group2.paulis)
                 )
             )
@@ -1002,6 +1035,73 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         bound = op.assign_parameters([3])
         with self.subTest(msg="fully bound"):
             self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
+
+    def test_paulis_setter_rejects_bad_inputs(self):
+        """Test that the setter for `paulis` rejects different-sized inputs."""
+        op = SparsePauliOp(["XY", "ZX"], coeffs=[1, 1j])
+        with self.assertRaisesRegex(ValueError, "incorrect number of qubits"):
+            op.paulis = PauliList([Pauli("X"), Pauli("Y")])
+        with self.assertRaisesRegex(ValueError, "incorrect number of operators"):
+            op.paulis = PauliList([Pauli("XY"), Pauli("ZX"), Pauli("YZ")])
+
+    def test_apply_layout_with_transpile(self):
+        """Test the apply_layout method with a transpiler layout."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
+        backend = FakeNairobiV2()
+        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        identity_op = SparsePauliOp("I" * 7)
+        initial_layout = transpiled_psi.layout.initial_index_layout(filter_ancillas=True)
+        final_layout = transpiled_psi.layout.routing_permutation()
+        qargs = [final_layout[x] for x in initial_layout]
+        expected_op = identity_op.compose(op, qargs=qargs)
+        self.assertNotEqual(op, permuted_op)
+        self.assertEqual(permuted_op, expected_op)
+
+    def test_permute_sparse_pauli_op_estimator_example(self):
+        """Test using the apply_layout method with an estimator workflow."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
+        backend = FakeNairobiV2()
+        backend.set_options(seed_simulator=123)
+        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        thetas = list(range(len(psi.parameters)))
+        transpiled_psi = transpile(psi, backend, optimization_level=3)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        job = estimator.run(transpiled_psi, permuted_op, thetas)
+        res = job.result().values
+        np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
+
+    def test_apply_layout_invalid_qubits_list(self):
+        """Test that apply_layout with an invalid qubit count raises."""
+        op = SparsePauliOp.from_list([("YI", 2), ("XI", 1)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 1], 1)
+
+    def test_apply_layout_invalid_layout_list(self):
+        """Test that apply_layout with an invalid layout list raises."""
+        op = SparsePauliOp.from_list([("YI", 2), ("IX", 1)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 3], 2)
+
+    def test_apply_layout_invalid_layout_list_no_num_qubits(self):
+        """Test that apply_layout with an invalid layout list raises."""
+        op = SparsePauliOp.from_list([("YI", 2), ("XI", 1)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 2])
+
+    def test_apply_layout_layout_list_no_num_qubits(self):
+        """Test apply_layout with a layout list and no qubit count"""
+        op = SparsePauliOp.from_list([("YI", 2), ("XI", 1)])
+        res = op.apply_layout([1, 0])
+        self.assertEqual(SparsePauliOp.from_list([("IY", 2), ("IX", 1)]), res)
+
+    def test_apply_layout_layout_list_and_num_qubits(self):
+        """Test apply_layout with a layout list and qubit count"""
+        op = SparsePauliOp.from_list([("YI", 2), ("XI", 1)])
+        res = op.apply_layout([4, 0], 5)
+        self.assertEqual(SparsePauliOp.from_list([("IIIIY", 2), ("IIIIX", 1)]), res)
 
 
 if __name__ == "__main__":

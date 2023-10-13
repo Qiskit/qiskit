@@ -27,7 +27,6 @@ from ddt import ddt, data
 from qiskit import execute, QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library import (
     HGate,
     IGate,
@@ -51,6 +50,7 @@ from qiskit.circuit.library import (
     RXGate,
     RYGate,
     RZGate,
+    UnitaryGate,
 )
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
@@ -1530,7 +1530,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
             self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
 
-    @data(*list(range(3, 6)))
+    @data(*list(range(1, 6)))
     def test_opt_a1a2(self, nqubits):
         """Test decomposition with both optimization a1 and a2 from shende2006"""
         dim = 2**nqubits
@@ -1538,9 +1538,114 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         circ = self.qsd(umat, opt_a1=True, opt_a2=True)
         ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
         self.assertTrue(Operator(umat) == Operator(ccirc))
-        self.assertEqual(
-            ccirc.count_ops().get("cx"), (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3
+        if nqubits > 2:
+            self.assertEqual(
+                ccirc.count_ops().get("cx"),
+                (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3,
+            )
+        elif nqubits == 1:
+            self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
+        elif nqubits == 2:
+            self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
+
+    def test_a2_opt_single_2q(self):
+        """
+        Test a2_opt when a unitary causes a single final 2-qubit unitary for which this optimization
+        won't help. This came up in issue 10787.
+        """
+        # this somewhat unique signed permutation matrix seems to cause the issue
+        mat = np.array(
+            [
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                ],
+                [
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+            ]
         )
+
+        gate = UnitaryGate(mat)
+        qc = QuantumCircuit(3)
+        qc.append(gate, range(3))
+        try:
+            qc.to_gate().control(1)
+        except UnboundLocalError as uerr:
+            self.fail(str(uerr))
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):

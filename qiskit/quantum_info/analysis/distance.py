@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """A collection of discrete probability metrics."""
+from __future__ import annotations
 import numpy as np
 
 
-def hellinger_distance(dist_p, dist_q):
+def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
     """Computes the Hellinger distance between
     two counts distributions.
 
@@ -53,7 +54,7 @@ def hellinger_distance(dist_p, dist_q):
     return dist
 
 
-def hellinger_fidelity(dist_p, dist_q):
+def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
     """Computes the Hellinger fidelity between
     two counts distributions.
 

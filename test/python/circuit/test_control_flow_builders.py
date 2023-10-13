@@ -26,6 +26,7 @@ from qiskit.circuit import (
     QuantumRegister,
     Qubit,
 )
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
 from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
@@ -92,6 +93,32 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.measure(qr, cr)
         expected.if_test((cr, 0), if_true0, [qr[0]], cr)
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_if_expr(self):
+        """Test a simple if statement builds correctly, when using an expression as the condition.
+        This requires the builder to unpack all the bits from contained registers to use as
+        resources."""
+        qr = QuantumRegister(2)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+
+        test = QuantumCircuit(qr, cr1, cr2)
+        test.measure(qr, cr1)
+        test.measure(qr, cr2)
+        with test.if_test(expr.less(cr1, expr.bit_not(cr2))):
+            test.x(0)
+
+        if_true0 = QuantumCircuit([qr[0]], cr1, cr2)
+        if_true0.x(qr[0])
+
+        expected = QuantumCircuit(qr, cr1, cr2)
+        expected.measure(qr, cr1)
+        expected.measure(qr, cr2)
+        expected.if_test(
+            expr.less(cr1, expr.bit_not(cr2)), if_true0, [qr[0]], list(cr1) + list(cr2)
+        )
 
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
@@ -279,6 +306,116 @@ class TestControlFlowBuilders(QiskitTestCase):
                 clbits + list(cr1),
             )
 
+    def test_expr_condition_in_nested_block(self):
+        """Test that nested blocks can use expressions with registers of the outermost circuits as
+        conditions, and they get propagated through all the blocks."""
+
+        qr = QuantumRegister(2)
+        clbits = [Clbit(), Clbit(), Clbit()]
+        cr1 = ClassicalRegister(3)
+        # Try aliased classical registers as well, to catch potential overlap bugs.
+        cr2 = ClassicalRegister(bits=clbits[:2])
+        cr3 = ClassicalRegister(bits=clbits[1:])
+        cr4 = ClassicalRegister(bits=clbits)
+
+        with self.subTest("for/if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.if_test(expr.equal(cr1, 0)):
+                    test.x(0)
+                with test.if_test(expr.less(expr.bit_or(cr2, 1), 2)):
+                    test.y(0)
+                with test.if_test(expr.cast(expr.bit_not(cr3), types.Bool())):
+                    test.z(0)
+
+            true_body1 = QuantumCircuit([qr[0]], cr1)
+            true_body1.x(0)
+            true_body2 = QuantumCircuit([qr[0]], cr2)
+            true_body2.y(0)
+            true_body3 = QuantumCircuit([qr[0]], cr3)
+            true_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)  # but not cr4.
+            for_body.if_test(expr.equal(cr1, 0), true_body1, [qr[0]], cr1)
+            for_body.if_test(expr.less(expr.bit_or(cr2, 1), 2), true_body2, [qr[0]], cr2)
+            for_body.if_test(expr.cast(expr.bit_not(cr3), types.Bool()), true_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("for/while"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.while_loop(expr.equal(cr1, 0)):
+                    test.x(0)
+                with test.while_loop(expr.less(expr.bit_or(cr2, 1), 2)):
+                    test.y(0)
+                with test.while_loop(expr.cast(expr.bit_not(cr3), types.Bool())):
+                    test.z(0)
+
+            while_body1 = QuantumCircuit([qr[0]], cr1)
+            while_body1.x(0)
+            while_body2 = QuantumCircuit([qr[0]], cr2)
+            while_body2.y(0)
+            while_body3 = QuantumCircuit([qr[0]], cr3)
+            while_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
+            for_body.while_loop(expr.equal(cr1, 0), while_body1, [qr[0]], cr1)
+            for_body.while_loop(expr.less(expr.bit_or(cr2, 1), 2), while_body2, [qr[0]], cr2)
+            for_body.while_loop(
+                expr.cast(expr.bit_not(cr3), types.Bool()), while_body3, [qr[0]], cr3
+            )
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("switch/if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.switch(expr.lift(cr1)) as case_:
+                with case_(0):
+                    with test.if_test(expr.less(expr.bit_or(cr2, 1), 2)):
+                        test.x(0)
+                with case_(1, 2):
+                    with test.if_test(expr.cast(expr.bit_not(cr3), types.Bool())):
+                        test.y(0)
+                with case_(case_.DEFAULT):
+                    with test.if_test(expr.not_equal(cr4, 0)):
+                        test.z(0)
+
+            true_body1 = QuantumCircuit([qr[0]], cr2)
+            true_body1.x(0)
+            case_body1 = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            case_body1.if_test(expr.less(expr.bit_or(cr2, 1), 2), true_body1, [qr[0]], cr2)
+
+            true_body2 = QuantumCircuit([qr[0]], cr3)
+            true_body2.y(0)
+            case_body2 = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            case_body2.if_test(expr.cast(expr.bit_not(cr3), types.Bool()), true_body2, [qr[0]], cr3)
+
+            true_body3 = QuantumCircuit([qr[0]], cr4)
+            true_body3.z(0)
+            case_body3 = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            case_body3.if_test(expr.not_equal(cr4, 0), true_body3, [qr[0]], cr4)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.switch(
+                expr.lift(cr1),
+                [
+                    (0, case_body1),
+                    ((1, 2), case_body2),
+                    (CASE_DEFAULT, case_body3),
+                ],
+                [qr[0]],
+                clbits + list(cr1),
+            )
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
     def test_if_else_simple(self):
         """Test a simple if/else statement builds correctly, in the midst of other instructions.
         This test has paired if and else blocks the same natural width."""
@@ -321,6 +458,53 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.h(qubits[0])
         expected.measure(qubits[0], clbits[1])
         expected.if_else((clbits[1], 0), if_true1, if_false1, [qubits[0], qubits[1]], [clbits[1]])
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_if_else_expr_simple(self):
+        """Test a simple if/else statement builds correctly, in the midst of other instructions.
+        This test has paired if and else blocks the same natural width."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+
+        test = QuantumCircuit(qubits, clbits)
+        test.h(0)
+        test.measure(0, 0)
+        with test.if_test(expr.lift(clbits[0])) as else_:
+            test.x(0)
+        with else_:
+            test.z(0)
+        test.h(0)
+        test.measure(0, 1)
+        with test.if_test(expr.logic_not(clbits[1])) as else_:
+            test.h(1)
+            test.cx(1, 0)
+        with else_:
+            test.h(0)
+            test.h(1)
+
+        # Both the if and else blocks in this circuit are the same natural width to begin with.
+        if_true0 = QuantumCircuit([qubits[0], clbits[0]])
+        if_true0.x(qubits[0])
+        if_false0 = QuantumCircuit([qubits[0], clbits[0]])
+        if_false0.z(qubits[0])
+
+        if_true1 = QuantumCircuit([qubits[0], qubits[1], clbits[1]])
+        if_true1.h(qubits[1])
+        if_true1.cx(qubits[1], qubits[0])
+        if_false1 = QuantumCircuit([qubits[0], qubits[1], clbits[1]])
+        if_false1.h(qubits[0])
+        if_false1.h(qubits[1])
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.h(qubits[0])
+        expected.measure(qubits[0], clbits[0])
+        expected.if_else(expr.lift(clbits[0]), if_true0, if_false0, [qubits[0]], [clbits[0]])
+        expected.h(qubits[0])
+        expected.measure(qubits[0], clbits[1])
+        expected.if_else(
+            expr.logic_not(clbits[1]), if_true1, if_false1, [qubits[0], qubits[1]], [clbits[1]]
+        )
 
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
@@ -537,6 +721,70 @@ class TestControlFlowBuilders(QiskitTestCase):
             expected.if_else(outer_cond, outer_true, outer_false, qubits, [clbits[0], clbits[2]])
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
+    def test_if_else_expr_nested(self):
+        """Test that the if and else context managers can be nested, and don't interfere with each
+        other."""
+        qubits = [Qubit(), Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "c")
+
+        outer_cond = expr.logic_not(clbits[0])
+        inner_cond = expr.logic_and(clbits[2], expr.greater(cr, 1))
+
+        with self.subTest("if (if) else"):
+            test = QuantumCircuit(qubits, clbits, cr)
+            with test.if_test(outer_cond) as else_:
+                with test.if_test(inner_cond):
+                    test.h(0)
+            with else_:
+                test.h(1)
+
+            inner_true = QuantumCircuit([qubits[0], clbits[2]], cr)
+            inner_true.h(qubits[0])
+
+            outer_true = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[2]], cr)
+            outer_true.if_test(inner_cond, inner_true, [qubits[0]], [clbits[2]] + list(cr))
+            outer_false = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[2]], cr)
+            outer_false.h(qubits[1])
+
+            expected = QuantumCircuit(qubits, clbits, cr)
+            expected.if_else(
+                outer_cond,
+                outer_true,
+                outer_false,
+                [qubits[0], qubits[1]],
+                [clbits[0], clbits[2]] + list(cr),
+            )
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("if (if else) else"):
+            test = QuantumCircuit(qubits, clbits, cr)
+            with test.if_test(outer_cond) as outer_else:
+                with test.if_test(inner_cond) as inner_else:
+                    test.h(0)
+                with inner_else:
+                    test.h(2)
+            with outer_else:
+                test.h(1)
+
+            inner_true = QuantumCircuit([qubits[0], qubits[2], clbits[2]], cr)
+            inner_true.h(qubits[0])
+            inner_false = QuantumCircuit([qubits[0], qubits[2], clbits[2]], cr)
+            inner_false.h(qubits[2])
+
+            outer_true = QuantumCircuit(qubits, [clbits[0], clbits[2]], cr)
+            outer_true.if_else(
+                inner_cond, inner_true, inner_false, [qubits[0], qubits[2]], [clbits[2]] + list(cr)
+            )
+            outer_false = QuantumCircuit(qubits, [clbits[0], clbits[2]], cr)
+            outer_false.h(qubits[1])
+
+            expected = QuantumCircuit(qubits, clbits, cr)
+            expected.if_else(
+                outer_cond, outer_true, outer_false, qubits, [clbits[0], clbits[2]] + list(cr)
+            )
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
     def test_switch_simple(self):
         """Individual labels switch test."""
         qubits = [Qubit(), Qubit(), Qubit()]
@@ -566,6 +814,127 @@ class TestControlFlowBuilders(QiskitTestCase):
             [(0, body0), (1, body1), (2, body2), (3, body3)],
             [qubits[0], qubits[2]],
             list(creg),
+        )
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_expr_simple(self):
+        """Individual labels switch test."""
+        qubits = [Qubit(), Qubit(), Qubit()]
+        creg = ClassicalRegister(2)
+        test = QuantumCircuit(qubits, creg)
+        with test.switch(expr.bit_and(creg, 2)) as case:
+            with case(0):
+                test.x(0)
+            with case(1):
+                test.x(2)
+            with case(2):
+                test.h(0)
+            with case(3):
+                test.h(2)
+
+        body0 = QuantumCircuit([qubits[0], qubits[2]], creg)
+        body0.x(qubits[0])
+        body1 = QuantumCircuit([qubits[0], qubits[2]], creg)
+        body1.x(qubits[2])
+        body2 = QuantumCircuit([qubits[0], qubits[2]], creg)
+        body2.h(qubits[0])
+        body3 = QuantumCircuit([qubits[0], qubits[2]], creg)
+        body3.h(qubits[2])
+        expected = QuantumCircuit(qubits, creg)
+        expected.switch(
+            expr.bit_and(creg, 2),
+            [(0, body0), (1, body1), (2, body2), (3, body3)],
+            [qubits[0], qubits[2]],
+            list(creg),
+        )
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_nested(self):
+        """Individual labels switch test."""
+        qubits = [Qubit(), Qubit(), Qubit()]
+        cr1 = ClassicalRegister(2, "c1")
+        cr2 = ClassicalRegister(2, "c2")
+        cr3 = ClassicalRegister(3, "c3")
+        loose = Clbit()
+        test = QuantumCircuit(qubits, cr1, cr2, cr3, [loose])
+        with test.switch(cr1) as case_outer:
+            with case_outer(0), test.switch(loose) as case_inner, case_inner(False):
+                test.x(0)
+            with case_outer(1), test.switch(cr2) as case_inner, case_inner(0):
+                test.x(1)
+
+        body0_0 = QuantumCircuit([qubits[0]], [loose])
+        body0_0.x(qubits[0])
+        body0 = QuantumCircuit([qubits[0], qubits[1]], cr1, cr2, [loose])
+        body0.switch(
+            loose,
+            [(False, body0_0)],
+            [qubits[0]],
+            [loose],
+        )
+
+        body1_0 = QuantumCircuit([qubits[1]], cr2)
+        body1_0.x(qubits[1])
+        body1 = QuantumCircuit([qubits[0], qubits[1]], cr1, cr2, [loose])
+        body1.switch(
+            cr2,
+            [(0, body1_0)],
+            [qubits[1]],
+            list(cr2),
+        )
+
+        expected = QuantumCircuit(qubits, cr1, cr2, cr3, [loose])
+        expected.switch(
+            cr1,
+            [(0, body0), (1, body1)],
+            [qubits[0], qubits[1]],
+            list(cr1) + list(cr2) + [loose],
+        )
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_expr_nested(self):
+        """Individual labels switch test."""
+        qubits = [Qubit(), Qubit(), Qubit()]
+        cr1 = ClassicalRegister(2, "c1")
+        cr2 = ClassicalRegister(2, "c2")
+        cr3 = ClassicalRegister(3, "c3")
+        loose = Clbit()
+        test = QuantumCircuit(qubits, cr1, cr2, cr3, [loose])
+        with test.switch(expr.bit_and(cr1, 2)) as case_outer:
+            with case_outer(0), test.switch(expr.lift(loose)) as case_inner, case_inner(False):
+                test.x(0)
+            with case_outer(1), test.switch(expr.bit_and(cr2, 2)) as case_inner, case_inner(0):
+                test.x(1)
+
+        body0_0 = QuantumCircuit([qubits[0]], [loose])
+        body0_0.x(qubits[0])
+        body0 = QuantumCircuit([qubits[0], qubits[1]], cr1, cr2, [loose])
+        body0.switch(
+            expr.lift(loose),
+            [(False, body0_0)],
+            [qubits[0]],
+            [loose],
+        )
+
+        body1_0 = QuantumCircuit([qubits[1]], cr2)
+        body1_0.x(qubits[1])
+        body1 = QuantumCircuit([qubits[0], qubits[1]], cr1, cr2, [loose])
+        body1.switch(
+            expr.bit_and(cr2, 2),
+            [(0, body1_0)],
+            [qubits[1]],
+            list(cr2),
+        )
+
+        expected = QuantumCircuit(qubits, cr1, cr2, cr3, [loose])
+        expected.switch(
+            expr.bit_and(cr1, 2),
+            [(0, body0), (1, body1)],
+            [qubits[0], qubits[1]],
+            list(cr1) + list(cr2) + [loose],
         )
 
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
@@ -2570,6 +2939,64 @@ class TestControlFlowBuilders(QiskitTestCase):
                 expected.x(0)
 
             self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
+
+    def test_global_phase_of_blocks(self):
+        """It should be possible to set a global phase of a scope independantly of the containing
+        scope and other sibling scopes."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr, global_phase=math.pi)
+
+        with qc.if_test((qc.clbits[0], False)):
+            # This scope's phase shouldn't be affected by the outer scope.
+            self.assertEqual(qc.global_phase, 0.0)
+            qc.global_phase += math.pi / 2
+            self.assertEqual(qc.global_phase, math.pi / 2)
+        # Back outside the scope, the phase shouldn't have changed...
+        self.assertEqual(qc.global_phase, math.pi)
+        # ... but we still should be able to see the phase in the built block definition.
+        self.assertEqual(qc.data[-1].operation.blocks[0].global_phase, math.pi / 2)
+
+        with qc.while_loop((qc.clbits[1], False)):
+            self.assertEqual(qc.global_phase, 0.0)
+            qc.global_phase = 1 * math.pi / 7
+            with qc.for_loop(range(3)):
+                self.assertEqual(qc.global_phase, 0.0)
+                qc.global_phase = 2 * math.pi / 7
+
+            with qc.if_test((qc.clbits[2], False)) as else_:
+                self.assertEqual(qc.global_phase, 0.0)
+                qc.global_phase = 3 * math.pi / 7
+            with else_:
+                self.assertEqual(qc.global_phase, 0.0)
+                qc.global_phase = 4 * math.pi / 7
+
+            with qc.switch(cr) as case:
+                with case(0):
+                    self.assertEqual(qc.global_phase, 0.0)
+                    qc.global_phase = 5 * math.pi / 7
+                with case(case.DEFAULT):
+                    self.assertEqual(qc.global_phase, 0.0)
+                    qc.global_phase = 6 * math.pi / 7
+
+        while_body = qc.data[-1].operation.blocks[0]
+        for_body = while_body.data[0].operation.blocks[0]
+        if_body, else_body = while_body.data[1].operation.blocks
+        case_0_body, case_default_body = while_body.data[2].operation.blocks
+
+        # The setter should respect exact floating-point equality since the values are in the
+        # interval [0, pi).
+        self.assertEqual(
+            [
+                while_body.global_phase,
+                for_body.global_phase,
+                if_body.global_phase,
+                else_body.global_phase,
+                case_0_body.global_phase,
+                case_default_body.global_phase,
+            ],
+            [i * math.pi / 7 for i in range(1, 7)],
+        )
 
 
 @ddt.ddt

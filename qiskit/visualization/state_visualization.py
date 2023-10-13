@@ -24,9 +24,10 @@ import colorsys
 import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -35,11 +36,8 @@ from .utils import matplotlib_close_if_inline
 from .exceptions import VisualizationError
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_state_hinton(
-    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
-):
+def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, filename=None):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     The hinton diagram represents the values of a matrix using
@@ -253,14 +251,12 @@ def plot_bloch_vector(
     return None
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
     state,
     title="",
     figsize=None,
     *,
-    rho=None,
     reverse_bits=False,
     filename=None,
     font_size=None,
@@ -361,7 +357,6 @@ def plot_bloch_multivector(
         return fig.savefig(filename)
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_city(
     state,
@@ -372,7 +367,6 @@ def plot_state_city(
     ax_real=None,
     ax_imag=None,
     *,
-    rho=None,
     filename=None,
 ):
     """Plot the cityscape of quantum state.
@@ -515,6 +509,9 @@ def plot_state_city(
     min_dzi = np.min(dzi)
     max_dzi = np.max(dzi)
 
+    # There seems to be a rounding error in which some zero bars are negative
+    dzr = np.clip(dzr, 0, None)
+
     if ax1 is not None:
         fc1 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzr, color[0])
         for idx, cur_zpos in enumerate(zpos):
@@ -618,19 +615,19 @@ def plot_state_city(
         return fig.savefig(filename)
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_state_paulivec(
-    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
-):
-    r"""Plot the paulivec representation of a quantum state.
+def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, filename=None):
+    r"""Plot the Pauli-vector representation of a quantum state as bar graph.
 
-    Plot a bargraph of the density matrix of a quantum state using as a basis all
-    possible tensor products of Pauli operators and identities, that is,
-    :math:`\{\bigotimes_{i=0}^{N-1}P_i\}_{P_i\in \{I,X,Y,Z\}}`, where
-    :math:`N` is the number of qubits.
+    The Pauli-vector of a density matrix :math:`\rho` is defined by the expectation of each
+    possible tensor product of single-qubit Pauli operators (including the identity), that is
 
+    .. math ::
 
+        \rho = \frac{1}{2^n} \sum_{\sigma \in \{I, X, Y, Z\}^{\otimes n}}
+               \mathrm{Tr}(\sigma \rho) \sigma.
+
+    This function plots the coefficients :math:`\mathrm{Tr}(\sigma\rho)` as bar graph.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
@@ -789,7 +786,6 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_state_qsphere(
@@ -800,7 +796,6 @@ def plot_state_qsphere(
     show_state_phases=False,
     use_degrees=False,
     *,
-    rho=None,
     filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
@@ -1404,7 +1399,11 @@ class TextMatrix:
         self.state = state
         self.max_size = max_size
         if dims is None:  # show dims if state is not only qubits
-            if set(state.dims()) == {2}:
+            if (isinstance(state, (Statevector, DensityMatrix)) and set(state.dims()) == {2}) or (
+                isinstance(state, Operator)
+                and len(state.input_dims()) == len(state.output_dims())
+                and set(state.input_dims()) == set(state.output_dims()) == {2}
+            ):
                 dims = False
             else:
                 dims = True
@@ -1429,7 +1428,12 @@ class TextMatrix:
         if self.dims:
             data += ",\n"
             dimstr += " " * len(self.prefix)
-            dimstr += f"dims={self.state._op_shape.dims_l()}"
+            if isinstance(self.state, (Statevector, DensityMatrix)):
+                dimstr += f"dims={self.state._op_shape.dims_l()}"
+            else:
+                dimstr += f"input_dims={self.state.input_dims()}, "
+                dimstr += f"output_dims={self.state.output_dims()}"
+
         return self.prefix + data + dimstr + self.suffix
 
     def __repr__(self):
@@ -1561,4 +1565,4 @@ def _paulivec_data(state):
     rho = SparsePauliOp.from_operator(DensityMatrix(state))
     if rho.num_qubits is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    return rho.paulis.to_labels(), np.real(rho.coeffs)
+    return rho.paulis.to_labels(), np.real(rho.coeffs * 2**rho.num_qubits)

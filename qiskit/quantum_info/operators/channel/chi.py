@@ -15,6 +15,7 @@
 Chi-matrix representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 import numpy as np
 
@@ -26,6 +27,7 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_chi
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Chi(QuantumChannel):
@@ -37,11 +39,13 @@ class Chi(QuantumChannel):
 
     .. math::
 
-        \mathcal{E}(ρ) = \sum_{i, j} \chi_{i,j} P_i ρ P_j
+        \mathcal{E}(ρ) = \frac{1}{2^n} \sum_{i, j} \chi_{i,j} P_i ρ P_j
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order. It is related to the :class:`Choi` representation by a change
-    of basis of the Choi-matrix into the Pauli basis.
+    of basis of the Choi-matrix into the Pauli basis. The :math:`\frac{1}{2^n}`
+    in the definition above is a normalization factor that arises from scaling the
+    Pauli basis to make it orthonormal.
 
     See reference [1] for further details.
 
@@ -51,7 +55,12 @@ class Chi(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
+    ):
         """Initialize a quantum channel Chi-matrix operator.
 
         Args:
@@ -150,7 +159,7 @@ class Chi(QuantumChannel):
     def adjoint(self):
         return Chi(Choi(self).adjoint())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: Chi, qargs: list | None = None, front: bool = False) -> Chi:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -159,12 +168,12 @@ class Chi(QuantumChannel):
         # representation conversion to SuperOp and then convert back to Chi
         return Chi(Choi(self).compose(other, front=front))
 
-    def tensor(self, other):
+    def tensor(self, other: Chi) -> Chi:
         if not isinstance(other, Chi):
             other = Chi(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Chi) -> Chi:
         if not isinstance(other, Chi):
             other = Chi(other)
         return self._tensor(other, self)

@@ -12,7 +12,7 @@
 
 """Parameter Vector Class to simplify management of parameter lists."""
 
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from .parameter import Parameter
 
@@ -20,23 +20,10 @@ from .parameter import Parameter
 class ParameterVectorElement(Parameter):
     """An element of a ParameterVector."""
 
-    def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
-        obj = object.__new__(cls)
+    ___slots__ = ("_vector", "_index")
 
-        if uuid is None:
-            obj._uuid = uuid4()
-        else:
-            obj._uuid = uuid
-
-        obj._hash = hash(obj._uuid)
-        return obj
-
-    def __getnewargs__(self):
-        return (self.vector, self.index, self._uuid)
-
-    def __init__(self, vector, index):
-        name = f"{vector.name}[{index}]"
-        super().__init__(name)
+    def __init__(self, vector, index, uuid=None):
+        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
         self._vector = vector
         self._index = index
 
@@ -51,30 +38,28 @@ class ParameterVectorElement(Parameter):
         return self._vector
 
     def __getstate__(self):
-        return {
-            "name": self._name,
-            "uuid": self._uuid,
-            "vector": self._vector,
-            "index": self._index,
-        }
+        return super().__getstate__() + (self._vector, self._index)
 
     def __setstate__(self, state):
-        self._name = state["name"]
-        self._uuid = state["uuid"]
-        self._vector = state["vector"]
-        self._index = state["index"]
-        super().__init__(self._name)
+        *super_state, vector, index = state
+        super().__setstate__(super_state)
+        self._vector = vector
+        self._index = index
 
 
 class ParameterVector:
     """ParameterVector class to quickly generate lists of parameters."""
 
+    __slots__ = ("_name", "_params", "_size", "_root_uuid")
+
     def __init__(self, name, length=0):
         self._name = name
-        self._params = []
         self._size = length
-        for i in range(length):
-            self._params += [ParameterVectorElement(self, i)]
+        self._root_uuid = uuid4()
+        root_uuid_int = self._root_uuid.int
+        self._params = [
+            ParameterVectorElement(self, i, UUID(int=root_uuid_int + i)) for i in range(length)
+        ]
 
     @property
     def name(self):
@@ -119,6 +104,11 @@ class ParameterVector:
         This is to ensure that the parameter instances do not change.
         """
         if length > len(self._params):
-            for i in range(len(self._params), length):
-                self._params += [ParameterVectorElement(self, i)]
+            root_uuid_int = self._root_uuid.int
+            self._params.extend(
+                [
+                    ParameterVectorElement(self, i, UUID(int=root_uuid_int + i))
+                    for i in range(len(self._params), length)
+                ]
+            )
         self._size = length

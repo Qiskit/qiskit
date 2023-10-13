@@ -67,31 +67,16 @@ class TestAcquire(QiskitTestCase):
 
     def test_instructions_hash(self):
         """Test hashing for acquire instruction."""
-        kernel_opts = {"start_window": 0, "stop_window": 10}
-        kernel = configuration.Kernel(name="boxcar", **kernel_opts)
-
-        discriminator_opts = {
-            "neighborhoods": [{"qubits": 1, "channels": 1}],
-            "cal": "coloring",
-            "resample": False,
-        }
-        discriminator = configuration.Discriminator(
-            name="linear_discriminator", **discriminator_opts
-        )
         acq_1 = instructions.Acquire(
             10,
             channels.AcquireChannel(0),
             channels.MemorySlot(0),
-            kernel=kernel,
-            discriminator=discriminator,
             name="acquire",
         )
         acq_2 = instructions.Acquire(
             10,
             channels.AcquireChannel(0),
             channels.MemorySlot(0),
-            kernel=kernel,
-            discriminator=discriminator,
             name="acquire",
         )
 
@@ -132,7 +117,7 @@ class TestDelay(QiskitTestCase):
         op_delay = Operator(circ)
 
         expected = QuantumCircuit(1)
-        expected.i(0)
+        expected.id(0)
         op_identity = Operator(expected)
         self.assertEqual(op_delay, op_identity)
 

@@ -40,10 +40,10 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qasm.exceptions import QasmError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
+from qiskit.utils.deprecation import deprecate_func
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
@@ -94,15 +94,42 @@ class Instruction(Operation):
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
-        self.condition = None
+        self._condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-
         self._duration = duration
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
+
+    @property
+    def mutable(self) -> bool:
+        """Is this instance is a mutable unique instance or not.
+
+        If this attribute is ``False`` the gate instance is a shared singleton
+        and is not mutable.
+        """
+        return True
+
+    def to_mutable(self):
+        """Return a mutable copy of this gate.
+
+        This method will return a new mutable copy of this gate instance.
+        If a singleton instance is being used this will be a new unique
+        instance that can be mutated. If the instance is already mutable it
+        will be a deepcopy of that instance.
+        """
+        return self.copy()
+
+    @property
+    def condition(self):
+        """The classical condition on the instruction."""
+        return self._condition
+
+    @condition.setter
+    def condition(self, condition):
+        self._condition = condition
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -409,7 +436,7 @@ class Instruction(Operation):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.
             val = bool(val)
-        self.condition = (classical, val)
+        self._condition = (classical, val)
         return self
 
     def copy(self, name=None):
@@ -438,19 +465,29 @@ class Instruction(Operation):
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
+
         if self.condition is None:
             return string
         if not isinstance(self.condition[0], ClassicalRegister):
-            raise QasmError(
+            raise QASM2ExportError(
                 "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
             )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
+    @deprecate_func(
+        additional_msg=(
+            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
+            "safely be done on an object-by-object basis without context. No replacement will be "
+            "provided, because the premise is wrong."
+        ),
+        since="0.25.0",
+    )
     def qasm(self):
         """Return a default OpenQASM string for the instruction.
 
         Derived instructions may override this to print in a
-        different format (e.g. measure q[0] -> c[0];).
+        different format (e.g. ``measure q[0] -> c[0];``).
         """
         name_param = self.name
         if self.params:

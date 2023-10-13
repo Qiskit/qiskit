@@ -21,8 +21,10 @@ from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeYorktownV2
+from qiskit.utils import optionals
 
 
+@unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
 class TestCSPLayout(QiskitTestCase):
     """Tests the CSPLayout pass"""
 

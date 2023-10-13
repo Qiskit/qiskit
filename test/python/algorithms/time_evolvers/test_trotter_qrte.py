@@ -13,6 +13,8 @@
 """Test TrotterQRTE."""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -37,7 +39,9 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
 
     @data(
         (
@@ -94,7 +98,9 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         expected_evolved_state = Statevector(expected_psi)
 
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(estimator=estimator, num_timesteps=num_timesteps)
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
@@ -174,8 +180,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         time = 1
         evolution_problem = TimeEvolutionProblem(operator, time, initial_state)
 
-        algorithm_globals.random_seed = 0
-        trotter_qrte = TrotterQRTE(product_formula=QDrift())
+        trotter_qrte = TrotterQRTE(product_formula=QDrift(seed=0))
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
         np.testing.assert_array_almost_equal(
@@ -222,7 +227,9 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @staticmethod
     def _run_error_test(initial_state, operator, aux_ops, estimator, t_param, param_value_dict):
         time = 1
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
         trotter_qrte = TrotterQRTE(estimator=estimator)
         with assert_raises(ValueError):
             evolution_problem = TimeEvolutionProblem(

@@ -218,10 +218,7 @@ PropertySet
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   PassManagerError
+.. autoexception:: PassManagerError
 
 """
 
