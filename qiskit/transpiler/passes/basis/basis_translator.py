@@ -344,6 +344,23 @@ class BasisTranslator(TransformationPass):
 
                 else:
                     new_phase = old_phase.bind(bind_dict)
+                if not new_phase.parameters:
+                    if new_phase.is_real():
+                        new_phase = (
+                            int(new_phase)
+                            if new_phase._symbol_expr.is_integer
+                            else float(new_phase)
+                        )
+                    else:
+                        # If is_real() evals false try casting to a float
+                        # anyway in case there is a rounding error adding
+                        # a near 0 complex term
+                        try:
+                            new_phase = float(new_phase)
+                        except TypeError as exc:
+                            raise TranspilerError(
+                                f"Global phase: {new_phase} is complex which is invalid"
+                            ) from exc
                 try:
                     new_phase = float(new_phase)
                 except TypeError:
