@@ -52,17 +52,15 @@ a free form dictionary. A pass can populate the property set dictionary during t
 A flow controller can also consume the property set to control the pass execution,
 but this access must be read-only.
 The property set is portable and handed over from pass to pass at execution.
-In addition to the property set, task can also receive :class:`.PassState` data structure.
-This object is updated once after every pass logic is run, and thus the lifetime of the
-data is only during execution of a single pass.
-Pass or flow controller may determine termination condition based on the pass status.
-
+In addition to the property set, task can also receive :class:`.WorkflowStatus` data structure.
+This object is initialized when the first task is started and handed over to successors.
+The status is updated once after every pass logic is run.
 
 A pass manager is a wrapper of the flow controller, with responsibilities of
 
 * Scheduling optimization tasks,
 * Converting an input Python object to a particular Qiskit IR,
-* Initializing a property set and pass state,
+* Initializing a property set,
 * Running scheduled tasks to apply a series of transformations to the IR,
 * Converting the IR back to an output Python object.
 
@@ -193,7 +191,7 @@ Base classes
    :toctree: ../stubs/
 
    BasePassManager
-   BaseFlowController
+   BaseController
    GenericPass
 
 Flow controllers
@@ -214,7 +212,7 @@ PropertySet
 
    PropertySet
    FencedPropertySet
-   PassState
+   WorkflowStatus
 
 Exceptions
 ----------
@@ -228,6 +226,6 @@ Exceptions
 
 from .passmanager import BasePassManager
 from .flow_controllers import FlowController, ConditionalController, DoWhileController
-from .base_tasks import GenericPass, BaseFlowController
-from .propertyset import PropertySet, FencedPropertySet, PassState
+from .base_tasks import GenericPass, BaseController
+from .propertyset import PropertySet, FencedPropertySet, WorkflowStatus
 from .exceptions import PassManagerError

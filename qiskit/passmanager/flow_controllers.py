@@ -14,11 +14,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Callable
-from typing import Type
+from collections.abc import Callable, Iterable, Sequence, Generator
+from typing import Type, Any
 
+from qiskit.utils.deprecation import deprecate_func
 from .base_tasks import (
-    BaseFlowController,
+    BaseController,
     Task,
 )
 from .propertyset import PropertySet
@@ -52,10 +53,10 @@ class FlowControllerMeta(type):
     """
 
     def mro(cls) -> list[type]:
-        return [cls, BaseFlowController, Task, object]
+        return [cls, BaseController, Task, object]
 
     def __instancecheck__(cls, other):
-        return isinstance(other, BaseFlowController)
+        return isinstance(other, BaseController)
 
 
 class FlowController(metaclass=FlowControllerMeta):
@@ -104,10 +105,10 @@ class FlowController(metaclass=FlowControllerMeta):
         if None in controllers.values():
             raise PassManagerError("The controller needs a callable. Value cannot be None.")
 
-        if isinstance(passes, BaseFlowController):
+        if isinstance(passes, BaseController):
             instance = passes
         else:
-            instance = FlowControllerLinear(passes, options)
+            instance = FlowControllerLinear(passes, options=options)
 
         if controllers:
             # Alias in higher hierarchy becomes outer controller.
@@ -115,12 +116,11 @@ class FlowController(metaclass=FlowControllerMeta):
                 if alias not in controllers:
                     continue
                 class_type = cls.registered_controllers[alias]
-                init_args = {
-                    "passes": instance,
+                init_kwargs = {
                     "options": options,
                     alias: controllers.pop(alias),
                 }
-                instance = class_type(**init_args)
+                instance = class_type([instance], **init_kwargs)
 
         return instance
 
@@ -128,7 +128,7 @@ class FlowController(metaclass=FlowControllerMeta):
     def add_flow_controller(
         cls,
         name: str,
-        controller: Type[BaseFlowController],
+        controller: Type[BaseController],
     ):
         """Adds a flow controller.
 
@@ -159,51 +159,191 @@ class FlowController(metaclass=FlowControllerMeta):
         cls.hierarchy.remove(name)
 
 
-class FlowControllerLinear(BaseFlowController):
+class FlowControllerLinear(BaseController):
     """A standard flow controller that runs tasks one after the other."""
 
-    def __iter__(self) -> Iterator[Task]:
-        yield from self.pipeline
+    def __init__(
+        self,
+        tasks: Task | Iterable[Task] = (),
+        *,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(options)
+
+        if not isinstance(tasks, Sequence):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise PassManagerError("Added tasks are not all valid pass manager task types.")
+        self.tasks: tuple[Task] = tuple(tasks)
+
+    @property
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg="Use .tasks attribute instead.",
+        is_property=True,
+    )
+    def passes(self) -> list[Task]:
+        """Alias of pipeline for backward compatibility."""
+        return list(self.tasks)
+
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg="All tasks must be provided at construction time of the controller object.",
+    )
+    def append(
+        self,
+        passes: Task | list[Task],
+    ):
+        """Add new task to pipeline.
+
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Sequence):
+            passes = [passes]
+
+        tasks = list(self.tasks)
+        for task in passes:
+            if not isinstance(task, Task):
+                raise PassManagerError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            tasks.append(task)
+        self.tasks = tuple(tasks)
+
+    def iter_tasks(
+        self,
+        property_set: PropertySet,
+    ) -> Generator[Task]:
+        yield from self.tasks
 
 
-class DoWhileController(BaseFlowController):
+class DoWhileController(BaseController):
     """A flow controller that repeatedly run the entire pipeline until the condition is not met."""
 
     def __init__(
         self,
-        passes: list[Task] | None = None,
-        options: dict | None = None,
+        tasks: Task | Iterable[Task] = (),
         do_while: Callable[[PropertySet], bool] = None,
+        *,
+        options: dict[str, Any] | None = None,
     ):
-        super().__init__(passes=passes, options=options)
+        super().__init__(options)
+
+        if not isinstance(tasks, Sequence):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise PassManagerError("Added tasks are not all valid pass manager task types.")
+        self.tasks: tuple[Task] = tuple(tasks)
         self.do_while = do_while
 
-    def __iter__(self) -> Iterator[Task]:
+    @property
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg="Use .tasks attribute instead.",
+        is_property=True,
+    )
+    def passes(self) -> list[Task]:
+        """Alias of pipeline for backward compatibility."""
+        return list(self.tasks)
+
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg="All tasks must be provided at construction time of the controller object.",
+    )
+    def append(
+        self,
+        passes: Task | list[Task],
+    ):
+        """Add new task to pipeline.
+
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Sequence):
+            passes = [passes]
+
+        tasks = list(self.tasks)
+        for task in passes:
+            if not isinstance(task, Task):
+                raise PassManagerError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            tasks.append(task)
+        self.tasks = tuple(tasks)
+
+    def iter_tasks(
+        self,
+        property_set: PropertySet,
+    ) -> Generator[Task]:
         max_iteration = self._options.get("max_iteration", 1000)
         for _ in range(max_iteration):
-            yield from self.pipeline
-
-            if not self.do_while(self.property_set):
+            yield from self.tasks
+            if not self.do_while(property_set):
                 return
-
         raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
 
 
-class ConditionalController(BaseFlowController):
+class ConditionalController(BaseController):
     """A flow controller runs the pipeline once when the condition is met."""
 
     def __init__(
         self,
-        passes: list[Task] | None = None,
-        options: dict | None = None,
+        tasks: Task | Iterable[Task] = (),
         condition: Callable[[PropertySet], bool] = None,
+        *,
+        options: dict[str, Any] | None = None,
     ):
-        super().__init__(passes=passes, options=options)
+        super().__init__(options)
+
+        if not isinstance(tasks, Sequence):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise PassManagerError("Added tasks are not all valid pass manager task types.")
+        self.tasks: tuple[Task] = tuple(tasks)
         self.condition = condition
 
-    def __iter__(self) -> Iterator[Task]:
-        if self.condition(self.property_set):
-            yield from self.pipeline
+    @property
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg="Use .tasks attribute instead.",
+        is_property=True,
+    )
+    def passes(self) -> list[Task]:
+        """Alias of pipeline for backward compatibility."""
+        return list(self.tasks)
+
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg="All tasks must be provided at construction time of the controller object.",
+    )
+    def append(
+        self,
+        passes: Task | list[Task],
+    ):
+        """Add new task to pipeline.
+
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Sequence):
+            passes = [passes]
+
+        tasks = list(self.tasks)
+        for task in passes:
+            if not isinstance(task, Task):
+                raise PassManagerError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            tasks.append(task)
+        self.tasks = tuple(tasks)
+
+    def iter_tasks(
+        self,
+        property_set: PropertySet,
+    ) -> Generator[Task]:
+        if self.condition(property_set):
+            yield from self.tasks
 
 
 FlowController.add_flow_controller("condition", ConditionalController)

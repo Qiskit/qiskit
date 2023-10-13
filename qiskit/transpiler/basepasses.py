@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_tasks import GenericPass, Task
-from qiskit.passmanager.propertyset import PropertySet, PassState, RunState
+from qiskit.passmanager.propertyset import PropertySet, WorkflowStatus, RunState
 
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -191,34 +191,22 @@ class AnalysisPass(BasePass):  # pylint: disable=abstract-method
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
 
+    # pylint: disable=missing-function-docstring
     def execute(
         self,
         passmanager_ir: DAGCircuit,
+        status: WorkflowStatus | None = None,
         property_set: PropertySet | None = None,
-        state: PassState | None = None,
         callback: Callable = None,
     ) -> DAGCircuit:
-        """Execute optimization task for input passmanager IR.
-
-        Args:
-            passmanager_ir: Passmanager IR to optimize.
-            property_set: A mutable data collection shared among all tasks.
-            state: A local state information associated with this optimization workflow.
-            callback: A callback function which is caller per execution of optimization task.
-
-        Returns:
-            Optimized passmanager IR.
-        """
         new_dag = super().execute(
             passmanager_ir=passmanager_ir,
+            status=status,
             property_set=property_set,
-            state=state,
             callback=callback,
         )
 
-        if self.state.previous_run == RunState.SUCCESS:
-            self.state.completed_passes.intersection_update(set(self.preserves))
-
+        if status.previous_run == RunState.SUCCESS:
             if isinstance(new_dag, DAGCircuit):
                 # Copy calibration data from the original program
                 new_dag.calibrations = passmanager_ir.calibrations
@@ -229,3 +217,13 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
                 )
 
         return new_dag
+
+    # pylint: disable=missing-function-docstring
+    def update_status(
+        self,
+        status: WorkflowStatus,
+        run_state: RunState,
+    ):
+        super().update_status(status, run_state)
+        if run_state == RunState.SUCCESS:
+            status.completed_passes.intersection_update(set(self.preserves))

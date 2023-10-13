@@ -21,10 +21,10 @@ from typing import Any
 import dill
 
 from qiskit.tools.parallel import parallel_map
-from .base_tasks import Task
+from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear, FlowController
-from .propertyset import PassState, PropertySet
+from .propertyset import PropertySet
 
 logger = logging.getLogger(__name__)
 
@@ -34,23 +34,24 @@ class BasePassManager(ABC):
 
     def __init__(
         self,
-        passes: list[Task] = None,
+        tasks: list[Task] = None,
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
 
         Args:
-            passes: A pass set to be added to the pass manager schedule.
+            tasks: A pass set to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
         self._flow_controller = FlowControllerLinear()
         self.max_iteration = max_iteration
         self.property_set = PropertySet()
-        self.state = PassState()
 
-        if passes is not None:
-            self.append(passes)
+        # For backward compatibility.
+        # This wraps pass list with a linear flow controller.
+        if tasks is not None:
+            self.append(tasks)
 
     def append(
         self,
@@ -76,7 +77,7 @@ class BasePassManager(ABC):
             options={"max_iteration": self.max_iteration},
             **flow_controller_conditions,
         )
-        self._flow_controller.append(normalized_controller)
+        self._flow_controller.tasks += (normalized_controller,)
 
     def replace(
         self,
@@ -101,7 +102,9 @@ class BasePassManager(ABC):
             **flow_controller_conditions,
         )
         try:
-            self._flow_controller.pipeline[index] = normalized_controller
+            new_tasks = list(self._flow_controller.tasks)
+            new_tasks[index] = normalized_controller
+            self._flow_controller.tasks = tuple(new_tasks)
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -115,7 +118,9 @@ class BasePassManager(ABC):
             PassManagerError: If the index is not found.
         """
         try:
-            del self._flow_controller.pipeline[index]
+            new_tasks = list(self._flow_controller.tasks)
+            del new_tasks[index]
+            self._flow_controller.tasks = new_tasks
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -123,11 +128,11 @@ class BasePassManager(ABC):
         self.replace(index, item)
 
     def __len__(self):
-        return len(self._flow_controller.pipeline)
+        return len(self._flow_controller.tasks)
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_controller = FlowControllerLinear(self._flow_controller.pipeline[index])
+        new_controller = FlowControllerLinear(self._flow_controller.tasks[index])
         new_passmanager._flow_controller = new_controller
         return new_passmanager
 
@@ -135,7 +140,7 @@ class BasePassManager(ABC):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
         new_passmanager._flow_controller = self._flow_controller
         if isinstance(other, self.__class__):
-            new_passmanager._flow_controller.pipeline += other._flow_controller.pipeline
+            new_passmanager._flow_controller.tasks += other._flow_controller.tasks
             return new_passmanager
         else:
             try:
@@ -151,13 +156,13 @@ class BasePassManager(ABC):
         self,
         input_program: Any,
         **kwargs,
-    ) -> Any:
+    ) -> PassManagerIR:
         pass
 
     @abstractmethod
     def _passmanager_backend(
         self,
-        passmanager_ir: Any,
+        passmanager_ir: PassManagerIR,
         **kwargs,
     ) -> Any:
         pass
@@ -203,7 +208,7 @@ class BasePassManager(ABC):
         Returns:
             The transformed program(s).
         """
-        if not self._flow_controller.pipeline and not kwargs and callback is None:
+        if not self._flow_controller.tasks and not kwargs and callback is None:
             return in_programs
 
         is_list = True
@@ -266,14 +271,9 @@ def _run_workflow(
     passmanager_ir = flow_controller.execute(
         passmanager_ir=passmanager_ir,
         property_set=pass_manager.property_set,
-        state=pass_manager.state,
         callback=kwargs.get("callback", None),
     )
     out_program = pass_manager._passmanager_backend(passmanager_ir, **kwargs)
-
-    # Cleanup pass state after run.
-    pass_manager.state.count = 0
-    pass_manager.state.completed_passes.clear()
 
     return out_program
 

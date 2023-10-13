@@ -592,11 +592,13 @@ class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
 
     def __init__(self, passes, options, do_x_times, **_):
+        super().__init__(options)
+        self.passes = passes
         self.do_x_times = do_x_times
-        super().__init__(passes, options)
 
-    def __iter__(self):
-        for _ in range(self.do_x_times(self.fenced_property_set)):
+    # pylint: disable=missing-function-docstring
+    def iter_tasks(self, property_set):
+        for _ in range(self.do_x_times(property_set)):
             yield from self.passes
 
 

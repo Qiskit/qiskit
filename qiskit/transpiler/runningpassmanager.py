@@ -21,13 +21,14 @@ from typing import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.passmanager.propertyset import PropertySet
 from qiskit.passmanager.base_tasks import Task
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_func
 
 # pylint: disable=unused-import
 from qiskit.passmanager.flow_controllers import (
-    BaseFlowController,
+    BaseController,
     FlowController,
     FlowControllerLinear,
     # for backward compatibility
@@ -71,7 +72,7 @@ class RunningPassManager(FlowControllerLinear):
                 * do_while: The passes repeat until the callable returns False.
                 * condition: The passes run only if the callable returns True.
         """
-        if not isinstance(passes, BaseFlowController):
+        if not isinstance(passes, BaseController):
             normalized_controller = passes
         else:
             # Backward compatibility. Will be deprecated.
@@ -82,31 +83,9 @@ class RunningPassManager(FlowControllerLinear):
             )
         super().append(normalized_controller)
 
-    @property
-    @deprecate_func(
-        since="0.45",
-        additional_msg="Now RunningPassManager is a subclass of flow controller.",
-        pending=True,
-        is_property=True,
-    )
-    def count(self) -> int:
-        """Number of pass run."""
-        return self.state.count
-
-    @property
-    @deprecate_func(
-        since="0.45",
-        additional_msg="Now RunningPassManager is a subclass of flow controller.",
-        pending=True,
-        is_property=True,
-    )
-    def valid_passes(self) -> int:
-        """Passes already run that have not been invalidated."""
-        return self.state.completed_passes
-
     # pylint: disable=arguments-differ
     @deprecate_func(
-        since="0.45",
+        since="0.26.0",
         additional_msg="Now RunningPassManager is a subclass of flow controller.",
         pending=True,
     )
@@ -126,27 +105,33 @@ class RunningPassManager(FlowControllerLinear):
         Returns:
             QuantumCircuit: Transformed circuit.
         """
+        property_set = PropertySet()
+
         passmanager_ir = circuit_to_dag(circuit)
-        passmanager_ir = super().execute(passmanager_ir=passmanager_ir, callback=callback)
+        passmanager_ir = super().execute(
+            passmanager_ir=passmanager_ir,
+            property_set=property_set,
+            callback=callback,
+        )
 
         out_circuit = dag_to_circuit(passmanager_ir, copy_operations=False)
         out_circuit.name = output_name
 
-        if self.property_set["layout"] is not None:
+        if property_set["layout"] is not None:
             circuit._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
+                initial_layout=property_set["layout"],
+                input_qubit_mapping=property_set["original_qubit_indices"],
+                final_layout=property_set["final_layout"],
             )
-        circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
-        circuit._conditional_latency = self.property_set["conditional_latency"]
+        circuit._clbit_write_latency = property_set["clbit_write_latency"]
+        circuit._conditional_latency = property_set["conditional_latency"]
 
-        if self.property_set["node_start_time"]:
+        if property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
             # also converted into list with the same ordering with circuit.data.
             topological_start_times = []
-            start_times = self.property_set["node_start_time"]
+            start_times = property_set["node_start_time"]
             for dag_node in passmanager_ir.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
             circuit._op_start_times = topological_start_times

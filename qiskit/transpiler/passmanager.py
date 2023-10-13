@@ -84,18 +84,16 @@ class PassManager(BasePassManager):
         if out_name:
             out_program.name = out_name
 
-        property_set = self._flow_controller.property_set
-
-        if property_set["layout"] is not None:
+        if self.property_set["layout"] is not None:
             out_program._layout = TranspileLayout(
                 initial_layout=self.property_set["layout"],
-                input_qubit_mapping=property_set["original_qubit_indices"],
-                final_layout=property_set["final_layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+                final_layout=self.property_set["final_layout"],
             )
-        out_program._clbit_write_latency = property_set["clbit_write_latency"]
-        out_program._conditional_latency = property_set["conditional_latency"]
+        out_program._clbit_write_latency = self.property_set["clbit_write_latency"]
+        out_program._conditional_latency = self.property_set["conditional_latency"]
 
-        if property_set["node_start_time"]:
+        if self.property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
             # also converted into list with the same ordering with circuit.data.
@@ -143,7 +141,7 @@ class PassManager(BasePassManager):
         super().append(passes, **flow_controller_conditions)
 
         # Backward compatibility as of Terra 0.25
-        if isinstance(passes, GenericPass):
+        if isinstance(passes, Task):
             passes = [passes]
         self._pass_sets.append(
             {
@@ -435,7 +433,7 @@ class StagedPassManager(PassManager):
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
-                self._flow_controller.pipeline.extend(pm._flow_controller.pipeline)
+                self._flow_controller.tasks += pm._flow_controller.tasks
                 self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
@@ -472,7 +470,7 @@ class StagedPassManager(PassManager):
         # Do not inherit from the PassManager, i.e. super()
         # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
-        new_controller = RunningPassManager([self._flow_controller.pipeline[index]])
+        new_controller = RunningPassManager([self._flow_controller.tasks[index]])
         new_passmanager._flow_controller = new_controller
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
@@ -489,10 +487,6 @@ class StagedPassManager(PassManager):
 
     def __add__(self, other):
         raise NotImplementedError
-
-    def _create_running_passmanager(self) -> RunningPassManager:
-        self._update_passmanager()
-        return super()._create_running_passmanager()
 
     def passes(self) -> list[dict[str, BasePass]]:
         self._update_passmanager()

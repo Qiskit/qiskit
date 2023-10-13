@@ -55,11 +55,11 @@ class RunState(Enum):
 
 
 @dataclass
-class PassState:
-    """Collection of compilation status of a single pass.
+class WorkflowStatus:
+    """Collection of compilation status of workflow, i.e. pass manager run.
 
-    This information is initialized in the pass manager instance at construction time,
-    and recursively passed to flow controllers at running time.
+    This data structure is initialized by a pass manager instance at construction time,
+    and recursively handed over to controllers and passes at running time.
     Pass will update the status once after being executed, and the status will alive
     during the execution of a single pass.
     """
