@@ -554,14 +554,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 
 [[package]]
-name = "linear_algebra"
-version = "0.45.0"
-dependencies = [
- "faer",
- "pyo3",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -839,6 +831,8 @@ name = "qiskit_accelerate"
 version = "0.45.0"
 dependencies = [
  "ahash",
+ "faer",
+ "faer-core",
  "hashbrown 0.14.0",
  "indexmap 2.0.1",
  "ndarray",

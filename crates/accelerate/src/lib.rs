@@ -31,6 +31,7 @@ mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
 mod vf2_layout;
+mod two_qubit_decompose;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {

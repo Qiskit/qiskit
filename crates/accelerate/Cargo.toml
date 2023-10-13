@@ -44,3 +44,9 @@ features = ["rayon"]
 [dependencies.indexmap]
 version = "2.0.1"
 features = ["rayon"]
+
+[dependencies.faer]
+version = "0.12"
+
+[dependencies.faer-core]
+version = "0.12"
