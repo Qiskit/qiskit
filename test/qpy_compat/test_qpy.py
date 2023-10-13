@@ -634,7 +634,7 @@ def generate_control_flow_expr():
     body1.x(0)
     qr1 = QuantumRegister(2, "q1")
     cr1 = ClassicalRegister(2, "c1")
-    qc1 = QuantumCircuit(qr1, cr1)
+    qc1 = QuantumCircuit(qr1, cr1, name="cf-expr1")
     qc1.if_test(expr.equal(cr1, 3), body1.copy(), [0], [])
     qc1.while_loop(expr.logic_not(cr1[1]), body1.copy(), [0], [])
 
@@ -645,7 +645,7 @@ def generate_control_flow_expr():
     qr2 = QuantumRegister(2, "q2")
     cr1_2 = ClassicalRegister(3, "c1")
     cr2_2 = ClassicalRegister(3, "c2")
-    qc2 = QuantumCircuit(qr2, cr1_2, cr2_2)
+    qc2 = QuantumCircuit(qr2, cr1_2, cr2_2, name="cf-expr2")
     qc2.if_test(expr.logic_or(expr.less(cr1_2, cr2_2), cr1_2[1]), outer2, [1], [1])
 
     inner3 = QuantumCircuit(1)
@@ -655,7 +655,7 @@ def generate_control_flow_expr():
     qr3 = QuantumRegister(2, "q2")
     cr1_3 = ClassicalRegister(3, "c1")
     cr2_3 = ClassicalRegister(3, "c2")
-    qc3 = QuantumCircuit(qr3, cr1_3, cr2_3)
+    qc3 = QuantumCircuit(qr3, cr1_3, cr2_3, name="cf-expr3")
     qc3.switch(expr.bit_xor(cr1_3, cr2_3), [(0, outer2)], [1], [1])
 
     cr1_4 = ClassicalRegister(256, "c1")
@@ -681,7 +681,9 @@ def generate_control_flow_expr():
         [],
     )
     qc4_loose = Clbit()
-    qc4 = QuantumCircuit(QuantumRegister(2, "qr4"), cr1_4, cr2_4, cr3_4, [qc4_loose])
+    qc4 = QuantumCircuit(
+        QuantumRegister(2, "qr4"), cr1_4, cr2_4, cr3_4, [qc4_loose], name="cf-expr4"
+    )
     qc4.rz(np.pi, 0)
     qc4.switch(
         expr.logic_and(
