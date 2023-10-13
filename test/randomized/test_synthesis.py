@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (

@@ -18,13 +18,13 @@ from numpy.testing import assert_allclose
 
 
 import qiskit
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
-from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.library import HamiltonianGate, UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestHamiltonianGate(QiskitTestCase):
@@ -37,12 +37,12 @@ class TestHamiltonianGate(QiskitTestCase):
 
     def test_set_matrix_raises(self):
         """test non-unitary"""
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             HamiltonianGate([[1, 0], [1, 1]], 1)
 
     def test_complex_time_raises(self):
         """test non-unitary"""
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             HamiltonianGate([[1, 0], [1, 1]], 1j)
 
     def test_conjugate(self):
@@ -77,7 +77,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.x(qr[0])
         theta = Parameter("theta")
         qc.append(HamiltonianGate(matrix, theta), [qr[0]])
-        qc = qc.bind_parameters({theta: 1})
+        qc = qc.assign_parameters({theta: 1})
 
         # test of text drawer
         self.log.info(qc)
@@ -93,7 +93,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         """test that an error is thrown if the method `qasm` is called."""
         matrix = np.zeros((2, 2))
         hamiltonian_gate = HamiltonianGate(data=matrix, time=1)
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(CircuitError):
             with self.assertWarns(DeprecationWarning):
                 hamiltonian_gate.qasm()
 
@@ -107,7 +107,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         theta = Parameter("theta")
         uni2q = HamiltonianGate(matrix, theta)
         qc.append(uni2q, [qr[0], qr[1]])
-        qc2 = qc.bind_parameters({theta: -np.pi / 2})
+        qc2 = qc.assign_parameters({theta: -np.pi / 2})
         dag = circuit_to_dag(qc2)
         nodes = dag.two_qubit_ops()
         self.assertEqual(len(nodes), 1)
@@ -131,7 +131,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.cx(qr[3], qr[2])
         # test of text drawer
         self.log.info(qc)
-        qc = qc.bind_parameters({theta: -np.pi / 2})
+        qc = qc.assign_parameters({theta: -np.pi / 2})
         dag = circuit_to_dag(qc)
         nodes = dag.multi_qubit_ops()
         self.assertEqual(len(nodes), 1)
@@ -150,7 +150,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         uni = HamiltonianGate(matrix, theta, label="XIZ")
         qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
-        qc = qc.bind_parameters({theta: np.pi / 2})
+        qc = qc.assign_parameters({theta: np.pi / 2})
         qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, "hamiltonian")
@@ -167,6 +167,6 @@ class TestHamiltonianCircuit(QiskitTestCase):
         theta = Parameter("theta")
         uni2q = HamiltonianGate(matrix, theta)
         qc.append(uni2q, [0, 1])
-        qc = qc.bind_parameters({theta: -np.pi / 2}).decompose()
+        qc = qc.assign_parameters({theta: -np.pi / 2}).decompose()
         decomposed_ham = qc.data[0].operation
         self.assertEqual(decomposed_ham, UnitaryGate(Operator.from_label("XY")))

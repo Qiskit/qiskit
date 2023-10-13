@@ -14,6 +14,8 @@
 
 import logging
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from test.python.transpiler._dummy_passes import DummyAP
 
@@ -85,7 +87,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
         self.h2_energy = -1.85727503
 
         self.ryrz_wavefunction = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
@@ -844,7 +848,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
             result = vqe.compute_minimum_eigenvalue(hamiltonian)
 
-        optimal_circuit = vqe.ansatz.bind_parameters(result.optimal_point)
+        optimal_circuit = vqe.ansatz.assign_parameters(result.optimal_point)
         self.assertTrue(Statevector(result.eigenstate).equiv(optimal_circuit))
 
 

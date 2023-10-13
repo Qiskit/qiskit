@@ -35,18 +35,18 @@ class PMatrix:
         dim = 2**num_qubits
         self._mat = np.empty(0)
         self._dim = dim
-        self._temp_g2x2 = np.zeros((2, 2), dtype=np.cfloat)
-        self._temp_g4x4 = np.zeros((4, 4), dtype=np.cfloat)
+        self._temp_g2x2 = np.zeros((2, 2), dtype=np.complex128)
+        self._temp_g4x4 = np.zeros((4, 4), dtype=np.complex128)
         self._temp_2x2 = self._temp_g2x2.copy()
         self._temp_4x4 = self._temp_g4x4.copy()
         self._identity_perm = np.arange(dim, dtype=np.int64)
         self._left_perm = self._identity_perm.copy()
         self._right_perm = self._identity_perm.copy()
         self._temp_perm = self._identity_perm.copy()
-        self._temp_slice_dim_x_2 = np.zeros((dim, 2), dtype=np.cfloat)
-        self._temp_slice_dim_x_4 = np.zeros((dim, 4), dtype=np.cfloat)
+        self._temp_slice_dim_x_2 = np.zeros((dim, 2), dtype=np.complex128)
+        self._temp_slice_dim_x_4 = np.zeros((dim, 4), dtype=np.complex128)
         self._idx_mat = self._init_index_matrix(dim)
-        self._temp_block_diag = np.zeros(self._idx_mat.shape, dtype=np.cfloat)
+        self._temp_block_diag = np.zeros(self._idx_mat.shape, dtype=np.complex128)
 
     def set_matrix(self, mat: np.ndarray):
         """
@@ -222,7 +222,7 @@ class PMatrix:
         # Update left permutation:
         self._left_perm[:] = inv_perm
 
-    def product_q1(self, layer: Layer1Q, tmp1: np.ndarray, tmp2: np.ndarray) -> np.cfloat:
+    def product_q1(self, layer: Layer1Q, tmp1: np.ndarray, tmp2: np.ndarray) -> np.complex128:
         """
         Computes and returns: ``Trace(mat @ C) = Trace(mat @ P^T @ gmat @ P) =
         Trace((P @ mat @ P^T) @ gmat) = Trace(C @ (P @ mat @ P^T)) =
@@ -254,9 +254,9 @@ class PMatrix:
             tmp3[:, :] = tmp2[i : i + 2, i : i + 2]
             _sum += np.dot(gmat_t.ravel(), tmp3.ravel())
 
-        return np.cfloat(_sum)
+        return np.complex128(_sum)
 
-    def product_q2(self, layer: Layer2Q, tmp1: np.ndarray, tmp2: np.ndarray) -> np.cfloat:
+    def product_q2(self, layer: Layer2Q, tmp1: np.ndarray, tmp2: np.ndarray) -> np.complex128:
         """
         Computes and returns: ``Trace(mat @ C) = Trace(mat @ P^T @ gmat @ P) =
         Trace((P @ mat @ P^T) @ gmat) = Trace(C @ (P @ mat @ P^T)) =
@@ -287,7 +287,7 @@ class PMatrix:
         bldia = self._temp_block_diag
         np.take(tmp2.ravel(), self._idx_mat.ravel(), axis=0, out=bldia.ravel())
         bldia *= gmat.reshape(-1, gmat.size)
-        return np.cfloat(np.sum(bldia))
+        return np.complex128(np.sum(bldia))
 
     def finalize(self, temp_mat: np.ndarray) -> np.ndarray:
         """
