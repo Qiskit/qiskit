@@ -1047,11 +1047,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
                 PadDynamicalDecoupling(self.durations, dd_sequence),
             ]
         )
-        try:
-            pm.run(qc)
-        except TypeError:
-            print("test_paramaterized_global_phase fails")
-            raise
+
+        self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
 
 
 if __name__ == "__main__":
