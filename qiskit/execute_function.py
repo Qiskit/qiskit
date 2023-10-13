@@ -90,18 +90,17 @@ def execute(
 
         basis_gates (list[str]):
             List of basis gate names to unroll to.
-            e.g: ``['u1', 'u2', 'u3', 'cx']``
+            e.g: ``['u1', 'u2', 'u3', 'cx']``.
             If ``None``, do not unroll.
 
         coupling_map (CouplingMap or list): Coupling map (perhaps custom) to
             target in mapping. Multiple formats are supported:
 
-            #. CouplingMap instance
-            #. list
-               Must be given as an adjacency matrix, where each entry
+            #. :class:`.CouplingMap` instance
+            #. ``list``:
+               must be given as an adjacency matrix, where each entry
                specifies all two-qubit interactions supported by backend
-               e.g:
-               ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+               e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate

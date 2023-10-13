@@ -250,7 +250,7 @@ def gate_error(
     )
 
 
-def diamond_norm(choi: Choi | QuantumChannel, **kwargs) -> float:
+def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> float:
     r"""Return the diamond norm of the input quantum channel object.
 
     This function computes the completely-bounded trace-norm (often
@@ -260,11 +260,11 @@ def diamond_norm(choi: Choi | QuantumChannel, **kwargs) -> float:
     Args:
         choi(Choi or QuantumChannel): a quantum channel object or
                                       Choi-matrix array.
+        solver (str): The solver to use.
         kwargs: optional arguments to pass to CVXPY solver.
 
     Returns:
-        float: The completely-bounded trace norm
-               :math:`\|\mathcal{E}\|_{\diamond}`.
+        float: The completely-bounded trace norm :math:`\|\mathcal{E}\|_{\diamond}`.
 
     Raises:
         QiskitError: if CVXPY package cannot be found.
@@ -345,7 +345,7 @@ def diamond_norm(choi: Choi | QuantumChannel, **kwargs) -> float:
     # Objective function
     obj = cvxpy.Maximize(cvxpy.trace(choi_rt_r @ x_r) + cvxpy.trace(choi_rt_i @ x_i))
     prob = cvxpy.Problem(obj, cons)
-    sol = prob.solve(**kwargs)
+    sol = prob.solve(solver=solver, **kwargs)
     return sol
 
 

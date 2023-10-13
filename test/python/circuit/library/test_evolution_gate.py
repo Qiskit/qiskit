@@ -24,7 +24,6 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
-from qiskit.utils import algorithm_globals
 
 
 @ddt
@@ -34,7 +33,7 @@ class TestEvolutionGate(QiskitTestCase):
     def setUp(self):
         super().setUp()
         # fix random seed for reproducibility (used in QDrift)
-        algorithm_globals.random_seed = 2
+        self.seed = 2
 
     def test_matrix_decomposition(self):
         """Test the default decomposition."""
@@ -141,7 +140,7 @@ class TestEvolutionGate(QiskitTestCase):
     @unpack
     def test_qdrift_manual(self, op, time, reps, sampled_ops):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
-        qdrift = QDrift(reps=reps)
+        qdrift = QDrift(reps=reps, seed=self.seed)
         evo_gate = PauliEvolutionGate(op, time, synthesis=qdrift)
         evo_gate.definition.decompose()
 
@@ -160,7 +159,9 @@ class TestEvolutionGate(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
         reps = 20
-        qdrift = PauliEvolutionGate(op, time=0.5 / reps, synthesis=QDrift(reps=reps)).definition
+        qdrift = PauliEvolutionGate(
+            op, time=0.5 / reps, synthesis=QDrift(reps=reps, seed=self.seed)
+        ).definition
         exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
 
         def energy(evo):

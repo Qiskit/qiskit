@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Callable, Union, List, Optional
 import logging
 import numpy as np
@@ -61,7 +62,10 @@ class NumPyEigensolver(Eigensolver):
                 elements that satisfies the criterion is smaller than ``k``, then the returned list will
                 have fewer elements and can even be empty.
         """
-        validate_min("k", k, 1)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            validate_min("k", k, 1)
+
         super().__init__()
 
         self._in_k = k
