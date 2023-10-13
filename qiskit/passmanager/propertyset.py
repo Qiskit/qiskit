@@ -58,10 +58,10 @@ class RunState(Enum):
 class WorkflowStatus:
     """Collection of compilation status of workflow, i.e. pass manager run.
 
-    This data structure is initialized by a pass manager instance at construction time,
-    and recursively handed over to controllers and passes at running time.
-    Pass will update the status once after being executed, and the status will alive
-    during the execution of a single pass.
+    This data structure is initialized when the first task in the pass manager is run,
+    and recursively handed over to subsequent tasks.
+    Pass will update status once after being executed and the lifetime of the
+    workflow status object is the time during which the pass manager is running.
     """
 
     count: int = 0
