@@ -213,7 +213,7 @@ class TestEvolutionGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected_ops = {"HGate", "CXGate", "PauliEvolutionGate"}
-        ops = {node.op.__class__.__name__ for node in dag.op_nodes()}
+        ops = {node.op.base_class.__name__ for node in dag.op_nodes()}
 
         self.assertEqual(ops, expected_ops)
 
