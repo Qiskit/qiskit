@@ -53,6 +53,13 @@ class RunningPassManager(FlowControllerLinear):
         Relying on a subclass of the running pass manager might break your code stack.
     """
 
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg=(
+            "Building the pipline of the tasks is responsibility of PassManager. "
+            "RunningPassManager should not modify prepared pipeline at running time."
+        ),
+    )
     def append(
         self,
         passes: Task | list[Task],

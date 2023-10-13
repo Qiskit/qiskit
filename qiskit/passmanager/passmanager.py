@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -21,7 +22,7 @@ from typing import Any
 import dill
 
 from qiskit.tools.parallel import parallel_map
-from .base_tasks import Task, PassManagerIR
+from .base_tasks import Task, BaseController, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear, FlowController
 from .propertyset import PropertySet
@@ -55,55 +56,59 @@ class BasePassManager(ABC):
 
     def append(
         self,
-        passes: Task | list[Task],
+        tasks: Task | list[Task],
         **flow_controller_conditions: Callable[[PropertySet], bool],
     ) -> None:
-        """Append a Pass Set to the schedule of passes.
+        """Append tasks to the schedule of passes.
 
         Args:
-            passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
-                passes that are controlled by the same flow controller. If a single pass is
-                provided, the pass set will only have that pass a single element.
-                It is also possible to append a :class:`.BaseFlowController` instance and
-                the rest of the parameter will be ignored.
+            tasks: A set of pass manager tasks to be added to schedule. When multiple
+                tasks are provided, tasks are grouped together as a single flow controller.
             flow_controller_conditions: Dictionary of control flow plugins.
                 Following built-in controllers are available by default:
 
                 * do_while: The passes repeat until the callable returns False.
                 * condition: The passes run only if the callable returns True.
         """
-        normalized_controller = FlowController.controller_factory(
-            passes=passes,
-            options={"max_iteration": self.max_iteration},
-            **flow_controller_conditions,
-        )
-        self._flow_controller.tasks += (normalized_controller,)
+        if flow_controller_conditions:
+            tasks = _legacy_build_flow_controller(
+                tasks,
+                options={"max_iteration": self.max_iteration},
+                **flow_controller_conditions,
+            )
+        if isinstance(tasks, Sequence):
+            tasks = FlowControllerLinear(tasks)
+        self._flow_controller.tasks += (tasks, )
 
     def replace(
         self,
         index: int,
-        passes: Task | list[Task],
+        tasks: Task | list[Task],
         **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
 
         Args:
             index: Pass index to replace, based on the position in passes().
-            passes: A pass set to be added to the pass manager schedule.
+            tasks: A set of pass manager tasks to be added to schedule. When multiple
+                tasks are provided, tasks are grouped together as a single flow controller.
             flow_controller_conditions: Dictionary of control flow plugins.
                 See :meth:`~.BasePassManager.append` for details.
 
         Raises:
             PassManagerError: If the index is not found.
         """
-        normalized_controller = FlowController.controller_factory(
-            passes=passes,
-            options={"max_iteration": self.max_iteration},
-            **flow_controller_conditions,
-        )
+        if flow_controller_conditions:
+            tasks = _legacy_build_flow_controller(
+                tasks,
+                options={"max_iteration": self.max_iteration},
+                **flow_controller_conditions,
+            )
+        if isinstance(tasks, Sequence):
+            tasks = FlowControllerLinear(tasks)
         try:
             new_tasks = list(self._flow_controller.tasks)
-            new_tasks[index] = normalized_controller
+            new_tasks[index] = tasks
             self._flow_controller.tasks = tuple(new_tasks)
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
@@ -295,3 +300,37 @@ def _run_workflow_in_new_process(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
     )
+
+
+def _legacy_build_flow_controller(
+    tasks: list[Task],
+    options: dict[str, Any],
+    **flow_controller_conditions,
+) -> BaseController:
+    """A legacy method to build flow controller with keyword arguments.
+
+    Args:
+        tasks: A list of tasks fed into custom flow controllers.
+        options: Option for flow controllers.
+        flow_controller_conditions: Callables keyed on the alias of the flow controller.
+
+    Returns:
+        A built controller.
+    """
+    warnings.warn(
+        "Building a flow controller with keyword arguments is going to be deprecated. "
+        "Custom controllers must be explicitly instantiated and appended to the task list.",
+        PendingDeprecationWarning,
+    )
+
+    # Alias in higher hierarchy becomes outer controller.
+    for alias in FlowController.hierarchy[::-1]:
+        if alias not in flow_controller_conditions:
+            continue
+        class_type = FlowController.registered_controllers[alias]
+        init_kwargs = {
+            "options": options,
+            alias: flow_controller_conditions.pop(alias),
+        }
+        tasks = class_type(tasks, **init_kwargs)
+    return tasks

@@ -254,6 +254,14 @@ class FlowController(BaseController):
     hierarchy = []
 
     @classmethod
+    @deprecate_func(
+        since="0.26.0",
+        additional_msg=(
+            "Controller object must be explicitly instantiated. "
+            "Building controller with keyword arguments may yield race condition when "
+            "multiple keyword arguments are provided together, which is likely unsafe."
+        ),
+    )
     def controller_factory(
         cls,
         passes: Task | list[Task],
