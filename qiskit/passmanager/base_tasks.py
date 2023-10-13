@@ -78,7 +78,7 @@ class GenericPass(Task, ABC):
         status: WorkflowStatus | None = None,
         property_set: PropertySet | None = None,
         callback: Callable = None,
-    ) -> Any:
+    ) -> PassManagerIR:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
@@ -201,7 +201,7 @@ class BaseController(Task, ABC):
         status: WorkflowStatus | None = None,
         property_set: PropertySet | None = None,
         callback: Callable = None,
-    ):
+    ) -> PassManagerIR:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
