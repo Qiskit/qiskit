@@ -203,8 +203,9 @@ jobs:
           python-version: '3.10'
       - name: Install deps
         run: pip install -U twine setuptools-rust wheel build
-      - name: Build sdist
+      - name: Build packages
         run: |
+          set -e
           cd qiskit_pkg
           python -m build .
       - name: Publish package distributions to PyPI
