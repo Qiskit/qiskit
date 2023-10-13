@@ -201,6 +201,7 @@ Flow controllers
    :toctree: ../stubs/
 
    FlowController
+   FlowControllerLinear
    ConditionalController
    DoWhileController
 
@@ -225,7 +226,12 @@ Exceptions
 """
 
 from .passmanager import BasePassManager
-from .flow_controllers import FlowController, ConditionalController, DoWhileController
+from .flow_controllers import (
+    FlowController,
+    FlowControllerLinear,
+    ConditionalController,
+    DoWhileController,
+)
 from .base_tasks import GenericPass, BaseController
 from .propertyset import PropertySet, FencedPropertySet, WorkflowStatus
 from .exceptions import PassManagerError
