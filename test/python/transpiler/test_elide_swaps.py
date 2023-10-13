@@ -194,6 +194,45 @@ class TestElidePermutations(QiskitTestCase):
         )
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
 
+    def test_unitary_equivalence_with_elide_and_routing(self):
+        """Test full transpile pipeline with pass preserves permutation for unitary equivalence."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.h(1)
+
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(2, 1)
+        expected.cx(1, 2)
+        expected.cx(1, 0)
+        expected.cx(1, 3)
+        expected.cx(1, 4)
+        expected.h(2)
+
+        # First assert the pass works as expected
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+        # with no layout
+        res = transpile(qc, optimization_level=3, seed_transpiler=42)
+        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+        # With layout
+        res = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            basis_gates=["u", "cz"],
+            optimization_level=3,
+            seed_transpiler=1234,
+        )
+        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+
     def test_permutation_in_middle(self):
         """Test swap in middle of bell is elided."""
         qc = QuantumCircuit(3, 3)
