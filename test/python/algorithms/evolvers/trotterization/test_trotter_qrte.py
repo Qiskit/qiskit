@@ -13,6 +13,8 @@
 """Test TrotterQRTE."""
 
 import unittest
+import warnings
+
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -48,7 +50,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
         backend_statevector = BasicAer.get_backend("statevector_simulator")
         backend_qasm = BasicAer.get_backend("qasm_simulator")
         with self.assertWarns(DeprecationWarning):
@@ -121,7 +125,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
         for backend_name in self.backends_names_not_none:
             with self.subTest(msg=f"Test {backend_name} backend."):
-                algorithm_globals.random_seed = 0
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning)
+                    algorithm_globals.random_seed = 0
                 backend = self.backends_dict[backend_name]
                 with self.assertWarns(DeprecationWarning):
                     expectation = ExpectationFactory.build(
@@ -217,10 +223,12 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         """Test for TrotterQRTE with QDrift."""
         operator = SummedOp([X, Z])
         time = 1
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
         with self.assertWarns(DeprecationWarning):
             evolution_problem = EvolutionProblem(operator, time, initial_state)
-            trotter_qrte = TrotterQRTE(product_formula=QDrift())
+            trotter_qrte = TrotterQRTE(product_formula=QDrift(seed=0))
             evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
@@ -231,7 +239,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = X * Parameter("t") + Z
         initial_state = Zero
         time = 1
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
         with self.assertWarns(DeprecationWarning):
             trotter_qrte = TrotterQRTE()
             evolution_problem = EvolutionProblem(

@@ -12,7 +12,7 @@
 
 """VectorStateFn Class"""
 
-
+import warnings
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -243,12 +243,14 @@ class VectorStateFn(StateFn):
         deterministic_counts = self.primitive.probabilities_dict()
         # Don't need to square because probabilities_dict already does.
         probs = np.array(list(deterministic_counts.values()))
-        unique, counts = np.unique(
-            algorithm_globals.random.choice(
-                list(deterministic_counts.keys()), size=shots, p=(probs / sum(probs))
-            ),
-            return_counts=True,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            unique, counts = np.unique(
+                algorithm_globals.random.choice(
+                    list(deterministic_counts.keys()), size=shots, p=(probs / sum(probs))
+                ),
+                return_counts=True,
+            )
         counts = dict(zip(unique, counts))
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}
