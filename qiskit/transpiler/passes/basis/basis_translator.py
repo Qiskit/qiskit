@@ -302,7 +302,7 @@ class BasisTranslator(TransformationPass):
                 )
             )
         if node.op.params:
-            parameter_map = dict(zip_longest(target_params, node.op.params))
+            parameter_map = dict(zip(target_params, node.op.params))
             bound_target_dag = target_dag.copy_empty_like()
             for inner_node in target_dag.topological_op_nodes():
                 if any(isinstance(x, ParameterExpression) for x in inner_node.op.params):
