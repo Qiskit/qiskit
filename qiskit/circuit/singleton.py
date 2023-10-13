@@ -367,7 +367,9 @@ class _SingletonControlledGateOverrides(_SingletonInstructionOverrides, Controll
 
 
 class SingletonControlledGate(
-    ControlledGate, metaclass=_SingletonMeta, overrides=_SingletonControlledGateOverrides
+    ControlledGate,
+    metaclass=_SingletonMeta,
+    overrides=_SingletonControlledGateOverrides,
 ):
     """A base class to use for :class:`.ControlledGate` objects that by default are singleton instances
 

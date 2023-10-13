@@ -17,8 +17,6 @@ import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
-from .t import TGate, TdgGate
-from .s import SGate, SdgGate
 
 _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
@@ -198,6 +196,8 @@ class CHGate(SingletonControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
+        from .t import TGate, TdgGate
+        from .s import SGate, SdgGate
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)

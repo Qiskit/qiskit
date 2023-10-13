@@ -18,7 +18,6 @@ from typing import Optional, Union
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -85,6 +84,8 @@ class SGate(SingletonGate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import PhaseGate
+
         return PhaseGate(0.5 * numpy.pi * exponent)
 
 
@@ -146,6 +147,8 @@ class SdgGate(SingletonGate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import PhaseGate
+
         return PhaseGate(-0.5 * numpy.pi * exponent)
 
 
@@ -206,6 +209,8 @@ class CSGate(SingletonControlledGate):
         """
         gate cs a,b { h b; cp(pi/2) a,b; h b; }
         """
+        from .p import CPhaseGate
+
         self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self):
@@ -214,6 +219,8 @@ class CSGate(SingletonControlledGate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import CPhaseGate
+
         return CPhaseGate(0.5 * numpy.pi * exponent)
 
 
@@ -273,6 +280,8 @@ class CSdgGate(SingletonControlledGate):
         """
         gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
         """
+        from .p import CPhaseGate
+
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self):
@@ -281,4 +290,6 @@ class CSdgGate(SingletonControlledGate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import CPhaseGate
+
         return CPhaseGate(-0.5 * numpy.pi * exponent)
