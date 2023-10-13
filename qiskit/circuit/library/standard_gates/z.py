@@ -204,7 +204,7 @@ class CZGate(SingletonControlledGate):
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
-class CCZGate(ControlledGate):
+class CCZGate(SingletonControlledGate):
     r"""CCZ gate.
 
     This is a symmetric gate.
@@ -243,10 +243,26 @@ class CCZGate(ControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CCZ gate."""
         super().__init__(
-            "ccz", 3, [], label=label, num_ctrl_qubits=2, ctrl_state=ctrl_state, base_gate=ZGate()
+            "ccz",
+            3,
+            [],
+            label=label,
+            num_ctrl_qubits=2,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):

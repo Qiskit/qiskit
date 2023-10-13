@@ -40,6 +40,8 @@ class ControlledGate(Gate):
         base_gate: Optional[Gate] = None,
         duration=None,
         unit=None,
+        *,
+        _base_label=None,
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
