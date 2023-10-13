@@ -19,6 +19,7 @@ import os
 import sys
 import unittest
 from logging import StreamHandler, getLogger
+
 from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
@@ -39,6 +40,12 @@ from qiskit.circuit import (
     SwitchCaseOp,
     WhileLoopOp,
 )
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
 from qiskit.circuit.classical import expr
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import (
@@ -53,6 +60,7 @@ from qiskit.circuit.library import (
     U2Gate,
     UGate,
     XGate,
+    SGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.compiler import transpile
@@ -1665,6 +1673,35 @@ class TestTranspile(QiskitTestCase):
         transpiled = transpile(qc, basis_gates=basis, optimization_level=opt_level)
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
+
+    @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops(self, opt_level):
+        """Test transpilation of circuits with annotated operations."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        expected = QuantumCircuit(3)
+        expected.sdg(0)
+        expected.cx(1, 2)
+        expected.h(2)
+        transpiled = transpile(qc, optimization_level=opt_level, seed_transpiler=42)
+        self.assertNotIn("annotated", transpiled.count_ops().keys())
+        self.assertEqual(Operator(qc), Operator(transpiled))
+        self.assertEqual(Operator(qc), Operator(expected))
+
+    @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops_with_backend(self, opt_level):
+        """Test transpilation of circuits with annotated operations given a backend."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        backend = FakeMelbourne()
+        transpiled = transpile(
+            qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
+        )
+        self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
 
 
 @ddt
