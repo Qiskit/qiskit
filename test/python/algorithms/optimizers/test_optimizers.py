@@ -13,6 +13,8 @@
 """Test Optimizers"""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from typing import Optional, List, Tuple
@@ -54,7 +56,9 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        algorithm_globals.random_seed = 52
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 52
 
     def run_optimizer(
         self,
@@ -148,7 +152,9 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         )
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
 
-        algorithm_globals.random_seed = 1
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 1
         res = optimizer.minimize(rosen, x_0)
         x_value = res.fun
         n_evals = res.nfev

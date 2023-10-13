@@ -354,8 +354,8 @@ unitary q[0];"""
             r"""OPENQASM 2.0;
 include "qelib1.inc";
 gate unitary q0 { u\(0,0,0\) q0; }
-gate (?P<u1>unitary_[0-9]*) q0 { u\(pi,-pi/2,pi/2\) q0; }
-gate (?P<u2>unitary_[0-9]*) q0 { u\(0,pi/2,pi/2\) q0; }
+gate (?P<u1>unitary_[0-9]*) q0 { u\(pi,-pi,0\) q0; }
+gate (?P<u2>unitary_[0-9]*) q0 { u\(0,0,pi\) q0; }
 gate custom q0 { (?P=u2) q0; }
 qreg q\[2\];
 unitary q\[0\];

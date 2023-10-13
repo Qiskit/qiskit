@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 
 import numpy as np
@@ -58,7 +59,9 @@ def validate_initial_point(
             upper_bounds.append(upper if upper is not None else 2 * np.pi)
 
         # sample from within bounds
-        point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            point = algorithm_globals.random.uniform(lower_bounds, upper_bounds)
 
     elif len(point) != expected_size:
         raise ValueError(
