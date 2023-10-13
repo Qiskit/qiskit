@@ -16,34 +16,12 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from qiskit.utils.deprecation import deprecate_func
-from .exceptions import PassManagerError
-
 
 class PropertySet(dict):
     """A default dictionary-like object."""
 
     def __missing__(self, key):
         return None
-
-
-class FencedPropertySet(PropertySet):
-    """A readonly property set that cannot be written via __setitem__."""
-
-    @deprecate_func(
-        since="0.26.0",
-        additional_msg=(
-            "Internal use of FencedObject is already removed from pass manager. "
-            "Implementation of a task subclass with protection for input object modification "
-            "is now responsibility of the developer."
-        ),
-        pending=True,
-    )
-    def __init__(self, seq=None, **kwargs):
-        super().__init__(seq, **kwargs)
-
-    def __setitem__(self, key, value):
-        raise PassManagerError("The fenced PropertySet has the property __setitem__ protected.")
 
 
 class RunState(Enum):

@@ -212,7 +212,6 @@ PropertySet
    :toctree: ../stubs/
 
    PropertySet
-   FencedPropertySet
    WorkflowStatus
 
 Exceptions
@@ -230,5 +229,5 @@ from .flow_controllers import (
     DoWhileController,
 )
 from .base_tasks import GenericPass, BaseController
-from .propertyset import PropertySet, FencedPropertySet, WorkflowStatus
+from .propertyset import PropertySet, WorkflowStatus
 from .exceptions import PassManagerError
