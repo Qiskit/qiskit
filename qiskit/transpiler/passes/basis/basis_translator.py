@@ -319,6 +319,7 @@ class BasisTranslator(TransformationPass):
                                     new_value = new_value.assign(*x)
                             else:
                                 new_value = param.bind(bind_dict)
+                            # cast from ParameterExpression to number, if no parameters left
                             if not new_value.parameters:
                                 if new_value.is_real():
                                     new_value = (
