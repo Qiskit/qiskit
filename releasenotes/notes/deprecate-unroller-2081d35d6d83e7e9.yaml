@@ -22,6 +22,13 @@ deprecations:
             ]
         )
         pm.run(circuit)
+  - |
+    The use of the value ``"unroller"`` for the ``translation_method`` keyword
+    argument on the :func:`.transpile` and :func:`.generate_preset_pass_manager`
+    has been deprecated. This translation stage plugin will be removed from
+    Qiskit in a future release as it has been superseded by the default
+    ``"translator"`` method which will work similarly to the ``"unroller"`` plugin
+    but support a broader set of target backends.
 
 upgrade:
   - |

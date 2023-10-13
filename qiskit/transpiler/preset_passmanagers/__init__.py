@@ -57,6 +57,8 @@ Stage Generator Functions
 .. currentmodule:: qiskit.transpiler.preset_passmanagers
 """
 
+import warnings
+
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import target_to_backend_properties
 
@@ -202,6 +204,15 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    if translation_method == "unroller":
+        warnings.warn(
+            "The 'unroller' translation_method plugin has been deprecated and will be removed "
+            "in a future release. Instead you should use the default 'translator' method or "
+            "another plugin",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
