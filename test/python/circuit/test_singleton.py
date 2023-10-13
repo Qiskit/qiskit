@@ -347,9 +347,9 @@ class TestSingletonControlledGate(QiskitTestCase):
 
     def test_raise_on_state_mutation(self):
         gate = CSwapGate()
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             gate.label = "foo"
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             gate.condition = (Clbit(), 0)
 
     def test_labeled_condition(self):
@@ -537,45 +537,6 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertEqual(mutable_copy.label, gate.label)
         mutable_copy.label = "not foo"
         self.assertNotEqual(mutable_copy.label, gate.label)
-
-    def test_set_custom_attr(self):
-        gate = SXGate()
-        with self.assertRaises(NotImplementedError):
-            gate.custom_foo = 12345
-        mutable_gate = gate.to_mutable()
-        self.assertTrue(mutable_gate.mutable)
-        mutable_gate.custom_foo = 12345
-        self.assertEqual(12345, mutable_gate.custom_foo)
-
-    def test_positional_label(self):
-        gate = SXGate()
-        label_gate = SXGate("I am a little label")
-        self.assertIsNot(gate, label_gate)
-        self.assertEqual(label_gate.label, "I am a little label")
-
-    def test_immutable_pickle(self):
-        gate = SXGate()
-        self.assertFalse(gate.mutable)
-        with io.BytesIO() as fd:
-            pickle.dump(gate, fd)
-            fd.seek(0)
-            copied = pickle.load(fd)
-        self.assertFalse(copied.mutable)
-        self.assertIs(copied, gate)
-
-    def test_mutable_pickle(self):
-        gate = SXGate()
-        clbit = Clbit()
-        condition_gate = gate.c_if(clbit, 0)
-        self.assertIsNot(gate, condition_gate)
-        self.assertEqual(condition_gate.condition, (clbit, 0))
-        self.assertTrue(condition_gate.mutable)
-        with io.BytesIO() as fd:
-            pickle.dump(condition_gate, fd)
-            fd.seek(0)
-            copied = pickle.load(fd)
-        self.assertEqual(copied, condition_gate)
-        self.assertTrue(copied.mutable)
 
     def test_inner_gate_label(self):
         inner_gate = HGate(label="my h gate")

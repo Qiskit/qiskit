@@ -22,7 +22,7 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
-from qiskit.circuit.singleton import SingletonControlledGate
+from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -1015,7 +1015,7 @@ class TestControlledGate(QiskitTestCase):
         """Test all gates in standard extensions which are of type ControlledGate
         and have a base gate setting.
         """
-        if gate_class == SingletonControlledGate:
+        if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonControlledGate isn't directly instantiated.")
         num_free_params = len(_get_free_params(gate_class.__init__, ignore=["self"]))
         free_params = [0.1 * i for i in range(num_free_params)]
@@ -1147,7 +1147,7 @@ class TestControlledGate(QiskitTestCase):
         num_ctrl_qubits = 1
         for gate_class in ControlledGate.__subclasses__():
             with self.subTest(i=repr(gate_class)):
-                if gate_class == SingletonControlledGate:
+                if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
                     self.skipTest("Singleton class isn't intended to be created directly.")
                 num_free_params = len(_get_free_params(gate_class.__init__, ignore=["self"]))
                 free_params = [0.1 * (i + 1) for i in range(num_free_params)]
@@ -1316,7 +1316,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
     @combine(gate_class=ControlledGate.__subclasses__(), ctrl_state=[0, None])
     def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
         """Test open controlled to_matrix."""
-        if gate_class == SingletonControlledGate:
+        if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonGateClass isn't intended for direct initalization")
         num_free_params = len(_get_free_params(gate_class.__init__, ignore=["self"]))
         free_params = [0.1 * i for i in range(1, num_free_params + 1)]

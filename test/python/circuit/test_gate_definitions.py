@@ -287,6 +287,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_U0Gate",
         "_DefinedGate",
         "_SingletonGateOverrides",
+        "_SingletonControlledGateOverrides",
     }
     # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
     # to a "natural" comprehension or functional iterable definition:
