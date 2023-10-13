@@ -76,6 +76,7 @@ class PassManager(BasePassManager):
     def _passmanager_backend(
         self,
         passmanager_ir: DAGCircuit,
+        in_program: QuantumCircuit,
         **kwargs,
     ) -> QuantumCircuit:
         out_program = dag_to_circuit(passmanager_ir)
@@ -89,6 +90,8 @@ class PassManager(BasePassManager):
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
                 final_layout=self.property_set["final_layout"],
+                _input_qubit_count=len(in_program.qubits),
+                _output_qubit_list=out_program.qubits,
             )
         out_program._clbit_write_latency = self.property_set["clbit_write_latency"]
         out_program._conditional_latency = self.property_set["conditional_latency"]

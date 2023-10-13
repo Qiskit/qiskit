@@ -78,7 +78,7 @@ class BasePassManager(ABC):
             )
         if isinstance(tasks, Sequence):
             tasks = FlowControllerLinear(tasks)
-        self._flow_controller.tasks += (tasks, )
+        self._flow_controller.tasks += (tasks,)
 
     def replace(
         self,
@@ -162,14 +162,34 @@ class BasePassManager(ABC):
         input_program: Any,
         **kwargs,
     ) -> PassManagerIR:
+        """Convert input program into pass manager IR.
+
+        Args:
+            in_program: Input program.
+
+        Returns:
+            Pass manager IR.
+        """
         pass
 
     @abstractmethod
     def _passmanager_backend(
         self,
         passmanager_ir: PassManagerIR,
+        in_program: Any,
         **kwargs,
     ) -> Any:
+        """Convert pass manager IR into output program.
+
+        Args:
+            passmanager_ir: Pass manager IR after optimization.
+            in_program: The input program, this can be used if you need
+                any metadata about the original input for the output.
+                It should not be mutated.
+
+        Returns:
+            Output program.
+        """
         pass
 
     def run(
@@ -272,13 +292,20 @@ def _run_workflow(
     """
     flow_controller = pass_manager.to_flow_controller()
 
-    passmanager_ir = pass_manager._passmanager_frontend(input_program=program, **kwargs)
+    passmanager_ir = pass_manager._passmanager_frontend(
+        input_program=program,
+        **kwargs,
+    )
     passmanager_ir = flow_controller.execute(
         passmanager_ir=passmanager_ir,
         property_set=pass_manager.property_set,
         callback=kwargs.get("callback", None),
     )
-    out_program = pass_manager._passmanager_backend(passmanager_ir, **kwargs)
+    out_program = pass_manager._passmanager_backend(
+        passmanager_ir=passmanager_ir,
+        in_program=program,
+        **kwargs,
+    )
 
     return out_program
 
