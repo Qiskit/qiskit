@@ -17,7 +17,7 @@ from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
@@ -58,13 +58,9 @@ class SGate(SingletonGate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "s", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("s", 1, [], label=label, duration=None, unit="dt")
 
     def _define(self):
         """
@@ -123,13 +119,9 @@ class SdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "sdg", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("sdg", 1, [], label=label, duration=None, unit="dt")
 
     def _define(self):
         """
@@ -191,19 +183,12 @@ class CSGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CS gate."""
-        if unit is None:
-            unit = "dt"
-        if _base_label is not None:
-            base_gate = SGate(label=_base_label)
-        else:
-            base_gate = SGate()
-
         super().__init__(
             "cs",
             2,
@@ -211,10 +196,9 @@ class CSGate(SingletonControlledGate):
             label=label,
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
-            base_gate=base_gate,
+            base_gate=SGate(label=_base_label),
             duration=duration,
             _base_label=_base_label,
-            _condition=_condition,
             unit=unit,
         )
 
@@ -267,10 +251,10 @@ class CSdgGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CSdg gate."""
         super().__init__(
@@ -282,7 +266,6 @@ class CSdgGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=SdgGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 

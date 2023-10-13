@@ -14,7 +14,7 @@
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
-from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from .t import TGate, TdgGate
@@ -53,13 +53,9 @@ class HGate(SingletonGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new H gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "h", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("h", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -168,18 +164,12 @@ class CHGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CH gate."""
-        if unit is None:
-            unit = "dt"
-        if _base_label is not None:
-            base_gate = HGate(label=_base_label)
-        else:
-            base_gate = HGate()
         super().__init__(
             "ch",
             2,
@@ -187,9 +177,8 @@ class CHGate(SingletonControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=base_gate,
+            base_gate=HGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
             _base_label=_base_label,
         )

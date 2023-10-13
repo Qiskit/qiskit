@@ -14,7 +14,7 @@
 
 from math import pi
 from typing import Optional, Union
-from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -62,13 +62,9 @@ class SXGate(SingletonGate):
 
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SX gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "sx", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("sx", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -145,13 +141,9 @@ class SXdgGate(SingletonGate):
 
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SXdg gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "sxdg", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -235,14 +227,12 @@ class CSXGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CSX gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "csx",
             2,
@@ -252,7 +242,6 @@ class CSXGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 

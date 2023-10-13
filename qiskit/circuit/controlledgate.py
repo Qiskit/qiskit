@@ -236,7 +236,10 @@ class ControlledGate(Gate):
             CircuitError: If controlled gate does not define a base gate.
         """
         if self.base_gate:
-            self.base_gate.params = parameters
+            if self.base_gate.mutable:
+                self.base_gate.params = parameters
+            elif parameters:
+                raise CircuitError("cannot set parameters on immutable base gate")
         else:
             raise CircuitError("Controlled gate does not define base gate for extracting params")
 

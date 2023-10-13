@@ -14,7 +14,7 @@
 
 from typing import Optional, Union
 import numpy
-from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -58,13 +58,9 @@ class SwapGate(SingletonGate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SWAP gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "swap", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("swap", 2, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -197,10 +193,10 @@ class CSwapGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CSWAP gate."""
         if unit is None:
@@ -214,7 +210,6 @@ class CSwapGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=SwapGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 

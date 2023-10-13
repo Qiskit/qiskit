@@ -18,9 +18,7 @@ from typing import Optional, Union
 import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 from .p import PhaseGate
@@ -75,13 +73,9 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Z gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "z", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -168,14 +162,12 @@ class CZGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CZ gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "cz",
             2,
@@ -185,7 +177,6 @@ class CZGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 

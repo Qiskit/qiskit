@@ -16,7 +16,7 @@ from math import pi
 from typing import Optional, Union
 
 # pylint: disable=cyclic-import
-from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -70,13 +70,9 @@ class YGate(SingletonGate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Y gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "y", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("y", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -181,14 +177,12 @@ class CYGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CY gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "cy",
             2,
@@ -198,7 +192,6 @@ class CYGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=YGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 

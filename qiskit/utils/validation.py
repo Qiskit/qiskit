@@ -15,8 +15,17 @@ Validation module
 """
 
 from typing import Set
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_in_set(name: str, value: object, values: Set[object]) -> None:
     """
     Args:
@@ -30,6 +39,14 @@ def validate_in_set(name: str, value: object, values: Set[object]) -> None:
         raise ValueError(f"{name} must be one of '{values}', was '{value}'.")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_min(name: str, value: float, minimum: float) -> None:
     """
     Args:
@@ -43,6 +60,14 @@ def validate_min(name: str, value: float, minimum: float) -> None:
         raise ValueError(f"{name} must have value >= {minimum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_min_exclusive(name: str, value: float, minimum: float) -> None:
     """
     Args:
@@ -56,6 +81,14 @@ def validate_min_exclusive(name: str, value: float, minimum: float) -> None:
         raise ValueError(f"{name} must have value > {minimum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_max(name: str, value: float, maximum: float) -> None:
     """
     Args:
@@ -69,6 +102,14 @@ def validate_max(name: str, value: float, maximum: float) -> None:
         raise ValueError(f"{name} must have value <= {maximum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_max_exclusive(name: str, value: float, maximum: float) -> None:
     """
     Args:
@@ -82,6 +123,14 @@ def validate_max_exclusive(name: str, value: float, maximum: float) -> None:
         raise ValueError(f"{name} must have value < {maximum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_range(name: str, value: float, minimum: float, maximum: float) -> None:
     """
     Args:
@@ -96,6 +145,14 @@ def validate_range(name: str, value: float, minimum: float, maximum: float) -> N
         raise ValueError(f"{name} must have value >= {minimum} and <= {maximum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_range_exclusive(name: str, value: float, minimum: float, maximum: float) -> None:
     """
     Args:
@@ -110,6 +167,14 @@ def validate_range_exclusive(name: str, value: float, minimum: float, maximum: f
         raise ValueError(f"{name} must have value > {minimum} and < {maximum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_range_exclusive_min(name: str, value: float, minimum: float, maximum: float) -> None:
     """
     Args:
@@ -124,6 +189,14 @@ def validate_range_exclusive_min(name: str, value: float, minimum: float, maximu
         raise ValueError(f"{name} must have value > {minimum} and <= {maximum}, was {value}")
 
 
+@deprecate_func(
+    additional_msg=(
+        "This algorithm utility has been migrated to an independent package: "
+        "https://github.com/qiskit-community/qiskit-algorithms. You can run "
+        "``pip install qiskit_algorithms`` and import ``from qiskit_algorithms.utils`` instead. "
+    ),
+    since="0.45.0",
+)
 def validate_range_exclusive_max(name: str, value: float, minimum: float, maximum: float) -> None:
     """
     Args:

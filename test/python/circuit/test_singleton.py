@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,missing-class-docstring
 
 
 """
@@ -23,6 +23,7 @@ import pickle
 
 from qiskit.circuit.library import HGate, SXGate, CXGate, CZGate, CSwapGate, CHGate, CCXGate, XGate
 from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.singleton import SingletonGate, SingletonInstruction
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 
 from qiskit.test.base import QiskitTestCase
@@ -36,6 +37,11 @@ class TestSingletonGate(QiskitTestCase):
         new_gate = HGate()
         self.assertIs(gate, new_gate)
 
+    def test_base_class(self):
+        gate = HGate()
+        self.assertIsInstance(gate, HGate)
+        self.assertIs(gate.base_class, HGate)
+
     def test_label_not_singleton(self):
         gate = HGate()
         label_gate = HGate(label="special")
@@ -48,9 +54,9 @@ class TestSingletonGate(QiskitTestCase):
 
     def test_raise_on_state_mutation(self):
         gate = HGate()
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             gate.label = "foo"
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             gate.condition = (Clbit(), 0)
 
     def test_labeled_condition(self):
@@ -241,7 +247,7 @@ class TestSingletonGate(QiskitTestCase):
 
     def test_set_custom_attr(self):
         gate = SXGate()
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(TypeError):
             gate.custom_foo = 12345
         mutable_gate = gate.to_mutable()
         self.assertTrue(mutable_gate.mutable)
@@ -277,6 +283,48 @@ class TestSingletonGate(QiskitTestCase):
             copied = pickle.load(fd)
         self.assertEqual(copied, condition_gate)
         self.assertTrue(copied.mutable)
+
+    def test_uses_default_arguments(self):
+        class MyGate(SingletonGate):
+            def __init__(self, label="my label"):
+                super().__init__("my_gate", 1, [], label=label)
+
+        gate = MyGate()
+        self.assertIs(gate, MyGate())
+        self.assertFalse(gate.mutable)
+        self.assertIs(gate.base_class, MyGate)
+        self.assertEqual(gate.label, "my label")
+
+        with self.assertRaisesRegex(TypeError, "immutable"):
+            gate.label = None
+
+    def test_suppress_singleton(self):
+        # Mostly the test here is that the `class` statement passes; it would raise if it attempted
+        # to create a singleton instance since there's no defaults.
+        class MyAbstractGate(SingletonGate, create_default_singleton=False):
+            def __init__(self, x):
+                super().__init__("my_abstract", 1, [])
+                self.x = x
+
+        gate = MyAbstractGate(1)
+        self.assertTrue(gate.mutable)
+        self.assertEqual(gate.x, 1)
+        self.assertIsNot(MyAbstractGate(1), MyAbstractGate(1))
+
+    def test_inherit_singleton(self):
+        class Measure(SingletonInstruction):
+            def __init__(self):
+                super().__init__("measure", 1, 1, [])
+
+        class ESPMeasure(Measure):
+            pass
+
+        base = Measure()
+        esp = ESPMeasure()
+        self.assertIs(esp, ESPMeasure())
+        self.assertIsNot(esp, base)
+        self.assertIs(base.base_class, Measure)
+        self.assertIs(esp.base_class, ESPMeasure)
 
 
 class TestSingletonControlledGate(QiskitTestCase):

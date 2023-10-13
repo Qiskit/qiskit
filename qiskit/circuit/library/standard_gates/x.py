@@ -17,7 +17,7 @@ from math import ceil, pi
 import numpy
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from .h import HGate
@@ -76,13 +76,9 @@ class XGate(SingletonGate):
         |1\rangle \rightarrow |0\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "x", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("x", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -200,14 +196,12 @@ class CXGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CX gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "cx",
             2,
@@ -218,7 +212,6 @@ class CXGate(SingletonControlledGate):
             base_gate=XGate(label=_base_label),
             _base_label=_base_label,
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 
@@ -327,14 +320,12 @@ class CCXGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CCX gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "ccx",
             3,
@@ -344,7 +335,6 @@ class CCXGate(SingletonControlledGate):
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
             duration=duration,
-            _condition=_condition,
             unit=unit,
         )
 
@@ -451,13 +441,9 @@ class RCCXGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new simplified CCX gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "rccx", 3, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("rccx", 3, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -508,10 +494,10 @@ class C3SXGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create a new 3-qubit controlled sqrt-X gate.
 
@@ -520,8 +506,6 @@ class C3SXGate(SingletonControlledGate):
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
         """
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "c3sx",
             4,
@@ -530,7 +514,6 @@ class C3SXGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
-            _condition=_condition,
             duration=duration,
             unit=unit,
         )
@@ -625,14 +608,12 @@ class C3XGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
         _base_label=None,
-        _condition=None,
         duration=None,
-        unit=None,
+        unit="dt",
     ):
         """Create a new 3-qubit controlled X gate."""
-        if unit is None:
-            unit = "dt"
         super().__init__(
             "mcx",
             4,
@@ -641,7 +622,6 @@ class C3XGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
-            _condition=_condition,
             duration=duration,
             unit=unit,
         )
@@ -781,13 +761,9 @@ class RC3XGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new RC3X gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "rcccx", 4, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("rcccx", 4, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -859,10 +835,10 @@ class C4XGate(SingletonControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create a new 4-qubit controlled X gate."""
         if unit is None:
@@ -875,7 +851,6 @@ class C4XGate(SingletonControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=XGate(label=_base_label),
-            _condition=_condition,
             duration=duration,
             unit=unit,
         )
@@ -970,10 +945,10 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create a new MCX instance.
 
@@ -993,7 +968,6 @@ class MCXGate(ControlledGate):
                 label=label,
                 ctrl_state=ctrl_state,
                 _base_label=_base_label,
-                _condition=_condition,
                 duration=duration,
                 unit=unit,
             )
@@ -1092,10 +1066,10 @@ class MCXGrayCode(MCXGate):
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
@@ -1107,7 +1081,6 @@ class MCXGrayCode(MCXGate):
                 label=label,
                 ctrl_state=ctrl_state,
                 _base_label=_base_label,
-                _condition=_condition,
                 duration=duration,
                 unit=unit,
             )
@@ -1115,7 +1088,6 @@ class MCXGrayCode(MCXGate):
             gate.__init__(
                 label=label,
                 ctrl_state=ctrl_state,
-                _condition=_condition,
                 duration=duration,
                 unit=unit,
             )
@@ -1224,10 +1196,10 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,  # pylint: disable=unused-argument
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _base_label=None,
-        _condition=None,
+        *,
         duration=None,
-        unit=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create a new MCX instance.
 
@@ -1239,7 +1211,6 @@ class MCXVChain(MCXGate):
             label=label,
             ctrl_state=ctrl_state,
             _base_label=_base_label,
-            _condition=_condition,
             duration=duration,
             unit=unit,
         )
