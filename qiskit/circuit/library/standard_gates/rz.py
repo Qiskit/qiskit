@@ -60,7 +60,7 @@ class RZGate(Gate):
     """
 
     def __init__(
-        self, phi: ParameterValueType, label: Optional[str] = None, duration=None, unit=None
+        self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit=None
     ):
         """Create new RZ gate."""
         super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)

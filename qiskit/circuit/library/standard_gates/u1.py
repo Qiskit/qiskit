@@ -93,7 +93,7 @@ class U1Gate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, label: str | None = None, duration=None, unit=None
+        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit=None
     ):
         """Create new U1 gate."""
         super().__init__("u1", 1, [theta], label=label, duration=duration, unit=unit)

@@ -91,6 +91,7 @@ class U2Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
+        *,
         duration=None,
         unit=None,
     ):

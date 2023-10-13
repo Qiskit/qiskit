@@ -55,7 +55,7 @@ class TGate(SingletonGate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit=None, _condition=None):
         """Create new T gate."""
         if unit is None:
             unit = "dt"

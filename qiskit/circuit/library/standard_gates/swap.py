@@ -59,7 +59,7 @@ class SwapGate(SingletonGate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit=None, _condition=None):
         """Create new SWAP gate."""
         if unit is None:
             unit = "dt"

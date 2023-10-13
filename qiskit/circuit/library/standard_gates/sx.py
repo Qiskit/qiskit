@@ -63,7 +63,7 @@ class SXGate(SingletonGate):
 
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit=None, _condition=None):
         """Create new SX gate."""
         if unit is None:
             unit = "dt"

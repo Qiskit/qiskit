@@ -76,7 +76,7 @@ class XGate(SingletonGate):
         |1\rangle \rightarrow |0\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit=None, _condition=None):
         """Create new X gate."""
         if unit is None:
             unit = "dt"

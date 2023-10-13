@@ -87,6 +87,7 @@ class XXPlusYYGate(Gate):
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX+YY)",
+        *,
         duration=None,
         unit=None,
     ):

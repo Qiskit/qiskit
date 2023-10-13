@@ -73,7 +73,7 @@ class RXXGate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, duration=None, unit=None
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit=None
     ):
         """Create new RXX gate."""
         super().__init__("rxx", 2, [theta], label=label, duration=duration, unit=unit)

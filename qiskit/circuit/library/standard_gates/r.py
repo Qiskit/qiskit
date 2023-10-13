@@ -54,6 +54,7 @@ class RGate(Gate):
         theta: ParameterValueType,
         phi: ParameterValueType,
         label: Optional[str] = None,
+        *,
         duration=None,
         unit=None,
     ):

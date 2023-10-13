@@ -48,7 +48,7 @@ class DCXGate(SingletonGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label=None, duration=None, unit=None, _condition=None):
+    def __init__(self, label=None, *, duration=None, unit=None, _condition=None):
         """Create new DCX gate."""
         if unit is None:
             unit = "dt"

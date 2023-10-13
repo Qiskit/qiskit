@@ -71,7 +71,7 @@ class YGate(SingletonGate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit=None, _condition=None):
         """Create new Y gate."""
         if unit is None:
             unit = "dt"

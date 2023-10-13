@@ -35,7 +35,7 @@ class GlobalPhaseGate(Gate):
     """
 
     def __init__(
-        self, phase: ParameterValueType, label: Optional[str] = None, duration=None, unit=None
+        self, phase: ParameterValueType, label: Optional[str] = None, *, duration=None, unit=None
     ):
         """
         Args:

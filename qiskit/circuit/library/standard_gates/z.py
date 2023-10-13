@@ -74,7 +74,7 @@ class ZGate(SingletonGate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit=None, _condition=None):
         """Create new Z gate."""
         if unit is None:
             unit = "dt"
