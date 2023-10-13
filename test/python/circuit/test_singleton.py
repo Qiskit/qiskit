@@ -408,11 +408,17 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertIs(gate, copied)
 
     def test_deepcopy_with_label(self):
+        singleton_gate = CXGate()
         gate = CXGate(label="special")
         copied = copy.deepcopy(gate)
         self.assertIsNot(gate, copied)
         self.assertEqual(gate, copied)
         self.assertEqual(copied.label, "special")
+        self.assertTrue(copied.mutable)
+        self.assertIsNot(gate.base_gate, copied.base_gate)
+        self.assertIsNot(copied, singleton_gate)
+        self.assertEqual(singleton_gate, copied)
+        self.assertNotEqual(singleton_gate.label, copied.label)
 
     def test_deepcopy_with_condition(self):
         gate = CCXGate().c_if(Clbit(), 0)
