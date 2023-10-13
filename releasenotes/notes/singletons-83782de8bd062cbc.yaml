@@ -114,6 +114,19 @@ upgrade:
     will persist through copy and deep copies). You can rely on the
     :attr:`.Instruction.mutable` attribute to check the mutability of an object or
     use :meth:`.Instruction.to_mutable` to get a mutable copy of any instruction.
+  - |
+    More :class:`~.circuit.Instruction` instances (those that return singletons) no longer
+    strictly satisfy (for example)::
+
+        type(XGate()) is XGate
+
+    The returned object will, however, still be a standard subclass so :func:`isinstance` (the
+    correct way to do type checking) will continue to work correctly.  Several instructions already
+    had this property (e.g. :class:`.MCXGate`), but it is now more common as many more standard
+    gates will do this.
+
+    If you require the "base" type of a gate for some reason, omitting the synthetic singleton
+    subclasses, which cannot be instantiated, see :attr:`.Instruction.base_class`.
 fixes:
   - |
     Fixed an oversight in the :class:`~.ECRGate` that prevented setting an
