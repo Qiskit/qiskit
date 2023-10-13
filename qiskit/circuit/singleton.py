@@ -72,7 +72,7 @@ to modify its properties will raise :exc:`TypeError`.
 
 *All* subclasses of :class:`~.circuit.Instruction` have a :attr:`~.Instruction.mutable` property.
 For most instructions this is ``True``, while for the singleton instances it is ``False``.  One can
-use the :meth:`~.Instruction.to_mutable` method to get an version of the instruction that is owned
+use the :meth:`~.Instruction.to_mutable` method to get a version of the instruction that is owned
 and safe to mutate.
 
 The singleton instances are not exact instances of their base class; they are special subclasses
@@ -179,9 +179,9 @@ introspection).  Instead, we use the :class:`abc.ABC`/:class:`abc.ABCMeta` patte
 concrete middle class (:class:`SingletonGate` in the :class:`.XGate` case) that sets the metaclass,
 selects the overrides to be applied, and has an :meth:`~object.__init_subclass__` that applies the
 singleton-subclass-creation steps above.  The overrides are in separate classes so that *mutable*
-:class:`.XGate` instances do not have them in their own MROs; doing this is easier to implement, but
-requires all the setters and checkers to dance around at runtime trying to validate whether mutating
-the instance is allowed.
+:class:`.XGate` instances do not have them in their own method-resolution orders; doing this is
+easier to implement, but requires all the setters and checkers to dance around at runtime trying to
+validate whether mutating the instance is allowed.
 
 Finally, to actually build all this machinery up, the base is ``_SingletonMeta``, which is a
 metaclass compatible with any metaclass of :class:`~.circuit.Instruction`.  This defines the
