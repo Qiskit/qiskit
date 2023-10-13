@@ -14,7 +14,7 @@
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
-from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -54,6 +54,8 @@ class HGate(SingletonGate):
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new H gate."""
         super().__init__("h", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -180,6 +182,8 @@ class CHGate(SingletonControlledGate):
             unit=unit,
             _base_label=_base_label,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """

@@ -64,11 +64,13 @@ The public classes correspond to the standard classes :class:`~.circuit.Instruct
    :class-doc-from: class
 .. autoclass:: SingletonGate
    :class-doc-from: class
+.. autoclass:: SingletonControlledGate
+   :class-doc-from: class
 
 When inheriting from one of these classes, the produced class will have an eagerly created singleton
-instance (stored as a ``_singleton_instance`` property on its type object) that will be returned
-whenever the class is constructed with its default arguments.  This instance is immutable; attempts
-to modify its properties will raise :exc:`TypeError`.
+instance that will be returned whenever the class is constructed with arguments that have been
+defined to be singletons.  Typically this will be the defaults.  These instances are immutable;
+attempts to modify their properties will raise :exc:`TypeError`.
 
 *All* subclasses of :class:`~.circuit.Instruction` have a :attr:`~.Instruction.mutable` property.
 For most instructions this is ``True``, while for the singleton instances it is ``False``.  One can
@@ -115,17 +117,54 @@ class will be inherited, though the singleton instances of the two classes will 
     assert MyOtherInstruction() is not MyInstruction()
 
 If for some reason you want to derive from :class:`SingletonInstruction`, or one of the related or
-subclasses but *do not* want the singleton instance to be created, such as if you are defining a new
-abstract base class, you can set the keyword argument ``create_default_singleton=False`` in the
-class definition::
+subclasses but *do not* want the default singleton instance to be created, such as if you are
+defining a new abstract base class, you can set the keyword argument
+``create_default_singleton=False`` in the class definition::
 
     class NotASingleton(SingletonInstruction, create_default_singleton=False):
-        pass
+        def __init__(self):
+            return super().__init__("my_mutable", 1, 0, [])
 
     assert NotASingleton() is not NotASingleton()
 
-You cannot define a "singleton" subclass that does not have defaults for all its constructor
-arguments; in this situation, you will need to set ``create_default_singleton=False``.
+If your constructor does not have defaults for all its arguments, you must set
+``create_default_singleton=False``.
+
+Subclasses of :class:`SingletonInstruction` and the other associated classes can control how their
+constructor's arguments are interpreted, in order to help the singleton machinery return the
+singleton even in the case than an optional argument is explicitly set to its default.
+
+.. automethod:: SingletonInstruction._singleton_lookup_key
+
+This is set by all Qiskit standard-library gates such that the :attr:`~Instruction.label` and
+similar keyword arguments are ignored in the key calculation if they are their defaults, or a
+mutable instance is returned if they are not.
+
+You can also specify other combinations of constructor arguments to produce singleton instances
+for, using the ``additional_singletons`` argument in the class definition.  This takes an iterable
+of ``(args, kwargs)`` tuples, and will build singletons equivalent to ``cls(*args, **kwargs)``.  You
+do not need to handle the case of the default arguments with this.  For example, given a class
+definition::
+
+    class MySingleton(SingletonGate, additional_singletons=[((2,), {"label": "two"})]):
+        def __init__(self, n=1, label=None):
+            super().__init__("my", n, [], label=label)
+
+        @staticmethod
+        def _singleton_lookup_key(n=1, label=None):
+            return (n, label)
+
+there will be two singleton instances instantiated.  One corresponds to ``n=1`` and ``label=None``,
+and the other to ``n=2`` and ``label="two"``.  Whenever ``MySingleton`` is constructed with
+arguments consistent with one of those two cases, the relavent singleton will be returned.  For
+example::
+
+    assert MySingleton() is MySingleton(1, label=None)
+    assert MySingleton(2, "two") is MySingleton(n=2, label="two")
+
+The case of the class being instantiated with zero arguments is handled specially to allow an
+absolute fast-path for inner-loop performance (although the general machinery is not desperately
+slow anyway).
 
 
 Implementation
@@ -157,7 +196,7 @@ We do this in a three-step procedure:
 
 1. Before creating any singletons, we separately define the overrides needed to make an
    :class:`~.circuit.Instruction` and a :class:`.Gate` immutable.  This is
-   ``_SingletonInstructionOverrides`` and ``_SingletonGateOverrides``.
+   ``_SingletonInstructionOverrides`` the other ``_*Overrides``.
 
 2. While we are creating the ``XGate`` type object, we dynamically *also* create a subclass of it
    that has the immutable overrides in its method-resolution order in the correct place. These
@@ -194,44 +233,126 @@ above properties.  We use the metaclass to add this method dynamically, because 
 the base class, but still able to call :class:`super`.  It's more convenient to do this dynamically,
 closing over the desired class variable and using the two-argument form of :class:`super`, since the
 zero-argument form does magic introspection based on where its containing function was defined.
+
+Handling multiple singletons requires storing the initialisation arguments in some form, to allow
+the :meth:`~.Instruction.to_mutable` method and pickling to be defined.  We do this as a lookup
+dictionary on the singleton *type object*.  This is logically an instance attribute, but because we
+need to dynamically switch in the dynamic `_Singleton` type onto an instance of the base type, that
+gets rather hairy; either we have to require that the base already has an instance dictionary, or we
+risk breaking the ``__slots__`` layout during the switch.  Since the singletons have lifetimes that
+last until garbage collection of their base class's type object, we can fake out this instance
+dictionary using a type-object dictionary that maps instance pointers to the data we want to store.
+An alternative would be to build a new type object for each individual singleton that closes over
+(or stores) the initialiser arguments, but type objects are quite heavy and the principle is largely
+same anyway.
 """
 
-import operator
+from __future__ import annotations
+
+import functools
+import typing
 
 from .instruction import Instruction
 from .gate import Gate
-from .controlledgate import ControlledGate
+from .controlledgate import ControlledGate, _ctrl_state_to_int
 
 
-def _impl_new(cls, *_args, **_kwargs):
-    # __new__ for the singleton instances.
-    raise TypeError(f"cannot create '{cls.__name__}' instances")
-
-
-def _impl_init_subclass(base, overrides):
+def _impl_init_subclass(
+    base: type[_SingletonBase], overrides: type[_SingletonInstructionOverrides]
+):
     # __init_subclass__ for the classes that make their children singletons (e.g. `SingletonGate`)
 
-    def __init_subclass__(cls, *, create_default_singleton=True, **kwargs):
-        super(base, cls).__init_subclass__(**kwargs)
-        if not create_default_singleton:
+    def __init_subclass__(
+        instruction_class, *, create_default_singleton=True, additional_singletons=(), **kwargs
+    ):
+        super(base, instruction_class).__init_subclass__(**kwargs)
+        if not create_default_singleton and not additional_singletons:
             return
 
-        # We need to make a new type object that pokes in the overrides into the correct
-        # place in the method-resolution order.
-        singleton_class = _SingletonMeta.__new__(
-            _SingletonMeta,
-            f"_Singleton{cls.__name__}",
-            (cls, overrides),
-            # This is a dynamically generated class so it's got no module.  The slot layout of the
-            # singleton class needs to match any layout in the base.
-            {"__module__": None, "__slots__": (), "__new__": _impl_new, "_base_class": cls},
-            create_default_singleton=False,
-        )
+        # If we're creating singleton instances, then the _type object_ needs a lookup mapping the
+        # "keys" to the pre-created singleton instances.  It can't share this with subclasses.
+        instruction_class._singleton_static_lookup = {}
 
-        # Make a mutable instance, fully instantiate all lazy properties, then freeze it.
-        cls._singleton_instance = cls(_force_mutable=True)
-        cls._singleton_instance._define()
-        cls._singleton_instance.__class__ = singleton_class
+        class _Singleton(overrides, instruction_class, create_default_singleton=False):
+            __module__ = None
+            # We want this to match the slots layout (if any) of `cls` so it's safe to dynamically
+            # switch the type of an instance of `cls` to this.
+            __slots__ = ()
+
+            # Class variables mapping singleton instances (as pointers) to the arguments used to
+            # create them, for use by `to_mutable` and `__reduce__`.  We're safe to use the `id` of
+            # (value of the pointer to) each object because they a) are singletons and b) have
+            # lifetimes tied to the type object in their `base_class`, so will not be garbage
+            # collected until the class no longer exists.  This is effectively faking out an entry
+            # in an instance dictionary, but this works without affecting the slots layout, and
+            # doesn't require that the object has an instance dictionary.
+            _singleton_init_arguments = {}
+
+            # Docstrings are all inherited, and we use more descriptive class methods to better
+            # distinguish the `_Singleton` class (`singleton_class`) from the instruction class
+            # (`instruction_class`) that it's wrapping.
+            # pylint: disable=missing-function-docstring,bad-classmethod-argument
+
+            def __new__(singleton_class, *_args, **_kwargs):
+                raise TypeError(f"cannot create '{singleton_class.__name__}' instances")
+
+            @property
+            def base_class(self):
+                return instruction_class
+
+            @property
+            def mutable(self):
+                return False
+
+            def to_mutable(self):
+                args, kwargs = type(self)._singleton_init_arguments[id(self)]
+                return self.base_class(*args, **kwargs, _force_mutable=True)
+
+            def __setattr__(self, key, value):
+                raise TypeError(
+                    f"This '{self.base_class.__name__}' object is immutable."
+                    " You can get a mutable version by calling 'to_mutable()'."
+                )
+
+            def __copy__(self):
+                return self
+
+            def __deepcopy__(self, memo=None):
+                return self
+
+            def __reduce__(self):
+                # The principle is that the unpickle operation will first create the `base_class`
+                # type object just by re-importing its module so all the singletons are guaranteed
+                # to exist before we get to doing anything with these arguments.  All we then need
+                # to do is pass the init arguments to the base type object and its logic will return
+                # the singleton object.
+                args, kwargs = type(self)._singleton_init_arguments[id(self)]
+                return (functools.partial(instruction_class, **kwargs), args)
+
+        # This is just to let the type name offer slightly more hint to what's going on if it ever
+        # appears in an error message, so it says (e.g.) `_SingletonXGate`, not just `_Singleton`.
+        _Singleton.__name__ = _Singleton.__qualname__ = f"_Singleton{instruction_class.__name__}"
+
+        def _create_singleton_instance(args, kwargs):
+            # Make a mutable instance, fully instantiate all lazy properties, then freeze it.
+            out = instruction_class(*args, **kwargs, _force_mutable=True)
+            out = overrides._prepare_singleton_instance(out)
+            out.__class__ = _Singleton
+
+            _Singleton._singleton_init_arguments[id(out)] = (args, kwargs)
+            key = instruction_class._singleton_lookup_key(*args, **kwargs)
+            if key is not None:
+                instruction_class._singleton_static_lookup[key] = out
+            return out
+
+        # This static lookup is only for singletons generated at class-description time.  A separate
+        # lookup that manages an LRU or similar cache should be used for singletons created on
+        # demand.  This static dictionary is separate to ensure that the class-requested singletons
+        # have lifetimes tied to the class object, while dynamic ones can be freed again.
+        if create_default_singleton:
+            instruction_class._singleton_default_instance = _create_singleton_instance((), {})
+        for class_args, class_kwargs in additional_singletons:
+            _create_singleton_instance(class_args, class_kwargs)
 
     return classmethod(__init_subclass__)
 
@@ -258,37 +379,121 @@ class _SingletonMeta(type(Instruction)):
         return cls
 
     def __call__(cls, *args, _force_mutable=False, **kwargs):
-        if not _force_mutable and not args and not kwargs:
-            # This class attribute is created by the singleton-creation base classes'
-            # `__init_subclass__` methods; see `_impl_init_subclass`.  We can only be within this
-            # `__call__` after the class (e.g. `XGate`) was created, and `XGate._singleton_instance`
-            # is created during the Python-standard `XGate = type("XGate", bases, namespace)` step.
-            return cls._singleton_instance
+        if _force_mutable:
+            return super().__call__(*args, **kwargs)
+        if not args and not kwargs:
+            # This is a fast-path to handle constructions of the form `XGate()`, which is the
+            # idiomatic way of building gates during high-performance circuit construction.  If
+            # there are any arguments or kwargs, we delegate to the overridable method to
+            # determine the cache key to use for lookup.
+            return cls._singleton_default_instance
+        if (key := cls._singleton_lookup_key(*args, **kwargs)) is not None:
+            try:
+                singleton = cls._singleton_static_lookup.get(key)
+            except TypeError:
+                # Catch the case of the returned key being unhashable; a subclass could not easily
+                # determine this because it's working with arbitrary user inputs.
+                singleton = None
+            if singleton is not None:
+                return singleton
+            # The logic can be extended to have an LRU cache for key requests that are absent,
+            # to allow things like parametric gates to have reusable singletons as well.
         return super().__call__(*args, **kwargs)
 
 
-class _SingletonInstructionOverrides(Instruction):
-    """Overrides for all the mutable methods and properties of `Instruction` to make it
-    immutable."""
+_InstructionT = typing.TypeVar("_InstructionT", bound=Instruction)
+
+
+class _SingletonBase(metaclass=_SingletonMeta):
+    """Base class of all the user-facing (library-author-facing) singleton classes such as
+    :class:`SingletonGate`.
+
+    This defines the shared interface for those singletons."""
 
     __slots__ = ()
 
+    @staticmethod
+    def _singleton_lookup_key(*_args, **_kwargs):
+        """Given the arguments to the constructor, return a key tuple that identifies the singleton
+        instance to retrieve, or ``None`` if the arguments imply that a mutable object must be
+        created.
+
+        For performance, as a special case, this method will not be called if the class constructor
+        was given zero arguments (e.g. the construction ``XGate()`` will not call this method, but
+        ``XGate(label=None)`` will), and the default singleton will immediately be returned.
+
+        This static method can (and probably should) be overridden by subclasses.  The derived
+        signature should match the class's ``__init__``; this method should then examine the
+        arguments to determine whether it requires mutability, or what the cache key (if any) should
+        be.
+
+        The function should return either ``None`` or valid ``dict`` key (i.e. hashable and
+        implements equality).  Returning ``None`` means that the created instance must be mutable.
+        No further singleton-based processing will be done, and the class creation will proceed as
+        if there was no singleton handling.  Otherwise, the returned key can be anything hashable
+        and no special meaning is ascribed to it.  Whenever this method returns the same key, the
+        same singleton instance will be returned.  We suggest that you use a tuple of the values of
+        all arguments that can be set while maintaining the singleton nature.
+
+        Only keys that match the default arguments or arguments given to ``additional_singletons``
+        at class-creation time will actually return singletons; other values will return a standard
+        mutable instance.
+
+        .. note::
+
+            The singleton machinery will handle an unhashable return from this function gracefully
+            by returning a mutable instance.  Subclasses should ensure that their key is hashable in
+            the happy path, but they do not need to manually verify that the user-supplied arguments
+            are hashable.  For example, it's safe to implement this as::
+
+                @staticmethod
+                def _singleton_lookup_key(*args, **kwargs):
+                    return None if kwargs else args
+
+            even though a user might give some unhashable type as one of the ``args``.
+        """
+        return None
+
+
+class _frozenlist(list):
+    __slots__ = ()
+
+    def _reject_mutation(self, *args, **kwargs):
+        raise TypeError("'params' of singletons cannot be mutated")
+
+    append = clear = extend = insert = pop = remove = reverse = sort = _reject_mutation
+    __setitem__ = __delitem__ = __iadd__ = __imul__ = _reject_mutation
+
+
+class _SingletonInstructionOverrides(Instruction):
+    """Overrides for the mutable methods and properties of `Instruction` to make it immutable."""
+
+    __slots__ = ()
+
+    # The split between what's defined here and what's defined in the dynamic `_Singleton` class is
+    # slightly arbitrary, but generally these overrides are for things that are about the nature of
+    # the `Instruction` class itself, while `_Singleton` handles the Python data model and things
+    # that can't be written in terms of the `Instruction` interface (like the overrides of
+    # `base_class` and `to_mutable`).
+
+    @staticmethod
+    def _prepare_singleton_instance(instruction: Instruction):
+        """Class-creation hook point.  Given an instance of the type that these overrides correspond
+        to, this method should ensure that all lazy properties and caches that require mutation to
+        write to are eagerly defined.
+
+        Subclass "overrides" classes can override this method if the user/library-author-facing
+        class they are providing overrides for has more lazy attributes or user-exposed state
+        with interior mutability."""
+        instruction._define()
+        # Some places assume that `params` is a list not a tuple, unfortunately.  The always-raises
+        # `__setattr__` of the classes that inherit this means the `params` setter can't be used to
+        # replace the object.
+        instruction._params = _frozenlist(instruction._params)
+        return instruction
+
     def c_if(self, classical, val):
         return self.to_mutable().c_if(classical, val)
-
-    @property
-    def base_class(self):
-        # `type(self)` will actually be the dynamic `_SingletonXGate` (e.g.) created by
-        # `SingletonGate.__init_subclass__` during the instantiation of `XGate`, since this class
-        # is never the concrete type of a class.
-        return type(self)._base_class
-
-    @property
-    def mutable(self):
-        return False
-
-    def to_mutable(self):
-        return self.base_class(_force_mutable=True)
 
     def copy(self, name=None):
         if name is None:
@@ -297,25 +502,8 @@ class _SingletonInstructionOverrides(Instruction):
         out.name = name
         return out
 
-    def __setattr__(self, key, value):
-        raise TypeError(
-            f"This '{self.base_class.__name__}' object is immutable."
-            " You can get a mutable version by calling 'to_mutable()'."
-        )
 
-    def __copy__(self):
-        return self
-
-    def __deepcopy__(self, _memo=None):
-        return self
-
-    def __reduce__(self):
-        return (operator.attrgetter("_singleton_instance"), (self.base_class,))
-
-
-class SingletonInstruction(
-    Instruction, metaclass=_SingletonMeta, overrides=_SingletonInstructionOverrides
-):
+class SingletonInstruction(Instruction, _SingletonBase, overrides=_SingletonInstructionOverrides):
     """A base class to use for :class:`~.circuit.Instruction` objects that by default are singleton
     instances.
 
@@ -346,7 +534,7 @@ class _SingletonGateOverrides(_SingletonInstructionOverrides, Gate):
     __slots__ = ()
 
 
-class SingletonGate(Gate, metaclass=_SingletonMeta, overrides=_SingletonGateOverrides):
+class SingletonGate(Gate, _SingletonBase, overrides=_SingletonGateOverrides):
     """A base class to use for :class:`.Gate` objects that by default are singleton instances.
 
     This class is very similar to :class:`SingletonInstruction`, except implies unitary
@@ -368,7 +556,7 @@ class _SingletonControlledGateOverrides(_SingletonInstructionOverrides, Controll
 
 class SingletonControlledGate(
     ControlledGate,
-    metaclass=_SingletonMeta,
+    _SingletonBase,
     overrides=_SingletonControlledGateOverrides,
 ):
     """A base class to use for :class:`.ControlledGate` objects that by default are singleton instances
@@ -379,3 +567,40 @@ class SingletonControlledGate(
     """
 
     __slots__ = ()
+
+
+def stdlib_singleton_key(*, num_ctrl_qubits: int = 0):
+    """Create an implementation of the abstract method
+    :meth:`SingletonInstruction._singleton_lookup_key`, for standard-library instructions whose
+    ``__init__`` signatures match the one given here.
+
+    .. warning::
+
+        This method is not safe for use in classes defined outside of Qiskit; it is not included in
+        the backwards compatibility guarantees.  This is because we guarantee that the call
+        signatures of the base classes are backwards compatible in the sense that we will only
+        replace them (without warning) contravariantly, but if you use this method, you effectively
+        use the signature *invariantly*, and we cannot guarantee that.
+
+    Args:
+        num_ctrl_qubits: if given, this implies that the gate is a :class:`.ControlledGate`, and
+            will have a fixed number of qubits that are used as the control.  This is necessary to
+            allow ``ctrl_state`` to be given as either ``None`` or as an all-ones integer/string.
+    """
+
+    if num_ctrl_qubits:
+
+        def key(label=None, ctrl_state=None, *, duration=None, unit="dt", _base_label=None):
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            if label is None and duration is None and unit == "dt" and _base_label is None:
+                return (ctrl_state,)
+            return None
+
+    else:
+
+        def key(label=None, *, duration=None, unit="dt"):
+            if label is None and duration is None and unit == "dt":
+                return ()
+            return None
+
+    return staticmethod(key)

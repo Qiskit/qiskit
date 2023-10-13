@@ -214,7 +214,7 @@ class HoareOptimizer(TransformationPass):
             if remove_ctrl:
                 dag.substitute_node_with_dag(node, new_dag)
                 gate = gate.base_gate
-                node.op = gate
+                node.op = gate.to_mutable()
                 node.name = gate.name
                 node.qargs = tuple((ctrlqb + trgtqb)[qi] for qi in qb_idx)
                 _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
