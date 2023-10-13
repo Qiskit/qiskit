@@ -163,7 +163,7 @@ def _loads_instruction_parameter(
             data_bytes,
             version,
             vectors,
-            clbits=circuit,
+            clbits=clbits,
             cregs=registers["c"],
             use_symengine=use_symengine,
         )
@@ -579,7 +579,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
-        # ucr*-dg gates can have different numbers of parameters,
+        # ucr*_dg gates can have different numbers of parameters,
         # the uuid is appended to avoid storing a single definition
         # in circuits with multiple ucr*_dg gates.
         if instruction.operation.name in ["ucrx_dg", "ucry_dg", "ucrz_dg"]:
