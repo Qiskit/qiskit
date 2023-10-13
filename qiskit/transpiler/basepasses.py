@@ -24,7 +24,6 @@ from qiskit.passmanager.base_tasks import GenericPass, Task
 from qiskit.passmanager.propertyset import PropertySet, PassState, RunState
 
 from .exceptions import TranspilerError
-from .fencedobjs import FencedDAGCircuit
 from .layout import TranspileLayout
 
 
@@ -183,37 +182,6 @@ class BasePass(metaclass=MetaPass):
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
-
-    def execute(
-        self,
-        passmanager_ir: DAGCircuit,
-        property_set: PropertySet | None = None,
-        state: PassState | None = None,
-        callback: Callable = None,
-    ) -> DAGCircuit:
-        """Execute optimization task for input passmanager IR.
-
-        Args:
-            passmanager_ir: Passmanager IR to optimize.
-            property_set: A mutable data collection shared among all tasks.
-            state: A local state information associated with this optimization workflow.
-            callback: A callback function which is caller per execution of optimization task.
-
-        Returns:
-            Optimized passmanager IR.
-        """
-        # analysis pass must not mutate DAG object
-        fenced_dag = FencedDAGCircuit(passmanager_ir)
-
-        # analysis pass returns nothing, just mutates the property set
-        super().execute(
-            passmanager_ir=fenced_dag,
-            property_set=property_set,
-            state=state,
-            callback=callback,
-        )
-
-        return passmanager_ir
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method

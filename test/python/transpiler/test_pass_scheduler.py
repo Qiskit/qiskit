@@ -32,7 +32,6 @@ from ._dummy_passes import (
     PassD_TP_NR_NP,
     PassE_AP_NR_NP,
     PassF_reduce_dag_property,
-    PassI_Bad_AP,
     PassJ_Bad_NoReturn,
     PassK_check_fixed_point_property,
     PassM_AP_NR_NP,
@@ -337,23 +336,6 @@ class TestUseCases(SchedulerTestCase):
                 "run transformation pass PassF_reduce_dag_property",
                 "dag property = 3",
             ],
-        )
-
-    def test_fenced_dag(self):
-        """Analysis passes are not allowed to modified the DAG."""
-        qr = QuantumRegister(2)
-        circ = QuantumCircuit(qr)
-        circ.cx(qr[0], qr[1])
-        circ.cx(qr[0], qr[1])
-        circ.cx(qr[1], qr[0])
-        circ.cx(qr[1], qr[0])
-
-        self.passmanager.append(PassI_Bad_AP())
-        self.assertSchedulerRaises(
-            circ,
-            self.passmanager,
-            ["run analysis pass PassI_Bad_AP", "cx_runs: {(4, 5, 6, 7)}"],
-            TranspilerError,
         )
 
     def test_analysis_pass_is_idempotent(self):
