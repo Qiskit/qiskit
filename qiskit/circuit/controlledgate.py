@@ -100,13 +100,11 @@ class ControlledGate(Gate):
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
         super().__init__(name, num_qubits, params, label=label, duration=duration, unit=unit)
-        if not hasattr(self, "_num_ctrl_qubits"):
-            self._num_ctrl_qubits = 1
-            self.num_ctrl_qubits = num_ctrl_qubits
-        if not hasattr(self, "_ctrl_state"):
-            self._ctrl_state = None
-            self.ctrl_state = ctrl_state
+        self._num_ctrl_qubits = 1
+        self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
+        self._ctrl_state = None
+        self.ctrl_state = ctrl_state
         self._name = name
 
     @property
