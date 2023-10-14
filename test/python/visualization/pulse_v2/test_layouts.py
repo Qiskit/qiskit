@@ -250,3 +250,62 @@ class TestFigureTitle(QiskitTestCase):
         out = layouts.detail_title(self.prog, self.device)
 
         self.assertEqual(out, ref_title)
+
+class TestPulseCreateFromDifferentBackends(QiskitTestCase):
+    """Tests for OpenPulse create_from_backend"""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        from qiskit.providers.models import PulseBackendConfiguration
+
+        class Configuration(PulseBackendConfiguration):
+            """Default configuration for Dummy backends."""
+            def __init__(self):
+                self.backend_name = 'Dummy'
+                self.dt = None
+                self.u_channel_lo = []
+                self.n_qubits = 1
+
+        class Defaults():
+            """Defaults for Dummy backends."""
+            def __init__(self):
+                self.qubit_freq_est = []
+                self.meas_freq_est = []
+
+        self.schedule = pulse.Schedule()
+        self.backend_configuration = Configuration()
+        self.backend_defaults = Defaults()
+
+    def test_backend_v2(self):
+        """Test using BackendV2."""
+        from qiskit.providers.backend import BackendV2
+
+        class DummyBackendV2(BackendV2):
+            def __init__(self, configuration, defaults):
+                super().__init__(name=configuration.backend_name)
+                self._configuration = configuration
+                self._defaults = defaults
+
+            def target(self):
+                pass
+
+            def max_circuits(self):
+                pass
+
+            def _default_options(self):
+                pass
+
+            def run(self, run_input, **options):
+                pass
+
+            def configuration(self):
+                return self._configuration
+
+            def defaults(self):
+                return self._defaults
+
+        try:
+            device_info.OpenPulseBackendInfo().create_from_backend(backend=DummyBackendV2(self.backend_configuration, self.backend_defaults))
+        except Exception as error:
+            self.fail(f'Failed Pulse create from backend(BackendV2)\n{error}')
