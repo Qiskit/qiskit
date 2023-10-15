@@ -47,6 +47,7 @@ features = ["rayon"]
 
 [dependencies.faer]
 version = "0.12"
+features = ["ndarray", "nalgebra"]
 
 [dependencies.faer-core]
 version = "0.12"

@@ -46,6 +46,7 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import (
 )
 from qiskit.utils.deprecation import deprecate_arg
 
+from qiskit._accelerate import _num_basis_gates
 
 logger = logging.getLogger(__name__)
 
@@ -1410,6 +1411,13 @@ class TwoQubitBasisDecomposer:
         return qc
 
     def num_basis_gates(self, unitary):
+        """Computes the number of basis gates needed in
+        a decomposition of input unitary
+        """
+        unitary = np.asarray(unitary, dtype=complex)
+        return _num_basis_gates(self.basis.b, self.basis_fidelity, unitary)
+
+    def old_num_basis_gates(self, unitary):
         """Computes the number of basis gates needed in
         a decomposition of input unitary
         """

@@ -32,6 +32,7 @@ mod sparse_pauli_op;
 mod stochastic_swap;
 mod vf2_layout;
 mod two_qubit_decompose;
+mod utils;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
@@ -60,6 +61,7 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
     m.add_wrapped(wrap_pymodule!(sabre_layout::sabre_layout))?;
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
+    m.add_wrapped(wrap_pyfunction!(two_qubit_decompose::_num_basis_gates))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
     ))?;
