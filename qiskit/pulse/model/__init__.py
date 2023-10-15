@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """
-.. _logical_elements_frames:
+.. logical_elements_frames:
 
 =======================================
-Logical Elements & Frames (:mod:`qiskit.pulse._logical_elements_frames`)
+Logical Elements & Frames (:mod:`qiskit.pulse.logical_elements_frames`)
 =======================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
