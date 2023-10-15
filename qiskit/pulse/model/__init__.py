@@ -12,7 +12,7 @@
 
 r"""
 =======================================
-Logical Elements & Frames (:mod:`qiskit.pulse.logical_elements_frames`)
+Logical Elements & Frames (:mod:`qiskit.pulse.model`)
 =======================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing

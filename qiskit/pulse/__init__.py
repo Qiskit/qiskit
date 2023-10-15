@@ -40,7 +40,7 @@ noise in a quantum system.
 .. automodule:: qiskit.pulse.schedule
 .. automodule:: qiskit.pulse.transforms
 .. automodule:: qiskit.pulse.builder
-.. automodule:: qiskit.pulse.logical-elements-frames
+.. automodule:: qiskit.pulse.model
 
 
 .. currentmodule:: qiskit.pulse
