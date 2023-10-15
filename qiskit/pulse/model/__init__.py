@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-.. logical_elements_frames:
-
+r"""
 =======================================
 Logical Elements & Frames (:mod:`qiskit.pulse.logical_elements_frames`)
 =======================================
@@ -31,6 +29,8 @@ allowing for effective utilization of the quantum hardware. The burden of mappin
 the different combinations of :class:`LogicalElement`s and :class:`Frame`s
 to hardware aware objects is left to the Pulse Compiler.
 
+.. _logical_elements:
+
 LogicalElement
 ================
 :class:`LogicalElement`s are identified by their type and index. Currently, the most prominent example
@@ -41,6 +41,9 @@ is the :class:`Qubit`.
 
    Qubit
    Coupler
+
+
+.. _frames:
 
 Frame
 =============
@@ -56,6 +59,8 @@ defaults are to be used (for the qubit's driving frequency and measurement frequ
    QubitFrame
    MeasurementFrame
 
+
+.. _mixed_frames:
 
 MixedFrame
 =============
