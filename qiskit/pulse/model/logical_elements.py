@@ -116,7 +116,7 @@ class Coupler(LogicalElement):
     def __init__(self, *qubits):
         """Coupler logical element.
 
-        The coupler ``index`` is defined as the ``tuple`` (*qubits).
+        The coupler ``index`` is defined as the ``tuple`` (\\*qubits).
 
         Args:
             *qubits: any number of qubit indices coupled by the coupler.

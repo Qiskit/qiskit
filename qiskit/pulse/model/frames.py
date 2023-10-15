@@ -64,7 +64,7 @@ class GenericFrame(Frame):
     the typical qubit model, like qudit control for example. Because no backend defaults exist for
     these frames, during compilation an initial frequency and phase will need to be provided.
 
-    :class:`GenericFrame`s are identified by their unique name.
+    :class:`GenericFrame` objects are identified by their unique name.
     """
 
     def __init__(self, name: str):

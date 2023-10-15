@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
-=======================================
+==========================================================
 Logical Elements & Frames (:mod:`qiskit.pulse.model`)
-=======================================
+==========================================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
 low-level control. Qiskit Pulse's logical element and frames create a flexible framework
@@ -26,7 +26,7 @@ This logical and virtual representation allows the user to write template pulse
 programs without worrying about the exact details of the hardware implementation
 (are the pulses to be played via the same port? Which NCO is used?), while still
 allowing for effective utilization of the quantum hardware. The burden of mapping
-the different combinations of :class:`LogicalElement`s and :class:`Frame`s
+the different combinations of :class:`LogicalElement` and :class:`Frame`
 to hardware aware objects is left to the Pulse Compiler.
 
 .. _logical_elements:
