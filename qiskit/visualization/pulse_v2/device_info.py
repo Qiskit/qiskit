@@ -109,8 +109,11 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         configuration = backend.configuration()
         defaults = backend.defaults()
 
-        # load name
-        name = backend.name()
+        # load name from different backends
+        try:
+            name = backend.name()
+        except TypeError:
+            name = configuration.backend_name
 
         # load cycle time
         dt = configuration.dt
