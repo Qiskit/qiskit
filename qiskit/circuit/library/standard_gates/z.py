@@ -19,7 +19,7 @@ import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 from .p import PhaseGate
@@ -28,7 +28,7 @@ _Z_ARRAY = [[1, 0], [0, -1]]
 
 
 @with_gate_array(_Z_ARRAY)
-class ZGate(Gate):
+class ZGate(SingletonGate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -74,9 +74,9 @@ class ZGate(Gate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -112,8 +112,7 @@ class ZGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CZGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CZGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
@@ -160,10 +159,21 @@ class CZGate(ControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+    ):
         """Create new CZ gate."""
         super().__init__(
-            "cz", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()
+            "cz",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(label=_base_label),
         )
 
     def _define(self):

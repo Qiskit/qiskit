@@ -28,7 +28,7 @@ from .fake_backend import FakeBackend
 
 
 class FakeQasmBackend(FakeBackend):
-    """A fake qasm backend."""
+    """A fake OpenQASM backend."""
 
     dirname = None
     conf_filename = None

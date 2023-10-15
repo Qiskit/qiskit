@@ -22,7 +22,7 @@ import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.circuit.bit import Bit
-from qiskit.extensions.quantum_initializer.initializer import Initialize
+from qiskit.circuit.library.data_preparation import Initialize
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli

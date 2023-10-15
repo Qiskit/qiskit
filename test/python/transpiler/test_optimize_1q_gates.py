@@ -37,8 +37,8 @@ class TestOptimize1qGates(QiskitTestCase):
         """
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr)
-        circuit.i(qr)
-        circuit.i(qr)
+        circuit.id(qr)
+        circuit.id(qr)
         dag = circuit_to_dag(circuit)
 
         pass_ = Optimize1qGates()

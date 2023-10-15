@@ -14,9 +14,8 @@
 
 from math import pi
 from typing import Optional, Union
-import numpy
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -26,7 +25,7 @@ _SXDG_ARRAY = [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]]
 
 
 @with_gate_array(_SX_ARRAY)
-class SXGate(Gate):
+class SXGate(SingletonGate):
     r"""The single-qubit Sqrt(X) gate (:math:`\sqrt{X}`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -64,9 +63,9 @@ class SXGate(Gate):
 
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SX gate."""
-        super().__init__("sx", 1, [], label=label)
+        super().__init__("sx", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -108,14 +107,13 @@ class SXGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CSXGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
 
 @with_gate_array(_SXDG_ARRAY)
-class SXdgGate(Gate):
+class SXdgGate(SingletonGate):
     r"""The inverse single-qubit Sqrt(X) gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -143,14 +141,10 @@ class SXdgGate(Gate):
                     = e^{-i pi/4} \sqrt{X}^{\dagger}
 
     """
-    _ARRAY = numpy.array(
-        [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]], dtype=numpy.complex128
-    )
-    _ARRAY.setflags(write=False)
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SXdg gate."""
-        super().__init__("sxdg", 1, [], label=label)
+        super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -230,10 +224,21 @@ class CSXGate(ControlledGate):
 
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+    ):
         """Create new CSX gate."""
         super().__init__(
-            "csx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
+            "csx",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXGate(label=_base_label),
         )
 
     def _define(self):

@@ -358,6 +358,7 @@ typically raise the corresponding standard Python error).
 
 .. autoexception:: CircuitError
 """
+
 from .exceptions import CircuitError
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
@@ -366,6 +367,7 @@ from .gate import Gate
 
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
+from . import singleton
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .operation import Operation
