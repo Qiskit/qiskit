@@ -277,6 +277,29 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
         self.backend_configuration = Configuration()
         self.backend_defaults = Defaults()
 
+    def test_backend_v1(self):
+        """Test using BackendV1."""
+        from qiskit.providers.backend import BackendV1
+
+        class DummyBackendV1(BackendV1):
+            def __init__(self, configuration, defaults):
+                super().__init__(configuration=configuration)
+                self._defaults = defaults
+
+            def _default_options(self):
+                pass
+
+            def run(self, run_input, **options):
+                pass
+
+            def defaults(self):
+                return self._defaults
+
+        try:
+            device_info.OpenPulseBackendInfo().create_from_backend(backend=DummyBackendV1(self.backend_configuration, self.backend_defaults))
+        except Exception as error:
+            self.fail(f'Failed Pulse create from backend(BackendV1)\n{error}')
+
     def test_backend_v2(self):
         """Test using BackendV2."""
         from qiskit.providers.backend import BackendV2
