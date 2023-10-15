@@ -41,7 +41,7 @@ def sequence(
     Args:
         scheduled_circuit: The scheduled quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
-        backend: Pass in the backend used to build the schedule, the backend could be either BackendV1
+        backend: A backend used to build the Schedule, the backend could be BackendV1
                  or BackendV2
 
     Returns:
