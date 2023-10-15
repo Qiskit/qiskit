@@ -13,25 +13,22 @@
 """
 Logical Elements
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Tuple
 import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 
 
-class LogicalElement(metaclass=ABCMeta):
+class LogicalElement(ABC):
     """Base class of logical elements.
 
-    A :class:`LogicalElement` is an abstraction of a quantum HW component which can be controlled
+    A :class:`LogicalElement` is an abstraction of a quantum hardware component which can be controlled
     by the user (instructions can be applied to it).
     Every played pulse and most other instructions are associated with a :class:`LogicalElement` on which
     they are performed.
-    A logical element is identified by its index and a unique name for its class such that the
-    object's name is given by ``<class name><index>``.
+    A logical element is identified by its type and index.
 
-    To implement a new logical element, inherit from :class:`LogicalElement`. The ``name`` method needs to
-    be overridden with a proper name for the class.
     """
 
     def __init__(self, index: Tuple[int, ...]):
@@ -95,7 +92,7 @@ class Qubit(LogicalElement):
 
     @property
     def qubit_index(self):
-        """Return the qubit index of the Qubit"""
+        """Index of the Qubit"""
         return self.index[0]
 
     def _validate_index(self, index) -> None:

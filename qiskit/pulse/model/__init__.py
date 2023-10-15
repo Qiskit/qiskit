@@ -11,27 +11,28 @@
 # that they have been altered from the originals.
 
 """
-.. _pulse-logical-elements-frames:
+.. _logical_elements_frames:
 
 =======================================
-Logical Elements & Frames (:mod:`qiskit.pulse.logical_elements_frames`)
+Logical Elements & Frames (:mod:`qiskit.pulse._logical_elements_frames`)
 =======================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
 low-level control. Qiskit Pulse's logical element and frames create a flexible framework
 to define where pulse instructions are applied, and what would be their carrier frequency and phase
 (because typically AC pulses are used). Each :class:`LogicalElement` represents a separate component
-in the quantum computing system on which instructions could be applied. On the other hand, each :class:`Frame`
-represents a frequency and phase duo for the carrier of the pulse.
+in the quantum computing system on which instructions could be applied. On the other hand,
+each :class:`Frame` represents a frequency and phase duo for the carrier of the pulse.
 
 This logical and virtual representation allows the user to write template pulse
-programs without worrying about the exact details of the HW implementation (are the pulses to be played
-via the same port? Which NCO is used?), while still allowing for effective utilization of the quantum
-HW. The burden of mapping the different combinations of :class:`LogicalElement`s and :class:`Frame`s
-to HW aware objects is left to the Pulse Compiler.
+programs without worrying about the exact details of the hardware implementation
+(are the pulses to be played via the same port? Which NCO is used?), while still
+allowing for effective utilization of the quantum hardware. The burden of mapping
+the different combinations of :class:`LogicalElement`s and :class:`Frame`s
+to hardware aware objects is left to the Pulse Compiler.
 
 LogicalElement
-=============
+================
 :class:`LogicalElement`s are identified by their type and index. Currently, the most prominent example
 is the :class:`Qubit`.
 
@@ -43,7 +44,8 @@ is the :class:`Qubit`.
 
 Frame
 =============
-:class:`Frame`s are identified by their name. A :class:`GenericFrame` is used to specify custom frequency
+:class:`Frame`s are identified by their type and unique identifier. A :class:`GenericFrame` is used to
+specify custom frequency
 and phase duos, while :class:`QubitFrame` and :class:`MeasurementFrame` are used to indicate that backend
 defaults are to be used (for the qubit's driving frequency and measurement frequency respectively).
 

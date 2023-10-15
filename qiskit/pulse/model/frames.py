@@ -14,46 +14,35 @@
 Frames
 """
 
-from abc import ABCMeta
-from typing import Optional
+from abc import ABC
 
 import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 
 
-class Frame(metaclass=ABCMeta):
+class Frame(ABC):
     """Base class for pulse module frame.
 
-    Because pulses used in Quantum HW are typically AC pulses, the carrier frequency and phase
-    must be defined. The :class:`Frame` is the object which sets the frequency and phase for the carrier,
+    Because pulses used in Quantum hardware are typically AC pulses, the carrier frequency and phase
+    must be defined. The :class:`Frame` is the object which identifies the frequency and phase for
+    the carrier.
     and each pulse and most other instructions are associated with a frame. The different types of frames
     dictate how the frequency and phase duo are defined.
 
-    Instructions on :class:`Frame`s like set/shift frequency/phase are broadcasted
-    to every :class:`MixedFrame` which involves the same :class:`Frame`. The default
-    initial phase for every frame is 0.
+    The default initial phase for every frame is 0.
     """
 
     def __init__(self, identifier):
         """Create ``Frame``.
 
         Args:
-            identifier: A unique identifier used to identify the frame.
+            identifier: A unique identifier used to hash the Frame.
         """
-        self._identifier = identifier
         self._hash = hash((type(self), identifier))
 
-    @property
-    def identifier(self):
-        """Return the identifier of the frame"""
-        return self._identifier
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}({self._identifier})"
-
     def __eq__(self, other: "Frame") -> bool:
-        """Return True iff self and other are equal, specifically, iff they have the same type and name.
+        """Return True iff self and other are equal, specifically, iff they have the same type and hash.
 
         Args:
             other: The frame to compare to this one.
@@ -61,7 +50,7 @@ class Frame(metaclass=ABCMeta):
         Returns:
             True iff equal.
         """
-        return type(self) is type(other) and self._identifier == other._identifier
+        return type(self) is type(other) and self._hash == other._hash
 
     def __hash__(self) -> int:
         return self._hash
@@ -72,58 +61,28 @@ class GenericFrame(Frame):
 
     The :class:`GenericFrame` is used for custom user defined frames, which are not associated with any
     backend defaults. It is especially useful when the frame doesn't correspond to any frame of
-    the typical qubit model, like qudit control for example.
+    the typical qubit model, like qudit control for example. Because no backend defaults exist for
+    these frames, during compilation an initial frequency and phase will need to be provided.
 
     :class:`GenericFrame`s are identified by their unique name.
     """
 
-    def __init__(self, identifier: str, frequency: float, phase: Optional[float] = 0.0):
+    def __init__(self, name: str):
         """Create ``GenericFrame``.
 
         Args:
-            identifier: A unique identifier used to identify the frame.
-            frequency: The initial frequency set for the frame.
-            phase: The initial phase set for the frame. Default value 0.
-
+            name: A unique identifier used to identify the frame.
         """
-        self._frequency = frequency
-        self._phase = phase
-        super().__init__(identifier)
+        self._name = name
+        super().__init__(name)
 
     @property
     def name(self) -> str:
         """Return the name of the frame."""
-        return self._identifier
+        return self._name
 
-    @property
-    def frequency(self) -> float:
-        """Return the initial frequency of the generic frame."""
-        return self._frequency
-
-    @property
-    def phase(self) -> float:
-        """Return the initial phase of the generic frame."""
-        return self._phase
-
-    def __eq__(self, other: "GenericFrame") -> bool:
-        """Return True iff self and other are equal, specifically, iff they have the same type
-        name, frequency and phase.
-
-        Args:
-            other: The generic frame to compare to this one.
-
-        Returns:
-            True iff equal.
-        """
-        return (
-            type(self) is type(other)
-            and self._identifier == other._identifier
-            and self._frequency == other._frequency
-            and self._phase == other._phase
-        )
-
-    def __hash__(self) -> int:
-        return self._hash
+    def __repr__(self) -> str:
+        return f"GenericFrame({self._name})"
 
 
 class QubitFrame(Frame):
@@ -135,19 +94,20 @@ class QubitFrame(Frame):
     during compilation.
     """
 
-    def __init__(self, qubit_index: int):
+    def __init__(self, index: int):
         """Create ``QubitFrame``.
 
         Args:
-            qubit_index: The index of the qubit represented by the frame.
+            index: The index of the qubit represented by the frame.
         """
-        self._validate_index(qubit_index)
-        super().__init__(qubit_index)
+        self._validate_index(index)
+        self._index = index
+        super().__init__("QubitFrame" + str(index))
 
     @property
-    def qubit_index(self) -> int:
+    def index(self) -> int:
         """Return the qubit index of the qubit frame."""
-        return self._identifier
+        return self._index
 
     def _validate_index(self, index) -> None:
         """Raise a ``PulseError`` if the qubit index is invalid. Namely, check if the index is a
@@ -158,6 +118,9 @@ class QubitFrame(Frame):
         """
         if not isinstance(index, (int, np.integer)) or index < 0:
             raise PulseError("Qubit index must be a non-negative integer")
+
+    def __repr__(self) -> str:
+        return f"QubitFrame({self._index})"
 
 
 class MeasurementFrame(Frame):
@@ -170,19 +133,20 @@ class MeasurementFrame(Frame):
     measurement frequency provided by the backend during compilation.
     """
 
-    def __init__(self, qubit_index: int):
+    def __init__(self, index: int):
         """Create ``MeasurementFrame``.
 
         Args:
-            qubit_index: The index of the qubit represented by the frame.
+            index: The index of the qubit represented by the frame.
         """
-        self._validate_index(qubit_index)
-        super().__init__(qubit_index)
+        self._validate_index(index)
+        self._index = index
+        super().__init__("MeasurementFrame" + str(index))
 
     @property
-    def qubit_index(self) -> int:
+    def index(self) -> int:
         """Return the qubit index of the measurement frame."""
-        return self._identifier
+        return self._index
 
     def _validate_index(self, index) -> None:
         """Raise a ``PulseError`` if the qubit index is invalid. Namely, check if the index is a
@@ -191,6 +155,8 @@ class MeasurementFrame(Frame):
         Raises:
             PulseError: If ``index`` is a negative integer.
         """
-        pass
         if not isinstance(index, (int, np.integer)) or index < 0:
             raise PulseError("Qubit index must be a non-negative integer")
+
+    def __repr__(self) -> str:
+        return f"MeasurementFrame({self._index})"
