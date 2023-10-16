@@ -60,6 +60,10 @@ from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.fake_provider import FakeGeneric
+from qiskit.providers.fake_provider import (
+    FakeMelbourne,
+    FakeRueschlikon,
+)
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
@@ -1891,7 +1895,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeGeneric(num_qubits=8),
+            backend=FakeMelbourne(),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2102,7 +2106,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_parallel_dispatch(self, opt_level):
         """Test that transpile in parallel works for all optimization levels."""
-        backend = FakeGeneric(num_qubits=16, replace_cx_with_ecr=False)
+        backend = FakeRueschlikon()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(16)
         qc = QuantumCircuit(qr, cr)
