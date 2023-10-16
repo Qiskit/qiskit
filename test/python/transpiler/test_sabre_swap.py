@@ -230,18 +230,9 @@ class TestSabreSwap(QiskitTestCase):
         coupling_map = CouplingMap.from_line(qc.num_qubits)
         routing_pass = PassManager(SabreSwap(coupling_map, method))
 
-        n_swap_gates = 0
-
-        def leak_number_of_swaps(cls, *args, **kwargs):
-            nonlocal n_swap_gates
-            n_swap_gates += 1
-            if n_swap_gates > 1_000:
-                raise Exception("SabreSwap seems to be stuck in a loop")
-            # pylint: disable=bad-super-call
-            return super(SwapGate, cls).__new__(cls, *args, **kwargs)
-
-        with unittest.mock.patch.object(SwapGate, "__new__", leak_number_of_swaps):
-            routed = routing_pass.run(qc)
+        # Since all the logic happens in Rust space these days, the best we'll really see here is
+        # the test hanging.
+        routed = routing_pass.run(qc)
 
         routed_ops = routed.count_ops()
         del routed_ops["swap"]
@@ -692,9 +683,9 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg[[0]])
+        true_body = QuantumCircuit(qreg[:], creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg[[0]])
+        false_body = QuantumCircuit(qreg[:], creg[[0]])
         false_body.cx(0, 4)
         qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.h(3)
@@ -724,11 +715,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(2, 3)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
-        expected.h(3)
         expected.swap(1, 2)
+        expected.h(3)
         expected.cx(3, 2)
         expected.barrier()
-        expected.measure(qreg, creg[[1, 2, 0, 3, 4]])
+        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):

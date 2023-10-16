@@ -65,7 +65,7 @@ class SPSA(Optimizer):
 
         SPSA can be used in the presence of noise, and it is therefore indicated in situations
         involving measurement uncertainty on a quantum computation when finding a minimum.
-        If you are executing a variational algorithm using a Quantum ASseMbly Language (QASM)
+        If you are executing a variational algorithm using an OpenQASM
         simulator or a real device, SPSA would be the most recommended choice among the optimizers
         provided here.
 
@@ -98,7 +98,7 @@ class SPSA(Optimizer):
             initial_point = np.random.random(ansatz.num_parameters)
 
             def loss(x):
-                bound = ansatz.bind_parameters(x)
+                bound = ansatz.assign_parameters(x)
                 return np.real((StateFn(observable, is_measurement=True) @ StateFn(bound)).eval())
 
             spsa = SPSA(maxiter=300)
@@ -687,12 +687,16 @@ class SPSA(Optimizer):
 def bernoulli_perturbation(dim, perturbation_dims=None):
     """Get a Bernoulli random perturbation."""
     if perturbation_dims is None:
-        return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
 
-    pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
-    indices = algorithm_globals.random.choice(
-        list(range(dim)), size=perturbation_dims, replace=False
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
+        indices = algorithm_globals.random.choice(
+            list(range(dim)), size=perturbation_dims, replace=False
+        )
     result = np.zeros(dim)
     result[indices] = pert
 

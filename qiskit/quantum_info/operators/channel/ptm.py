@@ -40,7 +40,7 @@ class PTM(QuantumChannel):
 
     .. math::
 
-        R_{i,j} = \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
+        R_{i,j} = \frac{1}{2^n} \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order.
@@ -53,7 +53,7 @@ class PTM(QuantumChannel):
         |\mathcal{E}(\rho)\rangle\!\rangle_P = S_P |\rho\rangle\!\rangle_P
 
     where :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
-    :math:`\langle i | A\rangle\!\rangle_P = \mbox{Tr}[P_i A]`.
+    :math:`\langle i | A\rangle\!\rangle_P = \sqrt{\frac{1}{2^n}} \mbox{Tr}[P_i A]`.
 
     See reference [1] for further details.
 

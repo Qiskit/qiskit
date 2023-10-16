@@ -13,6 +13,7 @@
 """Test cases for the schedule block qpy loading and saving."""
 
 import io
+import unittest
 from ddt import ddt, data, unpack
 
 import numpy as np
@@ -36,6 +37,7 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
@@ -401,3 +403,54 @@ class TestPulseGate(QpyScheduleTestCase):
         qc.add_calibration("measure", (0,), sched)
 
         self.assert_roundtrip_equal(qc)
+
+
+class TestSymengineLoadFromQPY(QiskitTestCase):
+    """Test use of symengine in qpy set of methods."""
+
+    def setUp(self):
+        super().setUp()
+
+        # pylint: disable=invalid-name
+        t, amp, freq = sym.symbols("t, amp, freq")
+        sym_envelope = 2 * amp * (freq * t - sym.floor(1 / 2 + freq * t))
+
+        my_pulse = SymbolicPulse(
+            pulse_type="Sawtooth",
+            duration=100,
+            parameters={"amp": 0.1, "freq": 0.05},
+            envelope=sym_envelope,
+            name="pulse1",
+        )
+        with builder.build() as test_sched:
+            builder.play(my_pulse, DriveChannel(0))
+
+        self.test_sched = test_sched
+
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
+    def test_symengine_full_path(self):
+        """Test use_symengine option for circuit with parameter expressions."""
+        qpy_file = io.BytesIO()
+        dump(self.test_sched, qpy_file, use_symengine=True)
+        qpy_file.seek(0)
+        new_sched = load(qpy_file)[0]
+        self.assertEqual(self.test_sched, new_sched)
+
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
+    def test_dump_no_symengine(self):
+        """Test dump fails if symengine is not installed and use_symengine==True."""
+        qpy_file = io.BytesIO()
+        with _optional.HAS_SYMENGINE.disable_locally():
+            with self.assertRaises(MissingOptionalLibraryError):
+                dump(self.test_sched, qpy_file, use_symengine=True)
+
+    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
+    def test_load_no_symengine(self):
+        """Test that load fails if symengine is not installed and the
+        file was created with use_symengine==True."""
+        qpy_file = io.BytesIO()
+        dump(self.test_sched, qpy_file, use_symengine=True)
+        qpy_file.seek(0)
+        with _optional.HAS_SYMENGINE.disable_locally():
+            with self.assertRaises(MissingOptionalLibraryError):
+                _ = load(qpy_file)[0]

@@ -240,7 +240,7 @@ class StochasticSwap(TransformationPass):
         for idx in range(len(edges) // 2):
             swap_src = self._int_to_qubit[edges[2 * idx]]
             swap_tgt = self._int_to_qubit[edges[2 * idx + 1]]
-            trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
+            trial_circuit.apply_operation_back(SwapGate(), (swap_src, swap_tgt), (), check=False)
         best_circuit = trial_circuit
 
         # Otherwise, we return our result for this layer
@@ -445,7 +445,7 @@ class StochasticSwap(TransformationPass):
 
         new_op = node.op.replace_blocks(block_circuits)
         new_qargs = block_circuits[0].qubits
-        dagcircuit_output.apply_operation_back(new_op, new_qargs, node.cargs)
+        dagcircuit_output.apply_operation_back(new_op, new_qargs, node.cargs, check=False)
         return final_layout
 
     def _new_seed(self):
@@ -502,7 +502,10 @@ def _dag_from_block(block, node, root_dag):
     # mapping when required, so we use that with a dummy block.
     out.add_clbits(node.cargs)
     dummy = out.apply_operation_back(
-        Instruction("dummy", len(node.qargs), len(node.cargs), []), node.qargs, node.cargs
+        Instruction("dummy", len(node.qargs), len(node.cargs), []),
+        node.qargs,
+        node.cargs,
+        check=False,
     )
     wire_map = dict(itertools.chain(zip(block.qubits, node.qargs), zip(block.clbits, node.cargs)))
     out.substitute_node_with_dag(dummy, circuit_to_dag(block), wires=wire_map)

@@ -12,6 +12,7 @@
 """Tests evaluator of auxiliary operators for algorithms."""
 
 import unittest
+import warnings
 from typing import Tuple, Union
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -44,7 +45,9 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
         with self.assertWarns(DeprecationWarning):
             self.h2_op = (
                 -1.052373245772859 * (I ^ I)
@@ -125,7 +128,7 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         expected_result = self.get_exact_expectation(bound_ansatz, observables)
 
         for backend_name in self.backend_names:
