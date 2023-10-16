@@ -136,7 +136,7 @@ class SabrePreLayout(AnalysisPass):
         apart in the original graph. The extra edges are assigned errors allowing VF2
         to prioritize real edges over extra edges.
         """
-        nq = len(self.coupling_map.graph.node_indices())
+        nq = len(self.coupling_map.graph)
         augmented_coupling_map = CouplingMap()
         augmented_coupling_map.graph = self.coupling_map.graph.copy()
         augmented_error_map = ErrorMap(nq)
