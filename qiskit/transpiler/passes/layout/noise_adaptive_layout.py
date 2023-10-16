@@ -81,8 +81,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
                 # inconsistency internally). For the non-target path, this is a possible solution.
                 # See https://github.com/Qiskit/qiskit/issues/7677
                 self.backend_prop.gates = filter(
-                    lambda ginfo: ginfo.gate == "cx"
-                    and tuple(ginfo.qubits) in coupling_map.graph.edge_list(),
+                    lambda ginfo: tuple(ginfo.qubits) in coupling_map.graph.edge_list(),
                     backend_prop.gates,
                 )
                 self.backend_prop.qubits = backend_prop.qubits[
