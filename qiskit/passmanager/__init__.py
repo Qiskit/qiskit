@@ -93,7 +93,7 @@ Examples:
             def _passmanager_frontend(self, input_program: int, **kwargs) -> str:
                 return str(input_program)
 
-            def _passmanager_backend(self, passmanager_ir: str, **kwargs) -> int:
+            def _passmanager_backend(self, passmanager_ir: str, in_program: int, **kwargs) -> int:
                 return int(passmanager_ir)
 
     This pass manager inputs and outputs an integer number, while
@@ -102,6 +102,8 @@ Examples:
     The :meth:`.~BasePassManager._passmanager_frontend` defines a conversion from the
     input data to IR, and :meth:`.~BasePassManager._passmanager_backend` defines
     a conversion from the IR to output data.
+    The pass manager backend can also take an :code:`in_program` data just for referencing
+    the original metadata of the input program for the final conversion.
 
     Next, we implement a pass that removes a digit when the number is five.
 
@@ -156,7 +158,7 @@ Examples:
             return property_set["ndigits"] > 6
 
         conditional_task = ConditionalController(
-            passes=[RemoveFive()],
+            tasks=[RemoveFive()],
             condition=digit_condition,
         )
 
