@@ -85,7 +85,7 @@ class NormalizeRXAngle(TransformationPass):
         if similar_angles.size == 0:
             self.already_generated[qubit] = np.append(angles, original_angle)
             return original_angle
-        return float(angles[0])
+        return float(similar_angles[0])
 
     def run(self, dag):
         """Run the NormalizeRXAngle pass on ``dag``.
