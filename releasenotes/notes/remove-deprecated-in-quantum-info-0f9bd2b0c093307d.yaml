@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The class ``qiskit.quantum_info.PauliTable`` and `qiskit.quantum_info.StabilizerTable`
+    is removed. The function ``random_pauli_table`` is also removed.
+    They were deprecated in Qiskit 0.43 (with Terra 0.24), released on May 2023.
