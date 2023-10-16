@@ -14,8 +14,8 @@
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.dagcircuit import DAGOpNode, DAGCircuit
-from qiskit.circuit import Delay, Gate
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit, DAGOutNode
+from qiskit.circuit import Delay, Gate, Measure, Reset
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
@@ -265,6 +265,18 @@ class BaseSchedulerTransform(TransformationPass):
         if dag.has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
+            if isinstance(node.op, Reset):
+                raise RuntimeWarning(
+                    "Reset durations reported from IBM backends are currently untrustworthy. Do not rely on on scheduling results."
+                )
+            elif isinstance(node.op, Measure):
+                is_mid_circuit = not any(
+                    isinstance(x, DAGOutNode) for x in dag.quantum_successors(node) 
+                )
+                if is_mid_circuit:
+                    raise RuntimeWarning(
+                        "Mid-circuit measurement durations reported from IBM backends are currently untrustworthy. Do not rely on on scheduling results."
+                    )
             duration = dag.calibrations[node.op.name][cal_key].duration
         else:
             duration = node.op.duration

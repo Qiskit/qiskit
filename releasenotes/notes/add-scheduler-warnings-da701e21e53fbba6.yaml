@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Give runtime warning for untrustworthy duration reports for mid-circuit measurements and resets.
+    No longer throw an error when Reset called in ConstrainedReschedule. Instead, we treat Reset like 
+    Measure.
+
