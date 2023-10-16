@@ -152,7 +152,7 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
-                if isinstance(target_op, type(inst.operation)) and (
+                if isinstance(target_op, inst.operation.base_class) and (
                     target_op.is_parameterized()
                     or all(
                         isclose(float(p1), float(p2))
@@ -375,10 +375,12 @@ class UnitarySynthesis(TransformationPass):
         """
         if self.method != "default" and self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
-        # Return fast if we have no synth gates (ie user specified an empty
-        # list or the synth gates are all in the basis
-        if not self._synth_gates:
+
+        # If there aren't any gates to synthesize in the circuit we can skip all the iteration
+        # and just return.
+        if not set(self._synth_gates).intersection(dag.count_ops()):
             return dag
+
         if self.plugins:
             plugin_method = self.plugins.ext_plugins[self.method].obj
         else:
@@ -782,9 +784,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     error = 0.0
                 basis_2q_fidelity[strength] = 1 - error
             # rewrite XX of the same strength in terms of it
-            embodiment = XXEmbodiments[type(v)]
+            embodiment = XXEmbodiments[v.base_class]
             if len(embodiment.parameters) == 1:
-                embodiments[strength] = embodiment.bind_parameters([strength])
+                embodiments[strength] = embodiment.assign_parameters([strength])
             else:
                 embodiments[strength] = embodiment
             # basis equivalent to CX are well optimized so use for the pi/2 angle if available
@@ -802,7 +804,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                         basis_fidelity=basis_2q_fidelity,
                         pulse_optimize=True,
                     )
-                    embodiments.update({pi / 2: XXEmbodiments[type(pi2_decomposer.gate)]})
+                    embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})
                 else:
                     pi2_decomposer = None
                 decomposer = XXDecomposer(

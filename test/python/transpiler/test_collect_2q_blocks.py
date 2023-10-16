@@ -79,11 +79,11 @@ class TestCollect2qBlocks(QiskitTestCase):
         """
         qc = QuantumCircuit(2, 1)
         qc.cx(1, 0)
-        qc.i(0)
-        qc.i(1)
+        qc.id(0)
+        qc.id(1)
         qc.measure(0, 0)
-        qc.i(0)
-        qc.i(1)
+        qc.id(0)
+        qc.id(1)
         qc.cx(1, 0)
 
         dag = circuit_to_dag(qc)

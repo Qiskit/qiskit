@@ -88,11 +88,14 @@ class BasePassRunner(ABC):
         pass
 
     @abstractmethod
-    def _to_target(self, passmanager_ir):
+    def _to_target(self, passmanager_ir, in_program):
         """Convert pass manager IR into output program.
 
         Args:
             passmanager_ir: Pass manager IR after optimization.
+            in_program: The input program, this can be used if you need
+                any metadata about the original input for the output. It
+                should not be mutated.
 
         Returns:
             Output program.
@@ -229,7 +232,6 @@ class BasePassRunner(ABC):
         self.metadata = metadata
 
         passmanager_ir = self._to_passmanager_ir(in_program)
-        del in_program
 
         for controller in self.working_list:
             passmanager_ir = self._run_pass_generic(
@@ -237,7 +239,8 @@ class BasePassRunner(ABC):
                 passmanager_ir=passmanager_ir,
                 options=self.passmanager_options,
             )
-        out_program = self._to_target(passmanager_ir)
+        out_program = self._to_target(passmanager_ir, in_program)
+        del in_program
 
         if not isinstance(out_program, self.OUT_PROGRAM_TYPE):
             raise TypeError(

@@ -12,6 +12,8 @@
 
 """Tests for the SPSA optimizer."""
 
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data
 
@@ -32,7 +34,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         np.random.seed(12)
-        algorithm_globals.random_seed = 12
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 12
 
     # @slow_test
     @data("spsa", "2spsa", "qnspsa")

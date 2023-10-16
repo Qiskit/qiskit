@@ -16,7 +16,7 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
@@ -46,7 +46,8 @@ class TestDiagonalGate(QiskitTestCase):
                 num_qubits = int(np.log2(len(diag)))
                 q = QuantumRegister(num_qubits)
                 qc = QuantumCircuit(q)
-                qc.diagonal(diag, q[0:num_qubits])
+                with self.assertWarns(PendingDeprecationWarning):
+                    qc.diagonal(diag, q[0:num_qubits])
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
                 # Simulate the decomposed gate
@@ -61,7 +62,27 @@ class TestDiagonalGate(QiskitTestCase):
         from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
         with self.assertRaises(QiskitError):
-            DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
+            with self.assertWarns(PendingDeprecationWarning):
+                DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
+
+    def test_npcomplex_params_conversion(self):
+        """Verify diagonal gate converts numpy.complex to complex."""
+        # ref: https://github.com/Qiskit/qiskit-aer/issues/696
+        diag = np.array([1 + 0j, 1 + 0j])
+        qc = QuantumCircuit(1)
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.diagonal(diag.tolist(), [0])
+
+        params = qc.data[0].operation.params
+        self.assertTrue(
+            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
+        )
+
+        qobj = assemble(qc)
+        params = qobj.experiments[0].instructions[0].params
+        self.assertTrue(
+            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
+        )
 
 
 def _get_diag_gate_matrix(diag):
