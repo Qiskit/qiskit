@@ -212,7 +212,7 @@ something like::
             return None
 
 The above example creates a plugin to synthesize objects of type
-:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
+:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford` that have
 at most 3 qubits, using the method ``synth_clifford_bm``.
 
 The second step is to expose the
