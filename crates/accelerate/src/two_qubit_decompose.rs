@@ -9,42 +9,42 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
-use num_complex::{Complex, Complex64};
+use num_complex::{Complex};
 use std::f64::consts::PI;
 
-use numpy::{ToPyArray, PyArray};
+//use numpy::{ToPyArray, PyArray};
 use numpy::PyReadonlyArray2;
 use faer::{Mat, MatRef, mat, Scale};
 use faer::Faer;
 use faer_core::c64;
-use faer_core::ComplexField; // for access to fields of struct
+//use faer_core::ComplexField; // for access to fields of struct
 use faer::IntoFaerComplex;
 
 use crate::utils;
 
 // FIXME: zero and one exist but I cant find the right incantation
-const c0 : c64 = c64 {re: 0.0, im: 0.0};
-const c1 : c64 = c64 {re: 1.0, im: 0.0};
-const c1im : c64 = c64 { re: 0.0, im: 1.0};
+const C0 : c64 = c64 {re: 0.0, im: 0.0};
+const C1 : c64 = c64 {re: 1.0, im: 0.0};
+const C1IM : c64 = c64 { re: 0.0, im: 1.0};
 
 // FIXME: Find a way to compute these matrices at compile time.
-fn transform_to_magic_basis(U : Mat<c64>) -> Mat<c64> {
-    let _B_nonnormalized : Mat<c64> = mat![[c1, c1im, c0, c0],
-                                           [c0, c0, c1im, c1],
-                                           [c0, c0, c1im, -c1],
-                                           [c1, -c1im, c0, c0]];
-    let _B_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _B_nonnormalized.adjoint();
-    return _B_nonnormalized * U * _B_nonnormalized_dagger;
+fn transform_from_magic_basis(unitary : Mat<c64>) -> Mat<c64> {
+    let _b_nonnormalized : Mat<c64> = mat![[C1, C1IM, C0, C0],
+                                           [C0, C0, C1IM, C1],
+                                           [C0, C0, C1IM, -C1],
+                                           [C1, -C1IM, C0, C0]];
+    let _b_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _b_nonnormalized.adjoint();
+    _b_nonnormalized_dagger * unitary * _b_nonnormalized
 }
 
-fn transform_from_magic_basis(U : Mat<c64>) -> Mat<c64> {
-    let _B_nonnormalized : Mat<c64> = mat![[c1, c1im, c0, c0],
-                                           [c0, c0, c1im, c1],
-                                           [c0, c0, c1im, -c1],
-                                           [c1, -c1im, c0, c0]];
-    let _B_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _B_nonnormalized.adjoint();
-    return _B_nonnormalized_dagger * U * _B_nonnormalized;
-}
+// fn transform_to_magic_basis(unitary : Mat<c64>) -> Mat<c64> {
+//     let _b_nonnormalized : Mat<c64> = mat![[C1, C1IM, C0, C0],
+//                                            [C0, C0, C1IM, C1],
+//                                            [C0, C0, C1IM, -C1],
+//                                            [C1, -C1IM, C0, C0]];
+//     let _b_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _b_nonnormalized.adjoint();
+//     _b_nonnormalized * unitary * _b_nonnormalized_dagger
+// }
 
 // faer::c64 and num_complex::Complex<f64> are both structs
 // holding two f64's. But several functions are not defined for
@@ -57,7 +57,7 @@ pub trait PowF {
 
 impl PowF for c64 {
     fn powf(self, pow : f64) -> c64 {
-        return c64::from(Complex::<f64>::from(self).powf(pow));
+        c64::from(Complex::<f64>::from(self).powf(pow))
     }
 }
 
@@ -68,7 +68,7 @@ pub trait Arg {
 impl Arg for c64 {
     fn arg(self) -> f64 {
         let c = Complex::<f64>::from(self);
-        return c.arg();
+        c.arg()
     }
 }
 
@@ -77,10 +77,10 @@ fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
     let pi4 = PI / 4.0;
-    let uscaled = Scale(c1 / unitary.determinant().powf(0.25)) * unitary;
+    let uscaled = Scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
     let uad = uup.transpose();
-    let mut d : Vec<c64> = (&uad * &uup).eigenvalues();
+    let d : Vec<c64> = (uad * &uup).eigenvalues();
     let mut darg : Vec<_> = d.iter().map(|x| - x.arg() / 2.0).collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
     let mut cs : Vec<_> = (0..3).map(|i| utils::modulo((darg[i] + darg[3]) / 2.0, 2.0 * pi)).collect();
@@ -118,7 +118,7 @@ fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
     if cs[2] > pi4 {
         cs[2] -= pi2;
     }
-    return (cs[1], cs[0], cs[2]);
+    (cs[1], cs[0], cs[2])
 }
 
 
@@ -127,7 +127,7 @@ fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
 #[pyo3(text_signature = "(unitary, /")]
 pub fn _weyl_coordinates(unitary : PyReadonlyArray2<Complex<f64>>) -> (f64, f64, f64) {
     let u = unitary.as_array().into_faer_complex();
-    return __weyl_coordinates(u);
+    __weyl_coordinates(u)
 }
 
 #[pyfunction]
@@ -140,7 +140,7 @@ pub fn _num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : PyReadonl
 fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : MatRef<c64>) -> usize {
     let (a, b, c) = __weyl_coordinates(unitary);
     let pi4 = PI / 4.0;
-    let traces = vec![
+    let traces = [
         c64::new(4.0 * (a.cos() * b.cos() * c.cos()), 4.0 * (a.sin() * b.sin() * c.sin())),
         c64::new(4.0  * (pi4 - a).cos() * (basis_b - b).cos() * c.cos(),
                  4.0 * (pi4 - a).sin() * (basis_b - b).sin() * c.sin()),
@@ -149,25 +149,26 @@ fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : MatRef<c64>)
     ];
     let mut imax : usize = 0;
     let mut max_fid = 0.0;
-    for i in 0..4 {
-        let fid = trace_to_fid(traces[i]) * basis_fidelity.powi(i as i32);
+//    for i in 0..4 {
+    for (i, trace) in traces.iter().enumerate() {
+        let fid = trace_to_fid(*trace) * basis_fidelity.powi(i as i32);
         if fid > max_fid {
             max_fid = fid;
             imax = i
         }
     }
-    return imax;
+    imax
 }
 
 // The interface for abs2 is in flux. So use this for now.
 fn myabs2(z: c64) -> f64 {
-    return z.re * z.re + z.im * z.im;
+    z.re * z.re + z.im * z.im
 }
 
 /// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
 /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
 fn trace_to_fid(trace : c64) -> f64 {
-    return 4.0 + myabs2(trace) / 20.0;
+    (4.0 + myabs2(trace)) / 20.0
 }
 
 #[pymodule]

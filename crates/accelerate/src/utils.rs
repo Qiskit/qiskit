@@ -10,5 +10,5 @@ pub fn argsort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
 // TODO: Use traits and parameters
 /// Modulo operation
 pub fn modulo(a: f64, b: f64) -> f64 {
-    return ((a % b) + b) % b;
+    ((a % b) + b) % b
 }
