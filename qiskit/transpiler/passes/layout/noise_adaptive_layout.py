@@ -61,8 +61,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
         Args:
             backend_prop (Union[BackendProperties, Target]): backend properties object
             coupling_map (CouplingMap): Optional. To filter the backend_prop qubits/gates.
-            This parameter is ignored if :class:`.Target` is provided in ``backend_prop``.
-            That method is preferred.
+                This parameter is ignored if :class:`.Target` is provided in ``backend_prop``.
+                That method is preferred.
 
         Raises:
             TranspilerError: if invalid options
