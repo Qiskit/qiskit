@@ -251,6 +251,7 @@ class TestFigureTitle(QiskitTestCase):
 
         self.assertEqual(out, ref_title)
 
+
 class TestPulseCreateFromDifferentBackends(QiskitTestCase):
     """Tests for OpenPulse create_from_backend"""
 
@@ -259,16 +260,19 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
 
         from qiskit.providers.models import PulseBackendConfiguration
 
+        # pylint: disable=super-init-not-called
         class Configuration(PulseBackendConfiguration):
             """Default configuration for Dummy backends."""
+
             def __init__(self):
-                self.backend_name = 'Dummy'
+                self.backend_name = "Dummy"
                 self.dt = None
                 self.u_channel_lo = []
                 self.n_qubits = 1
 
-        class Defaults():
+        class Defaults:
             """Defaults for Dummy backends."""
+
             def __init__(self):
                 self.qubit_freq_est = []
                 self.meas_freq_est = []
@@ -282,53 +286,69 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
         from qiskit.providers.backend import BackendV1
 
         class DummyBackendV1(BackendV1):
+            """Dummy backend Based on BackendV1."""
+
             def __init__(self, configuration, defaults):
                 super().__init__(configuration=configuration)
                 self._defaults = defaults
 
-            def _default_options(self):
+            # pylint: disable=no-self-argument
+            def _default_options(cls=None):
                 pass
 
             def run(self, run_input, **options):
                 pass
 
             def defaults(self):
+                """Get device defaults."""
                 return self._defaults
 
         try:
-            device_info.OpenPulseBackendInfo().create_from_backend(backend=DummyBackendV1(self.backend_configuration, self.backend_defaults))
-        except Exception as error:
-            self.fail(f'Failed Pulse create from backend(BackendV1)\n{error}')
+            device_info.OpenPulseBackendInfo().create_from_backend(
+                backend=DummyBackendV1(self.backend_configuration, self.backend_defaults)
+            )
+
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            self.fail(f"Failed Pulse create from backend(BackendV1)\n{error}")
 
     def test_backend_v2(self):
         """Test using BackendV2."""
         from qiskit.providers.backend import BackendV2
 
         class DummyBackendV2(BackendV2):
+            """Dummy backend Based on BackendV2."""
+
             def __init__(self, configuration, defaults):
                 super().__init__(name=configuration.backend_name)
                 self._configuration = configuration
                 self._defaults = defaults
 
+            @property
             def target(self):
                 pass
 
+            @property
             def max_circuits(self):
                 pass
 
-            def _default_options(self):
+            # pylint: disable=no-self-argument
+            def _default_options(cls=None):
                 pass
 
             def run(self, run_input, **options):
                 pass
 
             def configuration(self):
+                """Get backend configuration."""
                 return self._configuration
 
             def defaults(self):
+                """Get device defaults."""
                 return self._defaults
 
         try:
-            device_info.OpenPulseBackendInfo().create_from_backend(backend=DummyBackendV2(self.backend_configuration, self.backend_defaults))
-        except Exception as error:
-            self.fail(f'Failed Pulse create from backend(BackendV2)\n{error}')
+            device_info.OpenPulseBackendInfo().create_from_backend(
+                backend=DummyBackendV2(self.backend_configuration, self.backend_defaults)
+            )
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            self.fail(f"Failed Pulse create from backend(BackendV2)\n{error}")
