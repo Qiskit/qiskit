@@ -89,6 +89,7 @@ Optimizations
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   NormalizeRXAngle
 
 Calibration
 =============
@@ -99,6 +100,7 @@ Calibration
    PulseGates
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
+   RXCalibrationBuilder
 
 Scheduling
 =============
@@ -234,6 +236,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import NormalizeRXAngle
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -258,6 +261,7 @@ from .synthesis import SolovayKitaevSynthesis
 from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
+from .calibration import RXCalibrationBuilder
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion

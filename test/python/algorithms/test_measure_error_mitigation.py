@@ -13,6 +13,8 @@
 """Test Measurement Error Mitigation"""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -60,7 +62,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         fails,
     ):
         """measurement error mitigation with different qubit order"""
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -126,7 +130,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         """measurement error mitigation test with vqe"""
 
         fitter_str, mit_pattern = config
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -199,11 +205,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
     def test_measurement_error_mitigation_qaoa(self):
         """measurement error mitigation test with QAOA"""
-        algorithm_globals.random_seed = 167
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 167
+
         backend = Aer.get_backend("aer_simulator")
-        w = rx.adjacency_matrix(
-            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            w = rx.adjacency_matrix(
+                rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+            )
         qubit_op, _ = self._get_operator(w)
         initial_point = np.asarray([0.0, 0.0])
 
@@ -257,7 +268,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     @data("CompleteMeasFitter", "TensoredMeasFitter")
     def test_measurement_error_mitigation_with_diff_qubit_order_ignis(self, fitter_str):
         """measurement error mitigation with different qubit order"""
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -323,7 +336,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe_ignis(self, config):
         """measurement error mitigation test with vqe"""
         fitter_str, mit_pattern = config
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()
@@ -367,8 +382,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(optionals.HAS_IGNIS, "qiskit-ignis is required to run this test")
     def test_calibration_results(self):
         """check that results counts are the same with/without error mitigation"""
-        algorithm_globals.random_seed = 1679
-        np.random.seed(algorithm_globals.random_seed)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 1679
+            np.random.seed(algorithm_globals.random_seed)
+
         qc = QuantumCircuit(1)
         qc.x(0)
 
@@ -406,8 +424,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         """tests that circuits don't get modified on QI execute with error mitigation
         as per issue #7449
         """
-        algorithm_globals.random_seed = 1679
-        np.random.seed(algorithm_globals.random_seed)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 1679
+            np.random.seed(algorithm_globals.random_seed)
+
         circuit = QuantumCircuit(1)
         circuit.x(0)
         circuit.measure_all()

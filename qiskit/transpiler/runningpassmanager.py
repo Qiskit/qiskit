@@ -100,7 +100,7 @@ class RunningPassManager(BasePassRunner):
             raise TranspilerError(f"Input {in_program.__class__} is not QuantumCircuit.")
         return circuit_to_dag(in_program)
 
-    def _to_target(self, passmanager_ir: DAGCircuit) -> QuantumCircuit:
+    def _to_target(self, passmanager_ir: DAGCircuit, in_program: QuantumCircuit) -> QuantumCircuit:
         if not isinstance(passmanager_ir, DAGCircuit):
             raise TranspilerError(f"Input {passmanager_ir.__class__} is not DAGCircuit.")
 
@@ -112,6 +112,8 @@ class RunningPassManager(BasePassRunner):
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
                 final_layout=self.property_set["final_layout"],
+                _input_qubit_count=len(in_program.qubits),
+                _output_qubit_list=circuit.qubits,
             )
         circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         circuit._conditional_latency = self.property_set["conditional_latency"]
