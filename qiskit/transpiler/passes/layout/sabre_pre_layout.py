@@ -53,10 +53,9 @@ class SabrePreLayout(AnalysisPass):
         isomorphism still exists.
 
         Args:
-            target (Target): A target representing the backend device. If specified, it will
-                supersede a set value for ``coupling_map``.
             coupling_map (Union[CouplingMap, Target]): directed graph representing the
-                original coupling map.
+                original coupling map or a target modelling the backend (including its
+                connectivity).
             max_distance (int): the maximum distance to consider for augmented coupling maps.
             error_rate (float): the error rate to assign to the "extra" edges. A non-zero
                 error rate prioritizes VF2 to choose original edges over extra edges.
@@ -99,7 +98,8 @@ class SabrePreLayout(AnalysisPass):
 
         if self.coupling_map is None:
             raise TranspilerError(
-                "SabrePreLayout requires either target or coupling_map to be provided."
+                "SabrePreLayout requires coupling_map to be used with either"
+                "CouplingMap or a Target."
             )
 
         starting_layout = None
