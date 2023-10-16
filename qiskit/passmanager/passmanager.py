@@ -64,11 +64,17 @@ class BasePassManager(ABC):
         Args:
             tasks: A set of pass manager tasks to be added to schedule. When multiple
                 tasks are provided, tasks are grouped together as a single flow controller.
+
             flow_controller_conditions: Dictionary of control flow plugins.
                 Following built-in controllers are available by default:
 
-                * do_while: The passes repeat until the callable returns False.
-                * condition: The passes run only if the callable returns True.
+                * do_while: The passes repeat until the callable returns False.  Corresponds to
+                  :class:`.DoWhileController`.
+                * condition: The passes run only if the callable returns True. Corresponds to
+                  :class:`.ConditionalController`.
+
+                In general you have finer-grained control over pass sequencing if you simply
+                instantiate the flow controller you want manually and given that to :meth:`append`.
         """
         if flow_controller_conditions:
             tasks = _legacy_build_flow_controller(
@@ -89,7 +95,7 @@ class BasePassManager(ABC):
         """Replace a particular pass in the scheduler.
 
         Args:
-            index: Pass index to replace, based on the position in passes().
+            index: Pass index to replace, based on the position in :meth:`passes`
             tasks: A set of pass manager tasks to be added to schedule. When multiple
                 tasks are provided, tasks are grouped together as a single flow controller.
             flow_controller_conditions: Dictionary of control flow plugins.
@@ -117,7 +123,7 @@ class BasePassManager(ABC):
         """Removes a particular pass in the scheduler.
 
         Args:
-            index: Pass index to remove, based on the position in passes().
+            index: Pass index to remove, based on the position in :meth:`passes`.
 
         Raises:
             PassManagerError: If the index is not found.
@@ -266,7 +272,7 @@ class BasePassManager(ABC):
         )
 
     def to_flow_controller(self) -> FlowControllerLinear:
-        """Linearize this manager into a single :class:`.FlowControllerLiner`,
+        """Linearize this manager into a single :class:`.FlowControllerLinear`,
         so that it can be nested inside another pass manager.
 
         Returns:

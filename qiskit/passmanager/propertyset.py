@@ -38,7 +38,7 @@ class WorkflowStatus:
 
     This data structure is initialized when the first task in the pass manager is run,
     and recursively handed over to subsequent tasks.
-    Pass will update status once after being executed and the lifetime of the
+    Each pass will update this status once after being executed, and the lifetime of the
     workflow status object is the time during which the pass manager is running.
     """
 

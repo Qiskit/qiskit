@@ -163,7 +163,7 @@ class BaseController(Task, ABC):
     A controller is built with a collection of pass manager tasks,
     and a subclass provides a custom logic to choose next task to run.
     Note a controller can be nested into another controller,
-    and controller itself doesn't provide any subroutine to modify the input IR.
+    and a controller itself doesn't provide any subroutine to modify the input IR.
     """
 
     def __init__(

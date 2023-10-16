@@ -88,7 +88,11 @@ class FlowControllerLinear(BaseController):
 
 
 class DoWhileController(BaseController):
-    """A flow controller that repeatedly run the entire pipeline until the condition is not met."""
+    """Run the given tasks in a loop until the ``do_while`` condition on the property set becomes
+    ``False``.
+
+    The given tasks will always run at least once, and on iteration iteration of the loop, all the
+    tasks will be run (with the exception of a failure state being set)."""
 
     def __init__(
         self,
@@ -154,7 +158,8 @@ class DoWhileController(BaseController):
 
 
 class ConditionalController(BaseController):
-    """A flow controller runs the pipeline once when the condition is met."""
+    """A flow controller runs the pipeline once if the condition is true, or does nothing if the
+    condition is false."""
 
     def __init__(
         self,
@@ -216,11 +221,15 @@ class ConditionalController(BaseController):
 
 
 class FlowController(BaseController):
-    """A flow controller with namespace to register controller subclasses.
+    """A legacy factory for other flow controllers.
 
-    This allows syntactic suger of writing pipeline. For example,
+    .. warning::
 
-    .. code-block:: python
+        This class is primarily for compatibility with legacy versions of Qiskit, and in general,
+        you should prefer simply instantiating the controller you want, and adding it to the
+        relevant :class:`.PassManager` or other controller.  Its use is deprecated.
+
+    This allows syntactic sugar for writing pipelines. For example::
 
         FlowController.add_flow_controller("my_condition", CustomController)
 
@@ -246,8 +255,6 @@ class FlowController(BaseController):
         Note that factory method implicitly determines the priority of the builtin controllers
         when multiple controllers are called together,
         and the behavior of generated controller is hardly debugged.
-        This class might be dropped in the future release.
-
     """
 
     registered_controllers = {}
@@ -268,7 +275,7 @@ class FlowController(BaseController):
         options: dict,
         **controllers,
     ):
-        """Create new flow controller with normalization.
+        """Create a new flow controller with normalization.
 
         Args:
             passes: A list of optimization tasks.
