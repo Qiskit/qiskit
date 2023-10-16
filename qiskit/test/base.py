@@ -229,7 +229,6 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
             r"The CXDirection pass has been deprecated",
-            r"The pauli_basis function with PauliTable.*",
             # Caused by internal scikit-learn scipy usage
             r"The 'sym_pos' keyword is deprecated and should be replaced by using",
             # jupyter_client 7.4.8 uses deprecated shims in pyzmq that raise warnings with pyzmq 25.
