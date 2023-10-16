@@ -121,6 +121,7 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.cz(q[0], q[1])
         result = transpile(circuit, basis_gates=["u1", "u2", "u3", "cx"], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(result.num_qubits, circuit.num_qubits)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_7677(self, level):
@@ -135,6 +136,7 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
 
         self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(result.num_qubits, 14)
 
     def test_layout_3239(self, level=3):
         """Test final layout after preset level3 passmanager does not include diagonal gates
