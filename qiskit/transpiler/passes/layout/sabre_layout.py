@@ -412,6 +412,8 @@ class SabreLayout(TransformationPass):
         enlarge_pass = EnlargeWithAncilla()
         enlarge_pass.property_set = ancilla_pass.property_set
         dag = enlarge_pass.run(dag)
+        # Until qiskit.transpiler.basepasses.MetaPass is removed.
+        # pylint: disable=attribute-defined-outside-init
         self.property_set = enlarge_pass.property_set
         return dag
 
