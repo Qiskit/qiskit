@@ -20,9 +20,6 @@ use faer_core::c64;
 use faer_core::ComplexField; // for access to fields of struct
 use faer::IntoFaerComplex;
 
-// conversions
-// use faer::{IntoFaer, IntoNalgebra, IntoNdarray};
-
 use crate::utils;
 
 // FIXME: zero and one exist but I cant find the right incantation
@@ -30,6 +27,7 @@ const c0 : c64 = c64 {re: 0.0, im: 0.0};
 const c1 : c64 = c64 {re: 1.0, im: 0.0};
 const c1im : c64 = c64 { re: 0.0, im: 1.0};
 
+// FIXME: Find a way to compute these matrices at compile time.
 fn transform_to_magic_basis(U : Mat<c64>) -> Mat<c64> {
     let _B_nonnormalized : Mat<c64> = mat![[c1, c1im, c0, c0],
                                            [c0, c0, c1im, c1],
@@ -75,7 +73,6 @@ impl Arg for c64 {
 }
 
 // FIXME: full of ineffciencies
-//fn weyl_coordinates(unitary : Mat<c64>) -> Vec<f64> {
 fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
@@ -133,21 +130,18 @@ fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
 #[pyo3(text_signature = "(unitary, /")]
 pub fn _weyl_coordinates(unitary : PyReadonlyArray2<Complex<f64>>) -> (f64, f64, f64) {
     let u = unitary.as_array().into_faer_complex();
-//    let u = Mat::<c64>::from_fn(4, 4, |i, j| c64::from(unitary.as_array()[[i, j]]));
     return __weyl_coordinates(u);
 }
 
 #[pyfunction]
 #[pyo3(text_signature = "(basis_b, basis_fidelity, unitary, /")]
 pub fn _num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : PyReadonlyArray2<Complex<f64>>) -> usize {
-//    let u = Mat::<c64>::from_fn(4, 4, |i, j| c64::from(unitary.as_array()[[i, j]]));
     let u = unitary.as_array().into_faer_complex();
     __num_basis_gates(basis_b, basis_fidelity, u)
 }
 
 fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : MatRef<c64>) -> usize {
     let (a, b, c) = __weyl_coordinates(unitary);
-//    let x = c64::new(1.0, 1.0);
     let pi4 = PI / 4.0;
     let traces = vec![
         c64::new(4.0 * (a.cos() * b.cos() * c.cos()), 4.0 * (a.sin() * b.sin() * c.sin())),
@@ -168,17 +162,15 @@ fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : MatRef<c64>)
     return imax;
 }
 
-// /// A bug removed abs2 from recent release of faer
-// fn myabs2(z: c64) -> f64 {
-//     return z.re * z.re + z.im * z.im;
-// }
+// The interface for abs2 is in flux. So use this for now.
+fn myabs2(z: c64) -> f64 {
+    return z.re * z.re + z.im * z.im;
+}
 
 /// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
 /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
 fn trace_to_fid(trace : c64) -> f64 {
-//    return 4.0 + myabs2(trace) / 20.0;
-
-    return (4.0 + trace.faer_abs2()) / 20.0;
+    return 4.0 + myabs2(trace) / 20.0;
 }
 
 #[pymodule]
