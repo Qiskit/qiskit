@@ -152,9 +152,6 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
     else:
         clbits = circuit.clbits if circuit is not None else ()
         param = value.loads_value(
-<<<<<<< HEAD
-            type_key, data_bytes, version, vectors, clbits=circuit.clbits, cregs=registers["c"]
-=======
             type_key,
             data_bytes,
             version,
@@ -162,7 +159,6 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
             clbits=clbits,
             cregs=registers["c"],
             use_symengine=use_symengine,
->>>>>>> 9843fbfe7 (Fix qpy for controlled `UnitaryGate` (#10809))
         )
 
     return param
