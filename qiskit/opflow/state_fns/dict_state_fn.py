@@ -13,6 +13,7 @@
 """DictStateFn Class"""
 
 import itertools
+import warnings
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -328,12 +329,14 @@ class DictStateFn(StateFn):
         self, shots: int = 1024, massive: bool = False, reverse_endianness: bool = False
     ) -> Dict[str, float]:
         probs = np.square(np.abs(np.array(list(self.primitive.values()))))
-        unique, counts = np.unique(
-            algorithm_globals.random.choice(
-                list(self.primitive.keys()), size=shots, p=(probs / sum(probs))
-            ),
-            return_counts=True,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            unique, counts = np.unique(
+                algorithm_globals.random.choice(
+                    list(self.primitive.keys()), size=shots, p=(probs / sum(probs))
+                ),
+                return_counts=True,
+            )
         counts = dict(zip(unique, counts))
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}

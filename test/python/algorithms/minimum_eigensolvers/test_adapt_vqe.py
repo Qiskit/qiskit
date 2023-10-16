@@ -13,10 +13,11 @@
 """Test of the AdaptVQE minimum eigensolver"""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
-
 import numpy as np
 
 from qiskit.algorithms.minimum_eigensolvers import VQE
@@ -36,7 +37,9 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        algorithm_globals.random_seed = 42
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 42
 
         with self.assertWarns(DeprecationWarning):
             self.h2_op = PauliSumOp.from_list(
