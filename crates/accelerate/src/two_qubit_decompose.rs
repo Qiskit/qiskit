@@ -165,10 +165,16 @@ fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : Mat<c64>) ->
     return imax;
 }
 
+/// A bug removed abs2 from recent release of faer
+fn myabs2(z: c64) -> f64 {
+    return z.re * z.re + z.im * z.im;
+}
+
 /// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
 /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
 fn trace_to_fid(trace : c64) -> f64 {
-    return 4.0 + trace.abs2() / 20.0;
+    return 4.0 + myabs2(trace) / 20.0;
+//    return 4.0 + trace.abs2() / 20.0;
 }
 
 #[pymodule]
