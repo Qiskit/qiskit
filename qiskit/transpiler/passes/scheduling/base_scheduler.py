@@ -271,7 +271,7 @@ class BaseSchedulerTransform(TransformationPass):
                 )
             elif isinstance(node.op, Measure):
                 is_mid_circuit = not any(
-                    isinstance(x, DAGOutNode) for x in dag.quantum_successors(node) 
+                    isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
                 )
                 if is_mid_circuit:
                     raise RuntimeWarning(
