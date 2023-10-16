@@ -83,10 +83,7 @@ fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
     let mut d : Vec<c64> = (&uad * &uup).eigenvalues();
     let mut darg : Vec<_> = d.iter().map(|x| - x.arg() / 2.0).collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
-    let mut cs = vec![0.0; 3];
-    for i in 0..3 {
-        cs[i] = utils::modulo((darg[i] + darg[3]) / 2.0, 2.0 * pi);
-    }
+    let mut cs : Vec<_> = (0..3).map(|i| utils::modulo((darg[i] + darg[3]) / 2.0, 2.0 * pi)).collect();
     let cstemp : Vec<f64> = cs.iter()
         .map(|x| utils::modulo(*x, pi2))
         .map(|x| x.min(pi2 - x))
