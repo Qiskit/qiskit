@@ -70,15 +70,12 @@ features:
     :attr:`~.ControlledGate.label`, :attr:`~.ControlledGate.duration`,
     :attr:`~.ControlledGate.unit`, :attr:`~.ControlledGate.condition`, and
     :attr:`~.ControlledGate.ctrl_state` attributes are all accessible and mutable in the
-    :class:`~.ControlledGate` and its direct subclasses, but mutation of these attributes
-    on :class:`~.SingletonControlledGate` and its subclasses is disallowed, and will raise
-    and exception. These attributes can be customized but only at creation time (i.e. via
-    the constructor, or through :meth:`~.SingletonControlledGate.c_if` in the case of
-    :attr:`~.SingletonControlledGate.condition`). In that case,
-    the newly constructed gate will be a separate instance with the custom state instead
-    of the globally shared instance. You can also use the :meth:`.SingletonControlledGate.to_mutable`
-    method to get a mutable copy of a gate object and then mutate the attributes
-    like you would on any other :class:`~.circuit.Instruction` object.
+    :class:`~.ControlledGate`, but mutation of these attributes on :class:`~.SingletonControlledGate` subclasses
+    is not allowed, and will raise an exception. These attributes can be customized but only at creation time
+    (i.e. via the constructor). In that case, the newly constructed gate will be a separate instance with the
+    custom state instead of the globally shared instance. You can also use the
+    :meth:`.SingletonControlledGate.to_mutable` method to get a mutable copy of a gate object and then mutate
+    the attributes like you would on any other :class:`~.circuit.Instruction` object.
 
   - |
     The following standard library gates are now instances of
@@ -150,16 +147,17 @@ upgrade:
 
 
     no longer are able to set :attr:`~.Gate.label`, :attr:`~.Gate.condition`,
-    :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` after instantiating an object
-    anymore.  :attr:`~.Gate.condition` can be set through
+    :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` (and :attr:`~.ControlledGate.ctrl_state`
+    for :class:`~.ControlledGate` subclasses) after instantiating an object
+    anymore. :attr:`~.Gate.condition` can be set through
     the use :meth:`~.Gate.c_if`. You can use :meth:`~.Gate.to_mutable`
     to get a mutable copy of the instruction and then use the setter on that copy
     instead of the original object.  ``label``, ``duration`` and ``unit`` can
     be given as keyword arguments to these gates at construction time, and a
     mutable instance will be returned automatically.
     This change was necssary as part of converting
-    these classes to be :class:`~.SingletonGate` types which greatly reduces the
-    memory footprint of repeated instances of these gates.
+    these classes to be :class:`~.SingletonGate` and :class:`~.SingletonControlledGate`
+    types which greatly reduces the memory footprint of repeated instances of these gates.
   - |
     For anything that interacts with :class:`~.Gate`, :class:`~.Operation`,
     or :class:`~.circuit.Instruction` objects or works with these as part of a
