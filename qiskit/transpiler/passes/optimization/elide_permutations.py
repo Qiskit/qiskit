@@ -52,7 +52,7 @@ class ElidePermutations(TransformationPass):
     """
 
     def run(self, dag):
-        """Run the ElideSwaps pass on ``dag``.
+        """Run the ElidePermutations pass on ``dag``.
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
@@ -62,8 +62,8 @@ class ElidePermutations(TransformationPass):
         """
         if self.property_set["layout"] is not None:
             logger.warning(
-                "ElideSwaps is not valid after a layout has been set. This indicates an invalid "
-                "pass manager construction."
+                "ElidePermutations is not valid after a layout has been set. This indicates "
+                "an invalid pass manager construction."
             )
             return dag
 

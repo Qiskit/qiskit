@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new optimization transpiler pass, :class:`~.ElideSwaps`,
+    Added a new optimization transpiler pass, :class:`~.ElidePermutations`,
     which is designed to run prior to the :ref:`layout_stage` and will
     optimize away any :class:`~.SwapGate`\s in a circuit by permuting virtual
     qubits. For example, taking a circuit with :class:`~.SwapGate`\s:
