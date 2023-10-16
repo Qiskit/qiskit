@@ -147,18 +147,18 @@ pub fn _num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : PyReadonl
 
 fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : MatRef<c64>) -> usize {
     let (a, b, c) = __weyl_coordinates(unitary);
-    let x = c64::new(1.0, 1.0);
+//    let x = c64::new(1.0, 1.0);
     let pi4 = PI / 4.0;
     let traces = vec![
-        c64::new(4.0 * (a.cos() * b.cos() * c.cos()), 0.0) + c64::new(0.0, 4.0 * (a.sin() * b.sin() * c.sin())),
-        c64::new(4.0  * (pi4 - a).cos() * (basis_b - b).cos() * c.cos(), 0.0) +
-            c64::new(0.0, 4.0 * (pi4 - a).sin() * (basis_b - b).sin() * c.sin()),
+        c64::new(4.0 * (a.cos() * b.cos() * c.cos()), 4.0 * (a.sin() * b.sin() * c.sin())),
+        c64::new(4.0  * (pi4 - a).cos() * (basis_b - b).cos() * c.cos(),
+                 4.0 * (pi4 - a).sin() * (basis_b - b).sin() * c.sin()),
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0)
     ];
     let mut imax : usize = 0;
     let mut max_fid = 0.0;
-    for i in 1..3 {
+    for i in 0..4 {
         let fid = trace_to_fid(traces[i]) * basis_fidelity.powi(i as i32);
         if fid > max_fid {
             max_fid = fid;
@@ -177,7 +177,8 @@ fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : MatRef<c64>)
 /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
 fn trace_to_fid(trace : c64) -> f64 {
 //    return 4.0 + myabs2(trace) / 20.0;
-    return 4.0 + trace.faer_abs2() / 20.0;
+
+    return (4.0 + trace.faer_abs2()) / 20.0;
 }
 
 #[pymodule]
