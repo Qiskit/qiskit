@@ -14,8 +14,7 @@
 
 from math import pi
 from typing import Optional, Union
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton import SingletonGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -104,7 +103,7 @@ class SXGate(SingletonGate):
                 string (e.g. '110'), or None. If None, use all 1s.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            SingletonControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
             gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
@@ -168,7 +167,7 @@ class SXdgGate(SingletonGate):
 
 
 @with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
-class CSXGate(ControlledGate):
+class CSXGate(SingletonControlledGate):
     r"""Controlled-√X gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -228,6 +227,9 @@ class CSXGate(ControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _base_label=None,
     ):
         """Create new CSX gate."""
@@ -239,6 +241,8 @@ class CSXGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SXGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
