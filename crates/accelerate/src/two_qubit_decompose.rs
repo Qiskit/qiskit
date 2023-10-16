@@ -87,10 +87,10 @@ fn __weyl_coordinates(unitary : MatRef<c64>) -> (f64, f64, f64) {
     for i in 0..3 {
         cs[i] = utils::modulo((darg[i] + darg[3]) / 2.0, 2.0 * pi);
     }
-    let mut cstemp : Vec<f64> = cs.iter().map(|x| utils::modulo(*x, pi2)).collect();
-    for i in 0..3 {
-        cstemp[i] = cstemp[i].min(pi2 - cstemp[i]);
-    }
+    let cstemp : Vec<f64> = cs.iter()
+        .map(|x| utils::modulo(*x, pi2))
+        .map(|x| x.min(pi2 - x))
+        .collect();
     let mut order = utils::argsort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
