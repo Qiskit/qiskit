@@ -158,7 +158,6 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registe
             vectors,
             clbits=clbits,
             cregs=registers["c"],
-            use_symengine=use_symengine,
         )
 
     return param
