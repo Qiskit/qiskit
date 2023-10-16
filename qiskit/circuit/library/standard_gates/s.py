@@ -18,7 +18,7 @@ from typing import Optional, Union
 import numpy
 
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate
 from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
@@ -29,7 +29,7 @@ _SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
 
 
 @with_gate_array(_S_ARRAY)
-class SGate(Gate):
+class SGate(SingletonGate):
     r"""Single qubit S gate (Z**0.5).
 
     It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
@@ -59,9 +59,9 @@ class SGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__("s", 1, [], label=label, duration=None, unit="dt")
 
     def _define(self):
         """
@@ -90,7 +90,7 @@ class SGate(Gate):
 
 
 @with_gate_array(_SDG_ARRAY)
-class SdgGate(Gate):
+class SdgGate(SingletonGate):
     r"""Single qubit S-adjoint gate (~Z**0.5).
 
     It induces a :math:`-\pi/2` phase.
@@ -120,9 +120,9 @@ class SdgGate(Gate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        super().__init__("sdg", 1, [], label=label, duration=None, unit="dt")
 
     def _define(self):
         """

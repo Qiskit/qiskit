@@ -13,6 +13,7 @@
 """Test QAOA"""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
@@ -61,7 +62,9 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 10598
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
 
         with self.assertWarns(DeprecationWarning):
             self.qasm_simulator = QuantumInstance(
@@ -309,9 +312,11 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def test_qaoa_random_initial_point(self):
         """QAOA random initial point"""
-        w = rx.adjacency_matrix(
-            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            w = rx.adjacency_matrix(
+                rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+            )
         qubit_op, _ = self._get_operator(w)
 
         with self.assertWarns(DeprecationWarning):

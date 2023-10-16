@@ -14,6 +14,7 @@ Random symplectic operator functions
 """
 
 from __future__ import annotations
+
 import numpy as np
 from numpy.random import default_rng
 
@@ -82,6 +83,7 @@ def random_pauli_list(
         _phase = rng.integers(4, size=(size))
         return PauliList.from_symplectic(z, x, _phase)
     return PauliList.from_symplectic(z, x)
+
 
 def random_clifford(num_qubits: int, seed: int | np.random.Generator | None = None):
     """Return a random Clifford operator.

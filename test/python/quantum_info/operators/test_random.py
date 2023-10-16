@@ -18,13 +18,7 @@ from test import combine
 import numpy as np
 from ddt import ddt
 
-from qiskit.quantum_info import (
-    Choi,
-    Clifford,
-    Operator,
-    PauliList,
-    Stinespring,
-)
+from qiskit.quantum_info import Choi, Clifford, Operator, PauliList, Stinespring
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.random import (
     random_clifford,

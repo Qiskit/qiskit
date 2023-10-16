@@ -12,9 +12,7 @@
 
 # pylint: disable=unused-variable
 
-"""
-Multi controlled single-qubit unitary up to diagonal.
-"""
+"""Multi controlled single-qubit unitary up to diagonal."""
 
 # ToDo: This code should be merged wth the implementation of MCGs
 # ToDo: (introducing a decomposition mode "up_to_diagonal").
@@ -23,30 +21,33 @@ import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
-from qiskit.quantum_info.operators.predicates import is_isometry
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions.quantum_initializer.uc import UCGate
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.predicates import is_isometry
+
+from .uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
 class MCGupDiag(Gate):
-    """
-    Decomposes a multi-controlled gate u up to a diagonal d acting on the control and target qubit
-    (but not on the  ancilla qubits), i.e., it implements a circuit corresponding to a unitary u'
-    such that u=d.u'.
+    r"""
+    Decomposes a multi-controlled gate :math:`U` up to a diagonal :math:`D` acting on the control
+    and target qubit (but not on the ancilla qubits), i.e., it implements a circuit corresponding to
+    a unitary :math:`U'`, such that :math:`U = D U'`.
     """
 
-    def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
-        """Initialize a multi controlled gate.
-
+    def __init__(
+        self, gate: np.ndarray, num_controls: int, num_ancillas_zero: int, num_ancillas_dirty: int
+    ) -> None:
+        r"""
         Args:
-            gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
-            num_controls (int): number of control qubits
-            num_ancillas_zero (int): number of ancilla qubits that start in the state zero
-            num_ancillas_dirty (int): number of ancilla qubits that are allowed to start in an
-                arbitrary state
+            gate: :math:`2 \times 2` unitary given as a (complex) ``ndarray``.
+            num_controls: Number of control qubits.
+            num_ancillas_zero: Number of ancilla qubits that start in the state zero.
+            num_ancillas_dirty: Number of ancilla qubits that are allowed to start in an
+                arbitrary state.
+
         Raises:
             QiskitError: if the input format is wrong; if the array gate is not unitary
         """
@@ -72,7 +73,7 @@ class MCGupDiag(Gate):
         mcg_up_diag_circuit.append(gate, q[:])
         self.definition = mcg_up_diag_circuit
 
-    def inverse(self):
+    def inverse(self) -> Gate:
         """Return the inverse.
 
         Note that the resulting Gate object has an empty ``params`` property.
