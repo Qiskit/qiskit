@@ -31,6 +31,7 @@ Operators
    SparsePauliOp
    CNOTDihedral
    PauliList
+   pauli_basis
 
 .. _quantum_info_states:
 
@@ -131,6 +132,7 @@ from .operators import (
     anti_commutator,
     commutator,
     double_commutator,
+    pauli_basis,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral

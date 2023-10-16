@@ -23,5 +23,6 @@ from .symplectic import (
     Pauli,
     PauliList,
     SparsePauliOp,
+    pauli_basis,
 )
 from .utils import anti_commutator, commutator, double_commutator

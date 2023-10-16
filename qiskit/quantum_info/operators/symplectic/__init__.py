@@ -15,7 +15,9 @@ Symplectic Operators
 """
 
 from __future__ import annotations
+
+from .clifford import Clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
-from .clifford import Clifford
+from .pauli_utils import pauli_basis
 from .sparse_pauli_op import SparsePauliOp
