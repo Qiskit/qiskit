@@ -64,7 +64,6 @@ def weyl_coordinates(U: np.ndarray) -> np.ndarray:
     Up = transform_to_magic_basis(U, reverse=True)
     # We only need the eigenvalues of `M2 = Up.T @ Up` here, not the full diagonalization.
     D = la.eigvals(Up.T @ Up)
-
     d = -np.angle(D) / 2
     d[3] = -d[0] - d[1] - d[2]
     cs = np.mod((d[:3] + d[3]) / 2, 2 * np.pi)

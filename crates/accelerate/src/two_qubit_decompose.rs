@@ -34,7 +34,7 @@ fn transform_to_magic_basis(U : Mat<c64>) -> Mat<c64> {
                                            [c0, c0, c1im, c1],
                                            [c0, c0, c1im, -c1],
                                            [c1, -c1im, c0, c0]];
-    let _B_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _B_nonnormalized.conjugate();
+    let _B_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _B_nonnormalized.adjoint();
     return _B_nonnormalized * U * _B_nonnormalized_dagger;
 }
 
@@ -43,7 +43,7 @@ fn transform_from_magic_basis(U : Mat<c64>) -> Mat<c64> {
                                            [c0, c0, c1im, c1],
                                            [c0, c0, c1im, -c1],
                                            [c1, -c1im, c0, c0]];
-    let _B_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _B_nonnormalized.conjugate();
+    let _B_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _B_nonnormalized.adjoint();
     return _B_nonnormalized_dagger * U * _B_nonnormalized;
 }
 
@@ -75,31 +75,27 @@ impl Arg for c64 {
 
 // FIXME: full of ineffciencies
 //fn weyl_coordinates(umat : Mat<c64>) -> Vec<f64> {
-fn weyl_coordinates(umat : Mat<c64>) -> (f64, f64, f64) {
+fn __weyl_coordinates(umat : Mat<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
     let pi4 = PI / 4.0;
     let uscaled = Scale(c1 / umat.determinant().powf(0.25)) * umat;
-    let a = c0.arg();
     let uup = transform_from_magic_basis(uscaled);
-    let uad = uup.adjoint();
+    let uad = uup.transpose();
     let mut d : Vec<c64> = (&uad * &uup).eigenvalues();
     let mut darg : Vec<_> = d.iter().map(|x| - x.arg() / 2.0).collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
     let mut cs = vec![0.0; 3];
-    for i in 0..2 {
-        cs[i] = (darg[i] + darg[3]) / 2.0 % (2.0 * pi);
-    }
-    let mut cstemp : Vec<f64> = cs.iter().map(|x| x % pi2).collect();
     for i in 0..3 {
-        cstemp[i] = cstemp[i].min(cstemp[i] - pi2);
-        if cstemp[i] > pi2 - cstemp[i] {
-            cstemp[i] = pi2 - cstemp[i];
-        }
+        cs[i] = utils::modulo((darg[i] + darg[3]) / 2.0, 2.0 * pi);
     }
-    let order = utils::argsort(&cstemp);
-    (cs[0], cs[1], cs[2]) = (cs[order[1]], cs[order[2]], cs[order[0]]);
-    (d[0], d[1], d[2]) = (d[order[1]], d[order[2]], d[order[0]]);
+    let mut cstemp : Vec<f64> = cs.iter().map(|x| utils::modulo(*x, pi2)).collect();
+    for i in 0..3 {
+        cstemp[i] = cstemp[i].min(pi2 - cstemp[i]);
+    }
+    let mut order = utils::argsort(&cstemp);
+    (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
+    (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
     // Flip into Weyl chamber
     let pi32 = 3.0 * pi2;
@@ -127,7 +123,16 @@ fn weyl_coordinates(umat : Mat<c64>) -> (f64, f64, f64) {
     if cs[2] > pi4 {
         cs[2] -= pi2;
     }
-    return (cs[0], cs[1], cs[2]);
+    return (cs[1], cs[0], cs[2]);
+}
+
+
+// For debugging. We can remove this later
+#[pyfunction]
+#[pyo3(text_signature = "(unitary, /")]
+pub fn _weyl_coordinates(unitary : PyReadonlyArray2<Complex<f64>>) -> (f64, f64, f64) {
+    let u = Mat::<c64>::from_fn(4, 4, |i, j| c64::from(unitary.as_array()[[i, j]]));
+    return __weyl_coordinates(u);
 }
 
 #[pyfunction]
@@ -138,7 +143,7 @@ pub fn _num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : PyReadonl
 }
 
 fn __num_basis_gates(basis_b : f64, basis_fidelity : f64, unitary : Mat<c64>) -> usize {
-    let (a, b, c) = weyl_coordinates(unitary);
+    let (a, b, c) = __weyl_coordinates(unitary);
     let x = c64::new(1.0, 1.0);
     let pi4 = PI / 4.0;
     let traces = vec![
@@ -169,5 +174,6 @@ fn trace_to_fid(trace : c64) -> f64 {
 #[pymodule]
 pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
+    m.add_wrapped(wrap_pyfunction!(_weyl_coordinates))?;
     Ok(())
 }
