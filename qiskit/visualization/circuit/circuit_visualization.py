@@ -157,8 +157,8 @@ def circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
-        expr_len (int): Optional. The number of characters to display if an expr.Expr
-            is used for the condition in a ControlFlowOp. If this number is exceeded,
+        expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
 
     Returns:
@@ -371,8 +371,8 @@ def _text_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
-        expr_len (int): Optional. The number of characters to display if an expr.Expr
-            is used for the condition in a ControlFlowOp. If this number is exceeded,
+        expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
 
     Returns:
@@ -656,8 +656,8 @@ def _matplotlib_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
-        expr_len (int): Optional. The number of characters to display if an expr.Expr
-            is used for the condition in a ControlFlowOp. If this number is exceeded,
+        expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
 
     Returns:
