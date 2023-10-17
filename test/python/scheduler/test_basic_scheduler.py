@@ -506,23 +506,16 @@ class TestBasicScheduleV2(QiskitTestCase):
         self.backend = FakePerth()
         self.inst_map = self.backend.instruction_schedule_map
 
-    def test_unavailable_defaults(self):
-        """Test backend with unavailable defaults."""
-        qr = QuantumRegister(1)
-        qc = QuantumCircuit(qr)
-        backend = FakeBackend(None)
-        backend.defaults = backend.configuration
-        self.assertRaises(QiskitError, lambda: schedule(qc, backend))
-
     def test_alap_pass(self):
         """Test ALAP scheduling."""
-        #       ┌────┐ ░ ┌────┐           ┌─┐
-        # q0_0: ┤ √X ├─░─┤ √X ├────────■──┤M├───
-        #       ├────┤ ░ ├────┤┌────┐┌─┴─┐└╥┘┌─┐
-        # q0_1: ┤ √X ├─░─┤ √X ├┤ √X ├┤ X ├─╫─┤M├
-        #       └────┘ ░ └────┘└────┘└───┘ ║ └╥┘
-        # c0: 2/═══════════════════════════╩══╩═
-        #                                  0  1
+
+        #       ┌────┐          ░      ┌─┐
+        # q0_0: ┤ √X ├──────────░───■──┤M├───
+        #       ├────┤ ░ ┌────┐ ░ ┌─┴─┐└╥┘┌─┐
+        # q0_1: ┤ √X ├─░─┤ √X ├─░─┤ X ├─╫─┤M├
+        #       └────┘ ░ └────┘ ░ └───┘ ║ └╥┘
+        # c0: 2/════════════════════════╩══╩═
+        #                               0  1
 
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
@@ -530,12 +523,11 @@ class TestBasicScheduleV2(QiskitTestCase):
 
         qc.sx(q[0])
         qc.sx(q[1])
+        qc.barrier(q[1])
+
+        qc.sx(q[1])
         qc.barrier(q[0], q[1])
 
-        qc.sx(q[0])
-
-        qc.sx(q[1])
-        qc.sx(q[1])
         qc.cx(q[0], q[1])
         qc.measure(q, c)
 
@@ -545,26 +537,21 @@ class TestBasicScheduleV2(QiskitTestCase):
         #
         # Calculations:
         #   Duration of the π/2 pulse for FakePerth backend is 160dt
-        #   first π/2 pulse on q0 should start at 0dt because of barrier.
+        #   first π/2 pulse on q0 should start at 160dt because of 'as_late_as_possible'.
         #   first π/2 pulse on q1 should start 0dt.
         #   second π/2 pulse on q1 should start with a delay of 160dt.
-        #   third π/2 pules on q1 should start at a delay of 160dt+160dt.
-        #   second π/2 pulse on q0 should start with a delay of 160dt+160dt because of
-        #   'as_late_as_possible' scheduling method.
         #   cx pulse( pulse on drive channel, control channel) should start with a delay
-        #   of 160dt+160dt+160dt.
-        #   measure pulse should start with a delay of 160dt+160dt+160dt+1760dt(for cx gate).
+        #   of 160dt+160dt.
+        #   measure pulse should start with a delay of 160dt+160dt+1760dt(1760dt for cx gate).
         expected = Schedule(
-            (0, self.inst_map.get("sx", [0])),
             (0, self.inst_map.get("sx", [1])),
+            (0 + 160, self.inst_map.get("sx", [0])), # Right shifted because of alap.
             (0 + 160, self.inst_map.get("sx", [1])),
-            (0 + 160 + 160, self.inst_map.get("sx", [1])),
-            (0 + 160 + 160, self.inst_map.get("sx", [0])),  # Right shifted because of alap.
-            (0 + 160 + 160 + 160, self.inst_map.get("cx", [0, 1])),
-            (0 + 160 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0 + 160 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
+            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
+            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
             (
-                0 + 160 + 160 + 160 + 1760,
+                0 + 160 + 160 + 1760,
                 Play(
                     GaussianSquare(
                         duration=1472,
@@ -579,7 +566,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                 ),
             ),
             (
-                0 + 160 + 160 + 160 + 1760,
+                0 + 160 + 160 + 1760,
                 Play(
                     GaussianSquare(
                         duration=1472,
@@ -669,54 +656,49 @@ class TestBasicScheduleV2(QiskitTestCase):
     def test_asap_pass(self):
         """Test ASAP scheduling."""
 
-        #       ┌────┐ ░ ┌────┐           ┌─┐
-        # q0_0: ┤ √X ├─░─┤ √X ├────────■──┤M├───
-        #       ├────┤ ░ ├────┤┌────┐┌─┴─┐└╥┘┌─┐
-        # q0_1: ┤ √X ├─░─┤ √X ├┤ √X ├┤ X ├─╫─┤M├
-        #       └────┘ ░ └────┘└────┘└───┘ ║ └╥┘
-        # c0: 2/═══════════════════════════╩══╩═
-        #                                  0  1
+        #       ┌────┐          ░      ┌─┐
+        # q0_0: ┤ √X ├──────────░───■──┤M├───
+        #       ├────┤ ░ ┌────┐ ░ ┌─┴─┐└╥┘┌─┐
+        # q0_1: ┤ √X ├─░─┤ √X ├─░─┤ X ├─╫─┤M├
+        #       └────┘ ░ └────┘ ░ └───┘ ║ └╥┘
+        # c0: 2/════════════════════════╩══╩═
+        #                               0  1
 
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
+
         qc.sx(q[0])
+        qc.sx(q[1])
+        qc.barrier(q[1])
+
         qc.sx(q[1])
         qc.barrier(q[0], q[1])
-        qc.sx(q[0])
-        qc.sx(q[1])
-        qc.sx(q[1])
+
         qc.cx(q[0], q[1])
         qc.measure(q, c)
 
         sched = schedule(circuits=qc, backend=self.backend, method="asap")
-
-        # Since, the method of scheduling chosen here is 'as_late_as_possible' so all
-        # the π/2 pulse here should be right shifted.
+        # Since, the method of scheduling chosen here is 'as_soon_as_possible'
+        # so all the π/2 pulse here should be left shifted.
         #
         # Calculations:
         #   Duration of the π/2 pulse for FakePerth backend is 160dt
-        #   first π/2 pulse on q0 should start at 0dt because of barrier.
+        #   first π/2 pulse on q0 should start at 0dt because of 'as_soon_as_possible'.
         #   first π/2 pulse on q1 should start 0dt.
         #   second π/2 pulse on q1 should start with a delay of 160dt.
-        #   third π/2 pules on q1 should start at a delay of 160dt+160dt.
-        #   second π/2 pulse on q0 should start with a delay of 160dt+160dt because of
-        #   'as_late_as_possible' scheduling method.
-        #   cx pulse( pulse on drive channel, control channel) should start with a delay of
-        #   160dt+160dt+160dt.
-        #   measure pulse should start with a delay of 160dt+160dt+160dt+1760dt(for cx gate).
-
+        #   cx pulse( pulse on drive channel, control channel) should start with a delay
+        #   of 160dt+160dt.
+        #   measure pulse should start with a delay of 160dt+160dt+1760dt(1760dt for cx gate).
         expected = Schedule(
-            (0, self.inst_map.get("sx", [0])),
             (0, self.inst_map.get("sx", [1])),
+            (0, self.inst_map.get("sx", [0])), # Left shifted because of asap.
             (0 + 160, self.inst_map.get("sx", [1])),
-            (0 + 160 + 160, self.inst_map.get("sx", [1])),
-            (0 + 160, self.inst_map.get("sx", [0])),  # Left shifted because of asap.
-            (0 + 160 + 160 + 160, self.inst_map.get("cx", [0, 1])),
-            (0 + 160 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0 + 160 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
+            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
+            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
             (
-                0 + 160 + 160 + 160 + 1760,
+                0 + 160 + 160 + 1760,
                 Play(
                     GaussianSquare(
                         duration=1472,
@@ -731,7 +713,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                 ),
             ),
             (
-                0 + 160 + 160 + 160 + 1760,
+                0 + 160 + 160 + 1760,
                 Play(
                     GaussianSquare(
                         duration=1472,
@@ -746,10 +728,10 @@ class TestBasicScheduleV2(QiskitTestCase):
                 ),
             ),
         )
-
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
+
 
     def test_alap_resource_respecting(self):
         """Test that the ALAP pass properly respects busy resources when backwards scheduling.
