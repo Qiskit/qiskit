@@ -29,7 +29,7 @@ pub fn eigenvalues(unitary: PyReadonlyArray2<Complex<f64>>) -> Vec<Complex<f64>>
         .as_array()
         .into_faer_complex()
         .complex_eigenvalues()
-        .iter()
+        .into_iter()
         .map(|x| Complex::<f64>::new(x.re, x.im))
         .collect()
 }

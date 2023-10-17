@@ -80,8 +80,8 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
     let uup = transform_from_magic_basis(uscaled);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
         .complex_eigenvalues()
-        .iter()
-        .map(|x: &c64| -x.arg() / 2.0)
+        .into_iter()
+        .map(|x: c64| -x.arg() / 2.0)
         .collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
     let mut cs: Vec<_> = (0..3)
@@ -161,8 +161,8 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
     ];
     let mut imax: usize = 0;
     let mut max_fid = 0.0;
-    for (i, trace) in traces.iter().enumerate() {
-        let fid = trace_to_fid(*trace) * basis_fidelity.powi(i as i32);
+    for (i, trace) in traces.into_iter().enumerate() {
+        let fid = trace_to_fid(trace) * basis_fidelity.powi(i as i32);
         if fid > max_fid {
             max_fid = fid;
             imax = i
