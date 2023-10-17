@@ -1441,7 +1441,7 @@ class TestTranspile(QiskitTestCase):
         if optimization_level != 3:
             self.assertEqual(res.count_ops()["ecr"], 9)
         else:
-            # Swa gets optimized away in opt level 3
+            # Swap gets optimized away in opt level 3
             self.assertEqual(res.count_ops()["ecr"], 6)
         self.assertTrue(Operator.from_circuit(res).equiv(circuit))
 

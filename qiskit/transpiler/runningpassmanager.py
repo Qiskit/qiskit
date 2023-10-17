@@ -119,8 +119,8 @@ class RunningPassManager(BasePassRunner):
         final_layout = self.property_set["final_layout"]
         if not final_layout:
             # If no initial layout is set reverse the elision final layout so it
-            # maatches expectations. If we have an initial layout set then ApplyLayout
-            # handles mapping the layout to the set initial layout and nothing needs to
+            # matches expectations. If we have an initial layout set then ApplyLayout
+            # handles mapping the layout to the initial layout and nothing needs to
             # be done.
             if (
                 not self.property_set["layout"]

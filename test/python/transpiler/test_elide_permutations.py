@@ -85,7 +85,7 @@ class TestElidePermutations(QiskitTestCase):
         self.assertEqual(res, expected)
 
     def test_swap_at_end(self):
-        """Test swap in beginning of bell is elided."""
+        """Test swap at the end of bell is elided."""
         qc = QuantumCircuit(3, 3)
         qc.h(0)
         qc.cx(1, 2)
@@ -107,7 +107,7 @@ class TestElidePermutations(QiskitTestCase):
         self.assertEqual(res, expected)
 
     def test_swap_before_measure(self):
-        """Test swap in beginning of bell is elided."""
+        """Test swap before measure is elided."""
         qc = QuantumCircuit(3, 3)
         qc.h(0)
         qc.cx(1, 2)
@@ -234,7 +234,7 @@ class TestElidePermutations(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
 
     def test_permutation_in_middle(self):
-        """Test swap in middle of bell is elided."""
+        """Test permutation in middle of bell is elided."""
         qc = QuantumCircuit(3, 3)
         qc.h(0)
         qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
@@ -256,7 +256,7 @@ class TestElidePermutations(QiskitTestCase):
         self.assertEqual(res, expected)
 
     def test_permutation_at_beginning(self):
-        """Test swap in beginning of bell is elided."""
+        """Test permutation in beginning of bell is elided."""
         qc = QuantumCircuit(3, 3)
         qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
         qc.h(0)
@@ -278,7 +278,7 @@ class TestElidePermutations(QiskitTestCase):
         self.assertEqual(res, expected)
 
     def test_permutation_at_end(self):
-        """Test swap in beginning of bell is elided."""
+        """Test permutation at end of bell is elided."""
         qc = QuantumCircuit(3, 3)
         qc.h(0)
         qc.cx(1, 2)
@@ -322,7 +322,7 @@ class TestElidePermutations(QiskitTestCase):
         self.assertEqual(res, expected)
 
     def test_permutation_before_measure(self):
-        """Test swap in beginning of bell is elided."""
+        """Test permutation before measure is elided."""
         qc = QuantumCircuit(3, 3)
         qc.h(0)
         qc.cx(1, 2)
