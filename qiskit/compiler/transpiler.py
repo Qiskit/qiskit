@@ -512,6 +512,8 @@ def _parse_initial_layout(initial_layout):
         return initial_layout
     if isinstance(initial_layout, dict):
         return Layout(initial_layout)
+    if isinstance(initial_layout, range):
+        return list(initial_layout)
     if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
         return Layout.from_qubit_list(initial_layout)
     else:
