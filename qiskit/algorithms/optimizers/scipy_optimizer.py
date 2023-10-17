@@ -13,6 +13,7 @@
 """Wrapper class of scipy.optimize.minimize."""
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from typing import Any
 
@@ -73,7 +74,11 @@ class SciPyOptimizer(Optimizer):
         self._initial_point_support_level = OptimizerSupportLevel.required
 
         self._options = options if options is not None else {}
-        validate_min("max_evals_grouped", max_evals_grouped, 1)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            validate_min("max_evals_grouped", max_evals_grouped, 1)
+
         self._max_evals_grouped = max_evals_grouped
         self._kwargs = kwargs
 
