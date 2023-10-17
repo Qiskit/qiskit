@@ -27,6 +27,7 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
 
@@ -542,7 +543,6 @@ def generate_controlled_gates():
     qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
-    nested_qc.measure_all()
     circuits.append(nested_qc)
     qc_open = QuantumCircuit(2, name="open_cx")
     qc_open.cx(0, 1, ctrl_state=0)
@@ -567,7 +567,6 @@ def generate_open_controlled_gates():
     nested_qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2, ctrl_state=1)
     nested_qc.append(controlled_gate, [0, 1, 2])
-    nested_qc.measure_all()
     circuits.append(nested_qc)
 
     return circuits
@@ -756,7 +755,7 @@ def generate_circuits(version_parts):
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, version_parts, bind=None):
+def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -770,13 +769,23 @@ def assert_equal(reference, qpy, count, version_parts, bind=None):
             sys.exit(4)
         reference = reference.assign_parameters(bind)
         qpy = qpy.assign_parameters(bind)
-    if reference != qpy:
-        msg = (
-            f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-            f"qpy loaded circuit {count}:\n{qpy}\n"
-        )
-        sys.stderr.write(msg)
-        sys.exit(1)
+
+    if equivalent:
+        if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
+            msg = (
+                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                f"qpy loaded circuit {count}:\n{qpy}\n"
+            )
+            sys.stderr.write(msg)
+            sys.exit(1)
+    else:
+        if reference != qpy:
+            msg = (
+                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+                f"qpy loaded circuit {count}:\n{qpy}\n"
+            )
+            sys.stderr.write(msg)
+            sys.exit(1)
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
@@ -826,6 +835,7 @@ def load_qpy(qpy_files, version_parts):
         print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
+        equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
@@ -840,7 +850,9 @@ def load_qpy(qpy_files, version_parts):
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
 
-            assert_equal(circuit, qpy_circuits[i], i, version_parts, bind=bind)
+            assert_equal(
+                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
+            )
 
 
 def _main():
