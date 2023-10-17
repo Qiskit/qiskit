@@ -54,12 +54,12 @@ Basis Change
 .. autosummary::
    :toctree: ../stubs/
 
-   Unroller
-   Unroll3qOrMore
-   Decompose
-   UnrollCustomDefinitions
    BasisTranslator
+   Decompose
    TranslateParameterizedGates
+   Unroll3qOrMore
+   UnrollCustomDefinitions
+   Unroller
 
 Optimizations
 =============
