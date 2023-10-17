@@ -230,18 +230,9 @@ class TestSabreSwap(QiskitTestCase):
         coupling_map = CouplingMap.from_line(qc.num_qubits)
         routing_pass = PassManager(SabreSwap(coupling_map, method))
 
-        n_swap_gates = 0
-
-        def leak_number_of_swaps(cls, *args, **kwargs):
-            nonlocal n_swap_gates
-            n_swap_gates += 1
-            if n_swap_gates > 1_000:
-                raise Exception("SabreSwap seems to be stuck in a loop")
-            # pylint: disable=bad-super-call
-            return super(SwapGate, cls).__new__(cls, *args, **kwargs)
-
-        with unittest.mock.patch.object(SwapGate, "__new__", leak_number_of_swaps):
-            routed = routing_pass.run(qc)
+        # Since all the logic happens in Rust space these days, the best we'll really see here is
+        # the test hanging.
+        routed = routing_pass.run(qc)
 
         routed_ops = routed.count_ops()
         del routed_ops["swap"]

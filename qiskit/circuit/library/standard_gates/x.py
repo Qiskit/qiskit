@@ -17,7 +17,7 @@ from math import ceil, pi
 import numpy
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from .h import HGate
@@ -76,13 +76,9 @@ class XGate(SingletonGate):
         |1\rangle \rightarrow |0\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "x", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("x", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -434,13 +430,9 @@ class RCCXGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new simplified CCX gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "rccx", 3, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("rccx", 3, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -731,13 +723,9 @@ class RC3XGate(SingletonGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new RC3X gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "rcccx", 4, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("rcccx", 4, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

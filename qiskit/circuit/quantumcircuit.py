@@ -1586,12 +1586,13 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        dag = circuit_to_dag(self)
+        dag = circuit_to_dag(self, copy_operations=True)
         dag = HighLevelSynthesis().run(dag)
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
-        return dag_to_circuit(dag)
+        # do not copy operations, this is done in the conversion with circuit_to_dag
+        return dag_to_circuit(dag, copy_operations=False)
 
     def qasm(
         self,
@@ -1608,8 +1609,8 @@ class QuantumCircuit:
                 interface for other serialisers in Qiskit.
 
         Args:
-            formatted (bool): Return formatted Qasm string.
-            filename (str): Save Qasm to file with name 'filename'.
+            formatted (bool): Return formatted OpenQASM 2.0 string.
+            filename (str): Save OpenQASM 2.0 to file with name 'filename'.
             encoding (str): Optionally specify the encoding to use for the
                 output file if ``filename`` is specified. By default this is
                 set to the system's default encoding (ie whatever
@@ -1634,7 +1635,7 @@ class QuantumCircuit:
                 print(out, file=file)
 
         if formatted:
-            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2.0 output")
 
             import pygments
             from pygments.formatters import (  # pylint: disable=no-name-in-module
@@ -2395,13 +2396,14 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_file(path: str) -> "QuantumCircuit":
-        """Take in a QASM file and generate a QuantumCircuit object.
+        """Read an OpenQASM 2.0 program from a file and convert to an instance of
+        :class:`.QuantumCircuit`.
 
         Args:
-          path (str): Path to the file for a QASM program
+          path (str): Path to the file for an OpenQASM 2 program
 
         Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
+          QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.
 
         See also:
             :func:`.qasm2.load`: the complete interface to the OpenQASM 2 importer.
@@ -2419,12 +2421,12 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
-        """Take in a QASM string and generate a QuantumCircuit object.
+        """Convert a string containing an OpenQASM 2.0 program to a :class:`.QuantumCircuit`.
 
         Args:
-          qasm_str (str): A QASM program string
+          qasm_str (str): A string containing an OpenQASM 2.0 program.
         Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
+          QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2
 
         See also:
             :func:`.qasm2.loads`: the complete interface to the OpenQASM 2 importer.
@@ -2442,25 +2444,25 @@ class QuantumCircuit:
 
     @property
     def global_phase(self) -> ParameterValueType:
-        """Return the global phase of the circuit in radians."""
+        """Return the global phase of the current circuit scope in radians."""
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].global_phase
         return self._global_phase
 
     @global_phase.setter
     def global_phase(self, angle: ParameterValueType):
-        """Set the phase of the circuit.
+        """Set the phase of the current circuit scope.
 
         Args:
             angle (float, ParameterExpression): radians
         """
-        if isinstance(angle, ParameterExpression) and angle.parameters:
-            self._global_phase = angle
-        else:
+        if not (isinstance(angle, ParameterExpression) and angle.parameters):
             # Set the phase to the [0, 2π) interval
-            angle = float(angle)
-            if not angle:
-                self._global_phase = 0
-            else:
-                self._global_phase = angle % (2 * np.pi)
+            angle = float(angle) % (2 * np.pi)
+        if self._control_flow_scopes:
+            self._control_flow_scopes[-1].global_phase = angle
+        else:
+            self._global_phase = angle
 
     @property
     def parameters(self) -> ParameterView:
@@ -2960,7 +2962,24 @@ class QuantumCircuit:
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.id as direct replacement.",
+    )
     def i(self, qubit: QubitSpecifier) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.IGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            qubit: The qubit(s) to apply the gate to.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        return self.id(qubit)
+
+    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -2974,22 +2993,6 @@ class QuantumCircuit:
         from .library.standard_gates.i import IGate
 
         return self.append(IGate(), [qubit], [])
-
-    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
-        """Apply :class:`~qiskit.circuit.library.IGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            qubit: The qubit(s) to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.i: the same function.
-        """
-        return self.i(qubit)
 
     def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MSGate`.
@@ -3560,6 +3563,10 @@ class QuantumCircuit:
             [],
         )
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.cswap as direct replacement.",
+    )
     def fredkin(
         self,
         control_qubit: QubitSpecifier,
@@ -3780,6 +3787,7 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
     def cnot(
         self,
         control_qubit: QubitSpecifier,
@@ -3853,6 +3861,7 @@ class QuantumCircuit:
             [],
         )
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
     def toffoli(
         self,
         control_qubit1: QubitSpecifier,
@@ -3954,6 +3963,7 @@ class QuantumCircuit:
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.mcx as direct replacement.")
     def mct(
         self,
         control_qubits: Sequence[QubitSpecifier],

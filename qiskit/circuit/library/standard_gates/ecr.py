@@ -16,7 +16,7 @@ import numpy as np
 
 from qiskit.circuit._utils import with_gate_array
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonGate
 from .rzx import RZXGate
 from .x import XGate
 
@@ -84,13 +84,9 @@ class ECRGate(SingletonGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, label=None, _condition=None, duration=None, unit=None):
+    def __init__(self, label=None, *, duration=None, unit="dt"):
         """Create new ECR gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "ecr", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("ecr", 2, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

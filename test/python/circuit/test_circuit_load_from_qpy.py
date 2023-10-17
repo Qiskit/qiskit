@@ -175,6 +175,22 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
         self.assertDeprecatedBitProperties(qc, new_circ)
 
+    def test_controlled_unitary_gate(self):
+        """Test that numpy array parameters are correctly serialized
+        in controlled unitary gate."""
+        qc = QuantumCircuit(2)
+        unitary = np.array([[0, 1], [1, 0]])
+        gate = UnitaryGate(unitary)
+        qc.append(gate.control(1), [0, 1])
+
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc.decompose(reps=5), new_circ.decompose(reps=5))
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
     def test_opaque_gate(self):
         """Test that custom opaque gate is correctly serialized"""
         custom_gate = Gate("black_box", 1, [])
@@ -1281,7 +1297,6 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.append(mcx_recursive_gate, list(range(0, 5)))
         qc.append(mcx_vchain_gate, list(range(0, 5)))
         qc.mcp(np.pi, [0, 2], 1)
-        qc.mct([0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
         qpy_file = io.BytesIO()

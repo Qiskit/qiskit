@@ -1,0 +1,33 @@
+---
+fixes:
+  - |
+    The control-flow builder interface (the context-manager forms of
+    :meth:`.QuantumCircuit.if_test`, :meth:`~.QuantumCircuit.while_loop`,
+    :meth:`~.QuantumCircuit.for_loop` and :meth:`~.QuantumCircuit.switch`) will now correctly track
+    a separate global-phase advancement within that block.  You can add a global-phase advancement
+    to an inner block by assigning to :attr:`.QuantumCircuit.global_phase` within a builder scope::
+
+      from math import pi
+      from qiskit import QuantumCircuit
+
+      qc = QuantumCircuit(3, 3)
+      qc.global_phase = pi / 2  # Set the outer circuit's global phase.
+
+      with qc.if_test((qc.clbits[0], False)) as else_:
+        # The global phase advancement in a control-flow block begins at 0,
+        # because it represents how much the phase will be advanced by an
+        # execution of the block.  The defined phase of the outer scope is not
+        # affected by this set.
+        qc.global_phase = pi
+      with else_:
+        # Similarly, the `else` block may induce a different global-phase
+        # advancement to the `if`, so it can also be set separately.
+        qc.global_phase = 1.5 * pi
+
+      # The phase advancement caused directly by the outer scope is independent
+      # of the phase advancement conditionally caused by each control-flow path.
+      assert qc.global_phase == pi / 2
+
+    The meaning of :attr:`.QuantumCircuit.global_phase` is taken to be the global-phase advancement
+    that is inherent to a single execution of the block.  It is still a *global* phase advancement,
+    in that if the block is entered, the phase of all qubits in the entire program will be advanced.
