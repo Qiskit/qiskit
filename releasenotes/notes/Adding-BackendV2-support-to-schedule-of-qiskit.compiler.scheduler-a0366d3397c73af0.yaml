@@ -1,0 +1,32 @@
+---
+prelude: >
+    Added support for BackendV2 in schedule of qiskit.compiler.scheduler.
+    Test methods in test/python/scheduler/test_basic_scheduler.py have been replicated with backend
+    being BackenV2.
+features:
+  - |
+    Adds support for BackendV2 in schedule of qiskit.compiler.scheduler.
+    Example usage::
+      #import a fake backend which is a sub-class of BackendV2.
+      from qiskit.providers.fake_provider import FakePerth
+      from qiskit.compiler.scheduler import schedule
+
+      from qiskit.circuit import QuantumCircuit
+      qc=QuantumCircuit(1, 1)
+      qc.x(0)
+      qc.measure(0,0)
+      sched=schedule(circuits=qc, backend=FakePerth())
+
+
+  - |
+    Adds tests with backend being a sub-class of BackendV2.
+    In test file:: test/python/scheduler/test_basic_scheduler.py
+      All the test methods that used BackendV1 has been replicated to use BackendV2.
+
+
+fixes:
+  - |
+    Since, BackendV2 was not supported by schedule method in qiskit.compiler.scheduler, this caused
+    schedule method to error out when the backend is supplied with BackendV2. Refer to
+    `#10837 <https://github.com/Qiskit/qiskit/issues/10837>` for more information.
+
