@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue with `pulse_v2` visualization that expects
+    a function :func:`~.name` from an input backend
+    in :meth:`.OpenPulseBackendInfo.create_from_backend`.
+    Before, when you pass a backend based on :class:`~.BackendV2`,
+    it raised a `TypeError`, once this one doesn't use a :func:`~.name`
+    function but a :attr:`~.BackendV2.name` attribute.
+    Now, it checks whether the function exists, case it doesn't, it gets the backend name
+    from :attr:`~.backend._configuration.backend_name`.
+    Fixed `#10993 <https://github.com/Qiskit/qiskit/issues/10993>`__
