@@ -38,6 +38,10 @@ class ControlledGate(Gate):
         definition: Optional["QuantumCircuit"] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         base_gate: Optional[Gate] = None,
+        duration=None,
+        unit=None,
+        *,
+        _base_label=None,
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
@@ -95,7 +99,7 @@ class ControlledGate(Gate):
            qc2.draw('mpl')
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
-        super().__init__(name, num_qubits, params, label=label)
+        super().__init__(name, num_qubits, params, label=label, duration=duration, unit=unit)
         self._num_ctrl_qubits = 1
         self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
@@ -111,7 +115,7 @@ class ControlledGate(Gate):
         `_definition`.
         """
         if self._open_ctrl:
-            closed_gate = self.copy()
+            closed_gate = self.to_mutable()
             closed_gate.ctrl_state = None
             bit_ctrl_state = bin(self.ctrl_state)[2:].zfill(self.num_ctrl_qubits)
             qreg = QuantumRegister(self.num_qubits, "q")

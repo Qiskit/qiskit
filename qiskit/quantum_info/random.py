@@ -20,7 +20,6 @@ from qiskit.quantum_info.operators.random import (
     random_hermitian,
     random_pauli,
     random_pauli_list,
-    random_pauli_table,
     random_quantum_channel,
     random_unitary,
 )

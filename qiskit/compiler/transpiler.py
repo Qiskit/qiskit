@@ -341,6 +341,15 @@ def transpile(  # pylint: disable=too-many-return-statements
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
 
+    if translation_method == "unroller":
+        warnings.warn(
+            "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
+            "will be removed in a future release. Instead you should use the default "
+            "'translator' method or another plugin.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
             scheduling_method = backend.get_scheduling_stage_plugin()
