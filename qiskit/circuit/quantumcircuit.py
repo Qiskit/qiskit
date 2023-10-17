@@ -1586,12 +1586,13 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        dag = circuit_to_dag(self)
+        dag = circuit_to_dag(self, copy_operations=True)
         dag = HighLevelSynthesis().run(dag)
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
-        return dag_to_circuit(dag)
+        # do not copy operations, this is done in the conversion with circuit_to_dag
+        return dag_to_circuit(dag, copy_operations=False)
 
     def qasm(
         self,
@@ -2438,25 +2439,25 @@ class QuantumCircuit:
 
     @property
     def global_phase(self) -> ParameterValueType:
-        """Return the global phase of the circuit in radians."""
+        """Return the global phase of the current circuit scope in radians."""
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].global_phase
         return self._global_phase
 
     @global_phase.setter
     def global_phase(self, angle: ParameterValueType):
-        """Set the phase of the circuit.
+        """Set the phase of the current circuit scope.
 
         Args:
             angle (float, ParameterExpression): radians
         """
-        if isinstance(angle, ParameterExpression) and angle.parameters:
-            self._global_phase = angle
-        else:
+        if not (isinstance(angle, ParameterExpression) and angle.parameters):
             # Set the phase to the [0, 2π) interval
-            angle = float(angle)
-            if not angle:
-                self._global_phase = 0
-            else:
-                self._global_phase = angle % (2 * np.pi)
+            angle = float(angle) % (2 * np.pi)
+        if self._control_flow_scopes:
+            self._control_flow_scopes[-1].global_phase = angle
+        else:
+            self._global_phase = angle
 
     @property
     def parameters(self) -> ParameterView:

@@ -244,20 +244,6 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
-                with self.assertWarns(DeprecationWarning):
-                    value_table = cliff.table._array
-                    value_phase = cliff.table._phase
-                    value_stabilizer = cliff.stabilizer.to_labels()
-                    value_destabilizer = cliff.destabilizer.to_labels()
-                self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
-                self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
-                self.assertTrue(
-                    np.all(np.array(value_stabilizer == [target_stabilizer[gate_name]]))
-                )
-                self.assertTrue(
-                    np.all(np.array(value_destabilizer == [target_destabilizer[gate_name]]))
-                )
-                # New methods
                 value_table = cliff.tableau[:, :-1]
                 value_phase = cliff.phase
                 value_stabilizer = cliff.to_labels(mode="S")
