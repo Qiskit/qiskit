@@ -13,6 +13,7 @@
 """Base transpiler passes."""
 from __future__ import annotations
 
+import abc
 from abc import abstractmethod
 from collections.abc import Callable, Hashable, Iterable
 from inspect import signature
@@ -20,14 +21,14 @@ from inspect import signature
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.base_tasks import GenericPass, Task
+from qiskit.passmanager.base_tasks import GenericPass
 from qiskit.passmanager.propertyset import PropertySet, WorkflowStatus, RunState
 
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
 
-class MetaPass(type):
+class MetaPass(abc.ABCMeta):
     """Metaclass for transpiler passes.
 
     Enforces the creation of some fields in the pass while allowing passes to
@@ -66,16 +67,8 @@ class MetaPass(type):
                 arguments.append((name, type(value), repr(value)))
         return frozenset(arguments)
 
-    def mro(cls) -> list[type]:
-        # Avoid metaclass conflict.
-        mro_cls = super().mro()
-        if GenericPass not in mro_cls:
-            mro_cls.pop()
-            mro_cls += [GenericPass, Task, object]
-        return mro_cls
 
-
-class BasePass(metaclass=MetaPass):
+class BasePass(GenericPass, metaclass=MetaPass):
     """Base class for transpiler passes."""
 
     def __init__(self):
@@ -193,7 +186,6 @@ class AnalysisPass(BasePass):  # pylint: disable=abstract-method
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
 
-    # pylint: disable=missing-function-docstring
     def execute(
         self,
         passmanager_ir: DAGCircuit,
@@ -220,7 +212,6 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
 
         return new_dag
 
-    # pylint: disable=missing-function-docstring
     def update_status(
         self,
         status: WorkflowStatus,
