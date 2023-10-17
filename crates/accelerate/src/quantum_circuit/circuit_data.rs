@@ -129,8 +129,8 @@ impl CircuitData {
         match index {
             Slice(slice) => {
                 let slice = self.convert_py_slice(py, slice)?;
-                for i in slice {
-                    self.__delitem__(py, Int(i))?;
+                for (i, x) in slice.into_iter().enumerate() {
+                    self.__delitem__(py, Int(x - i))?;
                 }
                 Ok(())
             }
