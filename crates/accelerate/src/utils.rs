@@ -1,9 +1,9 @@
 use pyo3::prelude::*;
 
-use num_complex::Complex;
-use numpy::PyReadonlyArray2;
 use faer::Faer;
 use faer::IntoFaerComplex;
+use num_complex::Complex;
+use numpy::PyReadonlyArray2;
 
 /// Return indices that sort data.
 /// If `data` contains two elements that are incomparable,
