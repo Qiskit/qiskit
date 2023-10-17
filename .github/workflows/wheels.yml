@@ -9,8 +9,6 @@ jobs:
     name: Build wheels
     runs-on: ${{ matrix.os }}
     environment: release
-    permissions:
-      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -27,16 +25,11 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: wheelhouse/
+          name: shared-wheel-builds
   build_wheels_macos_arm:
     name: Build wheels on macOS arm
     runs-on: ${{ matrix.os }}
     environment: release
-    permissions:
-      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -59,10 +52,23 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
+          name: shared-wheel-builds
+  upload_shared_wheels:
+    name: Upload shared build wheels
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    needs: ["build_wheels", "build_wheels_macos_arm"]
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: shared-wheel-builds
+          path: deploy
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: wheelhouse/
+          packages-dir: deploy
   build_wheels_s390x:
     name: Build wheels on s390x
     runs-on: ${{ matrix.os }}
@@ -164,7 +170,7 @@ jobs:
   sdist:
     name: Build and publish terra sdist
     runs-on: ${{ matrix.os }}
-    needs: ["build_wheels"]
+    needs: ["upload_shared_wheels"]
     environment: release
     permissions:
       id-token: write
