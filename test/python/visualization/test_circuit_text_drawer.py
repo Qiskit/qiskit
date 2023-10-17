@@ -5720,6 +5720,42 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
 
+    def test_if_with_expr_nested(self):
+        """Test an IfElseOp with an expression for nested"""
+        expected = "\n".join(
+            [
+                "       ┌───┐┌─────────────────────── ┌───┐                                 ───────┐ ",
+                " qr_0: ┤ H ├┤                        ┤ X ├────────────────────────────────        ├─",
+                "       └───┘│ If-0 (cr2 & cr3) == 3  └───┘┌─────────────── ┌───┐ ───────┐   End-0 │ ",
+                " qr_1: ─────┤                        ─────┤ If-1 cr2 == 5  ┤ Z ├  End-1 ├─        ├─",
+                "            └───────────╥───────────      └───────╥─────── └───┘ ───────┘  ───────┘ ",
+                " qr_2: ─────────────────╫─────────────────────────╫─────────────────────────────────",
+                "                        ║                         ║                                 ",
+                " cr: 3/═════════════════╬═════════════════════════╬═════════════════════════════════",
+                "                        ║                         ║                                 ",
+                "cr1: 3/═════════════════╬═════════════════════════╬═════════════════════════════════",
+                "                    ┌───╨────┐                ┌───╨────┐                            ",
+                "cr2: 3/═════════════╡ [expr] ╞════════════════╡ [expr] ╞════════════════════════════",
+                "                    ├───╨────┤                └────────┘                            ",
+                "cr3: 3/═════════════╡ [expr] ╞══════════════════════════════════════════════════════",
+                "                    └────────┘                                                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.if_test(expr.equal(expr.bit_and(cr2, cr3), 3)):
+            circuit.x(0)
+            with circuit.if_test(expr.equal(cr2, 5)):
+                circuit.z(1)
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+
     def test_switch_with_expression(self):
         """Test an SwitchcaseOp with an expression"""
         expected = "\n".join(

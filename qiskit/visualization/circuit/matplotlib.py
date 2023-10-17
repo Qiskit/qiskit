@@ -1612,7 +1612,7 @@ class MatplotlibDrawer:
                     idx_set = str(node_data[node].indexset)[1:-1].split(",")[:5]
                     if len(idx_set) > 4:
                         idx_set[4] = "..."
-                    idx_set = f"{', '.join(idx_set)}"
+                    idx_set = f"{','.join(idx_set)}"
                 y_spacer = 0.2 if len(node.qargs) == 1 else 0.5
                 self._ax.text(
                     xpos - x_shift - 0.04,
