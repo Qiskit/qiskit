@@ -5754,7 +5754,9 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with circuit.if_test(expr.equal(cr2, 5)):
                 circuit.z(1)
 
-        self.assertEqual(str(_text_circuit_drawer(circuit, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, initial_state=False, fold=120)), expected
+        )
 
     def test_switch_with_expression(self):
         """Test an SwitchcaseOp with an expression"""
