@@ -18,7 +18,7 @@ from typing import Optional, Union, List, Tuple
 from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -152,7 +152,7 @@ class HighLevelSynthesis(TransformationPass):
     When neither ``basis_gates`` nor ``target`` is specified, the pass synthesizes only the top-level
     abstract mathematical objects and annotated operations, without descending into the gate
     ``definitions``. This is consistent with the older behavior of the pass, allowing to synthesize
-    some higher-level objects using plugins and leaving the others gates untouched.
+    some higher-level objects using plugins and leaving the other gates untouched.
     """
 
     def __init__(
@@ -417,11 +417,12 @@ class HighLevelSynthesis(TransformationPass):
             # This results in QuantumCircuit, DAGCircuit or Gate
             synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
 
-            # DAGCircuit is converted to QuantumCircuit
-            if isinstance(synthesized_op, DAGCircuit):
-                synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
-
             for modifier in op.modifiers:
+
+                # If we have a DAGCircuit at this point, convert it to QuantumCircuit
+                if isinstance(synthesized_op, DAGCircuit):
+                    synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
+
                 if isinstance(modifier, InverseModifier):
                     # Both QuantumCircuit and Gate have inverse method
                     synthesized_op = synthesized_op.inverse()
@@ -442,9 +443,6 @@ class HighLevelSynthesis(TransformationPass):
                     # Unrolling
                     synthesized_op, _ = self._recursively_handle_op(synthesized_op)
 
-                    if isinstance(synthesized_op, DAGCircuit):
-                        synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
-
                 elif isinstance(modifier, PowerModifier):
                     # QuantumCircuit has power method, and Gate needs to be converted
                     # to a quantum circuit.
@@ -463,9 +461,6 @@ class HighLevelSynthesis(TransformationPass):
 
                     # Unrolling
                     synthesized_op, _ = self._recursively_handle_op(synthesized_op)
-
-                    if isinstance(synthesized_op, DAGCircuit):
-                        synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
 
                 else:
                     raise TranspilerError(f"Unknown modifier {modifier}.")
