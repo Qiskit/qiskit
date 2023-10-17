@@ -240,8 +240,9 @@ class TestUseCases(SchedulerTestCase):
 
     def test_loop_and_conditional(self):
         """Run a loop first, then a conditional."""
-        FlowController.remove_flow_controller("condition")
-        FlowController.add_flow_controller("condition", ConditionalController)
+        with self.assertWarns(DeprecationWarning):
+            FlowController.remove_flow_controller("condition")
+            FlowController.add_flow_controller("condition", ConditionalController)
 
         self.passmanager.append(PassK_check_fixed_point_property())
         self.passmanager.append(
@@ -613,7 +614,8 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_control_flow_plugin(self):
         """Adds a control flow plugin with a single parameter and runs it."""
-        FlowController.add_flow_controller("do_x_times", DoXTimesController)
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_x_times", DoXTimesController)
         self.passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertScheduler(
             self.circuit,
@@ -632,9 +634,11 @@ class TestControlFlowPlugin(SchedulerTestCase):
     def test_callable_control_flow_plugin(self):
         """Removes do_while, then adds it back. Checks max_iteration still working."""
         controllers_length = len(FlowController.registered_controllers)
-        FlowController.remove_flow_controller("do_while")
+        with self.assertWarns(DeprecationWarning):
+            FlowController.remove_flow_controller("do_while")
         self.assertEqual(controllers_length - 1, len(FlowController.registered_controllers))
-        FlowController.add_flow_controller("do_while", DoWhileController)
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_while", DoWhileController)
         self.assertEqual(controllers_length, len(FlowController.registered_controllers))
         self.passmanager.append(
             [PassB_TP_RA_PA(), PassC_TP_RA_PA()],
@@ -656,7 +660,9 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_remove_nonexistent_plugin(self):
         """Tries to remove a plugin that does not exist."""
-        self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
+        with self.assertRaises(KeyError):
+            with self.assertWarns(DeprecationWarning):
+                FlowController.remove_flow_controller("foo")
 
 
 class TestDumpPasses(SchedulerTestCase):
@@ -701,7 +707,8 @@ class TestDumpPasses(SchedulerTestCase):
     def test_control_flow_plugin(self):
         """Dump passes in a custom flow controller."""
         passmanager = PassManager()
-        FlowController.add_flow_controller("do_x_times", DoXTimesController)
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_x_times", DoXTimesController)
         passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
 
         expected = [
@@ -797,7 +804,8 @@ class TestLogPasses(QiskitTestCase):
     def test_control_flow_plugin(self):
         """Dump passes in a custom flow controller."""
         passmanager = PassManager()
-        FlowController.add_flow_controller("do_x_times", DoXTimesController)
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_x_times", DoXTimesController)
         passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertPassLog(
             passmanager,

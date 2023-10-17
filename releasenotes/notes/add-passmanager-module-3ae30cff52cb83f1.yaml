@@ -62,7 +62,9 @@ upgrade:
     Implementation of the proper code is the responsibility of pass manager developer.
 deprecations:
   - |
-    The flow controller factory method :meth:`.FlowController.controller_factory` is deprecated,
+    The flow controller factory method :meth:`.FlowController.controller_factory` is deprecated
+    along with :meth:`.FlowController.add_flow_controller` and
+    :meth:`.FlowController.remove_flow_controller`,
     as we are also going to deprecate task construction with
     keyword arguments in the :meth:`.BasePassManager.append` method.
     Controllers must be explicitly instantiated and appended to the pass manager.

@@ -21,7 +21,7 @@ class FencedObject:
     of these attributes is accessed."""
 
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg=(
             "Internal use of FencedObject is already removed from pass manager. "
             "Implementation of a task subclass with protection for input object modification "

@@ -54,7 +54,7 @@ class RunningPassManager(FlowControllerLinear):
     """
 
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg=(
             "Building the pipline of the tasks is responsibility of PassManager. "
             "RunningPassManager should not modify prepared pipeline at running time."
@@ -92,7 +92,7 @@ class RunningPassManager(FlowControllerLinear):
 
     # pylint: disable=arguments-differ
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg="Now RunningPassManager is a subclass of flow controller.",
         pending=True,
     )

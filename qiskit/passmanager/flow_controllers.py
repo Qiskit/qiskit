@@ -46,17 +46,12 @@ class FlowControllerLinear(BaseController):
         self.tasks: tuple[Task] = tuple(tasks)
 
     @property
-    @deprecate_func(
-        since="0.26.0",
-        additional_msg="Use .tasks attribute instead.",
-        is_property=True,
-    )
     def passes(self) -> list[Task]:
-        """Alias of pipeline for backward compatibility."""
+        """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg="All tasks must be provided at construction time of the controller object.",
     )
     def append(
@@ -112,17 +107,12 @@ class DoWhileController(BaseController):
         self.do_while = do_while
 
     @property
-    @deprecate_func(
-        since="0.26.0",
-        additional_msg="Use .tasks attribute instead.",
-        is_property=True,
-    )
     def passes(self) -> list[Task]:
-        """Alias of pipeline for backward compatibility."""
+        """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg="All tasks must be provided at construction time of the controller object.",
     )
     def append(
@@ -180,17 +170,12 @@ class ConditionalController(BaseController):
         self.condition = condition
 
     @property
-    @deprecate_func(
-        since="0.26.0",
-        additional_msg="Use .tasks attribute instead.",
-        is_property=True,
-    )
     def passes(self) -> list[Task]:
-        """Alias of pipeline for backward compatibility."""
+        """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg="All tasks must be provided at construction time of the controller object.",
     )
     def append(
@@ -260,12 +245,18 @@ class FlowController(BaseController):
         and the behavior of generated controller is hardly debugged.
     """
 
-    registered_controllers = {}
-    hierarchy = []
+    registered_controllers = {
+        "condition": ConditionalController,
+        "do_while": DoWhileController,
+    }
+    hierarchy = [
+        "condition",
+        "do_while",
+    ]
 
     @classmethod
     @deprecate_func(
-        since="0.26.0",
+        since="0.45.0",
         additional_msg=(
             "Controller object must be explicitly instantiated. "
             "Building controller with keyword arguments may yield race condition when "
@@ -311,6 +302,14 @@ class FlowController(BaseController):
         return instance
 
     @classmethod
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg=(
+            "Controller factory method is deprecated and managing the custom flow controllers "
+            "with alias no longer helps building the task pipeline. "
+            "Controllers must be explicitly instantiated and appended to the pipeline."
+        ),
+    )
     def add_flow_controller(
         cls,
         name: str,
@@ -327,6 +326,14 @@ class FlowController(BaseController):
             cls.hierarchy.append(name)
 
     @classmethod
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg=(
+            "Controller factory method is deprecated and managing the custom flow controllers "
+            "with alias no longer helps building the task pipeline. "
+            "Controllers must be explicitly instantiated and appended to the pipeline."
+        ),
+    )
     def remove_flow_controller(
         cls,
         name: str,
@@ -343,7 +350,3 @@ class FlowController(BaseController):
             raise KeyError("Flow controller not found: %s" % name)
         del cls.registered_controllers[name]
         cls.hierarchy.remove(name)
-
-
-FlowController.add_flow_controller("condition", ConditionalController)
-FlowController.add_flow_controller("do_while", DoWhileController)
