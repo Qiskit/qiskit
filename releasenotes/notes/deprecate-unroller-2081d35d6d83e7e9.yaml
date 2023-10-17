@@ -6,7 +6,7 @@ deprecations:
     :class:`.BasisTranslator` which provides a similar set of functionality but
     offers it in a more general manner so that you're able to translate a circuit
     to any universal basis set. The :class:`.Unroller` class only works in situations
-    where the circuit's gates definitions are recursively defined in terms of the target
+    where the circuit's gate definitions are recursively defined in terms of the target
     basis; for Qiskit's standard library gates this means :class:`.UGate` and
     :class:`.CXGate`. If you are using the :class:`.Unroller` pass it can be replaced by
     using a custom pass manager of the form::
@@ -35,7 +35,7 @@ upgrade:
     The :attr:`.ControlledGate.definition` of the output from the :meth:`.Gate.control()` method
     may be different as compared to previous releases. The internal generation
     of the :meth:`.Gate.control` is no longer using the now deprecated
-    :class:`.Unroller` transpiler pass to generate it's definition and this can
+    :class:`.Unroller` transpiler pass to generate its definition and this can
     potentially cause a different definition to be generated. The output
     :class:`.ControlledGate` object's definition will be unitary equivalent to what
     was generated before. But if you require the exact definition from calling

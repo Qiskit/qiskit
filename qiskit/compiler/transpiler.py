@@ -343,9 +343,9 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     if translation_method == "unroller":
         warnings.warn(
-            "The 'unroller' translation_method plugin has been deprecated and will be removed "
-            "in a future release. Instead you should use the default 'translator' method or "
-            "another plugin",
+            "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
+            "will be removed in a future release. Instead you should use the default "
+            "'translator' method or another plugin.",
             DeprecationWarning,
             stacklevel=2,
         )
