@@ -373,8 +373,8 @@ impl CircuitData {
                 .into_iter()
                 .map(|b| {
                     let py_idx = indices.as_ref().get_item(b)?;
-                    let bit_locations = py_idx.downcast_exact::<PyTuple>()?;
-                    Ok(bit_locations.get_item(0)?.extract::<BitType>()?)
+                    let bit_locations = py_idx.extract::<(BitType, PyObject)>()?;
+                    Ok(bit_locations.0)
                 })
                 .collect::<PyResult<Vec<BitType>>>()?;
             Ok(self.intern_context.intern(args))
