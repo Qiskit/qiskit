@@ -13,6 +13,7 @@
 """Test VQD"""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
@@ -52,7 +53,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
 
         self.h2_energy = -1.85727503
         self.h2_energy_excited = [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
