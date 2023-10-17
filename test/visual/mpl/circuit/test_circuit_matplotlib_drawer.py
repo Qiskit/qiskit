@@ -1999,6 +1999,25 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
+    def test_default_futurewarning(self):
+        """Test using the default scheme emits a future warning."""
+        qc = QuantumCircuit(1)
+
+        with self.assertWarnsRegex(
+            FutureWarning, "To silence this warning, specify the current default explicitly"
+        ):
+            qc.draw("mpl")
+
+    def test_iqx_pendingdeprecation(self):
+        """Test using the IQX schemes emits a pending deprecation warning."""
+        qc = QuantumCircuit(1)
+
+        for style in ["iqx", "iqx-dark"]:
+            with self.assertWarnsRegex(
+                PendingDeprecationWarning, 'Instead, use "iqp" and "iqp-dark"'
+            ):
+                qc.draw("mpl", style=style)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

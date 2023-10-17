@@ -171,12 +171,12 @@ class DefaultStyle:
             "clifford": "#6FA4FF",  # Light Blue
             "pauli": "#05BAB6",  # Green
             "def_other": "#BB8BFF",  # Purple
-            "### IQX Colors": "IQX Colors",
+            "### IQP Colors": "IQP Colors",
             "classical": "#002D9C",  # Dark Blue
             "phase": "#33B1FF",  # Cyan
             "hadamard": "#FA4D56",  # Light Red
             "non_unitary": "#A8A8A8",  # Medium Gray
-            "iqx_other": "#9F1853",  # Dark Red
+            "iqp_other": "#9F1853",  # Dark Red
             "### B/W": "B/W",
             "black": "#000000",
             "white": "#FFFFFF",
@@ -284,6 +284,14 @@ def load_style(style):
             'To silence this warning, specify the current default explicitly as style="clifford", '
             'or the new default as style="iqp".',
             category=FutureWarning,
+            stacklevel=2,
+        )
+
+    if style[:3] == "iqx":
+        warn(
+            'The "iqx" and "iqx-dark" matplotlib drawer schemes are pending deprecation and will '
+            'be deprecated in a future release. Instead, use "iqp" and "iqp-dark".',
+            category=PendingDeprecationWarning,
             stacklevel=2,
         )
 
