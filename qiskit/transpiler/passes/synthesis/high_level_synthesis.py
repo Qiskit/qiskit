@@ -124,7 +124,7 @@ class HighLevelSynthesis(TransformationPass):
     all higher-level objects are synthesized, so the output is a DAG without such objects.
     More precisely, every gate in the output DAG is either directly supported by the target,
     or is in ``equivalence_library``.
-  
+
     The abstract mathematical objects are synthesized using synthesis plugins, applying
     synthesis methods specified in the high-level-synthesis config (refer to the documentation
     for :class:`~.HLSConfig`).
@@ -227,7 +227,7 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
         """
-        
+
         # copy dag_op_nodes because we are modifying the DAG below
         dag_op_nodes = dag.op_nodes()
 
@@ -283,7 +283,7 @@ class HighLevelSynthesis(TransformationPass):
         The function returns the result of the synthesis (either a quantum circuit or
         an Operation), and, as an optimization, a boolean indicating whether
         synthesis did anything.
-        
+
         The function is recursive, for example synthesizing an annotated operation
         involves synthesizing its "base operation" which might also be
         an annotated operation.
@@ -467,157 +467,6 @@ class HighLevelSynthesis(TransformationPass):
                     if isinstance(synthesized_op, DAGCircuit):
                         synthesized_op = dag_to_circuit(synthesized_op, copy_operations=False)
 
-                else:
-                    raise TranspilerError(f"Unknown modifier {modifier}.")
-
-            return synthesized_op
-        return None
-
-    def _recursively_handle_op(
-        self, op: Operation, qubits: Optional[List] = None
-    ) -> Tuple[Union[Operation, QuantumCircuit], bool]:
-        """Recursively synthesizes a single operation.
-
-        There are several possible results:
-
-        - The given operation is unchanged
-        - The result is a quantum circuit: e.g., synthesizing Clifford using plugin
-        - The result is an Operation: e.g., adding control to CXGate results in CCXGate
-
-        The function returns the result of the synthesis (either a quantum circuit or
-        an Operation), and, as an optimization, a boolean indicating whether
-        synthesis did anything.
-
-        The function is recursive as synthesizing an annotated operation
-        involves synthesizing its "base operation" which might also be
-        an annotated operation.
-        """
-
-        # First, try to apply plugin mechanism
-        decomposition = self._synthesize_op_using_plugins(op, qubits)
-        if decomposition:
-            return decomposition, True
-
-        # Second, handle annotated operations
-        # For now ignore the qubits over which the annotated operation is defined.
-        decomposition = self._synthesize_annotated_op(op)
-        if decomposition:
-            return decomposition, True
-
-        # In the future, we will support recursion.
-        return op, False
-
-    def _synthesize_op_using_plugins(
-        self, op: Operation, qubits: List
-    ) -> Union[QuantumCircuit, None]:
-        """
-        Attempts to synthesize op using plugin mechanism.
-        Returns either the synthesized circuit or None (which occurs when no
-        synthesis methods are available or specified).
-        """
-        hls_plugin_manager = self.hls_plugin_manager
-
-        if op.name in self.hls_config.methods.keys():
-            # the operation's name appears in the user-provided config,
-            # we use the list of methods provided by the user
-            methods = self.hls_config.methods[op.name]
-        elif (
-            self.hls_config.use_default_on_unspecified
-            and "default" in hls_plugin_manager.method_names(op.name)
-        ):
-            # the operation's name does not appear in the user-specified config,
-            # we use the "default" method when instructed to do so and the "default"
-            # method is available
-            methods = ["default"]
-        else:
-            methods = []
-
-        for method in methods:
-            # There are two ways to specify a synthesis method. The more explicit
-            # way is to specify it as a tuple consisting of a synthesis algorithm and a
-            # list of additional arguments, e.g.,
-            #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}), or
-            #   ("pmh", {}).
-            # When the list of additional arguments is empty, one can also specify
-            # just the synthesis algorithm, e.g.,
-            #   "pmh".
-            if isinstance(method, tuple):
-                plugin_specifier, plugin_args = method
-            else:
-                plugin_specifier = method
-                plugin_args = {}
-
-            # There are two ways to specify a synthesis algorithm being run,
-            # either by name, e.g. "kms" (which then should be specified in entry_points),
-            # or directly as a class inherited from HighLevelSynthesisPlugin (which then
-            # does not need to be specified in entry_points).
-            if isinstance(plugin_specifier, str):
-                if plugin_specifier not in hls_plugin_manager.method_names(op.name):
-                    raise TranspilerError(
-                        "Specified method: %s not found in available plugins for %s"
-                        % (plugin_specifier, op.name)
-                    )
-                plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
-            else:
-                plugin_method = plugin_specifier
-
-            decomposition = plugin_method.run(
-                op,
-                coupling_map=self._coupling_map,
-                target=self._target,
-                qubits=qubits,
-                **plugin_args,
-            )
-
-            # The synthesis methods that are not suited for the given higher-level-object
-            # will return None, in which case the next method in the list will be used.
-            if decomposition is not None:
-                return decomposition
-
-        return None
-
-    def _synthesize_annotated_op(self, op: Operation) -> Union[Operation, None]:
-        """
-        Recursively synthesizes annotated operations.
-        Returns either the synthesized operation or None (which occurs when the operation
-        is not an annotated operation).
-        """
-        if isinstance(op, AnnotatedOperation):
-            # Currently, we ignore the qubits when recursively synthesizing the base operation.
-            synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
-
-            # Currently, we depend on recursive synthesis producing either a QuantumCircuit or a Gate.
-            # If in the future we will want to allow HighLevelSynthesis to synthesize, say,
-            # a LinearFunction to a Clifford, we will need to rethink this.
-            if not synthesized_op or not isinstance(synthesized_op, (QuantumCircuit, Gate)):
-                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
-
-            for modifier in op.modifiers:
-                if isinstance(modifier, InverseModifier):
-                    # Both QuantumCircuit and Gate have inverse method
-                    synthesized_op = synthesized_op.inverse()
-                elif isinstance(modifier, ControlModifier):
-                    # Both QuantumCircuit and Gate have inverse method
-                    synthesized_op = synthesized_op.control(
-                        num_ctrl_qubits=modifier.num_ctrl_qubits,
-                        label=None,
-                        ctrl_state=modifier.ctrl_state,
-                    )
-                elif isinstance(modifier, PowerModifier):
-                    # QuantumCircuit has power method, and Gate needs to be converted
-                    # to a quantum circuit.
-                    if isinstance(synthesized_op, QuantumCircuit):
-                        qc = synthesized_op
-                    else:
-                        qc = QuantumCircuit(synthesized_op.num_qubits, synthesized_op.num_clbits)
-                        qc.append(
-                            synthesized_op,
-                            range(synthesized_op.num_qubits),
-                            range(synthesized_op.num_clbits),
-                        )
-
-                    qc = qc.power(modifier.power)
-                    synthesized_op = qc.to_gate()
                 else:
                     raise TranspilerError(f"Unknown modifier {modifier}.")
 
