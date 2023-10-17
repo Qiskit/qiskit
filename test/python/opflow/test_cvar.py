@@ -13,6 +13,8 @@
 """The Conditional Value at Risk (CVaR) measurement."""
 
 import unittest
+import warnings
+
 from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 from ddt import ddt, data
@@ -74,7 +76,9 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
 
     def cleanup_algorithm_globals(self, massive):
         """Method used to reset the values of algorithm_globals."""
-        algorithm_globals.massive = massive
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.massive = massive
 
     def test_cvar_simple(self):
         """Test a simple case with a single Pauli."""
@@ -177,8 +181,10 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         # -- which is the default, but better to be sure in the test!
         # also add a cleanup so we're sure to reset to the original value after the test, even if
         # the test would fail
-        self.addCleanup(self.cleanup_algorithm_globals, algorithm_globals.massive)
-        algorithm_globals.massive = False
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self.addCleanup(self.cleanup_algorithm_globals, algorithm_globals.massive)
+            algorithm_globals.massive = False
 
         cvar = CVaRMeasurement(op, alpha=0.1)
         fake_probabilities = [0.2, 0.8]

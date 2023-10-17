@@ -987,7 +987,7 @@ class TextDrawing:
     def special_label(node):
         """Some instructions have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
-        node_type = type(node)
+        node_type = node.base_class
         return labels.get(node_type, None)
 
     @staticmethod
