@@ -134,8 +134,8 @@ html_context = {
     # Enable segment analytics for qiskit.org/documentation
     "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
     "theme_announcement": "🎉 Starting on December 1, 2023, Qiskit Documentation will only live on IBM Quantum",
-    "announcement_url": "https://medium.com/qiskit/important-changes-to-qiskits-documentation-and-learning-7f4e346b19ab",
-    "announcement_url_text": "Check it out",
+    "announcement_url": "https://medium.com/qiskit/important-changes-to-qiskit-documentation-and-learning-resources-7f4e346b19ab",
+    "announcement_url_text": "Learn More",
 }
 html_static_path = ["_static"]
 
