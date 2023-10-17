@@ -12,13 +12,11 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 use std::f64::consts::PI;
 
-//use numpy::{ToPyArray, PyArray};
 use faer::Faer;
+use faer::IntoFaerComplex;
 use faer::{mat, Mat, MatRef, Scale};
 use faer_core::c64;
 use numpy::PyReadonlyArray2;
-//use faer_core::ComplexField; // for access to fields of struct
-use faer::IntoFaerComplex;
 
 use crate::utils;
 
@@ -74,16 +72,26 @@ impl Arg for c64 {
     }
 }
 
-// FIXME: full of ineffciencies
+#[pyfunction]
+#[pyo3(text_signature = "(unitary, /")]
+pub fn eigenvalues(unitary: PyReadonlyArray2<Complex<f64>>) -> Vec<Complex<f64>> {
+    unitary
+        .as_array()
+        .into_faer_complex()
+        .complex_eigenvalues()
+        .iter()
+        .map(|x| Complex::<f64>::new(x.re, x.im))
+        .collect()
+}
+
 fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
     let pi4 = PI / 4.0;
     let uscaled = Scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
-    let uad = uup.transpose();
-    let mut darg: Vec<_> = (uad * &uup)
-        .eigenvalues()
+    let mut darg: Vec<_> = (uup.transpose() * &uup)
+        .complex_eigenvalues()
         .iter()
         .map(|x: &c64| -x.arg() / 2.0)
         .collect();
@@ -165,7 +173,6 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
     ];
     let mut imax: usize = 0;
     let mut max_fid = 0.0;
-    //    for i in 0..4 {
     for (i, trace) in traces.iter().enumerate() {
         let fid = trace_to_fid(*trace) * basis_fidelity.powi(i as i32);
         if fid > max_fid {
@@ -191,5 +198,6 @@ fn trace_to_fid(trace: c64) -> f64 {
 pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_wrapped(wrap_pyfunction!(_weyl_coordinates))?;
+    m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
     Ok(())
 }

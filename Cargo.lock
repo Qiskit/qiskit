@@ -175,9 +175,9 @@ dependencies = [
 
 [[package]]
 name = "faer"
-version = "0.13.1"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d204a7aebdd9eb556366c3da7e451346e3615188f2dfbb891604bfb1c380e93a"
+checksum = "69fe21e359418c95b2aedb3808a45d4ba6e389669364169dc922146a275dd199"
 dependencies = [
  "assert2",
  "coe-rs",
@@ -198,9 +198,9 @@ dependencies = [
 
 [[package]]
 name = "faer-cholesky"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "124073d394f4e404fa815354639a55e8438a7b516805ccb22f1f29c762308837"
+checksum = "fb17245dc4f8e8a1ac3a84bdff4e44fa302252626f92c51b6300137ba381e5a7"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -216,9 +216,9 @@ dependencies = [
 
 [[package]]
 name = "faer-core"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bb39aac9c86ca090ad7b744f1a7989b7e7e9fb50ce72c6da3425467aeefb25a"
+checksum = "9701263470fe791fd71b4839a0b22e6bd31f34419120f9b320053e78945b03e1"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -238,9 +238,9 @@ dependencies = [
 
 [[package]]
 name = "faer-entity"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e8aa0c90520ae6db4115ced3795fa600260f8181ff7bde3356fba9b78be55b7"
+checksum = "964f0d975e1ee558c44167a62e6caa514a4c139f024b06aa6e5d7b18f09f33f4"
 dependencies = [
  "bytemuck",
  "coe-rs",
@@ -253,9 +253,9 @@ dependencies = [
 
 [[package]]
 name = "faer-evd"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8747a56a36ff5270b194beec75aed31ba5e6ac95a1fece3aa539d02087ccc69"
+checksum = "f05f332452fbf69c3912651ed28fbcfeee949fe23fb963d70a0993d158bcc8cb"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -273,9 +273,9 @@ dependencies = [
 
 [[package]]
 name = "faer-lu"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b3a21bad3d214e03f5bb655ec0a6095555f075a966ca11b2c6d808b60cb553"
+checksum = "59062423c98e402854b27b01e1915df5b68e33bc9d235c2f40f5ecb480627919"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -292,9 +292,9 @@ dependencies = [
 
 [[package]]
 name = "faer-qr"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea8f8a4f59858fe576ff66f9be250a2d65563b0c055195af14e3502ed2266f73"
+checksum = "7c0dd60c0567faa3b07524c60ee01c17dde6298e9e3af9fe3c0b5c15062cce9b"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -311,9 +311,9 @@ dependencies = [
 
 [[package]]
 name = "faer-svd"
-version = "0.13.0"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ee1eb3472c46ced895a5ecda4e2a29317b41a54d8bbd090c4388f8028f8649f"
+checksum = "c95b94f053bb5519941e6698573af2e0796c674fcce26f8b0a18169b4ef5c98b"
 dependencies = [
  "assert2",
  "bytemuck",

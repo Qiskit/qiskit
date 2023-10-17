@@ -63,6 +63,7 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_decompose::_num_basis_gates))?;
     m.add_wrapped(wrap_pyfunction!(two_qubit_decompose::_weyl_coordinates))?;
+    m.add_wrapped(wrap_pyfunction!(two_qubit_decompose::eigenvalues))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
     ))?;

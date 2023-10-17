@@ -1414,8 +1414,9 @@ class TwoQubitBasisDecomposer:
         """Computes the number of basis gates needed in
         a decomposition of input unitary
         """
-        unitary = np.asarray(unitary, dtype=complex)
-        return _num_basis_gates(self.basis.b, self.basis_fidelity, unitary)
+        return _num_basis_gates(
+            self.basis.b, self.basis_fidelity, np.asarray(unitary, dtype=complex)
+        )
 
     def old_num_basis_gates(self, unitary):
         """Computes the number of basis gates needed in
