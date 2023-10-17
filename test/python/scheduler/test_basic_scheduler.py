@@ -545,7 +545,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         #   measure pulse should start with a delay of 160dt+160dt+1760dt(1760dt for cx gate).
         expected = Schedule(
             (0, self.inst_map.get("sx", [1])),
-            (0 + 160, self.inst_map.get("sx", [0])), # Right shifted because of alap.
+            (0 + 160, self.inst_map.get("sx", [0])),  # Right shifted because of alap.
             (0 + 160, self.inst_map.get("sx", [1])),
             (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
             (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
@@ -692,7 +692,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         #   measure pulse should start with a delay of 160dt+160dt+1760dt(1760dt for cx gate).
         expected = Schedule(
             (0, self.inst_map.get("sx", [1])),
-            (0, self.inst_map.get("sx", [0])), # Left shifted because of asap.
+            (0, self.inst_map.get("sx", [0])),  # Left shifted because of asap.
             (0 + 160, self.inst_map.get("sx", [1])),
             (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
             (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
@@ -731,7 +731,6 @@ class TestBasicScheduleV2(QiskitTestCase):
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
             self.assertEqual(actual[1], expected[1])
-
 
     def test_alap_resource_respecting(self):
         """Test that the ALAP pass properly respects busy resources when backwards scheduling.
