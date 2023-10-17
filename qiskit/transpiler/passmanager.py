@@ -132,8 +132,13 @@ class PassManager(BasePassManager):
             flow_controller_conditions: Dictionary of control flow plugins.
                 Following built-in controllers are available by default:
 
-                * do_while: The passes repeat until the callable returns False.
-                * condition: The passes run only if the callable returns True.
+                * do_while: The passes repeat until the callable returns False.  Corresponds to
+                  :class:`.DoWhileController`.
+                * condition: The passes run only if the callable returns True.  Corresponds to
+                  :class:`.ConditionalController`.
+
+                In general, you have more control simply by creating the controller you want and
+                passing it to :meth:`append`.
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
@@ -236,6 +241,12 @@ class PassManager(BasePassManager):
                     time (float): the time to execute the pass
                     property_set (PropertySet): the property set
                     count (int): the index for the pass execution
+
+                .. note::
+
+                    Beware that the keyword arguments here are different to those used by the
+                    generic :class:`.BasePassManager`.  This pass manager will translate those
+                    arguments into the form described above.
 
                 The exact arguments pass expose the internals of the pass
                 manager and are subject to change as the pass manager internals
