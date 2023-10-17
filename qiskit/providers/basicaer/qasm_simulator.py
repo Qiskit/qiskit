@@ -12,7 +12,7 @@
 
 """Contains a (slow) Python simulator.
 
-It simulates a qasm quantum circuit (an experiment) that has been compiled
+It simulates an OpenQASM 2 quantum circuit (an experiment) that has been compiled
 to run on the simulator. It is exponential in the number of qubits.
 
 The simulator is run using
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 class QasmSimulatorPy(BackendV1):
-    """Python implementation of a qasm simulator."""
+    """Python implementation of an OpenQASM 2 simulator."""
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
@@ -70,8 +70,23 @@ class QasmSimulatorPy(BackendV1):
         "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for qasm experiments",
-        "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
+        "basis_gates": ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
         "gates": [
+            {
+                "name": "h",
+                "parameters": [],
+                "qasm_def": "gate h q { U(pi/2,0,pi) q; }",
+            },
+            {
+                "name": "p",
+                "parameters": ["lambda"],
+                "qasm_def": "gate p(lambda) q { U(0,0,lambda) q; }",
+            },
+            {
+                "name": "u",
+                "parameters": ["theta", "phi", "lambda"],
+                "qasm_def": "gate u(theta,phi,lambda) q { U(theta,phi,lambda) q; }",
+            },
             {
                 "name": "u1",
                 "parameters": ["lambda"],

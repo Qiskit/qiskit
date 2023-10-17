@@ -17,9 +17,7 @@ from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -29,7 +27,7 @@ _SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
 
 
 @with_gate_array(_S_ARRAY)
-class SGate(Gate):
+class SGate(SingletonGate):
     r"""Single qubit S gate (Z**0.5).
 
     It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
@@ -59,9 +57,9 @@ class SGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__("s", 1, [], label=label, duration=None, unit="dt")
 
     def _define(self):
         """
@@ -86,11 +84,13 @@ class SGate(Gate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import PhaseGate
+
         return PhaseGate(0.5 * numpy.pi * exponent)
 
 
 @with_gate_array(_SDG_ARRAY)
-class SdgGate(Gate):
+class SdgGate(SingletonGate):
     r"""Single qubit S-adjoint gate (~Z**0.5).
 
     It induces a :math:`-\pi/2` phase.
@@ -120,9 +120,9 @@ class SdgGate(Gate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        super().__init__("sdg", 1, [], label=label, duration=None, unit="dt")
 
     def _define(self):
         """
@@ -147,11 +147,13 @@ class SdgGate(Gate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import PhaseGate
+
         return PhaseGate(-0.5 * numpy.pi * exponent)
 
 
 @with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
-class CSGate(ControlledGate):
+class CSGate(SingletonControlledGate):
     r"""Controlled-S gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -180,16 +182,35 @@ class CSGate(ControlledGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CS gate."""
         super().__init__(
-            "cs", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=SGate()
+            "cs",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=SGate(label=_base_label),
+            duration=duration,
+            _base_label=_base_label,
+            unit=unit,
         )
 
     def _define(self):
         """
         gate cs a,b { h b; cp(pi/2) a,b; h b; }
         """
+        from .p import CPhaseGate
+
         self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self):
@@ -198,11 +219,13 @@ class CSGate(ControlledGate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import CPhaseGate
+
         return CPhaseGate(0.5 * numpy.pi * exponent)
 
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
-class CSdgGate(ControlledGate):
+class CSdgGate(SingletonControlledGate):
     r"""Controlled-S^\dagger gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -231,7 +254,15 @@ class CSdgGate(ControlledGate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CSdg gate."""
         super().__init__(
             "csdg",
@@ -240,13 +271,17 @@ class CSdgGate(ControlledGate):
             label=label,
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
-            base_gate=SdgGate(),
+            base_gate=SdgGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
         """
         gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
         """
+        from .p import CPhaseGate
+
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self):
@@ -255,4 +290,6 @@ class CSdgGate(ControlledGate):
 
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import CPhaseGate
+
         return CPhaseGate(-0.5 * numpy.pi * exponent)

@@ -14,18 +14,15 @@
 from math import sqrt, pi
 from typing import Optional, Union
 import numpy
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
-from .t import TGate, TdgGate
-from .s import SGate, SdgGate
 
 _H_ARRAY = 1 / sqrt(2) * numpy.array([[1, 1], [1, -1]], dtype=numpy.complex128)
 
 
 @with_gate_array(_H_ARRAY)
-class HGate(Gate):
+class HGate(SingletonGate):
     r"""Single-qubit Hadamard gate.
 
     This gate is a \pi rotation about the X+Z axis, and has the effect of
@@ -54,9 +51,9 @@ class HGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new H gate."""
-        super().__init__("h", 1, [], label=label)
+        super().__init__("h", 1, [], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -94,8 +91,7 @@ class HGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CHGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CHGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
@@ -105,7 +101,7 @@ class HGate(Gate):
 
 
 @with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
-class CHGate(ControlledGate):
+class CHGate(SingletonControlledGate):
     r"""Controlled-Hadamard gate.
 
     Applies a Hadamard on the target qubit if the control is
@@ -162,10 +158,27 @@ class CHGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[int, str]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[int, str]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CH gate."""
         super().__init__(
-            "ch", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=HGate()
+            "ch",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=HGate(label=_base_label),
+            duration=duration,
+            unit=unit,
+            _base_label=_base_label,
         )
 
     def _define(self):
@@ -183,6 +196,8 @@ class CHGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
+        from .t import TGate, TdgGate
+        from .s import SGate, SdgGate
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)

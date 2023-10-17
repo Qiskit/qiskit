@@ -14,6 +14,7 @@
 
 import logging
 from copy import deepcopy
+import time
 
 import rustworkx
 
@@ -237,6 +238,7 @@ class SabreSwap(TransformationPass):
             self.coupling_map.size(),
             self._qubit_indices,
         )
+        sabre_start = time.perf_counter()
         *sabre_result, final_permutation = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -247,6 +249,8 @@ class SabreSwap(TransformationPass):
             self.trials,
             self.seed,
         )
+        sabre_stop = time.perf_counter()
+        logging.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
 
         self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, final_permutation)))
         if self.fake_run:
@@ -343,6 +347,10 @@ def _apply_sabre_result(
             :class:`.DAGCircuit` that represents the same thing.
     """
 
+    # The swap gate is a singleton instance, so we don't need to waste time reconstructing it each
+    # time we need to use it.
+    swap_singleton = SwapGate()
+
     def empty_dag(block):
         empty = DAGCircuit()
         empty.add_qubits(out_dag.qubits)
@@ -356,15 +364,9 @@ def _apply_sabre_result(
 
     def apply_swaps(dest_dag, swaps, layout):
         for a, b in swaps:
-            # The swaps that come out of Sabre are already in terms of the virtual qubits of the
-            # outermost DAG, since the scope binding occurred as the `SabreDAG` objects were built
-            # up; they're all provided to Sabre routing as full-width already.
-            qubits = (
-                physical_qubits[layout.virtual_to_physical(a)],
-                physical_qubits[layout.virtual_to_physical(b)],
-            )
-            layout.swap_virtual(a, b)
-            dest_dag.apply_operation_back(SwapGate(), qubits, (), check=False)
+            qubits = (physical_qubits[a], physical_qubits[b])
+            layout.swap_physical(a, b)
+            dest_dag.apply_operation_back(swap_singleton, qubits, (), check=False)
 
     def recurse(dest_dag, source_dag, result, root_logical_map, layout):
         """The main recursive worker.  Mutates ``dest_dag`` and ``layout`` and returns them.

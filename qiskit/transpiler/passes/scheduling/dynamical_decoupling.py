@@ -53,6 +53,20 @@ class DynamicalDecoupling(TransformationPass):
         from qiskit.transpiler import PassManager, InstructionDurations
         from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling
         from qiskit.visualization import timeline_drawer
+
+        # Because the legacy passes do not propagate the scheduling information correctly, it is
+        # necessary to run a no-op "re-schedule" before the output circuits can be drawn.
+        def draw(circuit):
+            from qiskit import transpile
+
+            scheduled = transpile(
+                circuit,
+                optimization_level=0,
+                instruction_durations=InstructionDurations(),
+                scheduling_method="alap",
+            )
+            return timeline_drawer(scheduled)
+
         circ = QuantumCircuit(4)
         circ.h(0)
         circ.cx(0, 1)
@@ -69,7 +83,7 @@ class DynamicalDecoupling(TransformationPass):
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        draw(circ_dd)
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -87,7 +101,7 @@ class DynamicalDecoupling(TransformationPass):
             ]
         )
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        draw(circ_dd)
     """
 
     @deprecate_func(
@@ -192,8 +206,11 @@ class DynamicalDecoupling(TransformationPass):
         index_sequence_duration_map = {}
         for physical_qubit in self._qubits:
             dd_sequence_duration = 0
-            for gate in self._dd_sequence:
+            for index, gate in enumerate(self._dd_sequence):
+                gate = gate.to_mutable()
+                self._dd_sequence[index] = gate
                 gate.duration = self._durations.get(gate, physical_qubit)
+
                 dd_sequence_duration += gate.duration
             index_sequence_duration_map[physical_qubit] = dd_sequence_duration
 

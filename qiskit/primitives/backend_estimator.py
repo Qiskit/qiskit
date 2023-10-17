@@ -15,20 +15,27 @@ Expectation value class
 
 from __future__ import annotations
 
-import copy
 import typing
 from collections.abc import Sequence
 from itertools import accumulate
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
+from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV1, BackendV2, Options
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import (
+    ApplyLayout,
+    EnlargeWithAncilla,
+    FullAncillaAllocation,
+    Optimize1qGatesDecomposition,
+    SetLayout,
+)
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -209,17 +216,24 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     perm_pattern = list(range(transpiled_circuit.num_qubits))
 
             # 2. transpile diff circuits
-            transpile_opts = copy.copy(self.transpile_options)
-            transpile_opts.update_options(initial_layout=perm_pattern)
-            diff_circuits = transpile(diff_circuits, self.backend, **transpile_opts.__dict__)
+            passmanager = _passmanager_for_measurement_circuits(perm_pattern, self.backend)
+            diff_circuits = passmanager.run(diff_circuits)
             # 3. combine
             transpiled_circuits = []
             for diff_circuit in diff_circuits:
                 transpiled_circuit_copy = transpiled_circuit.copy()
-                for creg in diff_circuit.cregs:
-                    if creg not in transpiled_circuit_copy.cregs:
-                        transpiled_circuit_copy.add_register(creg)
-                transpiled_circuit_copy.compose(diff_circuit, inplace=True)
+                # diff_circuit is supposed to have a classical register whose name is different from
+                # those of the transpiled_circuit
+                clbits = diff_circuit.cregs[0]
+                for creg in transpiled_circuit_copy.cregs:
+                    if clbits.name == creg.name:
+                        raise QiskitError(
+                            "Classical register for measurements conflict with those of the input "
+                            f"circuit: {clbits}. "
+                            "Recommended to avoid register names starting with '__'."
+                        )
+                transpiled_circuit_copy.add_register(clbits)
+                transpiled_circuit_copy.compose(diff_circuit, clbits=clbits, inplace=True)
                 transpiled_circuit_copy.metadata = diff_circuit.metadata
                 transpiled_circuits.append(transpiled_circuit_copy)
             self._transpiled_circuits += transpiled_circuits
@@ -245,7 +259,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         bound_circuits = [
             transpiled_circuits[circuit_index]
             if len(p) == 0
-            else transpiled_circuits[circuit_index].bind_parameters(p)
+            else transpiled_circuits[circuit_index].assign_parameters(p)
             for i, (p, n) in enumerate(zip(parameter_dicts, num_observables))
             for circuit_index in range(accum[i], accum[i] + n)
         ]
@@ -298,7 +312,9 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         qubit_indices = np.arange(pauli.num_qubits)[pauli.z | pauli.x]
         if not np.any(qubit_indices):
             qubit_indices = [0]
-        meas_circuit = QuantumCircuit(num_qubits, len(qubit_indices))
+        meas_circuit = QuantumCircuit(
+            QuantumRegister(num_qubits, "q"), ClassicalRegister(len(qubit_indices), f"__c_{pauli}")
+        )
         for clbit, i in enumerate(qubit_indices):
             if pauli.x[i]:
                 if pauli.z[i]:
@@ -333,7 +349,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                     }
                     diff_circuits.append(meas_circuit)
             else:
-                for basis, obs in zip(observable.paulis, observable):  # type: ignore
+                for basis, obs in zip(observable.paulis, observable):
                     meas_circuit, indices = self._measurement_circuit(circuit.num_qubits, basis)
                     paulis = PauliList.from_symplectic(
                         obs.paulis.z[:, indices],
@@ -432,7 +448,8 @@ def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.n
     expvals = np.zeros(size, dtype=float)
     denom = 0  # Total shots for counts dict
     for bin_outcome, freq in counts.items():
-        outcome = int(bin_outcome, 2)
+        split_outcome = bin_outcome.split(" ", 1)[0] if " " in bin_outcome else bin_outcome
+        outcome = int(split_outcome, 2)
         denom += freq
         for k in range(size):
             coeff = (-1) ** _parity(diag_inds[k] & outcome)
@@ -444,3 +461,22 @@ def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.n
     # Compute variance
     variances = 1 - expvals**2
     return expvals, variances
+
+
+def _passmanager_for_measurement_circuits(layout, backend) -> PassManager:
+    passmanager = PassManager([SetLayout(layout)])
+    if isinstance(backend, BackendV2):
+        opt1q = Optimize1qGatesDecomposition(target=backend.target)
+    else:
+        opt1q = Optimize1qGatesDecomposition(basis=backend.configuration().basis_gates)
+    passmanager.append(opt1q)
+    if isinstance(backend, BackendV2) and isinstance(backend.coupling_map, CouplingMap):
+        coupling_map = backend.coupling_map
+        passmanager.append(FullAncillaAllocation(coupling_map))
+        passmanager.append(EnlargeWithAncilla())
+    elif isinstance(backend, BackendV1) and backend.configuration().coupling_map is not None:
+        coupling_map = CouplingMap(backend.configuration().coupling_map)
+        passmanager.append(FullAncillaAllocation(coupling_map))
+        passmanager.append(EnlargeWithAncilla())
+    passmanager.append(ApplyLayout())
+    return passmanager

@@ -135,7 +135,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
 )
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
-    """Generate a QASM widget with header for a quantum circuit.
+    """Generate an OpenQASM widget with header for a quantum circuit.
 
     Args:
         circuit: Input quantum circuit.

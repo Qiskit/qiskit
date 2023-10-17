@@ -14,6 +14,7 @@ N-Qubit Sparse Pauli Operator class.
 """
 
 from __future__ import annotations
+from typing import TYPE_CHECKING, List
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence, Iterable
@@ -36,6 +37,10 @@ from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+
+
+if TYPE_CHECKING:
+    from qiskit.transpiler.layout import TranspileLayout
 
 
 class SparsePauliOp(LinearOp):
@@ -467,8 +472,9 @@ class SparsePauliOp(LinearOp):
         paulis_z = self.paulis.z[non_zero]
         nz_coeffs = self.coeffs[non_zero]
 
-        # Pack bool vectors into np.uint8 vectors by np.packbits
-        array = np.packbits(paulis_x, axis=1) * 256 + np.packbits(paulis_z, axis=1)
+        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
+            paulis_z, axis=1
+        )
         indexes, inverses = unordered_unique(array)
 
         if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
@@ -770,7 +776,9 @@ class SparsePauliOp(LinearOp):
         return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
-    def from_list(obj: Iterable[tuple[str, complex]], dtype: type = complex) -> SparsePauliOp:
+    def from_list(
+        obj: Iterable[tuple[str, complex]], dtype: type = complex, *, num_qubits: int = None
+    ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
         For example, the 5-qubit Hamiltonian
@@ -787,23 +795,34 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
         Args:
-            obj (Iterable[tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            dtype (type): The dtype of coeffs (Default complex).
+            obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
+            dtype (type): The dtype of coeffs (Default: complex).
+            num_qubits (int): The number of qubits of the operator (Default: None).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
 
         Raises:
-            QiskitError: If the list of Paulis is empty.
+            QiskitError: If an empty list is passed and num_qubits is None.
+            QiskitError: If num_qubits and the objects in the input list do not match.
         """
         obj = list(obj)  # To convert zip or other iterable
+        size = len(obj)
 
-        size = len(obj)  # number of Pauli terms
+        if size == 0 and num_qubits is None:
+            raise QiskitError(
+                "Could not determine the number of qubits from an empty list. Try passing num_qubits."
+            )
+        if size > 0 and num_qubits is not None:
+            if len(obj[0][0]) != num_qubits:
+                raise QiskitError(
+                    f"num_qubits ({num_qubits}) and the objects in the input list do not match."
+                )
+        if num_qubits is None:
+            num_qubits = len(obj[0][0])
         if size == 0:
-            raise QiskitError("Input Pauli list is empty.")
-
-        # determine the number of qubits
-        num_qubits = len(obj[0][0])
+            obj = [("I" * num_qubits, 0)]
+            size = len(obj)
 
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
@@ -845,22 +864,23 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
-            do_checks (bool): The flag of checking if the input indices are not duplicated.
-            dtype (type): The dtype of coeffs (Default complex).
+            do_checks (bool): The flag of checking if the input indices are not duplicated
+            (Default: True).
+            dtype (type): The dtype of coeffs (Default: complex).
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
 
         Raises:
-            QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
             QiskitError: If the designated qubit is already assigned.
         """
         obj = list(obj)  # To convert zip or other iterable
+        size = len(obj)
 
-        size = len(obj)  # number of Pauli terms
         if size == 0:
-            raise QiskitError("Input Pauli list is empty.")
+            obj = [("I" * num_qubits, range(num_qubits), 0)]
+            size = len(obj)
 
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
@@ -1087,6 +1107,41 @@ class SparsePauliOp(LinearOp):
                 bound.coeffs[i] = coeff
 
         return None if inplace else bound
+
+    def apply_layout(
+        self, layout: TranspileLayout | List[int], num_qubits: int | None = None
+    ) -> SparsePauliOp:
+        """Apply a transpiler layout to this :class:`~.SparsePauliOp`
+
+        Args:
+            layout: Either a :class:`~.TranspileLayout` or a list of integers.
+            num_qubits: The number of qubits to expand the operator to. If not
+                provided then if ``layout`` is a :class:`~.TranspileLayout` the
+                number of the transpiler output circuit qubits will be used by
+                default. If ``layout`` is a list of integers the permutation
+                specified will be applied without any expansion.
+
+
+        Returns:
+            A new :class:`.SparsePauliOp` with the provided layout applied
+        """
+        from qiskit.transpiler.layout import TranspileLayout
+
+        n_qubits = self.num_qubits
+        if isinstance(layout, TranspileLayout):
+            n_qubits = len(layout._output_qubit_list)
+            layout = layout.final_index_layout()
+        if num_qubits is not None:
+            if num_qubits < n_qubits:
+                raise QiskitError(
+                    f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
+                    f"applied to a {n_qubits} qubit operator"
+                )
+            n_qubits = num_qubits
+        if any(x >= n_qubits for x in layout):
+            raise QiskitError("Provided layout contains indicies outside the number of qubits.")
+        new_op = type(self)("I" * n_qubits)
+        return new_op.compose(self, qargs=layout)
 
 
 # Update docstrings for API docs

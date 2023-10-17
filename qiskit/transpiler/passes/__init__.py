@@ -34,6 +34,7 @@ Layout Selection (Placement)
    Layout2qDistance
    EnlargeWithAncilla
    FullAncillaAllocation
+   SabrePreLayout
 
 Routing
 =======
@@ -45,7 +46,6 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
-   BIPMapping
    Commuting2qGateRouter
 
 Basis Change
@@ -54,12 +54,12 @@ Basis Change
 .. autosummary::
    :toctree: ../stubs/
 
-   Unroller
-   Unroll3qOrMore
-   Decompose
-   UnrollCustomDefinitions
    BasisTranslator
+   Decompose
    TranslateParameterizedGates
+   Unroll3qOrMore
+   UnrollCustomDefinitions
+   Unroller
 
 Optimizations
 =============
@@ -89,6 +89,7 @@ Optimizations
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   NormalizeRXAngle
 
 Calibration
 =============
@@ -99,6 +100,7 @@ Calibration
    PulseGates
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
+   RXCalibrationBuilder
 
 Scheduling
 =============
@@ -192,6 +194,7 @@ from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
 from .layout import FullAncillaAllocation
+from .layout import SabrePreLayout
 
 # routing
 from .routing import BasicSwap
@@ -199,7 +202,6 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
-from .routing import BIPMapping
 from .routing import Commuting2qGateRouter
 
 # basis change
@@ -234,6 +236,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import NormalizeRXAngle
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -258,6 +261,7 @@ from .synthesis import SolovayKitaevSynthesis
 from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
+from .calibration import RXCalibrationBuilder
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
