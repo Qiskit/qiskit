@@ -597,9 +597,10 @@ class DoXTimesController(FlowController):
         self.do_x_times = do_x_times
 
     # pylint: disable=missing-function-docstring
-    def iter_tasks(self, property_set):
-        for _ in range(self.do_x_times(property_set)):
-            yield from self.passes
+    def iter_tasks(self, metadata):
+        for _ in range(self.do_x_times(metadata.property_set)):
+            for pass_ in self.passes:
+                metadata = yield pass_
 
 
 class TestControlFlowPlugin(SchedulerTestCase):

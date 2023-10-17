@@ -36,8 +36,8 @@ upgrade:
     Subclassing the :class:`.RunningPassManager` is no longer recommended.
   - |
     A new class :class:`.WorkflowStatus` is introduced to track the status of pass manager workflow.
-    This portable object is created when the first task in the pass manager pipeline is executed,
-    and handed over to the subsequent tasks.
+    This portable object is created when the pass manager is run,
+    and handed over to the underlying tasks.
     Such status was previously managed by the :class:`.RunningPassManager` with instance variables,
     however, now running pass manager becomes a controller object.
   - |

@@ -21,8 +21,8 @@ from inspect import signature
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.base_tasks import GenericPass
-from qiskit.passmanager.propertyset import PropertySet, WorkflowStatus, RunState
+from qiskit.passmanager.base_tasks import GenericPass, PassManagerIR
+from qiskit.passmanager.compilation_status import PropertySet, RunState, PassmanagerMetadata
 
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -74,6 +74,7 @@ class BasePass(GenericPass, metaclass=MetaPass):
     def __init__(self):
         super().__init__()
         self.preserves: Iterable[GenericPass] = []
+        self.property_set = PropertySet()
         self._hash = hash(None)
 
     def __hash__(self):
@@ -116,6 +117,21 @@ class BasePass(GenericPass, metaclass=MetaPass):
         by this kind of pass.
         """
         return isinstance(self, AnalysisPass)
+
+    def execute(
+        self,
+        passmanager_ir: PassManagerIR,
+        metadata: PassmanagerMetadata,
+        callback: Callable = None,
+    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
+        # For backward compatibility.
+        # Circuit passes access self.property_set.
+        self.property_set = metadata.property_set
+        return super().execute(
+            passmanager_ir=passmanager_ir,
+            metadata=metadata,
+            callback=callback,
+        )
 
     def __call__(
         self,
@@ -188,19 +204,17 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
 
     def execute(
         self,
-        passmanager_ir: DAGCircuit,
-        status: WorkflowStatus | None = None,
-        property_set: PropertySet | None = None,
+        passmanager_ir: PassManagerIR,
+        metadata: PassmanagerMetadata,
         callback: Callable = None,
-    ) -> DAGCircuit:
-        new_dag = super().execute(
+    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
+        new_dag, metadata = super().execute(
             passmanager_ir=passmanager_ir,
-            status=status,
-            property_set=property_set,
+            metadata=metadata,
             callback=callback,
         )
 
-        if status.previous_run == RunState.SUCCESS:
+        if metadata.workflow_status.previous_run == RunState.SUCCESS:
             if isinstance(new_dag, DAGCircuit):
                 # Copy calibration data from the original program
                 new_dag.calibrations = passmanager_ir.calibrations
@@ -210,13 +224,14 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
                     f"The pass {self.__class__.__name__} is returning a {type(new_dag)}"
                 )
 
-        return new_dag
+        return new_dag, metadata
 
     def update_status(
         self,
-        status: WorkflowStatus,
+        metadata: PassmanagerMetadata,
         run_state: RunState,
-    ):
-        super().update_status(status, run_state)
+    ) -> PassmanagerMetadata:
+        metadata = super().update_status(metadata, run_state)
         if run_state == RunState.SUCCESS:
-            status.completed_passes.intersection_update(set(self.preserves))
+            metadata.workflow_status.completed_passes.intersection_update(set(self.preserves))
+        return metadata

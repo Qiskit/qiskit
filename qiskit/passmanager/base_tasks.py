@@ -20,7 +20,7 @@ from collections.abc import Iterable, Callable, Generator
 from typing import Any
 
 from .exceptions import PassManagerError
-from .propertyset import WorkflowStatus, PropertySet, RunState
+from .compilation_status import RunState, PassmanagerMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +39,18 @@ class Task(ABC):
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        status: WorkflowStatus | None = None,
-        property_set: PropertySet | None = None,
+        metadata: PassmanagerMetadata,
         callback: Callable = None,
-    ) -> PassManagerIR:
+    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
         """Execute optimization task for input Qiskit IR.
 
         Args:
             passmanager_ir: Qiskit IR to optimize.
-            status: Mutable status object of the whole pass manager workflow.
-            property_set: A mutable data collection shared among all tasks.
+            metadata: Metadata associated with workflow execution.
             callback: A callback function which is caller per execution of optimization task.
 
         Returns:
-            Optimized Qiskit IR.
+            Optimized Qiskit IR and metadata of the workflow.
         """
         pass
 
@@ -66,7 +64,6 @@ class GenericPass(Task, ABC):
 
     def __init__(self):
         self.requires: Iterable[Task] = []
-        self.property_set = PropertySet()
 
     def name(self) -> str:
         """Name of the pass."""
@@ -75,24 +72,19 @@ class GenericPass(Task, ABC):
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        status: WorkflowStatus | None = None,
-        property_set: PropertySet | None = None,
+        metadata: PassmanagerMetadata,
         callback: Callable = None,
-    ) -> PassManagerIR:
+    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
 
-        if property_set is not None:
-            self.property_set = property_set
-        if status is None:
-            status = WorkflowStatus()
+        if self.requires:
+            from .flow_controllers import FlowControllerLinear
 
-        for required in self.requires:
-            passmanager_ir = required.execute(
+            passmanager_ir, metadata = FlowControllerLinear(self.requires).execute(
                 passmanager_ir=passmanager_ir,
-                status=status,
-                property_set=self.property_set,
+                metadata=metadata,
                 callback=callback,
             )
 
@@ -100,7 +92,7 @@ class GenericPass(Task, ABC):
         ret = None
         start_time = time.time()
         try:
-            if self not in status.completed_passes:
+            if self not in metadata.workflow_status.completed_passes:
                 ret = self.run(passmanager_ir)
                 run_state = RunState.SUCCESS
             else:
@@ -118,28 +110,31 @@ class GenericPass(Task, ABC):
                     callback(
                         task=self,
                         passmanager_ir=ret,
-                        property_set=self.property_set,
+                        property_set=metadata.property_set,
                         running_time=running_time,
-                        count=status.count,
+                        count=metadata.workflow_status.count,
                     )
-            self.update_status(status, run_state)
-        return ret
+        return ret, self.update_status(metadata, run_state)
 
     def update_status(
         self,
-        status: WorkflowStatus,
+        metadata: PassmanagerMetadata,
         run_state: RunState,
-    ):
+    ) -> PassmanagerMetadata:
         """Update workflow status.
 
         Args:
-            status: Status object to mutably update.
+            metadata: Pass manager metadata to update.
             run_state: Completion status of current task.
+
+        Returns:
+            Updated pass manager metadata.
         """
-        status.previous_run = run_state
+        metadata.workflow_status.previous_run = run_state
         if run_state == RunState.SUCCESS:
-            status.count += 1
-            status.completed_passes.add(self)
+            metadata.workflow_status.count += 1
+            metadata.workflow_status.completed_passes.add(self)
+        return metadata
 
     @abstractmethod
     def run(
@@ -180,15 +175,16 @@ class BaseController(Task, ABC):
     @abstractmethod
     def iter_tasks(
         self,
-        property_set: PropertySet,
-    ) -> Generator[Task]:
+        metadata: PassmanagerMetadata,
+    ) -> Generator[Task, PassmanagerMetadata, None]:
         """A custom logic to choose a next task to run.
 
-        Controller subclass can consume the property set to build a proper task pipeline.
+        Controller subclass can consume the metadata to build a proper task pipeline.
         This indicates the order of task execution is only determined at running time.
+        This method is not allowed to mutate the given metadata object.
 
         Args:
-            property_set: A mutable data collection shared among all tasks.
+            metadata: Metadata associated with workflow execution.
 
         Yields:
             Next task to run.
@@ -198,30 +194,34 @@ class BaseController(Task, ABC):
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        status: WorkflowStatus | None = None,
-        property_set: PropertySet | None = None,
+        metadata: PassmanagerMetadata,
         callback: Callable = None,
-    ) -> PassManagerIR:
+    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
 
-        if property_set is None:
-            property_set = PropertySet()
-        if status is None:
-            status = WorkflowStatus()
-
-        for next_task in self.iter_tasks(property_set=property_set):
+        task_generator = self.iter_tasks(metadata=metadata)
+        try:
+            next_task = task_generator.send(None)
+        except StopIteration:
+            return passmanager_ir, metadata
+        while True:
             try:
-                passmanager_ir = next_task.execute(
+                passmanager_ir, metadata = next_task.execute(
                     passmanager_ir=passmanager_ir,
-                    status=status,
-                    property_set=property_set,
+                    metadata=metadata,
                     callback=callback,
                 )
             except TypeError as ex:
                 raise PassManagerError(
                     f"{next_task.__class__} is not a valid pass for flow controller."
                 ) from ex
+            try:
+                # Sending the object through the generator implies the custom controllers
+                # can always rely on the latest data to choose the next task to run.
+                next_task = task_generator.send(metadata)
+            except StopIteration:
+                break
 
-        return passmanager_ir
+        return passmanager_ir, metadata

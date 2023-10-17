@@ -53,7 +53,7 @@ A flow controller can also consume the property set to control the pass executio
 but this access must be read-only.
 The property set is portable and handed over from pass to pass at execution.
 In addition to the property set, tasks also receive a :class:`.WorkflowStatus` data structure.
-This object is initialized when the first task is started and handed over to successors.
+This object is initialized when the pass manager is run and handed over to underlying tasks.
 The status is updated after every pass is run, and contains information about the pipeline state
 (number of passes run, failure state, and so on) as opposed to the :class:`PropertySet`, which
 contains information about the IR being optimized.
@@ -62,7 +62,7 @@ A pass manager is a wrapper of the flow controller, with responsibilities of
 
 * Scheduling optimization tasks,
 * Converting an input Python object to a particular Qiskit IR,
-* Initializing a property set,
+* Initializing a property set and workflow status,
 * Running scheduled tasks to apply a series of transformations to the IR,
 * Converting the IR back to an output Python object.
 
@@ -222,6 +222,7 @@ Compilation state
 
    PropertySet
    WorkflowStatus
+   PassmanagerMetadata
 
 Exceptions
 ----------
@@ -237,5 +238,5 @@ from .flow_controllers import (
     DoWhileController,
 )
 from .base_tasks import GenericPass, BaseController
-from .propertyset import PropertySet, WorkflowStatus
+from .compilation_status import PropertySet, WorkflowStatus, PassmanagerMetadata
 from .exceptions import PassManagerError

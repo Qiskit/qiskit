@@ -22,7 +22,7 @@ from .base_tasks import (
     BaseController,
     Task,
 )
-from .propertyset import PropertySet
+from .compilation_status import PassmanagerMetadata, PropertySet
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)
@@ -82,16 +82,17 @@ class FlowControllerLinear(BaseController):
 
     def iter_tasks(
         self,
-        property_set: PropertySet,
-    ) -> Generator[Task]:
-        yield from self.tasks
+        metadata: PassmanagerMetadata,
+    ) -> Generator[Task, PassmanagerMetadata, None]:
+        for task in self.tasks:
+            metadata = yield task
 
 
 class DoWhileController(BaseController):
     """Run the given tasks in a loop until the ``do_while`` condition on the property set becomes
     ``False``.
 
-    The given tasks will always run at least once, and on iteration iteration of the loop, all the
+    The given tasks will always run at least once, and on iteration of the loop, all the
     tasks will be run (with the exception of a failure state being set)."""
 
     def __init__(
@@ -147,12 +148,13 @@ class DoWhileController(BaseController):
 
     def iter_tasks(
         self,
-        property_set: PropertySet,
-    ) -> Generator[Task]:
+        metadata: PassmanagerMetadata,
+    ) -> Generator[Task, PassmanagerMetadata, None]:
         max_iteration = self._options.get("max_iteration", 1000)
         for _ in range(max_iteration):
-            yield from self.tasks
-            if not self.do_while(property_set):
+            for task in self.tasks:
+                metadata = yield task
+            if not self.do_while(metadata.property_set):
                 return
         raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
 
@@ -214,10 +216,11 @@ class ConditionalController(BaseController):
 
     def iter_tasks(
         self,
-        property_set: PropertySet,
-    ) -> Generator[Task]:
-        if self.condition(property_set):
-            yield from self.tasks
+        metadata: PassmanagerMetadata,
+    ) -> Generator[Task, PassmanagerMetadata, None]:
+        if self.condition(metadata.property_set):
+            for task in self.tasks:
+                metadata = yield task
 
 
 class FlowController(BaseController):

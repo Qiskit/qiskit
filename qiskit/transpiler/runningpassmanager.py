@@ -21,7 +21,7 @@ from typing import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.passmanager.propertyset import PropertySet
+from qiskit.passmanager.compilation_status import PropertySet, WorkflowStatus, PassmanagerMetadata
 from qiskit.passmanager.base_tasks import Task
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_func
@@ -112,33 +112,35 @@ class RunningPassManager(FlowControllerLinear):
         Returns:
             QuantumCircuit: Transformed circuit.
         """
+        initial_status = WorkflowStatus()
         property_set = PropertySet()
+        metadata = PassmanagerMetadata(workflow_status=initial_status, property_set=property_set)
 
         passmanager_ir = circuit_to_dag(circuit)
-        passmanager_ir = super().execute(
+        passmanager_ir, metadata = super().execute(
             passmanager_ir=passmanager_ir,
-            property_set=property_set,
+            metadata=metadata,
             callback=callback,
         )
 
         out_circuit = dag_to_circuit(passmanager_ir, copy_operations=False)
         out_circuit.name = output_name
 
-        if property_set["layout"] is not None:
+        if metadata.property_set["layout"] is not None:
             circuit._layout = TranspileLayout(
-                initial_layout=property_set["layout"],
-                input_qubit_mapping=property_set["original_qubit_indices"],
-                final_layout=property_set["final_layout"],
+                initial_layout=metadata.property_set["layout"],
+                input_qubit_mapping=metadata.property_set["original_qubit_indices"],
+                final_layout=metadata.property_set["final_layout"],
             )
-        circuit._clbit_write_latency = property_set["clbit_write_latency"]
-        circuit._conditional_latency = property_set["conditional_latency"]
+        circuit._clbit_write_latency = metadata.property_set["clbit_write_latency"]
+        circuit._conditional_latency = metadata.property_set["conditional_latency"]
 
-        if property_set["node_start_time"]:
+        if metadata.property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
             # also converted into list with the same ordering with circuit.data.
             topological_start_times = []
-            start_times = property_set["node_start_time"]
+            start_times = metadata.property_set["node_start_time"]
             for dag_node in passmanager_ir.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
             circuit._op_start_times = topological_start_times
