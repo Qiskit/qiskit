@@ -287,14 +287,6 @@ def load_style(style):
             stacklevel=2,
         )
 
-    if style[:3] == "iqx":
-        warn(
-            'The "iqx" and "iqx-dark" matplotlib drawer schemes are pending deprecation and will '
-            'be deprecated in a future release. Instead, use "iqp" and "iqp-dark".',
-            category=PendingDeprecationWarning,
-            stacklevel=2,
-        )
-
     if style is False:
         style_name = "bw"
     elif isinstance(style, dict) and "name" in style:
@@ -315,6 +307,14 @@ def load_style(style):
     # Also replace "default" with the new name "clifford".
     replacements = {"iqx": "iqp", "iqx-dark": "iqp-dark", "default": "clifford"}
     if style_name in replacements.keys():
+        if style[:3] == "iqx":
+            warn(
+                'The "iqx" and "iqx-dark" matplotlib drawer schemes are pending deprecation and will '
+                'be deprecated in a future release. Instead, use "iqp" and "iqp-dark".',
+                category=PendingDeprecationWarning,
+                stacklevel=2,
+            )
+
         style_name = replacements[style_name]
 
     # Search for file in 'styles' dir, then config_path, and finally 'cwd'
