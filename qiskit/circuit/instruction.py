@@ -497,11 +497,11 @@ class Instruction(Operation):
             cpy.name = name
         return cpy
 
-    def __deepcopy__(self, _memo=None):
+    def __deepcopy__(self, memo=None):
         cpy = copy.copy(self)
         cpy._params = copy.copy(self._params)
         if self._definition:
-            cpy._definition = copy.deepcopy(self._definition, _memo)
+            cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
 
     def _qasmif(self, string):
