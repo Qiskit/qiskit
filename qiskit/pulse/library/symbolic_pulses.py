@@ -390,6 +390,8 @@ class SymbolicPulse(Pulse):
         "_valid_amp_conditions",
     )
 
+    disable_validation = False
+
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
     _envelope_lam = LambdifiedExpression("_envelope")
     _constraints_lam = LambdifiedExpression("_constraints")
@@ -405,6 +407,7 @@ class SymbolicPulse(Pulse):
         envelope: Optional[sym.Expr] = None,
         constraints: Optional[sym.Expr] = None,
         valid_amp_conditions: Optional[sym.Expr] = None,
+        disable_validation: Optional[bool] = False,
     ):
         """Create a parametric pulse.
 
@@ -440,6 +443,8 @@ class SymbolicPulse(Pulse):
         self._envelope = envelope
         self._constraints = constraints
         self._valid_amp_conditions = valid_amp_conditions
+        if not disable_validation and not self.__class__.disable_validation:
+            self.validate_parameters()
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -611,6 +616,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
         envelope: Optional[sym.Expr] = None,
         constraints: Optional[sym.Expr] = None,
         valid_amp_conditions: Optional[sym.Expr] = None,
+        disable_validation: Optional[bool] = False,
     ):
         """Create a scalable symbolic pulse.
 
@@ -657,6 +663,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
             envelope=envelope,
             constraints=constraints,
             valid_amp_conditions=valid_amp_conditions,
+            disable_validation=disable_validation,
         )
 
     # pylint: disable=too-many-return-statements
@@ -744,6 +751,7 @@ class Gaussian(metaclass=_PulseType):
         angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        disable_validation: Optional[bool] = False,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
@@ -757,6 +765,8 @@ class Gaussian(metaclass=_PulseType):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            disable_validation: If ``True``, skips validation of pulse parameters.
+                Defaults to ``False``.
 
         Returns:
             ScalableSymbolicPulse instance.
@@ -785,8 +795,8 @@ class Gaussian(metaclass=_PulseType):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            disable_validation=disable_validation,
         )
-        instance.validate_parameters()
 
         return instance
 
@@ -842,6 +852,7 @@ class GaussianSquare(metaclass=_PulseType):
         risefall_sigma_ratio: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        disable_validation: Optional[bool] = False,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
@@ -857,6 +868,8 @@ class GaussianSquare(metaclass=_PulseType):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            disable_validation: If ``True``, skips validation of pulse parameters.
+                Defaults to ``False``.
 
         Returns:
             ScalableSymbolicPulse instance.
@@ -913,8 +926,8 @@ class GaussianSquare(metaclass=_PulseType):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            disable_validation=disable_validation,
         )
-        instance.validate_parameters()
 
         return instance
 
@@ -929,6 +942,7 @@ def GaussianSquareDrag(
     risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """A square pulse with a Drag shaped rise and fall
 
@@ -1003,6 +1017,8 @@ def GaussianSquareDrag(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1062,8 +1078,8 @@ def GaussianSquareDrag(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1079,6 +1095,7 @@ def gaussian_square_echo(
     risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> SymbolicPulse:
     """An echoed Gaussian square pulse with an active tone overlaid on it.
 
@@ -1142,6 +1159,9 @@ def gaussian_square_echo(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
+
     Returns:
         ScalableSymbolicPulse instance.
     Raises:
@@ -1263,8 +1283,8 @@ def gaussian_square_echo(
         envelope=envelop_expr_total,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1276,6 +1296,7 @@ def GaussianDeriv(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """An unnormalized Gaussian derivative pulse.
 
@@ -1301,6 +1322,8 @@ def GaussianDeriv(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1329,8 +1352,8 @@ def GaussianDeriv(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1384,6 +1407,7 @@ class Drag(metaclass=_PulseType):
         angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        disable_validation: Optional[bool] = False,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
@@ -1398,6 +1422,8 @@ class Drag(metaclass=_PulseType):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            disable_validation: If ``True``, skips validation of pulse parameters.
+                Defaults to ``False``.
 
         Returns:
             ScalableSymbolicPulse instance.
@@ -1429,8 +1455,8 @@ class Drag(metaclass=_PulseType):
             envelope=envelope_expr,
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            disable_validation=disable_validation,
         )
-        instance.validate_parameters()
 
         return instance
 
@@ -1453,6 +1479,7 @@ class Constant(metaclass=_PulseType):
         angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        disable_validation: Optional[bool] = False,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
@@ -1464,6 +1491,8 @@ class Constant(metaclass=_PulseType):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            disable_validation: If ``True``, skips validation of pulse parameters.
+                Defaults to ``False``.
 
         Returns:
             ScalableSymbolicPulse instance.
@@ -1495,8 +1524,8 @@ class Constant(metaclass=_PulseType):
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
+            disable_validation=disable_validation,
         )
-        instance.validate_parameters()
 
         return instance
 
@@ -1509,6 +1538,7 @@ def Sin(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """A sinusoidal pulse.
 
@@ -1533,6 +1563,8 @@ def Sin(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1562,8 +1594,8 @@ def Sin(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1576,6 +1608,7 @@ def Cos(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """A cosine pulse.
 
@@ -1600,6 +1633,8 @@ def Cos(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1629,8 +1664,8 @@ def Cos(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1643,6 +1678,7 @@ def Sawtooth(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """A sawtooth pulse.
 
@@ -1670,6 +1706,8 @@ def Sawtooth(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1700,8 +1738,8 @@ def Sawtooth(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1714,6 +1752,7 @@ def Triangle(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """A triangle wave pulse.
 
@@ -1740,6 +1779,8 @@ def Triangle(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1771,8 +1812,8 @@ def Triangle(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1785,6 +1826,7 @@ def Square(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """A square wave pulse.
 
@@ -1812,6 +1854,8 @@ def Square(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1844,8 +1888,8 @@ def Square(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1858,6 +1902,7 @@ def Sech(
     name: Optional[str] = None,
     zero_ends: Optional[bool] = True,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """An unnormalized sech pulse.
 
@@ -1893,6 +1938,8 @@ def Sech(
             but rescales to preserve `amp`. Default value True.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1923,8 +1970,8 @@ def Sech(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
 
@@ -1936,6 +1983,7 @@ def SechDeriv(
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
+    disable_validation: Optional[bool] = False,
 ) -> ScalableSymbolicPulse:
     """An unnormalized sech derivative pulse.
 
@@ -1961,6 +2009,8 @@ def SechDeriv(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+        disable_validation: If ``True``, skips validation of pulse parameters.
+            Defaults to ``False``.
 
     Returns:
         ScalableSymbolicPulse instance.
@@ -1989,7 +2039,7 @@ def SechDeriv(
         envelope=envelope_expr,
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
+        disable_validation=disable_validation,
     )
-    instance.validate_parameters()
 
     return instance
