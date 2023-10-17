@@ -1572,10 +1572,15 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
 
-            spacer = 0.06 if isinstance(node.op, SwitchCaseOp) else 0.08
+            if isinstance(node.op, SwitchCaseOp):
+                op_spacer = 0.04
+                expr_spacer = 0.0
+            else:
+                op_spacer = 0.08
+                expr_spacer = 0.02
             # Indicate type of ControlFlowOp and if expression used, print below
             self._ax.text(
-                xpos - x_shift - spacer,
+                xpos - x_shift - op_spacer,
                 ypos_max + 0.2 - y_shift,
                 flow_text,
                 ha="left",
@@ -1586,9 +1591,9 @@ class MatplotlibDrawer:
                 zorder=PORDER_FLOW,
             )
             self._ax.text(
-                xpos - x_shift - 0.08,
+                xpos - x_shift + expr_spacer,
                 ypos_max + 0.2 - y_shift - 0.4,
-                " " + node_data[node].expr_text,
+                node_data[node].expr_text,
                 ha="left",
                 va="center",
                 fontsize=self._style["sfs"],
@@ -1601,28 +1606,17 @@ class MatplotlibDrawer:
                 # If a range was used display 'range' and grab the range value
                 # to be displayed below
                 if "range" in idx_set:
-                    top_idx = " range"
-                    idx_set = idx_set[6:-1]
-                    self._ax.text(
-                        xpos - x_shift - 0.08,
-                        ypos_max - 0.2 - y_shift,
-                        top_idx,
-                        ha="left",
-                        va="center",
-                        fontsize=self._style["sfs"],
-                        color=node_data[node].tc,
-                        clip_on=True,
-                        zorder=PORDER_FLOW,
-                    )
+                    idx_set = "r(" + idx_set[6:-1] + ")"
                 else:
                     # If a tuple, show first 4 elements followed by '...'
                     idx_set = str(node_data[node].indexset)[1:-1].split(",")[:5]
                     if len(idx_set) > 4:
                         idx_set[4] = "..."
                     idx_set = f"{', '.join(idx_set)}"
+                y_spacer = 0.2 if len(node.qargs) == 1 else 0.5
                 self._ax.text(
                     xpos - x_shift - 0.04,
-                    ypos_max - 0.5 - y_shift,
+                    ypos_max - y_spacer - y_shift,
                     idx_set,
                     ha="left",
                     va="center",
@@ -1668,9 +1662,10 @@ class MatplotlibDrawer:
                             if len(jump_text) > 4:
                                 jump_text[4] = "..."
                             jump_text = f"{', '.join(jump_text)}"
+                        y_spacer = 0.2 if len(node.qargs) == 1 else 0.5
                         self._ax.text(
                             xpos + ewidth_incr + 0.4 - x_shift,
-                            ypos_max - 0.5 - y_shift,
+                            ypos_max - y_spacer - y_shift,
                             jump_text,
                             ha="left",
                             va="center",

@@ -470,7 +470,7 @@ def _get_gate_span(qubits, node, wire_map):
 
     # Because of wrapping boxes for mpl control flow ops, this
     # type of op must be the only op in the layer
-    if wire_map is not None and isinstance(node.op, ControlFlowOp):
+    if isinstance(node.op, ControlFlowOp):
         span = qubits
     elif node.cargs or getattr(node.op, "condition", None):
         span = qubits[min_index : len(qubits)]
