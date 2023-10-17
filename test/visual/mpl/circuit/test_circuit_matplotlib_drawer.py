@@ -1908,7 +1908,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         a = Parameter("a")
         circuit.h(0)
         circuit.measure(0, 2)
-        with circuit.for_loop(range(10,20), loop_parameter=a):
+        with circuit.for_loop(range(10, 20), loop_parameter=a):
             circuit.h(0)
             circuit.cx(0, 1)
             circuit.rx(pi / a, 1)
