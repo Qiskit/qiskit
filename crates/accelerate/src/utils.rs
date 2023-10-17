@@ -1,3 +1,10 @@
+use pyo3::prelude::*;
+
+use num_complex::Complex;
+use numpy::PyReadonlyArray2;
+use faer::Faer;
+use faer::IntoFaerComplex;
+
 /// Return indices that sort data.
 /// If `data` contains two elements that are incomparable,
 /// an error will be thrown.
@@ -8,7 +15,27 @@ pub fn argsort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
 }
 
 // TODO: Use traits and parameters
-/// Modulo operation
+/// Modulo operation. This should give the same result
+/// as `numpy.mod`.
 pub fn modulo(a: f64, b: f64) -> f64 {
     ((a % b) + b) % b
+}
+
+/// Return the eigenvalues of `unitary` as a Python `list`.
+#[pyfunction]
+#[pyo3(text_signature = "(unitary, /")]
+pub fn eigenvalues(unitary: PyReadonlyArray2<Complex<f64>>) -> Vec<Complex<f64>> {
+    unitary
+        .as_array()
+        .into_faer_complex()
+        .complex_eigenvalues()
+        .iter()
+        .map(|x| Complex::<f64>::new(x.re, x.im))
+        .collect()
+}
+
+#[pymodule]
+pub fn utils(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
+    Ok(())
 }

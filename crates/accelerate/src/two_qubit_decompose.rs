@@ -72,18 +72,6 @@ impl Arg for c64 {
     }
 }
 
-#[pyfunction]
-#[pyo3(text_signature = "(unitary, /")]
-pub fn eigenvalues(unitary: PyReadonlyArray2<Complex<f64>>) -> Vec<Complex<f64>> {
-    unitary
-        .as_array()
-        .into_faer_complex()
-        .complex_eigenvalues()
-        .iter()
-        .map(|x| Complex::<f64>::new(x.re, x.im))
-        .collect()
-}
-
 fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
@@ -198,6 +186,5 @@ fn trace_to_fid(trace: c64) -> f64 {
 pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_wrapped(wrap_pyfunction!(_weyl_coordinates))?;
-    m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
     Ok(())
 }
