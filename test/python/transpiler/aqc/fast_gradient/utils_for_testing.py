@@ -86,8 +86,8 @@ def rand_matrix(dim: int, kind: str = "complex") -> np.ndarray:
     """
     if kind == "complex":
         return (
-            np.random.rand(dim, dim).astype(np.cfloat)
-            + np.random.rand(dim, dim).astype(np.cfloat) * 1j
+            np.random.rand(dim, dim).astype(np.complex128)
+            + np.random.rand(dim, dim).astype(np.complex128) * 1j
         )
     else:
         return np.random.randint(low=1, high=100, size=(dim, dim), dtype=np.int64)

@@ -64,20 +64,18 @@ class AnnotatedOperation(Operation):
         An "annotated operation" allows to add a list of modifiers to the
         "base" operation. For now, the only supported modifiers are of
         types :class:`~.InverseModifier`, :class:`~.ControlModifier` and
-        :class:`~.PowerModifier`. In the future, we are planning to make
-        the modifier interface extendable, accommodating for user-supplied
-        modifiers.
+        :class:`~.PowerModifier`.
 
         An annotated operation can be viewed as an extension of
         :class:`~.ControlledGate` (which also allows adding control to the
         base operation). However, an important difference is that the
         circuit definition of an annotated operation is not constructed when
         the operation is declared, and instead happens during transpilation,
-        specifically during :class:`~.HighLevelSynthesis` transpiler pass.
+        specifically during the :class:`~.HighLevelSynthesis` transpiler pass.
 
         An annotated operation can be also viewed as a "higher-level"
         or "more abstract" object that can be added to a quantum circuit.
-        we are planning to add transpiler optimization passes that make use of
+        This enables writing transpiler optimization passes that make use of
         this higher-level representation, for instance removing a gate
         that is immediately followed by its inverse.
 
