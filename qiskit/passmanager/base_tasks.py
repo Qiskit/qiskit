@@ -19,7 +19,6 @@ from abc import abstractmethod, ABC
 from collections.abc import Iterable, Callable, Generator
 from typing import Any
 
-from .exceptions import PassManagerError
 from .compilation_status import RunState, PassmanagerMetadata
 
 logger = logging.getLogger(__name__)
@@ -207,16 +206,11 @@ class BaseController(Task, ABC):
         except StopIteration:
             return passmanager_ir, metadata
         while True:
-            try:
-                passmanager_ir, metadata = next_task.execute(
-                    passmanager_ir=passmanager_ir,
-                    metadata=metadata,
-                    callback=callback,
-                )
-            except TypeError as ex:
-                raise PassManagerError(
-                    f"{next_task.__class__} is not a valid pass for flow controller."
-                ) from ex
+            passmanager_ir, metadata = next_task.execute(
+                passmanager_ir=passmanager_ir,
+                metadata=metadata,
+                callback=callback,
+            )
             try:
                 # Sending the object through the generator implies the custom controllers
                 # can always rely on the latest data to choose the next task to run.
