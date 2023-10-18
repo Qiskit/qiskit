@@ -265,7 +265,6 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
-
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):

@@ -12,7 +12,6 @@
 
 """Module containing circuit scheduling passes."""
 
-
 from .scheduling import ALAPScheduleAnalysis, ASAPScheduleAnalysis, SetIOLatency
 from .time_unit_conversion import TimeUnitConversion
 from .padding import PadDelay, PadDynamicalDecoupling

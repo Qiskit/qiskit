@@ -117,7 +117,6 @@ Scheduling
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
-   
 
 Circuit Analysis
 ================
