@@ -175,9 +175,9 @@ dependencies = [
 
 [[package]]
 name = "faer"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69fe21e359418c95b2aedb3808a45d4ba6e389669364169dc922146a275dd199"
+checksum = "4905b6836d612c74917cf9f61e80c4414e206ca4c9dc916dd899417432701807"
 dependencies = [
  "assert2",
  "coe-rs",
@@ -198,9 +198,9 @@ dependencies = [
 
 [[package]]
 name = "faer-cholesky"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb17245dc4f8e8a1ac3a84bdff4e44fa302252626f92c51b6300137ba381e5a7"
+checksum = "17ba86ddc423b96a98894380a46837ac1632cb246b235dadd3809ba50af2aa01"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -216,9 +216,9 @@ dependencies = [
 
 [[package]]
 name = "faer-core"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9701263470fe791fd71b4839a0b22e6bd31f34419120f9b320053e78945b03e1"
+checksum = "7d28e2a6201b308ca0a9deab31dd78c7a082def44e570794e0f31f988ed96a65"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -238,9 +238,9 @@ dependencies = [
 
 [[package]]
 name = "faer-entity"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "964f0d975e1ee558c44167a62e6caa514a4c139f024b06aa6e5d7b18f09f33f4"
+checksum = "4ae358f623e3fa5a60651fa6f9c4fc81281e654777aef27c4103b14180e75073"
 dependencies = [
  "bytemuck",
  "coe-rs",
@@ -253,9 +253,9 @@ dependencies = [
 
 [[package]]
 name = "faer-evd"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f05f332452fbf69c3912651ed28fbcfeee949fe23fb963d70a0993d158bcc8cb"
+checksum = "70fa81fc2e9c96552fa46656409825927bdb4913fd750e401d6583463fe9bfbd"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -273,9 +273,9 @@ dependencies = [
 
 [[package]]
 name = "faer-lu"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59062423c98e402854b27b01e1915df5b68e33bc9d235c2f40f5ecb480627919"
+checksum = "aa5d26339325fa0b24ea40a61e4e15f6cb89e91610eba9a15729481af805ce0f"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -292,9 +292,9 @@ dependencies = [
 
 [[package]]
 name = "faer-qr"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c0dd60c0567faa3b07524c60ee01c17dde6298e9e3af9fe3c0b5c15062cce9b"
+checksum = "cff6ff0677f5083194ff312267586f53ce0894cdf816633f604b752928ae9ec7"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -311,9 +311,9 @@ dependencies = [
 
 [[package]]
 name = "faer-svd"
-version = "0.13.4"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c95b94f053bb5519941e6698573af2e0796c674fcce26f8b0a18169b4ef5c98b"
+checksum = "4cfef5577af1a6679d91087d1076b4c917461743c69ccd8b2feae435746255a7"
 dependencies = [
  "assert2",
  "bytemuck",
@@ -336,9 +336,9 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "gemm"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37efb01181a9db4ea19af713d429db719003ef85d9aeeb7003d3db30cf1504f2"
+checksum = "b5d95fc1fc8faee5a31ab9e21c561c7006f2cc97efeea4e00d029da1af540227"
 dependencies = [
  "dyn-stack",
  "gemm-c32",
@@ -356,9 +356,9 @@ dependencies = [
 
 [[package]]
 name = "gemm-c32"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61b8b541dc8d78b21049af9cccbc8979d7fbfea3fe6aafd5715070e9ac16f52f"
+checksum = "856170e9e413042cee3b664737cea7996c538687f2bd4a2a951e1a1c27fa9b33"
 dependencies = [
  "dyn-stack",
  "gemm-common",
@@ -371,9 +371,9 @@ dependencies = [
 
 [[package]]
 name = "gemm-c64"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f441bf2b3b87d0b0febbec3d3c68d15e2ed39230fd3fcd4b376d2575dceeca08"
+checksum = "0275c3bdc3ae4a63f23cf03c308c39601dada6c3b729c31060bf98fa7a6574e4"
 dependencies = [
  "dyn-stack",
  "gemm-common",
@@ -386,9 +386,9 @@ dependencies = [
 
 [[package]]
 name = "gemm-common"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ccd8e5e8d3d6c23b23d023409d9c155136ffd746da7681247fd624a0fe43211"
+checksum = "a2a96a69f9745e5254447e4d707b303df5ac427152720bd8d3bfb03499793754"
 dependencies = [
  "bytemuck",
  "dyn-stack",
@@ -405,9 +405,9 @@ dependencies = [
 
 [[package]]
 name = "gemm-f16"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4de2c73f97969186617470a778f652bcf1539494c06817b8da3a5f6ea596e074"
+checksum = "677148cc406d693e312ac44327612075a0fd2ea97607d5f0ee45ccec78846296"
 dependencies = [
  "dyn-stack",
  "gemm-common",
@@ -423,9 +423,9 @@ dependencies = [
 
 [[package]]
 name = "gemm-f32"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b77c8381183b42b89fc4147d87944199ba1366de07ef0520cc140c278ec536d"
+checksum = "0b447dff92aae7eeba1028275121d45f1eeecb6bfac7ef647b9e2c84d9531824"
 dependencies = [
  "dyn-stack",
  "gemm-common",
@@ -438,9 +438,9 @@ dependencies = [
 
 [[package]]
 name = "gemm-f64"
-version = "0.16.7"
+version = "0.16.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42756182c208d218880308bd09ff5e8d05471441bb5ded067cf66964b74726f5"
+checksum = "a6050edf1e4df730a1a65a790c80eb76b5b68e2a0d576bcd45f345843d8fd4f9"
 dependencies = [
  "dyn-stack",
  "gemm-common",
@@ -774,9 +774,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.16.2"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ec4bc5d82f5e87a98115b50266eab2d353d1d88276204697227a8f191752b41"
+checksum = "f409ff823a19c749a4723f6faeef67ff0a15234b33d1f001182fc39078458bc6"
 dependencies = [
  "bytemuck",
  "libm",
