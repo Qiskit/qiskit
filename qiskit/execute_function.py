@@ -27,7 +27,6 @@ from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 
-
 logger = logging.getLogger(__name__)
 
 
