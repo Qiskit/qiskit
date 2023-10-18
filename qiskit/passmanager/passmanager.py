@@ -58,24 +58,11 @@ class BasePassManager(ABC):
     def append(
         self,
         tasks: Task | list[Task],
-        **flow_controller_conditions: Callable[[PropertySet], bool],
     ) -> None:
         """Append tasks to the schedule of passes.
 
         Args:
-            tasks: A set of pass manager tasks to be added to schedule. When multiple
-                tasks are provided, tasks are grouped together as a single flow controller.
-
-            flow_controller_conditions: Dictionary of control flow plugins.
-                Following built-in controllers are available by default:
-
-                * do_while: The passes repeat until the callable returns False.  Corresponds to
-                  :class:`.DoWhileController`.
-                * condition: The passes run only if the callable returns True. Corresponds to
-                  :class:`.ConditionalController`.
-
-                In general you have finer-grained control over pass sequencing if you simply
-                instantiate the flow controller you want manually and given that to :meth:`append`.
+            tasks: A set of pass manager tasks to be added to schedule.
 
         Raises:
             TypeError: When any element of tasks is not a subclass of passmanager Task.
@@ -85,44 +72,23 @@ class BasePassManager(ABC):
         if any(not isinstance(t, Task) for t in tasks):
             raise TypeError("Added tasks are not all valid pass manager task types.")
 
-        if flow_controller_conditions:
-            tasks = _legacy_build_flow_controller(
-                tasks,
-                options={"max_iteration": self.max_iteration},
-                **flow_controller_conditions,
-            )
         self._tasks.append(tasks)
 
     def replace(
         self,
         index: int,
         tasks: Task | list[Task],
-        **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
 
         Args:
-            index: Pass index to replace, based on the position in :meth:`passes`
-            tasks: A set of pass manager tasks to be added to schedule. When multiple
-                tasks are provided, tasks are grouped together as a single flow controller.
-            flow_controller_conditions: Dictionary of control flow plugins.
-                See :meth:`~.BasePassManager.append` for details.
+            index: Task index to replace, based on the position in :meth:`tasks`
+            tasks: A set of pass manager tasks to be added to schedule.
 
         Raises:
             TypeError: When any element of tasks is not a subclass of passmanager Task.
             PassManagerError: If the index is not found.
         """
-        if isinstance(tasks, Task):
-            tasks = [tasks]
-        if any(not isinstance(t, Task) for t in tasks):
-            raise TypeError("Added tasks are not all valid pass manager task types.")
-
-        if flow_controller_conditions:
-            tasks = _legacy_build_flow_controller(
-                tasks,
-                options={"max_iteration": self.max_iteration},
-                **flow_controller_conditions,
-            )
         try:
             self._tasks[index] = tasks
         except IndexError as ex:
@@ -350,37 +316,3 @@ def _run_workflow_in_new_process(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
     )
-
-
-def _legacy_build_flow_controller(
-    tasks: list[Task],
-    options: dict[str, Any],
-    **flow_controller_conditions,
-) -> BaseController:
-    """A legacy method to build flow controller with keyword arguments.
-
-    Args:
-        tasks: A list of tasks fed into custom flow controllers.
-        options: Option for flow controllers.
-        flow_controller_conditions: Callables keyed on the alias of the flow controller.
-
-    Returns:
-        A built controller.
-    """
-    warnings.warn(
-        "Building a flow controller with keyword arguments is going to be deprecated. "
-        "Custom controllers must be explicitly instantiated and appended to the task list.",
-        PendingDeprecationWarning,
-    )
-
-    # Alias in higher hierarchy becomes outer controller.
-    for alias in FlowController.hierarchy[::-1]:
-        if alias not in flow_controller_conditions:
-            continue
-        class_type = FlowController.registered_controllers[alias]
-        init_kwargs = {
-            "options": options,
-            alias: flow_controller_conditions.pop(alias),
-        }
-        tasks = class_type(tasks, **init_kwargs)
-    return tasks

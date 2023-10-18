@@ -16,6 +16,7 @@ from __future__ import annotations
 import inspect
 import io
 import re
+import warnings
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
 from typing import Union, List, Any
@@ -23,8 +24,9 @@ from typing import Union, List, Any
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager import BasePassManager
-from qiskit.passmanager.base_tasks import Task, GenericPass
+from qiskit.passmanager.passmanager import BasePassManager
+from qiskit.passmanager.base_tasks import Task, BaseController
+from qiskit.passmanager.flow_controllers import FlowController
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
@@ -138,9 +140,7 @@ class PassManager(BasePassManager):
             TranspilerError: if a pass in passes is not a proper pass.
         """
         if max_iteration:
-            # TODO remove this argument from append
             self.max_iteration = max_iteration
-        super().append(passes, **flow_controller_conditions)
 
         # Backward compatibility as of Terra 0.25
         if isinstance(passes, Task):
@@ -151,6 +151,14 @@ class PassManager(BasePassManager):
                 "flow_controllers": flow_controller_conditions,
             }
         )
+        if flow_controller_conditions:
+            passes = _legacy_build_flow_controller(
+                passes,
+                options={"max_iteration": self.max_iteration},
+                **flow_controller_conditions,
+            )
+
+        super().append(passes)
 
     @deprecate_arg(
         name="max_iteration",
@@ -175,17 +183,26 @@ class PassManager(BasePassManager):
                 See :meth:`qiskit.transpiler.PassManager.append` for details.
         """
         if max_iteration:
-            # TODO remove this argument from append
             self.max_iteration = max_iteration
-        super().replace(index, passes, **flow_controller_conditions)
 
         # Backward compatibility as of Terra 0.25
-        if isinstance(passes, GenericPass):
+        if isinstance(passes, Task):
             passes = [passes]
-        self._pass_sets[index] = {
-            "passes": passes,
-            "flow_controllers": flow_controller_conditions,
-        }
+        try:
+            self._pass_sets[index] = {
+                "passes": passes,
+                "flow_controllers": flow_controller_conditions,
+            }
+        except IndexError as ex:
+            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+        if flow_controller_conditions:
+            passes = _legacy_build_flow_controller(
+                passes,
+                options={"max_iteration": self.max_iteration},
+                **flow_controller_conditions,
+            )
+
+        super().replace(index, passes)
 
     def remove(self, index: int) -> None:
         super().remove(index)
@@ -558,3 +575,41 @@ def _legacy_style_callback(callback: Callable):
         )
 
     return _wrapped_callable
+
+
+def _legacy_build_flow_controller(
+    tasks: list[Task],
+    options: dict[str, Any],
+    **flow_controller_conditions,
+) -> BaseController:
+    """A legacy method to build flow controller with keyword arguments.
+
+    Args:
+        tasks: A list of tasks fed into custom flow controllers.
+        options: Option for flow controllers.
+        flow_controller_conditions: Callables keyed on the alias of the flow controller.
+
+    Returns:
+        A built controller.
+    """
+    warnings.warn(
+        "Building a flow controller with keyword arguments is going to be deprecated. "
+        "Custom controllers must be explicitly instantiated and appended to the task list.",
+        PendingDeprecationWarning,
+        stacklevel=2,
+    )
+    if isinstance(tasks, Task):
+        tasks = [tasks]
+    if any(not isinstance(t, Task) for t in tasks):
+        raise TypeError("Added tasks are not all valid pass manager task types.")
+    # Alias in higher hierarchy becomes outer controller.
+    for alias in FlowController.hierarchy[::-1]:
+        if alias not in flow_controller_conditions:
+            continue
+        class_type = FlowController.registered_controllers[alias]
+        init_kwargs = {
+            "options": options,
+            alias: flow_controller_conditions.pop(alias),
+        }
+        tasks = class_type(tasks, **init_kwargs)
+    return tasks
