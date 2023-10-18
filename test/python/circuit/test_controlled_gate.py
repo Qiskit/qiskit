@@ -1193,6 +1193,31 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(assigned.data[0].operation.base_gate, expected.data[0].operation.base_gate)
         self.assertEqual(assigned, expected)
 
+    def test_modify_cugate_params_slice(self):
+        """Test that CUGate.params can be modified by a standard slice (without changing the number
+        of elements) and changes propagate to the base gate.  This is only needed for as long as
+        CUGate's `base_gate` is `UGate`, which has the "wrong" number of parameters."""
+        cu = CUGate(0.1, 0.2, 0.3, 0.4)
+        self.assertEqual(cu.params, [0.1, 0.2, 0.3, 0.4])
+        self.assertEqual(cu.base_gate.params, [0.1, 0.2, 0.3])
+
+        cu.params[0:4] = [0.5, 0.4, 0.3, 0.2]
+        self.assertEqual(cu.params, [0.5, 0.4, 0.3, 0.2])
+        self.assertEqual(cu.base_gate.params, [0.5, 0.4, 0.3])
+
+        cu.params[:] = [0.1, 0.2, 0.3, 0.4]
+        self.assertEqual(cu.params, [0.1, 0.2, 0.3, 0.4])
+        self.assertEqual(cu.base_gate.params, [0.1, 0.2, 0.3])
+
+        cu.params[:3] = [0.5, 0.4, 0.3]
+        self.assertEqual(cu.params, [0.5, 0.4, 0.3, 0.4])
+        self.assertEqual(cu.base_gate.params, [0.5, 0.4, 0.3])
+
+        # indices (3, 2, 1, 0), note that the assignment is in reverse.
+        cu.params[-1::-1] = [0.1, 0.2, 0.3, 0.4]
+        self.assertEqual(cu.params, [0.4, 0.3, 0.2, 0.1])
+        self.assertEqual(cu.base_gate.params, [0.4, 0.3, 0.2])
+
     def test_assign_nested_controlled_cu(self):
         """Test assignment of an arbitrary controlled parametrised gate that appears through the
         `Gate.control()` method on an already-controlled gate."""
