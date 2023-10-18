@@ -52,12 +52,6 @@ class PassManager(BasePassManager):
         """
         super().__init__(max_iteration=max_iteration)
 
-        # This is just for backward compatibility.
-        # RunningPassManager is now almost just an alias of FlowControllerLinear,
-        # but there is slight API difference and backward compatible RunningPassManager object
-        # must come here. Once after the API is aligned, this line will be removed.
-        self._flow_controller = RunningPassManager()
-
         # For backward compatibility.
         self._pass_sets = []
         if passes:
@@ -219,6 +213,11 @@ class PassManager(BasePassManager):
 
         # When other is not identical type, _pass_sets is also evaluated by self.append.
         return new_passmanager
+
+    def to_flow_controller(self) -> RunningPassManager:
+        # For backward compatibility.
+        # This method will be resolved to the base class and return FlowControllerLinear
+        return RunningPassManager(self._tasks)
 
     # pylint: disable=arguments-differ
     def run(
@@ -442,12 +441,12 @@ class StagedPassManager(PassManager):
             yield "post_" + stage
 
     def _update_passmanager(self) -> None:
-        self._flow_controller = RunningPassManager()
+        self._tasks = []
         self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
-                self._flow_controller.tasks += pm._flow_controller.tasks
+                self._tasks += pm._tasks
                 self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
@@ -484,8 +483,7 @@ class StagedPassManager(PassManager):
         # Do not inherit from the PassManager, i.e. super()
         # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
-        new_controller = RunningPassManager([self._flow_controller.tasks[index]])
-        new_passmanager._flow_controller = new_controller
+        new_passmanager._tasks = self._tasks[index]
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]

@@ -45,7 +45,7 @@ class BasePassManager(ABC):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        self._flow_controller = FlowControllerLinear()
+        self._tasks = []
         self.max_iteration = max_iteration
         self.property_set = PropertySet()
 
@@ -84,7 +84,7 @@ class BasePassManager(ABC):
             )
         if isinstance(tasks, Sequence):
             tasks = FlowControllerLinear(tasks)
-        self._flow_controller.tasks += (tasks,)
+        self._tasks.append(tasks)
 
     def replace(
         self,
@@ -113,9 +113,7 @@ class BasePassManager(ABC):
         if isinstance(tasks, Sequence):
             tasks = FlowControllerLinear(tasks)
         try:
-            new_tasks = list(self._flow_controller.tasks)
-            new_tasks[index] = tasks
-            self._flow_controller.tasks = tuple(new_tasks)
+            self._tasks[index] = tasks
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -129,9 +127,7 @@ class BasePassManager(ABC):
             PassManagerError: If the index is not found.
         """
         try:
-            new_tasks = list(self._flow_controller.tasks)
-            del new_tasks[index]
-            self._flow_controller.tasks = new_tasks
+            del self._tasks[index]
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -139,19 +135,18 @@ class BasePassManager(ABC):
         self.replace(index, item)
 
     def __len__(self):
-        return len(self._flow_controller.tasks)
+        return len(self._tasks)
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_controller = FlowControllerLinear(self._flow_controller.tasks[index])
-        new_passmanager._flow_controller = new_controller
+        new_passmanager._tasks = self._tasks[index]
         return new_passmanager
 
     def __add__(self, other):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
-        new_passmanager._flow_controller = self._flow_controller
+        new_passmanager._tasks = self._tasks
         if isinstance(other, self.__class__):
-            new_passmanager._flow_controller.tasks += other._flow_controller.tasks
+            new_passmanager._tasks += other._tasks
             return new_passmanager
         else:
             try:
@@ -239,7 +234,7 @@ class BasePassManager(ABC):
         Returns:
             The transformed program(s).
         """
-        if not self._flow_controller.tasks and not kwargs and callback is None:
+        if not self._tasks and not kwargs and callback is None:
             return in_programs
 
         is_list = True
@@ -278,7 +273,7 @@ class BasePassManager(ABC):
         Returns:
             A linearized pass manager.
         """
-        return self._flow_controller
+        return FlowControllerLinear(self._tasks)
 
 
 def _run_workflow(
