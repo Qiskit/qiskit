@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Callable, Any
 import numpy as np
 
@@ -118,7 +119,9 @@ class QAOA(SamplingVQE):
                 These data are: the evaluation count, the optimizer parameters for the ansatz, the
                 evaluated value, the metadata dictionary.
         """
-        validate_min("reps", reps, 1)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            validate_min("reps", reps, 1)
 
         self.reps = reps
         self.mixer = mixer

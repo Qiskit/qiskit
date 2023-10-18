@@ -14,7 +14,10 @@
 
 import unittest
 
+import math
+
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import EfficientSU2
 from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
 from qiskit.transpiler.passes import SabreLayout, DenseLayout
 from qiskit.transpiler.exceptions import TranspilerError
@@ -24,6 +27,8 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
 from qiskit.providers.fake_provider import FakeKolkata
 from qiskit.providers.fake_provider import FakeMontreal
+from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -60,7 +65,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [16, 7, 11, 12, 13])
+        self.assertEqual([layout[q] for q in circuit.qubits], [11, 10, 16, 5, 17])
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -193,7 +198,7 @@ rz(0) q4835[1];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [13, 10, 11, 12, 17, 14, 22, 26, 5, 16, 25, 19, 7, 8]
+            [layout[q] for q in qc.qubits], [11, 19, 18, 16, 26, 8, 21, 1, 5, 15, 3, 12, 14, 13]
         )
 
     # pylint: disable=line-too-long
@@ -387,6 +392,45 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         pm.run(qc)
         layout = pm.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+
+
+class TestSabrePreLayout(QiskitTestCase):
+    """Tests the SabreLayout pass with starting layout created by SabrePreLayout."""
+
+    def setUp(self):
+        super().setUp()
+        circuit = EfficientSU2(16, entanglement="circular", reps=6, flatten=True)
+        circuit.assign_parameters([math.pi / 2] * len(circuit.parameters), inplace=True)
+        circuit.measure_all()
+        self.circuit = circuit
+        self.coupling_map = CouplingMap.from_heavy_hex(7)
+
+    def test_starting_layout(self):
+        """Test that a starting layout is created and looks as expected."""
+        pm = PassManager(
+            [
+                SabrePreLayout(coupling_map=self.coupling_map),
+                SabreLayout(self.coupling_map, seed=123456, swap_trials=1, layout_trials=1),
+            ]
+        )
+        pm.run(self.circuit)
+        layout = pm.property_set["layout"]
+        self.assertEqual(
+            [layout[q] for q in self.circuit.qubits],
+            [30, 98, 104, 36, 103, 35, 65, 28, 61, 91, 22, 92, 23, 93, 62, 99],
+        )
+
+    def test_integration_with_pass_manager(self):
+        """Tests SabrePreLayoutIntegration with the rest of PassManager pipeline."""
+        backend = FakeAlmadenV2()
+        pm = generate_preset_pass_manager(1, backend, seed_transpiler=0)
+        pm.pre_layout = PassManager([SabrePreLayout(backend.target)])
+        qct = pm.run(self.circuit)
+        qct_initial_layout = qct.layout.initial_layout
+        self.assertEqual(
+            [qct_initial_layout[q] for q in self.circuit.qubits],
+            [1, 6, 5, 10, 11, 12, 16, 17, 18, 13, 14, 9, 8, 3, 2, 0],
+        )
 
 
 if __name__ == "__main__":

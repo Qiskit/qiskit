@@ -17,8 +17,8 @@ import unittest
 import ddt
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators import Operator
-from qiskit.extensions.unitary import UnitaryGate
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear_phase import synth_cnot_phase_aam
 from qiskit.transpiler.synthesis.graysynth import (

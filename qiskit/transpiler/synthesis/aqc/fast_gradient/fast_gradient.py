@@ -54,16 +54,16 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
         # array of F-layers:
         self._f_layers = np.asarray([object()] * num_qubits, dtype=LayerBase)
         # 4x4 C-gate matrices:
-        self._c_gates = np.full((self.num_cnots, 4, 4), fill_value=0, dtype=np.cfloat)
+        self._c_gates = np.full((self.num_cnots, 4, 4), fill_value=0, dtype=np.complex128)
         # derivatives of 4x4 C-gate matrices:
-        self._c_dervs = np.full((self.num_cnots, 4, 4, 4), fill_value=0, dtype=np.cfloat)
+        self._c_dervs = np.full((self.num_cnots, 4, 4, 4), fill_value=0, dtype=np.complex128)
         # 4x4 F-gate matrices:
-        self._f_gates = np.full((num_qubits, 2, 2), fill_value=0, dtype=np.cfloat)
+        self._f_gates = np.full((num_qubits, 2, 2), fill_value=0, dtype=np.complex128)
         # derivatives of 4x4 F-gate matrices:
-        self._f_dervs = np.full((num_qubits, 3, 2, 2), fill_value=0, dtype=np.cfloat)
+        self._f_dervs = np.full((num_qubits, 3, 2, 2), fill_value=0, dtype=np.complex128)
         # temporary NxN matrices:
-        self._tmp1 = np.full((dim, dim), fill_value=0, dtype=np.cfloat)
-        self._tmp2 = np.full((dim, dim), fill_value=0, dtype=np.cfloat)
+        self._tmp1 = np.full((dim, dim), fill_value=0, dtype=np.complex128)
+        self._tmp2 = np.full((dim, dim), fill_value=0, dtype=np.complex128)
 
         # Create layers of 2-qubit gates.
         for q in range(self.num_cnots):

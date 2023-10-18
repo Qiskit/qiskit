@@ -31,9 +31,11 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 
+from __future__ import annotations
+
 import copy
 from itertools import zip_longest
-from typing import List
+from typing import List, Type
 
 import numpy
 
@@ -104,6 +106,38 @@ class Instruction(Operation):
         self.params = params  # must be at last (other properties may be required for validation)
 
     @property
+    def base_class(self) -> Type[Instruction]:
+        """Get the base class of this instruction.  This is guaranteed to be in the inheritance tree
+        of ``self``.
+
+        The "base class" of an instruction is the lowest class in its inheritance tree that the
+        object should be considered entirely compatible with for _all_ circuit applications.  This
+        typically means that the subclass is defined purely to offer some sort of programmer
+        convenience over the base class, and the base class is the "true" class for a behavioural
+        perspective.  In particular, you should *not* override :attr:`base_class` if you are
+        defining a custom version of an instruction that will be implemented differently by
+        hardware, such as an alternative measurement strategy, or a version of a parametrised gate
+        with a particular set of parameters for the purposes of distinguishing it in a
+        :class:`.Target` from the full parametrised gate.
+
+        This is often exactly equivalent to ``type(obj)``, except in the case of singleton instances
+        of standard-library instructions.  These singleton instances are special subclasses of their
+        base class, and this property will return that base.  For example::
+
+            >>> isinstance(XGate(), XGate)
+            True
+            >>> type(XGate()) is XGate
+            False
+            >>> XGate().base_class is XGate
+            True
+
+        In general, you should not rely on the precise class of an instruction; within a given
+        circuit, it is expected that :attr:`Instruction.name` should be a more suitable
+        discriminator in most situations.
+        """
+        return type(self)
+
+    @property
     def mutable(self) -> bool:
         """Is this instance is a mutable unique instance or not.
 
@@ -141,8 +175,9 @@ class Instruction(Operation):
         Returns:
             bool: are self and other equal.
         """
-        if (
-            type(self) is not type(other)
+        if (  # pylint: disable=too-many-boolean-expressions
+            not isinstance(other, Instruction)
+            or self.base_class is not other.base_class
             or self.name != other.name
             or self.num_qubits != other.num_qubits
             or self.num_clbits != other.num_clbits
@@ -366,7 +401,13 @@ class Instruction(Operation):
             qiskit.circuit.Instruction: a new instruction with
                 sub-instructions reversed.
         """
-        if not self._definition:
+        # A single `Instruction` cannot really determine whether it is a "composite" instruction or
+        # not; it depends on greater context whether it needs to be decomposed.  The `_definition`
+        # not existing is flaky; all that means is that nobody has _yet_ asked for its definition;
+        # for efficiency, most gates define this on-the-fly.  The checks here are a very very
+        # approximate check for an "atomic" instruction, that are mostly just this way for
+        # historical consistency.
+        if not self._definition or not self.mutable:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + "_reverse")
@@ -487,7 +528,7 @@ class Instruction(Operation):
         """Return a default OpenQASM string for the instruction.
 
         Derived instructions may override this to print in a
-        different format (e.g. measure q[0] -> c[0];).
+        different format (e.g. ``measure q[0] -> c[0];``).
         """
         name_param = self.name
         if self.params:
