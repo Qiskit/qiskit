@@ -250,7 +250,6 @@ same anyway.
 from __future__ import annotations
 
 import functools
-import typing
 
 from .instruction import Instruction
 from .gate import Gate
@@ -399,9 +398,6 @@ class _SingletonMeta(type(Instruction)):
             # The logic can be extended to have an LRU cache for key requests that are absent,
             # to allow things like parametric gates to have reusable singletons as well.
         return super().__call__(*args, **kwargs)
-
-
-_InstructionT = typing.TypeVar("_InstructionT", bound=Instruction)
 
 
 class _SingletonBase(metaclass=_SingletonMeta):
