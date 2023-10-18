@@ -1109,12 +1109,13 @@ class SparsePauliOp(LinearOp):
         return None if inplace else bound
 
     def apply_layout(
-        self, layout: TranspileLayout | List[int], num_qubits: int | None = None
+        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
     ) -> SparsePauliOp:
         """Apply a transpiler layout to this :class:`~.SparsePauliOp`
 
         Args:
-            layout: Either a :class:`~.TranspileLayout` or a list of integers.
+            layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
+                    If layout is None, then no action is applied.
             num_qubits: The number of qubits to expand the operator to. If not
                 provided then if ``layout`` is a :class:`~.TranspileLayout` the
                 number of the transpiler output circuit qubits will be used by
@@ -1126,6 +1127,9 @@ class SparsePauliOp(LinearOp):
             A new :class:`.SparsePauliOp` with the provided layout applied
         """
         from qiskit.transpiler.layout import TranspileLayout
+
+        if layout is None:
+            return self.copy()
 
         n_qubits = self.num_qubits
         if isinstance(layout, TranspileLayout):

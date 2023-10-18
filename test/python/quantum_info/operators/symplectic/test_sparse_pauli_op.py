@@ -1088,6 +1088,11 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         res = op.apply_layout([4, 0], 5)
         self.assertEqual(SparsePauliOp.from_list([("IIIIY", 2), ("IIIIX", 1)]), res)
 
+    def test_apply_layout_null_layout(self):
+        """Test apply_layout with a null layout"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        res = op.apply_layout(layout=None, num_qubits=5)
+        self.assertEqual(op, res)
 
 if __name__ == "__main__":
     unittest.main()
