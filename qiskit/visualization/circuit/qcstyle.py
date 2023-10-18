@@ -29,8 +29,8 @@ class DefaultStyle:
     output circuit visualization. The style dict is used by the `mpl` or
     `latex` output. The options available in the style dict are defined below:
 
-    name (str): the name of the style. The name can be set to ``iqx``,
-        ``iqx-dark``, ``textbook``, ``bw``, ``default``, or the name of a
+    name (str): the name of the style. The name can be set to ``iqp``,
+        ``iqp-dark``, ``textbook``, ``bw``, ``clifford``, or the name of a
         user-created json file. This overrides the setting in the user config
         file (usually ``~/.qiskit/settings.conf``).
 
@@ -171,12 +171,12 @@ class DefaultStyle:
             "clifford": "#6FA4FF",  # Light Blue
             "pauli": "#05BAB6",  # Green
             "def_other": "#BB8BFF",  # Purple
-            "### IQX Colors": "IQX Colors",
+            "### IQP Colors": "IQP Colors",
             "classical": "#002D9C",  # Dark Blue
             "phase": "#33B1FF",  # Cyan
             "hadamard": "#FA4D56",  # Light Red
             "non_unitary": "#A8A8A8",  # Medium Gray
-            "iqx_other": "#9F1853",  # Dark Red
+            "iqp_other": "#9F1853",  # Dark Red
             "### B/W": "B/W",
             "black": "#000000",
             "white": "#FFFFFF",
@@ -278,6 +278,15 @@ def load_style(style):
         else:
             style = "default"
 
+    if style == "default":
+        warn(
+            'The default matplotlib drawer scheme will be changed to "iqp" in a following release. '
+            'To silence this warning, specify the current default explicitly as style="clifford", '
+            'or the new default as style="iqp".',
+            category=FutureWarning,
+            stacklevel=2,
+        )
+
     if style is False:
         style_name = "bw"
     elif isinstance(style, dict) and "name" in style:
@@ -293,9 +302,24 @@ def load_style(style):
     if style_name.endswith(".json"):
         style_name = style_name[:-5]
 
+    # Alias IQP<->IQX, where we hardcode both "iqx" and "iqx-dark" instead of only replacing the
+    # first three letters, in case users have a custom name starting with "iqx" too.
+    # Also replace "default" with the new name "clifford".
+    replacements = {"iqx": "iqp", "iqx-dark": "iqp-dark", "default": "clifford"}
+    if style_name in replacements.keys():
+        if style_name[:3] == "iqx":
+            warn(
+                'The "iqx" and "iqx-dark" matplotlib drawer schemes are pending deprecation and will '
+                'be deprecated in a future release. Instead, use "iqp" and "iqp-dark".',
+                category=PendingDeprecationWarning,
+                stacklevel=2,
+            )
+
+        style_name = replacements[style_name]
+
     # Search for file in 'styles' dir, then config_path, and finally 'cwd'
     style_path = []
-    if style_name != "default":
+    if style_name != "clifford":
         style_name = style_name + ".json"
         spath = os.path.dirname(os.path.abspath(__file__))
         style_path.append(os.path.join(spath, "styles", style_name))

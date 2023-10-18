@@ -884,7 +884,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_alternative_colors(self):
         """Tests alternative color schemes"""
         ratios = []
-        for style in ["iqx", "iqx-dark", "textbook"]:
+        for style in ["iqp", "iqp-dark", "iqx", "iqx-dark", "textbook", "clifford"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
                 circuit.h(0)
@@ -917,11 +917,17 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.reset(5)
 
                 fname = f"{style}_color.png"
+                # IQX has the same reference filename as IQP
+                if style[:3] == "iqx":
+                    ref_fname = "iqp" + style[3:] + "_color.png"
+                else:
+                    ref_fname = fname
+
                 self.circuit_drawer(circuit, style={"name": style}, filename=fname)
 
                 ratio = VisualTestUtilities._save_diff(
                     self._image_path(fname),
-                    self._reference_path(fname),
+                    self._reference_path(ref_fname),
                     fname,
                     FAILURE_DIFF_DIR,
                     FAILURE_PREFIX,
@@ -1992,6 +1998,25 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_default_futurewarning(self):
+        """Test using the default scheme emits a future warning."""
+        qc = QuantumCircuit(1)
+
+        with self.assertWarnsRegex(
+            FutureWarning, "To silence this warning, specify the current default explicitly"
+        ):
+            qc.draw("mpl")
+
+    def test_iqx_pendingdeprecation(self):
+        """Test using the IQX schemes emits a pending deprecation warning."""
+        qc = QuantumCircuit(1)
+
+        for style in ["iqx", "iqx-dark"]:
+            with self.assertWarnsRegex(
+                PendingDeprecationWarning, 'Instead, use "iqp" and "iqp-dark"'
+            ):
+                qc.draw("mpl", style=style)
 
 
 if __name__ == "__main__":

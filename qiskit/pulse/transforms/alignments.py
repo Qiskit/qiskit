@@ -12,7 +12,7 @@
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Callable, Dict, Any, Union, Tuple
+from typing import Callable, Union, Tuple
 
 import numpy as np
 
@@ -20,7 +20,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
-from qiskit.utils.deprecation import deprecate_func
 
 
 class AlignmentKind(abc.ABC):
@@ -44,11 +43,6 @@ class AlignmentKind(abc.ABC):
             Schedule with reallocated instructions.
         """
         pass
-
-    @deprecate_func(since="0.21")
-    def to_dict(self) -> Dict[str, Any]:
-        """Returns dictionary to represent this alignment."""
-        return {"alignment": self.__class__.__name__}
 
     @property
     @abc.abstractmethod
@@ -330,11 +324,6 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
-    @deprecate_func(since="0.21")
-    def to_dict(self) -> Dict[str, Any]:
-        """Returns dictionary to represent this alignment."""
-        return {"alignment": self.__class__.__name__, "duration": self.duration}
-
 
 class AlignFunc(AlignmentKind):
     """Allocate instructions at position specified by callback function.
@@ -415,15 +404,3 @@ class AlignFunc(AlignmentKind):
             aligned.insert(_t0, child, inplace=True)
 
         return aligned
-
-    @deprecate_func(since="0.21")
-    def to_dict(self) -> Dict[str, Any]:
-        """Returns dictionary to represent this alignment.
-
-        .. note:: ``func`` is not presented in this dictionary. Just name.
-        """
-        return {
-            "alignment": self.__class__.__name__,
-            "duration": self.duration,
-            "func": self.func.__name__,
-        }
