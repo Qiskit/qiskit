@@ -13,6 +13,7 @@
 """OperatorBase Class"""
 
 import itertools
+import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
@@ -491,20 +492,22 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         Raises:
             ValueError: Massive is False and number of qubits is greater than 16
         """
-        if num_qubits > 16 and not massive and not algorithm_globals.massive:
-            dim = 2**num_qubits
-            if matrix:
-                obj_type = "matrix"
-                dimensions = f"{dim}x{dim}"
-            else:
-                obj_type = "vector"
-                dimensions = f"{dim}"
-            raise ValueError(
-                f"'{method}' will return an exponentially large {obj_type}, "
-                f"in this case '{dimensions}' elements. "
-                "Set algorithm_globals.massive=True or the method argument massive=True "
-                "if you want to proceed."
-            )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            if num_qubits > 16 and not massive and not algorithm_globals.massive:
+                dim = 2**num_qubits
+                if matrix:
+                    obj_type = "matrix"
+                    dimensions = f"{dim}x{dim}"
+                else:
+                    obj_type = "vector"
+                    dimensions = f"{dim}"
+                raise ValueError(
+                    f"'{method}' will return an exponentially large {obj_type}, "
+                    f"in this case '{dimensions}' elements. "
+                    "Set algorithm_globals.massive=True or the method argument massive=True "
+                    "if you want to proceed."
+                )
 
     # Printing
 

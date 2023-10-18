@@ -15,6 +15,7 @@ QDrift Class
 
 """
 
+import warnings
 from typing import List, Union, cast
 
 import numpy as np
@@ -78,8 +79,10 @@ class QDrift(TrotterizationBase):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator_iter]
-        sampled_ops = algorithm_globals.random.choice(
-            scaled_ops, size=(int(N * self.reps),), p=weights / lambd
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            sampled_ops = algorithm_globals.random.choice(
+                scaled_ops, size=(int(N * self.reps),), p=weights / lambd
+            )
 
         return ComposedOp(sampled_ops).reduce()

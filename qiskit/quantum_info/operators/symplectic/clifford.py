@@ -35,7 +35,6 @@ from qiskit.synthesis.linear import calc_inverse_matrix
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
-from .stabilizer_table import StabilizerTable
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
@@ -164,10 +163,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             num_qubits = data.num_qubits
             self.tableau = Clifford.from_circuit(data).tableau
 
-        # DEPRECATED: data is StabilizerTable
-        elif isinstance(data, StabilizerTable):
-            self.tableau = self._stack_table_phase(data.array, data.phase)
-            num_qubits = data.num_qubits
         # Initialize StabilizerTable directly from the data
         else:
             if isinstance(data, (list, np.ndarray)) and np.asarray(data, dtype=bool).ndim == 2:
@@ -250,86 +245,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
         self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
-
-    @property
-    @deprecate_func(
-        since="0.24.0",
-        package_name="qiskit-terra",
-        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def table(self):
-        """Return StabilizerTable"""
-        return StabilizerTable(self.symplectic_matrix, phase=self.phase)
-
-    @table.setter
-    @deprecate_func(
-        since="0.24.0",
-        package_name="qiskit-terra",
-        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def table(self, value):
-        """Set the stabilizer table"""
-        # Note this setter cannot change the size of the Clifford
-        # It can only replace the contents of the StabilizerTable with
-        # another StabilizerTable of the same size.
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self.symplectic_matrix = value._table._array
-        self.phase = value._table._phase
-
-    @property
-    @deprecate_func(
-        since="0.24.0",
-        package_name="qiskit-terra",
-        additional_msg="Use Clifford.stab properties instead.",
-        is_property=True,
-    )
-    def stabilizer(self):
-        """Return the stabilizer block of the StabilizerTable."""
-        array = self.tableau[self.num_qubits : 2 * self.num_qubits, :-1]
-        phase = self.tableau[self.num_qubits : 2 * self.num_qubits, -1].reshape(self.num_qubits)
-        return StabilizerTable(array, phase)
-
-    @stabilizer.setter
-    @deprecate_func(
-        since="0.24.0",
-        package_name="qiskit-terra",
-        additional_msg="Use Clifford.stab properties instead.",
-        is_property=True,
-    )
-    def stabilizer(self, value):
-        """Set the value of stabilizer block of the StabilizerTable"""
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self.tableau[self.num_qubits : 2 * self.num_qubits, :-1] = value.array
-
-    @property
-    @deprecate_func(
-        since="0.24.0",
-        package_name="qiskit-terra",
-        additional_msg="Use Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def destabilizer(self):
-        """Return the destabilizer block of the StabilizerTable."""
-        array = self.tableau[0 : self.num_qubits, :-1]
-        phase = self.tableau[0 : self.num_qubits, -1].reshape(self.num_qubits)
-        return StabilizerTable(array, phase)
-
-    @destabilizer.setter
-    @deprecate_func(
-        since="0.24.0",
-        package_name="qiskit-terra",
-        additional_msg="Use Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def destabilizer(self, value):
-        """Set the value of destabilizer block of the StabilizerTable"""
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self.tableau[: self.num_qubits, :-1] = value.array
 
     @property
     def symplectic_matrix(self):
