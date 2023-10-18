@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable, Sequence, Generator
+from collections.abc import Callable, Iterable, Generator
 from typing import Type, Any
 
 from qiskit.utils.deprecation import deprecate_func
@@ -39,10 +39,8 @@ class FlowControllerLinear(BaseController):
     ):
         super().__init__(options)
 
-        if not isinstance(tasks, Sequence):
+        if not isinstance(tasks, Iterable):
             tasks = [tasks]
-        if any(not isinstance(t, Task) for t in tasks):
-            raise PassManagerError("Added tasks are not all valid pass manager task types.")
         self.tasks: tuple[Task] = tuple(tasks)
 
     @property
@@ -63,13 +61,13 @@ class FlowControllerLinear(BaseController):
         Args:
             passes: A new task or list of tasks to add.
         """
-        if not isinstance(passes, Sequence):
+        if not isinstance(passes, Iterable):
             passes = [passes]
 
         tasks = list(self.tasks)
         for task in passes:
             if not isinstance(task, Task):
-                raise PassManagerError(
+                raise TypeError(
                     f"New task {task} is not a valid pass manager pass or flow controller."
                 )
             tasks.append(task)
@@ -99,10 +97,8 @@ class DoWhileController(BaseController):
     ):
         super().__init__(options)
 
-        if not isinstance(tasks, Sequence):
+        if not isinstance(tasks, Iterable):
             tasks = [tasks]
-        if any(not isinstance(t, Task) for t in tasks):
-            raise PassManagerError("Added tasks are not all valid pass manager task types.")
         self.tasks: tuple[Task] = tuple(tasks)
         self.do_while = do_while
 
@@ -124,13 +120,13 @@ class DoWhileController(BaseController):
         Args:
             passes: A new task or list of tasks to add.
         """
-        if not isinstance(passes, Sequence):
+        if not isinstance(passes, Iterable):
             passes = [passes]
 
         tasks = list(self.tasks)
         for task in passes:
             if not isinstance(task, Task):
-                raise PassManagerError(
+                raise TypeError(
                     f"New task {task} is not a valid pass manager pass or flow controller."
                 )
             tasks.append(task)
@@ -162,10 +158,8 @@ class ConditionalController(BaseController):
     ):
         super().__init__(options)
 
-        if not isinstance(tasks, Sequence):
+        if not isinstance(tasks, Iterable):
             tasks = [tasks]
-        if any(not isinstance(t, Task) for t in tasks):
-            raise PassManagerError("Added tasks are not all valid pass manager task types.")
         self.tasks: tuple[Task] = tuple(tasks)
         self.condition = condition
 
@@ -187,13 +181,13 @@ class ConditionalController(BaseController):
         Args:
             passes: A new task or list of tasks to add.
         """
-        if not isinstance(passes, Sequence):
+        if not isinstance(passes, Iterable):
             passes = [passes]
 
         tasks = list(self.tasks)
         for task in passes:
             if not isinstance(task, Task):
-                raise PassManagerError(
+                raise TypeError(
                     f"New task {task} is not a valid pass manager pass or flow controller."
                 )
             tasks.append(task)

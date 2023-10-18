@@ -217,7 +217,8 @@ class PassManager(BasePassManager):
     def to_flow_controller(self) -> RunningPassManager:
         # For backward compatibility.
         # This method will be resolved to the base class and return FlowControllerLinear
-        return RunningPassManager(self._tasks)
+        flatten_tasks = list(self._flatten_tasks(self._tasks))
+        return RunningPassManager(flatten_tasks)
 
     # pylint: disable=arguments-differ
     def run(

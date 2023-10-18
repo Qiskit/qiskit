@@ -16,7 +16,8 @@ from __future__ import annotations
 import logging
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Iterable
+from itertools import chain
 from typing import Any
 
 import dill
@@ -75,15 +76,21 @@ class BasePassManager(ABC):
 
                 In general you have finer-grained control over pass sequencing if you simply
                 instantiate the flow controller you want manually and given that to :meth:`append`.
+
+        Raises:
+            TypeError: When any element of tasks is not a subclass of passmanager Task.
         """
+        if isinstance(tasks, Task):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise TypeError("Added tasks are not all valid pass manager task types.")
+
         if flow_controller_conditions:
             tasks = _legacy_build_flow_controller(
                 tasks,
                 options={"max_iteration": self.max_iteration},
                 **flow_controller_conditions,
             )
-        if isinstance(tasks, Sequence):
-            tasks = FlowControllerLinear(tasks)
         self._tasks.append(tasks)
 
     def replace(
@@ -102,16 +109,20 @@ class BasePassManager(ABC):
                 See :meth:`~.BasePassManager.append` for details.
 
         Raises:
+            TypeError: When any element of tasks is not a subclass of passmanager Task.
             PassManagerError: If the index is not found.
         """
+        if isinstance(tasks, Task):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise TypeError("Added tasks are not all valid pass manager task types.")
+
         if flow_controller_conditions:
             tasks = _legacy_build_flow_controller(
                 tasks,
                 options={"max_iteration": self.max_iteration},
                 **flow_controller_conditions,
             )
-        if isinstance(tasks, Sequence):
-            tasks = FlowControllerLinear(tasks)
         try:
             self._tasks[index] = tasks
         except IndexError as ex:
@@ -273,7 +284,14 @@ class BasePassManager(ABC):
         Returns:
             A linearized pass manager.
         """
-        return FlowControllerLinear(self._tasks)
+        flatten_tasks = list(self._flatten_tasks(self._tasks))
+        return FlowControllerLinear(flatten_tasks)
+
+    def _flatten_tasks(self, elements: Iterable | Task) -> Iterable:
+        """A helper method to recursively flatten a nested task chain."""
+        if not isinstance(elements, Iterable):
+            return [elements]
+        return chain(*map(self._flatten_tasks, elements))
 
 
 def _run_workflow(
