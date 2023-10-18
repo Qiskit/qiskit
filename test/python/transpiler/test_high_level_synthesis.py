@@ -34,7 +34,6 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.quantum_info import Operator
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
-from qiskit.quantum_info import Operator
 
 
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic

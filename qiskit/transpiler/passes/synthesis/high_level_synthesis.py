@@ -13,9 +13,9 @@
 
 """Synthesize higher-level objects."""
 
-import rustworkx as rx
-
 from typing import Optional, Union, List, Tuple
+
+import rustworkx as rx
 
 from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag
