@@ -29,8 +29,8 @@ class DefaultStyle:
     output circuit visualization. The style dict is used by the `mpl` or
     `latex` output. The options available in the style dict are defined below:
 
-    name (str): the name of the style. The name can be set to ``iqx``,
-        ``iqx-dark``, ``textbook``, ``bw``, ``default``, or the name of a
+    name (str): the name of the style. The name can be set to ``iqp``,
+        ``iqp-dark``, ``textbook``, ``bw``, ``clifford``, or the name of a
         user-created json file. This overrides the setting in the user config
         file (usually ``~/.qiskit/settings.conf``).
 
