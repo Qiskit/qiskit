@@ -610,8 +610,7 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
             # coupling map to be disconnected.
             used_coupling_map = coupling_map.reduce(qubits, check_if_connected=False)
 
-        graph = rx.PyGraph()
-        graph.extend_from_edge_list(list(used_coupling_map.get_edges()))
+        graph = used_coupling_map.graph.to_undirected()
         swapper = ApproximateTokenSwapper(graph, seed=seed)
 
         try:
