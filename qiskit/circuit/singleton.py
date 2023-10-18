@@ -482,9 +482,10 @@ class _SingletonInstructionOverrides(Instruction):
         class they are providing overrides for has more lazy attributes or user-exposed state
         with interior mutability."""
         instruction._define()
-        # Some places assume that `params` is a list not a tuple, unfortunately.  The always-raises
-        # `__setattr__` of the classes that inherit this means the `params` setter can't be used to
-        # replace the object.
+        # We use this `list` subclass that rejects all mutation rather than a simple `tuple` because
+        # the `params` typing is specified as `list`. Various places in the library and beyond do
+        # `x.params.copy()` when they want to produce a version they own, which is good behaviour,
+        # and would fail if we switched to a `tuple`, which has no `copy` method.
         instruction._params = _frozenlist(instruction._params)
         return instruction
 
@@ -587,8 +588,9 @@ def stdlib_singleton_key(*, num_ctrl_qubits: int = 0):
     if num_ctrl_qubits:
 
         def key(label=None, ctrl_state=None, *, duration=None, unit="dt", _base_label=None):
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
             if label is None and duration is None and unit == "dt" and _base_label is None:
+                # Normalisation; we want all types for the control state to key the same.
+                ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
                 return (ctrl_state,)
             return None
 
