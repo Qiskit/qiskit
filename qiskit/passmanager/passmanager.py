@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence, Iterable
 from itertools import chain
@@ -23,9 +22,9 @@ from typing import Any
 import dill
 
 from qiskit.tools.parallel import parallel_map
-from .base_tasks import Task, BaseController, PassManagerIR
+from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
-from .flow_controllers import FlowControllerLinear, FlowController
+from .flow_controllers import FlowControllerLinear
 from .compilation_status import PropertySet, WorkflowStatus, PassmanagerMetadata
 
 logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ class BasePassManager(ABC):
 
     def __init__(
         self,
-        tasks: list[Task] = None,
+        tasks: Task | list[Task] = (),
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
@@ -50,9 +49,7 @@ class BasePassManager(ABC):
         self.max_iteration = max_iteration
         self.property_set = PropertySet()
 
-        # For backward compatibility.
-        # This wraps pass list with a linear flow controller.
-        if tasks is not None:
+        if tasks:
             self.append(tasks)
 
     def append(

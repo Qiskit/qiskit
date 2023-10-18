@@ -97,15 +97,14 @@ class GenericPass(Task, ABC):
                 run_state = RunState.SUCCESS
             else:
                 run_state = RunState.SKIP
-        except Exception as ex:
+        except Exception:
             run_state = RunState.FAIL
-            raise ex
+            raise
         finally:
             ret = ret or passmanager_ir
             if run_state != RunState.SKIP:
                 running_time = time.time() - start_time
-                log_msg = f"Pass: {self.name()} - {running_time * 1000:.5f} (ms)"
-                logger.info(log_msg)
+                logger.info("Pass: %s - %.5f (ms)", self.name(), running_time * 1000)
                 if callback is not None:
                     callback(
                         task=self,

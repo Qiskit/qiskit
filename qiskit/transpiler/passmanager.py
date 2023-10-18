@@ -42,7 +42,7 @@ class PassManager(BasePassManager):
 
     def __init__(
         self,
-        passes: Task | list[Task] = None,
+        passes: Task | list[Task] = (),
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
@@ -52,22 +52,20 @@ class PassManager(BasePassManager):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        super().__init__(max_iteration=max_iteration)
-
         # For backward compatibility.
         self._pass_sets = []
-        if passes:
-            self.append(passes)
+
+        super().__init__(
+            tasks=passes,
+            max_iteration=max_iteration,
+        )
 
     def _passmanager_frontend(
         self,
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
-        passmanager_ir = circuit_to_dag(input_program, copy_operations=False)
-        del input_program
-
-        return passmanager_ir
+        return circuit_to_dag(input_program, copy_operations=False)
 
     def _passmanager_backend(
         self,
@@ -78,7 +76,7 @@ class PassManager(BasePassManager):
         out_program = dag_to_circuit(passmanager_ir)
 
         out_name = kwargs.get("output_name", None)
-        if out_name:
+        if out_name is not None:
             out_program.name = out_name
 
         if self.property_set["layout"] is not None:
