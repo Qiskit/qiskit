@@ -80,6 +80,7 @@ class GenericPass(Task, ABC):
         # Especially, task execution may break when method signature is modified.
 
         if self.requires:
+            # pylint: disable=cyclic-import
             from .flow_controllers import FlowControllerLinear
 
             passmanager_ir, metadata = FlowControllerLinear(self.requires).execute(

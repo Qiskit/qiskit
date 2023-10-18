@@ -18,10 +18,7 @@ from collections.abc import Callable, Iterable, Generator
 from typing import Type, Any
 
 from qiskit.utils.deprecation import deprecate_func
-from .base_tasks import (
-    BaseController,
-    Task,
-)
+from .base_tasks import BaseController, Task
 from .compilation_status import PassmanagerMetadata, PropertySet
 from .exceptions import PassManagerError
 
