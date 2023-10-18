@@ -196,7 +196,7 @@ We do this in a three-step procedure:
 
 1. Before creating any singletons, we separately define the overrides needed to make an
    :class:`~.circuit.Instruction` and a :class:`.Gate` immutable.  This is
-   ``_SingletonInstructionOverrides`` the other ``_*Overrides``.
+   ``_SingletonInstructionOverrides`` and the other ``_*Overrides`` classes.
 
 2. While we are creating the ``XGate`` type object, we dynamically *also* create a subclass of it
    that has the immutable overrides in its method-resolution order in the correct place. These
@@ -234,16 +234,16 @@ the base class, but still able to call :class:`super`.  It's more convenient to 
 closing over the desired class variable and using the two-argument form of :class:`super`, since the
 zero-argument form does magic introspection based on where its containing function was defined.
 
-Handling multiple singletons requires storing the initialisation arguments in some form, to allow
+Handling multiple singletons requires storing the initialization arguments in some form, to allow
 the :meth:`~.Instruction.to_mutable` method and pickling to be defined.  We do this as a lookup
 dictionary on the singleton *type object*.  This is logically an instance attribute, but because we
 need to dynamically switch in the dynamic `_Singleton` type onto an instance of the base type, that
-gets rather hairy; either we have to require that the base already has an instance dictionary, or we
+gets rather complex; either we have to require that the base already has an instance dictionary, or we
 risk breaking the ``__slots__`` layout during the switch.  Since the singletons have lifetimes that
 last until garbage collection of their base class's type object, we can fake out this instance
 dictionary using a type-object dictionary that maps instance pointers to the data we want to store.
 An alternative would be to build a new type object for each individual singleton that closes over
-(or stores) the initialiser arguments, but type objects are quite heavy and the principle is largely
+(or stores) the initializer arguments, but type objects are quite heavy and the principle is largely
 same anyway.
 """
 
