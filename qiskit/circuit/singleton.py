@@ -200,6 +200,7 @@ import operator
 
 from .instruction import Instruction
 from .gate import Gate
+from .controlledgate import ControlledGate
 
 
 def _impl_new(cls, *_args, **_kwargs):
@@ -351,5 +352,30 @@ class SingletonGate(Gate, metaclass=_SingletonMeta, overrides=_SingletonGateOver
     This class is very similar to :class:`SingletonInstruction`, except implies unitary
     :class:`.Gate` semantics as well.  The same caveats around setting attributes in that class
     apply here as well."""
+
+    __slots__ = ()
+
+
+class _SingletonControlledGateOverrides(_SingletonInstructionOverrides, ControlledGate):
+    """Overrides for all the mutable methods and properties of `ControlledGate` to make it immutable.
+
+    This class just exists for the principle; there's no additional overrides required compared
+    to :class:`~.circuit.Instruction`.
+    """
+
+    __slots__ = ()
+
+
+class SingletonControlledGate(
+    ControlledGate,
+    metaclass=_SingletonMeta,
+    overrides=_SingletonControlledGateOverrides,
+):
+    """A base class to use for :class:`.ControlledGate` objects that by default are singleton instances
+
+    This class is very similar to :class:`SingletonInstruction`, except implies unitary
+    :class:`.ControlledGate` semantics as well.  The same caveats around setting attributes in
+    that class apply here as well.
+    """
 
     __slots__ = ()

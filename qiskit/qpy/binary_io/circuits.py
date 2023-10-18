@@ -309,9 +309,15 @@ def _read_instruction(
             gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
         else:
             gate = gate_class(*params, label=label)
-            gate.num_ctrl_qubits = instruction.num_ctrl_qubits
-            gate.ctrl_state = instruction.ctrl_state
-        gate.condition = condition
+            if (
+                gate.num_ctrl_qubits != instruction.num_ctrl_qubits
+                or gate.ctrl_state != instruction.ctrl_state
+            ):
+                gate = gate.to_mutable()
+                gate.num_ctrl_qubits = instruction.num_ctrl_qubits
+                gate.ctrl_state = instruction.ctrl_state
+        if condition:
+            gate = gate.c_if(*condition)
     else:
         if gate_name in {
             "Initialize",

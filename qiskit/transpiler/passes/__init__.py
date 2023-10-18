@@ -34,6 +34,7 @@ Layout Selection (Placement)
    Layout2qDistance
    EnlargeWithAncilla
    FullAncillaAllocation
+   SabrePreLayout
 
 Routing
 =======
@@ -53,12 +54,12 @@ Basis Change
 .. autosummary::
    :toctree: ../stubs/
 
-   Unroller
-   Unroll3qOrMore
-   Decompose
-   UnrollCustomDefinitions
    BasisTranslator
+   Decompose
    TranslateParameterizedGates
+   Unroll3qOrMore
+   UnrollCustomDefinitions
+   Unroller
 
 Optimizations
 =============
@@ -193,6 +194,7 @@ from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
 from .layout import FullAncillaAllocation
+from .layout import SabrePreLayout
 
 # routing
 from .routing import BasicSwap

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,9 +25,6 @@ class CommutationAnalysis(AnalysisPass):
     Property_set['commutation_set'] is a dictionary that describes
     the commutation relations on a given wire, all the gates on a wire
     are grouped into a set of gates that commute.
-
-    TODO: the current pass determines commutativity through matrix multiplication.
-    A rule-based analysis would be potentially faster, but more limited.
     """
 
     def __init__(self):
@@ -68,18 +65,24 @@ class CommutationAnalysis(AnalysisPass):
                     current_comm_set.append([current_gate])
 
                 if current_gate not in current_comm_set[-1]:
-                    prev_gate = current_comm_set[-1][-1]
-                    does_commute = False
+                    does_commute = True
 
-                    if isinstance(current_gate, DAGOpNode) and isinstance(prev_gate, DAGOpNode):
-                        does_commute = self.comm_checker.commute(
-                            current_gate.op,
-                            current_gate.qargs,
-                            current_gate.cargs,
-                            prev_gate.op,
-                            prev_gate.qargs,
-                            prev_gate.cargs,
+                    # Check if the current gate commutes with all the gates in the current block
+                    for prev_gate in current_comm_set[-1]:
+                        does_commute = (
+                            isinstance(current_gate, DAGOpNode)
+                            and isinstance(prev_gate, DAGOpNode)
+                            and self.comm_checker.commute(
+                                current_gate.op,
+                                current_gate.qargs,
+                                current_gate.cargs,
+                                prev_gate.op,
+                                prev_gate.qargs,
+                                prev_gate.cargs,
+                            )
                         )
+                        if not does_commute:
+                            break
 
                     if does_commute:
                         current_comm_set[-1].append(current_gate)
