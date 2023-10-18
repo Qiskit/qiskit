@@ -13,6 +13,7 @@
 """Test the variational quantum eigensolver algorithm."""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
@@ -63,7 +64,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
         self.h2_op = SparsePauliOp(
             ["II", "IZ", "ZI", "ZZ", "XX"],
             coeffs=[

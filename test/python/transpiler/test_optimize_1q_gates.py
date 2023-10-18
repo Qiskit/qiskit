@@ -37,8 +37,8 @@ class TestOptimize1qGates(QiskitTestCase):
         """
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr)
-        circuit.i(qr)
-        circuit.i(qr)
+        circuit.id(qr)
+        circuit.id(qr)
         dag = circuit_to_dag(circuit)
 
         pass_ = Optimize1qGates()
@@ -58,7 +58,8 @@ class TestOptimize1qGates(QiskitTestCase):
         expected.append(U2Gate(0, np.pi), [qr[0]])
 
         passmanager = PassManager()
-        passmanager.append(Unroller(["u2"]))
+        with self.assertWarns(DeprecationWarning):
+            passmanager.append(Unroller(["u2"]))
         passmanager.append(Optimize1qGates())
         result = passmanager.run(circuit)
 
@@ -694,8 +695,8 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         qc.ry(alpha, qr[0])
         qc.ry(0.1, qr[0])
         qc.ry(0.2, qr[0])
-
-        passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
+        with self.assertWarns(DeprecationWarning):
+            passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
         result = passmanager.run(qc)
 
         expected = QuantumCircuit(qr)
