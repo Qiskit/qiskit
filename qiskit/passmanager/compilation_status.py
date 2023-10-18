@@ -53,7 +53,7 @@ class WorkflowStatus:
 
 
 @dataclass
-class PassmanagerMetadata:
+class PassManagerState:
     """A portable container object that pass manager tasks communicate through generator.
 
     This object can contain every information about the running pass manager workflow,

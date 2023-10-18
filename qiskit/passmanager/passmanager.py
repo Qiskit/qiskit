@@ -25,7 +25,7 @@ from qiskit.tools.parallel import parallel_map
 from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
-from .compilation_status import PropertySet, WorkflowStatus, PassmanagerMetadata
+from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +281,7 @@ def _run_workflow(
     )
     passmanager_ir, _ = flow_controller.execute(
         passmanager_ir=passmanager_ir,
-        metadata=PassmanagerMetadata(
+        state=PassManagerState(
             workflow_status=initial_status,
             property_set=pass_manager.property_set,
         ),

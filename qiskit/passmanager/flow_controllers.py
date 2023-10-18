@@ -19,7 +19,7 @@ from typing import Type, Any
 
 from qiskit.utils.deprecation import deprecate_func
 from .base_tasks import BaseController, Task
-from .compilation_status import PassmanagerMetadata, PropertySet
+from .compilation_status import PassManagerState, PropertySet
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)
@@ -70,12 +70,9 @@ class FlowControllerLinear(BaseController):
             tasks.append(task)
         self.tasks = tuple(tasks)
 
-    def iter_tasks(
-        self,
-        metadata: PassmanagerMetadata,
-    ) -> Generator[Task, PassmanagerMetadata, None]:
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         for task in self.tasks:
-            metadata = yield task
+            state = yield task
 
 
 class DoWhileController(BaseController):
@@ -129,15 +126,12 @@ class DoWhileController(BaseController):
             tasks.append(task)
         self.tasks = tuple(tasks)
 
-    def iter_tasks(
-        self,
-        metadata: PassmanagerMetadata,
-    ) -> Generator[Task, PassmanagerMetadata, None]:
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         max_iteration = self._options.get("max_iteration", 1000)
         for _ in range(max_iteration):
             for task in self.tasks:
-                metadata = yield task
-            if not self.do_while(metadata.property_set):
+                state = yield task
+            if not self.do_while(state.property_set):
                 return
         raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
 
@@ -190,13 +184,10 @@ class ConditionalController(BaseController):
             tasks.append(task)
         self.tasks = tuple(tasks)
 
-    def iter_tasks(
-        self,
-        metadata: PassmanagerMetadata,
-    ) -> Generator[Task, PassmanagerMetadata, None]:
-        if self.condition(metadata.property_set):
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
+        if self.condition(state.property_set):
             for task in self.tasks:
-                metadata = yield task
+                state = yield task
 
 
 class FlowController(BaseController):

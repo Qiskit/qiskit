@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_tasks import GenericPass, PassManagerIR
-from qiskit.passmanager.compilation_status import PropertySet, RunState, PassmanagerMetadata
+from qiskit.passmanager.compilation_status import PropertySet, RunState, PassManagerState
 
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -121,15 +121,15 @@ class BasePass(GenericPass, metaclass=MetaPass):
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
+    ) -> tuple[PassManagerIR, PassManagerState]:
         # For backward compatibility.
         # Circuit passes access self.property_set.
-        self.property_set = metadata.property_set
+        self.property_set = state.property_set
         return super().execute(
             passmanager_ir=passmanager_ir,
-            metadata=metadata,
+            state=state,
             callback=callback,
         )
 
@@ -205,16 +205,16 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
-        new_dag, metadata = super().execute(
+    ) -> tuple[PassManagerIR, PassManagerState]:
+        new_dag, state = super().execute(
             passmanager_ir=passmanager_ir,
-            metadata=metadata,
+            state=state,
             callback=callback,
         )
 
-        if metadata.workflow_status.previous_run == RunState.SUCCESS:
+        if state.workflow_status.previous_run == RunState.SUCCESS:
             if isinstance(new_dag, DAGCircuit):
                 # Copy calibration data from the original program
                 new_dag.calibrations = passmanager_ir.calibrations
@@ -224,14 +224,14 @@ class TransformationPass(BasePass):  # pylint: disable=abstract-method
                     f"The pass {self.__class__.__name__} is returning a {type(new_dag)}"
                 )
 
-        return new_dag, metadata
+        return new_dag, state
 
     def update_status(
         self,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         run_state: RunState,
-    ) -> PassmanagerMetadata:
-        metadata = super().update_status(metadata, run_state)
+    ) -> PassManagerState:
+        state = super().update_status(state, run_state)
         if run_state == RunState.SUCCESS:
-            metadata.workflow_status.completed_passes.intersection_update(set(self.preserves))
-        return metadata
+            state.workflow_status.completed_passes.intersection_update(set(self.preserves))
+        return state

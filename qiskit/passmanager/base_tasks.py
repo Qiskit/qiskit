@@ -19,7 +19,7 @@ from abc import abstractmethod, ABC
 from collections.abc import Iterable, Callable, Generator
 from typing import Any
 
-from .compilation_status import RunState, PassmanagerMetadata
+from .compilation_status import RunState, PassManagerState
 
 logger = logging.getLogger(__name__)
 
@@ -38,18 +38,18 @@ class Task(ABC):
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
+    ) -> tuple[PassManagerIR, PassManagerState]:
         """Execute optimization task for input Qiskit IR.
 
         Args:
             passmanager_ir: Qiskit IR to optimize.
-            metadata: Metadata associated with workflow execution.
+            state: State associated with workflow execution by the pass manager itself.
             callback: A callback function which is caller per execution of optimization task.
 
         Returns:
-            Optimized Qiskit IR and metadata of the workflow.
+            Optimized Qiskit IR and state of the workflow.
         """
         pass
 
@@ -71,9 +71,9 @@ class GenericPass(Task, ABC):
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
+    ) -> tuple[PassManagerIR, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
@@ -82,9 +82,9 @@ class GenericPass(Task, ABC):
             # pylint: disable=cyclic-import
             from .flow_controllers import FlowControllerLinear
 
-            passmanager_ir, metadata = FlowControllerLinear(self.requires).execute(
+            passmanager_ir, state = FlowControllerLinear(self.requires).execute(
                 passmanager_ir=passmanager_ir,
-                metadata=metadata,
+                state=state,
                 callback=callback,
             )
 
@@ -92,7 +92,7 @@ class GenericPass(Task, ABC):
         ret = None
         start_time = time.time()
         try:
-            if self not in metadata.workflow_status.completed_passes:
+            if self not in state.workflow_status.completed_passes:
                 ret = self.run(passmanager_ir)
                 run_state = RunState.SUCCESS
             else:
@@ -109,31 +109,31 @@ class GenericPass(Task, ABC):
                     callback(
                         task=self,
                         passmanager_ir=ret,
-                        property_set=metadata.property_set,
+                        property_set=state.property_set,
                         running_time=running_time,
-                        count=metadata.workflow_status.count,
+                        count=state.workflow_status.count,
                     )
-        return ret, self.update_status(metadata, run_state)
+        return ret, self.update_status(state, run_state)
 
     def update_status(
         self,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         run_state: RunState,
-    ) -> PassmanagerMetadata:
+    ) -> PassManagerState:
         """Update workflow status.
 
         Args:
-            metadata: Pass manager metadata to update.
+            state: Pass manager state to update.
             run_state: Completion status of current task.
 
         Returns:
-            Updated pass manager metadata.
+            Updated pass manager state.
         """
-        metadata.workflow_status.previous_run = run_state
+        state.workflow_status.previous_run = run_state
         if run_state == RunState.SUCCESS:
-            metadata.workflow_status.count += 1
-            metadata.workflow_status.completed_passes.add(self)
-        return metadata
+            state.workflow_status.count += 1
+            state.workflow_status.completed_passes.add(self)
+        return state
 
     @abstractmethod
     def run(
@@ -174,48 +174,55 @@ class BaseController(Task, ABC):
     @abstractmethod
     def iter_tasks(
         self,
-        metadata: PassmanagerMetadata,
-    ) -> Generator[Task, PassmanagerMetadata, None]:
+        state: PassManagerState,
+    ) -> Generator[Task, PassManagerState, None]:
         """A custom logic to choose a next task to run.
 
-        Controller subclass can consume the metadata to build a proper task pipeline.
-        This indicates the order of task execution is only determined at running time.
-        This method is not allowed to mutate the given metadata object.
+        Controller subclass can consume the state to build a proper task pipeline.  The updated
+        state after a task execution will be fed back in as the "return" value of any ``yield``
+        statements.  This indicates the order of task execution is only determined at running time.
+        This method is not allowed to mutate the given state object.
 
         Args:
-            metadata: Metadata associated with workflow execution.
+            state: The state of the passmanager workflow at the beginning of this flow controller's
+                execution.
+
+        Receives:
+            state: the state of pass manager after the execution of the last task that was yielded.
+                The generator does not need to inspect this if it is irrelevant to its logic, nor
+                update it.
 
         Yields:
-            Next task to run.
+            Task: Next task to run.
         """
         pass
 
     def execute(
         self,
         passmanager_ir: PassManagerIR,
-        metadata: PassmanagerMetadata,
+        state: PassManagerState,
         callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassmanagerMetadata]:
+    ) -> tuple[PassManagerIR, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
 
-        task_generator = self.iter_tasks(metadata=metadata)
+        task_generator = self.iter_tasks(state)
         try:
             next_task = task_generator.send(None)
         except StopIteration:
-            return passmanager_ir, metadata
+            return passmanager_ir, state
         while True:
-            passmanager_ir, metadata = next_task.execute(
+            passmanager_ir, state = next_task.execute(
                 passmanager_ir=passmanager_ir,
-                metadata=metadata,
+                state=state,
                 callback=callback,
             )
             try:
                 # Sending the object through the generator implies the custom controllers
                 # can always rely on the latest data to choose the next task to run.
-                next_task = task_generator.send(metadata)
+                next_task = task_generator.send(state)
             except StopIteration:
                 break
 
-        return passmanager_ir, metadata
+        return passmanager_ir, state
