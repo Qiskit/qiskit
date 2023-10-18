@@ -654,7 +654,8 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
             for inst in qc_transpiled:
                 qubits = tuple(q.index for q in inst.qubits)
                 self.assertIn(qubits, edges)
-=======
+
+
 class TestHighLevelSynthesisModifiers(QiskitTestCase):
     """Tests for high-level-synthesis pass."""
 
