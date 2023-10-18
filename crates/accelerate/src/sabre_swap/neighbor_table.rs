@@ -89,12 +89,12 @@ impl NeighborTable {
                     adj_mat
                         .axis_iter(Axis(0))
                         .into_par_iter()
-                        .map(|row| build_neighbors(row))
+                        .map(build_neighbors)
                         .collect::<PyResult<_>>()?
                 } else {
                     adj_mat
                         .axis_iter(Axis(0))
-                        .map(|row| build_neighbors(row))
+                        .map(build_neighbors)
                         .collect::<PyResult<_>>()?
                 }
             }

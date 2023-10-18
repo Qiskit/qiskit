@@ -33,7 +33,7 @@ ParameterValueType = Union["ParameterExpression", float]
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
+    __slots__ = ["_parameter_symbols", "_parameter_keys", "_symbol_expr", "_name_map"]
 
     def __init__(self, symbol_map: dict, expr):
         """Create a new :class:`ParameterExpression`.
@@ -47,21 +47,24 @@ class ParameterExpression:
                 serving as their placeholder in expr.
             expr (sympy.Expr): Expression of :class:`sympy.Symbol` s.
         """
+        # NOTE: `Parameter.__init__` does not call up to this method, since this method is dependent
+        # on `Parameter` instances already being initialised enough to be hashable.  If changing
+        # this method, check that `Parameter.__init__` and `__setstate__` are still valid.
         self._parameter_symbols = symbol_map
-        self._parameters = set(self._parameter_symbols)
+        self._parameter_keys = frozenset(p._hash_key() for p in self._parameter_symbols)
         self._symbol_expr = expr
         self._name_map: dict | None = None
 
     @property
     def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
-        return self._parameters
+        return self._parameter_symbols.keys()
 
     @property
     def _names(self) -> dict:
         """Returns a mapping of parameter names to Parameters in the expression."""
         if self._name_map is None:
-            self._name_map = {p.name: p for p in self._parameters}
+            self._name_map = {p.name: p for p in self._parameter_symbols}
         return self._name_map
 
     def conjugate(self) -> "ParameterExpression":
@@ -121,8 +124,7 @@ class ParameterExpression:
 
         symbol_values = {}
         for parameter, value in parameter_values.items():
-            if parameter in self._parameters:
-                param_expr = self._parameter_symbols[parameter]
+            if (param_expr := self._parameter_symbols.get(parameter)) is not None:
                 symbol_values[param_expr] = value
 
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
@@ -197,8 +199,8 @@ class ParameterExpression:
         # but with our sympy symbols instead of theirs.
         symbol_map = {}
         for old_param, new_param in parameter_map.items():
-            if old_param in self._parameters:
-                symbol_map[self._parameter_symbols[old_param]] = new_param._symbol_expr
+            if (old_symbol := self._parameter_symbols.get(old_param)) is not None:
+                symbol_map[old_symbol] = new_param._symbol_expr
                 for p in new_param.parameters:
                     new_parameter_symbols[p] = symbol_type(p.name)
 
@@ -451,6 +453,17 @@ class ParameterExpression:
 
             return self._call(_log)
 
+    def sign(self):
+        """Sign of a ParameterExpression"""
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
+            return self._call(symengine.sign)
+        else:
+            from sympy import sign as _sign
+
+            return self._call(_sign)
+
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
 
@@ -507,7 +520,7 @@ class ParameterExpression:
             raise TypeError("could not cast expression to int") from exc
 
     def __hash__(self):
-        return hash((frozenset(self._parameter_symbols), self._symbol_expr))
+        return hash((self._parameter_keys, self._symbol_expr))
 
     def __copy__(self):
         return self

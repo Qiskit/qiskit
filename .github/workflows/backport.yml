@@ -1,0 +1,50 @@
+name: Backport metadata
+
+# Mergify manages the opening of the backport PR, this workflow is just to extend its behaviour to
+# do useful things like copying across the tagged labels and milestone from the base PR.
+
+on:
+  pull_request:
+    types:
+      - opened
+    branches:
+      - 'stable/*'
+
+jobs:
+  copy_metadata:
+    name: Copy metadata from base PR
+    runs-on: ubuntu-latest
+    if: github.repository == 'Qiskit/qiskit' && github.actor == 'mergify[bot]'
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Copy metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # Split Mergify's ref name (e.g. 'mergify/bp/stable/0.25/pr-10828') on the final '-' to
+          # get the number of the PR that triggered Mergify.
+          IFS='-' read -ra split <<< "${{ github.event.pull_request.head.ref }}"
+          base_pr=${split[-1]}
+
+          gh pr --repo "${{ github.repository }}" view "$base_pr" --json labels,milestone > base_pr.json
+
+          add_labels="$(jq --raw-output '[.labels[].name] - ["stable backport potential"] | join(",")' base_pr.json)"
+          echo "New labels: '$add_labels'"
+
+          milestone="$(jq --raw-output '.milestone.title // ""' base_pr.json )"
+          echo "Milestone: '$milestone'"
+
+          echo "Targetting current PR '${{ github.event.number }}'"
+          # The GitHub API is sometimes weird about empty values - the REST API certainly treats
+          # "add-label" with an empty input not as a no-op but as a clear of all labels.
+          if [[ -n "$add_labels" && -n "$milestone" ]]; then
+            gh pr --repo "${{ github.repository }}" edit "${{ github.event.number }}" --add-label "$add_labels" --milestone "$milestone"
+          elif [[ -n "$add_labels" ]]; then
+            gh pr --repo "${{ github.repository }}" edit "${{ github.event.number }}" --add-label "$add_labels"
+          elif [[ -n "$milestone" ]]; then
+            gh pr --repo "${{ github.repository }}" edit "${{ github.event.number }}" --milestone "$milestone"
+          fi
