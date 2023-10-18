@@ -520,7 +520,7 @@ def plot_state_city(
     max_plot_size = min(fig_width / 2.25, fig_height)
     max_font_size = int(3 * max_plot_size)
     max_zoom = 10 / (10 + np.sqrt(max_plot_size))
-    
+
     for (ax, dz, col, zlabel) in (
         (ax1, dzr, real_color, "Real"),
         (ax2, dzi, imag_color, "Imaginary"),
