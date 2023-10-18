@@ -13,6 +13,7 @@
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod intern_context;
+mod py_ext;
 
 use pyo3::prelude::*;
 

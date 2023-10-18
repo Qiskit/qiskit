@@ -532,6 +532,7 @@ class LinComb(CircuitGradient):
         qr_superpos_qubits = tuple(qr_superpos)
         # copy the input circuit taking the gates by reference
         out = QuantumCircuit(*circuit.qregs)
+        out._data.reserve(len(circuit._data))
         out._data.extend(circuit._data)
         out._parameter_table = ParameterTable(
             {param: values.copy() for param, values in circuit._parameter_table.items()}

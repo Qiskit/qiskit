@@ -15,6 +15,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
+from qiskit._accelerate.quantum_circuit import CircuitData
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
@@ -35,7 +36,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         super().__init__(*regs, name=name)
         self._qregs: list[QuantumRegister] = []
         self._cregs: list[ClassicalRegister] = []
-        self._qubits = []
         self._qubit_indices = {}
         self._is_built = False
 
@@ -65,7 +65,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
-        self._data = super()._new_data()
+        self._data = CircuitData(self._data.qubits, self._data.clbits)
         self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False
@@ -79,12 +79,14 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def qregs(self, qregs):
         """Set the quantum registers associated with the circuit."""
         self._qregs = []
-        self._qubits = []
         self._ancillas = []
         self._qubit_indices = {}
+        self._data = CircuitData(clbits=self._data.clbits)
+        self._parameter_table = ParameterTable()
+        self.global_phase = 0
+        self._is_built = False
 
         self.add_register(*qregs)
-        self._invalidate()
 
     @property
     def data(self):

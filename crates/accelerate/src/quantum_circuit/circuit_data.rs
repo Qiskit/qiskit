@@ -13,29 +13,72 @@
 use crate::quantum_circuit::circuit_data::SliceOrInt::{Int, Slice};
 use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
+use crate::quantum_circuit::py_ext;
 use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyIterator, PyList, PySlice, PyTuple};
-use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
-use std::cmp::{max, min};
+use pyo3::types::{IntoPyDict, PyIterator, PyList, PySlice, PyString, PyTuple, PyType};
+use pyo3::{AsPyPointer, PyObject, PyResult, PyTraverseError, PyVisit};
+use std::hash::{Hash, Hasher};
 use std::iter::zip;
-use std::mem::swap;
 
 // Private type use to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
 struct InternedInstruction(Option<PyObject>, IndexType, IndexType);
+
+#[derive(Clone, Debug)]
+struct _NativeBit {
+    hash: isize,
+    id: u64,
+    bit: PyObject,
+}
+
+impl _NativeBit {
+    fn new(bit: &PyAny) -> PyResult<Self> {
+        Ok(_NativeBit {
+            hash: bit.hash()?,
+            id: bit.as_ptr() as u64,
+            bit: bit.into_py(bit.py()),
+        })
+    }
+}
+
+impl Hash for _NativeBit {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_isize(self.hash);
+    }
+}
+
+impl PartialEq for _NativeBit {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            || Python::with_gil(|py| {
+                self.bit
+                    .as_ref(py)
+                    .repr()
+                    .unwrap()
+                    .eq(other.bit.as_ref(py).repr().unwrap())
+                    .unwrap()
+            })
+    }
+}
+
+impl Eq for _NativeBit {}
 
 #[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     data: Vec<InternedInstruction>,
     intern_context: InternContext,
+    #[pyo3(get)]
     qubits: Py<PyList>,
+    #[pyo3(get)]
     clbits: Py<PyList>,
-    qubit_indices: Py<PyDict>,
-    clbit_indices: Py<PyDict>,
+    qubits_native: Vec<PyObject>,
+    clbits_native: Vec<PyObject>,
+    qubit_indices_native: HashMap<_NativeBit, u32>,
+    clbit_indices_native: HashMap<_NativeBit, u32>,
 }
 
 #[derive(FromPyObject)]
@@ -47,20 +90,70 @@ pub enum SliceOrInt<'a> {
 #[pymethods]
 impl CircuitData {
     #[new]
+    #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0))]
     pub fn new(
-        qubits: Py<PyList>,
-        clbits: Py<PyList>,
-        qubit_indices: Py<PyDict>,
-        clbit_indices: Py<PyDict>,
+        py: Python<'_>,
+        qubits: Option<&PyAny>,
+        clbits: Option<&PyAny>,
+        data: Option<&PyAny>,
+        reserve: usize,
     ) -> PyResult<Self> {
-        Ok(CircuitData {
-            data: Vec::new(),
+        let mut self_ = CircuitData {
+            data: if reserve > 0 {
+                Vec::with_capacity(reserve)
+            } else {
+                Vec::new()
+            },
             intern_context: InternContext::new(),
-            qubits,
-            clbits,
-            qubit_indices,
-            clbit_indices,
-        })
+            qubits: PyList::empty(py).into_py(py),
+            clbits: PyList::empty(py).into_py(py),
+            qubits_native: Vec::new(),
+            clbits_native: Vec::new(),
+            qubit_indices_native: HashMap::new(),
+            clbit_indices_native: HashMap::new(),
+        };
+        if let Some(qubits) = qubits {
+            for bit in qubits.iter()? {
+                self_.add_qubit(py, bit?)?;
+            }
+        }
+        if let Some(clbits) = clbits {
+            for bit in clbits.iter()? {
+                self_.add_clbit(py, bit?)?;
+            }
+        }
+        if let Some(data) = data {
+            self_.extend(py, data)?;
+        }
+        Ok(self_)
+    }
+
+    pub fn __reduce__(self_: &PyCell<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
+        let ty: &PyType = self_.get_type();
+        let args = {
+            let self_ = self_.borrow();
+            (
+                self_.qubits.clone_ref(py),
+                self_.clbits.clone_ref(py),
+                None::<()>,
+                self_.data.len(),
+            )
+        };
+        Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
+    }
+
+    pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
+        let idx = self.qubits_native.len() as u32;
+        self.qubit_indices_native.insert(_NativeBit::new(bit)?, idx);
+        self.qubits_native.push(bit.into_py(py));
+        self.qubits.as_ref(py).append(bit)
+    }
+
+    pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
+        let idx = self.clbits_native.len() as u32;
+        self.clbit_indices_native.insert(_NativeBit::new(bit)?, idx);
+        self.clbits_native.push(bit.into_py(py));
+        self.clbits.as_ref(py).append(bit)
     }
 
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
@@ -71,8 +164,10 @@ impl CircuitData {
             intern_context: self.intern_context.clone(),
             qubits: self.qubits.clone_ref(py),
             clbits: self.clbits.clone_ref(py),
-            qubit_indices: self.qubit_indices.clone_ref(py),
-            clbit_indices: self.clbit_indices.clone_ref(py),
+            qubits_native: self.qubits_native.clone(),
+            clbits_native: self.clbits_native.clone(),
+            qubit_indices_native: self.qubit_indices_native.clone(),
+            clbit_indices_native: self.clbit_indices_native.clone(),
         })
     }
 
@@ -81,47 +176,55 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__(&self, py: Python<'_>, index: SliceOrInt) -> PyResult<PyObject> {
-        match index {
-            Slice(slice) => {
-                let slice = self.convert_py_slice(py, slice)?;
-                let result = slice
-                    .into_iter()
-                    .map(|i| self.__getitem__(py, Int(i)))
-                    .collect::<PyResult<Vec<PyObject>>>()?;
-                Ok(result.into_py(py))
+    pub fn __getitem__<'py>(&self, py: Python<'py>, index: &PyAny) -> PyResult<PyObject> {
+        fn get_at(
+            self_: &CircuitData,
+            py: Python<'_>,
+            index: isize,
+        ) -> PyResult<Py<CircuitInstruction>> {
+            let index = self_.convert_py_index(index, IndexFor::Lookup)?;
+            if let Some(InternedInstruction(op, qargs_slot, cargs_slot)) = self_.data.get(index) {
+                Py::new(
+                    py,
+                    CircuitInstruction {
+                        operation: op.as_ref().unwrap().clone_ref(py),
+                        qubits: py_ext::tuple_new(
+                            py,
+                            self_
+                                .intern_context
+                                .lookup(*qargs_slot)
+                                .iter()
+                                .map(|i| self_.qubits_native[*i as usize].clone_ref(py))
+                                .collect(),
+                        ),
+                        clbits: py_ext::tuple_new(
+                            py,
+                            self_
+                                .intern_context
+                                .lookup(*cargs_slot)
+                                .iter()
+                                .map(|i| self_.clbits_native[*i as usize].clone_ref(py))
+                                .collect(),
+                        ),
+                    },
+                )
+            } else {
+                Err(PyIndexError::new_err(format!(
+                    "No element at index {:?} in circuit data",
+                    index
+                )))
             }
-            Int(index) => {
-                let index = self.convert_py_index(index, IndexFor::Lookup)?;
-                let extract_args =
-                    |bits: &PyList, args: &Vec<BitType>| -> PyResult<Vec<PyObject>> {
-                        args.iter()
-                            .map(|i| bits.get_item(*i as usize).map(|x| x.into()))
-                            .collect()
-                    };
+        }
 
-                if let Some(InternedInstruction(op, qargs_slot, cargs_slot)) = self.data.get(index)
-                {
-                    let qargs = self.intern_context.lookup(*qargs_slot);
-                    let cargs = self.intern_context.lookup(*cargs_slot);
-                    Py::new(
-                        py,
-                        CircuitInstruction {
-                            operation: op.as_ref().unwrap().clone_ref(py),
-                            qubits: PyTuple::new(py, extract_args(self.qubits.as_ref(py), qargs)?)
-                                .into_py(py),
-                            clbits: PyTuple::new(py, extract_args(self.clbits.as_ref(py), cargs)?)
-                                .into_py(py),
-                        },
-                    )
-                    .map(|i| i.into_py(py))
-                } else {
-                    Err(PyIndexError::new_err(format!(
-                        "No element at index {:?} in circuit data",
-                        index
-                    )))
-                }
-            }
+        if index.is_exact_instance_of::<PySlice>() {
+            let slice = self.convert_py_slice(py, index.downcast_exact::<PySlice>()?)?;
+            let result = slice
+                .into_iter()
+                .map(|i| get_at(self, py, i))
+                .collect::<PyResult<Vec<_>>>()?;
+            Ok(result.into_py(py))
+        } else {
+            Ok(get_at(self, py, index.extract()?)?.into_py(py))
         }
     }
 
@@ -130,7 +233,7 @@ impl CircuitData {
             Slice(slice) => {
                 let slice = self.convert_py_slice(py, slice)?;
                 for (i, x) in slice.into_iter().enumerate() {
-                    self.__delitem__(py, Int(x - i))?;
+                    self.__delitem__(py, Int(x - i as isize))?;
                 }
                 Ok(())
             }
@@ -197,7 +300,7 @@ impl CircuitData {
                 let index = self.convert_py_index(index, IndexFor::Lookup)?;
                 let value: PyRef<CircuitInstruction> = value.extract()?;
                 let mut cached_entry = self.get_or_cache(py, value)?;
-                swap(&mut cached_entry, &mut self.data[index]);
+                std::mem::swap(&mut cached_entry, &mut self.data[index]);
                 Ok(())
             }
         }
@@ -215,21 +318,25 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn pop(&mut self, py: Python<'_>, index: Option<isize>) -> PyResult<PyObject> {
-        let index = index.unwrap_or_else(|| max(0, self.data.len() as isize - 1));
-        let item = self.__getitem__(py, Int(index))?;
-        self.__delitem__(py, Int(index))?;
+    pub fn pop(&mut self, py: Python<'_>, index: Option<PyObject>) -> PyResult<PyObject> {
+        let index =
+            index.unwrap_or_else(|| std::cmp::max(0, self.data.len() as isize - 1).into_py(py));
+        let item = self.__getitem__(py, index.as_ref(py))?;
+        self.__delitem__(py, index.as_ref(py).extract()?)?;
         Ok(item)
     }
 
     pub fn append(&mut self, py: Python<'_>, value: PyRef<CircuitInstruction>) -> PyResult<()> {
-        self.insert(py, self.data.len() as isize, value)
+        let cache_entry = self.get_or_cache(py, value)?;
+        self.data.push(cache_entry);
+        Ok(())
+    }
+
+    pub fn reserve(&mut self, _py: Python<'_>, additional: usize) {
+        self.data.reserve(additional);
     }
 
     pub fn extend(&mut self, py: Python<'_>, itr: &PyAny) -> PyResult<()> {
-        // if let Ok(len) = itr.len() {
-        //     self.data.reserve(len);
-        // }
         let itr: Py<PyIterator> = itr.iter()?.into_py(py);
         loop {
             // Create a new pool, so that PyO3 can clear memory at the end of the loop.
@@ -253,9 +360,26 @@ impl CircuitData {
 
     pub fn clear(&mut self, _py: Python<'_>) -> PyResult<()> {
         let mut to_drop = vec![];
-        swap(&mut self.data, &mut to_drop);
+        std::mem::swap(&mut self.data, &mut to_drop);
         Ok(())
     }
+
+    // TODO: consider finishing impl to speed up circuit_to_instruction.py
+    // pub fn iter_remap(&self, py: Python<'_>, qubits: Py<PyList>, clbits: Py<PyList>) -> PyResult<Py<PyIterator>> {
+    //     let data: Py<CircuitData> = Py::new(py, CircuitData {
+    //         data: self.data.clone(),
+    //         // TODO: reuse intern context once concurrency is properly
+    //         //  handled.
+    //         intern_context: self.intern_context.clone(),
+    //         qubits,
+    //         clbits,
+    //         qubit_indices: self.qubit_indices.clone_ref(py),
+    //         clbit_indices: self.clbit_indices.clone_ref(py),
+    //     })?;
+    //
+    //     let cell: &PyCell<CircuitData> = data.as_ref(py);
+    //     Ok(cell.iter()?.into_py(py))
+    // }
 
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
@@ -279,10 +403,12 @@ impl CircuitData {
                 visit.call(op)?;
             }
         }
+        for bit in self.qubits_native.iter().chain(self.clbits_native.iter()) {
+            visit.call(bit)?;
+        }
+
         visit.call(&self.qubits)?;
         visit.call(&self.clbits)?;
-        visit.call(&self.qubit_indices)?;
-        visit.call(&self.clbit_indices)?;
         Ok(())
     }
 
@@ -291,6 +417,8 @@ impl CircuitData {
         for inst in self.data.iter_mut() {
             inst.0 = None;
         }
+        self.qubits_native.clear();
+        self.clbits_native.clear();
     }
 }
 
@@ -328,7 +456,7 @@ impl CircuitData {
                 }
                 index
             }
-            IndexFor::Insertion => min(max(0, index), self.data.len() as isize),
+            IndexFor::Insertion => std::cmp::min(std::cmp::max(0, index), self.data.len() as isize),
         };
         Ok(index as usize)
     }
@@ -368,22 +496,22 @@ impl CircuitData {
         py: Python<'_>,
         elem: PyRef<CircuitInstruction>,
     ) -> PyResult<InternedInstruction> {
-        let mut cache_args = |indices: &PyDict, bits: &PyTuple| -> PyResult<IndexType> {
-            let args = bits
-                .into_iter()
-                .map(|b| {
-                    let py_idx = indices.as_ref().get_item(b)?;
-                    let bit_locations = py_idx.extract::<(BitType, PyObject)>()?;
-                    Ok(bit_locations.0)
-                })
-                .collect::<PyResult<Vec<BitType>>>()?;
-            Ok(self.intern_context.intern(args))
-        };
-
+        // TODO: raise error if bit is not in self
+        let mut cache_args =
+            |indices: &HashMap<_NativeBit, u32>, bits: &PyTuple| -> PyResult<IndexType> {
+                let args = bits
+                    .into_iter()
+                    .map(|b| {
+                        let native = _NativeBit::new(b)?;
+                        Ok(indices[&native])
+                    })
+                    .collect::<PyResult<Vec<BitType>>>()?;
+                Ok(self.intern_context.intern(args))
+            };
         Ok(InternedInstruction(
             Some(elem.operation.clone_ref(py)),
-            cache_args(self.qubit_indices.as_ref(py), elem.qubits.as_ref(py))?,
-            cache_args(self.clbit_indices.as_ref(py), elem.clbits.as_ref(py))?,
+            cache_args(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
+            cache_args(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
         ))
     }
 }

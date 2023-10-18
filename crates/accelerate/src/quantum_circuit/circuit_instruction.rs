@@ -10,9 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::quantum_circuit::py_ext;
 use pyo3::basic::CompareOp;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyList, PyTuple};
 use pyo3::{PyObject, PyResult};
 
 #[pyclass(
@@ -39,15 +40,21 @@ impl CircuitInstruction {
     ) -> PyResult<Self> {
         fn as_tuple(py: Python<'_>, seq: Option<&PyAny>) -> PyResult<Py<PyTuple>> {
             match seq {
-                None => Ok(PyTuple::empty(py).into_py(py)),
+                None => Ok(py_ext::tuple_new_empty(py)),
                 Some(seq) => {
                     if seq.is_instance_of::<PyTuple>() {
-                        Ok(seq.extract::<Py<PyTuple>>()?)
+                        Ok(seq.downcast_exact::<PyTuple>()?.into_py(py))
+                    } else if seq.is_instance_of::<PyList>() {
+                        let seq = seq.downcast_exact::<PyList>()?;
+                        Ok(py_ext::tuple_from_list(seq))
                     } else {
-                        Ok(
-                            PyTuple::new(py, seq.iter()?.collect::<PyResult<Vec<&PyAny>>>()?)
-                                .into_py(py),
-                        )
+                        // New tuple from iterable.
+                        Ok(py_ext::tuple_new(
+                            py,
+                            seq.iter()?
+                                .map(|o| Ok(o?.into_py(py)))
+                                .collect::<PyResult<Vec<PyObject>>>()?,
+                        ))
                     }
                 }
             }

@@ -249,9 +249,6 @@ class QuantumCircuit:
         if not hasattr(type(self), "cregs"):
             self.cregs: list[ClassicalRegister] = []
 
-        self._qubits: list[Qubit] = []
-        self._clbits: list[Clbit] = []
-
         # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
@@ -261,7 +258,7 @@ class QuantumCircuit:
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
-        self._data: CircuitData = self._new_data()
+        self._data: CircuitData = CircuitData()
 
         self._ancillas: list[AncillaQubit] = []
         self._calibrations: DefaultDict[str, dict[tuple, Any]] = defaultdict(dict)
@@ -280,17 +277,6 @@ class QuantumCircuit:
         self.duration = None
         self.unit = "dt"
         self.metadata = {} if metadata is None else metadata
-
-    def _new_data(self, iterable: Iterable[CircuitInstruction] = ()):
-        data = CircuitData(
-            self._qubits,
-            self._clbits,
-            self._qubit_indices,
-            self._clbit_indices,
-        )
-        if iterable != ():
-            data.extend(iterable)
-        return data
 
     @staticmethod
     def from_instructions(
@@ -404,8 +390,11 @@ class QuantumCircuit:
         """
         # If data_input is QuantumCircuitData(self), clearing self._data
         # below will also empty data_input, so make a shallow copy first.
-        data_input = list(data_input)
-        self._data = self._new_data()
+        if isinstance(data_input, CircuitData):
+            data_input = data_input.copy()
+        else:
+            data_input = list(data_input)
+        self._data.clear()
         self._parameter_table = ParameterTable()
         if not data_input:
             return
@@ -538,21 +527,13 @@ class QuantumCircuit:
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
-        result._data = result._new_data(
-            (i.replace(operation=copy.deepcopy(i.operation, memo)) for i in self._data)
+        result._data = CircuitData(
+            copy.deepcopy(self._data.qubits, memo),
+            copy.deepcopy(self._data.clbits, memo),
+            (i.replace(operation=copy.deepcopy(i.operation, memo)) for i in self._data),
+            reserve=len(self._data),
         )
         return result
-
-    def __getstate__(self):
-        # Rust's CircuitData is not picklable, so we unpack it into a list first.
-        state = self.__dict__.copy()
-        state["_data"] = list(self._data)
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-        data = self._new_data(self._data)
-        self._data = data
 
     @classmethod
     def _increment_instances(cls):
@@ -1001,7 +982,7 @@ class QuantumCircuit:
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
         )
-        mapped_instrs: CircuitData = dest._new_data()
+        mapped_instrs: CircuitData = CircuitData(dest.qubits, dest.clbits, reserve=len(other.data))
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
@@ -1125,14 +1106,14 @@ class QuantumCircuit:
         """
         Returns a list of quantum bits in the order that the registers were added.
         """
-        return self._qubits
+        return self._data.qubits
 
     @property
     def clbits(self) -> list[Clbit]:
         """
         Returns a list of classical bits in the order that the registers were added.
         """
-        return self._clbits
+        return self._data.clbits
 
     @property
     def ancillas(self) -> list[AncillaQubit]:
@@ -1248,7 +1229,7 @@ class QuantumCircuit:
             return specifier
         if isinstance(specifier, int):
             try:
-                return self._clbits[specifier]
+                return self._data.clbits[specifier]
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
@@ -1486,9 +1467,9 @@ class QuantumCircuit:
                     if bit in self._qubit_indices:
                         self._qubit_indices[bit].registers.append((register, idx))
                     else:
-                        self._qubits.append(bit)
+                        self._data.add_qubit(bit)
                         self._qubit_indices[bit] = BitLocations(
-                            len(self._qubits) - 1, [(register, idx)]
+                            len(self._data.qubits) - 1, [(register, idx)]
                         )
 
             elif isinstance(register, ClassicalRegister):
@@ -1498,9 +1479,9 @@ class QuantumCircuit:
                     if bit in self._clbit_indices:
                         self._clbit_indices[bit].registers.append((register, idx))
                     else:
-                        self._clbits.append(bit)
+                        self._data.add_clbit(bit)
                         self._clbit_indices[bit] = BitLocations(
-                            len(self._clbits) - 1, [(register, idx)]
+                            len(self._data.clbits) - 1, [(register, idx)]
                         )
 
             elif isinstance(register, list):
@@ -1518,11 +1499,11 @@ class QuantumCircuit:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
-                self._qubits.append(bit)
-                self._qubit_indices[bit] = BitLocations(len(self._qubits) - 1, [])
+                self._data.add_qubit(bit)
+                self._qubit_indices[bit] = BitLocations(len(self._data.qubits) - 1, [])
             elif isinstance(bit, Clbit):
-                self._clbits.append(bit)
-                self._clbit_indices[bit] = BitLocations(len(self._clbits) - 1, [])
+                self._data.add_clbit(bit)
+                self._clbit_indices[bit] = BitLocations(len(self._data.clbits) - 1, [])
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
@@ -2146,6 +2127,7 @@ class QuantumCircuit:
             }
         )
 
+        cpy._data.reserve(len(self._data))
         cpy._data.extend(
             (
                 instruction.replace(operation=operation_copies[id(instruction.operation)])
@@ -2177,14 +2159,12 @@ class QuantumCircuit:
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
-        cpy._qubits = self._qubits.copy()
         cpy._ancillas = self._ancillas.copy()
-        cpy._clbits = self._clbits.copy()
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
 
         cpy._parameter_table = ParameterTable()
-        cpy._data = cpy._new_data()
+        cpy._data = CircuitData(self._data.qubits, self._data.clbits)
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)
@@ -2417,12 +2397,15 @@ class QuantumCircuit:
 
         # Filter only cregs/clbits still in new DAG, preserving original circuit order
         cregs_to_add = [creg for creg in circ.cregs if creg in kept_cregs]
-        clbits_to_add = [clbit for clbit in circ._clbits if clbit in kept_clbits]
+        clbits_to_add = [clbit for clbit in circ._data.clbits if clbit in kept_clbits]
 
         # Clear cregs and clbits
         circ.cregs = []
-        circ._clbits = []
         circ._clbit_indices = {}
+
+        # Clear instruction info
+        circ._data = CircuitData(qubits=circ._data.qubits, reserve=len(circ._data))
+        circ._parameter_table.clear()
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
@@ -2430,10 +2413,6 @@ class QuantumCircuit:
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
             circ.add_register(creg)
-
-        # Clear instruction info
-        circ.data.clear()
-        circ._parameter_table.clear()
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():

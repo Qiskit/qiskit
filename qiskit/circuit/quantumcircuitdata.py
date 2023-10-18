@@ -246,6 +246,7 @@ class QuantumCircuitData(MutableSequence):
         data = list(self._circuit._data)
         data.sort(*args, **kwargs)
         self._circuit._data.clear()
+        self._circuit._data.reserve(len(data))
         self._circuit._data.extend(data)
 
     def copy(self):

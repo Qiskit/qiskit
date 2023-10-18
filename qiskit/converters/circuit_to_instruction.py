@@ -104,31 +104,30 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     #       can't we skip the need to adjust the bit mappings? We can just
     #       copy CircuitData but replace the {qubits,clbits} and
     #       {qubit,clbit}_indices with the canonical regs, right?
-    def definition():
-        for instruction in target.data:
-            rule = instruction.replace(
-                qubits=[qubit_map[y] for y in instruction.qubits],
-                clbits=[clbit_map[y] for y in instruction.clbits],
-            )
-
-            # fix condition
-            condition = getattr(rule.operation, "condition", None)
-            if condition:
-                reg, val = condition
-                if isinstance(reg, Clbit):
-                    rule = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
-                elif reg.size == c.size:
-                    rule = rule.replace(operation=rule.operation.c_if(c, val))
-                else:
-                    raise QiskitError(
-                        "Cannot convert condition in circuit with "
-                        "multiple classical registers to instruction"
-                    )
-            yield rule
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
-    for i in definition():
-        qc._append(i)
+    qc._data.reserve(len(target.data))
+    for instruction in target._data:
+        rule = instruction.replace(
+            qubits=[qubit_map[y] for y in instruction.qubits],
+            clbits=[clbit_map[y] for y in instruction.clbits],
+        )
+
+        # fix condition
+        condition = getattr(rule.operation, "condition", None)
+        if condition:
+            reg, val = condition
+            if isinstance(reg, Clbit):
+                rule = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
+            elif reg.size == c.size:
+                rule = rule.replace(operation=rule.operation.c_if(c, val))
+            else:
+                raise QiskitError(
+                    "Cannot convert condition in circuit with "
+                    "multiple classical registers to instruction"
+                )
+        qc._append(rule)
+
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
 
