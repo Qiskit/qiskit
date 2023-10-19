@@ -121,7 +121,8 @@ class HighLevelSynthesis(TransformationPass):
     custom gates.
 
     In the most common use-case when either ``basis_gates`` or ``target`` is specified,
-    all higher-level objects are synthesized, so the output is a DAG without such objects.
+    all higher-level objects are synthesized, so the output is a :class:`.DAGCircuit`
+    without such objects.
     More precisely, every gate in the output DAG is either directly supported by the target,
     or is in ``equivalence_library``.
 
@@ -164,7 +165,6 @@ class HighLevelSynthesis(TransformationPass):
         equivalence_library: Optional[EquivalenceLibrary] = None,
         basis_gates: Optional[List[str]] = None,
         min_qubits: int = 0,
-        top_level_only: bool = False,
     ):
         """
         HighLevelSynthesis initializer.
@@ -185,7 +185,6 @@ class HighLevelSynthesis(TransformationPass):
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
-            top_level_only: if True, does not recursively process gates' ``definitions``.
         """
         super().__init__()
 
@@ -206,9 +205,7 @@ class HighLevelSynthesis(TransformationPass):
         self._basis_gates = basis_gates
         self._min_qubits = min_qubits
 
-        self._top_level_only = top_level_only
-        if self._basis_gates is None and self._target is None:
-            self._top_level_only = True
+        self._top_level_only = self._basis_gates is None and self._target is None
 
         if not self._top_level_only and self._target is None:
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
