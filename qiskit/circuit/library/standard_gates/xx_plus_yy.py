@@ -87,6 +87,9 @@ class XXPlusYYGate(Gate):
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
         label: Optional[str] = "(XX+YY)",
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new XX+YY gate.
 
@@ -95,7 +98,7 @@ class XXPlusYYGate(Gate):
             beta: The phase angle.
             label: The label of the gate.
         """
-        super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
+        super().__init__("xx_plus_yy", 2, [theta, beta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

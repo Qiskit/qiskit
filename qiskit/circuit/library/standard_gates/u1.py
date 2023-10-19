@@ -92,9 +92,11 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta: ParameterValueType, label: str | None = None):
+    def __init__(
+        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
+    ):
         """Create new U1 gate."""
-        super().__init__("u1", 1, [theta], label=label)
+        super().__init__("u1", 1, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -189,6 +191,10 @@ class CU1Gate(ControlledGate):
         theta: ParameterValueType,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CU1 gate."""
         super().__init__(
@@ -198,7 +204,9 @@ class CU1Gate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=U1Gate(theta),
+            base_gate=U1Gate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -303,6 +311,10 @@ class MCU1Gate(ControlledGate):
         num_ctrl_qubits: int,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new MCU1 gate."""
         super().__init__(
@@ -312,7 +324,9 @@ class MCU1Gate(ControlledGate):
             num_ctrl_qubits=num_ctrl_qubits,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=U1Gate(lam),
+            base_gate=U1Gate(lam, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):

@@ -59,7 +59,7 @@ class SGate(SingletonGate):
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label, duration=None, unit="dt")
+        super().__init__("s", 1, [], label=label, duration=duration, unit=unit)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
@@ -124,7 +124,7 @@ class SdgGate(SingletonGate):
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label, duration=None, unit="dt")
+        super().__init__("sdg", 1, [], label=label, duration=duration, unit=unit)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
