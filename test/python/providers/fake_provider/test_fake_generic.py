@@ -12,100 +12,91 @@
 
 """ Test of FakeGeneric backend"""
 from qiskit.providers.fake_provider import FakeGeneric
+from qiskit.providers.fake_provider.fake_generic import GenericTarget
+from qiskit.transpiler import CouplingMap
+
 from qiskit.test import QiskitTestCase
+
+
+class TestGenericTarget(QiskitTestCase):
+    """Test class for GenericTarget"""
+
+    def setUp(self):
+        super().setUp()
+        self.cmap = CouplingMap(
+            [(0, 2), (0, 1), (1, 3), (2, 4), (2, 3), (3, 5), (4, 6), (4, 5), (5, 7), (6, 7)]
+        )
+        self.basis_gates = ["cx", "id", "rz", "sx", "x"]
+
+    def test_supported_basis_gates(self):
+        """Test that target raises error if basis_gate not in ``supported_names``."""
+        with self.assertRaises(ValueError):
+            GenericTarget(
+                num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"], coupling_map=self.cmap
+            )
+
+    def test_operation_names(self):
+        """Test that target basis gates include "delay", "measure" and "reset" even
+        if not provided by user."""
+        target = GenericTarget(
+            num_qubits=8, basis_gates=["ecr", "id", "rz", "sx", "x"], coupling_map=self.cmap
+        )
+        op_names = list(target.operation_names)
+        op_names.sort()
+        self.assertEqual(op_names, ["delay", "ecr", "id", "measure", "reset", "rz", "sx", "x"])
+
+    def test_incompatible_coupling_map(self):
+        """Test that the size of the coupling map must match num_qubits."""
+        with self.assertRaises(ValueError):
+            FakeGeneric(
+                num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=self.cmap
+            )
+
+    def test_control_flow_operation_names(self):
+        """Test that control flow instructions are added to the target if control_flow is True."""
+        target = GenericTarget(
+            num_qubits=8,
+            basis_gates=["ecr", "id", "rz", "sx", "x"],
+            coupling_map=self.cmap,
+            control_flow=True,
+        )
+        op_names = list(target.operation_names)
+        op_names.sort()
+        reference = [
+            "break",
+            "continue",
+            "delay",
+            "ecr",
+            "for_loop",
+            "id",
+            "if_else",
+            "measure",
+            "reset",
+            "rz",
+            "switch_case",
+            "sx",
+            "while_loop",
+            "x",
+        ]
+        self.assertEqual(op_names, reference)
 
 
 class TestFakeGeneric(QiskitTestCase):
     """Test class for FakeGeneric backend"""
 
-    def test_heavy_hex_num_qubits(self):
-        """Test if num_qubits=5 and coupling_map_type
-        is heavy_hex the number of qubits generated is 19."""
-        self.assertEqual(FakeGeneric(num_qubits=5, coupling_map_type="heavy_hex").num_qubits, 19)
+    def test_default_coupling_map(self):
+        """Test that fully-connected coupling map is generated correctly."""
 
-    def test_heavy_hex_coupling_map(self):
-        """Test if coupling_map of heavy_hex is generated correctly."""
-        cp_mp = [
-            (0, 13),
-            (1, 13),
-            (1, 14),
-            (2, 14),
-            (3, 15),
-            (4, 15),
-            (4, 16),
-            (5, 16),
-            (6, 17),
-            (7, 17),
-            (7, 18),
-            (8, 18),
-            (0, 9),
-            (3, 9),
-            (5, 12),
-            (8, 12),
-            (10, 14),
-            (10, 16),
-            (11, 15),
-            (11, 17),
-        ]
+        # fmt: off
+        reference_cmap = [(0, 1), (1, 0), (0, 2), (2, 0), (0, 3), (3, 0), (0, 4), (4, 0), (1, 2), (2, 1),
+                          (1, 3), (3, 1), (1, 4), (4, 1), (2, 3), (3, 2), (2, 4), (4, 2), (3, 4), (4, 3)]
+        # fmt: on
+
         self.assertEqual(
             list(
-                FakeGeneric(num_qubits=19, coupling_map_type="heavy_hex").coupling_map.get_edges()
+                FakeGeneric(
+                    num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"]
+                ).coupling_map.get_edges()
             ),
-            cp_mp,
+            reference_cmap,
         )
-
-    def test_grid_coupling_map(self):
-        """Test if grid coupling map is generated correctly.
-        In this test num_qubits=8, so a grid of 2x4 qubits need to be constructed"""
-        cp_mp = [(0, 2), (0, 1), (1, 3), (2, 4), (2, 3), (3, 5), (4, 6), (4, 5), (5, 7), (6, 7)]
-        self.assertEqual(
-            list(FakeGeneric(num_qubits=8, coupling_map_type="grid").coupling_map.get_edges()),
-            cp_mp,
-        )
-
-    def test_basis_gates(self):
-        """Test if the backend has default basis gates that include delay and measure"""
-        self.assertEqual(
-            FakeGeneric(num_qubits=8).operation_names,
-            ["ecr", "id", "rz", "sx", "x", "delay", "measure", "reset"],
-        )
-
-    def test_if_cx_replaced_with_ecr(self):
-        """Test if cx is not replaced with ecr"""
-        self.assertEqual(
-            FakeGeneric(num_qubits=8, replace_cx_with_ecr=False).operation_names,
-            ["cx", "id", "rz", "sx", "x", "delay", "measure", "reset"],
-        )
-
-    def test_dynamic_true_basis_gates(self):
-        """Test if basis_gates includes ControlFlowOps when dynamic is set to True"""
-        self.assertEqual(
-            FakeGeneric(num_qubits=9, dynamic=True).operation_names,
-            [
-                "ecr",
-                "id",
-                "rz",
-                "sx",
-                "x",
-                "delay",
-                "measure",
-                "if_else",
-                "while_loop",
-                "for_loop",
-                "switch_case",
-                "break",
-                "continue",
-                "reset",
-            ],
-        )
-
-    def test_if_excludes_reset(self):
-        """Test if reset is excluded from the operation names when set enable_reset False"""
-        self.assertEqual(
-            FakeGeneric(num_qubits=9, enable_reset=False).operation_names,
-            ["ecr", "id", "rz", "sx", "x", "delay", "measure"],
-        )
-
-    def test_if_dt_is_set_correctly(self):
-        """Test if dt is set correctly"""
-        self.assertEqual(FakeGeneric(num_qubits=4, dt=0.5e-9).dt, 0.5e-9)

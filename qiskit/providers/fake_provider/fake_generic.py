@@ -63,7 +63,7 @@ class GenericTarget(Target):
 
             basis_gates (list[str]): List of basis gate names to be supported by
                 the target. The currently supported instructions can be consulted via
-                the ``supported_instructions`` property.
+                the ``supported_names`` property.
                 Common sets of basis gates are ``{"cx", "id", "rz", "sx", "x"}``
                 and ``{"ecr", "id", "rz", "sx", "x"}``.
 
@@ -81,6 +81,13 @@ class GenericTarget(Target):
         """
         self._rng = rng if rng else np.random.default_rng(seed=42)
         self._num_qubits = num_qubits
+
+        if coupling_map.size() != num_qubits:
+            raise ValueError(
+                f"The number of qubits in the coupling map "
+                f"({coupling_map.size()}) does not match the "
+                f"number of qubits defined in the target ({num_qubits})."
+            )
         self._coupling_map = coupling_map
 
         # hardcode default target attributes. To modify,
@@ -101,19 +108,20 @@ class GenericTarget(Target):
         )
 
         # ensure that reset, delay and measure are in basis_gates
-        self._basis_gates = set(basis_gates)
-        for name in {"reset", "delay", "measure"}:
-            self._basis_gates.add(name)
+        basis_gates = set(basis_gates)
+        for name in ["delay", "measure", "reset"]:
+            basis_gates.add(name)
+        self._basis_gates = basis_gates
 
         # iterate over gates, generate noise params from defaults
         # and add instructions to target
         for name in self._basis_gates:
-            if name not in self.supported_instructions:
-                raise QiskitError(
+            if name not in self.supported_names:
+                raise ValueError(
                     f"Provided base gate {name} is not a supported "
-                    f"instruction ({self.supported_instructions})."
+                    f"instruction ({self.supported_names})."
                 )
-            gate = self.supported_instructions[name]
+            gate = self.supported_names[name]
             noise_params = self.noise_defaults[name]
             self.add_noisy_instruction(gate, noise_params)
 
@@ -131,7 +139,7 @@ class GenericTarget(Target):
             self.add_calibration_defaults(defaults)
 
     @property
-    def supported_instructions(self) -> dict[str, Instruction]:
+    def supported_names(self) -> dict[str, Instruction]:
         """Mapping of names to class instances for instructions supported
         in ``basis_gates``.
 
