@@ -594,7 +594,7 @@ def _legacy_build_flow_controller(
         "Building a flow controller with keyword arguments is going to be deprecated. "
         "Custom controllers must be explicitly instantiated and appended to the task list.",
         PendingDeprecationWarning,
-        stacklevel=2,
+        stacklevel=3,
     )
     if isinstance(tasks, Task):
         tasks = [tasks]
