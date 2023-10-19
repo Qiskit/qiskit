@@ -576,7 +576,7 @@ def plot_state_city(
             )
             positive_bars.set_facecolor(fc)
 
-        ax.set_title(f"{zlabel} Amplitude", fontsize=max_font_size)
+        ax.set_title(f"{zlabel} Amplitude (ρ)", fontsize=max_font_size)
 
         ax.set_xticks(np.arange(0.5, lx + 0.5, 1))
         ax.set_yticks(np.arange(0.5, ly + 0.5, 1))
