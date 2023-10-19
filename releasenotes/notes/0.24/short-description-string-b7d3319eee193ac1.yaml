@@ -1,0 +1,13 @@
+---
+critical:
+  - |
+    the function ``TemplateSubsititution`` has been used not only at
+    ``TemplateOptimization``, but also at the ``forward_match`` to match the
+    parameter of the circuit and templates. The duplicate use of this function
+    makes it slightly slower than the previous code. 
+fixes:
+  - |
+    Fixes the function ``TemplateOptimization`` to optimize circuits that 
+    match the pattern of template but do not match the parameter of some gates.
+    Refer to `#6974 <https://github.com/Qiskit/qiskit/issues/6974>` for more
+    specific example and details.
