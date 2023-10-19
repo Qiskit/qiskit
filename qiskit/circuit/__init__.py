@@ -279,6 +279,7 @@ Gates and Instructions
    InstructionSet
    Operation
    EquivalenceLibrary
+   TemplateLibrary
 
 Control Flow Operations
 -----------------------

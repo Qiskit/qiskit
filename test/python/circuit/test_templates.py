@@ -13,9 +13,7 @@
 """Tests for circuit templates."""
 
 import unittest
-from test import combine
 from inspect import getmembers, isfunction
-from ddt import ddt
 
 import numpy as np
 
@@ -24,8 +22,9 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
 
+from qiskit.circuit.library.standard_gates import TemplateLibrary
 
-@ddt
+
 class TestTemplates(QiskitTestCase):
     """Tests for the circuit templates."""
 
@@ -35,7 +34,8 @@ class TestTemplates(QiskitTestCase):
         if isinstance(circuit, QuantumCircuit):
             circuit.assign_parameters({param: 0.2 for param in circuit.parameters}, inplace=True)
 
-    @combine(template_circuit=circuits)
+    template_circuit = circuits
+
     def test_template(self, template_circuit):
         """test to verify that all templates are equivalent to the identity"""
 

@@ -454,6 +454,7 @@ http://dx.doi.org/10.1145/1278349.1278355
 .. autofunction:: template_nct_9d_10
 .. currentmodule:: qiskit.circuit.library
 
+   
 Clifford template circuits
 --------------------------
 
@@ -489,6 +490,15 @@ Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 .. autofunction:: rzx_zz1
 .. autofunction:: rzx_zz2
 .. autofunction:: rzx_zz3
+
+Template library
+--------------------------
+
+Existing Template circuits.
+
+.. autosummary::
+   :toctree: ../stubs/
+   TemplateLibrary
 
 """
 
@@ -577,3 +587,4 @@ from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
 from .evolved_operator_ansatz import EvolvedOperatorAnsatz
+from .standard_gates.templates import TemplateLibrary
