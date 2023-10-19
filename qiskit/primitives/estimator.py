@@ -18,6 +18,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 import typing
+from copy import copy
 
 import numpy as np
 
@@ -26,7 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .base import BaseEstimator, EstimatorResult
+from .base import BaseEstimator, EstimatorResult, validation
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -124,13 +125,20 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
 
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
-    def _run(
+    def run(
         self,
-        circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
-        parameter_values: tuple[tuple[float, ...], ...],
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ):
+        circuits, observables, parameter_values = validation.validate_estimator_args(
+            circuits, observables, parameter_values
+        )
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
+        # Whatever this is
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)
@@ -153,7 +161,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
                 self._observables.append(observable)
         job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+            self._call, circuit_indices, observable_indices, parameter_values, **run_opts
         )
         job.submit()
         return job

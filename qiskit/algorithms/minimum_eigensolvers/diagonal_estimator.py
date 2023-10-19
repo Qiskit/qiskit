@@ -16,13 +16,14 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence, Mapping
 from typing import Any
-
+from copy import copy
 from dataclasses import dataclass
 
 import numpy as np
 from qiskit.algorithms.algorithm_job import AlgorithmJob
 from qiskit.circuit import QuantumCircuit
 from qiskit.primitives import BaseSampler, BaseEstimator, EstimatorResult
+from qiskit.primitives.base import validation
 from qiskit.primitives.utils import init_observable, _circuit_key
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp
@@ -68,13 +69,19 @@ class _DiagonalEstimator(BaseEstimator):
         self._circuit_ids = {}
         self._observable_ids = {}
 
-    def _run(
+    def run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> AlgorithmJob:
+        circuits, observables, parameter_values = validation.validate_estimator_args(
+            circuits, observables, parameter_values
+        )
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)

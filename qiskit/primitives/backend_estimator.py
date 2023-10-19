@@ -18,6 +18,7 @@ from __future__ import annotations
 import typing
 from collections.abc import Sequence
 from itertools import accumulate
+from copy import copy
 
 import numpy as np
 
@@ -37,7 +38,7 @@ from qiskit.transpiler.passes import (
     SetLayout,
 )
 
-from .base import BaseEstimator, EstimatorResult
+from .base import BaseEstimator, EstimatorResult, validation
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
@@ -270,13 +271,19 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
 
         return self._postprocessing(result, accum, metadata)
 
-    def _run(
+    def run(
         self,
-        circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
-        parameter_values: tuple[tuple[float, ...], ...],
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ):
+        circuits, observables, parameter_values = validation.validate_estimator_args(
+            circuits, observables, parameter_values
+        )
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))
@@ -298,7 +305,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 self._observable_ids[_observable_key(observable)] = len(self._observables)
                 self._observables.append(observable)
         job = PrimitiveJob(
-            self._call, circuit_indices, observable_indices, parameter_values, **run_options
+            self._call, circuit_indices, observable_indices, parameter_values, **run_opts
         )
         job.submit()
         return job

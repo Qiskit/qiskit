@@ -15,6 +15,7 @@ Sampler class
 
 from __future__ import annotations
 
+from copy import copy
 from collections.abc import Sequence
 from typing import Any
 
@@ -25,7 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base import BaseSampler, SamplerResult
+from .base import BaseSampler, SamplerResult, validation
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -114,12 +115,16 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
 
         return SamplerResult(quasis, metadata)
 
-    def _run(
+    def run(
         self,
-        circuits: tuple[QuantumCircuit, ...],
-        parameter_values: tuple[tuple[float, ...], ...],
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ):
+        circuits, parameter_values = validation.validate_sampler_args(circuits, parameter_values)
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)
@@ -133,7 +138,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
                 self._parameters.append(circuit.parameters)
-        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
+        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_opts)
         job.submit()
         return job
 

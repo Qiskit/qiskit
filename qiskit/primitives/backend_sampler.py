@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+from copy import copy
 from collections.abc import Sequence
 from typing import Any
 
@@ -25,7 +26,7 @@ from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
 
 from .backend_estimator import _prepare_counts, _run_circuits
-from .base import BaseSampler, SamplerResult
+from .base import BaseSampler, SamplerResult, validation
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
 
@@ -187,12 +188,16 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 output = [output]
             return output
 
-    def _run(
+    def run(
         self,
-        circuits: tuple[QuantumCircuit, ...],
-        parameter_values: tuple[tuple[float, ...], ...],
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
     ):
+        circuits, parameter_values = validation.validate_sampler_args(circuits, parameter_values)
+        run_opts = copy(self.options)
+        run_opts.update_options(**run_options)
+
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))
@@ -203,6 +208,6 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._circuit_ids[_circuit_key(circuit)] = len(self._circuits)
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
-        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
+        job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_opts)
         job.submit()
         return job

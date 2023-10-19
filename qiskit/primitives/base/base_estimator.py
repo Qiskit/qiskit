@@ -80,11 +80,11 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 import typing
+import warnings
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -126,6 +126,16 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         self._observables = []
         self._parameters = []
         super().__init__(options)
+        # Raise warning if subclass doesn't override `run` method in anticipation of
+        # it becoming an `abstractmethod`
+        if self.run.__qualname__ == BaseEstimator.run.__qualname__:
+            warnings.warn(
+                "The `BaseEstimator.run` method being callable is deprecated as of Qiskit 0.46"
+                " and will be converted to an abstractmethod in Qiskit 1.0. Subclasses should"
+                " implement a `run` with the same signature and its own validation directly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def run(
         self,
@@ -186,7 +196,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             **run_opts.__dict__,
         )
 
-    @abstractmethod
+    @deprecate_func(since="0.46.0")
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],

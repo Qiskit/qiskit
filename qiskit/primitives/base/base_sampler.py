@@ -75,7 +75,7 @@ Here is an example of how sampler is used.
 
 from __future__ import annotations
 
-from abc import abstractmethod
+import warnings
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
@@ -112,6 +112,17 @@ class BaseSampler(BasePrimitive, Generic[T]):
         self._parameters = []
         super().__init__(options)
 
+        # Raise warning if subclass doesn't override `run` method in anticipation of
+        # it becoming an `abstractmethod`
+        if self.run.__qualname__ == BaseSampler.run.__qualname__:
+            warnings.warn(
+                "The `BaseSampler.run` method being callable is deprecated as of Qiskit 0.45"
+                " and will be converted to an abstractmethod in Qiskit 1.0. Subclasses should"
+                " implement a `run` with the same signature and its own validation directly.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
     def run(
         self,
         circuits: QuantumCircuit | Sequence[QuantumCircuit],
@@ -145,7 +156,10 @@ class BaseSampler(BasePrimitive, Generic[T]):
             **run_opts.__dict__,
         )
 
-    @abstractmethod
+    @deprecate_func(
+        since="0.46.0",
+        additional_msg="Implement a `run` method override instead.",
+    )
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],

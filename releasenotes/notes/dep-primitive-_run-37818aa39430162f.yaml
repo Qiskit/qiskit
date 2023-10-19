@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Deprecates the abstract methods :meth:`~.BaseEstimator._run` and
+    :meth:`~.BaseSampler._run` from the primitive base classes, and changes
+    them to raise a deprecation warning if a subclass do not implement its
+    own ``run`` method override. This is in anticipation of making
+    :meth:`~.BaseEstimator.run` and :meth:`~.BaseSampler.run` the abstract
+    run method instead.
