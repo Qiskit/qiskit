@@ -24,7 +24,6 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -219,7 +218,13 @@ def generate_unroll_3q(
     )
     unroll_3q.append(
         HighLevelSynthesis(
-            hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
+            hls_config=hls_config,
+            coupling_map=None,
+            target=target,
+            use_qubit_indices=False,
+            equivalence_library=sel,
+            basis_gates=basis_gates,
+            min_qubits=3,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -227,9 +232,6 @@ def generate_unroll_3q(
     if basis_gates is None and target is None:
         unroll_3q.append(Unroll3qOrMore(target, basis_gates))
     else:
-        unroll_3q.append(
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target, min_qubits=3)
-        )
         unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
     return unroll_3q
 
@@ -439,8 +441,9 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=basis_gates,
             ),
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
@@ -462,6 +465,8 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                basis_gates=basis_gates,
+                min_qubits=3,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
@@ -483,6 +488,7 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                basis_gates=basis_gates,
             ),
         ]
     else:
