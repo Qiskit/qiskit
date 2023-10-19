@@ -69,6 +69,8 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         """
 
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
         self._backend = backend
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager

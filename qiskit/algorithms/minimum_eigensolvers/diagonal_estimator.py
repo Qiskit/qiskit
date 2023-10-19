@@ -59,6 +59,10 @@ class _DiagonalEstimator(BaseEstimator):
 
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
+        self._observables = []
+
         self.sampler = sampler
         if not callable(aggregation):
             aggregation = _get_cvar_aggregation(aggregation)

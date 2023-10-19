@@ -129,6 +129,9 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 will be directly executed when this object is called.
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
+        self._observables = []
 
         self._abelian_grouping = abelian_grouping
 

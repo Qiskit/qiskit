@@ -75,6 +75,7 @@ Here is an example of how sampler is used.
 
 from __future__ import annotations
 
+import warnings
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
@@ -107,9 +108,25 @@ class BaseSampler(BasePrimitive, Generic[T]):
         Args:
             options: Default options.
         """
-        self._circuits = []
-        self._parameters = []
         super().__init__(options)
+
+    def __getattr__(self, name: str) -> any:
+        # Work around to enable deprecation of the init attributes in BaseSampler incase
+        # existing subclasses depend on them (which some do)
+        dep_defaults = {
+            "_circuits": [],
+            "_parameters": [],
+        }
+        if name in dep_defaults and not hasattr(self, name):
+            warnings.warn(
+                f"The init attribute `{name}` in BaseEstimator is deprecated as of Qiskit 0.46."
+                " To continue to use this attribute in a subclass and avoid this warning the"
+                " subclass should initialize it itself.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            setattr(self, name, dep_defaults[name])
+        return super().__getattr__(name)
 
     def run(
         self,
