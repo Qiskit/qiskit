@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in transpile, where when we are parsing through the initial layout,
+    it misses the case where the initial layout is a range of qubits. 
+    Fixed `#10544 <https://github.com/Qiskit/qiskit/issues/10554>`__.
