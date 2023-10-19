@@ -12,10 +12,18 @@
 
 """Algorithms Test Case"""
 
+import warnings
 from qiskit.test import QiskitTestCase
 
 
 class QiskitAlgorithmsTestCase(QiskitTestCase):
     """Algorithms test Case"""
 
-    pass
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        allow_dep_warning_message = [
+            r"Implicit conversion from a PauliList to a SparsePauliOp*",
+        ]
+        for msg in allow_dep_warning_message:
+            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
