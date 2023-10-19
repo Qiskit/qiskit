@@ -816,7 +816,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         self.assertEqual(Operator(qc1), Operator(transpiled1))
 
     def test_definition_with_annotations(self):
-        """Test annotated gates with definitions involving ather annotated gates.
+        """Test annotated gates with definitions involving another annotated gate.
         Note that passing basis_gates makes the pass recursive.
         """
         qc = QuantumCircuit(4)
