@@ -79,7 +79,7 @@ class PhaseGate(Gate):
         self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
     ):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label, duration=duration, unit="dt")
+        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
