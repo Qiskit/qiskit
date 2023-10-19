@@ -1673,6 +1673,7 @@ class QuantumCircuit:
         initial_state: bool = False,
         cregbundle: bool = None,
         wire_order: list = None,
+        expr_len: int = 30,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1709,15 +1710,15 @@ class QuantumCircuit:
                 then any style elements in the dict will replace the default values
                 in the input dict. A file to be loaded must end in ``.json``, but
                 the name entered here can omit ``.json``. For example,
-                ``style='iqx.json'`` or ``style='iqx'``.
+                ``style='iqp.json'`` or ``style='iqp'``.
                 If `style` is a dict and the ``'name'`` key is set, that name
                 will be used to load a json file, followed by loading the other
-                items in the style dict. For example, ``style={'name': 'iqx'}``.
+                items in the style dict. For example, ``style={'name': 'iqp'}``.
                 If `style` is not a str and `name` is not a key in the style dict,
                 then the default value from the user config file (usually
                 ``~/.qiskit/settings.conf``) will be used, for example,
-                ``circuit_mpl_style = iqx``.
-                If none of these are set, the `default` style will be used.
+                ``circuit_mpl_style = iqp``.
+                If none of these are set, the `clifford` style will be used.
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
@@ -1766,6 +1767,9 @@ class QuantumCircuit:
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (``num_qubits`` + ``num_clbits``).
+            expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+                is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1818,6 +1822,7 @@ class QuantumCircuit:
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=wire_order,
+            expr_len=expr_len,
         )
 
     def size(

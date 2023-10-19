@@ -14,6 +14,7 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from io import StringIO
 from warnings import warn
 from shutil import get_terminal_size
 import collections
@@ -26,6 +27,8 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3.printer import BasicPrinter
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -708,6 +711,7 @@ class TextDrawing:
         cregbundle=None,
         encoding=None,
         with_layout=False,
+        expr_len=30,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -726,6 +730,7 @@ class TextDrawing:
         self.plotbarriers = plotbarriers
         self.reverse_bits = reverse_bits
         self.line_length = line_length
+        self.expr_len = expr_len
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
@@ -762,6 +767,8 @@ class TextDrawing:
                 self.encoding = "utf8"
 
         self._nest_depth = 0  # nesting depth for control flow ops
+        self._expr_text = ""  # expression text to display
+        self._builder = None  # QASM3Builder class instance for expressions
 
         # Because jupyter calls both __repr__ and __repr_html__ for some backends,
         # the entire drawer can be run twice which can result in different output
@@ -987,7 +994,7 @@ class TextDrawing:
     def special_label(node):
         """Some instructions have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
-        node_type = type(node)
+        node_type = node.base_class
         return labels.get(node_type, None)
 
     @staticmethod
@@ -1289,6 +1296,26 @@ class TextDrawing:
     def add_control_flow(self, node, layers, wire_map):
         """Add control flow ops to the circuit drawing."""
 
+        if (isinstance(node.op, SwitchCaseOp) and isinstance(node.op.target, expr.Expr)) or (
+            getattr(node.op, "condition", None) and isinstance(node.op.condition, expr.Expr)
+        ):
+            condition = node.op.target if isinstance(node.op, SwitchCaseOp) else node.op.condition
+            if self._builder is None:
+                self._builder = QASM3Builder(
+                    self._circuit,
+                    includeslist=("stdgates.inc",),
+                    basis_gates=("U",),
+                    disable_constants=False,
+                    allow_aliasing=False,
+                )
+                self._builder.build_classical_declarations()
+            stream = StringIO()
+            BasicPrinter(stream, indent="  ").visit(self._builder.build_expression(condition))
+            self._expr_text = stream.getvalue()
+            # Truncate expr_text at 30 chars or user-set expr_len
+            if len(self._expr_text) > self.expr_len:
+                self._expr_text = self._expr_text[: self.expr_len] + "..."
+
         # # Draw a left box such as If, While, For, and Switch
         flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT)
         layers.append(flow_layer.full_layer)
@@ -1352,15 +1379,19 @@ class TextDrawing:
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
-        conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
+        op = node.op
+        conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
-            if isinstance(node.op, IfElseOp):
-                label = "If-" + depth
-            elif isinstance(node.op, WhileLoopOp):
-                label = "While-" + depth
-            elif isinstance(node.op, ForLoopOp):
-                indexset = node.op.params[0]
+            etext = ""
+            if self._expr_text:
+                etext = " " + self._expr_text
+            if isinstance(op, IfElseOp):
+                label = "If-" + depth + etext
+            elif isinstance(op, WhileLoopOp):
+                label = "While-" + depth + etext
+            elif isinstance(op, ForLoopOp):
+                indexset = op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
                 if "range" not in str(indexset) and len(indexset) > 4:
                     index_str = str(indexset[:4])
@@ -1369,13 +1400,13 @@ class TextDrawing:
                     index_str = str(indexset)
                 label = "For-" + depth + " " + index_str
             else:
-                label = "Switch-" + depth
+                label = "Switch-" + depth + etext
         elif section == CF_MID:
-            if isinstance(node.op, IfElseOp):
+            if isinstance(op, IfElseOp):
                 label = "Else-" + depth
             else:
                 jump_list = []
-                for jump_values, _ in list(node.op.cases_specifier()):
+                for jump_values, _ in list(op.cases_specifier()):
                     jump_list.append(jump_values)
 
                 if "default" in str(jump_list[circ_num][0]):

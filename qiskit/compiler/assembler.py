@@ -257,7 +257,7 @@ def _parse_common_args(
             - If ``shots`` are not int type.
             - If any of qubit or meas lo's, or associated ranges do not have length equal to
             ``n_qubits``.
-            - If qubit or meas lo's do not fit into perscribed ranges.
+            - If qubit or meas lo's do not fit into prescribed ranges.
     """
     # grab relevant info from backend if it exists
     backend_config = None

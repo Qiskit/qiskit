@@ -487,6 +487,18 @@ class TestDagApplyOperation(QiskitTestCase):
         self.assertEqual(len(list(self.dag.nodes())), 16)
         self.assertEqual(len(list(self.dag.edges())), 17)
 
+    def test_apply_operation_rejects_none(self):
+        """Test that the ``apply_operation_*`` methods warn when given ``None``."""
+        noop = Instruction("noop", 0, 0, [])
+        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
+            self.dag.apply_operation_back(noop, None, ())
+        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
+            self.dag.apply_operation_back(noop, (), None)
+        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
+            self.dag.apply_operation_front(noop, None, ())
+        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
+            self.dag.apply_operation_front(noop, (), None)
+
     def test_edges(self):
         """Test that DAGCircuit.edges() behaves as expected with ops."""
         x_gate = XGate().c_if(*self.condition)
@@ -2048,7 +2060,7 @@ class TestDagSubstitute(QiskitTestCase):
         base.add_qubits(base_qubits)
         base.add_clbits(base_clbits)
         base.apply_operation_back(HGate(), [base_qubits[0]], [])
-        conditioned = CZGate()
+        conditioned = CZGate().to_mutable()
         conditioned.condition = (base_clbits[0], True)
         target = base.apply_operation_back(conditioned, base_qubits, [])
         base.apply_operation_back(XGate(), [base_qubits[1]], [])
@@ -2063,7 +2075,7 @@ class TestDagSubstitute(QiskitTestCase):
         expected.add_clbits(base_clbits)
         expected.apply_operation_back(HGate(), [base_qubits[0]], [])
         expected.apply_operation_back(HGate(), [base_qubits[0]], [])
-        cx = CXGate()
+        cx = CXGate().to_mutable()
         cx.condition = (base_clbits[0], True)
         expected.apply_operation_back(cx, base_qubits, [])
         expected.apply_operation_back(HGate(), [base_qubits[0]], [])
@@ -2081,7 +2093,7 @@ class TestDagSubstitute(QiskitTestCase):
         base.add_qubits(base_qubits)
         base.add_creg(base_creg)
         base.apply_operation_back(HGate(), [base_qubits[0]], [])
-        conditioned = CZGate()
+        conditioned = CZGate().to_mutable()
         conditioned.condition = (base_creg, 3)
         target = base.apply_operation_back(conditioned, base_qubits, [])
         base.apply_operation_back(XGate(), [base_qubits[1]], [])
@@ -2096,7 +2108,7 @@ class TestDagSubstitute(QiskitTestCase):
         expected.add_creg(base_creg)
         expected.apply_operation_back(HGate(), [base_qubits[0]], [])
         expected.apply_operation_back(HGate(), [base_qubits[0]], [])
-        cx = CXGate()
+        cx = CXGate().to_mutable()
         cx.condition = (base_creg, 3)
         expected.apply_operation_back(cx, base_qubits, [])
         expected.apply_operation_back(HGate(), [base_qubits[0]], [])
@@ -2114,7 +2126,7 @@ class TestDagSubstitute(QiskitTestCase):
         base.add_qubits(base_qubits)
         base.add_clbits(base_clbits)
         base.apply_operation_back(HGate(), [base_qubits[0]], [])
-        conditioned_cz = CZGate()
+        conditioned_cz = CZGate().to_mutable()
         conditioned_cz.condition = (base_clbits[0], True)
         target = base.apply_operation_back(conditioned_cz, base_qubits, [])
         base.apply_operation_back(XGate(), [base_qubits[1]], [])
@@ -2152,7 +2164,7 @@ class TestDagSubstitute(QiskitTestCase):
         base.add_qubits(base_qubits)
         base.add_clbits(base_clbits)
         base.apply_operation_back(HGate(), [base_qubits[0]], [])
-        conditioned_cz = CZGate()
+        conditioned_cz = CZGate().to_mutable()
         conditioned_cz.condition = (base_clbits[0], True)
         target = base.apply_operation_back(conditioned_cz, base_qubits, [])
         base.apply_operation_back(XGate(), [base_qubits[1]], [])
@@ -2162,7 +2174,7 @@ class TestDagSubstitute(QiskitTestCase):
         sub.cx(0, 1).c_if(0, True)
         sub.h(0)
 
-        conditioned_cx = CXGate()
+        conditioned_cx = CXGate().to_mutable()
         conditioned_cx.condition = conditioned_cz.condition
 
         expected = DAGCircuit()
@@ -2207,7 +2219,7 @@ class TestDagSubstitute(QiskitTestCase):
         expected.add_qreg(base_qreg)
         expected.add_creg(base_creg)
         expected.add_creg(added_creg)
-        cx = CXGate()
+        cx = CXGate().to_mutable()
         cx.condition = (added_creg, 3)
         expected.apply_operation_back(cx, base_qreg, [])
         self.assertEqual(base, expected)
@@ -2248,7 +2260,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         dag.add_qreg(qr)
         dag.add_creg(cr)
         dag.apply_operation_back(HGate(), [qr[1]])
-        cx_gate = CXGate()
+        cx_gate = CXGate().to_mutable()
         cx_gate.condition = (cr, 1)
         node_to_be_replaced = dag.apply_operation_back(cx_gate, [qr[1], qr[0]])
 
