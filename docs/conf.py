@@ -27,9 +27,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.45"
+version = "1.0"
 # The full version, including alpha/beta/rc tags
-release = "0.45.0"
+release = "1.0.0"
 
 language = "en"
 
@@ -286,21 +286,9 @@ if os.getenv("DOCS_PROD_BUILD"):
 def add_versions_to_config(_app, config):
     """Add a list of old documentation versions that should have links generated to them into the
     context, so the theme can use them to generate a sidebar."""
-    # First 0.x version where Qiskit/Terra and the metapackage aligned on number.
-    first_unified_zero_minor = 45
-
-    # Start with the hardcoded versions of the documentation that were managed while the metapackage
-    # still existed, so are based on tags that don't exist in the Qiskit package repo.
-    versions = ["0.19"] + [f"0.{x}" for x in range(24, first_unified_zero_minor)]
-
-    proc = subprocess.run(["git", "describe", "--abbrev=0"], capture_output=True, check=True)
-    current_version = proc.stdout.decode("utf8")
-    current_version_info = current_version.split(".")
-    if current_version_info[0] != "0":
-        raise Exception("TODO: handle major versions")
-    versions.extend(
-        f"0.{x}" % x for x in range(first_unified_zero_minor, int(current_version_info[1]) + 1)
-    )
+    # For qiskit 1.0 the docs won't use this mechanism anymore
+    # so just build out the historical version list for the 0.x series
+    versions = ["0.19"] + [f"0.{x}" for x in range(24, 46)]
     config.html_context["version_list"] = versions
 
 
