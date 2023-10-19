@@ -80,6 +80,7 @@ from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import ControlFlowOp, Measure, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
@@ -180,6 +181,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
         return circuits
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits to be sampled.
 
@@ -189,6 +191,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits.
 

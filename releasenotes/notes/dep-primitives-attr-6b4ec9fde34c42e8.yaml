@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The :class:`~.BaseEstimator` attributes :attr:`~.BaseEstimator.circuits`
+    :attr:`~.BaseEstimator.observables`, :attr:`~.BaseEstimator.parameters`
+    and :class:`~.BaseSampler` attributes :attr:`~.BaseSampler.circuits`
+    :attr:`~.BaseSampler.parameters` have been deprecated.

@@ -86,6 +86,7 @@ from copy import copy
 from typing import Generic, TypeVar
 import typing
 
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
@@ -230,6 +231,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
                 )
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
@@ -239,6 +241,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables to be estimated.
 
@@ -248,6 +251,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._observables)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of the quantum circuits.
 
