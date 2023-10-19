@@ -343,7 +343,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         self.assertEqual(sched.instructions[2][-1].phase, 3)
 
     def test_schedule_generator(self):
-        """Test schedule generator functionalty."""
+        """Test schedule generator functionality."""
 
         dur_val = 10
         amp = 1.0
