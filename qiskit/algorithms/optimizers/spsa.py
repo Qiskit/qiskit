@@ -687,12 +687,16 @@ class SPSA(Optimizer):
 def bernoulli_perturbation(dim, perturbation_dims=None):
     """Get a Bernoulli random perturbation."""
     if perturbation_dims is None:
-        return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
 
-    pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
-    indices = algorithm_globals.random.choice(
-        list(range(dim)), size=perturbation_dims, replace=False
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
+        indices = algorithm_globals.random.choice(
+            list(range(dim)), size=perturbation_dims, replace=False
+        )
     result = np.zeros(dim)
     result[indices] = pert
 

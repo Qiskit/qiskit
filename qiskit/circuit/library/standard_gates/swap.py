@@ -14,8 +14,7 @@
 
 from typing import Optional, Union
 import numpy
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -59,13 +58,11 @@ class SwapGate(SingletonGate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SWAP gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "swap", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("swap", 2, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -117,7 +114,7 @@ class SwapGate(SingletonGate):
 
 
 @with_controlled_gate_array(_SWAP_ARRAY, num_ctrl_qubits=1)
-class CSwapGate(ControlledGate):
+class CSwapGate(SingletonControlledGate):
     r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -198,9 +195,14 @@ class CSwapGate(ControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _base_label=None,
     ):
         """Create new CSWAP gate."""
+        if unit is None:
+            unit = "dt"
         super().__init__(
             "cswap",
             3,
@@ -209,7 +211,11 @@ class CSwapGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SwapGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """

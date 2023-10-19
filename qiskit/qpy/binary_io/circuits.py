@@ -29,7 +29,7 @@ from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlow
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonInstruction, SingletonGate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -157,12 +157,13 @@ def _loads_instruction_parameter(
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
+        clbits = circuit.clbits if circuit is not None else ()
         param = value.loads_value(
             type_key,
             data_bytes,
             version,
             vectors,
-            clbits=circuit.clbits,
+            clbits=clbits,
             cregs=registers["c"],
             use_symengine=use_symengine,
         )
@@ -308,9 +309,15 @@ def _read_instruction(
             gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
         else:
             gate = gate_class(*params, label=label)
-            gate.num_ctrl_qubits = instruction.num_ctrl_qubits
-            gate.ctrl_state = instruction.ctrl_state
-        gate.condition = condition
+            if (
+                gate.num_ctrl_qubits != instruction.num_ctrl_qubits
+                or gate.ctrl_state != instruction.ctrl_state
+            ):
+                gate = gate.to_mutable()
+                gate.num_ctrl_qubits = instruction.num_ctrl_qubits
+                gate.ctrl_state = instruction.ctrl_state
+        if condition:
+            gate = gate.c_if(*condition)
     else:
         if gate_name in {
             "Initialize",
@@ -327,7 +334,7 @@ def _read_instruction(
             elif gate_name in {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
             if label is not None:
-                if issubclass(gate_class, SingletonGate):
+                if issubclass(gate_class, (SingletonInstruction, SingletonGate)):
                     gate = gate_class(*params, label=label)
                 else:
                     gate = gate_class(*params)
@@ -563,7 +570,7 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 # pylint: disable=too-many-boolean-expressions
 def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
-    gate_class_name = instruction.operation.__class__.__name__
+    gate_class_name = instruction.operation.base_class.__name__
     custom_operations_list = []
     if (
         (
@@ -577,12 +584,21 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         or gate_class_name == "Instruction"
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
-        if instruction.operation.name not in custom_operations:
-            custom_operations[instruction.operation.name] = instruction.operation
-            custom_operations_list.append(instruction.operation.name)
         gate_class_name = instruction.operation.name
+        # ucr*_dg gates can have different numbers of parameters,
+        # the uuid is appended to avoid storing a single definition
+        # in circuits with multiple ucr*_dg gates.
+        if instruction.operation.name in ["ucrx_dg", "ucry_dg", "ucrz_dg"]:
+            gate_class_name += "_" + str(uuid.uuid4())
+
+        if gate_class_name not in custom_operations:
+            custom_operations[gate_class_name] = instruction.operation
+            custom_operations_list.append(gate_class_name)
 
     elif gate_class_name == "ControlledGate":
+        # controlled gates can have the same name but different parameter
+        # values, the uuid is appended to avoid storing a single definition
+        # in circuits with multiple controlled gates.
         gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)

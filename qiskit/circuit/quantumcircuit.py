@@ -1709,15 +1709,15 @@ class QuantumCircuit:
                 then any style elements in the dict will replace the default values
                 in the input dict. A file to be loaded must end in ``.json``, but
                 the name entered here can omit ``.json``. For example,
-                ``style='iqx.json'`` or ``style='iqx'``.
+                ``style='iqp.json'`` or ``style='iqp'``.
                 If `style` is a dict and the ``'name'`` key is set, that name
                 will be used to load a json file, followed by loading the other
-                items in the style dict. For example, ``style={'name': 'iqx'}``.
+                items in the style dict. For example, ``style={'name': 'iqp'}``.
                 If `style` is not a str and `name` is not a key in the style dict,
                 then the default value from the user config file (usually
                 ``~/.qiskit/settings.conf``) will be used, for example,
-                ``circuit_mpl_style = iqx``.
-                If none of these are set, the `default` style will be used.
+                ``circuit_mpl_style = iqp``.
+                If none of these are set, the `clifford` style will be used.
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
@@ -2439,25 +2439,25 @@ class QuantumCircuit:
 
     @property
     def global_phase(self) -> ParameterValueType:
-        """Return the global phase of the circuit in radians."""
+        """Return the global phase of the current circuit scope in radians."""
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].global_phase
         return self._global_phase
 
     @global_phase.setter
     def global_phase(self, angle: ParameterValueType):
-        """Set the phase of the circuit.
+        """Set the phase of the current circuit scope.
 
         Args:
             angle (float, ParameterExpression): radians
         """
-        if isinstance(angle, ParameterExpression) and angle.parameters:
-            self._global_phase = angle
-        else:
+        if not (isinstance(angle, ParameterExpression) and angle.parameters):
             # Set the phase to the [0, 2π) interval
-            angle = float(angle)
-            if not angle:
-                self._global_phase = 0
-            else:
-                self._global_phase = angle % (2 * np.pi)
+            angle = float(angle) % (2 * np.pi)
+        if self._control_flow_scopes:
+            self._control_flow_scopes[-1].global_phase = angle
+        else:
+            self._global_phase = angle
 
     @property
     def parameters(self) -> ParameterView:
