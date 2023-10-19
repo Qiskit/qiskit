@@ -27,9 +27,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.45"
+version = "1.0"
 # The full version, including alpha/beta/rc tags
-release = "0.45.0"
+release = "1.0.0"
 
 language = "en"
 
