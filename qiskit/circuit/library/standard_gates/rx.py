@@ -51,7 +51,7 @@ class RXGate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit=None
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
         """Create new RX gate."""
         super().__init__("rx", 1, [theta], label=label, duration=duration, unit=unit)
@@ -177,6 +177,10 @@ class CRXGate(ControlledGate):
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CRX gate."""
         super().__init__(
@@ -186,7 +190,7 @@ class CRXGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RXGate(theta),
+            base_gate=RXGate(theta, label=_base_label),
         )
 
     def _define(self):

@@ -56,7 +56,7 @@ class RGate(Gate):
         label: Optional[str] = None,
         *,
         duration=None,
-        unit=None,
+        unit="dt",
     ):
         """Create new r single-qubit gate."""
         super().__init__("r", 1, [theta, phi], label=label, duration=duration, unit=unit)

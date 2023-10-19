@@ -89,7 +89,7 @@ class XXPlusYYGate(Gate):
         label: Optional[str] = "(XX+YY)",
         *,
         duration=None,
-        unit=None,
+        unit="dt",
     ):
         """Create new XX+YY gate.
 

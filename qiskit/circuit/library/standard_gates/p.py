@@ -76,10 +76,10 @@ class PhaseGate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit=None
+        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
     ):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__("p", 1, [theta], label=label, duration=duration, unit="dt")
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -179,6 +179,10 @@ class CPhaseGate(ControlledGate):
         theta: ParameterValueType,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CPhase gate."""
         super().__init__(
@@ -188,7 +192,9 @@ class CPhaseGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=PhaseGate(theta),
+            base_gate=PhaseGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -286,7 +292,16 @@ class MCPhaseGate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam: ParameterValueType, num_ctrl_qubits: int, label: str | None = None):
+    def __init__(
+        self,
+        lam: ParameterValueType,
+        num_ctrl_qubits: int,
+        label: str | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new MCPhase gate."""
         super().__init__(
             "mcphase",
@@ -294,7 +309,9 @@ class MCPhaseGate(ControlledGate):
             [lam],
             num_ctrl_qubits=num_ctrl_qubits,
             label=label,
-            base_gate=PhaseGate(lam),
+            base_gate=PhaseGate(lam, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):

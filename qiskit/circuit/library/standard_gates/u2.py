@@ -93,7 +93,7 @@ class U2Gate(Gate):
         label: Optional[str] = None,
         *,
         duration=None,
-        unit=None,
+        unit="dt",
     ):
         """Create new U2 gate."""
         super().__init__("u2", 1, [phi, lam], label=label, duration=duration, unit=unit)

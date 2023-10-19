@@ -73,7 +73,7 @@ class RYYGate(Gate):
     """
 
     def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit=None
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
         """Create new RYY gate."""
         super().__init__("ryy", 2, [theta], label=label, duration=duration, unit=unit)
