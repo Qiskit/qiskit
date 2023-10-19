@@ -35,7 +35,6 @@ from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
-from qiskit.utils.deprecation import deprecate_arg
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -65,11 +64,9 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    @deprecate_arg("qubit_channel_mapping", since="0.22.0")
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,
-        qubit_channel_mapping: list[list[str]] = None,
         verbose: bool = True,
         target: Target = None,
     ):
@@ -79,8 +76,6 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Args:
             instruction_schedule_map: The :obj:`InstructionScheduleMap` object representing the
                 default pulse calibrations for the target backend
-            qubit_channel_mapping: The list mapping qubit indices to the list of
-                channel names that apply on that qubit.
             verbose: Set True to raise a user warning when RZX schedule cannot be built.
             target: The :class:`~.Target` representing the target backend, if both
                  ``instruction_schedule_map`` and this are specified then this argument will take
@@ -89,7 +84,6 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Raises:
             QiskitError: Instruction schedule map is not provided.
         """
-        del qubit_channel_mapping
         super().__init__()
         self._inst_map = instruction_schedule_map
         self._verbose = verbose
