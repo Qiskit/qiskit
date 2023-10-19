@@ -49,9 +49,11 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RY gate."""
-        super().__init__("ry", 1, [theta], label=label)
+        super().__init__("ry", 1, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -174,6 +176,10 @@ class CRYGate(ControlledGate):
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CRY gate."""
         super().__init__(
@@ -183,7 +189,9 @@ class CRYGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RYGate(theta),
+            base_gate=RYGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
