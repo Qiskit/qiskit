@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a regression in :func:`.transpile`, where an ``initial_layout`` given
+    as a :class:`range` object would no longer be treated as a valid input.
+    Fixed `#10544 <https://github.com/Qiskit/qiskit/issues/10554>`__.
