@@ -389,7 +389,7 @@ class QasmSimulatorPy(BackendV1):
         """Run on the backend.
 
         Args:
-            run_input (QuantumCircuit or Schedule or list): payload of the experiment
+            run_input (QuantumCircuit or list): payload of the experiment
             backend_options (dict): backend options
 
         Returns:
