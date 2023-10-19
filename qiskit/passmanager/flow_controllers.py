@@ -10,149 +10,325 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass flow controllers to provide pass iterator conditioned on the property set."""
+"""Built-in pass flow controllers."""
 from __future__ import annotations
-from collections import OrderedDict
-from collections.abc import Sequence
-from typing import Union, List
-import logging
 
-from .base_pass import GenericPass
+import logging
+from collections.abc import Callable, Iterable, Generator
+from typing import Type, Any
+
+from qiskit.utils.deprecation import deprecate_func
+from .base_tasks import BaseController, Task
+from .compilation_status import PassManagerState, PropertySet
 from .exceptions import PassManagerError
 
 logger = logging.getLogger(__name__)
 
 
-class FlowController:
-    """Base class for multiple types of working list.
+class FlowControllerLinear(BaseController):
+    """A standard flow controller that runs tasks one after the other."""
 
-    This class is a base class for multiple types of working list. When you iterate on it, it
-    returns the next pass to run.
+    def __init__(
+        self,
+        tasks: Task | Iterable[Task] = (),
+        *,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(options)
+
+        if not isinstance(tasks, Iterable):
+            tasks = [tasks]
+        self.tasks: tuple[Task] = tuple(tasks)
+
+    @property
+    def passes(self) -> list[Task]:
+        """Alias of tasks for backward compatibility."""
+        return list(self.tasks)
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="All tasks must be provided at construction time of the controller object.",
+    )
+    def append(
+        self,
+        passes: Task | list[Task],
+    ):
+        """Add new task to pipeline.
+
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Iterable):
+            passes = [passes]
+
+        tasks = list(self.tasks)
+        for task in passes:
+            if not isinstance(task, Task):
+                raise TypeError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            tasks.append(task)
+        self.tasks = tuple(tasks)
+
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
+        for task in self.tasks:
+            state = yield task
+
+
+class DoWhileController(BaseController):
+    """Run the given tasks in a loop until the ``do_while`` condition on the property set becomes
+    ``False``.
+
+    The given tasks will always run at least once, and on iteration of the loop, all the
+    tasks will be run (with the exception of a failure state being set)."""
+
+    def __init__(
+        self,
+        tasks: Task | Iterable[Task] = (),
+        do_while: Callable[[PropertySet], bool] = None,
+        *,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(options)
+
+        if not isinstance(tasks, Iterable):
+            tasks = [tasks]
+        self.tasks: tuple[Task] = tuple(tasks)
+        self.do_while = do_while
+
+    @property
+    def passes(self) -> list[Task]:
+        """Alias of tasks for backward compatibility."""
+        return list(self.tasks)
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="All tasks must be provided at construction time of the controller object.",
+    )
+    def append(
+        self,
+        passes: Task | list[Task],
+    ):
+        """Add new task to pipeline.
+
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Iterable):
+            passes = [passes]
+
+        tasks = list(self.tasks)
+        for task in passes:
+            if not isinstance(task, Task):
+                raise TypeError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            tasks.append(task)
+        self.tasks = tuple(tasks)
+
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
+        max_iteration = self._options.get("max_iteration", 1000)
+        for _ in range(max_iteration):
+            for task in self.tasks:
+                state = yield task
+            if not self.do_while(state.property_set):
+                return
+        raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
+
+
+class ConditionalController(BaseController):
+    """A flow controller runs the pipeline once if the condition is true, or does nothing if the
+    condition is false."""
+
+    def __init__(
+        self,
+        tasks: Task | Iterable[Task] = (),
+        condition: Callable[[PropertySet], bool] = None,
+        *,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(options)
+
+        if not isinstance(tasks, Iterable):
+            tasks = [tasks]
+        self.tasks: tuple[Task] = tuple(tasks)
+        self.condition = condition
+
+    @property
+    def passes(self) -> list[Task]:
+        """Alias of tasks for backward compatibility."""
+        return list(self.tasks)
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="All tasks must be provided at construction time of the controller object.",
+    )
+    def append(
+        self,
+        passes: Task | list[Task],
+    ):
+        """Add new task to pipeline.
+
+        Args:
+            passes: A new task or list of tasks to add.
+        """
+        if not isinstance(passes, Iterable):
+            passes = [passes]
+
+        tasks = list(self.tasks)
+        for task in passes:
+            if not isinstance(task, Task):
+                raise TypeError(
+                    f"New task {task} is not a valid pass manager pass or flow controller."
+                )
+            tasks.append(task)
+        self.tasks = tuple(tasks)
+
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
+        if self.condition(state.property_set):
+            for task in self.tasks:
+                state = yield task
+
+
+class FlowController(BaseController):
+    """A legacy factory for other flow controllers.
+
+    .. warning::
+
+        This class is primarily for compatibility with legacy versions of Qiskit, and in general,
+        you should prefer simply instantiating the controller you want, and adding it to the
+        relevant :class:`.PassManager` or other controller.  Its use is deprecated.
+
+    This allows syntactic sugar for writing pipelines. For example::
+
+        FlowController.add_flow_controller("my_condition", CustomController)
+
+        controller = FlowController.controller_factory(
+            [PassA(), PassB()],
+            {"max_iteration": 1000},
+            condition=lambda prop_set: prop_set["x"] == 0,
+            do_while=lambda prop_set: prop_set["x"] < 100,
+            my_condition=lambda prop_set: prop_set["y"] = "abc",
+        )
+
+    This creates a nested flow controller that runs when the value :code:`x` in the
+    :class:`.PropertySet` is zero and repeats the pipeline until the value becomes 100.
+    In each innermost loop, the custom iteration condition provided by
+    the ``CustomController`` is also evaluated.
+
+    .. warning::
+
+        :class:`.BaseController` must be directly subclassed to define a custom flow controller.
+        This class provides a controller factory method, which consumes a class variable
+        :attr:`.registered_controllers`. Subclassing FlowController may cause
+        unexpected behavior in the factory method.
+        Note that factory method implicitly determines the priority of the builtin controllers
+        when multiple controllers are called together,
+        and the behavior of generated controller is hardly debugged.
     """
 
-    registered_controllers = OrderedDict()
-
-    def __init__(self, passes, options, **partial_controller):
-        self._passes = passes
-        self.passes = FlowController.controller_factory(passes, options, **partial_controller)
-        self.options = options
-
-    def __iter__(self):
-        yield from self.passes
-
-    def dump_passes(self):
-        """Fetches the passes added to this flow controller.
-
-        Returns:
-             dict: {'options': self.options, 'passes': [passes], 'type': type(self)}
-        """
-        # TODO remove
-        ret = {"options": self.options, "passes": [], "type": type(self)}
-        for pass_ in self._passes:
-            if isinstance(pass_, FlowController):
-                ret["passes"].append(pass_.dump_passes())
-            else:
-                ret["passes"].append(pass_)
-        return ret
+    registered_controllers = {
+        "condition": ConditionalController,
+        "do_while": DoWhileController,
+    }
+    hierarchy = [
+        "condition",
+        "do_while",
+    ]
 
     @classmethod
-    def add_flow_controller(cls, name, controller):
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg=(
+            "Controller object must be explicitly instantiated. "
+            "Building controller with keyword arguments may yield race condition when "
+            "multiple keyword arguments are provided together, which is likely unsafe."
+        ),
+    )
+    def controller_factory(
+        cls,
+        passes: Task | list[Task],
+        options: dict,
+        **controllers,
+    ):
+        """Create a new flow controller with normalization.
+
+        Args:
+            passes: A list of optimization tasks.
+            options: Option for this flow controller.
+            controllers: Dictionary of controller callables keyed on flow controller alias.
+
+        Returns:
+            An instance of normalized flow controller.
+        """
+        if None in controllers.values():
+            raise PassManagerError("The controller needs a callable. Value cannot be None.")
+
+        if isinstance(passes, BaseController):
+            instance = passes
+        else:
+            instance = FlowControllerLinear(passes, options=options)
+
+        if controllers:
+            # Alias in higher hierarchy becomes outer controller.
+            for alias in cls.hierarchy[::-1]:
+                if alias not in controllers:
+                    continue
+                class_type = cls.registered_controllers[alias]
+                init_kwargs = {
+                    "options": options,
+                    alias: controllers.pop(alias),
+                }
+                instance = class_type([instance], **init_kwargs)
+
+        return instance
+
+    @classmethod
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg=(
+            "Controller factory method is deprecated and managing the custom flow controllers "
+            "with alias no longer helps building the task pipeline. "
+            "Controllers must be explicitly instantiated and appended to the pipeline."
+        ),
+    )
+    def add_flow_controller(
+        cls,
+        name: str,
+        controller: Type[BaseController],
+    ):
         """Adds a flow controller.
 
         Args:
-            name (string): Name of the controller to add.
-            controller (type(FlowController)): The class implementing a flow controller.
+            name: Alias of controller class in the namespace.
+            controller: Flow controller class.
         """
         cls.registered_controllers[name] = controller
+        if name not in cls.hierarchy:
+            cls.hierarchy.append(name)
 
     @classmethod
-    def remove_flow_controller(cls, name):
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg=(
+            "Controller factory method is deprecated and managing the custom flow controllers "
+            "with alias no longer helps building the task pipeline. "
+            "Controllers must be explicitly instantiated and appended to the pipeline."
+        ),
+    )
+    def remove_flow_controller(
+        cls,
+        name: str,
+    ):
         """Removes a flow controller.
 
         Args:
-            name (string): Name of the controller to remove.
+            name: Alias of the controller to remove.
+
         Raises:
             KeyError: If the controller to remove was not registered.
         """
-        if name not in cls.registered_controllers:
+        if name not in cls.hierarchy:
             raise KeyError("Flow controller not found: %s" % name)
         del cls.registered_controllers[name]
-
-    @classmethod
-    def controller_factory(
-        cls,
-        passes: Sequence[GenericPass | "FlowController"],
-        options: dict,
-        **partial_controller,
-    ):
-        """Constructs a flow controller based on the partially evaluated controller arguments.
-
-        Args:
-            passes: passes to add to the flow controller.
-            options: PassManager options.
-            **partial_controller: Partially evaluated controller arguments in the form `{name:partial}`
-
-        Raises:
-            PassManagerError: When partial_controller is not well-formed.
-
-        Returns:
-            FlowController: A FlowController instance.
-        """
-        if None in partial_controller.values():
-            raise PassManagerError("The controller needs a condition.")
-
-        if partial_controller:
-            for registered_controller in cls.registered_controllers.keys():
-                if registered_controller in partial_controller:
-                    return cls.registered_controllers[registered_controller](
-                        passes, options, **partial_controller
-                    )
-            raise PassManagerError("The controllers for %s are not registered" % partial_controller)
-
-        return FlowControllerLinear(passes, options)
-
-
-class FlowControllerLinear(FlowController):
-    """The basic controller runs the passes one after the other."""
-
-    def __init__(self, passes, options):  # pylint: disable=super-init-not-called
-        self.passes = self._passes = passes
-        self.options = options
-
-
-class DoWhileController(FlowController):
-    """Implements a set of passes in a do-while loop."""
-
-    def __init__(self, passes, options=None, do_while=None, **partial_controller):
-        self.do_while = do_while
-        self.max_iteration = options["max_iteration"] if options else 1000
-        super().__init__(passes, options, **partial_controller)
-
-    def __iter__(self):
-        for _ in range(self.max_iteration):
-            yield from self.passes
-
-            if not self.do_while():
-                return
-
-        raise PassManagerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
-
-
-class ConditionalController(FlowController):
-    """Implements a set of passes under a certain condition."""
-
-    def __init__(self, passes, options=None, condition=None, **partial_controller):
-        self.condition = condition
-        super().__init__(passes, options, **partial_controller)
-
-    def __iter__(self):
-        if self.condition():
-            yield from self.passes
-
-
-# Alias to a sequence of all kind of pass elements
-PassSequence = Union[Union[GenericPass, FlowController], List[Union[GenericPass, FlowController]]]
-
-# Default controllers
-FlowController.add_flow_controller("condition", ConditionalController)
-FlowController.add_flow_controller("do_while", DoWhileController)
+        cls.hierarchy.remove(name)

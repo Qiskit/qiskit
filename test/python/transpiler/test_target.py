@@ -1837,6 +1837,23 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             set(self.ibm_target.build_coupling_map().get_edges()),
         )
 
+    def test_mixed_ideal_target_filtered_coupling_map(self):
+        target = Target(num_qubits=10)
+        target.add_instruction(
+            XGate(), {(qubit,): InstructionProperties(error=0.5) for qubit in range(5)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                edge: InstructionProperties(error=0.6)
+                for edge in CouplingMap.from_line(5, bidirectional=False).get_edges()
+            },
+        )
+        target.add_instruction(SXGate())
+        coupling_map = target.build_coupling_map(filter_idle_qubits=True)
+        self.assertEqual(max(coupling_map.physical_qubits), 4)
+        self.assertEqual(coupling_map.get_edges(), [(0, 1), (1, 2), (2, 3), (3, 4)])
+
 
 class TestInstructionProperties(QiskitTestCase):
     def test_empty_repr(self):

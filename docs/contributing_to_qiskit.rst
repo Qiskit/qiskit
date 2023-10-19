@@ -29,7 +29,7 @@ details specific information on contributing to that repository. Make sure you r
 Contributing Guidelines prior to making your contribution to a specific repo as each project may have
 slightly different requirements and processes. For Qiskit Terra, the main repository, the contributing guidelines
 may be be found `here <https://github.com/Qiskit/qiskit-terra/blob/main/CONTRIBUTING.md>`__. Other Qiskit packages that
-are able to receive contributions may be found as seperate repositories in the official `Qiskit Github <https://github.com/Qiskit>`__.
+are able to receive contributions may be found as separate repositories in the official `Qiskit Github <https://github.com/Qiskit>`__.
 
 .. _dev-env-setup:
 
