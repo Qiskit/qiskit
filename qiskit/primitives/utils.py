@@ -59,6 +59,14 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     if isinstance(observable, SparsePauliOp):
         return observable
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
+        warnings.warn(
+            "Implicit conversion from a BaseOperator to a SparsePauliOp in estimator"
+            " observable arguments is deprecated as of Qiskit 0.46 and will be"
+            " in Qiskit 1.0. You should explicitly convert to a SparsePauli op using"
+            " `SparsePauliOp.from_operator(op)` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return SparsePauliOp.from_operator(observable)
     else:
         if isinstance(observable, PauliList):
