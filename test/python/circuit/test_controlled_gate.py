@@ -1180,6 +1180,63 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(bound1.parameters, {subs1[ptest]})
         self.assertEqual(bound2.parameters, {subs2[ptest]})
 
+    def test_assign_cugate(self):
+        """Test assignment of CUGate, which breaks the `ControlledGate` requirements by not being
+        equivalent to a direct control of its base gate."""
+
+        parameters = [Parameter("t"), Parameter("p"), Parameter("l"), Parameter("g")]
+        values = [0.1, 0.2, 0.3, 0.4]
+
+        qc = QuantumCircuit(2)
+        qc.cu(*parameters, 0, 1)
+        assigned = qc.assign_parameters(dict(zip(parameters, values)), inplace=False)
+
+        expected = QuantumCircuit(2)
+        expected.cu(*values, 0, 1)
+
+        self.assertEqual(assigned.data[0].operation.base_gate, expected.data[0].operation.base_gate)
+        self.assertEqual(assigned, expected)
+
+    def test_modify_cugate_params_slice(self):
+        """Test that CUGate.params can be modified by a standard slice (without changing the number
+        of elements) and changes propagate to the base gate.  This is only needed for as long as
+        CUGate's `base_gate` is `UGate`, which has the "wrong" number of parameters."""
+        cu = CUGate(0.1, 0.2, 0.3, 0.4)
+        self.assertEqual(cu.params, [0.1, 0.2, 0.3, 0.4])
+        self.assertEqual(cu.base_gate.params, [0.1, 0.2, 0.3])
+
+        cu.params[0:4] = [0.5, 0.4, 0.3, 0.2]
+        self.assertEqual(cu.params, [0.5, 0.4, 0.3, 0.2])
+        self.assertEqual(cu.base_gate.params, [0.5, 0.4, 0.3])
+
+        cu.params[:] = [0.1, 0.2, 0.3, 0.4]
+        self.assertEqual(cu.params, [0.1, 0.2, 0.3, 0.4])
+        self.assertEqual(cu.base_gate.params, [0.1, 0.2, 0.3])
+
+        cu.params[:3] = [0.5, 0.4, 0.3]
+        self.assertEqual(cu.params, [0.5, 0.4, 0.3, 0.4])
+        self.assertEqual(cu.base_gate.params, [0.5, 0.4, 0.3])
+
+        # indices (3, 2, 1, 0), note that the assignment is in reverse.
+        cu.params[-1::-1] = [0.1, 0.2, 0.3, 0.4]
+        self.assertEqual(cu.params, [0.4, 0.3, 0.2, 0.1])
+        self.assertEqual(cu.base_gate.params, [0.4, 0.3, 0.2])
+
+    def test_assign_nested_controlled_cu(self):
+        """Test assignment of an arbitrary controlled parametrised gate that appears through the
+        `Gate.control()` method on an already-controlled gate."""
+        theta = Parameter("t")
+        qc_c = QuantumCircuit(2)
+        qc_c.crx(theta, 1, 0)
+        custom_gate = qc_c.to_gate().control()
+        qc = QuantumCircuit(3)
+        qc.append(custom_gate, [0, 1, 2])
+        assigned = qc.assign_parameters({theta: 0.5})
+
+        # We're testing here that everything's been propagated through to the base gates; the `reps`
+        # is just some high number to make sure we unwrap any controlled and custom gates.
+        self.assertEqual(set(assigned.decompose(reps=3).parameters), set())
+
     @data(-1, 0, 1.4, "1", 4, 10)
     def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
         """
