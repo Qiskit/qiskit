@@ -205,6 +205,7 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+<<<<<<< HEAD
     if translation_method == "unroller":
         warnings.warn(
             "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
@@ -214,6 +215,8 @@ def generate_preset_pass_manager(
             stacklevel=2,
         )
 
+=======
+>>>>>>> 9bd7209d396aed66d0524f89b647fdf20c5005f0
     if (
         coupling_map
         and isinstance(coupling_map, list)

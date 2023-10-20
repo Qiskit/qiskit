@@ -1471,11 +1471,17 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         dag_list = circuit_to_dag(transpiled_circuit_list)
         dag_object = circuit_to_dag(transpiled_circuit_object)
 
+<<<<<<< HEAD
         # Check if both are instances of PassManager
         self.assertIsInstance(pm_list, PassManager)
         self.assertIsInstance(pm_object, PassManager)
 
         # Ensure that the coupling map is the same
+=======
+        # Assert that the circuits produced by both pass managers are the same and that both transpiled circuits fit
+        self.assertIsInstance(pm_list, PassManager)
+        self.assertIsInstance(pm_object, PassManager)
+>>>>>>> 9bd7209d396aed66d0524f89b647fdf20c5005f0
         self.assertEqual(dag_list, dag_object)
 
 
