@@ -1053,7 +1053,7 @@ modeled as follows:
     D ░░░░░░░░░░▒▒▒▒▒▒░░░
     C ░░░░░░░░░░░░░░░░▒▒░
 
-However, the ``QuantumCircuit`` representation is not accurate enough to represent
+However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
 this model. In the circuit representation, the corresponding ``Qubit`` is occupied
 by the stimulus microwave signal during the first half of the interval,
 and the ``Clbit`` is only occupied at the very end of the interval.
