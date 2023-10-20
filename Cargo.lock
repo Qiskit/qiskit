@@ -4,17 +4,6 @@ version = 3
 
 [[package]]
 name = "ahash"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
-dependencies = [
- "getrandom",
- "once_cell",
- "version_check",
-]
-
-[[package]]
-name = "ahash"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
@@ -116,10 +105,6 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
-dependencies = [
- "ahash 0.7.6",
- "rayon",
-]
 
 [[package]]
 name = "hashbrown"
@@ -127,7 +112,7 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
 dependencies = [
- "ahash 0.8.3",
+ "ahash",
  "allocator-api2",
  "rayon",
 ]
@@ -140,7 +125,6 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
- "rayon",
 ]
 
 [[package]]
@@ -350,8 +334,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e681a6cfdc4adcc93b4d3cf993749a4552018ee0a9b65fc0ccfad74352c72a38"
 dependencies = [
  "cfg-if",
- "hashbrown 0.12.3",
- "indexmap 1.9.3",
+ "hashbrown 0.14.2",
+ "indexmap 2.0.2",
  "indoc",
  "libc",
  "memoffset",
@@ -419,7 +403,7 @@ dependencies = [
 name = "qiskit_accelerate"
 version = "1.0.0"
 dependencies = [
- "ahash 0.8.3",
+ "ahash",
  "hashbrown 0.14.2",
  "indexmap 2.0.2",
  "ndarray",
@@ -551,10 +535,10 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72abf7976bc09a30391248b3c6509338b235c02b0e9b0bf8af686c289cad3f45"
 dependencies = [
- "ahash 0.8.3",
+ "ahash",
  "fixedbitset",
- "hashbrown 0.12.3",
- "indexmap 1.9.3",
+ "hashbrown 0.14.2",
+ "indexmap 2.0.2",
  "num-traits",
  "petgraph",
  "priority-queue",
