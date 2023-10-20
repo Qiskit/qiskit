@@ -1056,7 +1056,7 @@ modeled as follows:
 However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
 this model. In the circuit representation, the corresponding :class:`.Qubit` is occupied
 by the stimulus microwave signal during the first half of the interval,
-and the ``Clbit`` is only occupied at the very end of the interval.
+and the :class:`.Clbit` is only occupied at the very end of the interval.
 
 The lack of precision representing the physical model may induce
 edge cases in the scheduling:
