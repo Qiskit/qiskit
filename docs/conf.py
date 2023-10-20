@@ -299,7 +299,7 @@ def add_versions_to_config(_app, config):
     if current_version_info[0] != "0":
         raise Exception("TODO: handle major versions")
     versions.extend(
-        f"0.{x}" % x for x in range(first_unified_zero_minor, int(current_version_info[1]) + 1)
+        f"0.{x}" for x in range(first_unified_zero_minor, int(current_version_info[1]) + 1)
     )
     config.html_context["version_list"] = versions
 
