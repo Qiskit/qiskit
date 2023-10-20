@@ -16,6 +16,7 @@ contributing to terra, these are documented below.
 * [Changelog generation](#changelog-generation)
 * [Release Notes](#release-notes)
 * [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
+* [Building Documentation Locally](#building-documentation-locally)
 * [Test](#test)
   * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
 * [Style and Lint](#style-and-lint)
@@ -259,6 +260,30 @@ Note that in order to run `python setup.py ...` commands you need have build
 dependency packages installed in your environment, which are listed in the
 `pyproject.toml` file under the `[build-system]` section.
 
+## Building Documentation Locally
+
+Once you have made changes to the documentation, you can run the commands below
+to build documentation locally to review.
+The easiest and recommended way to build the documentation is to use tox. Once you run the command, the output will be located at `docs/_build/html`
+
+using [**tox**](https://tox.readthedocs.io/en/latest/#):
+
+```
+tox -edocs
+```
+
+using [**sphinx-build](https://www.sphinx-doc.org/en/master/man/sphinx-build.html):
+
+```
+sphinx-build -b html docs docs/_build/html
+```
+
+using make html:
+
+```
+cd docs
+make html
+```
 
 ## Test
 
