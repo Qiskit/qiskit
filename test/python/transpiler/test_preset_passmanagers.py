@@ -1459,9 +1459,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         qc.cx(1, 0)
         qc.measure_all()
 
-        pm_list = generate_preset_pass_manager(optimization_level=0, coupling_map=coupling_map_list)
+        pm_list = generate_preset_pass_manager(
+            optimization_level=0, coupling_map=coupling_map_list, seed_transpiler=42
+        )
         pm_object = generate_preset_pass_manager(
-            optimization_level=0, coupling_map=coupling_map_object
+            optimization_level=0, coupling_map=coupling_map_object, seed_transpiler=42
         )
 
         transpiled_circuit_list = pm_list.run(qc)
