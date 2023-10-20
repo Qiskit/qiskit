@@ -186,8 +186,12 @@ def is_statevector_backend(backend):
 
         if isinstance(backend, StatevectorSimulator):
             return True
-        if isinstance(backend, AerSimulator) and "aer_simulator_statevector" in backend.name():
-            return True
+        if backend_interface_version <= 1:
+            if isinstance(backend, AerSimulator) and "aer_simulator_statevector" in backend.name():
+                return True
+        else:
+            if isinstance(backend, AerSimulator) and "aer_simulator_statevector" in backend.name:
+                return True
     if backend is None:
         return False
     backend_interface_version = _get_backend_interface_version(backend)

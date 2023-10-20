@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    In utils/backend_utils.py there is name() function call without checking
+    backend version. This fix adds check of backend version and get property
+    name for V2
