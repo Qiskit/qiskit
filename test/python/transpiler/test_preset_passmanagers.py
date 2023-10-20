@@ -1256,7 +1256,7 @@ class TestOptimizationOnSize(QiskitTestCase):
 
 
 @ddt
-class TestGeenratePresetPassManagers(QiskitTestCase):
+class TestGeneratePresetPassManagers(QiskitTestCase):
     """Test generate_preset_pass_manager function."""
 
     @data(0, 1, 2, 3)
@@ -1428,6 +1428,37 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
             for y in x["passes"]
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
+    def test_generate_preset_pass_manager_with_list_coupling_map(self):
+        """Test that generate_preset_pass_manager can handle list-based coupling_map."""
+
+        # Define the coupling map as a list
+        coupling_map_list = [[0, 1]]
+        coupling_map_object = CouplingMap(coupling_map_list)
+
+        # Circuit that doesn't fit in the coupling map
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.measure_all()
+
+        pm_list = generate_preset_pass_manager(optimization_level=0, coupling_map=coupling_map_list)
+        pm_object = generate_preset_pass_manager(
+            optimization_level=0, coupling_map=coupling_map_object
+        )
+
+        transpiled_circuit_list = pm_list.run(qc)
+        transpiled_circuit_object = pm_object.run(qc)
+
+        # Convert the transpiled circuits to DAGs to compare the states
+        dag_list = circuit_to_dag(transpiled_circuit_list)
+        dag_object = circuit_to_dag(transpiled_circuit_object)
+
+        # Assert that the circuits produced by both pass managers are the same and that both transpiled circuits fit
+        self.assertIsInstance(pm_list, PassManager)
+        self.assertIsInstance(pm_object, PassManager)
+        self.assertEqual(dag_list, dag_object)
 
 
 @ddt
