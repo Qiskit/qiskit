@@ -68,7 +68,7 @@ result = job.result()
 print(f" > Quasi probability distribution: {result.quasi_dists}")
 ```
 Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.  
-To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note the Estimator requires a circuit _**without**_ measurement, so we use the `qc_example` circuit we created earlier.
+To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note that the Estimator requires a circuit _**without**_ measurement, so we use the `qc_example` circuit we created earlier.
 
 ```python
 # 2. define the observable to be measured 
@@ -98,7 +98,7 @@ from qiskit import transpile
 qc_transpiled = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling_map =[[0, 1], [1, 2]] , optimization_level=3)
 ```
 
-For further examples of using Qiskit you can look at the tutorials in the documentation here:
+For further examples of using Qiskit, you can look at the tutorials in the documentation here:
 
 <https://qiskit.org/documentation/tutorials.html>
 
@@ -112,7 +112,7 @@ some packages that provide implementations of a runtime primitive implementation
 
 Qiskit also provides a lower-level abstract interface for describing quantum backends. This interface, located in
 ``qiskit.providers``, defines an abstract `BackendV2` class that providers can implement to represent their
-hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface with real hardware are:
+hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface, each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface with real hardware are:
 
 * https://github.com/Qiskit/qiskit-ibm-provider
 * https://github.com/qiskit-community/qiskit-ionq
@@ -155,7 +155,7 @@ The changelog for the current release can be found in the releases tab:
 The changelog provides a quick overview of notable changes for a given
 release.
 
-Additionally, as part of each release detailed release notes are written to
+Additionally, as part of each release, detailed release notes are written to
 document in detail what has changed as part of a release. This includes any
 documentation on potential breaking changes on upgrade and new features.
 For example, you can find the release notes for the `0.9.0` release in the
