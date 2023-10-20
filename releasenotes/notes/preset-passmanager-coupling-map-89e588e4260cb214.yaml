@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Enhanced the `generate_preset_pass_manager` function to allow users to 
+    directly provide a coupling map as a list. Previously, users were required
+    to provide a coupling map as an object. This change streamlines the process,
+    making it easier to define coupling maps without the need for object creation. 

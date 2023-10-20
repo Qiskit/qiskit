@@ -214,11 +214,7 @@ def generate_preset_pass_manager(
             stacklevel=2,
         )
 
-    if (
-        coupling_map
-        and isinstance(coupling_map, list)
-        and all(isinstance(sublist, list) for sublist in coupling_map)
-    ):
+    if coupling_map is not None and not isinstance(coupling_map, CouplingMap):
         coupling_map = CouplingMap(coupling_map)
 
     if target is not None:

@@ -1467,16 +1467,12 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         transpiled_circuit_list = pm_list.run(qc)
         transpiled_circuit_object = pm_object.run(qc)
 
-        # Convert the transpiled circuits to DAGs to compare the states
-        dag_list = circuit_to_dag(transpiled_circuit_list)
-        dag_object = circuit_to_dag(transpiled_circuit_object)
-
         # Check if both are instances of PassManager
         self.assertIsInstance(pm_list, PassManager)
         self.assertIsInstance(pm_object, PassManager)
 
         # Ensure the DAGs from both methods are identical
-        self.assertEqual(dag_list, dag_object)
+        self.assertEqual(transpiled_circuit_list, transpiled_circuit_object)
 
 
 @ddt
