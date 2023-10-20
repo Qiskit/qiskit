@@ -1072,7 +1072,7 @@ edge cases in the scheduling:
          └─────────┘ 0
 
 In this example, a user may intend to measure the state of ``q_1`` after the
-``XGate`` is applied to ``q_0``. This is the correct interpretation from
+:class:`.XGate` is applied to ``q_0``. This is the correct interpretation from
 the viewpoint of topological node ordering, i.e. The :class:`.XGate` node comes in
 front of the :class:`.Measure` node.
 However, according to the measurement model above, the data in the register
