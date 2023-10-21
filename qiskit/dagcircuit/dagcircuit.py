@@ -821,7 +821,7 @@ class DAGCircuit:
         for gate, cals in other.calibrations.items():
             dag._calibrations[gate].update(cals)
 
-        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatiblity.
+        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatibility.
         def _reject_new_register(reg):
             raise DAGCircuitError(f"No register with '{reg.bits}' to map this expression onto.")
 
@@ -1204,7 +1204,7 @@ class DAGCircuit:
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
                 conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
-                treated as if it is ``False``); replacements of those must already fulfil the same
+                treated as if it is ``False``); replacements of those must already fulfill the same
                 conditional logic or this function would be close to useless for them.
 
         Returns:
