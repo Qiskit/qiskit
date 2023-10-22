@@ -14,7 +14,7 @@
 
 from math import pi
 from typing import Optional, Union
-from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -65,6 +65,8 @@ class SXGate(SingletonGate):
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SX gate."""
         super().__init__("sx", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -144,6 +146,8 @@ class SXdgGate(SingletonGate):
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new SXdg gate."""
         super().__init__("sxdg", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -244,6 +248,8 @@ class CSXGate(SingletonControlledGate):
             duration=duration,
             unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """

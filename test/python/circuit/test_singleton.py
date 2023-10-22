@@ -20,8 +20,22 @@ Tests for singleton gate behavior
 import copy
 import io
 import pickle
+import sys
+import types
+import unittest.mock
+import uuid
 
-from qiskit.circuit.library import HGate, SXGate, CXGate, CZGate, CSwapGate, CHGate, CCXGate, XGate
+from qiskit.circuit.library import (
+    HGate,
+    SXGate,
+    CXGate,
+    CZGate,
+    CSwapGate,
+    CHGate,
+    CCXGate,
+    XGate,
+    C4XGate,
+)
 from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.singleton import SingletonGate, SingletonInstruction
 from qiskit.converters import dag_to_circuit, circuit_to_dag
@@ -326,6 +340,137 @@ class TestSingletonGate(QiskitTestCase):
         self.assertIs(base.base_class, Measure)
         self.assertIs(esp.base_class, ESPMeasure)
 
+    def test_singleton_with_default(self):
+        # Explicitly setting the label to its default.
+        gate = HGate(label=None)
+        self.assertIs(gate, HGate())
+        self.assertIsNot(gate, HGate(label="label"))
+
+    def test_additional_singletons(self):
+        additional_inputs = [
+            ((1,), {}),
+            ((2,), {"label": "x"}),
+        ]
+
+        class Discrete(SingletonGate, additional_singletons=additional_inputs):
+            def __init__(self, n=0, label=None):
+                super().__init__("discrete", 1, [], label=label)
+                self.n = n
+
+            @staticmethod
+            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+                # This is an atypical usage - in Qiskit standard gates, the `label` being set
+                # not-None should not generate a singleton, so should return a mutable instance.
+                return (n, label)
+
+        default = Discrete()
+        self.assertIs(default, Discrete())
+        self.assertIs(default, Discrete(0, label=None))
+        self.assertEqual(default.n, 0)
+        self.assertIsNot(default, Discrete(1))
+
+        one = Discrete(1)
+        self.assertIs(one, Discrete(1))
+        self.assertIs(one, Discrete(1, label=None))
+        self.assertEqual(one.n, 1)
+        self.assertIs(one.label, None)
+
+        two = Discrete(2, label="x")
+        self.assertIs(two, Discrete(2, label="x"))
+        self.assertIsNot(two, Discrete(2))
+        self.assertEqual(two.n, 2)
+        self.assertEqual(two.label, "x")
+
+        # This doesn't match any of the defined singletons, and we're checking that it's not
+        # spuriously cached without us asking for it.
+        self.assertIsNot(Discrete(2), Discrete(2))
+
+    def test_additional_singletons_copy(self):
+        additional_inputs = [
+            ((1,), {}),
+            ((2,), {"label": "x"}),
+        ]
+
+        class Discrete(SingletonGate, additional_singletons=additional_inputs):
+            def __init__(self, n=0, label=None):
+                super().__init__("discrete", 1, [], label=label)
+                self.n = n
+
+            @staticmethod
+            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+                return (n, label)
+
+        default = Discrete()
+        one = Discrete(1)
+        two = Discrete(2, "x")
+        mutable = Discrete(3)
+
+        self.assertIsNot(default, default.to_mutable())
+        self.assertEqual(default.n, default.to_mutable().n)
+        self.assertIsNot(one, one.to_mutable())
+        self.assertEqual(one.n, one.to_mutable().n)
+        self.assertIsNot(two, two.to_mutable())
+        self.assertEqual(two.n, two.to_mutable().n)
+        self.assertIsNot(mutable, mutable.to_mutable())
+        self.assertEqual(mutable.n, mutable.to_mutable().n)
+
+        # The equality assertions in the middle are sanity checks that nothing got overwritten.
+
+        self.assertIs(default, copy.copy(default))
+        self.assertEqual(default.n, 0)
+        self.assertIs(one, copy.copy(one))
+        self.assertEqual(one.n, 1)
+        self.assertIs(two, copy.copy(two))
+        self.assertEqual(two.n, 2)
+        self.assertIsNot(mutable, copy.copy(mutable))
+
+        self.assertIs(default, copy.deepcopy(default))
+        self.assertEqual(default.n, 0)
+        self.assertIs(one, copy.deepcopy(one))
+        self.assertEqual(one.n, 1)
+        self.assertIs(two, copy.deepcopy(two))
+        self.assertEqual(two.n, 2)
+        self.assertIsNot(mutable, copy.deepcopy(mutable))
+
+    def test_additional_singletons_pickle(self):
+        additional_inputs = [
+            ((1,), {}),
+            ((2,), {"label": "x"}),
+        ]
+
+        class Discrete(SingletonGate, additional_singletons=additional_inputs):
+            def __init__(self, n=0, label=None):
+                super().__init__("discrete", 1, [], label=label)
+                self.n = n
+
+            @staticmethod
+            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+                return (n, label)
+
+        # Pickle needs the class to be importable.  We want the class to only be instantiated inside
+        # the test, which means we need a little magic to make it pretend-importable.
+        dummy_module = types.ModuleType("_QISKIT_DUMMY_" + str(uuid.uuid4()).replace("-", "_"))
+        dummy_module.Discrete = Discrete
+        Discrete.__module__ = dummy_module.__name__
+        Discrete.__qualname__ = Discrete.__name__
+
+        default = Discrete()
+        one = Discrete(1)
+        two = Discrete(2, "x")
+        mutable = Discrete(3)
+
+        with unittest.mock.patch.dict(sys.modules, {dummy_module.__name__: dummy_module}):
+            # The singletons in `additional_singletons` are statics; their lifetimes should be tied
+            # to the type object itself, so if we don't delete it, it should be eligible to be
+            # reloaded from and produce the exact instances.
+            self.assertIs(default, pickle.loads(pickle.dumps(default)))
+            self.assertEqual(default.n, 0)
+            self.assertIs(one, pickle.loads(pickle.dumps(one)))
+            self.assertEqual(one.n, 1)
+            self.assertIs(two, pickle.loads(pickle.dumps(two)))
+            self.assertEqual(two.n, 2)
+            self.assertIsNot(mutable, pickle.loads(pickle.dumps(mutable)))
+
 
 class TestSingletonControlledGate(QiskitTestCase):
     """Qiskit SingletonGate tests."""
@@ -415,7 +560,6 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertEqual(gate, copied)
         self.assertEqual(copied.label, "special")
         self.assertTrue(copied.mutable)
-        self.assertIsNot(gate.base_gate, copied.base_gate)
         self.assertIsNot(copied, singleton_gate)
         self.assertEqual(singleton_gate, copied)
         self.assertNotEqual(singleton_gate.label, copied.label)
@@ -597,3 +741,22 @@ class TestSingletonControlledGate(QiskitTestCase):
         self.assertTrue(copied.mutable)
         self.assertEqual("my h gate", copied.base_gate.label)
         self.assertEqual("foo", copied.label)
+
+    def test_singleton_with_defaults(self):
+        self.assertIs(CXGate(), CXGate(label=None))
+        self.assertIs(CXGate(), CXGate(duration=None, unit="dt"))
+        self.assertIs(CXGate(), CXGate(_base_label=None))
+        self.assertIs(CXGate(), CXGate(label=None, ctrl_state=None))
+
+    def test_singleton_with_equivalent_ctrl_state(self):
+        self.assertIs(CXGate(), CXGate(ctrl_state=None))
+        self.assertIs(CXGate(), CXGate(ctrl_state=1))
+        self.assertIs(CXGate(), CXGate(label=None, ctrl_state=1))
+        self.assertIs(CXGate(), CXGate(ctrl_state="1"))
+        self.assertIsNot(CXGate(), CXGate(ctrl_state=0))
+        self.assertIsNot(CXGate(), CXGate(ctrl_state="0"))
+
+        self.assertIs(C4XGate(), C4XGate(ctrl_state=None))
+        self.assertIs(C4XGate(), C4XGate(ctrl_state=15))
+        self.assertIs(C4XGate(), C4XGate(ctrl_state="1111"))
+        self.assertIsNot(C4XGate(), C4XGate(ctrl_state=0))
