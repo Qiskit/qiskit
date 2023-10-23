@@ -49,7 +49,7 @@ class UMDA(Optimizer):
     have been obtained [1]. UMDA seems to provide very good solutions for those circuits in which
     the number of layers is not big.
 
-    The optimization process can be personalized depending on the paremeters chosen in the
+    The optimization process can be personalized depending on the parameters chosen in the
     initialization. The main parameter is the population size. The bigger it is, the final result
     will be better. However, this increases the complexity of the algorithm and the runtime will
     be much heavier. In the work [1] different experiments have been performed where population
