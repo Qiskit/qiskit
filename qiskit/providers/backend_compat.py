@@ -13,24 +13,363 @@
 """Backend abstract interface for providers."""
 
 from __future__ import annotations
-
+import logging
 from typing import List, Iterable, Any, Dict, Optional
 
+# from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
 from qiskit.exceptions import QiskitError
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-from qiskit.circuit.measure import Measure
-from qiskit.providers.models.backendconfiguration import BackendConfiguration
-from qiskit.providers.models.backendproperties import BackendProperties
+
+# from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+# from qiskit.circuit.measure import Measure
+# from qiskit.providers.models.backendconfiguration import BackendConfiguration
+# from qiskit.providers.models.backendproperties import BackendProperties
+# from qiskit.providers.models.backendproperties import Gate as GateSchema
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 
+# import qiskit.transpiler.target as tgt
+
+logger = logging.getLogger(__name__)
+
+
+class IBMQubitProperties(QubitProperties):
+    """A representation of the properties of a qubit on an IBM backend."""
+
+    __slots__ = (  # pylint: disable=redefined-slots-in-subclass
+        "t1",
+        "t2",
+        "frequency",
+        "anharmonicity",
+        "operational",
+    )
+
+    def __init__(  # type: ignore[no-untyped-def]
+        self,
+        t1=None,
+        t2=None,
+        frequency=None,
+        anharmonicity=None,
+        operational=True,
+    ):
+        """Create a new ``IBMQubitProperties`` object
+
+        Args:
+            t1: The T1 time for a qubit in secs
+            t2: The T2 time for a qubit in secs
+            frequency: The frequency of a qubit in Hz
+            anharmonicity: The anharmonicity of a qubit in Hz
+            operational: A boolean value representing if this qubit is operational.
+        """
+        super().__init__(t1=t1, t2=t2, frequency=frequency)
+        self.anharmonicity = anharmonicity
+        self.operational = operational
+
+    def __repr__(self):  # type: ignore[no-untyped-def]
+        return (
+            f"IBMQubitProperties(t1={self.t1}, t2={self.t2}, frequency={self.frequency}, "
+            f"anharmonicity={self.anharmonicity})"
+        )
+
 
 def convert_to_target(
+    configuration: Union[QasmBackendConfiguration, PulseBackendConfiguration],
+    pulse_defaults: Optional[Dict] = None,
+    properties: Optional[Dict] = None,
+) -> Target:
+    """Decode transpiler target from backend data set.
+
+    This function directly generates ``Target`` instance without generating
+    intermediate legacy objects such as ``BackendProperties`` and ``PulseDefaults``.
+
+    Args:
+        configuration: Backend configuration.
+        pulse_defaults: Backend pulse defaults dictionary.
+        properties: Backend property dictionary.
+
+    Returns:
+        A ``Target`` instance.
+    """
+
+    # importing pacakges where they are needed, to avoid cyclic-import.
+    from qiskit.transpiler.target import Target
+    from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
+    from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+    from qiskit.providers.models.backendproperties import Gate as GateSchema
+    from qiskit.qobj.pulse_qobj import PulseLibraryItem
+    from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
+    from qiskit.providers.models.backendproperties import BackendProperties
+    from qiskit.providers.models.backendconfiguration import QasmBackendConfiguration
+    from qiskit.providers.models.pulsedefaults import PulseDefaults, Command
+    from qiskit.pulse.calibration_entries import PulseQobjDef
+
+    required = ["measure", "delay"]
+
+    # Load Qiskit object representation
+    qiskit_inst_mapping = get_standard_gate_name_mapping()
+    qiskit_control_flow_mapping = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
+
+    in_data = {"num_qubits": configuration.n_qubits}
+
+    # Parse global configuration properties
+    if hasattr(configuration, "dt"):
+        in_data["dt"] = configuration.dt
+    if hasattr(configuration, "timing_constraints"):
+        in_data.update(configuration.timing_constraints)
+
+    # Create instruction property placeholder from backend configuration
+    supported_instructions = set(getattr(configuration, "supported_instructions", []))
+    basis_gates = set(getattr(configuration, "basis_gates", []))
+    gate_configs = {gate.name: gate for gate in configuration.gates}
+    inst_name_map = {}  # type: Dict[str, Instruction]
+    prop_name_map = {}  # type: Dict[str, Dict[Tuple[int, ...], InstructionProperties]]
+    all_instructions = set.union(supported_instructions, basis_gates, set(required))
+    faulty_qubits = set()
+    faulty_ops = set()
+    unsupported_instructions = []
+
+    # Create name to Qiskit instruction object repr mapping
+    for name in all_instructions:
+        if name in qiskit_control_flow_mapping:
+            continue
+        if name in qiskit_inst_mapping:
+            inst_name_map[name] = qiskit_inst_mapping[name]
+        elif name in gate_configs:
+            this_config = gate_configs[name]
+            params = list(map(Parameter, getattr(this_config, "parameters", [])))
+            coupling_map = getattr(this_config, "coupling_map", [])
+            inst_name_map[name] = Gate(
+                name=name,
+                num_qubits=len(coupling_map[0]) if coupling_map else 0,
+                params=params,
+            )
+        else:
+            logger.warning(
+                "Definition of instruction %s is not found in the Qiskit namespace and "
+                "GateConfig is not provided by the BackendConfiguration payload. "
+                "Qiskit Gate model cannot be instantiated for this instruction and "
+                "this instruction is silently excluded from the Target. "
+                "Please add new gate class to Qiskit or provide GateConfig for this name.",
+                name,
+            )
+            unsupported_instructions.append(name)
+
+    for name in unsupported_instructions:
+        all_instructions.remove(name)
+
+    # Create empty inst properties from gate configs
+    for name, spec in gate_configs.items():
+        if hasattr(spec, "coupling_map"):
+            coupling_map = spec.coupling_map
+            prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
+        else:
+            prop_name_map[name] = None
+
+    # Populate instruction properties
+    if properties:
+        qubit_properties = list(map(_decode_qubit_property, properties["qubits"]))
+        in_data["qubit_properties"] = qubit_properties
+        faulty_qubits = set(q for q, prop in enumerate(qubit_properties) if not prop.operational)
+
+        for gate_spec in map(GateSchema.from_dict, properties["gates"]):
+            name = gate_spec.gate
+            qubits = tuple(gate_spec.qubits)
+            if name not in all_instructions:
+                logger.info(
+                    "Gate property for instruction %s on qubits %s is found "
+                    "in the BackendProperties payload. However, this gate is not included in the "
+                    "basis_gates or supported_instructions, or maybe the gate model "
+                    "is not defined in the Qiskit namespace. This gate is ignored.",
+                    name,
+                    qubits,
+                )
+                continue
+            inst_prop, operational = _decode_instruction_property(gate_spec)
+            if set.intersection(faulty_qubits, qubits) or not operational:
+                faulty_ops.add((name, qubits))
+                try:
+                    del prop_name_map[name][qubits]
+                except KeyError:
+                    pass
+                continue
+            if prop_name_map[name] is None:
+                prop_name_map[name] = {}
+            prop_name_map[name][qubits] = inst_prop
+        # Measure instruction property is stored in qubit property in IBM
+        measure_props = list(map(_decode_measure_property, properties["qubits"]))
+        prop_name_map["measure"] = {}
+        for qubit, measure_prop in enumerate(measure_props):
+            if qubit in faulty_qubits:
+                continue
+            qubits = (qubit,)
+            prop_name_map["measure"][qubits] = measure_prop
+
+    # Special case for real IBM backend. They don't have delay in gate configuration.
+    if "delay" not in prop_name_map:
+        prop_name_map["delay"] = {
+            (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
+        }
+
+    # Define pulse qobj converter and command sequence for lazy conversion
+    if pulse_defaults:
+        pulse_lib = list(map(PulseLibraryItem.from_dict, pulse_defaults["pulse_library"]))
+        converter = QobjToInstructionConverter(pulse_lib)
+        for cmd in map(Command.from_dict, pulse_defaults["cmd_def"]):
+            name = cmd.name
+            qubits = tuple(cmd.qubits)
+            if (
+                name not in all_instructions
+                or name not in prop_name_map
+                or qubits not in prop_name_map[name]
+            ):
+                logger.info(
+                    "Gate calibration for instruction %s on qubits %s is found "
+                    "in the PulseDefaults payload. However, this entry is not defined in "
+                    "the gate mapping of Target. This calibration is ignored.",
+                    name,
+                    qubits,
+                )
+                continue
+
+            if (name, qubits) in faulty_ops:
+                continue
+
+            entry = PulseQobjDef(converter=converter, name=cmd.name)
+            entry.define(cmd.sequence)
+            try:
+                prop_name_map[name][qubits].calibration = entry
+            except AttributeError:
+                logger.info(
+                    "The PulseDefaults payload received contains an instruction %s on "
+                    "qubits %s which is not present in the configuration or properties payload.",
+                    name,
+                    qubits,
+                )
+
+    # Add parsed properties to target
+    target = Target(**in_data)
+    for inst_name in all_instructions:
+        if inst_name in qiskit_control_flow_mapping:
+            # Control flow operator doesn't have gate property.
+            target.add_instruction(
+                instruction=qiskit_control_flow_mapping[inst_name],
+                name=inst_name,
+            )
+        else:
+            target.add_instruction(
+                instruction=inst_name_map[inst_name],
+                properties=prop_name_map.get(inst_name, None),
+            )
+
+    return target
+
+
+def _decode_qubit_property(qubit_specs: List[Dict]) -> IBMQubitProperties:
+    """Decode qubit property data to generate IBMQubitProperty instance.
+
+    Args:
+        qubit_specs: List of qubit property dictionary.
+
+    Returns:
+        An ``IBMQubitProperty`` instance.
+    """
+    in_data = {}
+    for spec in qubit_specs:
+        name = (spec["name"]).lower()
+        if name == "operational":
+            in_data[name] = bool(spec["value"])
+        elif name in IBMQubitProperties.__slots__:
+            in_data[name] = apply_prefix(value=spec["value"], unit=spec.get("unit", None))
+    return IBMQubitProperties(**in_data)  # type: ignore[no-untyped-call]
+
+
+def _decode_instruction_property(
+    gate_spec: GateSchema,
+) -> Tuple[InstructionProperties, bool]:
+    """Decode gate property data to generate InstructionProperties instance.
+
+    Args:
+        gate_spec: List of gate property dictionary.
+
+    Returns:
+        An ``InstructionProperties`` instance and a boolean value representing
+        if this gate is operational.
+    """
+    from qiskit.transpiler.target import InstructionProperties
+
+    in_data = {}
+    operational = True
+    for param in gate_spec.parameters:
+        if param.name == "gate_error":
+            in_data["error"] = param.value
+        if param.name == "gate_length":
+            in_data["duration"] = apply_prefix(value=param.value, unit=param.unit)
+        if param.name == "operational" and not param.value:
+            operational = bool(param.value)
+    return InstructionProperties(**in_data), operational
+
+
+def _decode_measure_property(qubit_specs: List[Dict]) -> InstructionProperties:
+    """Decode qubit property data to generate InstructionProperties instance.
+
+    Args:
+        qubit_specs: List of qubit property dictionary.
+
+    Returns:
+        An ``InstructionProperties`` instance.
+    """
+    from qiskit.transpiler.target import InstructionProperties
+
+    in_data = {}
+    for spec in qubit_specs:
+        name = spec["name"]
+        if name == "readout_error":
+            in_data["error"] = spec["value"]
+        if name == "readout_length":
+            in_data["duration"] = apply_prefix(value=spec["value"], unit=spec.get("unit", None))
+    return InstructionProperties(**in_data)
+
+
+def qubit_props_list_from_props(
+    properties: BackendProperties,
+) -> List[QubitProperties]:
+    """Uses BackendProperties to construct
+    and return a list of QubitProperties.
+    """
+    qubit_props: List[QubitProperties] = []
+    for qubit, _ in enumerate(properties.qubits):
+        try:
+            t_1 = properties.t1(qubit)
+        except BackendPropertyError:
+            t_1 = None
+        try:
+            t_2 = properties.t2(qubit)
+        except BackendPropertyError:
+            t_2 = None
+        try:
+            frequency = properties.frequency(qubit)
+        except BackendPropertyError:
+            frequency = None
+        qubit_props.append(
+            QubitProperties(  # type: ignore[no-untyped-call]
+                t1=t_1,
+                t2=t_2,
+                frequency=frequency,
+            )
+        )
+    return qubit_props
+
+
+def convert_to_target_legacy(
     configuration: BackendConfiguration,
     properties: BackendProperties = None,
     defaults: PulseDefaults = None,
@@ -57,6 +396,9 @@ def convert_to_target(
         Target,
         InstructionProperties,
     )
+
+    from qiskit.circuit.measure import Measure
+    from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
@@ -195,36 +537,6 @@ def convert_to_target(
     return target
 
 
-def qubit_props_list_from_props(
-    properties: BackendProperties,
-) -> List[QubitProperties]:
-    """Uses BackendProperties to construct
-    and return a list of QubitProperties.
-    """
-    qubit_props: List[QubitProperties] = []
-    for qubit, _ in enumerate(properties.qubits):
-        try:
-            t_1 = properties.t1(qubit)
-        except BackendPropertyError:
-            t_1 = None
-        try:
-            t_2 = properties.t2(qubit)
-        except BackendPropertyError:
-            t_2 = None
-        try:
-            frequency = properties.frequency(qubit)
-        except BackendPropertyError:
-            frequency = None
-        qubit_props.append(
-            QubitProperties(  # type: ignore[no-untyped-call]
-                t1=t_1,
-                t2=t_2,
-                frequency=frequency,
-            )
-        )
-    return qubit_props
-
-
 class BackendV2Converter(BackendV2):
     """A converter class that takes a :class:`~.BackendV1` instance and wraps it in a
     :class:`~.BackendV2` interface.
@@ -305,7 +617,7 @@ class BackendV2Converter(BackendV2):
                 self._defaults = self._backend.defaults()
             if self._properties is None and hasattr(self._backend, "properties"):
                 self._properties = self._backend.properties()
-            self._target = convert_to_target(
+            self._target = convert_to_target_legacy(
                 self._config,
                 self._properties,
                 self._defaults,
