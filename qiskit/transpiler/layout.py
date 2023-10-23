@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import List
 from dataclasses import dataclass
 
+from qiskit import circuit
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -475,7 +476,7 @@ class TranspileLayout:
     """
 
     initial_layout: Layout
-    input_qubit_mapping: dict[Qubit, int]
+    input_qubit_mapping: dict[circuit.Qubit, int]
     final_layout: Layout | None = None
     _input_qubit_count: int | None = None
     _output_qubit_list: List[Qubit] | None = None
