@@ -52,7 +52,7 @@ def _target_match(node_a, node_b):
 
 
 class VF2PostLayout(AnalysisPass):
-    """A pass for choosing a Layout after transpilation of a circuit onto a
+    """A pass for improving an existing Layout after transpilation of a circuit onto a
     Coupling graph, as a subgraph isomorphism problem, solved by VF2++.
 
     Unlike the :class:`~.VF2Layout` transpiler pass which is designed to find an
