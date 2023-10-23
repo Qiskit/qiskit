@@ -117,17 +117,17 @@ class BaseSampler(BasePrimitive, Generic[T]):
             "_circuits": [],
             "_parameters": [],
         }
-        if name in dep_defaults:
-            warnings.warn(
-                f"The init attribute `{name}` in BaseSampler is deprecated as of Qiskit 0.46."
-                " To continue to use this attribute in a subclass and avoid this warning the"
-                " subclass should initialize it itself.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            setattr(self, name, dep_defaults[name])
-        else:
+        if name not in dep_defaults:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        warnings.warn(
+            f"The init attribute `{name}` in BaseSampler is deprecated as of Qiskit 0.46."
+            " To continue to use this attribute in a subclass and avoid this warning the"
+            " subclass should initialize it itself.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        setattr(self, name, dep_defaults[name])
         return getattr(self, name)
 
     def run(
