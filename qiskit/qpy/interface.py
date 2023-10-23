@@ -225,9 +225,9 @@ def load(
             file_obj.read(formats.FILE_HEADER_SIZE),
         )
     )
-    if data.version > common.QPY_VERSION:
+    if data.qpy_version > common.QPY_VERSION:
         raise QiskitError(
-            f"The QPY format version being read, {data.version}, isn't supported by "
+            f"The QPY format version being read, {data.qpy_version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
     if data.preface.decode(common.ENCODE) != "QISKIT":
