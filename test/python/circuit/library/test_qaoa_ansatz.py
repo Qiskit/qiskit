@@ -18,7 +18,6 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import I
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -30,7 +29,7 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
         # To be changed once QAOAAnsatz drops support for opflow
-        circuit = QAOAAnsatz(I, 1)
+        circuit = QAOAAnsatz(Pauli("I"), 1)
         parameters = circuit.parameters
 
         circuit = circuit.decompose()

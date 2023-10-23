@@ -44,15 +44,14 @@ class EvolvedOperatorAnsatz(NLocal):
     ):
         """
         Args:
-            operators (BaseOperator | OperatorBase | QuantumCircuit | list | None): The operators
+            operators (BaseOperator | QuantumCircuit | list | None): The operators
                 to evolve. If a circuit is passed, we assume it implements an already evolved
                 operator and thus the circuit is not evolved again. Can be a single operator
                 (circuit) or a list of operators (and circuits).
             reps: The number of times to repeat the evolved operators.
             evolution (EvolutionBase | EvolutionSynthesis | None):
                 A specification of which evolution synthesis to use for the
-                :class:`.PauliEvolutionGate`, if the operator is from :mod:`qiskit.quantum_info`
-                or an opflow converter object if the operator is from :mod:`qiskit.opflow`.
+                :class:`.PauliEvolutionGate`.
                 Defaults to first order Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
@@ -113,13 +112,8 @@ class EvolvedOperatorAnsatz(NLocal):
         """The evolution converter used to compute the evolution.
 
         Returns:
-            EvolutionBase or EvolutionSynthesis: The evolution converter used to compute the evolution.
+            EvolutionSynthesis: The evolution converter used to compute the evolution.
         """
-        if self._evolution is None:
-            # pylint: disable=cyclic-import
-            from qiskit.opflow import PauliTrotterEvolution
-
-            return PauliTrotterEvolution()
 
         return self._evolution
 
@@ -128,8 +122,7 @@ class EvolvedOperatorAnsatz(NLocal):
         """Sets the evolution converter used to compute the evolution.
 
         Args:
-            evol (EvolutionBase | EvolutionSynthesis): An evolution synthesis object or
-                opflow converter object to construct the evolution.
+            evol (EvolutionSynthesis): An evolution synthesis object
         """
         self._invalidate()
         self._evolution = evol
@@ -147,7 +140,7 @@ class EvolvedOperatorAnsatz(NLocal):
     def operators(self, operators=None) -> None:
         """Set the operators to be evolved.
 
-        operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
+        operators (Optional[Union[QuantumCircuit, list]): The operators to evolve.
             If a circuit is passed, we assume it implements an already evolved operator and thus
             the circuit is not evolved again. Can be a single operator (circuit) or a list of
             operators (and circuits).
@@ -174,20 +167,9 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _evolve_operator(self, operator, time):
-        from qiskit.opflow import OperatorBase, EvolutionBase
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
-
-        if isinstance(operator, OperatorBase):
-            if not isinstance(self.evolution, EvolutionBase):
-                raise QiskitError(
-                    "If qiskit.opflow operators are evolved the evolution must be a "
-                    f"qiskit.opflow.EvolutionBase, not a {type(self.evolution)}."
-                )
-
-            evolved = self.evolution.convert((time * operator).exp_i())
-            return evolved.reduce().to_circuit()
 
         # if the operator is specified as matrix use exact matrix exponentiation
         if isinstance(operator, Operator):
@@ -254,17 +236,11 @@ def _validate_prefix(parameter_prefix, operators):
 
 
 def _is_pauli_identity(operator):
-    from qiskit.opflow import PauliOp, PauliSumOp
-
-    if isinstance(operator, PauliSumOp):
-        operator = operator.to_pauli_op()
     if isinstance(operator, SparsePauliOp):
         if len(operator.paulis) == 1:
             operator = operator.paulis[0]  # check if the single Pauli is identity below
         else:
             return False
-    if isinstance(operator, PauliOp):
-        operator = operator.primitive
     if isinstance(operator, Pauli):
         return not np.any(np.logical_or(operator.x, operator.z))
     return False

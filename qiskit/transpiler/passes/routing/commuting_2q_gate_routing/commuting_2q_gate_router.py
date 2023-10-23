@@ -54,8 +54,8 @@ class Commuting2qGateRouter(TransformationPass):
     .. code-block:: python
 
         from qiskit import QuantumCircuit
-        from qiskit.opflow import PauliSumOp
         from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.quantum_info import SparsePauliOp
         from qiskit.transpiler import Layout, CouplingMap, PassManager
         from qiskit.transpiler.passes import FullAncillaAllocation
         from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -69,7 +69,7 @@ class Commuting2qGateRouter(TransformationPass):
         )
 
         # Define the circuit on virtual qubits
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 

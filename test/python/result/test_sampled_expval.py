@@ -15,7 +15,6 @@
 import unittest
 from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.opflow import PauliOp, PauliSumOp
 from qiskit.test import QiskitTestCase
 
 
@@ -82,13 +81,11 @@ class TestSampledExpval(QiskitTestCase):
         exp2 = sampled_expectation_value(counts, Pauli(oper))
         self.assertAlmostEqual(exp2, ans)
 
-        with self.assertWarns(DeprecationWarning):
-            exp3 = sampled_expectation_value(counts, PauliOp(Pauli(oper)))
+        exp3 = sampled_expectation_value(counts, Pauli(oper))
         self.assertAlmostEqual(exp3, ans)
 
         spo = SparsePauliOp([oper], coeffs=[1])
-        with self.assertWarns(DeprecationWarning):
-            exp4 = sampled_expectation_value(counts, PauliSumOp(spo, coeff=2))
+        exp4 = sampled_expectation_value(counts, spo)
         self.assertAlmostEqual(exp4, 2 * ans)
 
         exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))

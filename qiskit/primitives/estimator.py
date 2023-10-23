@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Any
-import typing
 
 import numpy as np
 
@@ -34,9 +33,6 @@ from .utils import (
     bound_circuit_to_instruction,
     init_observable,
 )
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
 
 
 class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
@@ -127,7 +123,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[BaseOperator, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ):

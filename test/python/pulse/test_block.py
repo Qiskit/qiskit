@@ -21,7 +21,7 @@ from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
-from qiskit.utils import has_aer
+from qiskit.utils import optionals as _optionals
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -372,7 +372,7 @@ class TestBlockOperation(BaseTestBlock):
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    @unittest.skipUnless(_optionals.HAS_AER, "qiskit-aer doesn't appear to be installed.")
     def test_execute_block(self):
         """Test executing a ScheduleBlock on a Pulse backend"""
 
