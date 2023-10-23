@@ -46,16 +46,3 @@ API Reference
    utils
    utils_mitigation
    exceptions
-
-Deprecated Modules
-==================
-
-.. warning::
-
-   These modules are going to be removed in Qiskit 1.0. Consider pinning ``qiskit~=0.45`` in your dependencies if you need them.
-
-.. toctree::
-   :maxdepth: 1
-
-   algorithms
-   opflow

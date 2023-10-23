@@ -28,7 +28,6 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
-        # To be changed once QAOAAnsatz drops support for opflow
         circuit = QAOAAnsatz(Pauli("I"), 1)
         parameters = circuit.parameters
 
