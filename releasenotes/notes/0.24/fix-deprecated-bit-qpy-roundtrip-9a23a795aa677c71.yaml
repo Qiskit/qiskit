@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    The deprecated :class:`.Qubit` and :class:`.Clbit` properties :attr:`~.Qubit.register` and
+    The deprecated :class:`~qiskit.circuit.Qubit` and :class:`.Clbit` properties :attr:`~.Qubit.register` and
     :attr:`~.Qubit.index` will now be correctly round-tripped by QPY (:mod:`qiskit.qpy`) in all
     valid usages of :class:`.QuantumRegister` and :class:`.ClassicalRegister`.  In earlier releases
     in the Terra 0.23 series, this information would be lost.  In versions before 0.23.0, this

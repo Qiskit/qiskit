@@ -451,11 +451,11 @@ class TranspileLayout:
       * :attr:`initial_layout` - This attribute is used to model the
         permutation caused by the :ref:`layout_stage` it contains a
         :class:`~.Layout` object that maps the input :class:`~.QuantumCircuit`\s
-        :class:`~.Qubit` objects to the position in the output
+        :class:`~.circuit.Qubit` objects to the position in the output
         :class:`.QuantumCircuit.qubits` list.
       * :attr:`input_qubit_mapping` - This attribute is used to retain
         input ordering of the original :class:`~.QuantumCircuit` object. It
-        maps the virtual :class:`~.Qubit` object from the original circuit
+        maps the virtual :class:`~.circuit.Qubit` object from the original circuit
         (and :attr:`initial_layout`) to its corresponding position in
         :attr:`.QuantumCircuit.qubits` in the original circuit. This
         is needed when computing the permutation of the :class:`Operator` of
@@ -483,7 +483,7 @@ class TranspileLayout:
     def initial_virtual_layout(self, filter_ancillas: bool = False) -> Layout:
         """Return a :class:`.Layout` object for the initial layout.
 
-        This returns a mapping of virtual :class:`~.Qubit` objects in the input
+        This returns a mapping of virtual :class:`~.circuit.Qubit` objects in the input
         circuit to the physical qubit selected during layout. This is analogous
         to the :attr:`.initial_layout` attribute.
 
@@ -492,7 +492,7 @@ class TranspileLayout:
                 will be in the returned layout. Any ancilla qubits added to the
                 output circuit will be filtered from the returned object.
         Returns:
-            A layout object mapping the input circuit's :class:`~.Qubit`
+            A layout object mapping the input circuit's :class:`~.circuit.Qubit`
             objects to the selected physical qubits.
         """
         if not filter_ancillas:
