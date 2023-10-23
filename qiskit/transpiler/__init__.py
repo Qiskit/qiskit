@@ -511,7 +511,7 @@ reset operations.  However, most quantum devices only natively support a handful
 and non-gate operations. The allowed instructions for a given backend can be found by querying the
 :class:`~.Target` for the devices:
 
-.. code-block:
+.. code-block::
 
    from qiskit.providers.fake_provider import FakeVigoV2
    backend = FakeVigoV2()
@@ -585,6 +585,7 @@ quantum circuit and the number of gates.
 It is important to highlight two special cases:
 
 1. If A swap gate is not a native gate and must be decomposed this requires three CNOT gates:
+
    .. code-block::
 
       from qiskit.providers.fake_provider import FakeVigoV2
@@ -653,9 +654,9 @@ number of swap operations needed to map the input circuit onto the device topolo
 for minimizing the loss due to non-uniform noise properties across a device. Due to the
 importance of this stage, the preset pass managers
 try a few different methods to find the best layout. Typically this involves 2 steps: first,
-trying to find a "perfect" layout (a layout which does not require any swap operations) and then,
+trying to find a "perfect" layout (a layout which does not require any swap operations), and then,
 a heuristic pass that tries to find the best layout to use if a perfect layout cannot be found.
-For the first stage there are 2 passes typically used for this:
+There are 2 passes typically used for the first stage:
 
 - :class:`~.VF2Layout`: Models layout selection as a subgraph isomorphism problem and tries
   to find a subgraph of the connectivity graph that is isomorphic to the
@@ -663,22 +664,22 @@ For the first stage there are 2 passes typically used for this:
   scoring heuristic is run to select the mapping which would result in the lowest average error
   when executing the circuit.
 
-- :class:`~.TrivialLayout`: Map each virtual qubit to the same numbered physical qubit on the device,
+- :class:`~.TrivialLayout`: Maps each virtual qubit to the same numbered physical qubit on the device,
   i.e. ``[0,1,2,3,4]`` -> ``[0,1,2,3,4]``. This is historical behavior used only in
   ``optimization_level=1`` to try to find a perfect layout. If it fails to do so, :class:`~.VF2Layout`
-  is tried next).
+  is tried next.
 
 Next, for the heuristic stage, 2 passes are used by default:
 
 - :class:`~.SabreLayout`: Selects a layout by starting from an initial random layout and then
-  repeatedly running a routing algorithm (by default :class:`~.SabreSwap`) both forwards and
-  backwards over the circuit using the permutation caused by swap insertions to adjust that
+  repeatedly running a routing algorithm (by default :class:`~.SabreSwap`) both forward and
+  backward over the circuit, using the permutation caused by swap insertions to adjust that
   initial random layout. For more details you can refer to the paper describing the algorithm:
   `arXiv:1809.02573 <https://arxiv.org/abs/1809.02573>`__
-  :class:`~.SabreLayout` is use to select a layout if a perfect layout isn't found for
+  :class:`~.SabreLayout` is used to select a layout if a perfect layout isn't found for
   optimization levels 1, 2, and 3.
-- :class:`~.TrivialLayout`: Always used for the layout at optimization level 0
-- :class:`~.DenseLayout`: Find the sub-graph of the device with greatest connectivity
+- :class:`~.TrivialLayout`: Always used for the layout at optimization level 0.
+- :class:`~.DenseLayout`: Finds the sub-graph of the device with greatest connectivity
   that has the same number of qubits as the circuit. Used for
   optimization level 1 if there are control flow operations (such as
   :class:`~.IfElseOp`) present in the circuit.
@@ -926,7 +927,7 @@ Scheduling Stage
 
 After the circuit has been translated to the target basis, mapped to the device, and optimized,
 a scheduling phase can be applied to optionally account for all the idle time in the circuit.
-At a high level the scheduling can be thought of as inserting delays into the circuit to account
+At a high level, the scheduling can be thought of as inserting delays into the circuit to account
 for idle time on the qubits between the execution of instructions. For example, if we start with a
 circuit such as:
 
@@ -977,31 +978,32 @@ also look at it with the :func:`.timeline.draw` function:
 
    timeline_draw(circ)
 
-The scheduling of a circuit involves two parts, analysis and constraint mapping followed by a
+The scheduling of a circuit involves two parts: analysis and constraint mapping, followed by a
 padding pass. The first part requires running a scheduling analysis pass such as
 :class:`~.ALAPSchedulingAnalysis` or :class:`~.ASAPSchedulingAnalysis` which analyzes the circuit
 and records the start time of each instruction in the circuit using a scheduling algorithm ("as late
 as possible" for  :class:`~.ALAPSchedulingAnalysis` and "as soon as possible" for
-:class:`~.ASAPSchedulingAnalysis`) in the property set. Once the circuit has an initial scheduling
+:class:`~.ASAPSchedulingAnalysis`) in the property set. Once the circuit has an initial scheduling,
 additional passes can be run to account for any timing constraints on the target backend, such
 as alignment constraints. This is typically done with the
 :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
 set in the property set to the constraints of the target backend. Once all
-the scheduling and adjustments/rescheduling are finished a padding pass,
+the scheduling and adjustments/rescheduling are finished, a padding pass,
 such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
 to insert the instructions into the circuit, which completes the scheduling.
 
 Scheduling Analysis with control flow instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When scheduling analysis passes run there are additional constraints on classical conditions
-and control flow instructions in a circuit. This section covers the details of these additional
+When running scheduling analysis passes on a circuit, you must keep in mind that there
+are additional constraints on classical conditions and control flow instructions. This section
+covers the details of these additional
 constraints that any scheduling pass will need to account for.
 
-Policy of topological node ordering in scheduling
-'''''''''''''''''''''''''''''''''''''''''''''''''
+Topological node ordering in scheduling
+''''''''''''''''''''''''''''''''''''''''
 
-The DAG representation of ``QuantumCircuit`` respects the node ordering also in the
+The DAG representation of ``QuantumCircuit`` respects the node ordering in the
 classical register wires, though theoretically two conditional instructions
 conditioned on the same register could commute, i.e. read-access to the
 classical register doesn't change its state.
@@ -1013,7 +1015,8 @@ classical register doesn't change its state.
     qc.x(0).c_if(0, True)
     qc.x(1).c_if(0, True)
 
-The scheduler SHOULD comply with above topological ordering policy of the DAG circuit.
+The scheduler SHOULD comply with the above topological ordering policy of the
+DAG circuit.
 Accordingly, the `asap`-scheduled circuit will become
 
 .. parsed-literal::
@@ -1028,18 +1031,20 @@ Accordingly, the `asap`-scheduled circuit will become
                            └─────────┘└─────────┘
 
 Note that this scheduling might be inefficient in some cases,
-because the second conditional operation can start without waiting the delay of 100 dt.
-However, such optimization should be done by another pass,
-otherwise scheduling may break topological ordering of the original circuit.
+because the second conditional operation could start without waiting
+for the 100 dt delay.
+However, any additional optimization should be done in a different pass,
+not to break the topological ordering of the original circuit.
 
-Realistic control flow scheduling respecting for microarchitecture
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Realistic control flow scheduling (respecting microarchitecture)
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
-followed by resonator ring-down (depopulation). This microwave signal is recorded
-in the buffer memory (B) with hardware kernel, then a discriminated (D) binary value
-is moved to the classical register (C).
-The sequence from t0 to t1 of the measure instruction interval might be modeled as follows:
+In the dispersive QND readout scheme, the qubit (Q) is measured by sending
+a microwave stimulus, followed by a resonator ring-down (depopulation). This
+microwave signal is recorded in the buffer memory (B) with the hardware kernel,
+then a discriminated (D) binary value is moved to the classical register (C).
+A sequence from t0 to t1 of the measure instruction interval could be
+modeled as follows:
 
 .. parsed-literal::
 
@@ -1048,12 +1053,13 @@ The sequence from t0 to t1 of the measure instruction interval might be modeled 
     D ░░░░░░░░░░▒▒▒▒▒▒░░░
     C ░░░░░░░░░░░░░░░░▒▒░
 
-However, ``QuantumCircuit`` representation is not enough accurate to represent
-this model. In the circuit representation, thus ``Qubit`` is occupied by the
-stimulus microwave signal during the first half of the interval,
-and ``Clbit`` is only occupied at the very end of the interval.
+However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
+this model. In the circuit representation, the corresponding :class:`.Qubit` is occupied
+by the stimulus microwave signal during the first half of the interval,
+and the :class:`.Clbit` is only occupied at the very end of the interval.
 
-This precise model may induce weird edge case.
+The lack of precision representing the physical model may induce
+edge cases in the scheduling:
 
 .. parsed-literal::
 
@@ -1065,12 +1071,14 @@ This precise model may induce weird edge case.
     c: 1/╡ c_0=0x1 ╞═╩═
          └─────────┘ 0
 
-In this example, user may intend to measure the state of ``q_1``, after ``XGate`` is
-applied to the ``q_0``. This is correct interpretation from viewpoint of
-the topological node ordering, i.e. x gate node come in front of the measure node.
+In this example, a user may intend to measure the state of ``q_1`` after the
+:class:`.XGate` is applied to ``q_0``. This is the correct interpretation from
+the viewpoint of topological node ordering, i.e. The :class:`.XGate` node comes in
+front of the :class:`.Measure` node.
 However, according to the measurement model above, the data in the register
-is unchanged during the stimulus, thus two nodes are simultaneously operated.
-If one `alap`-schedule this circuit, it may return following circuit.
+is unchanged during the application of the stimulus, so two nodes are
+simultaneously operated.
+If one tries to `alap`-schedule this circuit, it may return following circuit:
 
 .. parsed-literal::
 
@@ -1082,9 +1090,10 @@ If one `alap`-schedule this circuit, it may return following circuit.
     c: 1/══════════════════╡ c_0=0x1 ╞═╩═
                            └─────────┘ 0
 
-Note that there is no delay on ``q_1`` wire, and the measure instruction immediately
-start after t=0, while the conditional gate starts after the delay.
-It looks like the topological ordering between the nodes are flipped in the scheduled view.
+Note that there is no delay on the ``q_1`` wire, and the measure instruction
+immediately starts after t=0, while the conditional gate starts after the delay.
+It looks like the topological ordering between the nodes is flipped in the
+scheduled view.
 This behavior can be understood by considering the control flow model described above,
 
 .. parsed-literal::
@@ -1103,20 +1112,21 @@ This behavior can be understood by considering the control flow model described 
     D ░░░░░░░░░░▒▒▒▒▒▒░░░
     C ░░░░░░░░░░░░░░░░▒▒░
 
-Since there is no qubit register (Q0, Q1) overlap, the node ordering is determined by the
-shared classical register C. As you can see, the execution order is still
+Since there is no qubit register overlap between Q0 and Q1, the node ordering is
+determined by the shared classical register C. As you can see, the execution order is still
 preserved on C, i.e. read C then apply ``XGate``, finally store the measured outcome in C.
-Because ``DAGOpNode`` cannot define different durations for associated registers,
-the time ordering of two nodes is inverted anyways.
+But because ``DAGOpNode`` cannot define different durations for the associated registers,
+the time ordering of the two nodes is inverted.
 
 This behavior can be controlled by ``clbit_write_latency`` and ``conditional_latency``.
-The former parameter determines the delay of the register write-access from
-the beginning of the measure instruction t0, and another parameter determines
-the delay of conditional gate operation from t0 which comes from the register read-access.
-These information might be found in the backend configuration and then should
+``clbit_write_latency`` determines the delay of the register write-access from
+the beginning of the measure instruction (t0), while ``conditional_latency`` determines
+the delay of conditional gate operations with respect to t0, which is determined
+by the register read-access.
+This information is accessible in the backend configuration and should
 be copied to the pass manager property set before the pass is called.
 
-By default latencies, the `alap`-scheduled circuit of above example may become
+Due to default latencies, the `alap`-scheduled circuit of above example may become
 
 .. parsed-literal::
 
@@ -1128,12 +1138,12 @@ By default latencies, the `alap`-scheduled circuit of above example may become
     c: 1/╡ c_0=0x1 ╞═╩═
          └─────────┘ 0
 
-If the backend microarchitecture supports smart scheduling of the control flow, i.e.
-it may separately schedule qubit and classical register,
-insertion of the delay yields unnecessary longer total execution time.
+If the backend microarchitecture supports smart scheduling of the control flow
+instructions, such as separately scheduling qubits and classical registers,
+the insertion of the delay yields an unnecessarily longer total execution time.
 
 .. parsed-literal::
-    : Quantum Circuit, first-xgate
+    : Quantum Circuit, first-XGate
     0 ░▒▒▒░░░░░░░░░░░░░░░
     1 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
 
@@ -1145,9 +1155,9 @@ insertion of the delay yields unnecessary longer total execution time.
     Q ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
     C ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░ (zero latency, scheduled after C0 read-access)
 
-However this result is much more intuitive in the topological ordering view.
-If finite conditional latency is provided, for example, 30 dt, the circuit
-is scheduled as follows.
+However, this result is much more intuitive in the topological ordering view.
+If a finite conditional latency value is provided, for example, 30 dt, the circuit
+is scheduled as follows:
 
 .. parsed-literal::
 

@@ -1006,6 +1006,9 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _name="mcx",
         _base_label=None,
     ):
@@ -1162,8 +1165,20 @@ class MCXRecursive(MCXGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive")
+        super().__init__(
+            num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            _name="mcx_recursive",
+            duration=duration,
+            unit=unit,
+            _base_label=None,
+        )
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "recursion"):
@@ -1250,6 +1265,9 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _base_label=None,
     ):
         super().__init__(
@@ -1258,6 +1276,8 @@ class MCXVChain(MCXGate):
             ctrl_state=ctrl_state,
             _name="mcx_vchain",
             _base_label=_base_label,
+            duration=duration,
+            unit=unit,
         )
         self._dirty_ancillas = dirty_ancillas
 
