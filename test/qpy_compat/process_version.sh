@@ -18,7 +18,7 @@ version=$1
 parts=( ${version//./ } )
 if [[ ${parts[1]} -lt 18 ]] ; then
     exit 0
-elif [[[[ ${parts[1]} -gt 25 ]] ; then
+elif [[ ${parts[1]} -gt 25 ]] ; then
     exit 0
 fi
 
