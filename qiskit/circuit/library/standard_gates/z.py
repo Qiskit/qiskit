@@ -18,8 +18,7 @@ from typing import Optional, Union
 import numpy
 
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton import SingletonGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 
 from .p import PhaseGate
@@ -78,6 +77,8 @@ class ZGate(SingletonGate):
         """Create new Z gate."""
         super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -126,7 +127,7 @@ class ZGate(SingletonGate):
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
-class CZGate(ControlledGate):
+class CZGate(SingletonControlledGate):
     r"""Controlled-Z gate.
 
     This is a Clifford and symmetric gate.
@@ -163,6 +164,9 @@ class CZGate(ControlledGate):
         self,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _base_label=None,
     ):
         """Create new CZ gate."""
@@ -174,7 +178,11 @@ class CZGate(ControlledGate):
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
             base_gate=ZGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """
@@ -200,7 +208,7 @@ class CZGate(ControlledGate):
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
-class CCZGate(ControlledGate):
+class CCZGate(SingletonControlledGate):
     r"""CCZ gate.
 
     This is a symmetric gate.
@@ -239,11 +247,29 @@ class CCZGate(ControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CCZ gate."""
         super().__init__(
-            "ccz", 3, [], label=label, num_ctrl_qubits=2, ctrl_state=ctrl_state, base_gate=ZGate()
+            "ccz",
+            3,
+            [],
+            label=label,
+            num_ctrl_qubits=2,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)
 
     def _define(self):
         """

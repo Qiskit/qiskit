@@ -73,6 +73,7 @@ from . import (
     ECRGate,
     ZGate,
     CZGate,
+    IGate,
     CCZGate,
     XXPlusYYGate,
     XXMinusYYGate,
@@ -169,6 +170,27 @@ phi = Parameter("phi")
 def_r = QuantumCircuit(q)
 def_r.append(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]])
 _sel.add_equivalence(RGate(theta, phi), def_r)
+
+# IGate
+q = QuantumRegister(1, "q")
+def_id = QuantumCircuit(q)
+def_id.append(UGate(0, 0, 0), [q[0]])
+_sel.add_equivalence(IGate(), def_id)
+
+q = QuantumRegister(1, "q")
+def_id_rx = QuantumCircuit(q)
+def_id_rx.append(RXGate(0), [q[0]])
+_sel.add_equivalence(IGate(), def_id_rx)
+
+q = QuantumRegister(1, "q")
+def_id_ry = QuantumCircuit(q)
+def_id_ry.append(RYGate(0), [q[0]])
+_sel.add_equivalence(IGate(), def_id_ry)
+
+q = QuantumRegister(1, "q")
+def_id_rz = QuantumCircuit(q)
+def_id_rz.append(RZGate(0), [q[0]])
+_sel.add_equivalence(IGate(), def_id_rz)
 
 # RCCXGate
 #
@@ -1188,6 +1210,7 @@ phi = Parameter("phi")
 lam = Parameter("lam")
 cu3_to_cu = QuantumCircuit(q)
 cu3_to_cu.cu(theta, phi, lam, 0, 0, 1)
+_sel.add_equivalence(CU3Gate(theta, phi, lam), cu3_to_cu)
 
 # XGate
 #
