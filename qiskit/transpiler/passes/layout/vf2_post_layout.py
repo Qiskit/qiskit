@@ -35,6 +35,7 @@ class VF2PostLayoutStopReason(Enum):
     """Stop reasons for VF2PostLayout pass."""
 
     SOLUTION_FOUND = "solution found"
+    NO_BETTER_SOLUTION_FOUND = "no better solution found"
     NO_SOLUTION_FOUND = "nonexistent solution"
     MORE_THAN_2Q = ">2q gates in basis"
 
@@ -66,15 +67,16 @@ class VF2PostLayout(AnalysisPass):
 
     If a solution is found that means there is a lower error layout available for the
     circuit. If a solution is found the layout will be set in the property set as
-    ``property_set['post_layout']``. However, if no solution is found, no
+    ``property_set['post_layout']``. However, if no solution or no better solution is found, no
     ``property_set['post_layout']`` is set. The stopping reason is
     set in ``property_set['VF2PostLayout_stop_reason']`` in all the cases and will be
     one of the values enumerated in ``VF2PostLayoutStopReason`` which has the
     following values:
 
         * ``"solution found"``: If a solution was found.
+        * ``"no better solution found"``: If the initial layout of the circuit is the best solution.
         * ``"nonexistent solution"``: If no solution was found.
-        * ``">2q gates in basis"``: If VF2PostLayout can't work with basis
+        * ``">2q gates in basis"``: If VF2PostLayout can't work with the basis of the circuit.
 
     By default this pass will construct a heuristic scoring map based on the
     the error rates in the provided ``target`` (or ``properties`` if ``target``
@@ -339,7 +341,10 @@ class VF2PostLayout(AnalysisPass):
                 )
                 break
         if chosen_layout is None:
-            stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            if initial_layout is not None:
+                stop_reason = VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
+            else:
+                stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
         else:
             chosen_layout = vf2_utils.map_free_qubits(
                 free_nodes,
