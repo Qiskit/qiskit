@@ -775,7 +775,9 @@ class NoiseAdaptiveLayoutPassManager(PassManagerStagePlugin):
         layout.append(_given_layout)
         if pass_manager_config.target is None:
             layout.append(
-                NoiseAdaptiveLayout(pass_manager_config.backend_properties),
+                NoiseAdaptiveLayout(
+                    pass_manager_config.backend_properties, pass_manager_config.coupling_map
+                ),
                 condition=_choose_layout_condition,
             )
         else:

@@ -51,7 +51,8 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.pass_manager.append(TrivialLayout(coupling_map), condition=lambda x: True)
         self.pass_manager.append(FullAncillaAllocation(coupling_map))
         self.pass_manager.append(EnlargeWithAncilla())
-        self.pass_manager.append(Unroller(basis_gates))
+        with self.assertWarns(DeprecationWarning):
+            self.pass_manager.append(Unroller(basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
         self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
         self.pass_manager.append(GateDirection(coupling_map))
