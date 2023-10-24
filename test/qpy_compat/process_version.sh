@@ -20,8 +20,8 @@ version=$1
 parts=( ${version//./ } )
 # qiskit_version is the version under test, We're testing that we can correctly
 # read the qpy files generated with source version with this version.
-qiskit_version=`../qiskit_venv/bin/python -c "import qiskit;print(qiskit.__version__`)"`
-qiskit_version_pars = ${qiskit_version//./ } )
+qiskit_version=`../qiskit_venv/bin/python -c "import qiskit;print(qiskit.__version__)"`
+qiskit_version_pars = ( ${qiskit_version//./ } )
 
 # If source version is less than 0.18 QPY didn't exist yet so exit fast
 if [[ ${parts[0]} -eq 0 && ${parts[1]} -lt 18 ]] ; then
