@@ -1230,7 +1230,7 @@ class QuantumCircuit:
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
                 :class:`.CircuitInstruction` with all its context.
-            qargs: specifiers of the :class:`.circuit.Qubit`\\ s to attach instruction to.
+            qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
 
         Returns:
