@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +12,14 @@
 """
 Tests AQC framework using hardcoded and randomly generated circuits.
 """
+from functools import partial
+
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+
 import numpy as np
-from qiskit.algorithms.optimizers import L_BFGS_B
+from scipy.optimize import minimize
+
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
@@ -38,9 +42,62 @@ class TestAqc(QiskitTestCase):
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
 
-        optimizer = L_BFGS_B(maxiter=200)
-
+        optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
         aqc = AQC(optimizer=optimizer, seed=seed)
+
+        target_matrix = ORIGINAL_CIRCUIT
+        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
+        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+
+        aqc.compile_unitary(
+            target_matrix=target_matrix,
+            approximate_circuit=approximate_circuit,
+            approximating_objective=approximating_objective,
+            initial_point=INITIAL_THETAS,
+        )
+
+        approx_matrix = Operator(approximate_circuit).data
+        error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
+        self.assertTrue(error < 1e-3)
+
+    def test_aqc_default_optimizer(self):
+        """Tests AQC on a hardcoded circuit/matrix without providing an optimizer."""
+
+        seed = 12345
+
+        num_qubits = int(round(np.log2(ORIGINAL_CIRCUIT.shape[0])))
+        cnots = make_cnot_network(
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
+        )
+
+        aqc = AQC(seed=seed)
+
+        target_matrix = ORIGINAL_CIRCUIT
+        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
+        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+
+        aqc.compile_unitary(
+            target_matrix=target_matrix,
+            approximate_circuit=approximate_circuit,
+            approximating_objective=approximating_objective,
+            initial_point=INITIAL_THETAS,
+        )
+
+        approx_matrix = Operator(approximate_circuit).data
+        error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
+        self.assertTrue(error < 1e-3)
+
+    def test_aqc_deprecation(self):
+        """Tests that AQC raises deprecation warning."""
+
+        seed = 12345
+
+        num_qubits = int(round(np.log2(ORIGINAL_CIRCUIT.shape[0])))
+        cnots = make_cnot_network(
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
+        )
+
+        aqc = AQC(seed=seed)
 
         target_matrix = ORIGINAL_CIRCUIT
         approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
@@ -70,7 +127,7 @@ class TestAqc(QiskitTestCase):
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
 
-        optimizer = L_BFGS_B(maxiter=200)
+        optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
         aqc = AQC(optimizer=optimizer, seed=seed)
 
         # Make multi-control CNOT gate matrix.
@@ -103,7 +160,7 @@ class TestAqc(QiskitTestCase):
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
 
-        optimizer = L_BFGS_B(maxiter=200)
+        optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
         aqc = AQC(optimizer=optimizer, seed=seed)
 
         target_matrix = np.eye(2**num_qubits, dtype=int)
