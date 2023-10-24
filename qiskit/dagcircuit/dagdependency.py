@@ -377,7 +377,7 @@ class DAGDependency:
 
         Args:
             operation (qiskit.circuit.Operation): operation
-            qargs (list[Qubit]): list of qubits on which the operation acts
+            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
 
         Returns:
@@ -421,7 +421,7 @@ class DAGDependency:
 
         Args:
             operation (qiskit.circuit.Operation): operation as a quantum gate
-            qargs (list[Qubit]): list of qubits on which the operation acts
+            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
         """
         new_node = self._create_op_node(operation, qargs, cargs)
@@ -561,7 +561,7 @@ class DAGDependency:
                 node block to be replaced
             op (qiskit.circuit.Operation): The operation to replace the
                 block with
-            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
+            wire_pos_map (Dict[~qiskit.circuit.Qubit, int]): The dictionary mapping the qarg to
                 the position. This is necessary to reconstruct the qarg order
                 over multiple gates in the combined single op node.
             cycle_check (bool): When set to True this method will check that
