@@ -69,7 +69,8 @@ class NormalizeRXAngle(TransformationPass):
         that differ within a resolution provided by the user.
 
         Args:
-            qubit (Qubit): This will be the dict key to access the list of quantized rotation angles.
+            qubit (qiskit.circuit.Qubit): This will be the dict key to access the list of
+                quantized rotation angles.
             original_angle (float): Original rotation angle, before quantization.
 
         Returns:
