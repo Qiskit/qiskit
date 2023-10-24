@@ -13,12 +13,15 @@
 """Test cases for the schedule block qpy loading and saving."""
 
 import io
+import struct
 
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
-from qiskit.qpy import dump, load
+from qiskit.exceptions import QiskitError
+from qiskit.qpy import dump, load, formats
+from qiskit.qpy.common import QPY_VERSION
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
@@ -69,6 +72,20 @@ class TestCalibrationPasses(QpyCircuitTestCase):
         rzx_qc = pass_manager.run(test_qc)
 
         self.assert_roundtrip_equal(rzx_qc)
+
+
+class TestVersions(QpyCircuitTestCase):
+    """Test version handling in qpy."""
+
+    def test_invalid_qpy_version(self):
+        """Test a descriptive exception is raised if QPY version is too new."""
+        with io.BytesIO() as buf:
+            buf.write(
+                struct.pack(formats.FILE_HEADER_PACK, b"QISKIT", QPY_VERSION + 4, 42, 42, 1, 2)
+            )
+            buf.seek(0)
+            with self.assertRaisesRegex(QiskitError, str(QPY_VERSION + 4)):
+                load(buf)
 
 
 @ddt
