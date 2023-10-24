@@ -381,7 +381,7 @@ class QuantumCircuit:
                 elements must either be instances of :class:`.CircuitInstruction` (preferred), or a
                 3-tuple of ``(instruction, qargs, cargs)`` (legacy).  In the legacy format,
                 ``instruction`` must be an :class:`~.circuit.Instruction`, while ``qargs`` and
-                ``cargs`` must be iterables of :class:`.circuit.Qubit` or :class:`.Clbit`
+                ``cargs`` must be iterables of :class:`~.circuit.Qubit` or :class:`.Clbit`
                 specifiers (similar to the allowed forms in calls to :meth:`append`).
         """
         # If data_input is QuantumCircuitData(self), clearing self._data

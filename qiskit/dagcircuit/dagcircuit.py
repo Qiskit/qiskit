@@ -427,7 +427,7 @@ class DAGCircuit:
             qubits (List[qiskit.circuit.Qubit]): The bits to remove.
 
         Raises:
-            DAGCircuitError: a qubit is not a :obj:`.circuit.Qubit`, is not in the circuit,
+            DAGCircuitError: a qubit is not a :obj:`~.circuit.Qubit`, is not in the circuit,
                 or is not idle.
         """
         if any(not isinstance(qubit, Qubit) for qubit in qubits):
@@ -647,7 +647,7 @@ class DAGCircuit:
             cargs (tuple[Clbit]): cbits that op will be applied to
             check (bool): If ``True`` (default), this function will enforce that the
                 :class:`.DAGCircuit` data-structure invariants are maintained (all ``qargs`` are
-                :class:`.circuit.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
+                :class:`~.circuit.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
                 uphold these invariants itself, but the cost of several checks will be skipped.
                 This is most useful when building a new DAG from a source of known-good nodes.
         Returns:
@@ -701,7 +701,7 @@ class DAGCircuit:
             cargs (tuple[Clbit]): cbits that op will be applied to
             check (bool): If ``True`` (default), this function will enforce that the
                 :class:`.DAGCircuit` data-structure invariants are maintained (all ``qargs`` are
-                :class:`.circuit.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
+                :class:`~.circuit.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
                 uphold these invariants itself, but the cost of several checks will be skipped.
                 This is most useful when building a new DAG from a source of known-good nodes.
         Returns:

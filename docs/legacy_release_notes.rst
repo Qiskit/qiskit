@@ -520,7 +520,7 @@ Transpiler Features
 
 - A new method :meth:`~qiskit.dagcircuit.DAGCircuit.find_bit` has
   been added to the :class:`~qiskit.dagcircuit.DAGCircuit` class,
-  which returns the bit locations of the given :class:`.circuit.Qubit` or
+  which returns the bit locations of the given :class:`~.circuit.Qubit` or
   :class:`.Clbit` as a tuple of the positional index of the bit within
   the circuit and a list of tuples which locate the bit in the circuit's
   registers.
@@ -1597,7 +1597,7 @@ Bug Fixes
 .. releasenotes/notes/fix-bit-copy-4b2f7349683f616a.yaml @ b'163d1bd7835d58eaf8842c594b3696fb99c8442f'
 
 - Fixed an issue with copying circuits with new-style :class:`.Clbit`\ s and
-  :class:`.circuit.Qubit`\ s (bits without registers) where references to these bits
+  :class:`~.circuit.Qubit`\ s (bits without registers) where references to these bits
   from the containing circuit could be broken, causing issues with
   serialization and circuit visualization.
   Fixed `#10409 <https://github.com/Qiskit/qiskit-terra/issues/10409>`__
@@ -4326,8 +4326,8 @@ Bug Fixes
 
 .. releasenotes/notes/fix-deprecated-bit-qpy-roundtrip-9a23a795aa677c71.yaml @ b'3dbbb32e762850db265c7bb40787a36351aad917'
 
-- The deprecated :class:`.circuit.Qubit` and :class:`.Clbit` properties :attr:`~.circuit.Qubit.register` and
-  :attr:`~circuit.Qubit.index` will now be correctly round-tripped by QPY (:mod:`qiskit.qpy`) in all
+- The deprecated :class:`~.circuit.Qubit` and :class:`.Clbit` properties :attr:`~.circuit.Qubit.register` and
+  :attr:`~.circuit.Qubit.index` will now be correctly round-tripped by QPY (:mod:`qiskit.qpy`) in all
   valid usages of :class:`.QuantumRegister` and :class:`.ClassicalRegister`.  In earlier releases
   in the Terra 0.23 series, this information would be lost.  In versions before 0.23.0, this
   information was partially reconstructed but could be incorrect or produce invalid circuits for
@@ -7031,7 +7031,7 @@ Bug Fixes
 
 - QPY deserialisation will no longer add extra :class:`.Clbit` instances to the
   circuit if there are both loose :class:`.Clbit`\ s in the circuit and more
-  :class:`.circuit.Qubit`\ s than :class:`.Clbit`\ s.
+  :class:`~.circuit.Qubit`\ s than :class:`.Clbit`\ s.
 
 .. releasenotes/notes/fix-qpy-loose-bits-5283dc4ad3823ce3.yaml @ b'e0befd769fc54e9f50cdc4b355983b9d1eda6f31'
 
@@ -10954,7 +10954,7 @@ Bug Fixes
 - Fixed an issue with the visualization function :func:`~.dag_drawer` and
   method :meth:`.DAGCircuit.draw` where previously the drawer would fail
   when attempting to generate a visualization for a :class:`~.DAGCircuit`
-  object that contained a :class:`~circuit.Qubit` or :class:`~.Clbit` which wasn't
+  object that contained a :class:`~.circuit.Qubit` or :class:`~.Clbit` which wasn't
   part of a :class:`~QuantumRegister` or :class:`~ClassicalRegister`.
   Fixed `#7915 <https://github.com/Qiskit/qiskit-terra/issues/7915>`__.
 
