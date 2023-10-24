@@ -280,6 +280,8 @@ class VF2PostLayout(AnalysisPass):
                     self.strict_direction,
                     run_in_parallel,
                 )
+            chosen_layout = initial_layout
+            stop_reason = VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
             self.property_set[
@@ -294,7 +296,6 @@ class VF2PostLayout(AnalysisPass):
         for mapping in mappings:
             trials += 1
             logger.debug("Running trial: %s", trials)
-            stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
             layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             if self.strict_direction:
                 layout = Layout(
@@ -327,6 +328,7 @@ class VF2PostLayout(AnalysisPass):
                 )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
+                stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
 
             if self.max_trials and trials >= self.max_trials:
                 logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
@@ -340,12 +342,7 @@ class VF2PostLayout(AnalysisPass):
                     self.time_limit,
                 )
                 break
-        if chosen_layout is None:
-            if initial_layout is not None:
-                stop_reason = VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
-            else:
-                stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
-        else:
+        if stop_reason == VF2PostLayoutStopReason.SOLUTION_FOUND:
             chosen_layout = vf2_utils.map_free_qubits(
                 free_nodes,
                 chosen_layout,
@@ -369,7 +366,10 @@ class VF2PostLayout(AnalysisPass):
                                 chosen_layout.add(bit, i)
                                 break
             self.property_set["post_layout"] = chosen_layout
-
+        else:
+            if chosen_layout is None:
+                stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            # else the initial layout is optimal -> don't set post_layout, return 'no better solution'
         self.property_set["VF2PostLayout_stop_reason"] = stop_reason
 
     def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
