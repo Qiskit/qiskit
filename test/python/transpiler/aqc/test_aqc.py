@@ -20,6 +20,7 @@ from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THE
 import numpy as np
 from scipy.optimize import minimize
 
+from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
@@ -91,28 +92,10 @@ class TestAqc(QiskitTestCase):
         """Tests that AQC raises deprecation warning."""
 
         seed = 12345
+        optimizer = L_BFGS_B(maxiter=200)
 
-        num_qubits = int(round(np.log2(ORIGINAL_CIRCUIT.shape[0])))
-        cnots = make_cnot_network(
-            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
-        )
-
-        aqc = AQC(seed=seed)
-
-        target_matrix = ORIGINAL_CIRCUIT
-        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
-        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
-
-        aqc.compile_unitary(
-            target_matrix=target_matrix,
-            approximate_circuit=approximate_circuit,
-            approximating_objective=approximating_objective,
-            initial_point=INITIAL_THETAS,
-        )
-
-        approx_matrix = Operator(approximate_circuit).data
-        error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
-        self.assertTrue(error < 1e-3)
+        with self.assertRaises(DeprecationWarning):
+            _ = AQC(optimizer=optimizer, seed=seed)
 
     def test_aqc_fastgrad(self):
         """
