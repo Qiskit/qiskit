@@ -26,7 +26,7 @@ class MixedFrame:
     of the two is called a mixed frame and is represented by a :class:`MixedFrame` object.
 
     In most cases the :class:`MixedFrame` is used more by the compiler, and a pulse program
-    can be written without :class:`MixedFrame`s, by setting :class:`LogicalElement` and
+    can be written without :class:`MixedFrame` s, by setting :class:`LogicalElement` and
     :class:`Frame` independently. However, in some cases using :class:`MixedFrame`s can
     better convey the meaning of the code, and change the compilation process. One example
     is the use of the shift/set frequency/phase instructions which are not broadcasted to other
