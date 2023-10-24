@@ -47,7 +47,7 @@ is the :class:`pulse.Qubit`.
 
 Frame
 =============
-:class:`Frame`s are identified by their type and unique identifier. A :class:`GenericFrame` is used to
+:class:`Frame` s are identified by their type and unique identifier. A :class:`GenericFrame` is used to
 specify custom frequency
 and phase duos, while :class:`QubitFrame` and :class:`MeasurementFrame` are used to indicate that backend
 defaults are to be used (for the qubit's driving frequency and measurement frequency respectively).
