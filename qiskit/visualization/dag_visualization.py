@@ -18,7 +18,7 @@ Visualization function for DAG circuit representation.
 from rustworkx.visualization import graphviz_draw
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.circuit import Qubit
+from qiskit.circuit import Qubit, Clbit
 from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
@@ -72,7 +72,14 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
     type_str = str(type(dag))
+    register_bit_labels = {
+        bit: f"{reg.name}[{idx}]"
+        for reg in list(dag.qregs.values()) + list(dag.cregs.values())
+        for (idx, bit) in enumerate(reg)
+    }
     if "DAGDependency" in type_str:
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         graph_attrs = {"dpi": str(100 * scale)}
 
         def node_attr_func(node):
@@ -81,23 +88,51 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             if style == "color":
                 n = {}
                 n["label"] = str(node.node_id) + ": " + str(node.name)
+                args = []
+                for arg in node.qargs + node.cargs:
+                    if isinstance(arg, Qubit):
+                        f_str = f"q_{qubit_indices[arg]}"
+                    elif isinstance(arg, Clbit):
+                        f_str = f"c_{clbit_indices[arg]}"
+                    else:
+                        f_str = f"{arg.index}"
+                    arg_str = register_bit_labels.get(arg, f_str)
+                    args.append(arg_str)
+                n["label"] = (
+                    str(node.node_id)
+                    + ": "
+                    + str(node.name)
+                    + " ("
+                    + str(args)[1:-1].replace("'", "")
+                    + ")"
+                )
+
                 if node.name == "measure":
-                    n["color"] = "blue"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightblue"
-                if node.name == "barrier":
+                    n["color"] = "black"
+                elif node.name == "barrier":
                     n["color"] = "black"
                     n["style"] = "filled"
-                    n["fillcolor"] = "green"
-                if getattr(node.op, "_directive", False):
+                    n["fillcolor"] = "grey"
+                elif getattr(node.op, "_directive", False):
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
-                if getattr(node.op, "condition", None):
-                    n["label"] = str(node.node_id) + ": " + str(node.name) + " (conditional)"
+                elif getattr(node.op, "condition", None):
+                    n["color"] = "red"
+                    n["style"] = "filled"
+                    n["fillcolor"] = "green"
+                    n["label"] = (
+                        str(node.node_id)
+                        + ": "
+                        + str(node.name)
+                        + " (cond.) ("
+                        + str(args)[1:-1].replace("'", "")
+                        + ")"
+                    )
+                else:
                     n["color"] = "black"
                     n["style"] = "filled"
-                    n["fillcolor"] = "lightgreen"
+                    n["fillcolor"] = "lightblue"
                 return n
             else:
                 raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
@@ -105,12 +140,6 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         edge_attr_func = None
 
     else:
-        register_bit_labels = {
-            bit: f"{reg.name}[{idx}]"
-            for reg in list(dag.qregs.values()) + list(dag.cregs.values())
-            for (idx, bit) in enumerate(reg)
-        }
-
         graph_attrs = {"dpi": str(100 * scale)}
 
         def node_attr_func(node):
