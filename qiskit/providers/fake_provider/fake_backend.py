@@ -25,7 +25,7 @@ import re
 from typing import List, Iterable
 
 from qiskit import circuit
-from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError

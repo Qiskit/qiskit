@@ -127,12 +127,14 @@ def convert_to_target(
         in_data.update(configuration.timing_constraints)
 
     # Create instruction property placeholder from backend configuration
-    supported_instructions = set(getattr(configuration, "supported_instructions", []))
+    # supported_instructions = set(getattr(configuration, "supported_instructions", []))
     basis_gates = set(getattr(configuration, "basis_gates", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
     inst_name_map = {}  # type: Dict[str, Instruction]
     prop_name_map = {}  # type: Dict[str, Dict[Tuple[int, ...], InstructionProperties]]
-    all_instructions = set.union(supported_instructions, basis_gates, set(required))
+    # all_instructions = set.union(supported_instructions, basis_gates, set(required))
+    all_instructions = set.union(basis_gates, set(required))
+
     faulty_qubits = set()
     faulty_ops = set()
     unsupported_instructions = []
@@ -178,7 +180,7 @@ def convert_to_target(
     if properties:
         qubit_properties = list(map(_decode_qubit_property, properties["qubits"]))
         in_data["qubit_properties"] = qubit_properties
-        faulty_qubits = set(q for q, prop in enumerate(qubit_properties) if not prop.operational)
+        faulty_qubits = {q for q, prop in enumerate(qubit_properties) if not prop.operational}
 
         for gate_spec in map(GateSchema.from_dict, properties["gates"]):
             name = gate_spec.gate
