@@ -33,7 +33,7 @@ to hardware aware objects is left to the Pulse Compiler.
 
 LogicalElement
 ================
-:class:`LogicalElement`s are identified by their type and index. Currently, the most prominent example
+:class:`LogicalElement` s are identified by their type and index. Currently, the most prominent example
 is the :class:`pulse.Qubit`.
 
 .. autosummary::
