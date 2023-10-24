@@ -14,25 +14,26 @@
 
 from __future__ import annotations
 import logging
-from typing import List, Iterable, Any, Dict, Optional
+from typing import List, Iterable, Any, Dict, Optional, Union, Tuple
 
-# from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
 from qiskit.exceptions import QiskitError
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
+from qiskit.providers.models.backendconfiguration import (
+    QasmBackendConfiguration,
+    PulseBackendConfiguration,
+)
 
-# from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-# from qiskit.circuit.measure import Measure
-# from qiskit.providers.models.backendconfiguration import BackendConfiguration
-# from qiskit.providers.models.backendproperties import BackendProperties
-# from qiskit.providers.models.backendproperties import Gate as GateSchema
+from qiskit.providers.models.backendconfiguration import BackendConfiguration
+from qiskit.providers.models.backendproperties import BackendProperties
+
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.providers.models.backendproperties import Gate as GateSchema
 
-# import qiskit.transpiler.target as tgt
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ def convert_to_target(
     configuration: Union[QasmBackendConfiguration, PulseBackendConfiguration],
     pulse_defaults: Optional[Dict] = None,
     properties: Optional[Dict] = None,
-) -> Target:
+):
     """Decode transpiler target from backend data set.
 
     This function directly generates ``Target`` instance without generating
@@ -99,13 +100,12 @@ def convert_to_target(
     from qiskit.transpiler.target import Target
     from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
     from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-    from qiskit.providers.models.backendproperties import Gate as GateSchema
     from qiskit.qobj.pulse_qobj import PulseLibraryItem
     from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
-    from qiskit.providers.models.backendproperties import BackendProperties
-    from qiskit.providers.models.backendconfiguration import QasmBackendConfiguration
-    from qiskit.providers.models.pulsedefaults import PulseDefaults, Command
+    from qiskit.providers.models.pulsedefaults import Command
     from qiskit.pulse.calibration_entries import PulseQobjDef
+    from qiskit.circuit.parameter import Parameter
+    from qiskit.circuit.gate import Gate
 
     required = ["measure", "delay"]
 
@@ -127,12 +127,10 @@ def convert_to_target(
         in_data.update(configuration.timing_constraints)
 
     # Create instruction property placeholder from backend configuration
-    # supported_instructions = set(getattr(configuration, "supported_instructions", []))
     basis_gates = set(getattr(configuration, "basis_gates", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
     inst_name_map = {}  # type: Dict[str, Instruction]
     prop_name_map = {}  # type: Dict[str, Dict[Tuple[int, ...], InstructionProperties]]
-    # all_instructions = set.union(supported_instructions, basis_gates, set(required))
     all_instructions = set.union(basis_gates, set(required))
 
     faulty_qubits = set()
@@ -296,7 +294,7 @@ def _decode_qubit_property(qubit_specs: List[Dict]) -> IBMQubitProperties:
 
 def _decode_instruction_property(
     gate_spec: GateSchema,
-) -> Tuple[InstructionProperties, bool]:
+):
     """Decode gate property data to generate InstructionProperties instance.
 
     Args:
@@ -306,6 +304,8 @@ def _decode_instruction_property(
         An ``InstructionProperties`` instance and a boolean value representing
         if this gate is operational.
     """
+
+    # importing pacakges where they are needed, to avoid cyclic-import.
     from qiskit.transpiler.target import InstructionProperties
 
     in_data = {}
@@ -320,7 +320,7 @@ def _decode_instruction_property(
     return InstructionProperties(**in_data), operational
 
 
-def _decode_measure_property(qubit_specs: List[Dict]) -> InstructionProperties:
+def _decode_measure_property(qubit_specs: List[Dict]):
     """Decode qubit property data to generate InstructionProperties instance.
 
     Args:
@@ -329,6 +329,8 @@ def _decode_measure_property(qubit_specs: List[Dict]) -> InstructionProperties:
     Returns:
         An ``InstructionProperties`` instance.
     """
+
+    # importing pacakges where they are needed, to avoid cyclic-import.
     from qiskit.transpiler.target import InstructionProperties
 
     in_data = {}
