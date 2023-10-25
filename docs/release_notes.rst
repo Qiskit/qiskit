@@ -20,6 +20,7 @@ This table tracks the metapackage versions and the version of each legacy Qiskit
 ==========================  ============  ==========  ============  ====================  ===========  ============
 Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-provider  qiskit-aqua  Release Date
 ==========================  ============  ==========  ============  ====================  ===========  ============
+0.44.3                      0.25.3                                                                     2023-10-25
 0.44.2                      0.25.2                                                                     2023-10-02
 0.44.1                      0.25.1                                                                     2023-08-17
 0.44.0                      0.25.0                                                                     2023-07-27
@@ -125,6 +126,77 @@ Qiskit Metapackage Version  qiskit-terra  qiskit-aer  qiskit-ignis  qiskit-ibmq-
 
    For the ``0.7.0``, ``0.7.1``, and ``0.7.2`` meta-package releases the
    meta-package versioning strategy was not formalized yet.
+
+#############
+Qiskit 0.44.3
+#############
+
+.. _Release Notes_0.25.3:
+
+Terra 0.25.3
+============
+
+.. _Release Notes_Terra_0.25.3_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.25.3-155bf49f7a7ca309.yaml @ b'73433483ad4c5cb1010537eb52d4b406ef7a0446'
+
+Qiskit Terra 0.25.3 is a small patch release, fixing several bugs found in the 0.25 series.
+
+.. _Release Notes_0.25.2.1-19_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/10787-078d7caa70fc7de8.yaml @ b'1630b6e2987e5421e8d98119e7e137b93a5a6ca2'
+
+- Fix the Quantum Shannon Decomposition implemented in :func:`.qs_decomposition`. When a unitary
+  could not take advantage of the diagonal commutation optimization, it used to error.
+  Now, it leaves it as undecomposed 2-qubit unitary gate.
+  Fixes `#10787 <https://github.com/Qiskit/qiskit/issues/10787>`__
+
+.. releasenotes/notes/backend-estimator-v2-support-a698353aeeb5236c.yaml @ b'af48b85af9f65236f4c4568a92c34a896b1157da'
+
+- Fixed a bug where :class:`.primitives.BackendEstimator` cannot be used with the
+  :class:`.providers.BackendV2` that does not have any connectivity constraints.
+
+.. releasenotes/notes/fix-error-message-qpy-version-cf0763da22ce2224.yaml @ b'aca76ccc876e983e26a36b5d9369a152781e6d8c'
+
+- Fixed an issue with :func:`.qpy.load` when attempting to load a QPY format
+  version that is not supported by this version of Qiskit it will now display
+  a descriptive error message. Previously, it would raise an internal error
+  because of the incompatibility between the formats which was difficult to
+  debug. If the QPY format version is not supported that indicates the Qiskit
+  version will need to be upgraded to read the QPY payload.
+
+.. releasenotes/notes/fix-handling-of-mixed-ideal-target-with-filter-qubits-171894cb758356ca.yaml @ b'79308e15c56af457f44b9b3b1e3cdca2e35fe092'
+
+- Fixed an issue in the :meth:`.Target.build_coupling_map` method when the
+  ``filter_idle_qubits`` argument was set to ``True`` and there was a mix
+  of fixed width ideal and physical instructions in the target. In these cases
+  previously the :meth:`.Target.build_coupling_map` would have raised an
+  exception because it was assuming all instructions in the target were
+  physical and defined over qubits.
+
+.. releasenotes/notes/fix-input-normalization-of-transpile-initial-layout.yaml @ b'7080a22751bc4b10576c02b15f4e6fa2bd656c46'
+
+- Fixed a regression in :func:`.transpile`, where an ``initial_layout`` given
+  as a :class:`range` object would no longer be treated as a valid input.
+  Fixed `#10544 <https://github.com/Qiskit/qiskit/issues/10554>`__.
+
+.. releasenotes/notes/fix_backend_name-e84661707058b529.yaml @ b'c3b652cd7310c240297a0037421fca312f0df124'
+
+- Fixed an issue in the :class:`.QuantumInstance` class where it was assuming
+  all ``AerSimulator`` backends were always :class:`.BackendV1`. This would cause
+  compatibility issues with the 0.13.0 release of ``qiskit-aer`` which is starting to
+  use :class:`.BackendV2` for `AerSimulator`` backends.
+
+.. releasenotes/notes/primitives-dynamic-circuit-b489f82df47af138.yaml @ b'4b00427cf9e0ef1c670c2a67f32482184a8df0a3'
+
+- Fixed an issue with the :meth:`.BackendEstimator.run` method if it receives
+  :class:`.QuantumCircuit` objects that contain classical bits.
 
 #############
 Qiskit 0.44.2
