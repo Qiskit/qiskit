@@ -14,12 +14,11 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
-import sys
 from collections.abc import Iterable
 
 import numpy as np
 
-from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.library.data_preparation import Initialize
 from qiskit.quantum_info import SparsePauliOp, Statevector

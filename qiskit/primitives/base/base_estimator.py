@@ -200,7 +200,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
 
     @staticmethod
     def _validate_observables(
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
     ) -> tuple[SparsePauliOp, ...]:
         if isinstance(observables, str) or not isinstance(observables, Sequence):
             observables = (observables,)
@@ -210,7 +210,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
 
     @staticmethod
     def _cross_validate_circuits_observables(
-        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
     ) -> None:
         if len(circuits) != len(observables):
             raise ValueError(

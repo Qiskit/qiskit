@@ -20,7 +20,6 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.synthesis.evolution import LieTrotter
 

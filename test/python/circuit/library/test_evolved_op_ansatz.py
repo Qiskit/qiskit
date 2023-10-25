@@ -12,7 +12,6 @@
 
 """Test the evolved operator ansatz."""
 
-from ddt import ddt, data
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
@@ -23,7 +22,6 @@ from qiskit.synthesis.evolution import MatrixExponential
 from qiskit.test import QiskitTestCase
 
 
-@ddt
 class TestEvolvedOperatorAnsatz(QiskitTestCase):
     """Test the evolved operator ansatz."""
 
