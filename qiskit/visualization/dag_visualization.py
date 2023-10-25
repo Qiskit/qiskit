@@ -82,6 +82,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     if "DAGDependency" in type_str:
         # pylint: disable=cyclic-import
         from qiskit.visualization.circuit._utils import get_bit_reg_index
+
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         graph_attrs = {"dpi": str(100 * scale)}
