@@ -65,7 +65,7 @@ class TestAqc(QiskitTestCase):
 
         approx_matrix = Operator(approximate_circuit).data
         error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
-        self.assertTrue(error < 1e-3)
+        self.assertLess(error, 1e-3)
 
     def test_aqc_deprecation(self):
         """Tests that AQC raises deprecation warning."""
