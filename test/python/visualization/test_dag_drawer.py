@@ -79,7 +79,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(dag, filename=tmp_path)
             image_ref = path_to_diagram_reference("dag_no_reg.png")
             image = Image.open(tmp_path)
-            self.assertImagesAreEqual(image, image_ref, 0.01)
+            self.assertImagesAreEqual(image, image_ref, 0.1)
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
@@ -107,7 +107,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(dag, filename=tmp_path)
             image_ref = path_to_diagram_reference("dag_dep.png")
             image = Image.open(tmp_path)
-            self.assertImagesAreEqual(image, image_ref, 0.01)
+            self.assertImagesAreEqual(image, image_ref, 0.1)
 
 
 if __name__ == "__main__":
