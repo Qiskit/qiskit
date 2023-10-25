@@ -73,7 +73,7 @@ class Layer1Q(LayerBase):
         super().__init__()
 
         # 2x2 gate matrix (1-qubit gate).
-        self._gmat = np.full((2, 2), fill_value=0, dtype=np.cfloat)
+        self._gmat = np.full((2, 2), fill_value=0, dtype=np.complex128)
         if isinstance(g2x2, np.ndarray):
             np.copyto(self._gmat, g2x2)
 
@@ -114,7 +114,7 @@ class Layer2Q(LayerBase):
         super().__init__()
 
         # 4x4 gate matrix (2-qubit gate).
-        self._gmat = np.full((4, 4), fill_value=0, dtype=np.cfloat)
+        self._gmat = np.full((4, 4), fill_value=0, dtype=np.complex128)
         if isinstance(g4x4, np.ndarray):
             np.copyto(self._gmat, g4x4)
 
@@ -151,7 +151,7 @@ def init_layer1q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
         Returns the "dst" array.
     """
     n = thetas.shape[0]
-    tmp = np.full((4, 2, 2), fill_value=0, dtype=np.cfloat)
+    tmp = np.full((4, 2, 2), fill_value=0, dtype=np.complex128)
     for k in range(n):
         th = thetas[k]
         a = make_rz(th[0], out=tmp[0])
@@ -176,9 +176,9 @@ def init_layer1q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarr
         Returns the "dst" array.
     """
     n = thetas.shape[0]
-    y = np.asarray([[0, -0.5], [0.5, 0]], dtype=np.cfloat)
-    z = np.asarray([[-0.5j, 0], [0, 0.5j]], dtype=np.cfloat)
-    tmp = np.full((5, 2, 2), fill_value=0, dtype=np.cfloat)
+    y = np.asarray([[0, -0.5], [0.5, 0]], dtype=np.complex128)
+    z = np.asarray([[-0.5j, 0], [0, 0.5j]], dtype=np.complex128)
+    tmp = np.full((5, 2, 2), fill_value=0, dtype=np.complex128)
     for k in range(n):
         th = thetas[k]
         a = make_rz(th[0], out=tmp[0])

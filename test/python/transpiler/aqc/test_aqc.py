@@ -75,7 +75,7 @@ class TestAqc(QiskitTestCase):
 
         # Make multi-control CNOT gate matrix.
         # Another option: target_matrix = ORIGINAL_CIRCUIT
-        target_matrix = np.eye(2**num_qubits, dtype=np.cfloat)
+        target_matrix = np.eye(2**num_qubits, dtype=np.complex128)
         target_matrix[-2:, -2:] = [[0, 1], [1, 0]]
 
         circ = CNOTUnitCircuit(num_qubits, cnots)

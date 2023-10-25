@@ -725,7 +725,7 @@ class Target(Mapping):
                 target contains the operation). Normally you would not set this argument
                 if you wanted to check more generally that the target supports an operation
                 with the ``parameters`` on any qubits.
-            operation_class (qiskit.circuit.Instruction): The operation class to check whether
+            operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
                 the target supports a particular operation by class rather
                 than by name. This lookup is more expensive as it needs to
                 iterate over all operations in the target instead of just a
@@ -1073,7 +1073,7 @@ class Target(Mapping):
             return None
 
     def _filter_coupling_graph(self):
-        has_operations = set(itertools.chain.from_iterable(self.qargs))
+        has_operations = set(itertools.chain.from_iterable(x for x in self.qargs if x is not None))
         graph = self._coupling_graph.copy()
         to_remove = set(graph.node_indices()).difference(has_operations)
         if to_remove:

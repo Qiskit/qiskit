@@ -14,14 +14,13 @@ Random symplectic operator functions
 """
 
 from __future__ import annotations
+
 import numpy as np
 from numpy.random import default_rng
-
 
 from .clifford import Clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
-from .pauli_table import PauliTable
 
 
 def random_pauli(
@@ -84,31 +83,6 @@ def random_pauli_list(
         _phase = rng.integers(4, size=(size))
         return PauliList.from_symplectic(z, x, _phase)
     return PauliList.from_symplectic(z, x)
-
-
-def random_pauli_table(
-    num_qubits: int, size: int = 1, seed: int | np.random.Generator | None = None
-):
-    """Return a random PauliTable.
-
-    Args:
-        num_qubits (int): the number of qubits.
-        size (int): Optional. The number of rows of the table (Default: 1).
-        seed (int or np.random.Generator): Optional. Set a fixed seed or
-                                           generator for RNG.
-
-    Returns:
-        PauliTable: a random PauliTable.
-    """
-    if seed is None:
-        rng = np.random.default_rng()
-    elif isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = default_rng(seed)
-
-    table = rng.integers(2, size=(size, 2 * num_qubits)).astype(bool)
-    return PauliTable(table)
 
 
 def random_clifford(num_qubits: int, seed: int | np.random.Generator | None = None):

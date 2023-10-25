@@ -1548,6 +1548,105 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         elif nqubits == 2:
             self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
 
+    def test_a2_opt_single_2q(self):
+        """
+        Test a2_opt when a unitary causes a single final 2-qubit unitary for which this optimization
+        won't help. This came up in issue 10787.
+        """
+        # this somewhat unique signed permutation matrix seems to cause the issue
+        mat = np.array(
+            [
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                ],
+                [
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+            ]
+        )
+
+        gate = UnitaryGate(mat)
+        qc = QuantumCircuit(3)
+        qc.append(gate, range(3))
+        try:
+            qc.to_gate().control(1)
+        except UnboundLocalError as uerr:
+            self.fail(str(uerr))
+
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
     """test TwoQubitDecomposeUpToDiagonal class"""

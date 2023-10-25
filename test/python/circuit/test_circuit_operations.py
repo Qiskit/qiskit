@@ -17,7 +17,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
-from qiskit.circuit import Gate, Instruction, Measure, Parameter
+from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
@@ -156,6 +156,8 @@ class TestCircuitOperations(QiskitTestCase):
             qc.append(inst, bad_arg, [0, 1])
         with self.assertRaisesRegex(CircuitError, "The amount of clbit arguments"):
             qc.append(inst, [0, 1], bad_arg)
+        with self.assertRaisesRegex(CircuitError, "The amount of qubit arguments"):
+            qc.append(Barrier(4), bad_arg)
 
     def test_anding_self(self):
         """Test that qc &= qc finishes, which can be prone to infinite while-loops.

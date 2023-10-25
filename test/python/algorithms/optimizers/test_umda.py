@@ -12,6 +12,8 @@
 
 """Tests for the UMDA optimizer."""
 
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
@@ -57,7 +59,9 @@ class TestUMDA(QiskitAlgorithmsTestCase):
     def test_minimize(self):
         """optimize function test"""
         # UMDA is volatile so we need to set the seeds for the execution
-        algorithm_globals.random_seed = 52
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 52
 
         optimizer = UMDA(maxiter=1000, size_gen=100)
         x_0 = [1.3, 0.7, 1.5]

@@ -203,6 +203,7 @@ class ControlFlowBuilderBlock:
         "qubits",
         "clbits",
         "registers",
+        "global_phase",
         "_allow_jumps",
         "_resource_requester",
         "_built",
@@ -254,6 +255,7 @@ class ControlFlowBuilderBlock:
         self.qubits = set(qubits)
         self.clbits = set(clbits)
         self.registers = set(registers)
+        self.global_phase = 0.0
         self._allow_jumps = allow_jumps
         self._resource_requester = resource_requester
         self._built = False
@@ -417,7 +419,9 @@ class ControlFlowBuilderBlock:
 
         # We start off by only giving the QuantumCircuit the qubits we _know_ it will need, and add
         # more later as needed.
-        out = QuantumCircuit(list(self.qubits), list(self.clbits), *self.registers)
+        out = QuantumCircuit(
+            list(self.qubits), list(self.clbits), *self.registers, global_phase=self.global_phase
+        )
 
         for instruction in self.instructions:
             if isinstance(instruction.operation, InstructionPlaceholder):
@@ -482,6 +486,7 @@ class ControlFlowBuilderBlock:
         out.qubits = self.qubits.copy()
         out.clbits = self.clbits.copy()
         out.registers = self.registers.copy()
+        out.global_phase = self.global_phase
         out._allow_jumps = self._allow_jumps
         out._forbidden_message = self._forbidden_message
         return out
