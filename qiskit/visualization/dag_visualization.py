@@ -18,7 +18,10 @@ Visualization function for DAG circuit representation.
 from rustworkx.visualization import graphviz_draw
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.circuit import Qubit, Clbit
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister
+from qiskit.circuit.classical import expr
+from qiskit.visualization.circuit._utils import get_bit_reg_index
+from qiskit.converters import dagdependency_to_circuit
 from qiskit.utils import optionals as _optionals
 from qiskit.exceptions import InvalidFileError
 from .exceptions import VisualizationError
@@ -81,15 +84,18 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
         graph_attrs = {"dpi": str(100 * scale)}
+        dag_dep_circ = dagdependency_to_circuit(dag)
 
         def node_attr_func(node):
             if style == "plain":
                 return {}
             if style == "color":
                 n = {}
-                n["label"] = str(node.node_id) + ": " + str(node.name)
                 args = []
-                for arg in node.qargs + node.cargs:
+                for count, arg in enumerate(node.qargs + node.cargs):
+                    if count > 4:
+                        args.append("...")
+                        break
                     if isinstance(arg, Qubit):
                         f_str = f"q_{qubit_indices[arg]}"
                     elif isinstance(arg, Clbit):
@@ -98,6 +104,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         f_str = f"{arg.index}"
                     arg_str = register_bit_labels.get(arg, f_str)
                     args.append(arg_str)
+
+                n["color"] = "black"
                 n["label"] = (
                     str(node.node_id)
                     + ": "
@@ -106,31 +114,35 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     + str(args)[1:-1].replace("'", "")
                     + ")"
                 )
-
-                if node.name == "measure":
-                    n["color"] = "black"
-                elif node.name == "barrier":
-                    n["color"] = "black"
+                if node.name == "barrier":
                     n["style"] = "filled"
                     n["fillcolor"] = "grey"
                 elif getattr(node.op, "_directive", False):
-                    n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "red"
                 elif getattr(node.op, "condition", None):
-                    n["color"] = "red"
+                    condition = node.op.condition
+                    if isinstance(condition, expr.Expr):
+                        cond_txt = " (cond: [Expr]) ("
+                    elif isinstance(condition[0], ClassicalRegister):
+                        cond_txt = f" (cond: {condition[0].name}, {int(condition[1])}) ("
+                    else:
+                        register, bit_index, reg_index = get_bit_reg_index(dag_dep_circ, condition[0])
+                        if register is not None:
+                            cond_txt = f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
+                        else:
+                            cond_txt = f" (cond: {bit_index}, {int(condition[1])}) ("
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                     n["label"] = (
                         str(node.node_id)
                         + ": "
                         + str(node.name)
-                        + " (cond.) ("
+                        + cond_txt
                         + str(args)[1:-1].replace("'", "")
                         + ")"
                     )
-                else:
-                    n["color"] = "black"
+                elif node.name != "measure":    # measure is unfilled
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 return n
