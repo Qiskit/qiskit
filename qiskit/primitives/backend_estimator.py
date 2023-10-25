@@ -98,8 +98,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`, such as algorithms in :mod:`qiskit.algorithms`
-    including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`. However,
+    :class:`~.BaseEstimator`. However,
     if you're using a provider that has a native implementation of
     :class:`~.BaseEstimator`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be

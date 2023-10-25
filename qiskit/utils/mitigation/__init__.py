@@ -44,7 +44,7 @@ the probability of measuring counts in the other basis states.
 From these calibrations, it is possible to correct the average results
 of another experiment of interest. These tools are intended for use solely
 with the :class:`~qiskit.utils.QuantumInstance` class as part of
-:mod:`qiskit.algorithms` and :mod:`qiskit.opflow`.
+:mod:`qiskit.opflow`.
 
 .. autosummary::
    :toctree: ../stubs/
