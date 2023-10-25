@@ -125,7 +125,13 @@ class AQC:
             seed: a seed value to be used by a random number generator.
         """
         super().__init__()
-        self._optimizer = optimizer
+        self._optimizer = optimizer or partial(
+            minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
+        )
+        # temporary fix -> remove after deprecation period of Optimizer
+        if isinstance(self._optimizer, Optimizer):
+            self._optimizer = self._optimizer.minimize
+
         self._seed = seed
 
     def compile_unitary(
@@ -160,18 +166,11 @@ class AQC:
         # set the matrix to approximate in the algorithm
         approximating_objective.target_matrix = su_matrix
 
-        optimizer = self._optimizer or partial(
-            minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
-        )
-
         if initial_point is None:
             np.random.seed(self._seed)
             initial_point = np.random.uniform(0, 2 * np.pi, approximating_objective.num_thetas)
 
-        if isinstance(optimizer, Optimizer):
-            optimizer = optimizer.minimize
-
-        opt_result = optimizer(
+        opt_result = self._optimizer(
             fun=approximating_objective.objective,
             x0=initial_point,
             jac=approximating_objective.gradient,
