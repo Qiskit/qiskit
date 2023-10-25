@@ -1210,6 +1210,7 @@ phi = Parameter("phi")
 lam = Parameter("lam")
 cu3_to_cu = QuantumCircuit(q)
 cu3_to_cu.cu(theta, phi, lam, 0, 0, 1)
+_sel.add_equivalence(CU3Gate(theta, phi, lam), cu3_to_cu)
 
 # XGate
 #
