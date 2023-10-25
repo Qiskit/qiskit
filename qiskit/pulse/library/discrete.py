@@ -28,7 +28,7 @@ _sampled_constant_pulse = samplers.midpoint(continuous.constant)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including constant() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Constant(...).get_waveform(). "
@@ -58,7 +58,7 @@ _sampled_zero_pulse = samplers.midpoint(continuous.zero)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including zero() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Constant(amp=0,...).get_waveform().",
@@ -84,7 +84,7 @@ _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including square() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Square(...).get_waveform()."
@@ -125,7 +125,7 @@ _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including sawtooth() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Sawtooth(...).get_waveform()."
@@ -182,7 +182,7 @@ _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including triangle() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Triangle(...).get_waveform()."
@@ -237,7 +237,7 @@ _sampled_cos_pulse = samplers.midpoint(continuous.cos)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including cos() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Cos(...).get_waveform()."
@@ -275,7 +275,7 @@ _sampled_sin_pulse = samplers.midpoint(continuous.sin)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including sin() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Sin(...).get_waveform()."
@@ -313,7 +313,7 @@ _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including gaussian() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Gaussian(...).get_waveform()."
@@ -367,7 +367,7 @@ _sampled_gaussian_deriv_pulse = samplers.midpoint(continuous.gaussian_deriv)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including gaussian_deriv() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.GaussianDeriv(...).get_waveform()."
@@ -404,7 +404,7 @@ _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including sech() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Sech(...).get_waveform()."
@@ -455,7 +455,7 @@ _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including sech_deriv() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.SechDeriv(...).get_waveform()."
@@ -489,7 +489,7 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including gaussian_square() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.GaussianSquare(...).get_waveform()."
@@ -565,7 +565,7 @@ _sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="The discrete pulses library, including drag() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Drag(...).get_waveform()."
