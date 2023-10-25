@@ -127,9 +127,13 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     elif isinstance(condition[0], ClassicalRegister):
                         cond_txt = f" (cond: {condition[0].name}, {int(condition[1])}) ("
                     else:
-                        register, bit_index, reg_index = get_bit_reg_index(dag_dep_circ, condition[0])
+                        register, bit_index, reg_index = get_bit_reg_index(
+                            dag_dep_circ, condition[0]
+                        )
                         if register is not None:
-                            cond_txt = f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
+                            cond_txt = (
+                                f" (cond: {register.name}[{reg_index}], {int(condition[1])}) ("
+                            )
                         else:
                             cond_txt = f" (cond: {bit_index}, {int(condition[1])}) ("
                     n["style"] = "filled"
@@ -142,7 +146,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                         + str(args)[1:-1].replace("'", "")
                         + ")"
                     )
-                elif node.name != "measure":    # measure is unfilled
+                elif node.name != "measure":  # measure is unfilled
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
                 return n
