@@ -8,7 +8,7 @@ features:
     on backends with measurement errors.
 
     Readout mitigator classes have two main methods:
-  
+
     * :meth:`~.BaseReadoutMitigator.expectation_value` which computes an
       mitigated expectation value and standard error of a diagonal operator from
       a noisy :class:`~qiskit.result.Counts` object.
@@ -17,7 +17,7 @@ features:
       mitigated :class:`~qiskit.result.QuasiDistribution`, including standard
       error, from a noisy counts object.
 
-    Note that currently the :mod:`qiskit.algorithms` module and the
+    Note that currently the ``qiskit.algorithms`` module and the
     :class:`~qiskit.utils.QuantumInstance` class still use the legacy mitigators
     migrated from Qiskit Ignis in :mod:`qiskit.utils.mitigation`. It is planned
     to upgrade the module to use the new mitigator classes and deprecate the legacy
@@ -26,12 +26,12 @@ features:
     Added the :class:`~qiskit.result.LocalReadoutMitigator` class for
     performing measurement readout error mitigation of local measurement
     errors. Local measuerment errors are those that are described by a
-    tensor-product of single-qubit measurement errors. 
-    
+    tensor-product of single-qubit measurement errors.
+
     This class can be initialized with a list of :math:`N` single-qubit of
     measurement error assignment matrices or from a backend using the readout
     error information in the backend properties.
-    
+
     Mitigation is implemented using local assignment-matrix inversion which has
     complexity of :math:`O(2^N)` for :math:`N`-qubit mitigation of
     :class:`~qiskit.result.QuasiDistribution` and expectation values.

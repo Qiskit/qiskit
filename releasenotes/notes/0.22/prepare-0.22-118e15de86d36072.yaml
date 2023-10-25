@@ -16,7 +16,7 @@ prelude: |
       Additionally, :class:`~.BackendV2` backends can now optionally set
       custom default plugins to use for the scheduling and translation stages.
 
-    * Updated algorithm implementations in :mod:`qiskit.algorithms` that leverage
+    * Updated algorithm implementations in ``qiskit.algorithms`` that leverage
       the :mod:`~.primitives` classes that implement the :class:`~.BaseSampler` and
       :class:`~.BaseEstimator`.
 

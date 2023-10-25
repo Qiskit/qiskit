@@ -1,6 +1,6 @@
 features:
   - |
-    Added the :class:`~.PVQD` class to the time evolution framework in :mod:`qiskit.algorithms`.
+    Added the :class:`~.PVQD` class to the time evolution framework in ``qiskit.algorithms``.
     This class implements the projected Variational Quantum Dynamics (p-VQD) algorithm
     `Barison et al. <https://quantum-journal.org/papers/q-2021-07-28-512/>`_.
 

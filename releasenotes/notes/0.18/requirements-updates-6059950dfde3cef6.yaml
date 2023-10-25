@@ -6,7 +6,7 @@ upgrade:
     was done because of the wide use of the
     :class:`~qiskit.circuit.library.PhaseOracle` (which depends on
     having tweedledum installed) with several algorithms
-    from :mod:`qiskit.algorithms`.
+    from ``qiskit.algorithms``.
   - |
     The optional extra ``full-featured-simulators`` which could previously used
     to install ``qiskit-aer`` with something like

@@ -13,7 +13,7 @@ upgrade:
 fixes:
   - |
     The :class:`~.AmplitudeAmplifier` is now correctly available from the root
-    :mod:`qiskit.algorithms` module directly. Previously it was not included
+    ``qiskit.algorithms`` module directly. Previously it was not included
     in the re-exported classes off the root module and was only accessible
     from ``qiskit.algorithms.amplitude_amplifiers``.
     Fixed `#7751 <https://github.com/Qiskit/qiskit-terra/pull/7752>`__.
