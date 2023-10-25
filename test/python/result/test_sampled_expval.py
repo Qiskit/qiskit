@@ -86,7 +86,7 @@ class TestSampledExpval(QiskitTestCase):
 
         spo = SparsePauliOp([oper], coeffs=[1])
         exp4 = sampled_expectation_value(counts, spo)
-        self.assertAlmostEqual(exp4, 2 * ans)
+        self.assertAlmostEqual(exp4, ans)
 
         exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
         self.assertAlmostEqual(exp5, ans)
