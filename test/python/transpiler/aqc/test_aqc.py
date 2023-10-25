@@ -17,7 +17,7 @@ from functools import partial
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 import numpy as np
 from scipy.optimize import minimize
 
