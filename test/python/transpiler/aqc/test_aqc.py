@@ -17,6 +17,7 @@ from functools import partial
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
+import ddt
 import numpy as np
 from scipy.optimize import minimize
 
@@ -30,10 +31,12 @@ from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitO
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 
 
+@ddt
 class TestAqc(QiskitTestCase):
     """Main tests of approximate quantum compiler."""
 
-    def test_aqc(self):
+    @ddt.data(True, False)
+    def test_aqc(self, uses_default):
         """Tests AQC on a hardcoded circuit/matrix."""
 
         seed = 12345
@@ -43,35 +46,11 @@ class TestAqc(QiskitTestCase):
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
 
-        optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
-        aqc = AQC(optimizer=optimizer, seed=seed)
-
-        target_matrix = ORIGINAL_CIRCUIT
-        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
-        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
-
-        aqc.compile_unitary(
-            target_matrix=target_matrix,
-            approximate_circuit=approximate_circuit,
-            approximating_objective=approximating_objective,
-            initial_point=INITIAL_THETAS,
-        )
-
-        approx_matrix = Operator(approximate_circuit).data
-        error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
-        self.assertTrue(error < 1e-3)
-
-    def test_aqc_default_optimizer(self):
-        """Tests AQC on a hardcoded circuit/matrix without providing an optimizer."""
-
-        seed = 12345
-
-        num_qubits = int(round(np.log2(ORIGINAL_CIRCUIT.shape[0])))
-        cnots = make_cnot_network(
-            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
-        )
-
-        aqc = AQC(seed=seed)
+        if uses_default:
+            aqc = AQC(seed=seed)
+        else:
+            optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
+            aqc = AQC(optimizer=optimizer, seed=seed)
 
         target_matrix = ORIGINAL_CIRCUIT
         approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)

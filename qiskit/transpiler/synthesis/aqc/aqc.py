@@ -48,13 +48,12 @@ class Minimizer(Protocol):
      and which returns a SciPy minimization result object.
     """
 
-    # pylint: disable=invalid-name
     def __call__(
         self,
         fun: Callable[[np.ndarray], float],
-        x0: np.ndarray,
-        jac: Callable[[np.ndarray], np.ndarray] | None,
-        bounds: list[tuple[float, float]] | None,
+        x0: np.ndarray,  # pylint: disable=invalid-name
+        jac: Callable[[np.ndarray], np.ndarray] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizeResult:
         """Minimize the objective function.
 
@@ -170,17 +169,13 @@ class AQC:
             initial_point = np.random.uniform(0, 2 * np.pi, approximating_objective.num_thetas)
 
         if isinstance(optimizer, Optimizer):
-            opt_result = optimizer.minimize(
-                fun=approximating_objective.objective,
-                x0=initial_point,
-                jac=approximating_objective.gradient,
-            )
-        else:
-            opt_result = optimizer(
-                fun=approximating_objective.objective,
-                x0=initial_point,
-                jac=approximating_objective.gradient,
-            )
+            optimizer = optimizer.minimize
+
+        opt_result = optimizer(
+            fun=approximating_objective.objective,
+            x0=initial_point,
+            jac=approximating_objective.gradient,
+        )
 
         approximate_circuit.build(opt_result.x)
 
