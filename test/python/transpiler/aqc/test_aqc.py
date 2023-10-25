@@ -17,7 +17,7 @@ from functools import partial
 import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
-import ddt
+from ddt import ddt, data, unpack
 import numpy as np
 from scipy.optimize import minimize
 
@@ -35,7 +35,7 @@ from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOT
 class TestAqc(QiskitTestCase):
     """Main tests of approximate quantum compiler."""
 
-    @ddt.data(True, False)
+    @data(True, False)
     def test_aqc(self, uses_default):
         """Tests AQC on a hardcoded circuit/matrix."""
 
