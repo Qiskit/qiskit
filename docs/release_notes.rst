@@ -160,7 +160,7 @@ Bug Fixes
 .. releasenotes/notes/backend-estimator-v2-support-a698353aeeb5236c.yaml @ b'af48b85af9f65236f4c4568a92c34a896b1157da'
 
 - Fixed a bug where :class:`.primitives.BackendEstimator` cannot be used with the
-  :class:`.providers.BackendV2` that does not have coupling_map.
+  :class:`.providers.BackendV2` that does not have any connectivity constraints.
 
 .. releasenotes/notes/fix-error-message-qpy-version-cf0763da22ce2224.yaml @ b'aca76ccc876e983e26a36b5d9369a152781e6d8c'
 
@@ -168,7 +168,7 @@ Bug Fixes
   version that is not supported by this version of Qiskit it will now display
   a descriptive error message. Previously, it would raise an internal error
   because of the incompatibility between the formats which was difficult to
-  debug. If the QPY format verison is not supported that indicates the Qiskit
+  debug. If the QPY format version is not supported that indicates the Qiskit
   version will need to be upgraded to read the QPY payload.
 
 .. releasenotes/notes/fix-handling-of-mixed-ideal-target-with-filter-qubits-171894cb758356ca.yaml @ b'79308e15c56af457f44b9b3b1e3cdca2e35fe092'
@@ -190,7 +190,7 @@ Bug Fixes
 
 - Fixed an issue in the :class:`.QuantumInstance` class where it was assuming
   all ``AerSimulator`` backends were always :class:`.BackendV1`. This would cause
-  combatibility issues with the 0.13.0 release of ``qiskit-aer`` which is starting to
+  compatibility issues with the 0.13.0 release of ``qiskit-aer`` which is starting to
   use :class:`.BackendV2` for `AerSimulator`` backends.
 
 .. releasenotes/notes/primitives-dynamic-circuit-b489f82df47af138.yaml @ b'4b00427cf9e0ef1c670c2a67f32482184a8df0a3'

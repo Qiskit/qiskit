@@ -5,5 +5,5 @@ fixes:
     version that is not supported by this version of Qiskit it will now display
     a descriptive error message. Previously, it would raise an internal error
     because of the incompatibility between the formats which was difficult to
-    debug. If the QPY format verison is not supported that indicates the Qiskit
+    debug. If the QPY format version is not supported that indicates the Qiskit
     version will need to be upgraded to read the QPY payload.
