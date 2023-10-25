@@ -1,3 +1,5 @@
 ---
 fixes:
-    Fix the bug :class:`.BackendEstimator` fails if circuits have classical registers.
+  - |
+    Fixed an issue with the :meth:`.BackendEstimator.run` method if it receives
+    :class:`.QuantumCircuit` objects that contain classical bits.
