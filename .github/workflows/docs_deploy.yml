@@ -212,7 +212,7 @@ jobs:
 
       - name: Deploy translations
         id: ssh_key
-        run: qiskit/tools/deploy_translatable_strings.sh
+        run: qiskit/tools/deploy_translatable_strings.sh "${{ github.workspace }}/deploy"
         env:
           encrypted_deploy_po_branch_key: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_KEY }}
           encrypted_deploy_po_branch_iv: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_IV }}
