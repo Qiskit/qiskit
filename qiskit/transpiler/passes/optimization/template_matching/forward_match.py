@@ -407,6 +407,15 @@ class ForwardMatch:
                 ):
                     continue
 
+                # Check if the qubit, clbit configuration are compatible for a match,
+                # also check if the operation are the same.
+                if not(
+                    self._is_same_q_conf(node_circuit, node_template)
+                    and self._is_same_c_conf(node_circuit, node_template)
+                    and self._is_same_op(node_circuit, node_template)
+                ):
+                    continue
+
                 # Check if parameters match the template or not.
                 # Construct a temporary list of matches.
                 temp_match = self.match.copy()
@@ -426,41 +435,33 @@ class ForwardMatch:
                 if template is None:
                     continue
 
-                # Check if the qubit, clbit configuration are compatible for a match,
-                # also check if the operation are the same.
-                if (
-                    self._is_same_q_conf(node_circuit, node_template)
-                    and self._is_same_c_conf(node_circuit, node_template)
-                    and self._is_same_op(node_circuit, node_template)
-                ):
+                v[1].matchedwith = [i]
 
-                    v[1].matchedwith = [i]
+                self.template_dag_dep.get_node(i).matchedwith = [label]
 
-                    self.template_dag_dep.get_node(i).matchedwith = [label]
+                # Append the new match to the list of matches.
+                self.match.append([i, label])
 
-                    # Append the new match to the list of matches.
-                    self.match.append([i, label])
+                # Potential successors to visit (circuit) for a given match.
+                potential = self.circuit_dag_dep.direct_successors(label)
 
-                    # Potential successors to visit (circuit) for a given match.
-                    potential = self.circuit_dag_dep.direct_successors(label)
+                # If the potential successors to visit are blocked or match, it is removed.
+                for potential_id in potential:
+                    if self.circuit_dag_dep.get_node(potential_id).isblocked | (
+                        self.circuit_dag_dep.get_node(potential_id).matchedwith != []
+                    ):
+                        potential.remove(potential_id)
 
-                    # If the potential successors to visit are blocked or match, it is removed.
-                    for potential_id in potential:
-                        if self.circuit_dag_dep.get_node(potential_id).isblocked | (
-                            self.circuit_dag_dep.get_node(potential_id).matchedwith != []
-                        ):
-                            potential.remove(potential_id)
+                sorted_potential = sorted(potential)
 
-                    sorted_potential = sorted(potential)
+                #  Update the successor to visit attribute
+                v[1].successorstovisit = sorted_potential
 
-                    #  Update the successor to visit attribute
-                    v[1].successorstovisit = sorted_potential
-
-                    # Add the updated node to the stack.
-                    self.matched_nodes_list.append([v[0], v[1]])
-                    self.matched_nodes_list.sort(key=lambda x: x[1].successorstovisit)
-                    match = True
-                    continue
+                # Add the updated node to the stack.
+                self.matched_nodes_list.append([v[0], v[1]])
+                self.matched_nodes_list.sort(key=lambda x: x[1].successorstovisit)
+                match = True
+                break
 
             # If no match is found, block the node and all the successors.
             if not match:
