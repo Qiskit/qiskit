@@ -97,9 +97,9 @@ def build_interaction_graph(dag, strict_direction=True):
 
 def build_edge_list(im_graph):
     """Generate an edge list for scoring."""
-    return {
-        (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
-    }
+    return vf2_layout.EdgeList(
+        [((edge[0], edge[1]), sum(edge[2].values())) for edge in im_graph.edge_index_map().values()]
+    )
 
 
 def build_bit_list(im_graph, bit_map):
