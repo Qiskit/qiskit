@@ -23,9 +23,13 @@ use pyo3::{AsPyPointer, PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
 use std::iter::zip;
 
-// Private type use to store instructions with interned arg lists.
+// Private type used to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
-struct InternedInstruction(Option<PyObject>, IndexType, IndexType);
+struct InternedInstruction {
+    op: Option<PyObject>,
+    qubits_id: IndexType,
+    clbits_id: IndexType,
+}
 
 #[derive(Clone, Debug)]
 struct _NativeBit {
@@ -183,16 +187,16 @@ impl CircuitData {
             index: isize,
         ) -> PyResult<Py<CircuitInstruction>> {
             let index = self_.convert_py_index(index, IndexFor::Lookup)?;
-            if let Some(InternedInstruction(op, qargs_slot, cargs_slot)) = self_.data.get(index) {
+            if let Some(inst) = self_.data.get(index) {
                 Py::new(
                     py,
                     CircuitInstruction {
-                        operation: op.as_ref().unwrap().clone_ref(py),
+                        operation: inst.op.as_ref().unwrap().clone_ref(py),
                         qubits: py_ext::tuple_new(
                             py,
                             self_
                                 .intern_context
-                                .lookup(*qargs_slot)
+                                .lookup(inst.qubits_id)
                                 .iter()
                                 .map(|i| self_.qubits_native[*i as usize].clone_ref(py))
                                 .collect(),
@@ -201,7 +205,7 @@ impl CircuitData {
                             py,
                             self_
                                 .intern_context
-                                .lookup(*cargs_slot)
+                                .lookup(inst.clbits_id)
                                 .iter()
                                 .map(|i| self_.clbits_native[*i as usize].clone_ref(py))
                                 .collect(),
@@ -398,8 +402,8 @@ impl CircuitData {
     }
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        for InternedInstruction(op, _, _) in self.data.iter() {
-            if let Some(op) = op {
+        for inst in self.data.iter() {
+            if let Some(op) = inst.op.as_ref() {
                 visit.call(op)?;
             }
         }
@@ -415,7 +419,7 @@ impl CircuitData {
     fn __clear__(&mut self) {
         // Clear anything that could have a reference cycle.
         for inst in self.data.iter_mut() {
-            inst.0 = None;
+            inst.op = None;
         }
         self.qubits_native.clear();
         self.clbits_native.clear();
@@ -508,10 +512,10 @@ impl CircuitData {
                     .collect::<PyResult<Vec<BitType>>>()?;
                 Ok(self.intern_context.intern(args))
             };
-        Ok(InternedInstruction(
-            Some(elem.operation.clone_ref(py)),
-            cache_args(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
-            cache_args(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
-        ))
+        Ok(InternedInstruction {
+            op: Some(elem.operation.clone_ref(py)),
+            qubits_id: cache_args(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
+            clbits_id: cache_args(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
+        })
     }
 }
