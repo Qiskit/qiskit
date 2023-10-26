@@ -13,13 +13,13 @@
 """A wrapper class for the purposes of validating modifications to
 QuantumCircuit.data while maintaining the interface of a python list."""
 
-import qiskit._accelerate.quantum_circuit
 from collections.abc import MutableSequence
 
 from .exceptions import CircuitError
 from .instruction import Instruction
 from .operation import Operation
 
+import qiskit._accelerate.quantum_circuit
 
 # class CircuitInstruction:
 #     """A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
