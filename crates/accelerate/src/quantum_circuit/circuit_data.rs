@@ -18,7 +18,7 @@ use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyIterator, PyList, PySlice, PyString, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyIterator, PyList, PySlice, PyTuple, PyType};
 use pyo3::{AsPyPointer, PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
 use std::iter::zip;

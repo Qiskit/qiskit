@@ -24,8 +24,11 @@ use pyo3::{PyObject, PyResult};
 )]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
+    // The logical operation that this instruction represents an execution of.
     pub operation: PyObject,
+    // A sequence of the qubits that the operation is applied to.
     pub qubits: Py<PyTuple>,
+    // A sequence of the classical bits that this operation reads from or writes to.
     pub clbits: Py<PyTuple>,
 }
 
@@ -67,10 +70,12 @@ impl CircuitInstruction {
         })
     }
 
+    // Return a shallow copy of the CircuitInstruction.
     pub fn copy(&self) -> Self {
         self.clone()
     }
 
+    // Return a new CircuitInstruction with the given fields replaced.
     pub fn replace(
         &self,
         py: Python<'_>,
@@ -127,7 +132,15 @@ impl CircuitInstruction {
         ))
     }
 
+    // Legacy tuple-like interface support.
+    //
+    // For a best attempt at API compatibility during the transition to using this new class, we need
+    // the interface to behave exactly like the old 3-tuple `(inst, qargs, cargs)` if it's treated
+    // like that via unpacking or similar.  That means that the `parameters` field is completely
+    // absent, and the qubits and clbits must be converted to lists.
     pub fn _legacy_format(&self, py: Python<'_>) -> PyObject {
+        // Note: previously, we converted qubits and clbits to list,
+        //       but this appears no longer necessary.
         PyTuple::new(
             py,
             [
