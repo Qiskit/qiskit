@@ -12,7 +12,6 @@
 
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
-import os
 from enum import Enum
 import itertools
 import logging
@@ -172,10 +171,6 @@ class VF2Layout(AnalysisPass):
         chosen_layout_score = None
         start_time = time.time()
         trials = 0
-        run_in_parallel = (
-            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
-            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
-        )
 
         def mapping_to_layout(layout_mapping):
             return Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
@@ -204,7 +199,6 @@ class VF2Layout(AnalysisPass):
                 reverse_im_graph_node_map,
                 im_graph,
                 self.strict_direction,
-                run_in_parallel,
             )
             # If the layout score is 0 we can't do any better and we'll just
             # waste time finding additional mappings that will at best match
