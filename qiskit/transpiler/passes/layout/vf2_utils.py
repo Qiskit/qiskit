@@ -102,7 +102,7 @@ def score_layout(
     _reverse_bit_map,
     im_graph,
     strict_direction=False,
-    run_in_parallel=True,
+    run_in_parallel=False,
 ):
     """Score a layout given an average error map."""
     if layout_mapping:
