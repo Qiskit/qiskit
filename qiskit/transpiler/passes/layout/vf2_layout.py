@@ -138,6 +138,8 @@ class VF2Layout(AnalysisPass):
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
+        scoring_edge_list = vf2_utils.build_edge_list(im_graph)
+        scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
             self.coupling_map, self.seed, self.strict_direction
         )
@@ -199,6 +201,8 @@ class VF2Layout(AnalysisPass):
                 reverse_im_graph_node_map,
                 im_graph,
                 self.strict_direction,
+                edge_list=scoring_edge_list,
+                bit_list=scoring_bit_list,
             )
             # If the layout score is 0 we can't do any better and we'll just
             # waste time finding additional mappings that will at best match
