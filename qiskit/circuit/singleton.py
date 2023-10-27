@@ -156,7 +156,7 @@ definition::
 
 there will be two singleton instances instantiated.  One corresponds to ``n=1`` and ``label=None``,
 and the other to ``n=2`` and ``label="two"``.  Whenever ``MySingleton`` is constructed with
-arguments consistent with one of those two cases, the relavent singleton will be returned.  For
+arguments consistent with one of those two cases, the relevent singleton will be returned.  For
 example::
 
     assert MySingleton() is MySingleton(1, label=None)
