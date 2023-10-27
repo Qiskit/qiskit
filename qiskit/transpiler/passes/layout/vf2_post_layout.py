@@ -167,6 +167,8 @@ class VF2PostLayout(AnalysisPass):
             self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
+        scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
+        scoring_edge_list = vf2_utils.build_edge_list(im_graph)
 
         if self.target is not None:
             # If qargs is None then target is global and ideal so no
@@ -256,7 +258,10 @@ class VF2PostLayout(AnalysisPass):
             if self.strict_direction:
                 initial_layout = Layout({bit: index for index, bit in enumerate(dag.qubits)})
                 chosen_layout_score = self._score_layout(
-                    initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
+                    initial_layout,
+                    im_graph_node_map,
+                    reverse_im_graph_node_map,
+                    im_graph,
                 )
             else:
                 initial_layout = {
@@ -271,6 +276,8 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
+                    edge_list=scoring_edge_list,
+                    bit_list=scoring_bit_list,
                 )
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
@@ -303,6 +310,8 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
+                    edge_list=scoring_edge_list,
+                    bit_list=scoring_bit_list,
                 )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
