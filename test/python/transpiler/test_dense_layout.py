@@ -66,7 +66,7 @@ class TestDenseLayout(QiskitTestCase):
         pass_(circuit)
         layout = pass_.property_set["layout"]
         used_qubits = {layout[q] for q in circuit.qubits}
-        self.assertEqual(used_qubits, set(middle_qubits))
+        self.assertEqual(0, set(middle_qubits))
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map."""
