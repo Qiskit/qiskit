@@ -12,10 +12,10 @@ them on real quantum computers or classical simulators. Qiskit is already in use
 around the world by beginners, hobbyists, educators, researchers, and commercial companies.
 
 .. qiskit-card::
-  :header: Qiskit is getting a new documentation experience →
+  :header: Starting on December 1, 2023, Qiskit Documentation will only live on IBM Quantum. Learn more ->
   :card_description: We are reorganizing Qiskit documentation on IBM Quantum to better support your research and development workflows.
   :image: _static/images/1xp.png
-  :link: https://docs.quantum-computing.ibm.com/
+  :link: https://medium.com/qiskit/important-changes-to-qiskit-documentation-and-learning-resources-7f4e346b19ab
 
 .. qiskit-call-to-action-grid::
 
@@ -52,13 +52,13 @@ Main Qiskit-related projects
     .. qiskit-call-to-action-item::
       :header: Qiskit IBM Runtime
       :description: Qiskit Runtime is a cloud base implementation of the Qiskit primitives to effectively execute workloads on IBM Quantum systems.
-      :button_link:  https://qiskit.org/ecosystem/ibm-runtime/
+      :button_link:  https://docs.quantum-computing.ibm.com/api/qiskit-ibm-runtime/runtime_service
       :button_text: Qiskit Runtime documentation
 
     .. qiskit-call-to-action-item::
       :header: IBM Quantum Provider
       :description: A Qiskit provider that allows accessing the IBM Quantum systems and cloud simulators.
-      :button_link:  https://qiskit.org/ecosystem/ibm-runtime/
+      :button_link:  https://docs.quantum-computing.ibm.com/api/qiskit-ibm-provider/ibm_provider
       :button_text: Qiskit IBM provider documentation
 
 

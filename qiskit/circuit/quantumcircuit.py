@@ -381,8 +381,8 @@ class QuantumCircuit:
                 elements must either be instances of :class:`.CircuitInstruction` (preferred), or a
                 3-tuple of ``(instruction, qargs, cargs)`` (legacy).  In the legacy format,
                 ``instruction`` must be an :class:`~.circuit.Instruction`, while ``qargs`` and
-                ``cargs`` must be iterables of :class:`.Qubit` or :class:`.Clbit` specifiers
-                (similar to the allowed forms in calls to :meth:`append`).
+                ``cargs`` must be iterables of :class:`~.circuit.Qubit` or :class:`.Clbit`
+                specifiers (similar to the allowed forms in calls to :meth:`append`).
         """
         # If data_input is QuantumCircuitData(self), clearing self._data
         # below will also empty data_input, so make a shallow copy first.
@@ -1230,7 +1230,7 @@ class QuantumCircuit:
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
                 :class:`.CircuitInstruction` with all its context.
-            qargs: specifiers of the :class:`.Qubit`\\ s to attach instruction to.
+            qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
 
         Returns:
@@ -1673,6 +1673,7 @@ class QuantumCircuit:
         initial_state: bool = False,
         cregbundle: bool = None,
         wire_order: list = None,
+        expr_len: int = 30,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1766,6 +1767,9 @@ class QuantumCircuit:
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (``num_qubits`` + ``num_clbits``).
+            expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+                is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1818,6 +1822,7 @@ class QuantumCircuit:
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=wire_order,
+            expr_len=expr_len,
         )
 
     def size(
