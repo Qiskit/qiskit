@@ -62,7 +62,7 @@ class UnitaryOverlap(QuantumCircuit):
     ):
         """
         Args:
-            unitary1: Unitary acting on the key vector.
+            unitary1: Unitary acting on the ket vector.
             unitary2: Unitary whose inverse operates on the bra vector.
             prefix1: The name of the parameter vector associated to ``unitary1``,
                 if it is parameterized. Defaults to ``"p1"``.
