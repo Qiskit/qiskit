@@ -13,6 +13,8 @@
 """Test the QAOA algorithm with opflow."""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
@@ -64,7 +66,9 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 10598
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
         self.sampler = Sampler()
 
     @idata(
@@ -219,9 +223,11 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def test_qaoa_random_initial_point(self):
         """QAOA random initial point"""
-        w = rx.adjacency_matrix(
-            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            w = rx.adjacency_matrix(
+                rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+            )
         qubit_op, _ = self._get_operator(w)
         qaoa = QAOA(self.sampler, NELDER_MEAD(disp=True), reps=2)
         with self.assertWarns(DeprecationWarning):
@@ -231,9 +237,11 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
-        w = rx.adjacency_matrix(
-            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            w = rx.adjacency_matrix(
+                rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+            )
         qubit_op, _ = self._get_operator(w)
         qaoa = QAOA(
             self.sampler,

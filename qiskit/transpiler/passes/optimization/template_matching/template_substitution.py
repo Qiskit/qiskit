@@ -535,6 +535,8 @@ class TemplateSubstitution:
                             t_param_exp = t_param_exp.assign(t_param, new_param)
                 sub_node_params.append(t_param_exp)
                 template_params.append(t_param_exp)
+            if not node.op.mutable:
+                node.op = node.op.to_mutable()
             node.op.params = sub_node_params
 
         for node in template_dag_dep.get_nodes():
@@ -548,6 +550,8 @@ class TemplateSubstitution:
                             )
                 sub_node_params.append(param_exp)
 
+            if not node.op.mutable:
+                node.op = node.op.to_mutable()
             node.op.params = sub_node_params
 
         # Create the fake binding dict and check
@@ -599,6 +603,8 @@ class TemplateSubstitution:
                     param_exp = float(param_exp)
                 bound_params.append(param_exp)
 
+            if not node.op.mutable:
+                node.op = node.op.to_mutable()
             node.op.params = bound_params
 
         return template_dag_dep

@@ -249,7 +249,7 @@ class GlobalNamespace:
                 pass
 
     def __setitem__(self, name_str, instruction):
-        self._data[name_str] = type(instruction)
+        self._data[name_str] = instruction.base_class
         self._data[id(instruction)] = name_str
 
     def __getitem__(self, key):

@@ -22,23 +22,8 @@ class ParameterVectorElement(Parameter):
 
     ___slots__ = ("_vector", "_index")
 
-    def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
-        obj = object.__new__(cls)
-
-        if uuid is None:
-            obj._uuid = uuid4()
-        else:
-            obj._uuid = uuid
-
-        obj._hash = hash(obj._uuid)
-        return obj
-
-    def __getnewargs__(self):
-        return (self.vector, self.index, self._uuid)
-
-    def __init__(self, vector, index, uuid=None):  # pylint: disable=unused-argument
-        name = f"{vector.name}[{index}]"
-        super().__init__(name)
+    def __init__(self, vector, index, uuid=None):
+        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
         self._vector = vector
         self._index = index
 
@@ -53,19 +38,13 @@ class ParameterVectorElement(Parameter):
         return self._vector
 
     def __getstate__(self):
-        return {
-            "name": self._name,
-            "uuid": self._uuid,
-            "vector": self._vector,
-            "index": self._index,
-        }
+        return super().__getstate__() + (self._vector, self._index)
 
     def __setstate__(self, state):
-        self._name = state["name"]
-        self._uuid = state["uuid"]
-        self._vector = state["vector"]
-        self._index = state["index"]
-        super().__init__(self._name)
+        *super_state, vector, index = state
+        super().__setstate__(super_state)
+        self._vector = vector
+        self._index = index
 
 
 class ParameterVector:

@@ -14,6 +14,8 @@
 
 import logging
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from test.python.transpiler._dummy_passes import DummyAP
 
@@ -85,7 +87,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
         self.h2_energy = -1.85727503
 
         self.ryrz_wavefunction = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
