@@ -27,11 +27,11 @@ from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
-from qiskit.extensions import UnitaryGate, HamiltonianGate
-from qiskit.extensions.quantum_initializer import UCGate
 from qiskit.providers.fake_provider import FakeBelemV2
+from qiskit.circuit.classical import expr
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -46,6 +46,9 @@ from qiskit.circuit.library import (
     CU3Gate,
     CU1Gate,
     CPhaseGate,
+    UnitaryGate,
+    HamiltonianGate,
+    UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
@@ -5680,7 +5683,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit.tdg(qr[0])
         circuit.sx(qr[0])
         circuit.sxdg(qr[0])
-        circuit.i(qr[0])
+        circuit.id(qr[0])
         circuit.reset(qr[0])
         circuit.rx(pi, qr[0])
         circuit.ry(pi, qr[0])
@@ -5708,9 +5711,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         """Test that text drawer handles utf8 encoding."""
         filename = "current_textplot_utf8.txt"
         qc = self.sample_circuit()
-        output = circuit_drawer(
+        output = _text_circuit_drawer(
             qc,
-            output="text",
             filename=filename,
             fold=-1,
             initial_state=True,
@@ -5728,9 +5730,8 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         """Test that text drawer handles cp437 encoding."""
         filename = "current_textplot_cp437.txt"
         qc = self.sample_circuit()
-        output = circuit_drawer(
+        output = _text_circuit_drawer(
             qc,
-            output="text",
             filename=filename,
             fold=-1,
             initial_state=True,
@@ -6169,6 +6170,137 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         circuit.if_else((cr[1], 1), qc2, None, [0, 1, 2], [0, 1, 2])
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=False, cregbundle=False)),
+            expected,
+        )
+
+    def test_if_with_expr(self):
+        """Test an IfElseOp with an expression"""
+        expected = "\n".join(
+            [
+                "       ┌───┐┌─────────────────────────────── ┌───┐ ───────┐ ",
+                " qr_0: ┤ H ├┤ If-0 (cr1 & (cr2 & cr3)) == 3  ┤ Z ├  End-0 ├─",
+                "       └───┘└───────────────╥─────────────── └───┘ ───────┘ ",
+                " qr_1: ─────────────────────╫───────────────────────────────",
+                "                            ║                               ",
+                " qr_2: ─────────────────────╫───────────────────────────────",
+                "                            ║                               ",
+                " cr: 3/═════════════════════╬═══════════════════════════════",
+                "                        ┌───╨────┐                          ",
+                "cr1: 3/═════════════════╡ [expr] ╞══════════════════════════",
+                "                        ├───╨────┤                          ",
+                "cr2: 3/═════════════════╡ [expr] ╞══════════════════════════",
+                "                        ├───╨────┤                          ",
+                "cr3: 3/═════════════════╡ [expr] ╞══════════════════════════",
+                "                        └────────┘                          ",
+            ]
+        )
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 3)):
+            circuit.z(0)
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
+            expected,
+        )
+
+    def test_if_with_expr_nested(self):
+        """Test an IfElseOp with an expression for nested"""
+        expected = "\n".join(
+            [
+                "       ┌───┐┌─────────────────────── ┌───┐                                 ───────┐ ",
+                " qr_0: ┤ H ├┤                        ┤ X ├────────────────────────────────        ├─",
+                "       └───┘│ If-0 (cr2 & cr3) == 3  └───┘┌─────────────── ┌───┐ ───────┐   End-0 │ ",
+                " qr_1: ─────┤                        ─────┤ If-1 cr2 == 5  ┤ Z ├  End-1 ├─        ├─",
+                "            └───────────╥───────────      └───────╥─────── └───┘ ───────┘  ───────┘ ",
+                " qr_2: ─────────────────╫─────────────────────────╫─────────────────────────────────",
+                "                        ║                         ║                                 ",
+                " cr: 3/═════════════════╬═════════════════════════╬═════════════════════════════════",
+                "                        ║                         ║                                 ",
+                "cr1: 3/═════════════════╬═════════════════════════╬═════════════════════════════════",
+                "                    ┌───╨────┐                ┌───╨────┐                            ",
+                "cr2: 3/═════════════╡ [expr] ╞════════════════╡ [expr] ╞════════════════════════════",
+                "                    ├───╨────┤                └────────┘                            ",
+                "cr3: 3/═════════════╡ [expr] ╞══════════════════════════════════════════════════════",
+                "                    └────────┘                                                      ",
+            ]
+        )
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.if_test(expr.equal(expr.bit_and(cr2, cr3), 3)):
+            circuit.x(0)
+            with circuit.if_test(expr.equal(cr2, 5)):
+                circuit.z(1)
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False, fold=120)),
+            expected,
+        )
+
+    def test_switch_with_expression(self):
+        """Test an SwitchcaseOp with an expression"""
+        expected = "\n".join(
+            [
+                "       ┌───┐┌──────────────────────────── ┌───────────────────── ┌───┐»",
+                " qr_0: ┤ H ├┤                             ┤                      ┤ X ├»",
+                "       └───┘│ Switch-0 cr1 & (cr2 & cr3)  │ Case-0 (0, 1, 2, 3)  └───┘»",
+                " qr_1: ─────┤                             ┤                      ─────»",
+                "            └─────────────╥────────────── └─────────────────────      »",
+                " qr_2: ───────────────────╫───────────────────────────────────────────»",
+                "                          ║                                           »",
+                " cr: 3/═══════════════════╬═══════════════════════════════════════════»",
+                "                      ┌───╨────┐                                      »",
+                "cr1: 3/═══════════════╡ [expr] ╞══════════════════════════════════════»",
+                "                      ├───╨────┤                                      »",
+                "cr2: 3/═══════════════╡ [expr] ╞══════════════════════════════════════»",
+                "                      ├───╨────┤                                      »",
+                "cr3: 3/═══════════════╡ [expr] ╞══════════════════════════════════════»",
+                "                      └────────┘                                      »",
+                "«       ┌────────────────       ───────┐ ",
+                "« qr_0: ┤                 ──■──        ├─",
+                "«       │ Case-0 default  ┌─┴─┐  End-0 │ ",
+                "« qr_1: ┤                 ┤ X ├        ├─",
+                "«       └──────────────── └───┘ ───────┘ ",
+                "« qr_2: ─────────────────────────────────",
+                "«                                        ",
+                "« cr: 3/═════════════════════════════════",
+                "«                                        ",
+                "«cr1: 3/═════════════════════════════════",
+                "«                                        ",
+                "«cr2: 3/═════════════════════════════════",
+                "«                                        ",
+                "«cr3: 3/═════════════════════════════════",
+                "«                                        ",
+            ]
+        )
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.switch(expr.bit_and(cr1, expr.bit_and(cr2, cr3))) as case:
+            with case(0, 1, 2, 3):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                circuit.cx(0, 1)
+
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", fold=80, initial_state=False)),
             expected,
         )
 

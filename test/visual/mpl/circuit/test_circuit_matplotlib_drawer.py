@@ -23,7 +23,7 @@ from numpy import pi
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.providers.fake_provider import FakeTenerife, FakeBelemV2
 from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
 from qiskit.circuit.library import (
     XGate,
@@ -36,11 +36,13 @@ from qiskit.circuit.library import (
     SGate,
     U1Gate,
     CPhaseGate,
+    HamiltonianGate,
+    Isometry,
 )
 from qiskit.circuit.library import MCXVChain
-from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter, Qubit, Clbit
+from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
 from qiskit.circuit.library import IQP
+from qiskit.circuit.classical import expr
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 
@@ -430,7 +432,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         # this import appears to be unused, but is actually needed to get snapshot instruction
         import qiskit.extensions.simulator  # pylint: disable=unused-import
 
-        circuit.snapshot("1")
+        with self.assertWarns(DeprecationWarning):
+            circuit.snapshot("1")
 
         # check the barriers plot properly when plot_barriers= True
         fname = "plot_barriers_true.png"
@@ -543,7 +546,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         theta = Parameter("theta")
         circuit.append(HamiltonianGate(matrix, theta), [qr[1], qr[2]])
         circuit = circuit.assign_parameters({theta: 1})
-        circuit.isometry(np.eye(4, 4), list(range(3, 5)), [])
+        circuit.append(Isometry(np.eye(4, 4), 0, 0), list(range(3, 5)))
 
         fname = "big_gates.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -886,7 +889,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_alternative_colors(self):
         """Tests alternative color schemes"""
         ratios = []
-        for style in ["iqx", "iqx-dark", "textbook"]:
+        for style in ["iqp", "iqp-dark", "iqx", "iqx-dark", "textbook", "clifford"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
                 circuit.h(0)
@@ -894,6 +897,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.cx(0, 1)
                 circuit.ccx(0, 1, 2)
                 circuit.swap(0, 1)
+                circuit.iswap(2, 3)
                 circuit.cswap(0, 1, 2)
                 circuit.append(SwapGate().control(2), [0, 1, 2, 3])
                 circuit.dcx(0, 1)
@@ -907,19 +911,28 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.p(pi / 2, 4)
                 circuit.cz(5, 6)
                 circuit.cp(pi / 2, 5, 6)
+                circuit.mcp(pi / 5, [0, 1, 2, 3], 4)
                 circuit.y(5)
                 circuit.rx(pi / 3, 5)
+                circuit.rz(pi / 6, 6)
                 circuit.rzx(pi / 2, 5, 6)
+                circuit.rzz(pi / 4, 5, 6)
                 circuit.u(pi / 2, pi / 2, pi / 2, 5)
                 circuit.barrier(5, 6)
                 circuit.reset(5)
 
                 fname = f"{style}_color.png"
+                # IQX has the same reference filename as IQP
+                if style[:3] == "iqx":
+                    ref_fname = "iqp" + style[3:] + "_color.png"
+                else:
+                    ref_fname = fname
+
                 self.circuit_drawer(circuit, output="mpl", style={"name": style}, filename=fname)
 
                 ratio = VisualTestUtilities._save_diff(
                     self._image_path(fname),
-                    self._reference_path(fname),
+                    self._reference_path(ref_fname),
                     fname,
                     FAILURE_DIFF_DIR,
                     FAILURE_PREFIX,
@@ -1111,8 +1124,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         def cnotnot(gate_label):
             gate_circuit = QuantumCircuit(3, name=gate_label)
-            gate_circuit.cnot(0, 1)
-            gate_circuit.cnot(0, 2)
+            gate_circuit.cx(0, 1)
+            gate_circuit.cx(0, 2)
             gate = gate_circuit.to_gate()
             return gate
 
@@ -1496,8 +1509,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
     def test_fold_with_conditions(self):
         """Test that gates with conditions draw correctly when folding"""
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(5)
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(5, "cr")
         circuit = QuantumCircuit(qr, cr)
 
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
@@ -1609,7 +1622,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "if_op.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1620,8 +1633,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
-    def test_if_else_op(self):
-        """Test the IfElseOp with else"""
+    def test_if_else_op_bundle_false(self):
+        """Test the IfElseOp with else with cregbundle False"""
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(2, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -1632,8 +1645,33 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         with _else:
             circuit.cx(0, 1)
 
-        fname = "if_else_op.png"
+        fname = "if_else_op_false.png"
         self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_if_else_op_bundle_true(self):
+        """Test the IfElseOp with else with cregbundle True"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.h(0)
+        with circuit.if_test((cr[1], 1)) as _else:
+            circuit.h(0)
+            circuit.cx(0, 1)
+        with _else:
+            circuit.cx(0, 1)
+
+        fname = "if_else_op_true.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=True, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1658,7 +1696,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "if_else_op_textbook.png"
         self.circuit_drawer(
-            circuit, output="mpl", style="textbook", cregbundle=True, filename=fname
+            circuit, output="mpl", style="textbook", cregbundle=False, filename=fname
         )
 
         ratio = VisualTestUtilities._save_diff(
@@ -1878,7 +1916,64 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.z(0)
 
         fname = "for_loop.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_for_loop_op_range(self):
+        """Test the ForLoopOp with a range"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        a = Parameter("a")
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.for_loop(range(10, 20), loop_parameter=a):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.rx(pi / a, 1)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+
+        fname = "for_loop_range.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_for_loop_op_1_qarg(self):
+        """Test the ForLoopOp with 1 qarg"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qr, cr)
+
+        a = Parameter("a")
+        circuit.h(0)
+        circuit.measure(0, 2)
+        with circuit.for_loop((2, 4, 8, 16), loop_parameter=a):
+            circuit.h(0)
+            circuit.rx(pi / a, 0)
+            circuit.measure(0, 0)
+            with circuit.if_test((cr[2], 1)):
+                circuit.z(0)
+
+        fname = "for_loop_1_qarg.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1910,6 +2005,59 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
 
         fname = "switch_case.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_switch_case_op_1_qarg(self):
+        """Test the SwitchCaseOp with 1 qarg"""
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                circuit.y(0)
+        circuit.h(0)
+
+        fname = "switch_case_1_qarg.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_if_with_expression(self):
+        """Test the IfElseOp with an expression"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 3)):
+            circuit.z(0)
+
+        fname = "if_op_expr.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
@@ -1920,6 +2068,145 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
         self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_if_with_expression_nested(self):
+        """Test the IfElseOp with an expression for nested"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 3)):
+            circuit.x(0)
+            with circuit.if_test(expr.equal(expr.bit_and(cr3, expr.bit_and(cr1, cr2)), 5)):
+                circuit.z(1)
+
+        fname = "if_op_expr_nested.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_switch_with_expression(self):
+        """Test the SwitchCaseOp with an expression"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(3, "cr")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        cr3 = ClassicalRegister(3, "cr3")
+        circuit = QuantumCircuit(qr, cr, cr1, cr2, cr3)
+
+        circuit.h(0)
+        with circuit.switch(expr.bit_and(cr1, expr.bit_and(cr2, cr3))) as case:
+            with case(0, 1, 2, 3):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                circuit.cx(0, 1)
+
+        fname = "switch_expr.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_control_flow_layout(self):
+        """Test control flow with a layout set."""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qreg, creg)
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.measure([0, 1], [0, 1])
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.z(0)
+            with case(1, 2):
+                qc.cx(0, 1)
+            with case(case.DEFAULT):
+                qc.h(0)
+        backend = FakeBelemV2()
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+        fname = "layout_control_flow.png"
+        self.circuit_drawer(tqc, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_control_flow_nested_layout(self):
+        """Test nested control flow with a layout set."""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qreg, creg)
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.h([0, 1])
+        qc.measure([0, 1], [0, 1])
+        with qc.switch(creg) as case:
+            with case(0):
+                qc.z(0)
+            with case(1, 2):
+                with qc.if_test((creg[0], 0)):
+                    qc.cx(0, 1)
+            with case(case.DEFAULT):
+                with qc.if_test((creg[1], 0)):
+                    qc.h(0)
+        backend = FakeBelemV2()
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+        fname = "nested_layout_control_flow.png"
+        self.circuit_drawer(tqc, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_default_futurewarning(self):
+        """Test using the default scheme emits a future warning."""
+        qc = QuantumCircuit(1)
+
+        with self.assertWarnsRegex(
+            FutureWarning, "To silence this warning, specify the current default explicitly"
+        ):
+            qc.draw("mpl")
+
+    def test_iqx_pendingdeprecation(self):
+        """Test using the IQX schemes emits a pending deprecation warning."""
+        qc = QuantumCircuit(1)
+
+        for style in ["iqx", "iqx-dark"]:
+            with self.assertWarnsRegex(
+                PendingDeprecationWarning, 'Instead, use "iqp" and "iqp-dark"'
+            ):
+                qc.draw("mpl", style=style)
 
 
 if __name__ == "__main__":
