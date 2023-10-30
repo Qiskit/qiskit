@@ -28,8 +28,8 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             :class:`~.DAGCircuit` will be shared instances and modifications to
             operations in the :class:`~.DAGCircuit` will be reflected in the
             :class:`~.QuantumCircuit` (and vice versa).
-        qubit_order (Iterable[Qubit] or None): the order that the qubits should be indexed in the
-            output DAG.  Defaults to the same order as in the circuit.
+        qubit_order (Iterable[~qiskit.circuit.Qubit] or None): the order that the qubits should be
+            indexed in the output DAG.  Defaults to the same order as in the circuit.
         clbit_order (Iterable[Clbit] or None): the order that the clbits should be indexed in the
             output DAG.  Defaults to the same order as in the circuit.
 

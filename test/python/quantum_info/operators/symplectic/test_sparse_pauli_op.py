@@ -22,7 +22,7 @@ from ddt import ddt
 from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
@@ -49,21 +49,6 @@ def pauli_mat(label):
 
 class TestSparsePauliOpInit(QiskitTestCase):
     """Tests for SparsePauliOp initialization."""
-
-    def test_pauli_table_init(self):
-        """Test PauliTable initialization."""
-        labels = ["I", "X", "Y", "Z"]
-        table = PauliTable.from_labels(labels)
-        paulis = PauliList(labels)
-        with self.subTest(msg="no coeffs"):
-            spp_op = SparsePauliOp(table)
-            np.testing.assert_array_equal(spp_op.coeffs, np.ones(len(labels)))
-            self.assertEqual(spp_op.paulis, paulis)
-        with self.subTest(msg="no coeffs"):
-            coeffs = [1, 2, 3, 4]
-            spp_op = SparsePauliOp(table, coeffs)
-            np.testing.assert_array_equal(spp_op.coeffs, coeffs)
-            self.assertEqual(spp_op.paulis, paulis)
 
     def test_str_init(self):
         """Test str initialization."""

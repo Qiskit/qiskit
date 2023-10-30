@@ -314,7 +314,7 @@ def _define_custom_operation(operation, gates_to_define):
 
     # In known-good situations we want to use a manually parametrised object as the source of the
     # definition, but still continue to return the given object as the call-site object.
-    if type(operation) in known_good_parameterized:
+    if operation.base_class in known_good_parameterized:
         parameterized_operation = type(operation)(*_FIXED_PARAMETERS[: len(operation.params)])
     elif hasattr(operation, "_qasm2_decomposition"):
         new_op = operation._qasm2_decomposition()

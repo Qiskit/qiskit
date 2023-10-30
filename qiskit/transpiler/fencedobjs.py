@@ -12,6 +12,7 @@
 
 """Fenced objects are wraps for raising TranspilerError when they are modified."""
 
+from qiskit.utils.deprecation import deprecate_func
 from .exceptions import TranspilerError
 
 
@@ -19,6 +20,15 @@ class FencedObject:
     """Given an instance and a list of attributes to fence, raises a TranspilerError when one
     of these attributes is accessed."""
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg=(
+            "Internal use of FencedObject is already removed from pass manager. "
+            "Implementation of a task subclass with protection for input object modification "
+            "is now responsibility of the developer."
+        ),
+        pending=True,
+    )
     def __init__(self, instance, attributes_to_fence):
         self._wrapped = instance
         self._attributes_to_fence = attributes_to_fence

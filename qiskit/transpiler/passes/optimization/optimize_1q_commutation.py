@@ -132,9 +132,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             if (
                 preindex is not None
                 and isinstance(blocker, DAGOpNode)
-                and type(blocker.op) in commutation_table
+                and blocker.op.base_class in commutation_table
             ):
-                commutation_rule = commutation_table[type(blocker.op)][preindex]
+                commutation_rule = commutation_table[blocker.op.base_class][preindex]
 
         if commutation_rule is not None:
             while run_clone:
