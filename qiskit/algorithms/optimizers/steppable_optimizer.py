@@ -71,7 +71,7 @@ class OptimizerState:
     njev: int | None
     """Number of jacobian evaluations so far in the opimization."""
     nit: int | None
-    """Number of optmization steps performed so far in the optimization."""
+    """Number of optimization steps performed so far in the optimization."""
 
 
 class SteppableOptimizer(Optimizer):
@@ -81,7 +81,7 @@ class SteppableOptimizer(Optimizer):
     This family of optimizers uses the `ask and tell interface
     <https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/009_ask_and_tell.html>`_.
     When using this interface the user has to call :meth:`~.ask` to get information about
-    how to evaluate the fucntion (we are asking the optimizer about how to do the evaluation).
+    how to evaluate the function (we are asking the optimizer about how to do the evaluation).
     This information is typically the next points at which the function is evaluated, but depending
     on the optimizer it can also determine whether to evaluate the function or its gradient.
     Once the function has been evaluated, the user calls the method :meth:`~..tell`
@@ -180,7 +180,7 @@ class SteppableOptimizer(Optimizer):
         It is the first method inside of a :meth:`~.step` in the optimization process.
 
         Returns:
-            An object containing the data needed to make the funciton evaluation to advance the
+            An object containing the data needed to make the function evaluation to advance the
             optimization process.
 
         """
@@ -217,7 +217,7 @@ class SteppableOptimizer(Optimizer):
 
     def _callback_wrapper(self) -> None:
         """
-        Wraps the callback function to accomodate each optimizer.
+        Wraps the callback function to accommodate each optimizer.
         """
         pass
 

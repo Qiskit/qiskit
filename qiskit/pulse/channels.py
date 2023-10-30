@@ -121,7 +121,7 @@ class Channel(metaclass=ABCMeta):
             if index.is_integer():
                 index = int(index)
 
-        if not isinstance(index, (int, np.integer)) and index < 0:
+        if not isinstance(index, (int, np.integer)) or index < 0:
             raise PulseError("Channel index must be a nonnegative integer")
 
     @property

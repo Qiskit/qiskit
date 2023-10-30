@@ -473,7 +473,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
             list_op = ListOp(aux_operators)
 
         aux_op_meas = expectation.convert(StateFn(list_op, is_measurement=True))
-        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
+        aux_op_expect = aux_op_meas.compose(
+            CircuitStateFn(self.ansatz.assign_parameters(parameters))
+        )
         aux_op_expect_sampled = sampler.convert(aux_op_expect)
 
         # compute means
@@ -611,7 +613,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             eigenvalue = (
                 StateFn(operator, is_measurement=True)
-                .compose(CircuitStateFn(self.ansatz.bind_parameters(result.optimal_parameters[-1])))
+                .compose(
+                    CircuitStateFn(self.ansatz.assign_parameters(result.optimal_parameters[-1]))
+                )
                 .reduce()
                 .eval()
             )
@@ -620,7 +624,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             result.eigenstates.append(self._get_eigenstate(result.optimal_parameters[-1]))
 
             if aux_operators is not None:
-                bound_ansatz = self.ansatz.bind_parameters(result.optimal_point[-1])
+                bound_ansatz = self.ansatz.assign_parameters(result.optimal_point[-1])
                 aux_value = eval_observables(
                     self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
                 )
@@ -715,7 +719,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         for state in range(step - 1):
 
-            prev_circ = self.ansatz.bind_parameters(prev_states[state])
+            prev_circ = self.ansatz.assign_parameters(prev_states[state])
             overlap_op.append(~CircuitStateFn(prev_circ) @ CircuitStateFn(self.ansatz))
 
         def energy_evaluation(parameters):
@@ -751,7 +755,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     def _get_eigenstate(self, optimal_parameters) -> list[float] | dict[str, int]:
         """Get the simulation outcome of the ansatz, provided with parameters."""
-        optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
+        optimal_circuit = self.ansatz.assign_parameters(optimal_parameters)
         state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
         if self.quantum_instance.is_statevector:
             state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array

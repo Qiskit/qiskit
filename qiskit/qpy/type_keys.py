@@ -44,6 +44,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
+from qiskit.pulse.configuration import Discriminator, Kernel
 from qiskit.pulse.instructions import (
     Acquire,
     Play,
@@ -334,10 +335,8 @@ class ScheduleOperand(TypeKeyBase):
     WAVEFORM = b"w"
     SYMBOLIC_PULSE = b"s"
     CHANNEL = b"c"
-
-    # Discriminator and Acquire instance are not serialzied.
-    # Data format of these object is somewhat opaque and not defiend well.
-    # It's rarely used in the Qiskit experiements. Of course these can be added later.
+    KERNEL = b"k"
+    DISCRIMINATOR = b"d"
 
     # We need to have own string type definition for operands of schedule instruction.
     # Note that string type is already defined in the Value namespace,
@@ -355,6 +354,10 @@ class ScheduleOperand(TypeKeyBase):
             return cls.CHANNEL
         if isinstance(obj, str):
             return cls.OPERAND_STR
+        if isinstance(obj, Kernel):
+            return cls.KERNEL
+        if isinstance(obj, Discriminator):
+            return cls.DISCRIMINATOR
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -517,6 +520,24 @@ class ExprValue(TypeKeyBase):
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
         )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class SymExprEncoding(TypeKeyBase):
+    """Type keys for the symbolic encoding field in the file header."""
+
+    SYMPY = b"p"
+    SYMENGINE = b"e"
+
+    @classmethod
+    def assign(cls, obj):
+        if obj is True:
+            return cls.SYMENGINE
+        else:
+            return cls.SYMPY
 
     @classmethod
     def retrieve(cls, type_key):

@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from typing import Any
+import warnings
 
 import numpy as np
 from qiskit.utils.validation import validate_range_exclusive_max
@@ -89,7 +90,9 @@ class AQGD(Optimizer):
                 "`eta`, and `momentum` must have the same length."
             )
         for m in momentum:
-            validate_range_exclusive_max("momentum", m, 0, 1)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                validate_range_exclusive_max("momentum", m, 0, 1)
 
         self._eta = eta
         self._maxiter = maxiter

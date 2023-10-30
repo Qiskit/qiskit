@@ -40,6 +40,8 @@ noise in a quantum system.
 .. automodule:: qiskit.pulse.schedule
 .. automodule:: qiskit.pulse.transforms
 .. automodule:: qiskit.pulse.builder
+.. automodule:: qiskit.pulse.model
+
 
 .. currentmodule:: qiskit.pulse
 
@@ -54,7 +56,11 @@ Configuration
 Exceptions
 ==========
 
-.. autoclass:: PulseError
+.. autoexception:: PulseError
+.. autoexception:: BackendNotSet
+.. autoexception:: NoActiveBuilder
+.. autoexception:: UnassignedDurationError
+.. autoexception:: UnassignedReferenceError
 """
 
 # Builder imports.
@@ -122,7 +128,13 @@ from qiskit.pulse.configuration import (
     LoConfig,
     LoRange,
 )
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import (
+    PulseError,
+    BackendNotSet,
+    NoActiveBuilder,
+    UnassignedDurationError,
+    UnassignedReferenceError,
+)
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,
@@ -158,3 +170,14 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
+
+from qiskit.pulse.model import (
+    LogicalElement,
+    Qubit,
+    Coupler,
+    Frame,
+    GenericFrame,
+    QubitFrame,
+    MeasurementFrame,
+    MixedFrame,
+)

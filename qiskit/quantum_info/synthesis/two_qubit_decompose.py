@@ -393,7 +393,7 @@ class TwoQubitWeylDecomposition:
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         """Appends Ud(a, b, c) to the circuit.
 
-        Can be overriden in subclasses for special cases"""
+        Can be overridden in subclasses for special cases"""
         if not simplify or abs(self.a) > atol:
             circ.rxx(-self.a * 2, 0, 1)
         if not simplify or abs(self.b) > atol:

@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 import unittest
+import warnings
 from typing import Tuple
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -38,7 +39,9 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
 
         self.threshold = 1e-8
 
@@ -119,7 +122,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         states = bound_ansatz
         expected_result = self.get_exact_expectation(bound_ansatz, observables)
         estimator = Estimator()
@@ -140,7 +143,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
@@ -162,7 +165,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
             dtype=float,
         )
 
-        bound_ansatz = ansatz.bind_parameters(parameters)
+        bound_ansatz = ansatz.assign_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator(options={"shots": 2048})
         with self.assertWarns(DeprecationWarning):

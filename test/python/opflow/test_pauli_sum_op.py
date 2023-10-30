@@ -15,9 +15,9 @@
 import unittest
 from itertools import product
 from test.python.opflow import QiskitOpflowTestCase
-from ddt import ddt, data, unpack
 
 import numpy as np
+from ddt import data, ddt, unpack
 from scipy.sparse import csr_matrix
 from sympy import Symbol
 
@@ -31,15 +31,15 @@ from qiskit.opflow import (
     I,
     One,
     OperatorStateFn,
+    OpflowError,
     PauliSumOp,
     SummedOp,
     X,
     Y,
     Z,
     Zero,
-    OpflowError,
 )
-from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
+from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 
 
 @ddt
@@ -316,9 +316,9 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         """Test PauliSumOp dense matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
+        paulis = PauliList(labels)
         coeff = 10
-        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        op = PauliSumOp(SparsePauliOp(paulis, coeffs), coeff)
         for idx, i in enumerate(op.matrix_iter()):
             self.assertTrue(np.array_equal(i, coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix()))
 
@@ -327,8 +327,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
         coeff = 10
-        table = PauliTable.from_labels(labels)
-        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
+        paulis = PauliList(labels)
+        op = PauliSumOp(SparsePauliOp(paulis, coeffs), coeff)
         for idx, i in enumerate(op.matrix_iter(sparse=True)):
             self.assertTrue(
                 np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())

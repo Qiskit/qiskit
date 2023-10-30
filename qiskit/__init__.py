@@ -40,6 +40,9 @@ sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
 sys.modules[
     "qiskit._accelerate.euler_one_qubit_decomposer"
 ] = qiskit._accelerate.euler_one_qubit_decomposer
+sys.modules[
+    "qiskit._accelerate.convert_2q_block_matrix"
+] = qiskit._accelerate.convert_2q_block_matrix
 
 
 # Extend namespace for backwards compat
@@ -63,9 +66,6 @@ from qiskit.circuit import QuantumCircuit
 # user config
 from qiskit import user_config as _user_config
 
-# The qiskit.extensions.x imports needs to be placed here due to the
-# mechanism for adding gates dynamically.
-import qiskit.extensions
 import qiskit.circuit.measure
 import qiskit.circuit.reset
 

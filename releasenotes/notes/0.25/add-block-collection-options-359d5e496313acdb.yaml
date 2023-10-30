@@ -1,0 +1,67 @@
+---
+features:
+  - |
+    Added two new options to :class:`~BlockCollector`.
+
+    The first new options ``split_layers`` allows to split the collected block into sub-blocks
+    over disjoint qubit subsets, i.e. into depth-1 sub-blocks.
+
+    The second new option ``collect_from_back`` allows to greedily collect blocks starting
+    from the outputs of the circuit. This is important in combination with ALAP-scheduling passes
+    where we may prefer to put gates in the later rather than earlier blocks.
+
+  - |
+    Added new options ``split_layers`` and ``collect_from_back`` to
+    :class:`~CollectLinearFunctions` and :class:`~CollectCliffords` transpiler passes.
+
+    When ``split_layers`` is `True`, the collected blocks are split into
+    into sub-blocks over disjoint qubit subsets, i.e. into depth-1 sub-blocks.
+    Consider the following example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler.passes import CollectLinearFunctions
+
+        circuit = QuantumCircuit(5)
+        circuit.cx(0, 2)
+        circuit.cx(1, 4)
+        circuit.cx(2, 0)
+        circuit.cx(0, 3)
+        circuit.swap(3, 2)
+        circuit.swap(4, 1)
+
+        # Collect all linear gates, without splitting into layers
+        qct = CollectLinearFunctions(split_blocks=False, min_block_size=1, split_layers=False)(circuit)
+        assert qct.count_ops()["linear_function"] == 1
+
+        # Collect all linear gates, with splitting into layers
+        qct = CollectLinearFunctions(split_blocks=False, min_block_size=1, split_layers=True)(circuit)
+        assert qct.count_ops()["linear_function"] == 4
+
+    The original circuit is linear. When collecting linear gates without splitting into layers,
+    we should end up with a single linear function. However, when collecting linear gates and
+    splitting into layers, we should end up with 4 linear functions.
+
+    When ``collect_from_back`` is `True`, the blocks are greedily collected from the outputs towards
+    the inputs of the circuit. Consider the following example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler.passes import CollectLinearFunctions
+
+        circuit = QuantumCircuit(3)
+        circuit.cx(1, 2)
+        circuit.cx(1, 0)
+        circuit.h(2)
+        circuit.swap(1, 2)
+
+        # This combines the CX(1, 2) and CX(1, 0) gates into a single linear function
+        qct = CollectLinearFunctions(collect_from_back=False)(circuit)
+
+        # This combines the CX(1, 0) and SWAP(1, 2) gates into a single linear function
+        qct = CollectLinearFunctions(collect_from_back=True)(circuit)
+
+    The original circuit contains a Hadamard gate, so that the `CX(1, 0)` gate can be
+    combined either with `CX(1, 2)` or with `SWAP(1, 2)`, but not with both. When
+    ``collect_from_back`` is `False`, the linear blocks are greedily collected from the start
+    of the circuit, and thus `CX(1, 0)` is combined with `CX(1, 2)`. When
+    ``collect_from_back`` is `True`, the linear blocks are greedily collected from the end
+    of the circuit, and thus `CX(1, 0)` is combined with `SWAP(1, 2)`.

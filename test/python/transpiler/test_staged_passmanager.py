@@ -30,11 +30,12 @@ class TestStagedPassManager(QiskitTestCase):
         self.assertEqual(
             spm.stages, ("init", "layout", "routing", "translation", "optimization", "scheduling")
         )
-        spm = StagedPassManager(
-            init=PassManager([Optimize1qGates()]),
-            routing=PassManager([Unroller(["u", "cx"])]),
-            scheduling=PassManager([Depth()]),
-        )
+        with self.assertWarns(DeprecationWarning):
+            spm = StagedPassManager(
+                init=PassManager([Optimize1qGates()]),
+                routing=PassManager([Unroller(["u", "cx"])]),
+                scheduling=PassManager([Depth()]),
+            )
         self.assertEqual(
             [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
             ["Optimize1qGates", "Unroller", "Depth"],
@@ -47,7 +48,8 @@ class TestStagedPassManager(QiskitTestCase):
             [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
             ["Optimize1qGates", "Depth"],
         )
-        spm.single_stage.append(Unroller(["u"]))
+        with self.assertWarns(DeprecationWarning):
+            spm.single_stage.append(Unroller(["u"]))
         spm.single_stage.append(Depth())
         self.assertEqual(
             [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
@@ -100,7 +102,8 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_repeated_stages(self):
         stages = ["alpha", "omega", "alpha"]
-        pre_alpha = PassManager(Unroller(["u", "cx"]))
+        with self.assertWarns(DeprecationWarning):
+            pre_alpha = PassManager(Unroller(["u", "cx"]))
         alpha = PassManager(Depth())
         post_alpha = PassManager(BasicSwap([[0, 1], [1, 2]]))
         omega = PassManager(Optimize1qGates())

@@ -384,7 +384,7 @@ class TestEstimatorGradient(QiskitTestCase):
         qc.crz(params[2] * -2, 0, 1)
         qc.dcx(0, 1)
         qc.csdg(0, 1)
-        qc.toffoli(0, 1, 2)
+        qc.ccx(0, 1, 2)
         qc.iswap(0, 2)
         qc.swap(1, 2)
         qc.global_phase = params[0] * params[1] + params[2].cos().exp()

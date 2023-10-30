@@ -287,8 +287,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14})).equiv(
-                Operator(result.bind_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta: 3.14})).equiv(
+                Operator(result.assign_parameters({theta: 3.14}))
             )
         )
 
@@ -324,8 +324,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14})).equiv(
-                Operator(result.bind_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta: 3.14})).equiv(
+                Operator(result.assign_parameters({theta: 3.14}))
             )
         )
 
@@ -364,8 +364,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14, phi: 10})).equiv(
-                Operator(result.bind_parameters({theta: 3.14, phi: 10}))
+            Operator(qc.assign_parameters({theta: 3.14, phi: 10})).equiv(
+                Operator(result.assign_parameters({theta: 3.14, phi: 10}))
             )
         )
 

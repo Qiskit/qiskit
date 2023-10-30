@@ -24,7 +24,7 @@ class SetIOLatency(AnalysisPass):
 
     Once these latencies are added to the property set, this information
     is also copied to the output circuit object as protected attributes,
-    so that it can be utilized outside the transilation,
+    so that it can be utilized outside the transpilation,
     for example, the timeline visualization can use latency to accurately show
     time occupation by instructions on the classical registers.
     """

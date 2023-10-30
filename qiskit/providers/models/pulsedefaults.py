@@ -147,8 +147,7 @@ class Command:
                          :meth:`to_dict`.
 
         Returns:
-            qiskit.providers.model.Command: The ``Command`` from the input
-                dictionary.
+            Command: The ``Command`` from the input dictionary.
         """
         # Pulse command data is nested dictionary.
         # To avoid deepcopy and avoid mutating the source object, create new dict here.

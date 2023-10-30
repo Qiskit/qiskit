@@ -1,0 +1,24 @@
+---
+deprecations:
+  - |
+    The :mod:`qiskit.algorithms` module has been deprecated and will be removed
+    in a future release. It has been superseded by a new standalone library
+    ``qiskit-algorithms`` which can be found on PyPi or on Github here:
+
+    https://github.com/qiskit-community/qiskit-algorithms
+
+    The :mod:`qiskit.algorithms` will continue to work as before and bug fixes
+    will be made to module until its future removal, but active development
+    of new features has moved to the new package.
+    If you're relying on :mod:`qiskit.algorithms` you should update your
+    requirements to also include ``qiskit-algorithms`` and update the imports
+    from ``qiskit.algorithms`` to ``qiskit_algorithms``. Please note that this
+    new package does not include already deprecated algorithms code, including
+    ``opflow`` and ``QuantumInstance``-based algorithms. If you have not yet
+    migrated from ``QuantumInstance``-based to primitives-based algorithms,
+    you should follow the migration guidelines in https://qisk.it/algo_migration.
+    The decision to migrate the :mod:`~.algorithms` module to a
+    separate package was made to clarify the purpose Qiskit and
+    make a distinction between the tools and libraries built on top of it.
+
+

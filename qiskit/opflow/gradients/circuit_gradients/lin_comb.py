@@ -712,7 +712,7 @@ class LinComb(CircuitGradient):
             parameterized gates to compute the product rule.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            QiskitError: If one of the circuits could not be constructed.
             TypeError: If the operators is of unsupported type.
             ValueError: If the auxiliary operator preparation fails.
         """
@@ -804,7 +804,7 @@ class LinComb(CircuitGradient):
             created per parameterized gates to compute the product rule.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            QiskitError: If one of the circuits could not be constructed.
             TypeError: If ``operator`` is of unsupported type.
             ValueError: If the auxiliary operator preparation fails.
         """

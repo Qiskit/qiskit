@@ -13,13 +13,14 @@
 """Test Evolution"""
 
 import unittest
+
 from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 import scipy.linalg
 
 import qiskit
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.opflow import (
     CX,
     CircuitOp,

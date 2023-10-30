@@ -24,22 +24,16 @@ A helper function for calling a custom function with python ``ProcessPoolExecuto
 Tasks can be executed in parallel using this function.
 It has a built-in event publisher to show the progress of the parallel tasks.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   parallel_map
+.. autofunction:: parallel_map
 
 Monitoring
 ----------
 
 A helper module to get IBM backend information and submitted job status.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   job_monitor
-   backend_monitor
-   backend_overview
+.. autofunction:: job_monitor
+.. autofunction:: backend_monitor
+.. autofunction:: backend_overview
 
 .. automodule:: qiskit.tools.events
 

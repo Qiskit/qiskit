@@ -13,8 +13,6 @@
 """Utility passes and functions used for other main passes."""
 
 from .check_map import CheckMap
-from .check_cx_direction import CheckCXDirection  # Deprecated
-from .cx_direction import CXDirection  # Deprecated
 from .check_gate_direction import CheckGateDirection
 from .gate_direction import GateDirection
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
@@ -32,3 +30,4 @@ from .minimum_point import MinimumPoint
 
 # Utility functions
 from . import control_flow
+from .block_to_matrix import _block_to_matrix

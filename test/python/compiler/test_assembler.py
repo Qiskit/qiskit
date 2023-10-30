@@ -244,7 +244,7 @@ class TestCircuitAssembler(QiskitTestCase):
         qc.barrier()
         qc.measure([0, 1], [0, 1])
 
-        qc.bind_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
+        qc.assign_parameters({pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]})
 
         qobj = assemble(qc, parameter_binds=[{pv1: [0.1, 0.2, 0.3], pv2: [0.4, 0.5, 0.6]}])
 

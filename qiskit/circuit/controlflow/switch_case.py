@@ -41,8 +41,7 @@ CASE_DEFAULT = _DefaultCaseType()
 """A special object that represents the "default" case of a switch statement.  If you use this
 as a case target, it must be the last case, and will match anything that wasn't already matched.
 When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as the
-``DEFAULT`` attribute of the bound case-builder object.
-"""
+``DEFAULT`` attribute of the bound case-builder object."""
 
 
 class SwitchCaseOp(ControlFlowOp):
@@ -51,12 +50,12 @@ class SwitchCaseOp(ControlFlowOp):
     be used to represent a default condition.
 
     This is the low-level interface for creating a switch-case statement; in general, the circuit
-    method :meth:`.QuantumCircuit.switch_case` should be used as a context manager to access the
+    method :meth:`.QuantumCircuit.switch` should be used as a context manager to access the
     builder interface.  At the low level, you must ensure that all the circuit blocks contain equal
     numbers of qubits and clbits, and that the order the virtual bits of the containing circuit
     should be bound is the same for all blocks.  This will likely mean that each circuit block is
     wider than its natural width, as each block must span the union of all the spaces covered by
-    _any_ of the blocks.
+    *any* of the blocks.
 
     Args:
         target: the runtime value to switch on.

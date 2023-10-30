@@ -100,7 +100,7 @@ class BasicSwap(TransformationPass):
 
                         # create the swap operation
                         swap_layer.apply_operation_back(
-                            SwapGate(), qargs=[qubit_1, qubit_2], cargs=[]
+                            SwapGate(), (qubit_1, qubit_2), cargs=(), check=False
                         )
 
                     # layer insertion

@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Callable
 
 import numpy as np
@@ -197,7 +198,9 @@ class PVQD(RealTimeEvolver):
         loss, gradient = self.get_loss(hamiltonian, ansatz, dt, theta)
 
         if initial_guess is None:
-            initial_guess = algorithm_globals.random.random(self.initial_parameters.size) * 0.01
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                initial_guess = algorithm_globals.random.random(self.initial_parameters.size) * 0.01
 
         if isinstance(self.optimizer, Optimizer):
             optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
@@ -232,7 +235,7 @@ class PVQD(RealTimeEvolver):
         self._validate_setup(skip={"optimizer"})
 
         # use Trotterization to evolve the current state
-        trotterized = ansatz.bind_parameters(current_parameters)
+        trotterized = ansatz.assign_parameters(current_parameters)
 
         evolution_gate = PauliEvolutionGate(hamiltonian, time=dt, synthesis=self.evolution)
 
@@ -388,7 +391,7 @@ class PVQD(RealTimeEvolver):
             if observables is not None:
                 observable_values.append(evaluate_observables(next_parameters))
 
-        evolved_state = self.ansatz.bind_parameters(parameters[-1])
+        evolved_state = self.ansatz.assign_parameters(parameters[-1])
 
         result = PVQDResult(
             evolved_state=evolved_state,

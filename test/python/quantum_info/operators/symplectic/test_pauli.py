@@ -23,6 +23,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (
     IGate,
@@ -223,6 +224,8 @@ class TestPauliProperties(QiskitTestCase):
     def test_delete(self):
         """Test delete method"""
         pauli = Pauli("IXYZ")
+        pauli = pauli.delete([])
+        self.assertEqual(str(pauli), "IXYZ")
         pauli = pauli.delete([0, 2])
         self.assertEqual(str(pauli), "IY")
 
@@ -483,6 +486,15 @@ class TestPauli(QiskitTestCase):
         expected.phase = phase
         test = Pauli(label)
         self.assertEqual(expected, test)
+
+    def test_circuit_with_bit(self):
+        """Test new-style Bit support when converting from QuantumCircuit"""
+        circ = QuantumCircuit([Qubit()])
+        circ.x(0)
+        value = Pauli(circ)
+        target = Pauli("X")
+
+        self.assertEqual(value, target)
 
 
 if __name__ == "__main__":

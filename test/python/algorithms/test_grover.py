@@ -14,6 +14,8 @@
 
 import itertools
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
@@ -100,7 +102,9 @@ class TestGrover(QiskitAlgorithmsTestCase):
             )
         self._sampler = Sampler()
         self._sampler_with_shots = Sampler(options={"shots": 1024, "seed": 123})
-        algorithm_globals.random_seed = 123
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 123
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     @data("ideal", "shots", False)

@@ -81,7 +81,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         params=[*parameter_dict.values()],
         label=label,
     )
-    out_instruction.condition = None
+    out_instruction._condition = None
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
@@ -114,9 +114,9 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                rule.operation.condition = (clbit_map[reg], val)
+                rule.operation = rule.operation.c_if(clbit_map[reg], val)
             elif reg.size == c.size:
-                rule.operation.condition = (c, val)
+                rule.operation = rule.operation.c_if(c, val)
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "

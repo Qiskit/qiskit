@@ -163,11 +163,11 @@ class TestExprConstructors(QiskitTestCase):
         (expr.bit_xor, ClassicalRegister(3), ClassicalRegister(3)),
         (expr.logic_and, Clbit(), True),
         (expr.logic_or, False, ClassicalRegister(3)),
-        (expr.equal, ClassicalRegister(3), 255),
-        (expr.not_equal, ClassicalRegister(3), 255),
-        (expr.less, ClassicalRegister(3), 2),
+        (expr.equal, ClassicalRegister(8), 255),
+        (expr.not_equal, ClassicalRegister(8), 255),
+        (expr.less, ClassicalRegister(3), 6),
         (expr.less_equal, ClassicalRegister(3), 5),
-        (expr.greater, 2, ClassicalRegister(3)),
+        (expr.greater, 4, ClassicalRegister(3)),
         (expr.greater_equal, ClassicalRegister(3), 5),
     )
     @ddt.unpack
@@ -327,7 +327,7 @@ class TestExprConstructors(QiskitTestCase):
             function(7, cr),
             expr.Binary(
                 opcode,
-                expr.Cast(expr.Value(7, types.Uint(3)), types.Uint(8), implicit=False),
+                expr.Value(7, types.Uint(8)),
                 expr.Var(cr, types.Uint(8)),
                 types.Bool(),
             ),
@@ -373,7 +373,7 @@ class TestExprConstructors(QiskitTestCase):
             function(12, cr),
             expr.Binary(
                 opcode,
-                expr.Cast(expr.Value(12, types.Uint(4)), types.Uint(8), implicit=False),
+                expr.Value(12, types.Uint(8)),
                 expr.Var(cr, types.Uint(8)),
                 types.Bool(),
             ),

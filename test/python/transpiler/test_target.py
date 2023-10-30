@@ -1210,6 +1210,20 @@ Instructions:
         target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, target.instruction_schedule_map())
 
+    def test_update_from_instruction_schedule_map_with_schedule_parameter(self):
+        self.pulse_target.dt = None
+        inst_map = InstructionScheduleMap()
+        duration = Parameter("duration")
+
+        with pulse.build(name="sx_q0") as custom_sx:
+            pulse.play(pulse.Constant(duration, 0.2), pulse.DriveChannel(0))
+
+        inst_map.add("sx", 0, custom_sx, ["duration"])
+
+        target = Target(dt=3e-7)
+        target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
+        self.assertEqual(inst_map, target.instruction_schedule_map())
+
     def test_update_from_instruction_schedule_map_update_schedule(self):
         self.pulse_target.dt = None
         inst_map = InstructionScheduleMap()
@@ -1822,6 +1836,23 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             },
             set(self.ibm_target.build_coupling_map().get_edges()),
         )
+
+    def test_mixed_ideal_target_filtered_coupling_map(self):
+        target = Target(num_qubits=10)
+        target.add_instruction(
+            XGate(), {(qubit,): InstructionProperties(error=0.5) for qubit in range(5)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                edge: InstructionProperties(error=0.6)
+                for edge in CouplingMap.from_line(5, bidirectional=False).get_edges()
+            },
+        )
+        target.add_instruction(SXGate())
+        coupling_map = target.build_coupling_map(filter_idle_qubits=True)
+        self.assertEqual(max(coupling_map.physical_qubits), 4)
+        self.assertEqual(coupling_map.get_edges(), [(0, 1), (1, 2), (2, 3), (3, 4)])
 
 
 class TestInstructionProperties(QiskitTestCase):

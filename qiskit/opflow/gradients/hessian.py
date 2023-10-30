@@ -13,11 +13,10 @@
 """The module to compute Hessians."""
 
 from typing import Union, List, Tuple, Optional
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.circuit._utils import sort_parameters
 from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_func
 from ..operator_globals import Zero, One
@@ -115,7 +114,7 @@ class Hessian(HessianBase):
         if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = sort_parameters(operator.parameters)
         # if input is a tuple instead of a list, wrap it into a list
         if isinstance(params, (ParameterVector, list)):
             # Case: a list of parameters were given, compute the Hessian for all param pairs

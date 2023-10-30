@@ -16,6 +16,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 use pyo3::Python;
 
+mod convert_2q_block_matrix;
 mod dense_layout;
 mod edge_collections;
 mod error_map;
@@ -60,6 +61,9 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
+    ))?;
+    m.add_wrapped(wrap_pymodule!(
+        convert_2q_block_matrix::convert_2q_block_matrix
     ))?;
     Ok(())
 }

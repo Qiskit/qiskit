@@ -26,7 +26,7 @@ class Unroll3qOrMore(TransformationPass):
         """Initialize the Unroll3qOrMore pass
 
         Args:
-            target (Target): The target object reprsenting the compilation
+            target (Target): The target object representing the compilation
                 target. If specified any multiqubit instructions in the
                 circuit when the pass is run that are supported by the target
                 device will be left in place. If both this and ``basis_gates``
@@ -80,7 +80,7 @@ class Unroll3qOrMore(TransformationPass):
                     "Cannot unroll all 3q or more gates. "
                     "No rule to expand instruction %s." % node.op.name
                 )
-            decomposition = circuit_to_dag(node.op.definition)
+            decomposition = circuit_to_dag(node.op.definition, copy_operations=False)
             decomposition = self.run(decomposition)  # recursively unroll
             dag.substitute_node_with_dag(node, decomposition)
         return dag

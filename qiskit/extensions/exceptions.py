@@ -14,11 +14,13 @@
 Exception for errors raised by extensions module.
 """
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ExtensionError(QiskitError):
     """Base class for errors raised by extensions module."""
 
+    @deprecate_func(since="0.45.0", pending=True)
     def __init__(self, *message):
         """Set the error message."""
         super().__init__(*message)

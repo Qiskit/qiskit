@@ -14,11 +14,10 @@
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.circuit._utils import sort_parameters
 from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_func
 from ..operator_base import OperatorBase
@@ -122,7 +121,7 @@ class NaturalGradient(GradientBase):
         if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = sort_parameters(operator.parameters)
         if not isinstance(params, Iterable):
             params = [params]
         # Instantiate the gradient

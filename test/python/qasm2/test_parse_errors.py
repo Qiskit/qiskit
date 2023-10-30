@@ -865,3 +865,10 @@ class TestStrict(QiskitTestCase):
             qiskit.qasm2.QASM2ParseError, r"\[strict\] .*needed a version statement"
         ):
             qiskit.qasm2.loads("", strict=True)
+
+    def test_barrier_requires_args(self):
+        program = "OPENQASM 2.0; qreg q[2]; barrier;"
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"\[strict\] barrier statements must have at least one"
+        ):
+            qiskit.qasm2.loads(program, strict=True)

@@ -891,7 +891,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # imports the StatePreparation, which again requires the Statevector (this file),
         # but as this is a local import, it's not actually an issue and can be ignored
         # pylint: disable=cyclic-import
-        from qiskit.extensions.quantum_initializer.initializer import Initialize
+        from qiskit.circuit.library.data_preparation.initializer import Initialize
 
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:

@@ -18,7 +18,7 @@ from collections.abc import MappingView, MutableMapping, MutableSet
 class ParameterReferences(MutableSet):
     """A set of instruction parameter slot references.
     Items are expected in the form ``(instruction, param_index)``. Membership
-    testing is overriden such that items that are otherwise value-wise equal
+    testing is overridden such that items that are otherwise value-wise equal
     are still considered distinct if their ``instruction``\\ s are referentially
     distinct.
     """

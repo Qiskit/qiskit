@@ -13,6 +13,7 @@
 """Test Variational Quantum Real Time Evolution algorithm."""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt
@@ -65,7 +66,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         result = varqrte.evolve(evolution_problem)
 
         final_parameters = result.parameter_values[-1]
-        final_state = Statevector(circuit.bind_parameters(final_parameters)).to_dict()
+        final_state = Statevector(circuit.assign_parameters(final_parameters)).to_dict()
         final_expected_state = expected_state(final_time)
 
         for key, expected_value in final_state.items():
@@ -121,7 +122,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         ]
 
         with self.subTest(msg="Test exact backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
             estimator = Estimator()
             qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
@@ -148,7 +151,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             )
 
         with self.subTest(msg="Test shot-based backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
             qgt = LinCombQGT(estimator)
@@ -257,7 +262,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         # the expected final state is Statevector([0.62289306-0.33467034j, 0.62289306+0.33467034j])
 
         with self.subTest(msg="Test exact backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
             estimator = Estimator()
             qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
@@ -276,7 +283,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 )
 
         with self.subTest(msg="Test shot-based backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
             qgt = LinCombQGT(estimator)

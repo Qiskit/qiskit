@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Enabled performing the :class:`.ConsolidateBlocks` pass inside the
+    blocks of :class:`.ControlFlowOp`. This pass collects several sequences of gates
+    and replaces each sequence with the equivalent numeric unitary gate. This new feature enables
+    applying this pass recursively to the blocks in control flow operations. Note that the meaning
+    of "block" in :class:`.ConsolidateBlocks` is unrelated to that in
+    :class:`.ControlFlowOp`.
