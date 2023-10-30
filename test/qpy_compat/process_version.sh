@@ -23,8 +23,7 @@ parts=( ${version//./ } )
 qiskit_version=`./qiskit_venv/bin/python -c "import qiskit;print(qiskit.__version__)"`
 qiskit_parts=( ${qiskit_version//./ } )
 
-./qiskit_venv/bin/python ./compare_versions.py "$version" "$qiskit_version"
-valid_version=$?
+
 # If source version is less than 0.18 QPY didn't exist yet so exit fast
 if [[ ${parts[0]} -eq 0 && ${parts[1]} -lt 18 ]] ; then
     exit 0
@@ -33,7 +32,7 @@ fi
 # If the source version is newer than the version under test exit fast because
 # there is no QPY compatibility for loading a qpy file generated from a newer
 # release with an older release of Qiskit.
-if [[ $valid_version -ne 0 ]] ; then
+if ! ./qiskit_venv/bin/python ./compare_versions.py "$version" "$qiskit_version" ; then
     exit 0
 fi
 
