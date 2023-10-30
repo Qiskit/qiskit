@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,7 +12,7 @@
 
 """Covariant feature map circuit."""
 
-from typing import Union, Sequence, Optional
+from typing import Union, Sequence
 
 from qiskit.circuit import QuantumCircuit, ParameterVector
 
@@ -46,7 +46,7 @@ class CovariantFeatureMap(QuantumCircuit):
     def __init__(
         self,
         feature_dimension: int,
-        entanglement: Optional[Union[Sequence[Sequence[int]], str]] = "linear",
+        entanglement: Union[Sequence[Sequence[int]], str] = "linear",
         single_training_parameter: bool = False,
         training_parameter_prefix: str = "θ",
         feature_parameter_prefix: str = "x",
