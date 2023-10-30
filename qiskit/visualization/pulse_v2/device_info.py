@@ -41,6 +41,7 @@ from typing import Dict, List, Union, Optional
 from qiskit import pulse
 from qiskit.providers import BackendConfigurationError
 from qiskit.providers.backend import Backend
+from qiskit.providers.models import PulseBackendConfiguration
 
 
 class DrawerBackendInfo(ABC):
@@ -109,13 +110,17 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         dt = backend.dt
 
         class Configuration(PulseBackendConfiguration):
-            def __init__(self, n_qubits, measure, drive, control):
-                self.n_qubits = n_qubits
-                self.measure = measure
-                self.drive = drive
-                self.control = control
+            def __init__(self, backend):
+                self.n_qubits = backend.num_qubits
+                self.measure = backend.measure_channel
+                self.drive = backend.drive_channel
+                self.control = backend.control_channel
+                self.u_channel_lo = []
 
-        return (name, Configuration(backend.num_qubits, backend.measure_channel, backend.drive_channel, backend.control_channel), dt, defaults)
+                if('u_channel_lo' in dir(backend)):
+                    self.u_channel_lo = backend.u_channel_lo
+
+        return (name, Configuration(backend), dt, defaults)
 
     def get_backend_data(self, backend:Backend):
         backend_version = backend.version
