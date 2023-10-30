@@ -15,6 +15,10 @@
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import layouts, device_info
+from qiskit.providers.models import PulseBackendConfiguration
+from qiskit.transpiler.target import Target
+from qiskit.providers.backend import BackendV1, BackendV2
+from qiskit.providers.models.backendconfiguration import UchannelLO
 
 
 class TestChannelArrangement(QiskitTestCase):
@@ -258,8 +262,6 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        from qiskit.providers.models import PulseBackendConfiguration
-
         class ConfigurationV1(PulseBackendConfiguration):
             def __init__(self):
                 self.backend_name = 'DummyV1'
@@ -271,12 +273,40 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
             qubit_freq_est = []
             meas_freq_est = []
 
+        class TargetV2(Target):
+            def __init__(self):
+                super().__init__()
+
+        class DummyBackendV2(BackendV2):
+            """Dummy Backend based on BackendV2"""
+            def __init__(self, defaults, target):
+                super().__init__(name="DummyV2")
+                self._defaults = defaults
+                self._target = target
+
+            def _default_options(cls):
+                pass
+
+            def max_circuits(self):
+                pass
+
+            def run(self, run_input, **options):
+                pass
+
+            @property
+            def target(self):
+                return self._target
+
+            def defaults(self):
+                return self._defaults
+
         self.configurationV1 = ConfigurationV1()
         self.defaults = Defaults()
+        self.target = TargetV2()
+        self.backendV2 = DummyBackendV2
 
     def test_backend_v1(self):
         """Test using BackendV1."""
-        from qiskit.providers.backend import BackendV1
 
         class DummyBackendV1(BackendV1):
             """Dummy Backend based on BackendV1"""
@@ -299,3 +329,35 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
             device_info.OpenPulseBackendInfo().create_from_backend(backend)
         except Exception as error:  # pylint: disable=broad-exception-caught
             self.fail(f"Failed Pulse create from backend(BackendV1)\n{error}")
+
+
+    def test_backend_v2(self):
+        """Test using BackendV2."""
+
+        backend = self.backendV2(self.defaults, self.target)
+
+        try:
+            device_info.OpenPulseBackendInfo().create_from_backend(backend)
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            self.fail(f"Failed Pulse create from backend(BackendV2)\n{error}")
+
+    def test_backend_v2_u_channel_lo(self):
+        """Test using BackendV2 with u_channel_lo property."""
+
+        class DummyBackendV2UChannel(self.backendV2):
+            """Dummy Backend based on BackendV2"""
+            def __init__(self, defaults, target):
+                defaults.qubit_freq_est = [1]
+                super().__init__(defaults, target)
+
+            @property
+            def u_channel_lo(self):
+                return [[UchannelLO(0, (1+0j))]]
+
+
+        backend = DummyBackendV2UChannel(self.defaults, self.target)
+
+        try:
+            device_info.OpenPulseBackendInfo().create_from_backend(backend)
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            self.fail(f"Failed Pulse create from backend(BackendV2) Using u_channel_lo property\n{error}")
