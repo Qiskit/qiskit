@@ -98,10 +98,8 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     def backend_v1_adapter(self, backend):
-        name = backend.name()
-
         configuration = backend.configuration()
-        required_configuration_attributes = ['n_qubits', 'u_channel_lo', 'drive', 'measure', 'control', 'dt']
+        required_configuration_attributes = ['backend_name', 'n_qubits', 'u_channel_lo', 'drive', 'measure', 'control', 'dt']
         configuration_attributes = dir(configuration)
         for attribute in required_configuration_attributes:
             if(not attribute in configuration):
@@ -118,27 +116,37 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
             if(not attribute in defaults_attributes):
                 raise BackendPropertyError(f'Backend defaults has no {attribute} attribute')
 
-        return (name, configuration, configuration.dt, defaults)
+        return (configuration.backend_name, configuration, configuration.dt, defaults)
 
     def backend_v2_adapter(self, backend):
-        name = backend.name
+        backend_attributes = dir(backend)
+        required_backend_attributes = ['name', 'defaults', 'measure_channel', 'drive_channel', 'control_channel']
+        for attribute in required_backend_attributes:
+            if(not attribute in backend_attributes):
+                raise BackendPropertyError(f'Backend has no {attribute} attribute')
+
+        target_attributes = dir(backend.target)
+        required_attributes = ['dt', 'num_qubits', 'u_channel_lo']
+        for attribute in required_attributes:
+            if(not attribute in target_attributes):
+                raise BackendPropertyError(f'Backend target has no {attribute} attribute')
+
         defaults = backend.defaults()
-        dt = backend.dt
+        defaults_attributes = dir(defaults)
+        required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
+        for attribute in required_defaults_attributes:
+            if(not attribute in defaults_attributes):
+                raise BackendPropertyError(f'Backend defaults has no {attribute} attribute')
 
         class Configuration(PulseBackendConfiguration):
             def __init__(self, backend):
-                self.n_qubits = backend.num_qubits
+                self.n_qubits = backend.target.num_qubits
                 self.measure = backend.measure_channel
                 self.drive = backend.drive_channel
                 self.control = backend.control_channel
-                self.u_channel_lo = []
+                self.u_channel_lo = backend.target.u_channel_lo
 
-                if('u_channel_lo' in dir(backend)):
-                    self.u_channel_lo = backend.u_channel_lo
-                elif('u_channel_lo' in dir(backend.target)):
-                    self.u_channel_lo = backend.target.u_channel_lo
-
-        return (name, Configuration(backend), dt, defaults)
+        return (backend.name, Configuration(backend), backend.dt, defaults)
 
     def get_backend_data(self, backend:Backend):
         backend_version = backend.version
