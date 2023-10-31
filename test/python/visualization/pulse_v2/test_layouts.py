@@ -326,11 +326,20 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
 
         self.backendInfo = device_info.OpenPulseBackendInfo()
 
-    def test_backend_v1_invalid_name(self):
-        """Test if an error is raised when a backend (based on BackendV1) without name is passed."""
+    def test_backend_v1_adapter_invalid_name(self):
+        """Test if an error is raised when a backend (based on BackendV1) without name is passed through BackendV1Adapter."""
         backend_invalid_name = self.backendV1(self.configuration)
         with self.assertRaises(AttributeError):
             self.backendInfo.backend_v1_adapter(backend_invalid_name)
+
+    def test_backend_v1_adapter_invalid_defaults(self):
+        """Test if an error is raised when a backend (based on BackendV1) without defaults is passed through BackendV1Adapter."""
+        backend_invalid_defaults_conf = self.configuration
+        backend_invalid_defaults_conf.backend_name = "Dummy"
+        backend_invalid_defaults = self.backendV1(backend_invalid_defaults_conf)
+        with self.assertRaises(AttributeError):
+            self.backendInfo.backend_v1_adapter(backend_invalid_defaults)
+
 
     def test_backend_v1(self):
         """Test using BackendV1."""
