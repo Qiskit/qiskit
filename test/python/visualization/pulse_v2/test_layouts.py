@@ -253,7 +253,6 @@ class TestFigureTitle(QiskitTestCase):
 
         self.assertEqual(out, ref_title)
 
-
 class TestPulseCreateFromBackendV1(QiskitTestCase):
     """Tests for OpenPulse create_from_backend using BackendV1 as input"""
 
@@ -520,6 +519,24 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         self.assertIsNone(dt)
         self.assertEqual(defaults.qubit_freq_est, [])
         self.assertEqual(defaults.meas_freq_est, [])
+
+class TestPulseCreateFrom(QiskitTestCase):
+    """Tests for OpenPulse create_from_backend"""
+    def setUp(self) -> None:
+        super().setUp()
+        self.backendInfo = device_info.OpenPulseBackendInfo()
+
+    def test_raise_attribute_doesnt_exist_fail(self):
+        """Test if it raises the Expection."""
+        with self.assertRaises(BackendPropertyError):
+            self.backendInfo.raise_attribute_doesnt_exist(['a', 'b', 'd'], ['c', 'd'], BackendPropertyError)
+
+    def test_raise_attribute_doesnt_exist_success(self):
+        """Test if it checks the attributes correctly."""
+        try:
+            self.backendInfo.raise_attribute_doesnt_exist(['a', 'b', 'c', 'd'], ['a', 'b'], BackendPropertyError)
+        except BackendPropertyError:
+            self.fail('raise_attribute_doesnt_exist should raise no expections with equal sets of attributes!')
 
 
 
