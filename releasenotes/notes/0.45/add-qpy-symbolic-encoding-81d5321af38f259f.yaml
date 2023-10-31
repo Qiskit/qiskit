@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    QPY supports the use of symengine-native serialization and deserialization
+    QPY now supports the use of symengine-native serialization and deserialization
     for objects of type ``ParameterExpression`` as well as symbolic expressions in
     Pulse schedule blocks. This is a faster serialization alternative, but not
     supported in all platforms. Please check that your target platform is supported

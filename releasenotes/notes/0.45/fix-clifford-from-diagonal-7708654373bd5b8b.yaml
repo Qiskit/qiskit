@@ -2,6 +2,6 @@
 fixes:
   - |
     Fixed a bug where :meth:`~.Clifford.from_matrix` and :meth:`~.Clifford.from_operator`
-    do not fail with non-Clifford diagonal operators (matrices) and return incorrect
+    would not fail with non-Clifford diagonal operators (matrices) and return incorrect
     Clifford objects. This has been corrected so that they raise an error in the cases.
     Fixed `#10903 <https://github.com/Qiskit/qiskit-terra/issues/10903>`__

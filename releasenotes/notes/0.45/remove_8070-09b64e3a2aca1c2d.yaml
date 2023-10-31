@@ -1,12 +1,13 @@
 ---
 upgrade:
   - |
-    The arguments ``z`` and ``x``, as separate arrays to :class:`.Pauli`
+    The arguments ``z`` and ``x`` to the initializer of to :class:`.Pauli`
     were removed, as deprecated in Qiskit Terra 0.17 (released on April, 2021).
-    Use a tuple instead, such as ``Pauli((z, x[, phase]))``.
+    A pair of ``x`` and ``z`` should be passed positionally as a single
+    tuple instead (``Pauli((z, x))``).
   - |
     The argument ``label`` to the initializer of
-    :class:`.Pauli` were removed, as deprecated in Qiskit Terra 0.17 (released on April, 2021).
+    :class:`.Pauli` was removed, as deprecated in Qiskit Terra 0.17 (released on April, 2021).
     Pass the label positionally instead, such as ``Pauli("XYZ")``.
   - |
     Importing from ``qiskit.quantum_info.operators.pauli`` is not allowed anymore, as it was

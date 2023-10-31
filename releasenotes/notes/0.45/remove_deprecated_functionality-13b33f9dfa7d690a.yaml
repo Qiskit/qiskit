@@ -1,6 +1,6 @@
 ---
 upgrade:
   - |
-    The decorator ``qiskit.utils.deprecation.deprecate_function`` has been deprecated since Qiskit
+    The decorator ``qiskit.utils.deprecation.deprecate_function()`` has been deprecated since Qiskit
     0.39.0 (released on October 2022, with qiskit-terra 0.22.0) and now is been removed.
     Use :func:`qiskit.utils.deprecate_func` instead.

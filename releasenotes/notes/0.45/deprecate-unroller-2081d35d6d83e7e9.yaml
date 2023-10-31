@@ -32,9 +32,9 @@ deprecations:
 
 upgrade:
   - |
-    The :attr:`.ControlledGate.definition` of the output from the :meth:`.Gate.control()` method
+    The :attr:`.ControlledGate.definition` of the output from the :meth:`.Gate.control` method
     may be different as compared to previous releases. The internal generation
-    of the :meth:`.Gate.control` is no longer using the now deprecated
+    of the :meth:`.Gate.control` method is no longer using the now deprecated
     :class:`.Unroller` transpiler pass to generate its definition and this can
     potentially cause a different definition to be generated. The output
     :class:`.ControlledGate` object's definition will be unitary equivalent to what

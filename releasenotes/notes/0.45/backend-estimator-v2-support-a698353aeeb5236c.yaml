@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed a bug where :class:`.primitives.BackendEstimator` cannot be used with the
-    :class:`.providers.BackendV2` that does not have coupling_map.
+    Fixed a bug where :class:`.primitives.BackendEstimator` didn't support a
+    :class:`~.BackendV2` backend that didn't have ``coupling_map``.

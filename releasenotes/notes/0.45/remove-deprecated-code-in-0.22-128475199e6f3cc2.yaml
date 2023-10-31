@@ -2,11 +2,11 @@
 upgrade:
   - |
     The method :meth:`qiskit.quantum_info.pauli_basis`
-    does not accept ``pauli_list`` argument any more.
+    does not accept the ``pauli_list`` argument any more.
     It was deprecated in Qiskit 0.39 (with Terra 0.22), released on Oct 2022.
 
   - |
-    The function ``random_stabilizer_table`` 
-    in the class :class:`qiskit.quantum_info.random` is removed. 
+    The function ``random_stabilizer_table``
+    in the :mod:`qiskit.quantum_info.random` module is removed.
     It was deprecated in Qiskit 0.39 (with Terra 0.22), released on Oct 2022.
     Instead, use :func:`qiskit.quantum_info.random.random_pauli_list`.

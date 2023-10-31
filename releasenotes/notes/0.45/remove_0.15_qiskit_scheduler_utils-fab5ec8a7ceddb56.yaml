@@ -1,8 +1,8 @@
 ---
 upgrade:
   - |
-    The functions ``qiskit.scheduler.utils.format_meas_map``,  ``qiskit.scheduler.utils.measure``, and
-    ``qiskit.scheduler.utils.measure_all``
-    had been moved to ``qiskit.pulse.utils.format_meas_map``, ``qiskit.pulse.macros.measure``,
-    and ``qiskit.pulse.macros.measure_all`` respectively. The previous location was deprecated
+    The functions ``qiskit.scheduler.utils.format_meas_map()``,  ``qiskit.scheduler.utils.measure()``, and
+    ``qiskit.scheduler.utils.measure_all()``
+    had been moved to ``qiskit.pulse.utils.format_meas_map()``, ``qiskit.pulse.macros.measure()``,
+    and ``qiskit.pulse.macros.measure_all()`` respectively. The previous location was deprecated
     in Qiskit 0.20.0 (Terra 0.15.0, released on 2020-08-10) and it is no longer supported.

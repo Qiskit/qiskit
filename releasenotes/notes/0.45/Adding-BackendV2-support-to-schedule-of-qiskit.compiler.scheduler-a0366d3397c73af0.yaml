@@ -1,21 +1,22 @@
 ---
 features:
   - |
-    Enables circuit to pulse scheduling using BackendV2.
-    
+    Enables circuit-to-pulse scheduling using :class:`~.BackendV2`.
+
     .. code-block:: python
-    
-      # import a fake backend which is a sub-class of BackendV2.
+
+      # import a fake backend which is a sub-class of BackendV2
       from qiskit.providers.fake_provider import FakePerth
       from qiskit.compiler.scheduler import schedule
       from qiskit.circuit import QuantumCircuit
-      
+
       qc = QuantumCircuit(1, 1)
       qc.x(0)
       qc.measure(0,0)
       sched = schedule(circuits=qc, backend=FakePerth())
 
-    Since, BackendV2 was not supported by the :func:`~qiskit.compiler.schedule` function, this caused
-    schedule method to error out when the :code:`backend` argument is supplied with :class:`.BackendV2`. 
-    Refer to `#10837 <https://github.com/Qiskit/qiskit/issues/10837>` for more information.
+    Since, :class:`BackendV2` was not supported by the :func:`~qiskit.compiler.schedule`
+    function, this caused the :meth:`~.schedule` method to error out when the ``backend``
+    argument was supplied with an instance of :class:`.BackendV2`.
+    Refer to `#10837 <https://github.com/Qiskit/qiskit/issues/10837>`_ for more information.
 

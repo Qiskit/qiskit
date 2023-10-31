@@ -1,18 +1,17 @@
 ---
 upgrade:
   - |
-    The class constructor arguments `qregs`, `cregs`, 
-    `layout` and `global_phase` for :class:`.visualization.QCircuitImage`
+    The class constructor arguments ``qregs``, ``cregs``,
+    ``layout`` and ``global_phase`` for :class:`.visualization.QCircuitImage`
     are removed, as they were deprecated in 0.20.
-    
+
   - |
-    In :class:`.transpiler.CouplingMap` method `subgraph` is removed
-    as deprecated in 0.20. :meth:`~reduce` can be used in place of method `subgraph`.
-  
+    In :class:`.transpiler.CouplingMap` method ``subgraph`` is removed
+    as deprecated in 0.20. :meth:`~reduce` can be used in place of method ``subgraph``.
+
   - |
-    The parameter `order` in :class:`.synthesis.SuzukiTrotter`
+    The parameter ``order`` in :class:`.synthesis.SuzukiTrotter`
     constructor raises an exception instead of deprecation warning when
     set in an odd number. Suzuki product formulae are symmetric and
     therefore only defined for even orders.
-      
-    
+

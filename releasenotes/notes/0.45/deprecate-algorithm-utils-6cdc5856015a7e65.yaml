@@ -8,7 +8,7 @@ deprecations:
     and the primitive-based algorithms codebase has been migrated to a standalone
     `library <https://github.com/qiskit-community/qiskit-algorithms>`_, these utils are no
     longer used in the context of Qiskit. If your application allows it, we recommend that
-    you migrate your code to use ``qiskit_algorithms``, where you will be able to import
-    the relevant utilities in ``algorithm_globals`` and ``validation`` from
+    you migrate your code to use `qiskit_algorithms <https://github.com/qiskit-community/qiskit-algorithms>`_,
+    where you will be able to import the relevant utilities in ``algorithm_globals`` and ``validation`` from
     ``qiskit_algorithms.utils``. Please note that legacy functionality has not been migrated
     to the new package.

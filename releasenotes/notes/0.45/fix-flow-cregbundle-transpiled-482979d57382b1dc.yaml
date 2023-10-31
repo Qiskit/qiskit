@@ -12,5 +12,5 @@ fixes:
     Fixed an issue with the matplotlib based visualization in the
     :meth:`.QuantumCircuit.draw` method and the :func:`~.circuit_drawer`
     function when visualizing circuits that had control flow instructions.
-    Previously when the `cregbundle` option was set to None or True, the
-    drawer did not properly display the `cregs` as bundled.
+    Previously when the ``cregbundle`` option was set to ``None`` or ``True``, the
+    drawer did not properly display the ``cregs`` as bundled.

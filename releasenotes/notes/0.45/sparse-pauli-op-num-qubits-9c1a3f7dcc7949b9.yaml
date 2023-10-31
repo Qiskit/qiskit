@@ -1,6 +1,6 @@
 ---
 features:
   - |
-    Added support to allow :class:`SparsePauliOp` default initialization passing empty
+    Added support to allow :class:`SparsePauliOp` default initialization passing an empty
     iterable to the static methods :meth:`~.SparsePauliOp.from_list` and :meth:`~.SparsePauliOp.from_sparse_list`.
     Fixed `#10159 <https://github.com/Qiskit/qiskit-terra/issues/10159>`__.

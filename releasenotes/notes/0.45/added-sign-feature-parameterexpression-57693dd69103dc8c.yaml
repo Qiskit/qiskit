@@ -1,8 +1,9 @@
 ---
 features:
   - |
-    Added support for expressing the sign of a :class:`.ParameterExpression`
-    Instead of assigning a concrete value and using :data:`numpy.sign` or other library functions, the user can use the instance of the :class:`.ParameterExpression`
+    Added support for expressing the sign of a :class:`.ParameterExpression`.
+    Instead of assigning a concrete value and using :data:`numpy.sign` or other library functions,
+    the user can use the instance of the :class:`.ParameterExpression`
     class to calculate the sign and can work with the sign before the expression is fully assigned.
 
     It can be used as follows::

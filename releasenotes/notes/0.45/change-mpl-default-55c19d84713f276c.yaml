@@ -2,12 +2,12 @@
 upgrade:
   - |
     The default ``matplotlib`` drawer setting now issues a ``FutureWarning``, as the default
-    style is changing to the ``"iqp"`` style (previously known as ``"iqx"``). The old default is 
+    style is changing to the ``"iqp"`` style (previously known as ``"iqx"``). The old default is
     available as the ``"clifford"`` style.
     To silence the warning, you can explicitly set the desired style, e.g.::
 
       from qiskit import QuantumCircuit
-      
+
       circuit = QuantumCircuit(2)
       circuit.x(0)
       circuit.h(0)
@@ -16,5 +16,5 @@ upgrade:
       circuit.draw("mpl", style="clifford")  # or style="iqp"
 features:
   - |
-    Add the ``"iqp"`` and ``"iqp-dark"`` color styles for the ``matplotlib`` circuit drawer,
+    Added the ``"iqp"`` and ``"iqp-dark"`` color styles for the ``matplotlib`` circuit drawer,
     which are based on the IBM Quantum Platform color scheme.

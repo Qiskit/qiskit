@@ -1,9 +1,9 @@
 upgrade:
   - |
-    Removed the argument `qubit_channel_mapping` in :class:`qiskit.transpiler.passes.calibration.rzx_builder.RZXCalibrationBuilder`,
+    Removed the argument ``qubit_channel_mapping`` in :class:`.RZXCalibrationBuilder`,
     which was deprecated in Qiskit 0.39 (released on Oct 2022, with qiskit-terra 0.22)
   - |
-    Replaced the argument ``qobj[Qobj]`` in :meth:`qiskit.providers.aer.QasmSimulator.run()` with ``run_input[QuantumCircuit or Schedule or list]``
+    Replaced the argument ``qobj[Qobj]`` in :meth:`qiskit.providers.aer.QasmSimulator.run` with ``run_input[QuantumCircuit or list]``
 
     Here is an example to migrate your code::
 
@@ -25,6 +25,6 @@ upgrade:
       # Get the simulation result
       result = job.result()
 
-     
+
 
     All these were deprecated since 0.22 (released on October 13, 2022) and now they are removed.

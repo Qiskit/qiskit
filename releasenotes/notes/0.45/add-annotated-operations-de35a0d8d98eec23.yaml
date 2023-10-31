@@ -56,5 +56,5 @@ features:
     circuit, that is they cannot appear inside of the recursively-defined ``definition``
     circuit. We are planning to remove this limitation later.
   - |
-    The :class:`.HighLevelSynthesis` is extended to synthesize circuits with objects
+    The :class:`.HighLevelSynthesis` class is extended to synthesize circuits with objects
     of type :class:`~.AnnotatedOperation`.

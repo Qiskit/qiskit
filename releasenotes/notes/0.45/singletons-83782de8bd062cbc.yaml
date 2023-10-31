@@ -14,8 +14,8 @@ features:
     and thus can not use :class:`~.SingletonGate` because a single shared global
     instance can not represent the parameter values.
 
-    The other potential issue to be aware of when using this class is around the
-    use of the singleton classes is that the :class:`~.circuit.Instruction`
+    The other potential issue to be aware of when using
+    singleton classes is that the :class:`~.circuit.Instruction`
     data model supports some mutable state. Specifically, the
     :attr:`~.Instruction.label`, :attr:`~.Instruction.duration`, :attr:`~.Instruction.unit`, and
     :attr:`~.Instruction.condition` attributes are all accessible and mutable in the
@@ -23,9 +23,9 @@ features:
     with having a shared object via :class:`~.SingletonInstruction`. For instances of
     :class:`~.SingletonInstruction`, setting these attributes directly is not allowed
     and it will raise an exception. If they are needed for a particular
-    instance you must ensure you have a mutable instance using :meth:`.Instruction.to_mutable`
-    (or use :meth:`.Instruction.c_if` for :attr:`~.Instruction.condition`), or
-    ``label``, ``duration`` and ``unit`` can be given as keyword arguments during class construction.
+    instance, you must ensure you have a mutable instance using :meth:`.Instruction.to_mutable`
+    (or use :meth:`.Instruction.c_if` for :attr:`~.Instruction.condition`).
+    ``label``, ``duration`` and ``unit`` can also be given as keyword arguments during class construction.
   - |
     The following standard library gates are now instances of
     :class:`~.SingletonGate`:
@@ -50,14 +50,14 @@ features:
 
     This means that if these classes are instantiated as (e.g.) ``XGate()`` using
     all the constructor defaults, they will all share a single global
-    instance. This results in large reduction in the memory overhead for > 1
+    instance. This results in a large reduction in the memory overhead for > 1
     object of these types and significantly faster object construction time.
   - |
     Introduced a new class :class:`~.SingletonControlledGate` which is a subclass of
     :class:`~.ControlledGate` that uses a single instance for all objects of that type.
     The intent behind this class is to minimize the memory and construction
     overhead of using multiple gates in a circuit with the tradeoff of having
-    global shared state. For this reason this class is only applicable to
+    a global shared state. For this reason, this class is only applicable to
     gates that do not have any unique and/or mutable state stored in an instance.
     For example, a :class:`.CXGate` doesn't contain any state and thus can
     leverage :class:`~.SingletonControlledGate` (and does starting in
@@ -96,7 +96,7 @@ features:
 
     This means that unless a ``label``, ``condition``, ``duration``, ``unit``, or
     ``ctrl_state`` are set on the instance at creation time they will all share a
-    single global instance whenever a new gate object is created. This results in large
+    single global instance whenever a new gate object is created. This results in a large
     reduction in the memory overhead for > 1 object of these types.
   - |
     Added a new method :meth:`.Instruction.to_mutable` and attribute
@@ -146,7 +146,7 @@ upgrade:
         * :class:`~.CZGate`
 
 
-    no longer are able to set :attr:`~.Gate.label`, :attr:`~.Gate.condition`,
+    are no longer able to set :attr:`~.Gate.label`, :attr:`~.Gate.condition`,
     :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` (and :attr:`~.ControlledGate.ctrl_state`
     for :class:`~.ControlledGate` subclasses) after instantiating an object
     anymore. :attr:`~.Gate.condition` can be set through
@@ -161,16 +161,15 @@ upgrade:
   - |
     For anything that interacts with :class:`~.Gate`, :class:`~.Operation`,
     or :class:`~.circuit.Instruction` objects or works with these as part of a
-    :class:`~.QuantumCircuit` or :class:`~.DAGCircuit` classes it is important
+    :class:`~.QuantumCircuit` or :class:`~.DAGCircuit` classes, it is important
     to note that the use of shared references for instances is much more common
     now. Previously, it was possible to reuse and share an instance of a
-    circuit operation it wasn't very commonly used and a copy would generate
+    circuit operation, but it wasn't very commonly used and a copy would generate
     a unique instance. This has changed starting in this release because of
     :class:`~.SingletonInstruction` and :class:`.SingletonGate` being made available (and a large
-    number of standard library gates now built off of it). If your usage of these objects is
-    assuming
-    unique instances for every circuit operation there are potential issue because
-    of shared state that will be reused between operations of the same type (that
+    number of standard library gates now built off of them). If your usage of these objects is
+    assuming unique instances for every circuit operation, this becomes a potential issue, as now
+    a shared state will be reused between operations of the same type (that
     will persist through copy and deep copies). You can rely on the
     :attr:`.Instruction.mutable` attribute to check the mutability of an object or
     use :meth:`.Instruction.to_mutable` to get a mutable copy of any instruction.
