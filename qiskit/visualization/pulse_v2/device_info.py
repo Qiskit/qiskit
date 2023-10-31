@@ -39,7 +39,7 @@ from collections import defaultdict
 from typing import Dict, List, Union, Optional
 
 from qiskit import pulse
-from qiskit.providers import BackendConfigurationError
+from qiskit.providers import BackendConfigurationError, BackendPropertyError
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import PulseBackendConfiguration
 
@@ -99,10 +99,26 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
     def backend_v1_adapter(self, backend):
         name = backend.name()
+
         configuration = backend.configuration()
+        required_configuration_attributes = ['n_qubits', 'u_channel_lo', 'drive', 'measure', 'control', 'dt']
+        configuration_attributes = dir(configuration)
+        for attribute in required_configuration_attributes:
+            if(not attribute in configuration):
+                raise BackendPropertyError(f'Backend configuration has no {attribute} attribute')
+
+        backend_attributes = dir(backend)
+        if(not 'defaults' in backend_attributes):
+            raise BackendPropertyError('Backend has no defaults')
+
         defaults = backend.defaults()
-        dt = configuration.dt
-        return (name, configuration, dt, defaults)
+        required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
+        defaults_attributes = dir(defaults)
+        for attribute in required_defaults_attributes:
+            if(not attribute in defaults_attributes):
+                raise BackendPropertyError(f'Backend defaults has no {attribute} attribute')
+
+        return (name, configuration, configuration.dt, defaults)
 
     def backend_v2_adapter(self, backend):
         name = backend.name
