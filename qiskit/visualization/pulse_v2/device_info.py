@@ -116,7 +116,6 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         return (configuration.backend_name, configuration, configuration.dt, defaults)
 
     def backend_v2_adapter(self, backend):
-
         required_backend_attributes = ['name', 'defaults']
         required_target_attributes = ['dt', 'num_qubits', 'u_channel_lo']
         required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
@@ -138,7 +137,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
         return (backend.name, Configuration(backend), backend.dt, defaults)
 
-    def get_backend_data(self, backend:Backend):
+    def get_backend_adapter(self, backend:Backend):
         backend_version = backend.version
         adapters = [self.backend_v1_adapter, self.backend_v2_adapter]
 
@@ -146,7 +145,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
             raise BackendPropertyError('Invalid Backend version')
 
         selected_adapter = adapters[backend_version-1]
-        return selected_adapter(backend)
+        return selected_adapter
 
     @classmethod
     def create_from_backend(cls, backend: Backend):
@@ -158,7 +157,8 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         Returns:
             OpenPulseBackendInfo: New configured instance.
         """
-        name, configuration, dt, defaults = OpenPulseBackendInfo().get_backend_data(backend)
+        backend_adapter = OpenPulseBackendInfo().get_backend_adapter(backend)
+        name, configuration, dt, defaults = backend_adapter(backend)
 
         # load frequencies
         chan_freqs = {}

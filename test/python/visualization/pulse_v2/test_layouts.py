@@ -538,5 +538,29 @@ class TestPulseCreateFrom(QiskitTestCase):
         except BackendPropertyError:
             self.fail('raise_attribute_doesnt_exist should raise no expections with equal sets of attributes!')
 
+    def test_get_backend_adapter_backend_v1(self):
+        """Test if it gets the correct adapter for backendV1."""
+        class DummyBackendV1:
+            version = 1
+
+        adapter = self.backendInfo.get_backend_adapter(DummyBackendV1)
+        self.assertEqual(adapter.__name__, 'backend_v1_adapter')
+
+    def test_get_backend_adapter_backend_v2(self):
+        """Test if it gets the correct adapter for backendV2."""
+        class DummyBackendV2:
+            version = 2
+
+        adapter = self.backendInfo.get_backend_adapter(DummyBackendV2)
+        self.assertEqual(adapter.__name__, 'backend_v2_adapter')
+
+    def test_get_backend_adapter_backend_vn(self):
+        """Test if it raises an Exception for different versions of backends."""
+        class DummyBackendVn:
+            version = -10
+
+        with self.assertRaises(BackendPropertyError):
+           self.backendInfo.get_backend_adapter(DummyBackendVn)
+
 
 
