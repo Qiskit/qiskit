@@ -49,9 +49,6 @@ class SchedStyle:
         label_font_size: int = 10,
         icon_font_size: int = 18,
         title_font_size: int | None = 25,
-        label_ch_linestyle: str = "--",
-        label_ch_color: str = "#222222",
-        label_ch_alpha: float = 0.3,
         d_ch_color: ComplexColors = ComplexColors("#648fff", "#002999"),
         u_ch_color: ComplexColors = ComplexColors("#ffb000", "#994A00"),
         m_ch_color: ComplexColors = ComplexColors("#dc267f", "#760019"),
@@ -145,9 +142,6 @@ class SchedStyle:
         self.icon_font_size = icon_font_size
         self.title_font_size = title_font_size
         self.d_ch_color = d_ch_color
-        self.label_ch_linestyle = label_ch_linestyle
-        self.label_ch_color = label_ch_color
-        self.label_ch_alpha = label_ch_alpha
         self.u_ch_color = u_ch_color
         self.m_ch_color = m_ch_color
         self.a_ch_color = m_ch_color
