@@ -21,8 +21,9 @@
 import abc
 import itertools
 import typing
-from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union, Optional
+from typing import Callable, Collection, Iterable, FrozenSet, Tuple, Union, Optional
 
+from qiskit._accelerate.quantum_circuit import CircuitData
 from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
@@ -200,8 +201,6 @@ class ControlFlowBuilderBlock:
 
     __slots__ = (
         "instructions",
-        "qubits",
-        "clbits",
         "registers",
         "global_phase",
         "_allow_jumps",
@@ -251,15 +250,23 @@ class ControlFlowBuilderBlock:
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
         """
-        self.instructions: List[CircuitInstruction] = []
-        self.qubits = set(qubits)
-        self.clbits = set(clbits)
+        self.instructions: CircuitData = CircuitData(qubits, clbits)
         self.registers = set(registers)
         self.global_phase = 0.0
         self._allow_jumps = allow_jumps
         self._resource_requester = resource_requester
         self._built = False
         self._forbidden_message = forbidden_message
+
+    @property
+    def qubits(self):
+        """The set of qubits associated with this scope."""
+        return set(self.instructions.qubits)
+
+    @property
+    def clbits(self):
+        """The set of clbits associated with this scope."""
+        return set(self.instructions.clbits)
 
     @property
     def allow_jumps(self):
@@ -275,28 +282,46 @@ class ControlFlowBuilderBlock:
         """
         return self._allow_jumps
 
+    @staticmethod
+    def _raise_on_jump(operation):
+        # pylint: disable=cyclic-import
+        from .break_loop import BreakLoopOp, BreakLoopPlaceholder
+        from .continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
+
+        forbidden = (BreakLoopOp, BreakLoopPlaceholder, ContinueLoopOp, ContinueLoopPlaceholder)
+        if isinstance(operation, forbidden):
+            raise CircuitError(
+                f"The current builder scope cannot take a '{operation.name}'"
+                " because it is not in a loop."
+            )
+
     def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
         """Add an instruction into the scope, keeping track of the qubits and clbits that have been
         used in total."""
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
-
         if not self._allow_jumps:
-            # pylint: disable=cyclic-import
-            from .break_loop import BreakLoopOp, BreakLoopPlaceholder
-            from .continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
-
-            forbidden = (BreakLoopOp, BreakLoopPlaceholder, ContinueLoopOp, ContinueLoopPlaceholder)
-            if isinstance(instruction.operation, forbidden):
-                raise CircuitError(
-                    f"The current builder scope cannot take a '{instruction.operation.name}'"
-                    " because it is not in a loop."
-                )
-
+            self._raise_on_jump(instruction.operation)
+        for b in instruction.qubits:
+            self.instructions.add_qubit(b)
+        for b in instruction.clbits:
+            self.instructions.add_clbit(b)
         self.instructions.append(instruction)
-        self.qubits.update(instruction.qubits)
-        self.clbits.update(instruction.clbits)
         return instruction
+
+    def extend(self, data: CircuitData):
+        """Appends all instructions from ``data`` to the scope, expanding the scope's
+        tracked resources with its active bits."""
+        if self._forbidden_message is not None:
+            raise CircuitError(self._forbidden_message)
+        if not self._allow_jumps:
+            data.foreach_op(self._raise_on_jump)
+        qubits, clbits = data.active_bits()
+        for b in qubits:
+            self.instructions.add_qubit(b)
+        for b in clbits:
+            self.instructions.add_clbit(b)
+        self.instructions.extend(data)
 
     def request_classical_resource(self, specifier):
         """Resolve a single classical resource specifier into a concrete resource, raising an error
@@ -355,9 +380,9 @@ class ControlFlowBuilderBlock:
         """
         for bit in bits:
             if isinstance(bit, Qubit):
-                self.qubits.add(bit)
+                self.instructions.add_qubit(bit)
             elif isinstance(bit, Clbit):
-                self.clbits.add(bit)
+                self.instructions.add_clbit(bit)
             else:
                 raise TypeError(f"Can only add qubits or classical bits, but received '{bit}'.")
 
@@ -420,9 +445,14 @@ class ControlFlowBuilderBlock:
         # We start off by only giving the QuantumCircuit the qubits we _know_ it will need, and add
         # more later as needed.
         out = QuantumCircuit(
-            list(self.qubits), list(self.clbits), *self.registers, global_phase=self.global_phase
+            self.instructions.qubits,
+            self.instructions.clbits,
+            *self.registers,
+            global_phase=self.global_phase,
         )
 
+        # TODO: this can likely be optimized with a CircuitData.foreach_op followed
+        #   by a CircuitData.replace_bits.
         for instruction in self.instructions:
             if isinstance(instruction.operation, InstructionPlaceholder):
                 operation, resources = instruction.operation.concrete_instruction(
@@ -483,8 +513,6 @@ class ControlFlowBuilderBlock:
         """
         out = type(self).__new__(type(self))
         out.instructions = self.instructions.copy()
-        out.qubits = self.qubits.copy()
-        out.clbits = self.clbits.copy()
         out.registers = self.registers.copy()
         out.global_phase = self.global_phase
         out._allow_jumps = self._allow_jumps

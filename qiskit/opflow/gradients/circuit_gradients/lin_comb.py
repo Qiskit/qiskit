@@ -590,8 +590,8 @@ class LinComb(CircuitGradient):
                 # possible, to avoid introducing further complications, but this whole method
                 # accesses internal attributes of `QuantumCircuit` and needs rewriting.
                 # - Jake Lishman, 2022-03-02.
-                out._update_parameter_table(CircuitInstruction(rz_plus, (gate_qubits[0],), ()))
-                out._update_parameter_table(CircuitInstruction(rz_minus, (gate_qubits[0],), ()))
+                out._update_parameter_table(rz_plus)
+                out._update_parameter_table(rz_minus)
 
             if open_ctrl:
                 replacement.append(CircuitInstruction(XGate(), qr_superpos_qubits, ()))
