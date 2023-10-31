@@ -93,7 +93,7 @@ cp "$SOURCE_REPO_ROOT/constraints.txt" "${TARGET_REPO_ROOT}"
 echo $GITHUB_SHA > "${TARGET_REPO_ROOT}/qiskit-commit-hash"
 
 echo "+ 'git add' files to target commit"
-git add docs/ setup.py requirements-dev.txt constraints.txt
+git add docs/ setup.py requirements-dev.txt constraints.txt qiskit-commit-hash
 
 echo "+ 'git commit' wanted files"
 # Commit and push the changes.
