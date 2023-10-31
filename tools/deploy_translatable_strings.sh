@@ -90,7 +90,7 @@ cat "$SOURCE_REPO_ROOT/requirements-dev.txt" "$SOURCE_REPO_ROOT/requirements-opt
     > "${TARGET_REPO_ROOT}/requirements-dev.txt"
 cp "$SOURCE_REPO_ROOT/constraints.txt" "${TARGET_REPO_ROOT}"
 # Add commit hash to be able to run the build with the commit hash before the actual release
-echo $QISKIT_COMMIT > "${TARGET_REPO_ROOT}/qiskit-commit-hash"
+echo $GITHUB_SHA > "${TARGET_REPO_ROOT}/qiskit-commit-hash"
 
 echo "+ 'git add' files to target commit"
 git add docs/ setup.py requirements-dev.txt constraints.txt
