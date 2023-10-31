@@ -41,8 +41,6 @@ from typing import Dict, List, Union, Optional
 from qiskit import pulse
 from qiskit.providers import BackendConfigurationError, BackendPropertyError
 from qiskit.providers.backend import Backend
-from qiskit.providers.models import PulseBackendConfiguration
-
 
 class DrawerBackendInfo(ABC):
     """Backend information to be used for the drawing data generation."""
@@ -121,25 +119,27 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
     def backend_v2_adapter(self, backend):
         backend_attributes = dir(backend)
-        required_backend_attributes = ['name', 'defaults', 'measure_channel', 'drive_channel', 'control_channel']
+        target_attributes = dir(backend.target)
+
+        required_backend_attributes = ['name', 'defaults']
+        required_target_attributes = ['dt', 'num_qubits', 'u_channel_lo']
+        required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
+
         for attribute in required_backend_attributes:
             if(not attribute in backend_attributes):
                 raise BackendPropertyError(f'Backend has no {attribute} attribute')
 
-        target_attributes = dir(backend.target)
-        required_attributes = ['dt', 'num_qubits', 'u_channel_lo']
-        for attribute in required_attributes:
+        for attribute in required_target_attributes:
             if(not attribute in target_attributes):
-                raise BackendPropertyError(f'Backend target has no {attribute} attribute')
+                raise BackendConfigurationError(f'Backend target has no {attribute} attribute')
 
         defaults = backend.defaults()
         defaults_attributes = dir(defaults)
-        required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
         for attribute in required_defaults_attributes:
             if(not attribute in defaults_attributes):
-                raise BackendPropertyError(f'Backend defaults has no {attribute} attribute')
+                raise BackendConfigurationError(f'Backend defaults has no {attribute} attribute')
 
-        class Configuration(PulseBackendConfiguration):
+        class Configuration:
             def __init__(self, backend):
                 self.n_qubits = backend.target.num_qubits
                 self.measure = backend.measure_channel
