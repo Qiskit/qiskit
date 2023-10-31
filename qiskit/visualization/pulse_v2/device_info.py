@@ -119,6 +119,8 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
                 if('u_channel_lo' in dir(backend)):
                     self.u_channel_lo = backend.u_channel_lo
+                elif('u_channel_lo' in dir(backend.target)):
+                    self.u_channel_lo = backend.target.u_channel_lo
 
         return (name, Configuration(backend), dt, defaults)
 
