@@ -409,6 +409,7 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         class BaseBackendV2(BackendV2):
             def __init__(self):
                 super().__init__()
+                self._target = None
 
             def _default_options(cls):
                 pass
@@ -419,8 +420,9 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
             def run(self, run_input, **options):
                 pass
 
+            @property
             def target(self):
-                pass
+                return self._target
 
         class BackendV2WithDefaults(BaseBackendV2):
             def __init__(self, defaults, target):
@@ -430,10 +432,6 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
 
             def defaults(self):
                 return self._defaults
-
-            @property
-            def target(self):
-                return self._target
 
         class Defaults:
             pass
@@ -524,6 +522,12 @@ class TestPulseCreateFrom(QiskitTestCase):
     """Tests for OpenPulse create_from_backend"""
     def setUp(self) -> None:
         super().setUp()
+
+        class Defaults:
+            qubit_freq_est = []
+            meas_freq_est = []
+
+        self.defaults = Defaults()
         self.backendInfo = device_info.OpenPulseBackendInfo()
 
     def test_raise_attribute_doesnt_exist_fail(self):
@@ -562,5 +566,74 @@ class TestPulseCreateFrom(QiskitTestCase):
         with self.assertRaises(BackendPropertyError):
            self.backendInfo.get_backend_adapter(DummyBackendVn)
 
+    def test_create_from_backend_using_backend_v1(self):
+        """Test if create_from_backend raises no error for BackendV1."""
 
+        class Configuration:
+            backend_name="V1"
+            u_channel_lo = []
+            drive = lambda:None
+            measure = lambda:None
+            control = lambda:None
+            dt = None
+            n_qubits=0
 
+        class Backend(BackendV1):
+            def __init__(self, configuration=Configuration(), defaults=self.defaults):
+                super().__init__(configuration)
+                self._defaults = defaults
+
+            def _default_options(cls):
+                pass
+
+            def run(self, run_input, **options):
+                pass
+
+            def defaults(self):
+                return self._defaults
+
+        try:
+            self.backendInfo.create_from_backend(Backend())
+        except Exception:
+            self.fail('The create_from_backend method should accept a V1 backend')
+
+    def test_create_from_backend_using_backend_v2(self):
+        """Test if create_from_backend raises no error for BackendV2."""
+
+        class Target:
+            dt=None
+            num_qubits=0
+            u_channel_lo=[]
+
+        class Backend(BackendV2):
+            def __init__(self, defaults=self.defaults, target=Target()):
+                super().__init__(name="V2")
+                self._defaults = defaults
+                self._target = target
+
+            def _default_options(cls):
+                pass
+
+            def max_circuits(self):
+                pass
+
+            def run(self, run_input, **options):
+                pass
+
+            def defaults(self):
+                return self._defaults
+
+            @property
+            def target(self):
+                return self._target
+
+            def measure_channel(self, qubit):
+                pass
+
+            def drive_channel(self, qubit):
+                pass
+
+        try:
+            self.backendInfo.create_from_backend(Backend())
+        except Exception:
+            self.fail('The create_from_backend method should accept a V2 backend')
