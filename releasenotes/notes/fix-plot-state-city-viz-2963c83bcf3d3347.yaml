@@ -1,9 +1,6 @@
 ---
 fixes:
   - |
-    Adjusted zoom, fontsize, and margins to fit the plot better for more figure
-    sizes.
-  - |
-    Corrected the Z-ordering behavior of bars and the zero-amplitude plane.
-  - |
-    Corrected display of negative real value bars
+    Adjusted zoom, fontsize, and margins in :meth:`plot_state_city` to fit the plot better for more figure
+    sizes. Corrected the Z-ordering behavior of bars and the zero-amplitude plane, and corrected display
+    of negative real value bars.
