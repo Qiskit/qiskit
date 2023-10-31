@@ -21,7 +21,7 @@ import scipy.linalg
 from ddt import data, ddt, unpack
 
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.extensions import (
+from qiskit.circuit.library import (
     CPhaseGate,
     CSdgGate,
     CSGate,

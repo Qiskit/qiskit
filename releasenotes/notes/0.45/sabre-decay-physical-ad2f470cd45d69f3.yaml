@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``"decay"`` heuristic of :class:`.SabreSwap` and :class:`.SabreLayout` now tracks the depth
+    correctly on physical qubits rather than mistakenly tracking the "depth" of swaps on virtual
+    qubits.

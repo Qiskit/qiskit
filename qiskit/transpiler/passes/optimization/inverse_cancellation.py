@@ -33,7 +33,7 @@ class InverseCancellation(TransformationPass):
 
         Raises:
             TranspilerError:
-                Initalization raises an error when the input is not a self-inverse gate
+                Initialization raises an error when the input is not a self-inverse gate
                 or a two-tuple of inverse gates.
         """
 

@@ -22,7 +22,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 class UnrollCustomDefinitions(TransformationPass):
     """Unrolls instructions with custom definitions."""
 
-    def __init__(self, equivalence_library, basis_gates=None, target=None):
+    def __init__(self, equivalence_library, basis_gates=None, target=None, min_qubits=0):
         """Unrolls instructions with custom definitions.
 
         Args:
@@ -33,12 +33,15 @@ class UnrollCustomDefinitions(TransformationPass):
                 Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
+             min_qubits (int): The minimum number of qubits for operations in the input
+                 dag to translate.
         """
 
         super().__init__()
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
         self._target = target
+        self._min_qubits = min_qubits
 
     def run(self, dag):
         """Run the UnrollCustomDefinitions pass on `dag`.
@@ -69,7 +72,7 @@ class UnrollCustomDefinitions(TransformationPass):
             if getattr(node.op, "_directive", False):
                 continue
 
-            if dag.has_calibration_for(node):
+            if dag.has_calibration_for(node) or len(node.qargs) < self._min_qubits:
                 continue
 
             controlled_gate_open_ctrl = isinstance(node.op, ControlledGate) and node.op._open_ctrl
@@ -97,10 +100,8 @@ class UnrollCustomDefinitions(TransformationPass):
                     "and no rule found to expand." % (str(self._basis_gates), node.op.name)
                 )
 
-            decomposition = circuit_to_dag(unrolled)
-            unrolled_dag = UnrollCustomDefinitions(
-                self._equiv_lib, self._basis_gates, target=self._target
-            ).run(decomposition)
+            decomposition = circuit_to_dag(unrolled, copy_operations=False)
+            unrolled_dag = self.run(decomposition)
             dag.substitute_node_with_dag(node, unrolled_dag)
 
         return dag

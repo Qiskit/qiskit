@@ -110,6 +110,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
             from qiskit import Aer
 
             self.backend = Aer.get_backend("qasm_simulator")
+
         except ImportError as ex:
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return

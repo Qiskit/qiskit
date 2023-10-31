@@ -13,6 +13,8 @@
 """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt
 import numpy as np
@@ -90,7 +92,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         ]
 
         with self.subTest(msg="Test exact backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
             estimator = Estimator()
             qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator)
@@ -117,7 +121,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             )
 
         with self.subTest(msg="Test shot-based backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4096, "seed": self.seed})
             qgt = LinCombQGT(estimator)
@@ -263,7 +269,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         # the expected final state is Statevector([0.34849948+0.j, 0.93730897+0.j])
 
         with self.subTest(msg="Test exact backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
             estimator = Estimator()
             var_principle = ImaginaryMcLachlanPrinciple()
 
@@ -284,7 +292,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 )
 
         with self.subTest(msg="Test shot-based backend."):
-            algorithm_globals.random_seed = self.seed
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
             var_principle = ImaginaryMcLachlanPrinciple()

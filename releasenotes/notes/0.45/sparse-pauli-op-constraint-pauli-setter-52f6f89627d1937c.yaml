@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The setter for :attr:`.SparsePauliOp.paulis` will now correctly reject attempts to set the
+    attribute with incorrectly shaped data, rather than silently allowing an invalid object to be
+    created.  See `#10384 <https://github.com/Qiskit/qiskit-terra/issues/10384>`__.

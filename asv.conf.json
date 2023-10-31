@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "project": "qiskit",
+    "project_url": "https://qiskit.org",
+    "repo": ".",
+    "install_command": [
+        "in-dir={env_dir} python -mpip install {wheel_file}[all] python-constraint qiskit-experiments==0.3.0"
+      ],
+    "uninstall_command": [
+        "return-code=any python -mpip uninstall -y {project}"
+    ],
+    "build_command": [
+        "pip install -U setuptools-rust",
+        "python setup.py build_rust --release",
+        "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"
+    ],
+    "branches": ["main"],
+    "dvcs": "git",
+    "environment_type": "virtualenv",
+    "show_commit_url": "http://github.com/Qiskit/qiskit-terra/commit/",
+    "pythons": ["3.8", "3.9", "3.10", "3.11"],
+    "benchmark_dir": "test/benchmarks",
+    "env_dir": ".asv/env",
+    "results_dir": ".asv/results"
+}

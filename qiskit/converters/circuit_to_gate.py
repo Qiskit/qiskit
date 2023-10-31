@@ -12,9 +12,19 @@
 
 
 """Helper function for converting a circuit to a gate"""
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
+
+
+def _check_is_gate(op):
+    """Checks whether op can be converted to Gate."""
+    if isinstance(op, Gate):
+        return True
+    elif isinstance(op, AnnotatedOperation):
+        return _check_is_gate(op.base_op)
+    return False
 
 
 def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
@@ -50,7 +60,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         raise QiskitError("Circuit with classical bits cannot be converted to gate.")
 
     for instruction in circuit.data:
-        if not isinstance(instruction.operation, Gate):
+        if not _check_is_gate(instruction.operation):
             raise QiskitError(
                 (
                     "One or more instructions cannot be converted to"

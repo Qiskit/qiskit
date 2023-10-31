@@ -47,18 +47,15 @@ Canonicalization
 The canonicalization transforms convert schedules to a form amenable for execution on
 OpenPulse backends.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   add_implicit_acquires
-   align_measures
-   block_to_schedule
-   compress_pulses
-   flatten
-   inline_subroutines
-   pad
-   remove_directives
-   remove_trivial_barriers
+.. autofunction:: add_implicit_acquires
+.. autofunction:: align_measures
+.. autofunction:: block_to_schedule
+.. autofunction:: compress_pulses
+.. autofunction:: flatten
+.. autofunction:: inline_subroutines
+.. autofunction:: pad
+.. autofunction:: remove_directives
+.. autofunction:: remove_trivial_barriers
 
 
 .. _pulse_dag:
@@ -69,10 +66,7 @@ DAG
 The DAG transforms create DAG representation of input program. This can be used for
 optimization of instructions and equality checks.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   block_to_dag
+.. autofunction:: block_to_dag
 
 
 .. _pulse_transform_chain:
@@ -82,10 +76,7 @@ Composite transform
 
 A sequence of transformations to generate a target code.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   target_qobj_transform
+.. autofunction:: target_qobj_transform
 
 """
 

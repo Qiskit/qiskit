@@ -14,6 +14,7 @@
 """Test Quantum Gradient Framework"""
 
 import unittest
+import warnings
 from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
@@ -57,7 +58,9 @@ class TestGradients(QiskitOpflowTestCase):
 
     def setUp(self):
         super().setUp()
-        algorithm_globals.random_seed = 50
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 50
 
     @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_p(self, method):

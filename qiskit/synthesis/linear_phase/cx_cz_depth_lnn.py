@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Given -CZ-CX- transformation (a layer consisting only CNOT gates 
+Given -CZ-CX- transformation (a layer consisting only CNOT gates
     followed by a layer consisting only CZ gates)
 Return a depth-5n circuit implementation of the -CZ-CX- transformation over LNN.
 
@@ -24,7 +24,7 @@ Output:
 
 References:
     [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, "Computation at a distance," 2007.
-    [2] D. Maslov and W. Yang, "CNOT circuits need little help to implement arbitrary 
+    [2] D. Maslov and W. Yang, "CNOT circuits need little help to implement arbitrary
         Hadamard-free Clifford transformations they generate," 2022.
 """
 
@@ -186,9 +186,9 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
         p = phase_schedule[j, k]
 
         if (j, k) not in swap_plus:
-            cir.cnot(w1, w2)
+            cir.cx(w1, w2)
 
-        cir.cnot(w2, w1)
+        cir.cx(w2, w1)
 
         if p % 4 == 0:
             pass
@@ -199,7 +199,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
         else:
             cir.s(w2)
 
-        cir.cnot(w1, w2)
+        cir.cx(w1, w2)
 
     for i in range(n):
         p = phase_schedule[n - 1 - i, n - 1 - i]

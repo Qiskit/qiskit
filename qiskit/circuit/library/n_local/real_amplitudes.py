@@ -12,9 +12,12 @@
 
 """The real-amplitudes 2-local circuit."""
 
-from typing import Union, Optional, List, Tuple, Callable, Any
+from __future__ import annotations
+from collections.abc import Callable
+
 import numpy as np
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RYGate, CXGate
 from .two_local import TwoLocal
 
@@ -115,19 +118,18 @@ class RealAmplitudes(TwoLocal):
 
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "reverse_linear",
+        num_qubits: int | None = None,
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: QuantumCircuit | None = None,
         name: str = "RealAmplitudes",
-        flatten: Optional[bool] = None,
+        flatten: bool | None = None,
     ) -> None:
-        """Create a new RealAmplitudes 2-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the RealAmplitudes circuit.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -178,7 +180,7 @@ class RealAmplitudes(TwoLocal):
         )
 
     @property
-    def parameter_bounds(self) -> List[Tuple[float, float]]:
+    def parameter_bounds(self) -> list[tuple[float, float]]:
         """Return the parameter bounds.
 
         Returns:

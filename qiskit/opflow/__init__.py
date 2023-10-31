@@ -149,21 +149,15 @@ measurement containing only diagonal Paulis.
 Utility functions
 =================
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   commutator
-   anti_commutator
-   double_commutator
+.. autofunction:: commutator
+.. autofunction:: anti_commutator
+.. autofunction:: double_commutator
 
 
 Exceptions
 ==========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   OpflowError
+.. autoexception:: OpflowError
 """
 import warnings
 

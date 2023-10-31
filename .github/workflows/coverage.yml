@@ -52,7 +52,7 @@ jobs:
       - name: Generate unittest coverage report
         run: |
           set -e
-          python -m pip install -c constraints.txt -r requirements-dev.txt qiskit-aer
+          python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt
           stestr run
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`

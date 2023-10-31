@@ -70,6 +70,7 @@ class BaseScheduler(AnalysisPass):
             duration = dag.calibrations[node.op.name][cal_key].duration
 
             # Note that node duration is updated (but this is analysis pass)
+            node.op = node.op.to_mutable()
             node.op.duration = duration
         else:
             duration = node.op.duration

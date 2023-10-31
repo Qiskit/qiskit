@@ -17,13 +17,13 @@ import collections
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.utils.deprecation import deprecate_func
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -53,7 +53,6 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
-_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
 
@@ -76,11 +75,11 @@ _CONTROL_FLOW_STATES = {
 
 
 def _has_control_flow(property_set):
-    return any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
+    return any(property_set[f"contains_{x}"] for x in CONTROL_FLOW_OP_NAMES)
 
 
 def _without_control_flow(property_set):
-    return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
+    return not any(property_set[f"contains_{x}"] for x in CONTROL_FLOW_OP_NAMES)
 
 
 class _InvalidControlFlowForBackend:
@@ -88,10 +87,10 @@ class _InvalidControlFlowForBackend:
 
     def __init__(self, basis_gates=(), target=None):
         if target is not None:
-            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in target]
+            self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
         else:
             basis_gates = set(basis_gates) if basis_gates is not None else set()
-            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in basis_gates]
+            self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
 
     def message(self, property_set):
         """Create an error message for the given property set."""
@@ -147,7 +146,7 @@ def generate_control_flow_options_check(
                 )
             bad_options.append(option)
     out = PassManager()
-    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
         out.append(Error(message), condition=_has_control_flow)
     backend_control = _InvalidControlFlowForBackend(basis_gates, target)
@@ -159,7 +158,7 @@ def generate_error_on_control_flow(message):
     """Get a pass manager that always raises an error if control flow is present in a given
     circuit."""
     out = PassManager()
-    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     out.append(Error(message), condition=_has_control_flow)
     return out
 
@@ -172,7 +171,7 @@ def if_has_control_flow_else(if_present, if_absent):
     if isinstance(if_absent, PassManager):
         if_absent = if_absent.to_flow_controller()
     out = PassManager()
-    out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     out.append(if_present, condition=_has_control_flow)
     out.append(if_absent, condition=_without_control_flow)
     return out
@@ -217,8 +216,23 @@ def generate_unroll_3q(
             target=target,
         )
     )
-    unroll_3q.append(HighLevelSynthesis(hls_config=hls_config))
-    unroll_3q.append(Unroll3qOrMore(target=target, basis_gates=basis_gates))
+    unroll_3q.append(
+        HighLevelSynthesis(
+            hls_config=hls_config,
+            coupling_map=None,
+            target=target,
+            use_qubit_indices=False,
+            equivalence_library=sel,
+            basis_gates=basis_gates,
+            min_qubits=3,
+        )
+    )
+    # If there are no target instructions revert to using unroll3qormore so
+    # routing works.
+    if basis_gates is None and target is None:
+        unroll_3q.append(Unroll3qOrMore(target, basis_gates))
+    else:
+        unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
     return unroll_3q
 
 
@@ -422,8 +436,14 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=basis_gates,
+            ),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
@@ -440,7 +460,14 @@ def generate_translation_passmanager(
                 min_qubits=3,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                basis_gates=basis_gates,
+                min_qubits=3,
+            ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
@@ -456,7 +483,13 @@ def generate_translation_passmanager(
                 method=unitary_synthesis_method,
                 target=target,
             ),
-            HighLevelSynthesis(hls_config=hls_config),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                basis_gates=basis_gates,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)

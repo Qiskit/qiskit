@@ -578,7 +578,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         circ.h(0)
         circ.cx(0, 1)
-        circ.append(Snapshot("snap", num_qubits=4), [0, 1, 2, 3])
+        with self.assertWarns(DeprecationWarning):
+            circ.append(Snapshot("snap", num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
@@ -599,11 +600,14 @@ class TestCircuitProperties(QiskitTestCase):
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
         circ.h(0)
-        circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
+        with self.assertWarns(DeprecationWarning):
+            circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
         circ.cx(0, 1)
-        circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
+        with self.assertWarns(DeprecationWarning):
+            circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
-        circ.append(Snapshot("snap2", num_qubits=4), [0, 1, 2, 3])
+        with self.assertWarns(DeprecationWarning):
+            circ.append(Snapshot("snap2", num_qubits=4), [0, 1, 2, 3])
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
 
@@ -624,8 +628,9 @@ class TestCircuitProperties(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         circ.h(0)
         circ.cx(0, 1)
-        circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
-        circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
+        with self.assertWarns(DeprecationWarning):
+            circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
+            circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
@@ -751,7 +756,8 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.size(), 2)
         qc.barrier(q)
         self.assertEqual(qc.size(), 2)
-        qc.append(Snapshot("snapshot_label", num_qubits=4), [0, 1, 2, 3])
+        with self.assertWarns(DeprecationWarning):
+            qc.append(Snapshot("snapshot_label", num_qubits=4), [0, 1, 2, 3])
         self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):

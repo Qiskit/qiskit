@@ -19,6 +19,7 @@ import os
 import sys
 import unittest
 from logging import StreamHandler, getLogger
+
 from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
@@ -39,20 +40,31 @@ from qiskit.circuit import (
     SwitchCaseOp,
     WhileLoopOp,
 )
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
+from qiskit.circuit.classical import expr
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import (
     CXGate,
     CZGate,
+    ECRGate,
     HGate,
     RXGate,
     RYGate,
     RZGate,
+    SGate,
     SXGate,
+    SXdgGate,
+    SdgGate,
     U1Gate,
     U2Gate,
-    U3Gate,
     UGate,
     XGate,
+    ZGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.compiler import transpile
@@ -408,6 +420,28 @@ class TestTranspile(QiskitTestCase):
 
         circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
+
+    def test_transpile_bell_discrete_basis(self):
+        """Test that it's possible to transpile a very simple circuit to a discrete stabiliser-like
+        basis.  In general, we do not make any guarantees about the possibility or quality of
+        transpilation in these situations, but this is at least useful as a check that stuff that
+        _could_ be possible remains so."""
+
+        target = Target(num_qubits=2)
+        for one_q in [XGate(), SXGate(), SXdgGate(), SGate(), SdgGate(), ZGate()]:
+            target.add_instruction(one_q, {(0,): None, (1,): None})
+        # This is only in one direction, and not the direction we're going to attempt to lay it out
+        # onto, so we can test the basis translation.
+        target.add_instruction(ECRGate(), {(1, 0): None})
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        # Try with the initial layout in both directions to ensure we're dealing with the basis
+        # having only a single direction.
+        self.assertIsInstance(transpile(qc, target=target, initial_layout=[0, 1]), QuantumCircuit)
+        self.assertIsInstance(transpile(qc, target=target, initial_layout=[1, 0]), QuantumCircuit)
 
     def test_transpile_one(self):
         """Test transpile a single circuit.
@@ -801,20 +835,26 @@ class TestTranspile(QiskitTestCase):
             )
             self.assertTrue(is_last_measure)
 
-    def test_initialize_reset_should_be_removed(self):
-        """The reset in front of initializer should be removed when zero state"""
+    @data(0, 1, 2, 3)
+    def test_init_resets_kept_preset_passmanagers(self, optimization_level):
+        """Test initial resets kept at all preset transpilation levels"""
+        num_qubits = 5
+        qc = QuantumCircuit(num_qubits)
+        qc.reset(range(num_qubits))
+
+        num_resets = transpile(qc, optimization_level=optimization_level).count_ops()["reset"]
+        self.assertEqual(num_resets, num_qubits)
+
+    @data(0, 1, 2, 3)
+    def test_initialize_reset_is_not_removed(self, optimization_level):
+        """The reset in front of initializer should NOT be removed at beginning"""
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(np.pi / 2, 0, 0), [qr[0]])
-        expected.reset(qr[0])
-        expected.append(U3Gate(np.pi / 2, -np.pi, 0), [qr[0]])
-
-        after = transpile(qc, basis_gates=["reset", "u3"], optimization_level=1)
-        self.assertEqual(after, expected, msg=f"after:\n{after}\nexpected:\n{expected}")
+        after = transpile(qc, basis_gates=["reset", "u3"], optimization_level=optimization_level)
+        self.assertEqual(after.count_ops()["reset"], 2, msg=f"{after}\n does not have 2 resets.")
 
     def test_initialize_FakeMelbourne(self):
         """Test that the zero-state resets are remove in a device not supporting them."""
@@ -827,7 +867,7 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
-        self.assertEqual(reset_nodes, [])
+        self.assertEqual(len(reset_nodes), 3)
 
     def test_non_standard_basis(self):
         """Test a transpilation with a non-standard basis"""
@@ -1656,6 +1696,35 @@ class TestTranspile(QiskitTestCase):
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
 
+    @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops(self, opt_level):
+        """Test transpilation of circuits with annotated operations."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        expected = QuantumCircuit(3)
+        expected.sdg(0)
+        expected.cx(1, 2)
+        expected.h(2)
+        transpiled = transpile(qc, optimization_level=opt_level, seed_transpiler=42)
+        self.assertNotIn("annotated", transpiled.count_ops().keys())
+        self.assertEqual(Operator(qc), Operator(transpiled))
+        self.assertEqual(Operator(qc), Operator(expected))
+
+    @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops_with_backend(self, opt_level):
+        """Test transpilation of circuits with annotated operations given a backend."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        backend = FakeMelbourne()
+        transpiled = transpile(
+            qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
+        )
+        self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
@@ -1714,6 +1783,42 @@ class TestPostTranspileIntegration(QiskitTestCase):
             base.ry(a, 4)
             base.measure(4, 2)
         with base.switch(base.cregs[0]) as case_:
+            with case_(0, 1):
+                base.cz(3, 5)
+            with case_(case_.DEFAULT):
+                base.cz(1, 4)
+                base.append(CustomCX(), [2, 4])
+                base.append(CustomCX(), [3, 4])
+        return base
+
+    def _control_flow_expr_circuit(self):
+        a = Parameter("a")
+        regs = [
+            QuantumRegister(2, name="q0"),
+            QuantumRegister(3, name="q1"),
+            ClassicalRegister(2, name="c0"),
+        ]
+        bits = [Qubit(), Qubit(), Clbit()]
+        base = QuantumCircuit(*regs, bits)
+        base.h(0)
+        base.measure(0, 0)
+        with base.if_test(expr.equal(base.cregs[0], 1)) as else_:
+            base.cx(0, 1)
+            base.cz(0, 2)
+            base.cz(0, 3)
+        with else_:
+            base.cz(1, 4)
+            with base.for_loop((1, 2)):
+                base.cx(1, 5)
+        base.measure(2, 2)
+        with base.while_loop(expr.logic_not(bits[2])):
+            base.append(CustomCX(), [3, 6])
+            base.append(CustomCX(), [5, 4])
+            base.append(CustomCX(), [5, 3])
+            base.append(CustomCX(), [2, 4])
+            base.ry(a, 4)
+            base.measure(4, 2)
+        with base.switch(expr.bit_and(base.cregs[0], 2)) as case_:
             with case_(0, 1):
                 base.cz(3, 5)
             with case_(case_.DEFAULT):
@@ -1809,6 +1914,51 @@ class TestPostTranspileIntegration(QiskitTestCase):
         self.assertEqual(round_tripped, transpiled)
 
     @data(0, 1, 2, 3)
+    def test_qpy_roundtrip_control_flow_expr(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
+        be round-tripped through QPY."""
+        if optimization_level == 3 and sys.platform == "win32":
+            self.skipTest(
+                "This test case triggers a bug in the eigensolver routine on windows. "
+                "See #10345 for more details."
+            )
+        backend = FakeMelbourne()
+        transpiled = transpile(
+            self._control_flow_expr_circuit(),
+            backend=backend,
+            basis_gates=backend.configuration().basis_gates
+            + ["if_else", "for_loop", "while_loop", "switch_case"],
+            optimization_level=optimization_level,
+            seed_transpiler=2023_07_26,
+        )
+        buffer = io.BytesIO()
+        qpy.dump(transpiled, buffer)
+        buffer.seek(0)
+        round_tripped = qpy.load(buffer)[0]
+        self.assertEqual(round_tripped, transpiled)
+
+    @data(0, 1, 2, 3)
+    def test_qpy_roundtrip_control_flow_expr_backendv2(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
+        be round-tripped through QPY."""
+        backend = FakeMumbaiV2()
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        backend.target.add_instruction(ForLoopOp, name="for_loop")
+        backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        transpiled = transpile(
+            self._control_flow_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2023_07_26,
+        )
+        buffer = io.BytesIO()
+        qpy.dump(transpiled, buffer)
+        buffer.seek(0)
+        round_tripped = qpy.load(buffer)[0]
+        self.assertEqual(round_tripped, transpiled)
+
+    @data(0, 1, 2, 3)
     def test_qasm3_output(self, optimization_level):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
@@ -1836,6 +1986,29 @@ class TestPostTranspileIntegration(QiskitTestCase):
             backend=backend,
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
+        )
+        # TODO: There's not a huge amount we can sensibly test for the output here until we can
+        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
+        # itself doesn't throw an error, though.
+        self.assertIsInstance(
+            qasm3.dumps(transpiled, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1).strip(),
+            str,
+        )
+
+    @data(0, 1, 2, 3)
+    def test_qasm3_output_control_flow_expr(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
+        dumped into OpenQASM 3."""
+        backend = FakeMumbaiV2()
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        backend.target.add_instruction(ForLoopOp, name="for_loop")
+        backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        transpiled = transpile(
+            self._control_flow_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2023_07_26,
         )
         # TODO: There's not a huge amount we can sensibly test for the output here until we can
         # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
@@ -2062,6 +2235,20 @@ class TestTranspileParallel(QiskitTestCase):
         for qc_test in qcs_cal_added:
             added_cal = qc_test.calibrations["sx"][((0,), ())]
             self.assertEqual(added_cal, ref_cal)
+
+    @data(0, 1, 2, 3)
+    def test_parallel_singleton_conditional_gate(self, opt_level):
+        """Test that singleton mutable instance doesn't lose state in parallel."""
+        backend = FakeNairobiV2()
+        circ = QuantumCircuit(2, 1)
+        circ.h(0)
+        circ.measure(0, circ.clbits[0])
+        circ.z(1).c_if(circ.clbits[0], 1)
+        res = transpile(
+            [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
+        )
+        self.assertTrue(res[0].data[-1].operation.mutable)
+        self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
 
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):

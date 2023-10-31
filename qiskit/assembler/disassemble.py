@@ -36,6 +36,20 @@ CircuitModule = NewType(
 # and a header dictionary.
 PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
 
+# Prevent the disassembler from accessing deprecated circuit methods. This can happen for
+# gates where the name of the gate matches a circuit method (e.g. Isometry.name is "isometry")
+# and the circuit attribute is also QuantumCircuit.isometry
+_DEPRECATED_CIRCUIT_METHODS = {
+    "isometry",
+    "snapshot",
+    "ucrx",
+    "ucry",
+    "ucrz",
+    "squ",
+    "diagonal",
+    "hamiltonian",
+}
+
 
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
@@ -165,16 +179,12 @@ def _experiments_to_circuits(qobj):
                     clbits.append(creg_dict[clbit_label[0]][clbit_label[1]])
             except Exception:  # pylint: disable=broad-except
                 pass
-            if hasattr(circuit, name):
+            # TODO remove the check that name is not in the deprecated circuit methods
+            # once the methods have been removed
+            if hasattr(circuit, name) and name not in _DEPRECATED_CIRCUIT_METHODS:
                 instr_method = getattr(circuit, name)
-                if i.name in ["snapshot"]:
-                    _inst = instr_method(
-                        i.label, snapshot_type=i.snapshot_type, qubits=qubits, params=params
-                    )
-                elif i.name == "initialize":
+                if i.name == "initialize":
                     _inst = instr_method(params, qubits)
-                elif i.name == "isometry":
-                    _inst = instr_method(*params, qubits, clbits)
                 elif i.name in ["mcx", "mcu1", "mcp"]:
                     _inst = instr_method(*params, qubits[:-1], qubits[-1], *clbits)
                 else:

@@ -227,8 +227,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
             )
         elif opcode == OpCode.ConditionedGate:
             gate_id, parameters, op_qubits, creg, value = op.operands
-            gate = gates[gate_id](*parameters)
-            gate.condition = (qc.cregs[creg], value)
+            gate = gates[gate_id](*parameters).c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(gate, [qubits[q] for q in op_qubits]))
         elif opcode == OpCode.Measure:
             qubit, clbit = op.operands

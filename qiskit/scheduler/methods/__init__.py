@@ -15,10 +15,8 @@
 
 Pulse scheduling methods.
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   basic
+.. autofunction:: as_soon_as_possible
+.. autofunction:: as_late_as_possible
 """
 
 from qiskit.scheduler.methods.basic import as_soon_as_possible, as_late_as_possible

@@ -47,6 +47,7 @@ from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
+from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 
 
 def mock_get_passmanager_stage(
@@ -69,7 +70,13 @@ def mock_get_passmanager_stage(
             ]
         )
         return pm
+    elif stage_name == "init":
+        return PassManager([])
     elif stage_name == "routing":
+        return PassManager([])
+    elif stage_name == "optimization":
+        return OptimizationPassManager().pass_manager(pm_config, optimization_level)
+    elif stage_name == "layout":
         return PassManager([])
     else:
         raise Exception("Failure, unexpected stage plugin combo for test")
@@ -114,6 +121,22 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.cz(q[0], q[1])
         result = transpile(circuit, basis_gates=["u1", "u2", "u3", "cx"], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(result.num_qubits, circuit.num_qubits)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_7677(self, level):
+        """Melbourne (with inconsistency configuration/properties) should not fail with noise_adaptive
+        See: https://github.com/Qiskit/qiskit/issues/7677
+        """
+        qc = QuantumCircuit(12)  # circuit has 12 qubits (and only uses 3)
+        qc.cx(1, 8)
+        qc.cx(1, 11)
+        backend = FakeMelbourne()
+
+        result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
+
+        self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(result.num_qubits, 14)
 
     def test_layout_3239(self, level=3):
         """Test final layout after preset level3 passmanager does not include diagonal gates
@@ -910,22 +933,22 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout = {
             0: ancilla[0],
-            1: qr[4],
-            2: ancilla[1],
-            3: ancilla[2],
-            4: ancilla[3],
-            5: qr[1],
-            6: qr[0],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: qr[2],
+            6: qr[1],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: qr[3],
+            11: qr[0],
+            12: ancilla[9],
+            13: ancilla[10],
+            14: ancilla[11],
+            15: ancilla[5],
+            16: qr[4],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
@@ -933,22 +956,22 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout_lvl_2 = {
             0: ancilla[0],
-            1: qr[4],
-            2: ancilla[1],
-            3: ancilla[2],
-            4: ancilla[3],
-            5: qr[1],
-            6: qr[0],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: qr[2],
+            6: qr[1],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: qr[3],
+            11: qr[0],
+            12: ancilla[9],
+            13: ancilla[10],
+            14: ancilla[11],
+            15: ancilla[5],
+            16: qr[4],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
@@ -956,22 +979,22 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout_lvl_3 = {
             0: ancilla[0],
-            1: qr[4],
-            2: ancilla[1],
-            3: ancilla[2],
-            4: ancilla[3],
-            5: qr[1],
-            6: qr[0],
-            7: ancilla[4],
-            8: ancilla[5],
-            9: ancilla[6],
-            10: qr[2],
-            11: qr[3],
-            12: ancilla[7],
-            13: ancilla[8],
-            14: ancilla[9],
-            15: ancilla[10],
-            16: ancilla[11],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: qr[2],
+            6: qr[1],
+            7: ancilla[6],
+            8: ancilla[7],
+            9: ancilla[8],
+            10: qr[3],
+            11: qr[0],
+            12: ancilla[9],
+            13: ancilla[10],
+            14: ancilla[11],
+            15: ancilla[5],
+            16: qr[4],
             17: ancilla[12],
             18: ancilla[13],
             19: ancilla[14],
@@ -1249,7 +1272,7 @@ class TestOptimizationOnSize(QiskitTestCase):
 
 
 @ddt
-class TestGeenratePresetPassManagers(QiskitTestCase):
+class TestGeneratePresetPassManagers(QiskitTestCase):
     """Test generate_preset_pass_manager function."""
 
     @data(0, 1, 2, 3)
@@ -1422,6 +1445,37 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
+    def test_generate_preset_pass_manager_with_list_coupling_map(self):
+        """Test that generate_preset_pass_manager can handle list-based coupling_map."""
+
+        # Define the coupling map as a list
+        coupling_map_list = [[0, 1]]
+        coupling_map_object = CouplingMap(coupling_map_list)
+
+        # Circuit that doesn't fit in the coupling map
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.measure_all()
+
+        pm_list = generate_preset_pass_manager(
+            optimization_level=0, coupling_map=coupling_map_list, seed_transpiler=42
+        )
+        pm_object = generate_preset_pass_manager(
+            optimization_level=0, coupling_map=coupling_map_object, seed_transpiler=42
+        )
+
+        transpiled_circuit_list = pm_list.run(qc)
+        transpiled_circuit_object = pm_object.run(qc)
+
+        # Check if both are instances of PassManager
+        self.assertIsInstance(pm_list, PassManager)
+        self.assertIsInstance(pm_object, PassManager)
+
+        # Ensure the DAGs from both methods are identical
+        self.assertEqual(transpiled_circuit_list, transpiled_circuit_object)
+
 
 @ddt
 class TestIntegrationControlFlow(QiskitTestCase):
@@ -1522,16 +1576,17 @@ class TestIntegrationControlFlow(QiskitTestCase):
         def callback(pass_, **_):
             calls.add(pass_.name())
 
-        transpiled = transpile(
-            circuit,
-            basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
-            layout_method="trivial",
-            translation_method="unroller",
-            coupling_map=coupling_map,
-            optimization_level=optimization_level,
-            seed_transpiler=2022_10_04,
-            callback=callback,
-        )
+        with self.assertWarns(DeprecationWarning):
+            transpiled = transpile(
+                circuit,
+                basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
+                layout_method="trivial",
+                translation_method="unroller",
+                coupling_map=coupling_map,
+                optimization_level=optimization_level,
+                seed_transpiler=2022_10_04,
+                callback=callback,
+            )
         self.assertIsInstance(transpiled, QuantumCircuit)
         self.assertIsNot(getattr(transpiled, "_layout", None), None)
 
@@ -1539,7 +1594,6 @@ class TestIntegrationControlFlow(QiskitTestCase):
         self.assertIn("Unroller", calls)
         self.assertNotIn("DenseLayout", calls)
         self.assertNotIn("SabreLayout", calls)
-        self.assertNotIn("BasisTranslator", calls)
 
     @data(0, 1, 2, 3)
     def test_invalid_methods_raise_on_control_flow(self, optimization_level):

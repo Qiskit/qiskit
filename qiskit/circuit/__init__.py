@@ -345,11 +345,21 @@ Parametric Quantum Circuits
 Random Circuits
 ---------------
 
-.. autosummary::
-   :toctree: ../stubs/
+.. currentmodule:: qiskit.circuit.random
+.. autofunction:: random_circuit
+.. currentmodule:: qiskit.circuit
 
-   random.random_circuit
+Exceptions
+----------
+
+Almost all circuit functions and methods will raise a :exc:`CircuitError` when encountering an error
+that is particular to usage of Qiskit (as opposed to regular typing or indexing problems, which will
+typically raise the corresponding standard Python error).
+
+.. autoexception:: CircuitError
 """
+
+from .exceptions import CircuitError
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
@@ -357,6 +367,7 @@ from .gate import Gate
 
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
+from . import singleton
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .operation import Operation

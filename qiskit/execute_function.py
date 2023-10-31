@@ -26,7 +26,6 @@ from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +35,6 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
-@deprecate_arg("qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore.")
-@deprecate_arg("qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore.")
 def execute(
     experiments,
     backend,
@@ -48,8 +45,6 @@ def execute(
     seed_transpiler=None,
     optimization_level=None,
     pass_manager=None,
-    qobj_id=None,
-    qobj_header=None,
     shots=None,  # common run options
     memory=None,
     seed_simulator=None,
@@ -90,18 +85,17 @@ def execute(
 
         basis_gates (list[str]):
             List of basis gate names to unroll to.
-            e.g: ``['u1', 'u2', 'u3', 'cx']``
+            e.g: ``['u1', 'u2', 'u3', 'cx']``.
             If ``None``, do not unroll.
 
         coupling_map (CouplingMap or list): Coupling map (perhaps custom) to
             target in mapping. Multiple formats are supported:
 
-            #. CouplingMap instance
-            #. list
-               Must be given as an adjacency matrix, where each entry
+            #. :class:`.CouplingMap` instance
+            #. ``list``:
+               must be given as an adjacency matrix, where each entry
                specifies all two-qubit interactions supported by backend
-               e.g:
-               ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+               e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
         backend_properties (BackendProperties):
             Properties returned by a backend, including information on gate
@@ -159,16 +153,6 @@ def execute(
         pass_manager (PassManager): The pass manager to use during transpilation. If this
             arg is present, auto-selection of pass manager based on the transpile options
             will be turned off and this pass manager will be used directly.
-
-        qobj_id (str): DEPRECATED: String identifier to annotate the Qobj.  This has no effect
-            and the :attr:`~.QuantumCircuit.name` attribute of the input circuit(s) should be used
-            instead.
-
-        qobj_header (QobjHeader or dict): DEPRECATED: User input that will be inserted in Qobj
-            header, and will also be copied to the corresponding :class:`qiskit.result.Result`
-            header. Headers do not affect the run. Headers do not affect the run. This kwarg
-            has no effect anymore and the :attr:`~.QuantumCircuit.metadata` attribute of the
-            input circuit(s) should be used instead.
 
         shots (int): Number of repetitions of each circuit, for sampling. Default: 1024
 
@@ -280,8 +264,6 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
-    del qobj_id
-    del qobj_header
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):

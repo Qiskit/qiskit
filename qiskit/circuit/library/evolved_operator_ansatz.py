@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 from collections.abc import Sequence
-from typing import Optional
 
 import numpy as np
 
@@ -41,7 +40,7 @@ class EvolvedOperatorAnsatz(NLocal):
         name: str = "EvolvedOps",
         parameter_prefix: str | Sequence[str] = "t",
         initial_state: QuantumCircuit | None = None,
-        flatten: Optional[bool] = None,
+        flatten: bool | None = None,
     ):
         """
         Args:
@@ -176,7 +175,9 @@ class EvolvedOperatorAnsatz(NLocal):
 
     def _evolve_operator(self, operator, time):
         from qiskit.opflow import OperatorBase, EvolutionBase
-        from qiskit.extensions import HamiltonianGate
+
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
         if isinstance(operator, OperatorBase):
             if not isinstance(self.evolution, EvolutionBase):

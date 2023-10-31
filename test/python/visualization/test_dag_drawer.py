@@ -16,8 +16,6 @@ import os
 import tempfile
 import unittest
 
-from PIL import Image
-
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
@@ -39,6 +37,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
         self.dag = circuit_to_dag(circuit)
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
         with self.assertRaisesRegex(VisualizationError, "Invalid style multicolor"):
@@ -53,6 +52,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(self.dag, filename="aaabc")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_checks_filename_extension(self):
         """filename must have a valid extension"""
         with self.assertRaisesRegex(
@@ -63,8 +63,11 @@ class TestDagDrawer(QiskitVisualizationTestCase):
             dag_drawer(self.dag, filename="aa.abc")
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_no_register(self):
         """Test dag visualization with a circuit with no registers."""
+        from PIL import Image  # pylint: disable=import-error
+
         qubit = Qubit()
         clbit = Clbit()
         qc = QuantumCircuit([qubit, clbit])

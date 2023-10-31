@@ -132,7 +132,7 @@ class InstructionSet:
         if self._requester is not None:
             classical = self._requester(classical)
         for instruction in self._instructions:
-            instruction.operation.c_if(classical, val)
+            instruction.operation = instruction.operation.c_if(classical, val)
         return self
 
     # Legacy support for properties.  Added in Terra 0.21 to support the internal switch in

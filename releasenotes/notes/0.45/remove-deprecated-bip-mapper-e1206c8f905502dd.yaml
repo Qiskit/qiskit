@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    The deprecated transpiler routing pass, ``BIPMapping`` has been removed.
+    It was marked as deprecated in the Qiskit 0.43.0 release. It has been
+    replaced by an external plugin package: ``qiskit-bip-mapper``. Details for
+    this new package can be found at the package's github repository:
+
+        https://github.com/qiskit-community/qiskit-bip-mapper
+
+    The pass was made into a separate plugin package for two reasons, first
+    the dependency on CPLEX makes it harder to use and secondly the plugin
+    package more cleanly integrates with :func:`~.transpile`. The optional
+    extra ``bip-mapper`` to install the ``cplex`` and ``docplex`` to support
+    this pass has been removed as nothing in Qiskit optionally requires it anymore.

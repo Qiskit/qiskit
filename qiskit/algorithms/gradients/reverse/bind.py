@@ -26,7 +26,7 @@ def bind(
     """Bind parameters in a circuit (or list of circuits).
 
     This method also allows passing parameter binds to parameters that are not in the circuit,
-    and thereby differs to :meth:`.QuantumCircuit.bind_parameters`.
+    and thereby differs to :meth:`.QuantumCircuit.assign_parameters`.
 
     Args:
         circuits: Input circuit(s).

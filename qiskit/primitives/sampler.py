@@ -93,7 +93,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
             bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
-                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+                else self._circuits[i].assign_parameters(dict(zip(self._parameters[i], value)))
             )
             qargs_list.append(self._qargs_list[i])
         probabilities = [

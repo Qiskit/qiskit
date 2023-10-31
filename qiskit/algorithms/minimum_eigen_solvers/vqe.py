@@ -569,7 +569,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
+            bound_ansatz = self.ansatz.assign_parameters(result.optimal_point)
 
             aux_values = eval_observables(
                 self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
@@ -648,7 +648,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def _get_eigenstate(self, optimal_parameters) -> list[float] | dict[str, int]:
         """Get the simulation outcome of the ansatz, provided with parameters."""
-        optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
+        optimal_circuit = self.ansatz.assign_parameters(optimal_parameters)
         state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
         if self.quantum_instance.is_statevector:
             state = state_fn.primitive.data  # VectorStateFn -> Statevector -> np.array

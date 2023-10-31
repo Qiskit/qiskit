@@ -59,7 +59,9 @@ class UnrollForLoops(TransformationPass):
 
             unrolled_dag = circuit_to_dag(body).copy_empty_like()
             for index_value in indexset:
-                bound_body = body.bind_parameters({loop_param: index_value}) if loop_param else body
+                bound_body = (
+                    body.assign_parameters({loop_param: index_value}) if loop_param else body
+                )
                 unrolled_dag.compose(circuit_to_dag(bound_body), inplace=True)
             dag.substitute_node_with_dag(forloop_op, unrolled_dag)
 
