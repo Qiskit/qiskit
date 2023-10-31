@@ -1,0 +1,5 @@
+deprecations:
+  - |
+    The functions :func:`.num_to_latex_ket` and :func:`.numbers_to_latex_terms` 
+    have been removed. For similar functionality, see sympy's 
+    ``nsimplify`` and ``latex`` functions.
