@@ -15,9 +15,8 @@
 from qiskit import pulse
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.pulse_v2 import layouts, device_info
-from qiskit.providers.models import PulseBackendConfiguration
 from qiskit.providers.backend import BackendV1, BackendV2
-from qiskit.providers import BackendPropertyError
+from qiskit.providers import BackendPropertyError, BackendConfigurationError
 
 
 class TestChannelArrangement(QiskitTestCase):
@@ -261,9 +260,8 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        class BaseConfiguration(PulseBackendConfiguration):
-            def __init__(self):
-                pass
+        class BaseConfiguration:
+            pass
 
         class BaseBackendV1(BackendV1):
             def __init__(self, configuration):
@@ -286,127 +284,77 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
         class Defaults:
             pass
 
-        class BaseBackendV2(BackendV2):
-            def __init__(self):
-                super().__init__()
-
-            def _default_options(cls):
-                pass
-
-            def max_circuits(self):
-                pass
-
-            def run(self, run_input, **options):
-                pass
-
-            def target(self):
-                pass
-
-        class BackendV2WithDefaults(BaseBackendV2):
-            def __init__(self, defaults, target):
-                super().__init__()
-                self._defaults = defaults
-                self._target = target
-
-            def defaults(self):
-                return self._defaults
-
-            @property
-            def target(self):
-                return self._target
-
-        class Target:
-            pass
-
         self.configuration = BaseConfiguration()
         self.defaults = Defaults()
-        self.target = Target
 
-        self.backendV1 = BaseBackendV1
-        self.backendV2 = BaseBackendV2()
-        self.backendV1WithDefaults = BackendV1WithDefaults
-        self.backendV2WithDefaults = BackendV2WithDefaults(self.defaults, self.target)
+        self.backendV1 = BaseBackendV1(self.configuration)
+        self.backendV1WithDefaults = BackendV1WithDefaults(self.configuration, self.defaults)
 
         self.backendInfo = device_info.OpenPulseBackendInfo()
 
-    def test_backend_v1_adapter_invalid_name(self):
-        """Test if an error is raised when a backend (based on BackendV1) without name is passed through BackendV1Adapter."""
-        backend = self.backendV1(self.configuration)
+    def test_backend_v1_adapter_invalid_defaults(self):
+        """Test if an error is raised when a backend (based on BackendV1) without defaults is passed through BackendV1Adapter."""
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+            self.backendInfo.backend_v1_adapter(self.backendV1)
 
-    def test_backend_v1_adapter_invalid_configuration(self):
-        """Test if an error is raised when a backend (based on BackendV1) without any configuration is passed through BackendV1Adapter."""
+    def test_backend_v1_adapter_invalid_configuration_name(self):
+        """Test if an error is raised when a backend (based on BackendV1) without name is passed through BackendV1Adapter."""
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+
+    def test_backend_v1_adapter_invalid_configuration_n_qubits(self):
+        """Test if an error is raised when a backend (based on BackendV1) without n_qubits is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
     def test_backend_v1_adapter_invalid_configuration_u_channel_lo(self):
-        """Test if an error is raised when a backend (based on BackendV1) without u_channel_lo being passed through BackendV1Adapter."""
+        """Test if an error is raised when a backend (based on BackendV1) without u_channel_lo is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
     def test_backend_v1_adapter_invalid_configuration_drive_channel(self):
-        """Test if an error is raised when a backend (based on BackendV1) without a drive channel being passed through BackendV1Adapter."""
+        """Test if an error is raised when a backend (based on BackendV1) without a drive channel is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
         self.configuration.u_channel_lo = None
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
     def test_backend_v1_adapter_invalid_configuration_measure_channel(self):
-        """Test if an error is raised when a backend (based on BackendV1) without a measure channel being passed through BackendV1Adapter."""
+        """Test if an error is raised when a backend (based on BackendV1) without a measure channel is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
         self.configuration.u_channel_lo = None
         self.configuration.drive = lambda : None
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
     def test_backend_v1_adapter_invalid_configuration_control_channel(self):
-        """Test if an error is raised when a backend (based on BackendV1) without a control channel being passed through BackendV1Adapter."""
+        """Test if an error is raised when a backend (based on BackendV1) without a control channel is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
         self.configuration.u_channel_lo = None
         self.configuration.drive = lambda : None
         self.configuration.measure = lambda : None
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
     def test_backend_v1_adapter_invalid_configuration_dt(self):
-        """Test if an error is raised when a backend (based on BackendV1) without dt being passed through BackendV1Adapter."""
+        """Test if an error is raised when a backend (based on BackendV1) without dt is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
         self.configuration.u_channel_lo = None
         self.configuration.drive = lambda : None
         self.configuration.measure = lambda : None
         self.configuration.control = lambda : None
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
-    def test_backend_v1_adapter_invalid_defaults(self):
-        """Test if an error is raised when a backend (based on BackendV1) without defaults being passed through BackendV1Adapter."""
-        self.configuration.backend_name = 'Dummy'
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda : None
-        self.configuration.measure = lambda : None
-        self.configuration.control = lambda : None
-        self.configuration.dt = None
-        backend = self.backendV1(self.configuration)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
-
-    def test_backend_v1_adapter_invalid_defaults_no_qubit_freq_est(self):
-        """Test if an error is raised when a backend (based on BackendV1) without qubit_freq_est in defaults being passed through BackendV1Adapter."""
+    def test_backend_v1_adapter_invalid_defaults_qubit_freq_est(self):
+        """Test if an error is raised when a backend (based on BackendV1) without qubit_freq_est is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
         self.configuration.u_channel_lo = None
@@ -414,12 +362,11 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
         self.configuration.measure = lambda : None
         self.configuration.control = lambda : None
         self.configuration.dt = None
-        backend = self.backendV1WithDefaults(self.configuration, self.defaults)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
-    def test_backend_v1_adapter_invalid_defaults_no_meas_freq_est(self):
-        """Test if an error is raised when a backend (based on BackendV1) without meas_freq_est in defaults being passed through BackendV1Adapter."""
+    def test_backend_v1_adapter_invalid_defaults_meas_freq_est(self):
+        """Test if an error is raised when a backend (based on BackendV1) without meas_freq_est is passed through BackendV1Adapter."""
         self.configuration.backend_name = 'Dummy'
         self.configuration.n_qubits = 1
         self.configuration.u_channel_lo = None
@@ -428,9 +375,8 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
         self.configuration.control = lambda : None
         self.configuration.dt = None
         self.defaults.qubit_freq_est = []
-        backend = self.backendV1WithDefaults(self.configuration, self.defaults)
-        with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(backend)
+        with self.assertRaises(BackendConfigurationError):
+            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
 
     def test_valid_backend_v1(self):
         """Test backendV1 adapter passing all valid values."""
@@ -444,9 +390,7 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
         self.defaults.qubit_freq_est = []
         self.defaults.meas_freq_est = []
 
-        backend = self.backendV1WithDefaults(self.configuration, self.defaults)
-        name, configuration, dt, defaults = self.backendInfo.backend_v1_adapter(backend)
-
+        name, configuration, dt, defaults = self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
         self.assertEqual(name, 'Dummy')
         self.assertEqual(configuration.n_qubits, 1)
         self.assertIsNone(configuration.u_channel_lo)

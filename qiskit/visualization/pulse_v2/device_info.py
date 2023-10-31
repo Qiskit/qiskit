@@ -98,23 +98,24 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     def backend_v1_adapter(self, backend):
-        configuration = backend.configuration()
-        required_configuration_attributes = ['backend_name', 'n_qubits', 'u_channel_lo', 'drive', 'measure', 'control', 'dt']
-        configuration_attributes = dir(configuration)
-        for attribute in required_configuration_attributes:
-            if(not attribute in configuration):
-                raise BackendPropertyError(f'Backend configuration has no {attribute} attribute')
-
-        backend_attributes = dir(backend)
-        if(not 'defaults' in backend_attributes):
+        if(not 'defaults' in dir(backend)):
             raise BackendPropertyError('Backend has no defaults')
 
+        configuration = backend.configuration()
         defaults = backend.defaults()
+
+        required_configuration_attributes = ['backend_name', 'n_qubits', 'u_channel_lo', 'drive', 'measure', 'control', 'dt']
         required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
+
+        configuration_attributes = dir(configuration)
+        for attribute in required_configuration_attributes:
+            if(not attribute in configuration_attributes):
+                raise BackendConfigurationError(f'Backend configuration has no {attribute} attribute')
+
         defaults_attributes = dir(defaults)
         for attribute in required_defaults_attributes:
             if(not attribute in defaults_attributes):
-                raise BackendPropertyError(f'Backend defaults has no {attribute} attribute')
+                raise BackendConfigurationError(f'Backend defaults has no {attribute} attribute')
 
         return (configuration.backend_name, configuration, configuration.dt, defaults)
 
