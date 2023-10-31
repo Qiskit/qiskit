@@ -262,16 +262,16 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
     def setUp(self) -> None:
         super().setUp()
 
+        class Defaults:
+            qubit_freq_est = []
+            meas_freq_est = []
+
         class ConfigurationV1(PulseBackendConfiguration):
             def __init__(self):
                 self.backend_name = 'DummyV1'
                 self.dt = None
                 self.u_channel_lo = []
                 self.n_qubits = 1
-
-        class Defaults:
-            qubit_freq_est = []
-            meas_freq_est = []
 
         class TargetV2(Target):
             def __init__(self):
@@ -322,6 +322,8 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
                 pass
 
         self.configuration = BaseConfiguration()
+        self.defaults = Defaults()
+
         self.backendV1 = BaseBackendV1
 
         self.backendInfo = device_info.OpenPulseBackendInfo()
@@ -339,6 +341,25 @@ class TestPulseCreateFromDifferentBackends(QiskitTestCase):
         backend_invalid_defaults = self.backendV1(backend_invalid_defaults_conf)
         with self.assertRaises(AttributeError):
             self.backendInfo.backend_v1_adapter(backend_invalid_defaults)
+
+    def test_backend_v1_adapter_invalid_dt(self):
+        """Test if an error is raised when a backend (based on BackendV1) without dt is passed through BackendV1Adapter."""
+        backend_conf = self.configuration
+        backend_conf.backend_name = "Dummy"
+
+        class BackendV1WithDefaults(self.backendV1):
+            def __init__(self, configuration, defaults):
+                super().__init__(configuration)
+                self._defaults = defaults
+
+            def defaults(self):
+                return self._defaults
+
+        backend_invalid_dt = BackendV1WithDefaults(backend_conf, self.defaults)
+        with self.assertRaises(AttributeError):
+            self.backendInfo.backend_v1_adapter(backend_invalid_dt)
+
+
 
 
     def test_backend_v1(self):
