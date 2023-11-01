@@ -339,9 +339,9 @@ def _apply_sabre_result(
             Rust run of the Sabre routing algorithm.
         initial_layout (NLayout): a Rust-space mapping of virtual indices (i.e. those of the qubits
             in ``in_dag``) to physical ones.
-        physical_qubits (list[Qubit]): an indexable sequence of :class:`.Qubit` objects representing
-            the physical qubits of the circuit.  Note that disjoint-coupling handling can mean that
-            these are not strictly a "canonical physical register" in order.
+        physical_qubits (list[Qubit]): an indexable sequence of :class:`.circuit.Qubit` objects
+            representing the physical qubits of the circuit.  Note that disjoint-coupling
+            handling can mean that these are not strictly a "canonical physical register" in order.
         circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
             (as returned by :func:`id`) of a control-flow block :class:`.QuantumCircuit` to a
             :class:`.DAGCircuit` that represents the same thing.

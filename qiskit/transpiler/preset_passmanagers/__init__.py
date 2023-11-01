@@ -61,6 +61,7 @@ import warnings
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import target_to_backend_properties
+from qiskit.transpiler import CouplingMap
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -130,7 +131,7 @@ def generate_preset_pass_manager(
             circuit, transpiler attaches the custom gate definition to the circuit.
             This enables one to flexibly override the low-level instruction
             implementation.
-        coupling_map (CouplingMap): Directed graph represented a coupling
+        coupling_map (CouplingMap or list): Directed graph represented a coupling
             map.
         instruction_durations (InstructionDurations): Dictionary of duration
             (in dt) for each instruction.
@@ -212,6 +213,9 @@ def generate_preset_pass_manager(
             DeprecationWarning,
             stacklevel=2,
         )
+
+    if coupling_map is not None and not isinstance(coupling_map, CouplingMap):
+        coupling_map = CouplingMap(coupling_map)
 
     if target is not None:
         if coupling_map is None:
