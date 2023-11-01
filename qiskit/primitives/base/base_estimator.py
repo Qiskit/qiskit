@@ -80,12 +80,14 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
+import warnings
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 import typing
 
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
@@ -121,10 +123,28 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         Args:
             options: Default options.
         """
-        self._circuits = []
-        self._observables = []
-        self._parameters = []
         super().__init__(options)
+
+    def __getattr__(self, name: str) -> any:
+        # Work around to enable deprecation of the init attributes in BaseEstimator incase
+        # existing subclasses depend on them (which some do)
+        dep_defaults = {
+            "_circuits": [],
+            "_observables": [],
+            "_parameters": [],
+        }
+        if name not in dep_defaults:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        warnings.warn(
+            f"The init attribute `{name}` in BaseEstimator is deprecated as of Qiskit 0.46."
+            " To continue to use this attribute in a subclass and avoid this warning the"
+            " subclass should initialize it itself.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        setattr(self, name, dep_defaults[name])
+        return getattr(self, name)
 
     def run(
         self,
@@ -230,6 +250,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
                 )
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
@@ -239,6 +260,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables to be estimated.
 
@@ -248,6 +270,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._observables)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of the quantum circuits.
 
