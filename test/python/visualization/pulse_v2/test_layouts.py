@@ -492,7 +492,7 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         self.backend_v2_with_defaults.name = (
             "Dummy"  # pylint: disable=attribute-defined-outside-init
         )
-        with self.assertRaises(BackendConfigurationError):
+        with self.assertRaises(BackendPropertyError):
             self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_num_qubits(self):
@@ -501,7 +501,7 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
             "Dummy"  # pylint: disable=attribute-defined-outside-init
         )
         self.target.dt = None  # pylint: disable=attribute-defined-outside-init
-        with self.assertRaises(BackendConfigurationError):
+        with self.assertRaises(BackendPropertyError):
             self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_u_channel_lo(self):
@@ -511,7 +511,7 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         )
         self.target.dt = None  # pylint: disable=attribute-defined-outside-init
         self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
-        with self.assertRaises(BackendConfigurationError):
+        with self.assertRaises(BackendPropertyError):
             self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_defaults_no_qubit_freq_est(self):
@@ -519,9 +519,21 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         self.backend_v2_with_defaults.name = (
             "Dummy"  # pylint: disable=attribute-defined-outside-init
         )
+        # pylint: disable=attribute-defined-outside-init
+        self.backend_v2_with_defaults.u_channel_lo = None
         self.target.dt = None  # pylint: disable=attribute-defined-outside-init
         self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        with self.assertRaises(BackendConfigurationError):
+            self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
+
+    def test_backend_v2_adapter_invalid_defaults_no_qubit_freq_est_u_channel_lo_target(self):
+        """Test if an error is raised when a BackendV2 without qubit_freq_est is passed."""
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
         self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.target.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
             self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
@@ -530,9 +542,9 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         self.backend_v2_with_defaults.name = (
             "Dummy"  # pylint: disable=attribute-defined-outside-init
         )
+        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
         self.target.dt = None  # pylint: disable=attribute-defined-outside-init
         self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
-        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
         self.defaults.qubit_freq_est = []  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
             self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
@@ -542,9 +554,9 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         self.backend_v2_with_defaults.name = (
             "Dummy"  # pylint: disable=attribute-defined-outside-init
         )
+        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
         self.target.dt = None  # pylint: disable=attribute-defined-outside-init
         self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
-        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
         self.defaults.qubit_freq_est = []  # pylint: disable=attribute-defined-outside-init
         self.defaults.meas_freq_est = []  # pylint: disable=attribute-defined-outside-init
 
@@ -680,20 +692,12 @@ class TestPulseCreateFrom(QiskitTestCase):
     def test_create_from_backend_using_backend_v2(self):
         """Test if create_from_backend raises no error for BackendV2."""
 
-        class Target:
-            """All the target data for BackendV2."""
-
-            dt = None
-            num_qubits = 0
-            u_channel_lo = []
-
         class Backend(BackendV2):
             """A backend based on BackendV2 with all the required data."""
 
-            def __init__(self, defaults=self.defaults, target=Target()):
+            def __init__(self, defaults=self.defaults):
                 super().__init__(name="V2")
                 self._defaults = defaults
-                self._target = target
 
             @classmethod
             def _default_options(cls):
@@ -713,13 +717,26 @@ class TestPulseCreateFrom(QiskitTestCase):
 
             @property
             def target(self):
-                return self._target
+                pass
 
             def measure_channel(self, qubit):
                 pass
 
             def drive_channel(self, qubit):
                 pass
+
+            @property
+            def dt(self):
+                return None
+
+            @property
+            def num_qubits(self):
+                return 0
+
+            @property
+            def u_channel_lo(self):
+                """Get u_channel_lo attribute"""
+                return []
 
         try:
             self.backend_info.create_from_backend(Backend())

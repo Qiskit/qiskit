@@ -145,16 +145,20 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
     def backend_v2_adapter(self, backend):
         """Adapter for backends based on BackendV2."""
-        required_backend_attributes = ["name", "defaults"]
-        required_target_attributes = ["dt", "num_qubits", "u_channel_lo"]
+        required_backend_attributes = ["name", "defaults", "dt", "num_qubits"]
         required_defaults_attributes = ["qubit_freq_est", "meas_freq_est"]
 
+        backend_attributes = dir(backend)
         self.raise_attribute_doesnt_exist(
-            dir(backend), required_backend_attributes, BackendPropertyError
+            backend_attributes, required_backend_attributes, BackendPropertyError
         )
-        self.raise_attribute_doesnt_exist(
-            dir(backend.target), required_target_attributes, BackendConfigurationError, "target"
-        )
+
+        if "u_channel_lo" in backend_attributes:
+            u_channel_lo = backend.u_channel_lo
+        elif "u_channel_lo" in dir(backend.target):
+            u_channel_lo = backend.target.u_channel_lo
+        else:
+            raise BackendPropertyError("Backend has no u_channel_lo")
 
         defaults = backend.defaults()
 
@@ -166,11 +170,11 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
             """Wrapper for backend required configurations."""
 
             def __init__(self, backend):
-                self.n_qubits = backend.target.num_qubits
+                self.n_qubits = backend.num_qubits
                 self.measure = backend.measure_channel
                 self.drive = backend.drive_channel
                 self.control = backend.control_channel
-                self.u_channel_lo = backend.target.u_channel_lo
+                self.u_channel_lo = u_channel_lo
 
         return (backend.name, Configuration(backend), backend.dt, defaults)
 
