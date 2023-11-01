@@ -186,7 +186,7 @@ impl CircuitData {
             py: Python<'_>,
             index: isize,
         ) -> PyResult<Py<CircuitInstruction>> {
-            let index = self_.convert_py_index(index, IndexFor::Lookup)?;
+            let index = self_.convert_py_index(index)?;
             if let Some(inst) = self_.data.get(index) {
                 Py::new(
                     py,
@@ -242,7 +242,7 @@ impl CircuitData {
                 Ok(())
             }
             Int(index) => {
-                let index = self.convert_py_index(index, IndexFor::Lookup)?;
+                let index = self.convert_py_index(index)?;
                 if self.data.get(index).is_some() {
                     self.data.remove(index);
                     Ok(())
@@ -301,7 +301,7 @@ impl CircuitData {
                 Ok(())
             }
             Int(index) => {
-                let index = self.convert_py_index(index, IndexFor::Lookup)?;
+                let index = self.convert_py_index(index)?;
                 let value: PyRef<CircuitInstruction> = value.extract()?;
                 let mut cached_entry = self.get_or_cache(py, value)?;
                 std::mem::swap(&mut cached_entry, &mut self.data[index]);
@@ -316,7 +316,7 @@ impl CircuitData {
         index: isize,
         value: PyRef<CircuitInstruction>,
     ) -> PyResult<()> {
-        let index = self.convert_py_index(index, IndexFor::Insertion)?;
+        let index = self.convert_py_index_clamped(index);
         let cache_entry = self.get_or_cache(py, value)?;
         self.data.insert(index, cache_entry);
         Ok(())
@@ -411,11 +411,6 @@ impl CircuitData {
     }
 }
 
-enum IndexFor {
-    Lookup,
-    Insertion,
-}
-
 impl CircuitData {
     fn convert_py_slice(&self, py: Python<'_>, slice: &PySlice) -> PyResult<Vec<isize>> {
         let dict: HashMap<&str, PyObject> =
@@ -428,25 +423,28 @@ impl CircuitData {
         .extract()
     }
 
-    fn convert_py_index(&self, index: isize, kind: IndexFor) -> PyResult<usize> {
+    fn convert_py_index_clamped(&self, index: isize) -> usize {
+        let index = if index < 0 {
+            index + self.data.len() as isize
+        } else {
+            index
+        };
+        std::cmp::min(std::cmp::max(0, index), self.data.len() as isize) as usize
+    }
+
+    fn convert_py_index(&self, index: isize) -> PyResult<usize> {
         let index = if index < 0 {
             index + self.data.len() as isize
         } else {
             index
         };
 
-        let index = match kind {
-            IndexFor::Lookup => {
-                if index < 0 || index >= self.data.len() as isize {
-                    return Err(PyIndexError::new_err(format!(
-                        "Index {:?} is out of bounds.",
-                        index,
-                    )));
-                }
-                index
-            }
-            IndexFor::Insertion => std::cmp::min(std::cmp::max(0, index), self.data.len() as isize),
-        };
+        if index < 0 || index >= self.data.len() as isize {
+            return Err(PyIndexError::new_err(format!(
+                "Index {:?} is out of bounds.",
+                index,
+            )));
+        }
         Ok(index as usize)
     }
 
