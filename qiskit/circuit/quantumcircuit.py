@@ -508,18 +508,13 @@ class QuantumCircuit:
             other, copy_operations=False
         )
 
-    def __copy__(self):
-        # Overridden to prevent copy.copy from using __{get,set}state__
-        # which currently unpacks _data into a Python list.
-        cls = self.__class__
-        cpy = cls.__new__(cls)
-        cpy.__dict__.update(self.__dict__)
-        return cpy
-
     def __deepcopy__(self, memo=None):
-        # This is overridden in addition to __{get,set}state__
-        # to minimize memory pressure when we don't actually
-        # need to pickle (i.e. the typical deepcopy case).
+        # This is overridden to minimize memory pressure when we don't
+        # actually need to pickle (i.e. the typical deepcopy case).
+        # Note:
+        #   This is done here instead of in CircuitData since PyO3
+        #   doesn't include a native way to recursively call
+        #   copy.deepcopy(memo).
         cls = self.__class__
         result = cls.__new__(cls)
         for k in self.__dict__.keys() - {"_data"}:
