@@ -14,10 +14,10 @@
 Qubit reset to computational zero.
 """
 
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.singleton import SingletonInstruction
 
 
-class Reset(Instruction):
+class Reset(SingletonInstruction):
     """Qubit reset."""
 
     def __init__(self, label=None, *, duration=None, unit="dt"):

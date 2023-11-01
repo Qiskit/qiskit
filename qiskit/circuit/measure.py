@@ -14,11 +14,11 @@
 Quantum measurement in the computational basis.
 """
 
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.singleton import SingletonInstruction
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Measure(Instruction):
+class Measure(SingletonInstruction):
     """Quantum measurement in the computational basis."""
 
     def __init__(self, label=None, *, duration=None, unit="dt"):
