@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::circuit_data::SliceOrInt::{Int, Slice};
 use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use crate::quantum_circuit::py_ext;
@@ -233,14 +232,14 @@ impl CircuitData {
 
     pub fn __delitem__(&mut self, py: Python<'_>, index: SliceOrInt) -> PyResult<()> {
         match index {
-            Slice(slice) => {
+            SliceOrInt::Slice(slice) => {
                 let slice = self.convert_py_slice(py, slice)?;
                 for (i, x) in slice.into_iter().enumerate() {
-                    self.__delitem__(py, Int(x - i as isize))?;
+                    self.__delitem__(py, SliceOrInt::Int(x - i as isize))?;
                 }
                 Ok(())
             }
-            Int(index) => {
+            SliceOrInt::Int(index) => {
                 let index = self.convert_py_index(index)?;
                 if self.data.get(index).is_some() {
                     self.data.remove(index);
@@ -262,7 +261,7 @@ impl CircuitData {
         value: &PyAny,
     ) -> PyResult<()> {
         match index {
-            Slice(slice) => {
+            SliceOrInt::Slice(slice) => {
                 let indices = slice.indices(self.data.len().try_into().unwrap())?;
                 let slice = self.convert_py_slice(py, slice)?;
                 let values = value.iter()?.collect::<PyResult<Vec<&PyAny>>>()?;
@@ -277,13 +276,13 @@ impl CircuitData {
                 let enumerated = zip(slice.iter(), values.iter());
                 for (i, v) in enumerated {
                     let v = v;
-                    self.__setitem__(py, Int(*i), *v)?;
+                    self.__setitem__(py, SliceOrInt::Int(*i), *v)?;
                 }
 
                 // Delete any extras.
                 if slice.len() >= values.len() {
                     for _ in 0..(slice.len() - values.len()) {
-                        let res = self.__delitem__(py, Int(indices.stop - 1));
+                        let res = self.__delitem__(py, SliceOrInt::Int(indices.stop - 1));
                         if res.is_err() {
                             // We're empty!
                             break;
@@ -299,7 +298,7 @@ impl CircuitData {
 
                 Ok(())
             }
-            Int(index) => {
+            SliceOrInt::Int(index) => {
                 let index = self.convert_py_index(index)?;
                 let value: PyRef<CircuitInstruction> = value.extract()?;
                 let mut cached_entry = self.get_or_cache(py, value)?;
