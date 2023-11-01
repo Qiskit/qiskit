@@ -1,14 +1,14 @@
 ---
-upgrade:
+upgrade_visualization:
   - |
     The class constructor arguments ``qregs``, ``cregs``,
     ``layout`` and ``global_phase`` for :class:`.visualization.QCircuitImage`
     are removed, as they were deprecated in 0.20.
-
+upgrade_transpiler:
   - |
     In :class:`.transpiler.CouplingMap` method ``subgraph`` is removed
     as deprecated in 0.20. :meth:`~reduce` can be used in place of method ``subgraph``.
-
+upgrade_synthesis:
   - |
     The parameter ``order`` in :class:`.synthesis.SuzukiTrotter`
     constructor raises an exception instead of deprecation warning when

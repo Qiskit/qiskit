@@ -1,5 +1,5 @@
 ---
-fixes:
+fixes_circuits:
   - |
     The control-flow builder interface (the context-manager forms of
     :meth:`.QuantumCircuit.if_test`, :meth:`~.QuantumCircuit.while_loop`,

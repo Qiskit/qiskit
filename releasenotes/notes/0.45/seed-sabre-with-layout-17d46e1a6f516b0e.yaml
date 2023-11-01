@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added support to the :class:`.SabreLayout` pass to add trials with specified
     starting layouts. The :class:`.SabreLayout` transpiler pass typically

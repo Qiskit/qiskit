@@ -1,5 +1,5 @@
 ---
-features:
+features_visualization:
   - |
     In :class:`~qiskit.visualization.circuit.TextDrawer`, operations
     built from :class:`~qiskit.circuit.ControlFlowOp`, including

@@ -1,5 +1,5 @@
 ---
-fixes:
+fixes_transpiler:
   - |
     The use of the (deprecated) ``Optimizer`` class on :class:`~.AQC` did not have a
     non-deprecated alternative path, which should have been introduced in

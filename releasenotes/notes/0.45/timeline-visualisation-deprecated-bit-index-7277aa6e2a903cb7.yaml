@@ -1,5 +1,5 @@
 ---
-features:
+features_visualization:
   - |
     When defining a custom stylesheet for the pulse timeline drawer :func:`qiskit.visualization.timeline_drawer`,
     "generator" functions that have the object attribute ``accepts_program`` set to ``True`` will

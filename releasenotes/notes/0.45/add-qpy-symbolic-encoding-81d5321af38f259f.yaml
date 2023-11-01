@@ -1,5 +1,5 @@
 ---
-features:
+features_qpy:
   - |
     QPY now supports the use of symengine-native serialization and deserialization
     for objects of type ``ParameterExpression`` as well as symbolic expressions in

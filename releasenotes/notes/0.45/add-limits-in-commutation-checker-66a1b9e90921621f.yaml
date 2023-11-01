@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a new option ``max_num_qubits`` to :meth:`qiskit.circuit.CommutationChecker.commute`
     that specifies the maximum number of qubits to consider for the more expensive
@@ -7,7 +7,7 @@ features:
     internally allocate arrays of size :math:`2^N \times 2^N`. Simpler versions of commutativity
     check (for instance, two quantum operations commute when they are over disjoint sets of qubits)
     continue to work without this limit.
-fixes:
+fixes_circuits:
   - |
     The maximum number of qubits to consider for matrix multiplication-based commutativity check
     in :class:`~.CommutationChecker` is now limited to 3 by default.

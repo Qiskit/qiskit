@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Two new transpiler passes are added to generate single-pulse RX gate calibrations on the fly.
     These single-pulse RX calibrations will reduce the gate time in half, as described in

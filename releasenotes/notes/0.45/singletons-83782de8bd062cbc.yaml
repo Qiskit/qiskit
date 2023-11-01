@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Introduced two new classes, :class:`.SingletonInstruction` and :class:`~.SingletonGate`, which
     are subclasses of :class:`~.circuit.Instruction` and :class:`~.Gate` respectively, that use a
@@ -111,7 +111,7 @@ features:
     of their base type.  You can use the new :attr:`~.Instruction.base_class` attribute to find the
     base class of these.  See the attribute documentation for considerations on when other
     subclasses may modify their :attr:`~.Instruction.base_class`, and what this means for execution.
-upgrade:
+upgrade_circuits:
   - |
     The following standard library gates:
 
@@ -186,7 +186,7 @@ upgrade:
 
     If you require the "base" type of a gate for some reason, omitting the synthetic singleton
     subclasses, which cannot be instantiated, see :attr:`.Instruction.base_class`.
-fixes:
+fixes_circuits:
   - |
     Fixed an oversight in the :class:`~.ECRGate` that prevented setting an
     :attr:`.ECRGate.label` attribute at object construction time. All other

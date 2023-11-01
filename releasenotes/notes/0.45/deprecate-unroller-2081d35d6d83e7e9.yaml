@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_transpiler:
   - |
     The :class:`.Unroller` transpiler pass has been deprecated and will be removed
     in a future release. The :class:`.Unroller` has been superseded by the

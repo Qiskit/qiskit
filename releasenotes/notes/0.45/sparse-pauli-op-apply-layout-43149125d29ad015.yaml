@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Added a new method, :meth:`~.SparsePauliOp.apply_layout`,
     to the :class:`~.SparsePauliOp` class. This method is used to apply

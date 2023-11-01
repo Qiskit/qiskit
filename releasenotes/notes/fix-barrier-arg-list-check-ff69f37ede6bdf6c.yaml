@@ -1,5 +1,5 @@
 ---
-fixes:
+fixes_circuits:
   - |
     Fixed an issue with the :class:`.Barrier` class. When adding a
     :class:`.Barrier` instance to a :class:`.QuantumCircuit` with the

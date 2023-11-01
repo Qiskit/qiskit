@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The method :meth:`~qiskit.transpiler.CouplingMap.reduce` now accepts an
     additional argument ``check_if_connected``, defaulted to ``True``. This

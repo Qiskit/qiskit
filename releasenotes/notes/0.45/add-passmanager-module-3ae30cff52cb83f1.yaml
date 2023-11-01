@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     A new module :mod:`qiskit.passmanager` is added.
     This module implements a generic pass manager and flow controllers,
@@ -9,7 +9,7 @@ features:
     The :mod:`qiskit.transpiler` module is also reorganized to rebuild the existing
     pass manager based off of the generic pass manager.
     See upgrade notes for more details.
-upgrade:
+upgrade_transpiler:
   - |
     One new base class for passes (:class:`.GenericPass`) and one for flow controllers (:class:`.BaseController`)
     are introduced in the :mod:`qiskit.passmanager` module.
@@ -60,7 +60,7 @@ upgrade:
     analysis passes should not modify an input IR,
     controllers should not update the property set, and so forth.
     Implementation of the proper code is the responsibility of pass manager developer.
-deprecations:
+deprecations_transpiler:
   - |
     The flow controller factory method :meth:`.FlowController.controller_factory` is deprecated
     along with :meth:`.FlowController.add_flow_controller` and

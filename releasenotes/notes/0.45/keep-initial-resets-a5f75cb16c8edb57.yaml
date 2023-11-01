@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     Disables the use of :class:`.RemoveResetInZeroState` in the preset passmanagers.
     This better aligns circuits to the notion of arbitrary initial states

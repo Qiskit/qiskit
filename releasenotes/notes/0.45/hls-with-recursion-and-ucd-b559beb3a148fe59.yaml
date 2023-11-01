@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The constructor for :class:`.HighLevelSynthesis` transpiler pass now accepts
     additional arguments ``equivalence_library``, ``basis_gates``, and ``min_qubits``.

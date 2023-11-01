@@ -1,5 +1,5 @@
 ---
-features:
+features_visualization:
   - |
     The visualizations from the :func:`~.plot_gate_map`,  :func:`~.plot_coupling_map`.
     :func:`~.plot_error_map`,  and :func:`~.plot_circuit_layout` functions have been significantly
@@ -8,7 +8,7 @@ features:
     to perform a more sophisticated algorithmic graph layout that scales for large numbers of
     qubits.
 
-upgrade:
+upgrade_visualization:
   - |
     The visualization functions: :func:`~.plot_gate_map`,  :func:`~.plot_coupling_map`.
     :func:`~.plot_error_map`,  and :func:`~.plot_circuit_layout` now depend on

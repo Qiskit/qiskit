@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     The plugin name ``default`` is reserved for the :ref:`plugin stages <stage_table>`
     ``init``, ``layout``, ``optimization``, and ``scheduling``. These stages previously

@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Added :meth:`.Clifford.from_linear_function` and :meth:`.Clifford.from_permutation`
     methods that create a ``Clifford`` object from :class:`~.LinearFunction`

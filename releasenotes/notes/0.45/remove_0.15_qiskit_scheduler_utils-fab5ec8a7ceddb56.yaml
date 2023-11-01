@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_pulse:
   - |
     The functions ``qiskit.scheduler.utils.format_meas_map()``,  ``qiskit.scheduler.utils.measure()``, and
     ``qiskit.scheduler.utils.measure_all()``

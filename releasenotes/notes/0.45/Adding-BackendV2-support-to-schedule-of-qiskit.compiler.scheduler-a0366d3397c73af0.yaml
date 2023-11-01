@@ -1,5 +1,5 @@
 ---
-features:
+features_pulse:
   - |
     Enables circuit-to-pulse scheduling using :class:`~.BackendV2`.
 

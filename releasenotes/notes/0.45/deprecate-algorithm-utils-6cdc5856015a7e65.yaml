@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_algorithms:
   - |
     The algorithm utils in ``qiskit.utils.validation`` and ``qiskit.utils.algorithm_globals``
     are now deprecated and will be removed in no less than 3 months from the release date.

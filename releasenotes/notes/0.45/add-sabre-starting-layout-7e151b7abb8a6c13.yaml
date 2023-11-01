@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new analysis :class:`.SabrePreLayout` pass that creates a starting
     layout for :class:`.SabreLayout`, writing the layout into the property set

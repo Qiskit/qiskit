@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a new argument, ``check_input``, to the constructor for the
     :class:`~.UnitaryGate` class. This flag is used to disable the default

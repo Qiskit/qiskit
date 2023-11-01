@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_visualization:
   - |
     Removed the argument ``rho`` in :func:`~qiskit.visualization.plot_state_hinton`,
     :func:`~qiskit.visualization.plot_bloch_multivector`,

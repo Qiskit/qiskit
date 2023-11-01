@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_quantum_info:
   - |
     The method :meth:`qiskit.quantum_info.pauli_basis`
     does not accept the ``pauli_list`` argument any more.

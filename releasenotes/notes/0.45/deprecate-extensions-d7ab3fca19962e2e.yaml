@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_circuits:
   - |
     To streamline the structure of Qiskit's gates and operations, the :mod:`qiskit.extensions`
     module is pending deprecation and will be deprecated in a future release.

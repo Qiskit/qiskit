@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_circuits:
   - |
     The definition of :class:`~.UnitaryGate` for single qubit unitaries is now in
     terms of :class:`~.UGate` instead of the legacy :class:`~.U3Gate` class.

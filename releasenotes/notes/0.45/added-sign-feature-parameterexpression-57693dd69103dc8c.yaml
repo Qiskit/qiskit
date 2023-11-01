@@ -1,5 +1,5 @@
 ---
-features:
+features_misc:
   - |
     Added support for expressing the sign of a :class:`.ParameterExpression`.
     Instead of assigning a concrete value and using :data:`numpy.sign` or other library functions,

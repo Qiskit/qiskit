@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     A fast path for :meth:`.Parameter.assign` has been added, which improves the performance of
     :meth:`.QuantumCircuit.assign_parameters` for the common case of circuits that contain

@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     The deprecated transpiler routing pass, ``BIPMapping`` has been removed.
     It was marked as deprecated in the Qiskit 0.43.0 release. It has been

@@ -1,5 +1,5 @@
 ---
-fixes:
+fixes_transpiler:
   - |
     Fixed :class:`~.CommutationAnalysis` to group gates on a wire into sets, with each
     set only containing gates that pairwise commute. This prevents
