@@ -1,5 +1,5 @@
 ---
-fixes_transpiler:
+fixes:
   - |
     The pass :class:`.NoiseAdaptiveLayout` now takes :class:`~qiskit.transpiler.CouplingMap`
     as an optional argument. This is used by the plugin to control on inconsistency between

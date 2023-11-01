@@ -1,5 +1,5 @@
 ---
-fixes_qpy:
+fixes:
   - |
     Fixed a bug in QPY serialization (:mod:`qiskit.qpy`) where controlled unitary gates in
     a circuit could result would fail to deserialize.  Fixed `#10802

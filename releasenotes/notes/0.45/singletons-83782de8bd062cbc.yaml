@@ -186,7 +186,7 @@ upgrade_circuits:
 
     If you require the "base" type of a gate for some reason, omitting the synthetic singleton
     subclasses, which cannot be instantiated, see :attr:`.Instruction.base_class`.
-fixes_circuits:
+fixes:
   - |
     Fixed an oversight in the :class:`~.ECRGate` that prevented setting an
     :attr:`.ECRGate.label` attribute at object construction time. All other

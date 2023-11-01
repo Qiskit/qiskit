@@ -1,5 +1,5 @@
 ---
-fixes_circuits:
+fixes:
   - |
     :class:`.CUGate` will now behave correctly during calls to :meth:`.QuantumCircuit.assign_parameters`.
     Previously, it would cause various odd errors, often some time after the initial circuit assignment.

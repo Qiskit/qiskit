@@ -1,5 +1,5 @@
 ---
-fixes_transpiler:
+fixes:
   - |
     The :class:`.GateDirection` transpiler pass will now use discrete-basis translations rather than
     relying on a continuous :class:`.RYGate`, which should help make some discrete-basis-set targets
