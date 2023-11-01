@@ -21,7 +21,8 @@ import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U2Gate
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import PassManager, PropertySet, TransformationPass, FlowController
+from qiskit.passmanager.flow_controllers import FlowControllerLinear
+from qiskit.transpiler import PassManager, PropertySet, TransformationPass
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.test import QiskitTestCase
@@ -55,7 +56,8 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(Unroller(["u2"]))
+        with self.assertWarns(DeprecationWarning):
+            passmanager.append(Unroller(["u2"]))
         passmanager.append(Optimize1qGates())
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
@@ -147,7 +149,7 @@ class TestPassManager(QiskitTestCase):
             inner.append(DummyPass(f"{prefix} 4"), do_while=repeat(1))
             return inner.to_flow_controller()
 
-        self.assertIsInstance(make_inner("test"), FlowController)
+        self.assertIsInstance(make_inner("test"), FlowControllerLinear)
 
         outer = PassManager()
         outer.append(make_inner("first"))

@@ -34,56 +34,60 @@ class TestValidation(QiskitAlgorithmsTestCase):
     def test_validate_in_set(self):
         """validate in set test"""
         test_value = "value1"
-        validate_in_set("test_value", test_value, {"value1", "value2"})
-        with self.assertRaises(ValueError):
-            validate_in_set("test_value", test_value, {"value3", "value4"})
+        with self.assertWarns(DeprecationWarning):
+            validate_in_set("test_value", test_value, {"value1", "value2"})
+            with self.assertRaises(ValueError):
+                validate_in_set("test_value", test_value, {"value3", "value4"})
 
     def test_validate_min(self):
         """validate min test"""
         test_value = 2.5
-        validate_min("test_value", test_value, -1)
-        validate_min("test_value", test_value, 2.5)
-        with self.assertRaises(ValueError):
-            validate_min("test_value", test_value, 4)
-        validate_min_exclusive("test_value", test_value, -1)
-        with self.assertRaises(ValueError):
-            validate_min_exclusive("test_value", test_value, 2.5)
-        with self.assertRaises(ValueError):
-            validate_min_exclusive("test_value", test_value, 4)
+        with self.assertWarns(DeprecationWarning):
+            validate_min("test_value", test_value, -1)
+            validate_min("test_value", test_value, 2.5)
+            with self.assertRaises(ValueError):
+                validate_min("test_value", test_value, 4)
+            validate_min_exclusive("test_value", test_value, -1)
+            with self.assertRaises(ValueError):
+                validate_min_exclusive("test_value", test_value, 2.5)
+            with self.assertRaises(ValueError):
+                validate_min_exclusive("test_value", test_value, 4)
 
     def test_validate_max(self):
         """validate max test"""
         test_value = 2.5
-        with self.assertRaises(ValueError):
-            validate_max("test_value", test_value, -1)
-        validate_max("test_value", test_value, 2.5)
-        validate_max("test_value", test_value, 4)
-        with self.assertRaises(ValueError):
-            validate_max_exclusive("test_value", test_value, -1)
-        with self.assertRaises(ValueError):
-            validate_max_exclusive("test_value", test_value, 2.5)
-        validate_max_exclusive("test_value", test_value, 4)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError):
+                validate_max("test_value", test_value, -1)
+            validate_max("test_value", test_value, 2.5)
+            validate_max("test_value", test_value, 4)
+            with self.assertRaises(ValueError):
+                validate_max_exclusive("test_value", test_value, -1)
+            with self.assertRaises(ValueError):
+                validate_max_exclusive("test_value", test_value, 2.5)
+            validate_max_exclusive("test_value", test_value, 4)
 
     def test_validate_range(self):
         """validate range test"""
         test_value = 2.5
-        with self.assertRaises(ValueError):
-            validate_range("test_value", test_value, 0, 2)
-        with self.assertRaises(ValueError):
-            validate_range("test_value", test_value, 3, 4)
-        validate_range("test_value", test_value, 2.5, 3)
-        validate_range_exclusive("test_value", test_value, 0, 3)
-        with self.assertRaises(ValueError):
-            validate_range_exclusive("test_value", test_value, 0, 2.5)
-            validate_range_exclusive("test_value", test_value, 2.5, 3)
-        validate_range_exclusive_min("test_value", test_value, 0, 3)
-        with self.assertRaises(ValueError):
-            validate_range_exclusive_min("test_value", test_value, 2.5, 3)
-        validate_range_exclusive_min("test_value", test_value, 0, 2.5)
-        validate_range_exclusive_max("test_value", test_value, 2.5, 3)
-        with self.assertRaises(ValueError):
-            validate_range_exclusive_max("test_value", test_value, 0, 2.5)
-        validate_range_exclusive_max("test_value", test_value, 2.5, 3)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError):
+                validate_range("test_value", test_value, 0, 2)
+            with self.assertRaises(ValueError):
+                validate_range("test_value", test_value, 3, 4)
+            validate_range("test_value", test_value, 2.5, 3)
+            validate_range_exclusive("test_value", test_value, 0, 3)
+            with self.assertRaises(ValueError):
+                validate_range_exclusive("test_value", test_value, 0, 2.5)
+                validate_range_exclusive("test_value", test_value, 2.5, 3)
+            validate_range_exclusive_min("test_value", test_value, 0, 3)
+            with self.assertRaises(ValueError):
+                validate_range_exclusive_min("test_value", test_value, 2.5, 3)
+            validate_range_exclusive_min("test_value", test_value, 0, 2.5)
+            validate_range_exclusive_max("test_value", test_value, 2.5, 3)
+            with self.assertRaises(ValueError):
+                validate_range_exclusive_max("test_value", test_value, 0, 2.5)
+            validate_range_exclusive_max("test_value", test_value, 2.5, 3)
 
 
 if __name__ == "__main__":

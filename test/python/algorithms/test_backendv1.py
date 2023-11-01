@@ -13,6 +13,8 @@
 """Test Providers that support BackendV1 interface"""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
@@ -103,7 +105,9 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
             self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
 
         # build noise model
         noise_model = noise.NoiseModel()

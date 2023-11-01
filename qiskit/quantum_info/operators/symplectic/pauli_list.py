@@ -28,8 +28,6 @@ from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
-from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
@@ -134,12 +132,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if isinstance(data, BasePauli):
             base_z, base_x, base_phase = data._z, data._x, data._phase
-        elif isinstance(data, StabilizerTable):
-            # Conversion from legacy StabilizerTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase)
-        elif isinstance(data, PauliTable):
-            # Conversion from legacy PauliTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X)
         else:
             # Conversion as iterable of Paulis
             base_z, base_x, base_phase = self._from_paulis(data)

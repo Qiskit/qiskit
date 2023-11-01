@@ -17,7 +17,7 @@ from typing import Optional
 
 import numpy
 
-from qiskit.circuit.singleton_gate import SingletonGate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
@@ -55,13 +55,11 @@ class TGate(SingletonGate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new T gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "t", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("t", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -120,13 +118,11 @@ class TdgGate(SingletonGate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Tdg gate."""
-        if unit is None:
-            unit = "dt"
-        super().__init__(
-            "tdg", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
-        )
+        super().__init__("tdg", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """

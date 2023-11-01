@@ -12,6 +12,8 @@
 
 """Test validate bounds."""
 
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from unittest.mock import Mock
@@ -27,7 +29,9 @@ class TestValidateBounds(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        algorithm_globals.random_seed = 0
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 0
         self.bounds = [(-np.pi / 2, np.pi / 2)]
         self.ansatz = Mock()
 

@@ -168,7 +168,9 @@ def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's t
     # We use the inner `_append` method because everything is already resolved in the builders.
     out_circuits = []
     for circuit in circuits:
-        out = QuantumCircuit(qubits, clbits, *circuit.qregs, *circuit.cregs)
+        out = QuantumCircuit(
+            qubits, clbits, *circuit.qregs, *circuit.cregs, global_phase=circuit.global_phase
+        )
         for instruction in circuit.data:
             out._append(instruction)
         out_circuits.append(out)
