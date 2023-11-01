@@ -17,7 +17,7 @@ from math import ceil, pi
 import numpy
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 
@@ -74,6 +74,8 @@ class XGate(SingletonGate):
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new X gate."""
         super().__init__("x", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -210,6 +212,8 @@ class CXGate(SingletonControlledGate):
             unit=unit,
         )
 
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
+
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -333,6 +337,8 @@ class CCXGate(SingletonControlledGate):
             unit=unit,
         )
 
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)
+
     def _define(self):
         """
         gate ccx a,b,c
@@ -442,6 +448,8 @@ class RCCXGate(SingletonGate):
         """Create a new simplified CCX gate."""
         super().__init__("rccx", 3, [], label=label, duration=duration, unit=unit)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
         """
         gate rccx a,b,c
@@ -518,6 +526,8 @@ class C3SXGate(SingletonControlledGate):
             duration=duration,
             unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
 
     def _define(self):
         """
@@ -628,7 +638,9 @@ class C3XGate(SingletonControlledGate):
             unit=unit,
         )
 
-    # seems like open controls not hapening?
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
+
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3x a,b,c,d
@@ -720,9 +732,12 @@ class C3XGate(SingletonControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 3, label=label, ctrl_state=new_ctrl_state)
-        gate.base_gate.label = self.label
-        return gate
+        return MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 3,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
 
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
@@ -766,6 +781,8 @@ class RC3XGate(SingletonGate):
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create a new RC3X gate."""
         super().__init__("rcccx", 4, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -859,6 +876,8 @@ class C4XGate(SingletonControlledGate):
             unit=unit,
         )
 
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=4)
+
     # seems like open controls not hapening?
     def _define(self):
         """
@@ -929,9 +948,12 @@ class C4XGate(SingletonControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits + 4, label=label, ctrl_state=new_ctrl_state)
-        gate.base_gate.label = self.label
-        return gate
+        return MCXGate(
+            num_ctrl_qubits=num_ctrl_qubits + 4,
+            label=label,
+            ctrl_state=new_ctrl_state,
+            _base_label=self.label,
+        )
 
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
@@ -984,6 +1006,9 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _name="mcx",
         _base_label=None,
     ):
@@ -1052,11 +1077,12 @@ class MCXGate(ControlledGate):
         """
         if ctrl_state is None:
             # use __class__ so this works for derived classes
-            gate = self.__class__(
-                self.num_ctrl_qubits + num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            return self.__class__(
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                _base_label=self.label,
             )
-            gate.base_gate.label = self.label
-            return gate
         return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
 
@@ -1139,8 +1165,20 @@ class MCXRecursive(MCXGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive")
+        super().__init__(
+            num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            _name="mcx_recursive",
+            duration=duration,
+            unit=unit,
+            _base_label=None,
+        )
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "recursion"):
@@ -1227,6 +1265,9 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
         _base_label=None,
     ):
         super().__init__(
@@ -1235,6 +1276,8 @@ class MCXVChain(MCXGate):
             ctrl_state=ctrl_state,
             _name="mcx_vchain",
             _base_label=_base_label,
+            duration=duration,
+            unit=unit,
         )
         self._dirty_ancillas = dirty_ancillas
 

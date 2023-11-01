@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Added a new method, :meth:`~.SparsePauliOp.apply_layout`,
+    to the :class:`~.SparsePauliOp` class. This method is used to apply
+    a :class:`~.TranspileLayout` layout from the transpiler
+    to a :class:`~.SparsePauliOp` observable that was built for an
+    input circuit to the transpiler. This enables working with
+    :class:`~.BaseEstimator` implementations and local transpilation more
+    easily. For example::
+
+        from qiskit.circuit.library import RealAmplitudes
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.primitives import BackendEstimator
+        from qiskit.compiler import transpile
+        from qiskit.providers.fake_provider import FakeNairobiV2
+
+        psi = RealAmplitudes(num_qubits=2, reps=2)
+        H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        backend = FakeNairobiV2()
+        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+
+        thetas = [0, 1, 1, 2, 3, 5]
+        transpiled_psi = transpile(psi, backend, optimization_level=3)
+        permuted_op = H1.apply_layout(transpiled_psi.layout)
+        res = estimator.run(transpiled_psi, permuted_op, thetas)
+
+    where an input circuit is transpiled locally before it's passed to
+    :class:`~.BaseEstimator.run`. Transpilation expands the original
+    circuit from 2 to 7 qubits (the size of ``backend``) and permutes its layout,
+    which is then applied to ``H1`` using :meth:`~.SparsePauliOp.apply_layout`
+    to reflect the transformations performed by :func:`~.transpile`.

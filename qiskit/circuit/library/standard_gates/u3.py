@@ -85,9 +85,12 @@ class U3Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new U3 gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label)
+        super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
     def inverse(self):
         r"""Return inverted U3 gate.
@@ -208,6 +211,10 @@ class CU3Gate(ControlledGate):
         lam: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CU3 gate."""
         super().__init__(
@@ -217,7 +224,9 @@ class CU3Gate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
+            base_gate=U3Gate(theta, phi, lam, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):

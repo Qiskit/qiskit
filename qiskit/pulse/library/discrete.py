@@ -28,15 +28,15 @@ _sampled_constant_pulse = samplers.midpoint(continuous.constant)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including constant() is pending deprecation."
+    additional_msg="The discrete pulses library, including constant() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Constant(...).get_waveform(). "
-    " Note that complex value support for the `amp` parameter is pending deprecation"
-    " in the SymbolicPulse library. It is therefore recommended to use two float values"
+    " Note that complex value support for the `amp` parameter is deprecated"
+    " in the SymbolicPulse library. Use two float values"
     " for (`amp`, `angle`) instead of complex `amp`",
-    pending=True,
+    pending=False,
 )
 def constant(duration: int, amp: complex, name: Optional[str] = None) -> Waveform:
     r"""Generates constant-sampled :class:`~qiskit.pulse.library.Waveform`.
@@ -59,12 +59,12 @@ _sampled_zero_pulse = samplers.midpoint(continuous.zero)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including zero() is pending deprecation."
+    additional_msg="The discrete pulses library, including zero() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Constant(amp=0,...).get_waveform().",
-    pending=True,
+    pending=False,
 )
 def zero(duration: int, name: Optional[str] = None) -> Waveform:
     """Generates zero-sampled :class:`~qiskit.pulse.library.Waveform`.
@@ -86,14 +86,14 @@ _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including square() is pending deprecation."
+    additional_msg="The discrete pulses library, including square() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Square(...).get_waveform()."
     " Note that pulse.Square() does not support complex values for `amp`,"
     " and that the phase is defined differently. See documentation.",
-    pending=True,
+    pending=False,
 )
 def square(
     duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
@@ -128,16 +128,16 @@ _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including sawtooth() is pending deprecation."
+    additional_msg="The discrete pulses library, including sawtooth() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Sawtooth(...).get_waveform()."
     " Note that pulse.Sawtooth() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`)."
     " Also note that the phase is defined differently, such that 2*pi phase"
     " shifts by a full cycle.",
-    pending=True,
+    pending=False,
 )
 def sawtooth(
     duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
@@ -186,14 +186,14 @@ _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including triangle() is pending deprecation."
+    additional_msg="The discrete pulses library, including triangle() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Triangle(...).get_waveform()."
     " Note that pulse.Triangle() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`).",
-    pending=True,
+    pending=False,
 )
 def triangle(
     duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
@@ -242,14 +242,14 @@ _sampled_cos_pulse = samplers.midpoint(continuous.cos)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including cos() is pending deprecation."
+    additional_msg="The discrete pulses library, including cos() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Cos(...).get_waveform()."
     " Note that pulse.Cos() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`).",
-    pending=True,
+    pending=False,
 )
 def cos(
     duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
@@ -281,14 +281,14 @@ _sampled_sin_pulse = samplers.midpoint(continuous.sin)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including sin() is pending deprecation."
+    additional_msg="The discrete pulses library, including sin() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Sin(...).get_waveform()."
     " Note that pulse.Sin() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`).",
-    pending=True,
+    pending=False,
 )
 def sin(
     duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
@@ -320,15 +320,15 @@ _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including gaussian() is pending deprecation."
+    additional_msg="The discrete pulses library, including gaussian() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Gaussian(...).get_waveform()."
-    " Note that complex value support for the `amp` parameter is pending deprecation"
+    " Note that complex value support for the `amp` parameter is deprecated"
     " in the SymbolicPulse library. It is therefore recommended to use two float values"
     " for (`amp`, `angle`) instead of complex `amp`",
-    pending=True,
+    pending=False,
 )
 def gaussian(
     duration: int, amp: complex, sigma: float, name: Optional[str] = None, zero_ends: bool = True
@@ -375,14 +375,14 @@ _sampled_gaussian_deriv_pulse = samplers.midpoint(continuous.gaussian_deriv)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including gaussian_deriv() is pending deprecation."
+    additional_msg="The discrete pulses library, including gaussian_deriv() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.GaussianDeriv(...).get_waveform()."
     " Note that pulse.GaussianDeriv() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`).",
-    pending=True,
+    pending=False,
 )
 def gaussian_deriv(
     duration: int, amp: complex, sigma: float, name: Optional[str] = None
@@ -413,14 +413,14 @@ _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including sech() is pending deprecation."
+    additional_msg="The discrete pulses library, including sech() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Sech(...).get_waveform()."
     " Note that pulse.Sech() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`).",
-    pending=True,
+    pending=False,
 )
 def sech(
     duration: int, amp: complex, sigma: float, name: str = None, zero_ends: bool = True
@@ -465,14 +465,14 @@ _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including sech_deriv() is pending deprecation."
+    additional_msg="The discrete pulses library, including sech_deriv() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.SechDeriv(...).get_waveform()."
     " Note that pulse.SechDeriv() does not support complex values for `amp`."
     " Instead, use two float values for (`amp`, `angle`).",
-    pending=True,
+    pending=False,
 )
 def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> Waveform:
     r"""Generates unnormalized sech derivative :class:`~qiskit.pulse.library.Waveform`.
@@ -500,15 +500,15 @@ _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including gaussian_square() is pending deprecation."
+    additional_msg="The discrete pulses library, including gaussian_square() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.GaussianSquare(...).get_waveform()."
-    " Note that complex value support for the `amp` parameter is pending deprecation"
+    " Note that complex value support for the `amp` parameter is deprecated"
     " in the SymbolicPulse library. It is therefore recommended to use two float values"
     " for (`amp`, `angle`) instead of complex `amp`",
-    pending=True,
+    pending=False,
 )
 def gaussian_square(
     duration: int,
@@ -577,15 +577,15 @@ _sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
 @deprecate_func(
-    since="0.25.0",
+    since="0.46.0",
     package_name="qiskit-terra",
-    additional_msg="The discrete pulses library, including drag() is pending deprecation."
+    additional_msg="The discrete pulses library, including drag() is deprecated."
     " Instead, use the SymbolicPulse library to create the waveform with"
     " pulse.Drag(...).get_waveform()."
-    " Note that complex value support for the `amp` parameter is pending deprecation"
+    " Note that complex value support for the `amp` parameter is deprecated"
     " in the SymbolicPulse library. It is therefore recommended to use two float values"
     " for (`amp`, `angle`) instead of complex `amp`",
-    pending=True,
+    pending=False,
 )
 def drag(
     duration: int,

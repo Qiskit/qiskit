@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,11 +12,12 @@
 """
 Tests AQC plugin.
 """
+from functools import partial
 
 import numpy as np
+from scipy.optimize import minimize
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.optimizers import SLSQP
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -68,12 +69,13 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
 
     def test_plugin_configuration(self):
         """Tests plugin with a custom configuration."""
+        optimizer = partial(minimize, args=(), method="SLSQP")
         config = {
             "network_layout": "sequ",
             "connectivity_type": "full",
             "depth": 0,
             "seed": 12345,
-            "optimizer": SLSQP(),
+            "optimizer": optimizer,
         }
         transpiler_pass = UnitarySynthesis(
             basis_gates=["rx", "ry", "rz", "cx"], method="aqc", plugin_config=config

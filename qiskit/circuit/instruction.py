@@ -215,7 +215,7 @@ class Instruction(Operation):
         return True
 
     def __repr__(self) -> str:
-        """Generates a representation of the Intruction object instance
+        """Generates a representation of the Instruction object instance
         Returns:
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
@@ -497,11 +497,11 @@ class Instruction(Operation):
             cpy.name = name
         return cpy
 
-    def __deepcopy__(self, _memo=None):
+    def __deepcopy__(self, memo=None):
         cpy = copy.copy(self)
         cpy._params = copy.copy(self._params)
         if self._definition:
-            cpy._definition = copy.deepcopy(self._definition, _memo)
+            cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
 
     def _qasmif(self, string):
