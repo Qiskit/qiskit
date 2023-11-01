@@ -133,7 +133,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
             ValueError: Invalid arguments are given.
         """
         # Validation
-        circuits, parameter_values = validation.validate_sampler_args(circuits, parameter_values)
+        circuits, parameter_values = validation._validate_sampler_args(circuits, parameter_values)
 
         # Options
         run_opts = copy(self.options)

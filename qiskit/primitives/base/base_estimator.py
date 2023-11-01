@@ -171,7 +171,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             ValueError: Invalid argument values given.
         """
         # Validation
-        circuits, observables, parameter_values = validation.validate_estimator_args(
+        circuits, observables, parameter_values = validation._validate_estimator_args(
             circuits, observables, parameter_values
         )
 

@@ -32,7 +32,7 @@ if typing.TYPE_CHECKING:
     from qiskit.opflow import PauliSumOp
 
 
-def validate_estimator_args(
+def _validate_estimator_args(
     circuits: Sequence[QuantumCircuit] | QuantumCircuit,
     observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
     parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
@@ -66,7 +66,7 @@ def validate_estimator_args(
     return circuits, observables, parameter_values
 
 
-def validate_sampler_args(
+def _validate_sampler_args(
     circuits: Sequence[QuantumCircuit] | QuantumCircuit,
     parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
 ) -> tuple[tuple[QuantumCircuit], tuple[BaseOperator], tuple[tuple[float]]]:
