@@ -261,12 +261,18 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
         super().setUp()
 
         class BaseConfiguration:
-            pass
+            """A class for store the backendV1 configuration."""
+
+            def __init__(self):
+                pass
 
         class BaseBackendV1(BackendV1):
+            """A backed based on BackendV1."""
+
             def __init__(self, configuration):
                 super().__init__(configuration)
 
+            @classmethod
             def _default_options(cls):
                 pass
 
@@ -274,124 +280,130 @@ class TestPulseCreateFromBackendV1(QiskitTestCase):
                 pass
 
         class BackendV1WithDefaults(BaseBackendV1):
+            """A backend based on BackendV1 with defaults."""
+
             def __init__(self, configuration, defaults):
                 super().__init__(configuration)
                 self._defaults = defaults
 
             def defaults(self):
+                """Get backend defaults."""
                 return self._defaults
 
         class Defaults:
-            pass
+            """A class to store the defaults data for BackendV1."""
+
+            def __init__(self):
+                pass
 
         self.configuration = BaseConfiguration()
         self.defaults = Defaults()
 
-        self.backendV1 = BaseBackendV1(self.configuration)
-        self.backendV1WithDefaults = BackendV1WithDefaults(self.configuration, self.defaults)
+        self.backend_v1 = BaseBackendV1(self.configuration)
+        self.backend_v1_with_defaults = BackendV1WithDefaults(self.configuration, self.defaults)
 
-        self.backendInfo = device_info.OpenPulseBackendInfo()
+        self.backend_info = device_info.OpenPulseBackendInfo()
 
     def test_backend_v1_adapter_invalid_defaults(self):
-        """Test if an error is raised when a backend (based on BackendV1) without defaults is passed through BackendV1Adapter."""
+        """Test if an error is raised when a BackendV1 without defaults is passed."""
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v1_adapter(self.backendV1)
+            self.backend_info.backend_v1_adapter(self.backend_v1)
 
     def test_backend_v1_adapter_invalid_configuration_name(self):
-        """Test if an error is raised when a backend (based on BackendV1) without name is passed through BackendV1Adapter."""
+        """Test if an error is raised when a BackendV1 without name is passed."""
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_configuration_n_qubits(self):
-        """Test if an error is raised when a backend (based on BackendV1) without n_qubits is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
+        """Test if an error is raised when a BackendV1 without n_qubits is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_configuration_u_channel_lo(self):
-        """Test if an error is raised when a backend (based on BackendV1) without u_channel_lo is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
+        """Test if an error is raised when a BackendV1 without u_channel_lo is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_configuration_drive_channel(self):
-        """Test if an error is raised when a backend (based on BackendV1) without a drive channel is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
+        """Test if an error is raised when a BackendV1 without drive is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_configuration_measure_channel(self):
-        """Test if an error is raised when a backend (based on BackendV1) without a measure channel is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda: None
+        """Test if an error is raised when a BackendV1 without a measure is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.drive = lambda: None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_configuration_control_channel(self):
-        """Test if an error is raised when a backend (based on BackendV1) without a control channel is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda: None
-        self.configuration.measure = lambda: None
+        """Test if an error is raised when a BackendV1 without a control is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.drive = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.measure = lambda: None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_configuration_dt(self):
-        """Test if an error is raised when a backend (based on BackendV1) without dt is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda: None
-        self.configuration.measure = lambda: None
-        self.configuration.control = lambda: None
+        """Test if an error is raised when a BackendV1 without dt is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.drive = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.measure = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.control = lambda: None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_defaults_qubit_freq_est(self):
-        """Test if an error is raised when a backend (based on BackendV1) without qubit_freq_est is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda: None
-        self.configuration.measure = lambda: None
-        self.configuration.control = lambda: None
-        self.configuration.dt = None
+        """Test if an error is raised when a BackendV1 without qubit_freq_est is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.drive = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.measure = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.control = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.dt = None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_backend_v1_adapter_invalid_defaults_meas_freq_est(self):
-        """Test if an error is raised when a backend (based on BackendV1) without meas_freq_est is passed through BackendV1Adapter."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda: None
-        self.configuration.measure = lambda: None
-        self.configuration.control = lambda: None
-        self.configuration.dt = None
-        self.defaults.qubit_freq_est = []
+        """Test if an error is raised when a BackendV1 without meas_freq_est is passed."""
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.drive = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.measure = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.control = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.defaults.qubit_freq_est = []  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v1_adapter(self.backendV1WithDefaults)
+            self.backend_info.backend_v1_adapter(self.backend_v1_with_defaults)
 
     def test_valid_backend_v1(self):
         """Test backendV1 adapter passing all valid values."""
-        self.configuration.backend_name = "Dummy"
-        self.configuration.n_qubits = 1
-        self.configuration.u_channel_lo = None
-        self.configuration.drive = lambda: None
-        self.configuration.measure = lambda: None
-        self.configuration.control = lambda: None
-        self.configuration.dt = None
-        self.defaults.qubit_freq_est = []
-        self.defaults.meas_freq_est = []
+        self.configuration.backend_name = "Dummy"  # pylint: disable=attribute-defined-outside-init
+        self.configuration.n_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.configuration.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.drive = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.measure = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.control = lambda: None  # pylint: disable=attribute-defined-outside-init
+        self.configuration.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.defaults.qubit_freq_est = []  # pylint: disable=attribute-defined-outside-init
+        self.defaults.meas_freq_est = []  # pylint: disable=attribute-defined-outside-init
 
-        name, configuration, dt, defaults = self.backendInfo.backend_v1_adapter(
-            self.backendV1WithDefaults
+        name, configuration, dt, defaults = self.backend_info.backend_v1_adapter(
+            self.backend_v1_with_defaults
         )
         self.assertEqual(name, "Dummy")
         self.assertEqual(configuration.n_qubits, 1)
@@ -411,13 +423,17 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
         super().setUp()
 
         class BaseBackendV2(BackendV2):
+            """A backend Based on BackendV2."""
+
             def __init__(self):
                 super().__init__()
                 self._target = None
 
+            @classmethod
             def _default_options(cls):
                 pass
 
+            @property
             def max_circuits(self):
                 pass
 
@@ -429,90 +445,111 @@ class TestPulseCreateFromBackendV2(QiskitTestCase):
                 return self._target
 
         class BackendV2WithDefaults(BaseBackendV2):
+            """A backend based on BackendV2 with defaults."""
+
             def __init__(self, defaults, target):
                 super().__init__()
                 self._defaults = defaults
                 self._target = target
 
             def defaults(self):
+                """Get backend defaults."""
                 return self._defaults
 
         class Defaults:
-            pass
+            """A class to store the defaults data for BackendV2."""
+
+            def __init__(self):
+                pass
 
         class Target:
-            pass
+            """A class to store the Target data for BackendV2."""
+
+            def __init__(self):
+                pass
 
         self.defaults = Defaults()
         self.target = Target()
 
-        self.backendV2 = BaseBackendV2()
-        self.backendV2WithDefaults = BackendV2WithDefaults(self.defaults, self.target)
+        self.backend_v2 = BaseBackendV2()
+        self.backend_v2_with_defaults = BackendV2WithDefaults(self.defaults, self.target)
 
-        self.backendInfo = device_info.OpenPulseBackendInfo()
+        self.backend_info = device_info.OpenPulseBackendInfo()
 
     def test_backend_v2_adapter_invalid_name(self):
-        """Test if an error is raised when a backend (based on BackendV2) without name is passed through BackendV2Adapter."""
+        """Test if an error is raised when a BackendV2 without name is passed."""
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v2_adapter(self.backendV2)
+            self.backend_info.backend_v2_adapter(self.backend_v2)
 
     def test_backend_v2_adapter_invalid_defaults(self):
-        """Test if an error is raised when a backend (based on BackendV2) without defaults is passed through BackendV2Adapter."""
-        self.backendV2.name = "Dummy"
+        """Test if an error is raised when a BackendV2 without defaults is passed."""
+        self.backend_v2.name = "Dummy"  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.backend_v2_adapter(self.backendV2)
+            self.backend_info.backend_v2_adapter(self.backend_v2)
 
     def test_backend_v2_adapter_invalid_dt(self):
-        """Test if an error is raised when a backend (based on BackendV2) without dt is passed through BackendV2Adapter."""
-        self.backendV2WithDefaults.name = "Dummy"
+        """Test if an error is raised when a BackendV2 without dt is passed."""
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v2_adapter(self.backendV2WithDefaults)
+            self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_num_qubits(self):
-        """Test if an error is raised when a backend (based on BackendV2) without num_qubits is passed through BackendV2Adapter."""
-        self.backendV2WithDefaults.name = "Dummy"
-        self.target.dt = None
+        """Test if an error is raised when a BackendV2 without num_qubits is passed."""
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
+        self.target.dt = None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v2_adapter(self.backendV2WithDefaults)
+            self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_u_channel_lo(self):
-        """Test if an error is raised when a backend (based on BackendV2) without u_channel_lo being passed through BackendV2Adapter."""
-        self.backendV2WithDefaults.name = "Dummy"
-        self.target.dt = None
-        self.target.num_qubits = 1
+        """Test if an error is raised when a BackendV2 without u_channel_lo is passed."""
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
+        self.target.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v2_adapter(self.backendV2WithDefaults)
+            self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_defaults_no_qubit_freq_est(self):
-        """Test if an error is raised when a backend (based on BackendV2) without qubit_freq_est is passed through BackendV2Adapter."""
-        self.backendV2WithDefaults.name = "Dummy"
-        self.target.dt = None
-        self.target.num_qubits = 1
-        self.target.u_channel_lo = None
+        """Test if an error is raised when a BackendV2 without qubit_freq_est is passed."""
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
+        self.target.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v2_adapter(self.backendV2WithDefaults)
+            self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_backend_v2_adapter_invalid_defaults_no_meas_freq_est(self):
-        """Test if an error is raised when a backend (based on BackendV2) without meas_freq_est is passed through BackendV2Adapter."""
-        self.backendV2WithDefaults.name = "Dummy"
-        self.target.dt = None
-        self.target.num_qubits = 1
-        self.target.u_channel_lo = None
-        self.defaults.qubit_freq_est = []
+        """Test if an error is raised when a BackendV2 without meas_freq_est is passed."""
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
+        self.target.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.defaults.qubit_freq_est = []  # pylint: disable=attribute-defined-outside-init
         with self.assertRaises(BackendConfigurationError):
-            self.backendInfo.backend_v2_adapter(self.backendV2WithDefaults)
+            self.backend_info.backend_v2_adapter(self.backend_v2_with_defaults)
 
     def test_valid_backend_v2(self):
         """Test backendV2 adapter passing all valid values."""
-        self.backendV2WithDefaults.name = "Dummy"
-        self.target.dt = None
-        self.target.num_qubits = 1
-        self.target.u_channel_lo = None
-        self.defaults.qubit_freq_est = []
-        self.defaults.meas_freq_est = []
+        self.backend_v2_with_defaults.name = (
+            "Dummy"  # pylint: disable=attribute-defined-outside-init
+        )
+        self.target.dt = None  # pylint: disable=attribute-defined-outside-init
+        self.target.num_qubits = 1  # pylint: disable=attribute-defined-outside-init
+        self.target.u_channel_lo = None  # pylint: disable=attribute-defined-outside-init
+        self.defaults.qubit_freq_est = []  # pylint: disable=attribute-defined-outside-init
+        self.defaults.meas_freq_est = []  # pylint: disable=attribute-defined-outside-init
 
-        name, configuration, dt, defaults = self.backendInfo.backend_v2_adapter(
-            self.backendV2WithDefaults
+        name, configuration, dt, defaults = self.backend_info.backend_v2_adapter(
+            self.backend_v2_with_defaults
         )
         self.assertEqual(name, "Dummy")
         self.assertEqual(configuration.n_qubits, 1)
@@ -532,23 +569,25 @@ class TestPulseCreateFrom(QiskitTestCase):
         super().setUp()
 
         class Defaults:
+            """A class to store the defaults data for Backend (v1 and V2)."""
+
             qubit_freq_est = []
             meas_freq_est = []
 
         self.defaults = Defaults()
-        self.backendInfo = device_info.OpenPulseBackendInfo()
+        self.backend_info = device_info.OpenPulseBackendInfo()
 
     def test_raise_attribute_doesnt_exist_fail(self):
         """Test if it raises the Expection."""
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.raise_attribute_doesnt_exist(
+            self.backend_info.raise_attribute_doesnt_exist(
                 ["a", "b", "d"], ["c", "d"], BackendPropertyError
             )
 
     def test_raise_attribute_doesnt_exist_success(self):
         """Test if it checks the attributes correctly."""
         try:
-            self.backendInfo.raise_attribute_doesnt_exist(
+            self.backend_info.raise_attribute_doesnt_exist(
                 ["a", "b", "c", "d"], ["a", "b"], BackendPropertyError
             )
         except BackendPropertyError:
@@ -557,43 +596,55 @@ class TestPulseCreateFrom(QiskitTestCase):
             )
 
     def test_get_backend_adapter_backend_v1(self):
-        """Test if it gets the correct adapter for backendV1."""
+        """Test if it gets the correct adapter for BackendV1."""
 
         class DummyBackendV1:
+            """A class to simulate a BackendV1."""
+
             version = 1
 
-        adapter = self.backendInfo.get_backend_adapter(DummyBackendV1)
+        adapter = self.backend_info.get_backend_adapter(DummyBackendV1)
         self.assertEqual(adapter.__name__, "backend_v1_adapter")
 
     def test_get_backend_adapter_backend_v2(self):
-        """Test if it gets the correct adapter for backendV2."""
+        """Test if it gets the correct adapter for BackendV2."""
 
         class DummyBackendV2:
+            """A class to simulate a BackendV2."""
+
             version = 2
 
-        adapter = self.backendInfo.get_backend_adapter(DummyBackendV2)
+        adapter = self.backend_info.get_backend_adapter(DummyBackendV2)
         self.assertEqual(adapter.__name__, "backend_v2_adapter")
 
-    def test_get_backend_adapter_backend_for_a_minor_version(self):
-        """Test if it raises an Exception for versions minor than 1."""
+    def test_get_backend_adapter_backend_for_a_smaller_version(self):
+        """Test if it raises an Exception for versions smaller than 1."""
+
         class DummyBackendVm:
+            """A class to simulate a backend version smaller than 1."""
+
             version = -10
 
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.get_backend_adapter(DummyBackendVm)
+            self.backend_info.get_backend_adapter(DummyBackendVm)
 
     def test_get_backend_adapter_backend_for_a_greater_version(self):
         """Test if it raises an Exception for versions greater than 2."""
+
         class DummyBackendVg:
+            """A class to simulate a backend version greater than 2."""
+
             version = 5
 
         with self.assertRaises(BackendPropertyError):
-            self.backendInfo.get_backend_adapter(DummyBackendVg)
+            self.backend_info.get_backend_adapter(DummyBackendVg)
 
     def test_create_from_backend_using_backend_v1(self):
         """Test if create_from_backend raises no error for BackendV1."""
 
         class Configuration:
+            """All the configurations for BackendV1."""
+
             backend_name = "V1"
             u_channel_lo = []
             drive = lambda: None
@@ -603,48 +654,61 @@ class TestPulseCreateFrom(QiskitTestCase):
             n_qubits = 0
 
         class Backend(BackendV1):
+            """A backend based on BackendV1 with all the required data."""
+
             def __init__(self, configuration=Configuration(), defaults=self.defaults):
                 super().__init__(configuration)
                 self._defaults = defaults
 
+            @classmethod
             def _default_options(cls):
                 pass
 
             def run(self, run_input, **options):
+                """Required run method."""
                 pass
 
             def defaults(self):
+                """Get backend Defaults"""
                 return self._defaults
 
         try:
-            self.backendInfo.create_from_backend(Backend())
-        except Exception:
+            self.backend_info.create_from_backend(Backend())
+        except Exception:  # pylint: disable=broad-exception-caught
             self.fail("The create_from_backend method should accept a V1 backend")
 
     def test_create_from_backend_using_backend_v2(self):
         """Test if create_from_backend raises no error for BackendV2."""
 
         class Target:
+            """All the target data for BackendV2."""
+
             dt = None
             num_qubits = 0
             u_channel_lo = []
 
         class Backend(BackendV2):
+            """A backend based on BackendV2 with all the required data."""
+
             def __init__(self, defaults=self.defaults, target=Target()):
                 super().__init__(name="V2")
                 self._defaults = defaults
                 self._target = target
 
+            @classmethod
             def _default_options(cls):
                 pass
 
+            @property
             def max_circuits(self):
+                """Required method for BackendV2."""
                 pass
 
             def run(self, run_input, **options):
                 pass
 
             def defaults(self):
+                """Get Backend defaults."""
                 return self._defaults
 
             @property
@@ -658,6 +722,6 @@ class TestPulseCreateFrom(QiskitTestCase):
                 pass
 
         try:
-            self.backendInfo.create_from_backend(Backend())
-        except Exception:
+            self.backend_info.create_from_backend(Backend())
+        except Exception:  # pylint: disable=broad-exception-caught
             self.fail("The create_from_backend method should accept a V2 backend")

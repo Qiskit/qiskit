@@ -42,6 +42,7 @@ from qiskit import pulse
 from qiskit.providers import BackendConfigurationError, BackendPropertyError
 from qiskit.providers.backend import Backend
 
+
 class DrawerBackendInfo(ABC):
     """Backend information to be used for the drawing data generation."""
 
@@ -95,39 +96,75 @@ class DrawerBackendInfo(ABC):
 class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
-    def raise_attribute_doesnt_exist(self, attributes:[str], required_attributes:[str], exception:Union[BackendConfigurationError, BackendPropertyError], attribute_from:Optional[str]=None):
+    def raise_attribute_doesnt_exist(
+        self,
+        attributes: [str],
+        required_attributes: [str],
+        exception: Union[BackendConfigurationError, BackendPropertyError],
+        attribute_from: Optional[str] = None,
+    ):
+        """Check if all required attributes exist into a set."""
         for attribute in required_attributes:
-            if(not attribute in attributes):
-                message = 'Backend' + ((f' {attribute_from} ') if attribute_from else ' ') + (f'has no {attribute}')
+            if not attribute in attributes:
+                message = (
+                    "Backend"
+                    + ((f" {attribute_from} ") if attribute_from else " ")
+                    + (f"has no {attribute}")
+                )
                 raise exception(message)
 
     def backend_v1_adapter(self, backend):
-        self.raise_attribute_doesnt_exist(dir(backend), ['defaults'], BackendPropertyError)
+        """Adapter for backends based on BackendV1."""
+        self.raise_attribute_doesnt_exist(dir(backend), ["defaults"], BackendPropertyError)
 
         configuration = backend.configuration()
         defaults = backend.defaults()
 
-        required_configuration_attributes = ['backend_name', 'n_qubits', 'u_channel_lo', 'drive', 'measure', 'control', 'dt']
-        required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
+        required_conf_attributes = [
+            "backend_name",
+            "n_qubits",
+            "u_channel_lo",
+            "drive",
+            "measure",
+            "control",
+            "dt",
+        ]
+        required_defaults_attributes = ["qubit_freq_est", "meas_freq_est"]
 
-        self.raise_attribute_doesnt_exist(dir(configuration), required_configuration_attributes, BackendConfigurationError, 'configuration')
-        self.raise_attribute_doesnt_exist(dir(defaults), required_defaults_attributes, BackendConfigurationError, 'defaults')
+        self.raise_attribute_doesnt_exist(
+            dir(configuration),
+            required_conf_attributes,
+            BackendConfigurationError,
+            "configuration",
+        )
+        self.raise_attribute_doesnt_exist(
+            dir(defaults), required_defaults_attributes, BackendConfigurationError, "defaults"
+        )
 
         return (configuration.backend_name, configuration, configuration.dt, defaults)
 
     def backend_v2_adapter(self, backend):
-        required_backend_attributes = ['name', 'defaults']
-        required_target_attributes = ['dt', 'num_qubits', 'u_channel_lo']
-        required_defaults_attributes = ['qubit_freq_est', 'meas_freq_est']
+        """Adapter for backends based on BackendV2."""
+        required_backend_attributes = ["name", "defaults"]
+        required_target_attributes = ["dt", "num_qubits", "u_channel_lo"]
+        required_defaults_attributes = ["qubit_freq_est", "meas_freq_est"]
 
-        self.raise_attribute_doesnt_exist(dir(backend), required_backend_attributes, BackendPropertyError)
-        self.raise_attribute_doesnt_exist(dir(backend.target), required_target_attributes, BackendConfigurationError, 'target')
+        self.raise_attribute_doesnt_exist(
+            dir(backend), required_backend_attributes, BackendPropertyError
+        )
+        self.raise_attribute_doesnt_exist(
+            dir(backend.target), required_target_attributes, BackendConfigurationError, "target"
+        )
 
         defaults = backend.defaults()
 
-        self.raise_attribute_doesnt_exist(dir(defaults), required_defaults_attributes, BackendConfigurationError, 'defaults')
+        self.raise_attribute_doesnt_exist(
+            dir(defaults), required_defaults_attributes, BackendConfigurationError, "defaults"
+        )
 
         class Configuration:
+            """Wrapper for backend required configurations."""
+
             def __init__(self, backend):
                 self.n_qubits = backend.target.num_qubits
                 self.measure = backend.measure_channel
@@ -137,14 +174,15 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
 
         return (backend.name, Configuration(backend), backend.dt, defaults)
 
-    def get_backend_adapter(self, backend:Backend):
+    def get_backend_adapter(self, backend: Backend):
+        """Get the correct adapter based on backend version."""
         backend_version = backend.version
         adapters = [self.backend_v1_adapter, self.backend_v2_adapter]
 
-        if(backend_version < 1 or backend_version > 2):
-            raise BackendPropertyError('Invalid Backend version')
+        if backend_version < 1 or backend_version > 2:
+            raise BackendPropertyError("Invalid Backend version")
 
-        selected_adapter = adapters[backend_version-1]
+        selected_adapter = adapters[backend_version - 1]
         return selected_adapter
 
     @classmethod
