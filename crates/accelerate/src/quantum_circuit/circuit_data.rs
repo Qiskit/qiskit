@@ -26,7 +26,7 @@ use std::iter::zip;
 // Private type used to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
 struct InternedInstruction {
-    op: Option<PyObject>,
+    op: PyObject,
     qubits_id: IndexType,
     clbits_id: IndexType,
 }
@@ -191,7 +191,7 @@ impl CircuitData {
                 Py::new(
                     py,
                     CircuitInstruction {
-                        operation: inst.op.as_ref().unwrap().clone_ref(py),
+                        operation: inst.op.clone_ref(py),
                         qubits: py_ext::tuple_new(
                             py,
                             self_
@@ -386,14 +386,16 @@ impl CircuitData {
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
         for inst in self.data.iter() {
-            if let Some(op) = inst.op.as_ref() {
-                visit.call(op)?;
-            }
+            visit.call(&inst.op)?;
         }
         for bit in self.qubits_native.iter().chain(self.clbits_native.iter()) {
             visit.call(bit)?;
         }
 
+        // Note:
+        //   There's no need to visit the native Rust data
+        //   structures used for internal tracking: the only Python
+        //   references they contain are to the bits in these lists!
         visit.call(&self.qubits)?;
         visit.call(&self.clbits)?;
         Ok(())
@@ -401,11 +403,11 @@ impl CircuitData {
 
     fn __clear__(&mut self) {
         // Clear anything that could have a reference cycle.
-        for inst in self.data.iter_mut() {
-            inst.op = None;
-        }
+        self.data.clear();
         self.qubits_native.clear();
         self.clbits_native.clear();
+        self.qubit_indices_native.clear();
+        self.clbit_indices_native.clear();
     }
 }
 
@@ -496,7 +498,7 @@ impl CircuitData {
                 Ok(self.intern_context.intern(args))
             };
         Ok(InternedInstruction {
-            op: Some(elem.operation.clone_ref(py)),
+            op: elem.operation.clone_ref(py),
             qubits_id: cache_args(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
             clbits_id: cache_args(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
         })
