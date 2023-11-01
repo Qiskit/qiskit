@@ -735,28 +735,7 @@ class TextDrawing:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
         self._wire_map = {}
-
-        def check_clbit_in_inst(circuit, cregbundle):
-            if cregbundle is False:
-                return False
-            for inst in circuit.data:
-                if isinstance(inst.operation, ControlFlowOp):
-                    for block in inst.operation.blocks:
-                        if check_clbit_in_inst(block, cregbundle) is False:
-                            return False
-                elif inst.clbits and not isinstance(inst.operation, Measure):
-                    if cregbundle is not False:
-                        warn(
-                            "Cregbundle set to False since an instruction needs to refer"
-                            " to individual classical wire",
-                            RuntimeWarning,
-                            3,
-                        )
-                    return False
-
-            return True
-
-        self.cregbundle = check_clbit_in_inst(circuit, cregbundle)
+        self.cregbundle = cregbundle
 
         if encoding:
             self.encoding = encoding

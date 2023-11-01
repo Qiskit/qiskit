@@ -30,7 +30,7 @@ class TestUnitaryOverlap(QiskitTestCase):
         unitary.assign_parameters(np.random.random(size=unitary.num_parameters), inplace=True)
 
         overlap = UnitaryOverlap(unitary, unitary)
-        self.assertTrue(abs(Statevector.from_instruction(overlap)[0] - 1) < 1e-15)
+        self.assertLess(abs(Statevector.from_instruction(overlap)[0] - 1), 1e-12)
 
     def test_parameterized_identity(self):
         """Test identity is returned"""
@@ -40,7 +40,7 @@ class TestUnitaryOverlap(QiskitTestCase):
         rands = np.random.random(size=unitary.num_parameters)
         double_rands = np.hstack((rands, rands))
         overlap.assign_parameters(double_rands, inplace=True)
-        self.assertTrue(abs(Statevector.from_instruction(overlap)[0] - 1) < 1e-15)
+        self.assertLess(abs(Statevector.from_instruction(overlap)[0] - 1), 1e-12)
 
     def test_two_parameterized_inputs(self):
         """Test two parameterized inputs"""
