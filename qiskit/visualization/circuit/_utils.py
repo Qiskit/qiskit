@@ -197,7 +197,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-@deprecate_arg("reverse_bits", since="0.22.0")
+@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
 def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -285,7 +285,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-@deprecate_arg("reverse_bits", since="0.22.0")
+@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 
