@@ -50,7 +50,7 @@ class CommutativeCancellation(TransformationPass):
                 the set intersection between the ``basis_gates`` parameter
                 and the gates in the dag.
             target (Target): The :class:`~.Target` representing the target backend, if both
-                ``basis_gates`` and this are specified then this argument will take
+                ``basis_gates`` and ``target`` are specified then this argument will take
                 precedence and ``basis_gates`` will be ignored.
         """
         super().__init__()

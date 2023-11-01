@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Weyl decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
+"""Weyl-decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
 
 from typing import Tuple
 
@@ -41,7 +41,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
             instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
                 :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
             target (Target): The :class:`~.Target` representing the target backend, if both
-                ``instruction_schedule_map`` and this are specified then this argument will take
+                ``instruction_schedule_map`` and ``target`` are specified then this argument will take
                 precedence and ``instruction_schedule_map`` will be ignored.
         """
         super().__init__()

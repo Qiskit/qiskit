@@ -23,7 +23,7 @@ class CollectMultiQBlocks(AnalysisPass):
     by any single group of gates
 
     Traverse the DAG and find blocks of gates that act consecutively on
-    groups of qubits. Write the blocks to propert_set as a list of blocks
+    groups of qubits. Write the blocks to property_set as a list of blocks
     of the form::
 
         [[g0, g1, g2], [g4, g5]]
@@ -109,8 +109,8 @@ class CollectMultiQBlocks(AnalysisPass):
             """special key function for topological ordering.
             Heuristic for this is to push all gates involving measurement
             or barriers, etc. as far back as possible (because they force
-            blocks to end). After that, we process gates in order of lowest
-            number of qubits acted on to largest number of qubits acted on
+            blocks to end). After that, we process gates in order of the lowest
+            number of qubits acted on to the largest number of qubits acted on
             because these have less chance of increasing the size of blocks
             The key also processes all the non operation notes first so that
             input nodes do not mess with the top sort of op nodes

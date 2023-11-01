@@ -29,7 +29,7 @@ class UnrollCustomDefinitions(TransformationPass):
             equivalence_library (EquivalenceLibrary): The equivalence library
                 which will be used by the BasisTranslator pass. (Instructions in
                 this library will not be unrolled by this pass.)
-            basis_gates (Optional[list[str]]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
+            basis_gates (Optional[list[str]]): Target basis names to unroll to, e.g. ``['u3', 'cx']``.
                 Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.

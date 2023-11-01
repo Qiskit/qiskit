@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Reduce 1Q gate complexity by commuting through 2Q gates and resynthesizing."""
+"""Reduce 1Q gate complexity by commuting through 2Q gates and re-synthesizing."""
 
 from copy import copy
 import logging
@@ -46,10 +46,10 @@ NOTE: These rules are _symmetric_, so that they may be applied in reverse.
 
 class Optimize1qGatesSimpleCommutation(TransformationPass):
     """
-    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and re-
-    synthesizing the results.  The commutation rules are stored in `commutation_table`.
+    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and
+    re-synthesizing the results.  The commutation rules are stored in ``commutation_table``.
 
-    NOTE: In addition to those mentioned in `commutation_table`, this pass has some limitations:
+    NOTE: In addition to those mentioned in ``commutation_table``, this pass has some limitations:
           + Does not handle multiple commutations in a row without intermediate progress.
           + Can only commute into positions where there are pre-existing runs.
           + Does not exhaustively test all the different ways commuting gates can be assigned to
@@ -58,7 +58,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             barriers.)
     """
 
-    # NOTE: A run from `dag.collect_1q_runs` is always nonempty, so we sometimes use an empty list
+    # NOTE: A run from ``dag.collect_1q_runs`` is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
     def __init__(self, basis=None, run_to_completion=False, target=None):
