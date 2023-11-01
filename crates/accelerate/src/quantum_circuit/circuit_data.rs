@@ -16,7 +16,7 @@ use crate::quantum_circuit::py_ext;
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyIterator, PyList, PySlice, PyTuple, PyType};
+use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
 use std::iter::zip;
@@ -219,7 +219,7 @@ impl CircuitData {
         }
 
         if index.is_exact_instance_of::<PySlice>() {
-            let slice = self.convert_py_slice(py, index.downcast_exact::<PySlice>()?)?;
+            let slice = self.convert_py_slice(index.downcast_exact::<PySlice>()?)?;
             let result = slice
                 .into_iter()
                 .map(|i| get_at(self, py, i))
@@ -233,7 +233,7 @@ impl CircuitData {
     pub fn __delitem__(&mut self, py: Python<'_>, index: SliceOrInt) -> PyResult<()> {
         match index {
             SliceOrInt::Slice(slice) => {
-                let slice = self.convert_py_slice(py, slice)?;
+                let slice = self.convert_py_slice(slice)?;
                 for (i, x) in slice.into_iter().enumerate() {
                     self.__delitem__(py, SliceOrInt::Int(x - i as isize))?;
                 }
@@ -263,7 +263,7 @@ impl CircuitData {
         match index {
             SliceOrInt::Slice(slice) => {
                 let indices = slice.indices(self.data.len().try_into().unwrap())?;
-                let slice = self.convert_py_slice(py, slice)?;
+                let slice = self.convert_py_slice(slice)?;
                 let values = value.iter()?.collect::<PyResult<Vec<&PyAny>>>()?;
                 if indices.step != 1 && slice.len() != values.len() {
                     return Err(PyValueError::new_err(format!(
@@ -426,15 +426,21 @@ impl CircuitData {
 }
 
 impl CircuitData {
-    fn convert_py_slice(&self, py: Python<'_>, slice: &PySlice) -> PyResult<Vec<isize>> {
-        let dict: HashMap<&str, PyObject> =
-            HashMap::from([("s", slice.into()), ("length", self.data.len().into_py(py))]);
-        py.eval(
-            "list(range(*s.indices(length)))",
-            None,
-            Some(dict.into_py_dict(py)),
-        )?
-        .extract()
+    fn convert_py_slice(&self, slice: &PySlice) -> PyResult<Vec<isize>> {
+        let indices = slice.indices(self.data.len().try_into().unwrap())?;
+        if indices.step > 0 {
+            Ok((indices.start..indices.stop)
+                .step_by(indices.step as usize)
+                .collect())
+        } else {
+            let mut out = Vec::with_capacity(indices.slicelength as usize);
+            let mut x = indices.start;
+            while x > indices.stop {
+                out.push(x);
+                x += indices.step;
+            }
+            Ok(out)
+        }
     }
 
     fn convert_py_index_clamped(&self, index: isize) -> usize {

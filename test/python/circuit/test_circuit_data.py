@@ -11,12 +11,43 @@
 # that they have been altered from the originals.
 
 """Test operations on circuit.data."""
-
+import ddt
+from qiskit._accelerate.quantum_circuit import CircuitData
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction, Operation
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+
+
+@ddt.ddt
+class TestQuantumCircuitData(QiskitTestCase):
+    """CircuitData (Rust) operation tests."""
+
+    @ddt.data(
+        slice(0, 5, 1),
+        slice(0, 4, 1),
+        slice(0, 5, 2),
+        slice(1, 5, 1),
+        slice(0, 5, -1),
+        slice(5, 0, -1),
+        slice(5, 0, -2),
+        slice(-1, 0, -1),
+        slice(-1, -5, -1),
+        slice(-10, -5, 1),
+        slice(4, -1, -1),
+    )
+    def test_slice(self, s):
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+        self.assertEqual(data[s], data_list[s])
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
