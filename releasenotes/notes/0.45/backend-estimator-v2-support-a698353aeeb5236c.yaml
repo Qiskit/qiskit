@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug where :class:`.primitives.BackendEstimator` didn't support a
-    :class:`~.BackendV2` backend that didn't have ``coupling_map``.
