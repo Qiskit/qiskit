@@ -100,11 +100,6 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
     clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
 
-    # TODO: assuming we keep CircuitData.qubit_indices as a PyDict ref,
-    #       can't we skip the need to adjust the bit mappings? We can just
-    #       copy CircuitData but replace the {qubits,clbits} and
-    #       {qubit,clbit}_indices with the canonical regs, right?
-
     qc = QuantumCircuit(*regs, name=out_instruction.name)
     qc._data.reserve(len(target.data))
     for instruction in target._data:

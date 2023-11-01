@@ -368,23 +368,6 @@ impl CircuitData {
         Ok(())
     }
 
-    // TODO: consider finishing impl to speed up circuit_to_instruction.py
-    // pub fn iter_remap(&self, py: Python<'_>, qubits: Py<PyList>, clbits: Py<PyList>) -> PyResult<Py<PyIterator>> {
-    //     let data: Py<CircuitData> = Py::new(py, CircuitData {
-    //         data: self.data.clone(),
-    //         // TODO: reuse intern context once concurrency is properly
-    //         //  handled.
-    //         intern_context: self.intern_context.clone(),
-    //         qubits,
-    //         clbits,
-    //         qubit_indices: self.qubit_indices.clone_ref(py),
-    //         clbit_indices: self.clbit_indices.clone_ref(py),
-    //     })?;
-    //
-    //     let cell: &PyCell<CircuitData> = data.as_ref(py);
-    //     Ok(cell.iter()?.into_py(py))
-    // }
-
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
 
