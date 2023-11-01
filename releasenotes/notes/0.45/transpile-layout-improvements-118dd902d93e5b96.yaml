@@ -28,7 +28,7 @@ features:
     (the mapping of input circuit qubits to the final position in the output). This is distinct
     from the :attr:`~.TranspileLayout.final_layout` attribute which is the permutation caused by
     routing as a :class:`.Layout` object. The :meth:`~.TranspileLayout.final_index_layout` method
-    returns a list to showthe output position for each qubit in the input circuit to the transpiler.
+    returns a list to show the output position for each qubit in the input circuit to the transpiler.
     For example, with an original circuit::
 
         qc = QuantumCircuit(3)
