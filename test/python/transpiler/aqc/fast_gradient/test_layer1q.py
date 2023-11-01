@@ -94,7 +94,7 @@ class TestLayer1q(QiskitTestCase):
         for n in range(2, self.max_num_qubits + 1):
 
             dim = 2**n
-            tmp1 = np.ndarray((dim, dim), dtype=np.cfloat)
+            tmp1 = np.ndarray((dim, dim), dtype=np.complex128)
             tmp2 = tmp1.copy()
             for _ in range(self.num_repeats):
                 k0 = randint(0, n - 1)
@@ -129,7 +129,7 @@ class TestLayer1q(QiskitTestCase):
                 err1 = tut.relative_error(alt_ttmtt, ttmtt)
                 self.assertLess(err1, _eps, "relative error: {:f}".format(err1))
 
-                prod = np.cfloat(np.trace(ttmtt @ t4))
+                prod = np.complex128(np.trace(ttmtt @ t4))
                 alt_prod = pmat.product_q1(layer=c4, tmp1=tmp1, tmp2=tmp2)
                 err2 = abs(alt_prod - prod) / abs(prod)
                 self.assertLess(err2, _eps, "relative error: {:f}".format(err2))

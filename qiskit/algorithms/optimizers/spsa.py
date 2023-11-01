@@ -328,7 +328,7 @@ class SPSA(Optimizer):
         steps = 25
         points = []
         for _ in range(steps):
-            # compute the random directon
+            # compute the random direction
             pert = bernoulli_perturbation(dim)
             points += [initial_point + c * pert, initial_point - c * pert]
 
@@ -656,6 +656,7 @@ class SPSA(Optimizer):
             "containing additional information."
         ),
         since="0.21.0",
+        package_name="qiskit-terra",
     )
     def optimize(
         self,
@@ -687,12 +688,16 @@ class SPSA(Optimizer):
 def bernoulli_perturbation(dim, perturbation_dims=None):
     """Get a Bernoulli random perturbation."""
     if perturbation_dims is None:
-        return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=dim)
 
-    pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
-    indices = algorithm_globals.random.choice(
-        list(range(dim)), size=perturbation_dims, replace=False
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        pert = 1 - 2 * algorithm_globals.random.binomial(1, 0.5, size=perturbation_dims)
+        indices = algorithm_globals.random.choice(
+            list(range(dim)), size=perturbation_dims, replace=False
+        )
     result = np.zeros(dim)
     result[indices] = pert
 

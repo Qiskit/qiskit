@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 from collections.abc import Callable
 from typing import Any
 import numpy as np
@@ -47,7 +49,7 @@ class UMDA(Optimizer):
     have been obtained [1]. UMDA seems to provide very good solutions for those circuits in which
     the number of layers is not big.
 
-    The optimization process can be personalized depending on the paremeters chosen in the
+    The optimization process can be personalized depending on the parameters chosen in the
     initialization. The main parameter is the population size. The bigger it is, the final result
     will be better. However, this increases the complexity of the algorithm and the runtime will
     be much heavier. In the work [1] different experiments have been performed where population
@@ -173,10 +175,11 @@ class UMDA(Optimizer):
         """Build a new generation sampled from the vector of probabilities.
         Updates the generation pandas dataframe
         """
-
-        gen = algorithm_globals.random.normal(
-            self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            gen = algorithm_globals.random.normal(
+                self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
+            )
 
         self._generation = self._generation[: int(self.ELITE_FACTOR * len(self._generation))]
         self._generation = np.vstack((self._generation, gen))
@@ -228,10 +231,12 @@ class UMDA(Optimizer):
 
         self._vector = self._initialization()
 
-        # initialization of generation
-        self._generation = algorithm_globals.random.normal(
-            self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            # initialization of generation
+            self._generation = algorithm_globals.random.normal(
+                self._vector[0, :], self._vector[1, :], [self._size_gen, self._n_variables]
+            )
 
         for _ in range(self._maxiter):
             self._check_generation(fun)
