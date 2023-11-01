@@ -1,0 +1,11 @@
+deprecations:
+  - |
+    The following functions are deprecated and will be removed in the future release this includes:
+    * :func:`~qiskit.visualization.pulse.interpolation.interp1d`
+    * :func:`~qiskit.visualization.pulse.interpolation.step_wise`
+    Instead, use the new interface in `qiskit.visualization.pulse_drawer` for pulse visualization.
+fixes:
+  - |
+    Issue #11145 `Remove deprecated code since 0.23`
+    
+

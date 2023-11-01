@@ -23,7 +23,6 @@ import numpy as np
 
 from qiskit.utils import optionals as _optionals
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
-from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (
     DriveChannel,
     ControlChannel,
@@ -334,8 +333,6 @@ class WaveformDrawer:
         # If these self.style.dpi or self.style.figsize are None, they will
         # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
-
-        interp_method = interp_method or step_wise
 
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
@@ -932,7 +929,6 @@ class ScheduleDrawer:
 
         if channels is None:
             channels = []
-        interp_method = interp_method or step_wise
 
         if channel_scales is None:
             channel_scales = {}

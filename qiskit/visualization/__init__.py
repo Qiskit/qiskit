@@ -285,7 +285,7 @@ from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_c
 from .pass_manager_visualization import pass_manager_drawer
 from .pass_manager_visualization import staged_pass_manager_drawer
 
-from .pulse.interpolation import step_wise, linear, cubic_spline
+from .pulse.interpolation import linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
 from .pulse_v2 import draw as pulse_drawer
 
