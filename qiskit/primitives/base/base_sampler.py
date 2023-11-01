@@ -75,6 +75,7 @@ Here is an example of how sampler is used.
 
 from __future__ import annotations
 
+import warnings
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
@@ -108,9 +109,27 @@ class BaseSampler(BasePrimitive, Generic[T]):
         Args:
             options: Default options.
         """
-        self._circuits = []
-        self._parameters = []
         super().__init__(options)
+
+    def __getattr__(self, name: str) -> any:
+        # Work around to enable deprecation of the init attributes in BaseSampler incase
+        # existing subclasses depend on them (which some do)
+        dep_defaults = {
+            "_circuits": [],
+            "_parameters": [],
+        }
+        if name not in dep_defaults:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        warnings.warn(
+            f"The init attribute `{name}` in BaseSampler is deprecated as of Qiskit 0.46."
+            " To continue to use this attribute in a subclass and avoid this warning the"
+            " subclass should initialize it itself.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        setattr(self, name, dep_defaults[name])
+        return getattr(self, name)
 
     def run(
         self,
@@ -163,6 +182,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
         return validation._validate_circuits(circuits, requires_measure=True)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits to be sampled.
 
@@ -172,6 +192,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of quantum circuits.
 
