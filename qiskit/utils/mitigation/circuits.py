@@ -24,6 +24,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def count_keys(num_qubits: int) -> List[str]:
@@ -42,6 +43,7 @@ def count_keys(num_qubits: int) -> List[str]:
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def complete_meas_cal(
@@ -123,6 +125,7 @@ def complete_meas_cal(
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def tensored_meas_cal(
