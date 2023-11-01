@@ -30,6 +30,7 @@ class LinearFunctionsSynthesis(HighLevelSynthesis):
     @deprecate_func(
         additional_msg="Instead, use :class:`~.HighLevelSynthesis`.",
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def __init__(self):
         # This config synthesizes only linear functions using the "default" method.
