@@ -148,17 +148,17 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         required_backend_attributes = ["name", "defaults", "dt", "num_qubits"]
         required_defaults_attributes = ["qubit_freq_est", "meas_freq_est"]
 
-        backend_attributes = dir(backend)
         self.raise_attribute_doesnt_exist(
-            backend_attributes, required_backend_attributes, BackendPropertyError
+            dir(backend), required_backend_attributes, BackendPropertyError
         )
 
-        if "u_channel_lo" in backend_attributes:
-            u_channel_lo = backend.u_channel_lo
-        elif "u_channel_lo" in dir(backend.target):
+        if "u_channel_lo" in dir(backend.target):
             u_channel_lo = backend.target.u_channel_lo
         else:
-            raise BackendPropertyError("Backend has no u_channel_lo")
+            try:
+                u_channel_lo = backend.u_channel_lo
+            except AttributeError as error:
+                raise BackendPropertyError("Backend has no u_channel_lo") from error
 
         defaults = backend.defaults()
 
