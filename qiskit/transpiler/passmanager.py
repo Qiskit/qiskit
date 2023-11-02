@@ -65,7 +65,7 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
-        return circuit_to_dag(input_program, copy_operations=False)
+        return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
         self,
@@ -73,7 +73,7 @@ class PassManager(BasePassManager):
         in_program: QuantumCircuit,
         **kwargs,
     ) -> QuantumCircuit:
-        out_program = dag_to_circuit(passmanager_ir)
+        out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
 
         out_name = kwargs.get("output_name", None)
         if out_name is not None:
