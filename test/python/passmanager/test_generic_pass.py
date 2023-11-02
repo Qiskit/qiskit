@@ -18,11 +18,20 @@ from test.python.passmanager import PassManagerTestCase
 from logging import getLogger
 
 from qiskit.passmanager import GenericPass
+from qiskit.passmanager import PassManagerState, WorkflowStatus, PropertySet
 from qiskit.passmanager.compilation_status import RunState
 
 
 class TestGenericPass(PassManagerTestCase):
     """Tests for the GenericPass subclass."""
+
+    def setUp(self):
+        super().setUp()
+
+        self.state = PassManagerState(
+            workflow_status=WorkflowStatus(),
+            property_set=PropertySet(),
+        )
 
     def test_run_task(self):
         """Test case: Simple successful task execution."""
@@ -34,7 +43,9 @@ class TestGenericPass(PassManagerTestCase):
         task = Task()
         data = "test_data"
         expected = [r"Pass: Task - (\d*\.)?\d+ \(ms\)"]
-        self.assertLogEqual(task.execute, expected, data, self.state)
+
+        with self.assertLogContains(expected):
+            task.execute(passmanager_ir=data, state=self.state)
         self.assertEqual(self.state.workflow_status.count, 1)
         self.assertIn(task, self.state.workflow_status.completed_passes)
         self.assertEqual(self.state.workflow_status.previous_run, RunState.SUCCESS)
@@ -52,13 +63,16 @@ class TestGenericPass(PassManagerTestCase):
         task = RaiseError()
         data = "test_data"
         expected = [r"Pass: RaiseError - (\d*\.)?\d+ \(ms\)"]
-        self.assertLogEqual(task.execute, expected, data, self.state, exception_type=TestError)
+
+        with self.assertLogContains(expected):
+            with self.assertRaises(TestError):
+                task.execute(passmanager_ir=data, state=self.state)
         self.assertEqual(self.state.workflow_status.count, 0)
         self.assertNotIn(task, self.state.workflow_status.completed_passes)
         self.assertEqual(self.state.workflow_status.previous_run, RunState.FAIL)
 
     def test_requires(self):
-        """Test cate: Dependency tasks are run in advance to user provided task."""
+        """Test case: Dependency tasks are run in advance to user provided task."""
 
         class TaskA(GenericPass):
             def run(self, passmanager_ir):
@@ -78,11 +92,12 @@ class TestGenericPass(PassManagerTestCase):
             r"Pass: TaskA - (\d*\.)?\d+ \(ms\)",
             r"Pass: TaskB - (\d*\.)?\d+ \(ms\)",
         ]
-        self.assertLogEqual(task.execute, expected, data, self.state)
+        with self.assertLogContains(expected):
+            task.execute(passmanager_ir=data, state=self.state)
         self.assertEqual(self.state.workflow_status.count, 2)
 
     def test_requires_in_list(self):
-        """Test cate: Dependency tasks are not executed multiple times."""
+        """Test case: Dependency tasks are not executed multiple times."""
 
         class TaskA(GenericPass):
             def run(self, passmanager_ir):
@@ -102,7 +117,8 @@ class TestGenericPass(PassManagerTestCase):
             r"Pass: TaskB - (\d*\.)?\d+ \(ms\)",
         ]
         self.state.workflow_status.completed_passes.add(task.requires[0])  # already done
-        self.assertLogEqual(task.execute, expected, data, self.state)
+        with self.assertLogContains(expected):
+            task.execute(passmanager_ir=data, state=self.state)
         self.assertEqual(self.state.workflow_status.count, 1)
 
     def test_run_with_callable(self):
@@ -123,4 +139,5 @@ class TestGenericPass(PassManagerTestCase):
             r"Pass: Task - (\d*\.)?\d+ \(ms\)",
             r"Task is running on test_data",
         ]
-        self.assertLogEqual(task.execute, expected, data, self.state, test_callable)
+        with self.assertLogContains(expected):
+            task.execute(passmanager_ir=data, state=self.state, callback=test_callable)

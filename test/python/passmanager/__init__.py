@@ -12,63 +12,46 @@
 
 """Pass manager test cases."""
 
-import io
+import contextlib
+import logging
 import re
 from itertools import zip_longest
-from logging import StreamHandler, getLogger
+from logging import getLogger
 
-from qiskit.passmanager import PassManagerState, WorkflowStatus, PropertySet
+# assertLogs context cannot change formatter.
+# https://stackoverflow.com/questions/44370513/can-assertlogs-check-the-format-of-a-log-message
+from unittest._log import _AssertLogsContext
+
 from qiskit.test import QiskitTestCase
+
+_AssertLogsContext.LOGGING_FORMAT = "%(message)s"
 
 
 class PassManagerTestCase(QiskitTestCase):
     """Test case for the pass manager module."""
 
-    def setUp(self):
-        super().setUp()
-
-        self.output = io.StringIO()
-        self.state = PassManagerState(
-            workflow_status=WorkflowStatus(),
-            property_set=PropertySet(),
-        )
-
-        logger = getLogger()
-        self.addCleanup(logger.setLevel, logger.level)
-
-        logger.setLevel("DEBUG")
-        logger.addHandler(StreamHandler(self.output))
-
-    def assertLogEqual(self, func, expected_lines, *args, exception_type=None):
-        """Execute provided function and verify logger.
+    @contextlib.contextmanager
+    def assertLogContains(self, expected_lines):
+        """A context manager that capture pass manager log.
 
         Args:
-            func (Callable): Function to test.
-            expected_lines (List[str]): Expected log output.
-            args (Any): Arguments to the function.
-            exception_type (Type): Optional. Expected exception for error handling.
-
-        Returns:
-            Any: Output values from the function.
+            expected_lines (List[str]): Expected logs. Each element can be regular expression.
         """
-        if exception_type:
-            self.assertRaises(exception_type, func, *args)
-            out = None
-        else:
-            out = func(*args)
-
-        self.output.seek(0)
-        recorded_lines = [line.rstrip() for line in self.output.readlines()]
-        for i, (expected, recorded) in enumerate(zip_longest(expected_lines, recorded_lines)):
-            expected = expected or ""
-            recorded = recorded or ""
-            if not re.fullmatch(expected, recorded):
-                raise AssertionError(
-                    f"Log didn't match. Mismatch found at line #{i}.\n\n"
-                    f"Expected:\n{self._format_log(expected_lines)}\n"
-                    f"Recorded:\n{self._format_log(recorded_lines)}"
-                )
-        return out
+        try:
+            logger = getLogger()
+            with self.assertLogs(logger=logger, level=logging.DEBUG) as cm:
+                yield cm
+        finally:
+            recorded_lines = cm.output
+            for i, (expected, recorded) in enumerate(zip_longest(expected_lines, recorded_lines)):
+                expected = expected or ""
+                recorded = recorded or ""
+                if not re.fullmatch(expected, recorded):
+                    raise AssertionError(
+                        f"Log didn't match. Mismatch found at line #{i}.\n\n"
+                        f"Expected:\n{self._format_log(expected_lines)}\n"
+                        f"Recorded:\n{self._format_log(recorded_lines)}"
+                    )
 
     def _format_log(self, lines):
         out = ""

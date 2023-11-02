@@ -50,7 +50,8 @@ class TestPassManager(PassManagerTestCase):
         data = 12345
         pm = ToyPassManager(task)
         expected = [r"Pass: RemoveFive - (\d*\.)?\d+ \(ms\)"]
-        out = self.assertLogEqual(pm.run, expected, data)
+        with self.assertLogContains(expected):
+            out = pm.run(data)
         self.assertEqual(out, 1234)
 
     def test_property_set(self):
@@ -78,7 +79,8 @@ class TestPassManager(PassManagerTestCase):
             r"Pass: AddDigit - (\d*\.)?\d+ \(ms\)",
             r"Pass: CountDigits - (\d*\.)?\d+ \(ms\)",
         ]
-        out = self.assertLogEqual(pm.run, expected, data)
+        with self.assertLogContains(expected):
+            out = pm.run(data)
         self.assertEqual(out, 1234500)
 
     def test_conditional_controller(self):
@@ -119,5 +121,6 @@ class TestPassManager(PassManagerTestCase):
 
         # Should be run only one time
         expected = [r"Pass: Task - (\d*\.)?\d+ \(ms\)"]
-        out = self.assertLogEqual(pm.run, expected, data)
+        with self.assertLogContains(expected):
+            out = pm.run(data)
         self.assertEqual(out, data)
