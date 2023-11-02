@@ -18,13 +18,7 @@ import re
 from itertools import zip_longest
 from logging import getLogger
 
-# assertLogs context cannot change formatter.
-# https://stackoverflow.com/questions/44370513/can-assertlogs-check-the-format-of-a-log-message
-from unittest._log import _AssertLogsContext
-
 from qiskit.test import QiskitTestCase
-
-_AssertLogsContext.LOGGING_FORMAT = "%(message)s"
 
 
 class PassManagerTestCase(QiskitTestCase):
@@ -46,7 +40,7 @@ class PassManagerTestCase(QiskitTestCase):
             for i, (expected, recorded) in enumerate(zip_longest(expected_lines, recorded_lines)):
                 expected = expected or ""
                 recorded = recorded or ""
-                if not re.fullmatch(expected, recorded):
+                if not re.search(expected, recorded):
                     raise AssertionError(
                         f"Log didn't match. Mismatch found at line #{i}.\n\n"
                         f"Expected:\n{self._format_log(expected_lines)}\n"
