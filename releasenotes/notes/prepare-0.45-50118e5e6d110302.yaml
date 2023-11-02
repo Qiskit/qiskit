@@ -3,7 +3,7 @@ prelude: |
   The Qiskit 0.45.0 feature release highlights are:
 
   Singleton Intructions and Gates for a lower memory footprint
-  ------------------------------------------------------------
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   We have introduced two new classes: :class:`.SingletonInstruction` (subclass of :class:`~.circuit.Instruction`)
   and :class:`~.SingletonGate` (subclass of :class:`~.Gate`). These classes use a single instance for all objects
@@ -12,7 +12,7 @@ prelude: |
   mutable states stored in an instance. See feature notes for more details.
 
   New Generic Transpiler Pass Manager
-  -----------------------------------
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   We have added a new :mod:`qiskit.passmanager` module. This module implements a generic pass manager and
   flow controllers, and provides infrastructure to manage execution of pass manager tasks. The generic
@@ -20,7 +20,7 @@ prelude: |
   See feature and upgrade notes for more details.
 
   Annotated Operations for complex circuit instructions
-  -----------------------------------------------------
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   The 0.45.0 release includes the new :class:`~.AnnotatedOperation` class, which allows to formulate complex
   circuitinstructions as a base instruction with a set of modifiers. For example, instead of a specific
