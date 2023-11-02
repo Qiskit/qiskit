@@ -384,7 +384,7 @@ class TestObservableValidation(QiskitTestCase):
     def test_validate_observables_deprecated(self, obsevables, expected):
         """Test obsevables standardization."""
         with self.assertRaises(DeprecationWarning):
-            self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+            self.assertEqual(validation._validate_observables(obsevables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):
