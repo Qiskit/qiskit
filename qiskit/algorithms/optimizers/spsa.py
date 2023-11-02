@@ -656,6 +656,7 @@ class SPSA(Optimizer):
             "containing additional information."
         ),
         since="0.21.0",
+        package_name="qiskit-terra",
     )
     def optimize(
         self,

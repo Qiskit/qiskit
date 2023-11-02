@@ -37,6 +37,7 @@ class SchedStyle:
             "You can choose one of ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``."
         ),
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,
@@ -182,6 +183,7 @@ class PulseStyle:
             "You can choose one of ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``."
         ),
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,

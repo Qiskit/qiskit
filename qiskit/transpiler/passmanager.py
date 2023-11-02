@@ -107,6 +107,7 @@ class PassManager(BasePassManager):
         since="0.25",
         additional_msg="'max_iteration' can be set in the constructor.",
         pending=True,
+        package_name="qiskit-terra",
     )
     def append(
         self,
@@ -163,6 +164,7 @@ class PassManager(BasePassManager):
         since="0.25",
         additional_msg="'max_iteration' can be set in the constructor.",
         pending=True,
+        package_name="qiskit-terra",
     )
     def replace(
         self,
