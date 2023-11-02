@@ -212,7 +212,7 @@ class BasePassManager(ABC):
             return in_programs
 
         is_list = True
-        if not isinstance(in_programs, Sequence):
+        if not (isinstance(in_programs, Sequence) and not isinstance(in_programs, str)):
             in_programs = [in_programs]
             is_list = False
 
