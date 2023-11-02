@@ -58,7 +58,6 @@ class Bit:
             self._hash = hash((self._register, self._index))
             self._repr = f"{self.__class__.__name__}({self._register}, {self._index})"
 
-
     def __repr__(self):
         """Return the official string representing the bit."""
         if (self._register, self._index) == (None, None):
