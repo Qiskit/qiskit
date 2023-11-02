@@ -2218,7 +2218,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qc.cx(0, 1)
         qc.cx(1, 2)
         qc.cx(2, 0)
-        circuit = transpile(qc, backend, basis_gates=["rz", "sx", "cx"], layout_method="sabre")
+        circuit = transpile(
+            qc, backend, basis_gates=["rz", "sx", "cx"], layout_method="sabre", seed_transpiler=42
+        )
 
         fname = "qreg_names_after_layout.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
