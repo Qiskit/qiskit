@@ -1,5 +1,5 @@
 ---
-features_quantum_info:
+fixes:
   - |
     Added support to allow :class:`SparsePauliOp` default initialization passing an empty
     iterable to the static methods :meth:`~.SparsePauliOp.from_list` and :meth:`~.SparsePauliOp.from_sparse_list`.
