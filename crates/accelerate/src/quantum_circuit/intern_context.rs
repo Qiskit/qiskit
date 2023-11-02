@@ -11,6 +11,8 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::PyResult;
 use std::sync::Arc;
 
 pub type IndexType = u32;
@@ -30,16 +32,20 @@ impl InternContext {
         }
     }
 
-    pub fn intern(&mut self, args: Vec<BitType>) -> IndexType {
+    pub fn intern(&mut self, args: Vec<BitType>) -> PyResult<IndexType> {
         if let Some(slot_idx) = self.slot_lookup.get(&args) {
-            return *slot_idx;
+            return Ok(*slot_idx);
         }
 
         let args = Arc::new(args);
-        let slot_idx = self.slots.len() as IndexType;
+        let slot_idx: IndexType = self
+            .slots
+            .len()
+            .try_into()
+            .map_err(|_| PyRuntimeError::new_err("InternContext capacity exceeded!"))?;
         self.slots.push(args.clone());
         self.slot_lookup.insert_unique_unchecked(args, slot_idx);
-        slot_idx
+        Ok(slot_idx)
     }
 
     pub fn lookup(&self, slot_idx: IndexType) -> &[BitType] {

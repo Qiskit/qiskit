@@ -14,7 +14,7 @@ use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use crate::quantum_circuit::py_ext;
 use hashbrown::HashMap;
-use pyo3::exceptions::{PyIndexError, PyValueError};
+use pyo3::exceptions::{PyIndexError, PyKeyError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
@@ -469,17 +469,21 @@ impl CircuitData {
         py: Python<'_>,
         elem: PyRef<CircuitInstruction>,
     ) -> PyResult<InternedInstruction> {
-        // TODO: raise error if bit is not in self
         let mut interned_bits =
             |indices: &HashMap<_BitAsKey, u32>, bits: &PyTuple| -> PyResult<IndexType> {
                 let args = bits
                     .into_iter()
                     .map(|b| {
-                        let native = _BitAsKey::new(b)?;
-                        Ok(indices[&native])
+                        let key = _BitAsKey::new(b)?;
+                        indices.get(&key).cloned().ok_or_else(|| {
+                            PyKeyError::new_err(format!(
+                                "Bit {:?} has not been added to this circuit.",
+                                b
+                            ))
+                        })
                     })
                     .collect::<PyResult<Vec<BitType>>>()?;
-                Ok(self.intern_context.intern(args))
+                self.intern_context.intern(args)
             };
         Ok(InternedInstruction {
             op: elem.operation.clone_ref(py),
