@@ -1,5 +1,5 @@
 ---
-upgrade_visualization:
+deprecations_visualization:
   - |
     The default ``matplotlib`` drawer setting now issues a ``FutureWarning``, as the default
     style is changing to the ``"iqp"`` style (previously known as ``"iqx"``). The old default is
