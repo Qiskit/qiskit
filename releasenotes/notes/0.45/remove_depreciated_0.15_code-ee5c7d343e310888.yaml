@@ -1,10 +1,12 @@
 ---
 upgrade_visualization:
   - |
-    Removed support for using the keyword ``rho`` for the first positional argument in :func:`~qiskit.visualization.plot_state_hinton`,
+    Removed support for using the keyword ``rho`` for the first positional argument in
+    :func:`~qiskit.visualization.plot_state_hinton`,
     :func:`~qiskit.visualization.plot_bloch_multivector`,
     :func:`~qiskit.visualization.plot_state_city`, :func:`~qiskit.visualization.plot_state_paulivec`,
-    and :func:`~qiskit.visualization.plot_state_qsphere`. The use of ``rho`` has been replaced by ``state``, which can be used instead.
+    and :func:`~qiskit.visualization.plot_state_qsphere`. The use of ``rho`` has been replaced by
+    ``state``, which can be used instead.
     Removed ``qiskit.scheduler.utils`` as all contained functions were moved to
     :mod:`qiskit.pulse.macros` and :mod:`qiskit.pulse.utils`.
     All these were deprecated since 0.15 (released on August 06, 2020) and now they are removed.

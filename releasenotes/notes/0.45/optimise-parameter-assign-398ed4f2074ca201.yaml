@@ -1,6 +1,7 @@
 ---
 features_circuits:
   - |
-    A new method :meth:`.Parameter.assign` has been added that primarily serves as a fast path to improves the performance of
-    :meth:`.QuantumCircuit.assign_parameters` for the common case of circuits that contain
-    predominantly "expressions" that are actually just single parameters to be assigned later.
+    A new method :meth:`.Parameter.assign` has been added. This method primarily serves as
+    a fast path to improve the performance of :meth:`.QuantumCircuit.assign_parameters`
+    for the common case of circuits that predominantly contain
+    "expressions" that are actually just single parameters to be assigned later.
