@@ -372,6 +372,7 @@ class TestBlockOperation(BaseTestBlock):
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
+
 class TestBlockEquality(BaseTestBlock):
     """Test equality of blocks.
 
