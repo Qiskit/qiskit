@@ -55,7 +55,7 @@ features_circuits:
     As of now, the annotated operations can appear only in the top-level of a quantum
     circuit, that is they cannot appear inside of the recursively-defined ``definition``
     circuit. We are planning to remove this limitation later.
-features_synthesis:
+features_transpiler:
   - |
     The :class:`.HighLevelSynthesis` class is extended to synthesize circuits with objects
     of type :class:`~.AnnotatedOperation`.
