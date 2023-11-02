@@ -19,7 +19,6 @@ use pyo3::prelude::*;
 use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
-use std::iter::zip;
 
 // Private type used to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
@@ -273,9 +272,7 @@ impl CircuitData {
                     )));
                 }
 
-                let enumerated = zip(slice.iter(), values.iter());
-                for (i, v) in enumerated {
-                    let v = v;
+                for (i, v) in slice.iter().zip(values.iter()) {
                     self.__setitem__(py, SliceOrInt::Int(*i), *v)?;
                 }
 
