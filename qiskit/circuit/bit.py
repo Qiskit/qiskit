@@ -13,7 +13,6 @@
 """
 Quantum bit and Classical bit objects.
 """
-from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
@@ -26,33 +25,19 @@ class Bit:
     """
 
     _register = None
-    __slots__ = {"_index", "_repr"}
+    _index = None
 
     def __init__(self, register=None, index=None):
         """Create a new generic bit."""
         del register
-        if index is not None:
-            try:
-                index = int(index)
-            except Exception as ex:
-                raise CircuitError(
-                    f"index needs to be castable to an int: type {type(index)} was provided"
-                ) from ex
-
-        self._index = index
+        del index
 
     def __repr__(self):
         """Return the official string representing the bit."""
-        if self._index is None:
-            # Similar to __hash__, use default repr method for new-style Bits.
-            return object.__repr__(self)
-        return f"{self.__class__.__name__}({self._index})"
+        return object.__repr__(self)
 
     def __hash__(self):
-        if self._index is None:
-            # Similar to __repr__, use default repr method for new-style Bits.
-            return object.__hash__(self)
-        return hash(self._index)
+        return object.__hash__(self)
 
     def __copy__(self):
         # Bits are immutable.
