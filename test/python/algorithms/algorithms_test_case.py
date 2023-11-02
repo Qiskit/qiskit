@@ -12,7 +12,6 @@
 
 """Algorithms Test Case"""
 
-import warnings
 from qiskit.test import QiskitTestCase
 
 
