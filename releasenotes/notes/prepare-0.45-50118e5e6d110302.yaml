@@ -1,20 +1,38 @@
 ---
 prelude: |
-  The Qiskit Terra 0.45.0 release highlights are:
+  The Qiskit 0.45.0 feature release highlights are:
 
-  * We have introduced two new classes: :class:`.SingletonInstruction` (subclass of :class:`~.circuit.Instruction`)
-    and :class:`~.SingletonGate` (subclass of :class:`~.Gate`). These classes use a single instance for all objects
-    of that type, reducing the memory and construction overhead of using multiple gates in a circuit. The tradeoff,
-    however, is that they have a global shared state, which is incompatible with gates that have unique and/or
-    mutable states stored in an instance. See feature notes for more details.
+  Singleton Intructions and Gates for a lower memory footprint
+  ------------------------------------------------------------
 
-  * We have added a new :mod:`qiskit.passmanager` module. This module implements a generic pass manager and
-    flow controllers, and provides infrastructure to manage execution of pass manager tasks. The generic
-    pass manager was also used to rebuild the existing pass manager in the :mod:`qiskit.transpiler` module.
-    See feature and upgrade notes for more details.
+  We have introduced two new classes: :class:`.SingletonInstruction` (subclass of :class:`~.circuit.Instruction`)
+  and :class:`~.SingletonGate` (subclass of :class:`~.Gate`). These classes use a single instance for all objects
+  of that type, reducing the memory and construction overhead of using multiple gates in a circuit. The tradeoff,
+  however, is that they have a global shared state, which is incompatible with gates that have unique and/or
+  mutable states stored in an instance. See feature notes for more details.
 
-  * We have also designed the :class:`~.AnnotatedOperation` class, which allows to formulate complex circuit
-    instructions as a base instruction with a set of modifiers. For example, instead of a specific operation
-    type that implements the controlled inverse of a :class:`~.RXGate`, we can now use an annotated
-    :class:`~.RXGate` with inverse and control attributes. See feature notes for more details.
+  New Generic Transpiler Pass Manager
+  -----------------------------------
 
+  We have added a new :mod:`qiskit.passmanager` module. This module implements a generic pass manager and
+  flow controllers, and provides infrastructure to manage execution of pass manager tasks. The generic
+  pass manager was also used to rebuild the existing pass manager in the :mod:`qiskit.transpiler` module.
+  See feature and upgrade notes for more details.
+
+  Annotated Operations for complex circuit instructions
+  -----------------------------------------------------
+
+  The 0.45.0 release includes the new :class:`~.AnnotatedOperation` class, which allows to formulate complex
+  circuitinstructions as a base instruction with a set of modifiers. For example, instead of a specific
+  operation type that implements the controlled inverse of a :class:`~.RXGate`, we can now use an annotated
+  :class:`~.RXGate` with inverse and control attributes. See feature notes for more details.
+
+features:
+  - |
+    The new features introduced in the 0.45.0 release are:
+upgrade:
+  - |
+    The feature upgrades introduced in the 0.45.0 release are:
+deprecations:
+  - |
+    The feature deprecations introduced in the 0.45.0 release are:
