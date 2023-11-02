@@ -1,7 +1,7 @@
 ---
 prelude: |
   Qiskit 0.45.0 is the last feature release before 1.0. It prepares the ground for the API
-  changes we are planning for our first major release, including many removals of
+  changes we are planning for our first major version release, including many removals of
   previously deprecated functionality as well as a series of new deprecations.
 
   .. note::
@@ -14,7 +14,7 @@ prelude: |
   * Starting in this release, all unparametrized gates in the Qiskit standard circuit library are now
     **singletons**. By default, these gates share a single instance in memory, so once a gate of a
     specific type, let's say :class:`.XGate`, is instantiated, any subsequent instances of
-    :class:`.XGate` will be a reference to the first one. This results in a reduced memory and
+    :class:`.XGate` will be a reference to the first one. This results in a reduced memory usage and
     construction overhead when using multiple gates of the same type in a circuit.
     To realize this feature, new base classes have been
     introduced: :class:`.SingletonInstruction` and :class:`.SingletonGate`. See feature notes for more details.

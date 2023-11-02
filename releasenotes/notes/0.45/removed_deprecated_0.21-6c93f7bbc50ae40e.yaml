@@ -35,7 +35,7 @@ upgrade_transpiler:
 upgrade_pulse:
   - |
     The methods ``to_dict`` in the classes :class:`.pulse.transforms.AlignmentKind`,
-    `.pulse.transforms.AlignEquispaced`, and :class:`.pulse.transforms.AlignFunc` are removed.
+    :class:`.pulse.transforms.AlignEquispaced`, and :class:`.pulse.transforms.AlignFunc` are removed.
     They were deprecated
     in Qiskit 0.37 (with Terra 0.21), released on June 2022.
 upgrade_qpy:

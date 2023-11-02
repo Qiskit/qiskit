@@ -149,7 +149,7 @@ upgrade_circuits:
     are no longer able to set :attr:`~.Gate.label`, :attr:`~.Gate.condition`,
     :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` (and :attr:`~.ControlledGate.ctrl_state`
     for :class:`~.ControlledGate` subclasses) after instantiating an object
-    anymore. :attr:`~.Gate.condition` can be set through
+    anymore. You can still set :attr:`~.Gate.condition` through
     the use :meth:`~.Gate.c_if`. You can use :meth:`~.Gate.to_mutable`
     to get a mutable copy of the instruction and then use the setter on that copy
     instead of the original object.  ``label``, ``duration`` and ``unit`` can
