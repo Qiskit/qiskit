@@ -15,7 +15,7 @@ features_pulse:
       qc.measure(0,0)
       sched = schedule(circuits=qc, backend=FakePerth())
 
-    Since :class:`BackendV2` was not supported by the :func:`~qiskit.compiler.schedule`
+    Since :class:`.BackendV2` was not supported by the :func:`~qiskit.compiler.schedule`
     function, this caused the :meth:`~.schedule` method to error out when the ``backend``
     argument was supplied with an instance of :class:`.BackendV2`.
     Refer to `#10837 <https://github.com/Qiskit/qiskit/issues/10837>`_ for more information.
