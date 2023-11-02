@@ -48,7 +48,7 @@ features_circuits:
      * :class:`~.YGate`
      * :class:`~.ZGate`
 
-    This means that if these classes are instantiated as (e.g.) ``XGate()`` using
+    This means that if these classes are instantiated as (e.g.) :class:`.XGate()` using
     all the constructor defaults, they will all share a single global
     instance. This results in a large reduction in the memory overhead for > 1
     object of these types and significantly faster object construction time.

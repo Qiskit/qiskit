@@ -6,10 +6,10 @@ deprecations_circuits:
     The following objects have been moved to :mod:`qiskit.circuit.library`
 
     * :class:`~.library.DiagonalGate`,
-    * :class:`~.library.HamiltonianGateGate`,
+    * :class:`~.library.HamiltonianGate`,
     * :class:`~.library.Initialize`,
     * :class:`~.library.Isometry`,
-    * :class:`~.library.generalized_gates.mcg_up_diag.MCGupDiag`,
+    * :class:`~.library.generalized_gates.mcg_up_to_diagonal.MCGupDiag`,
     * :class:`~.library.UCGate`,
     * :class:`~.library.UCPauliRotGate`,
     * :class:`~.library.UCRXGate`,
