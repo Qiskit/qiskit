@@ -30,7 +30,7 @@ deprecations_transpiler:
     ``"translator"`` method which will work similarly to the ``"unroller"`` plugin
     but support a broader set of target backends.
 
-upgrade:
+upgrade_circuits:
   - |
     The :attr:`.ControlledGate.definition` of the output from the :meth:`.Gate.control` method
     may be different as compared to previous releases. The internal generation

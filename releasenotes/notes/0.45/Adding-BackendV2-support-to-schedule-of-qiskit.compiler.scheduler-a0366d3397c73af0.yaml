@@ -1,7 +1,7 @@
 ---
 features_pulse:
   - |
-    Enables circuit-to-pulse scheduling using :class:`~.BackendV2`.
+    Enabled circuit-to-pulse scheduling using :class:`~.BackendV2`.
 
     .. code-block:: python
 
