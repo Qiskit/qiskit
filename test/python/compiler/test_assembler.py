@@ -27,7 +27,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, Acquire, Play
 from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
-from qiskit.pulse.library import gaussian
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse.macros import measure
@@ -1201,7 +1200,7 @@ class TestPulseAssembler(QiskitTestCase):
         ch_d0 = pulse.DriveChannel(0)
         for amp in (0.1, 0.2):
             sched = Schedule()
-            sched += Play(gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0)
+            sched += Play(pulse.Gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0)
             sched += measure(qubits=[0], backend=backend) << 100
             schedules.append(sched)
 

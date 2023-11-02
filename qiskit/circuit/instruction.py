@@ -215,7 +215,7 @@ class Instruction(Operation):
         return True
 
     def __repr__(self) -> str:
-        """Generates a representation of the Intruction object instance
+        """Generates a representation of the Instruction object instance
         Returns:
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
@@ -523,6 +523,7 @@ class Instruction(Operation):
             "provided, because the premise is wrong."
         ),
         since="0.25.0",
+        package_name="qiskit-terra",
     )
     def qasm(self):
         """Return a default OpenQASM string for the instruction.

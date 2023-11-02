@@ -122,7 +122,7 @@ class SciPyOptimizer(Optimizer):
         jac: Callable[[POINT], POINT] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
-        # Remove ignored parameters to supress the warning of scipy.optimize.minimize
+        # Remove ignored parameters to suppress the warning of scipy.optimize.minimize
         if self.is_bounds_ignored:
             bounds = None
         if self.is_gradient_ignored:
