@@ -298,8 +298,8 @@ impl CircuitData {
             SliceOrInt::Int(index) => {
                 let index = self.convert_py_index(index)?;
                 let value: PyRef<CircuitInstruction> = value.extract()?;
-                let mut cached_entry = self.get_or_cache(py, value)?;
-                std::mem::swap(&mut cached_entry, &mut self.data[index]);
+                let mut interned = self.intern_instruction(py, value)?;
+                std::mem::swap(&mut interned, &mut self.data[index]);
                 Ok(())
             }
         }
@@ -312,8 +312,8 @@ impl CircuitData {
         value: PyRef<CircuitInstruction>,
     ) -> PyResult<()> {
         let index = self.convert_py_index_clamped(index);
-        let cache_entry = self.get_or_cache(py, value)?;
-        self.data.insert(index, cache_entry);
+        let interned = self.intern_instruction(py, value)?;
+        self.data.insert(index, interned);
         Ok(())
     }
 
@@ -326,8 +326,8 @@ impl CircuitData {
     }
 
     pub fn append(&mut self, py: Python<'_>, value: PyRef<CircuitInstruction>) -> PyResult<()> {
-        let cache_entry = self.get_or_cache(py, value)?;
-        self.data.push(cache_entry);
+        let interned = self.intern_instruction(py, value)?;
+        self.data.push(interned);
         Ok(())
     }
 
@@ -358,8 +358,7 @@ impl CircuitData {
     }
 
     pub fn clear(&mut self, _py: Python<'_>) -> PyResult<()> {
-        let mut to_drop = vec![];
-        std::mem::swap(&mut self.data, &mut to_drop);
+        std::mem::take(&mut self.data);
         Ok(())
     }
 
@@ -396,8 +395,8 @@ impl CircuitData {
     }
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        for inst in self.data.iter() {
-            visit.call(&inst.op)?;
+        for interned in self.data.iter() {
+            visit.call(&interned.op)?;
         }
         for bit in self.qubits_native.iter().chain(self.clbits_native.iter()) {
             visit.call(bit)?;
@@ -465,13 +464,13 @@ impl CircuitData {
         Ok(index as usize)
     }
 
-    fn get_or_cache(
+    fn intern_instruction(
         &mut self,
         py: Python<'_>,
         elem: PyRef<CircuitInstruction>,
     ) -> PyResult<InternedInstruction> {
         // TODO: raise error if bit is not in self
-        let mut cache_args =
+        let mut interned_bits =
             |indices: &HashMap<_BitAsKey, u32>, bits: &PyTuple| -> PyResult<IndexType> {
                 let args = bits
                     .into_iter()
@@ -484,8 +483,8 @@ impl CircuitData {
             };
         Ok(InternedInstruction {
             op: elem.operation.clone_ref(py),
-            qubits_id: cache_args(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
-            clbits_id: cache_args(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
+            qubits_id: interned_bits(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
+            clbits_id: interned_bits(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
         })
     }
 }
