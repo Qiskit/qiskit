@@ -19,7 +19,7 @@ from abc import abstractmethod, ABC
 from collections.abc import Iterable, Callable, Generator
 from typing import Any
 
-from .compilation_status import RunState, PassManagerState
+from .compilation_status import RunState, PassManagerState, PropertySet
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,7 @@ class GenericPass(Task, ABC):
     """
 
     def __init__(self):
+        self.property_set = PropertySet()
         self.requires: Iterable[Task] = []
 
     def name(self) -> str:
@@ -77,6 +78,7 @@ class GenericPass(Task, ABC):
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
         # Especially, task execution may break when method signature is modified.
+        self.property_set = state.property_set
 
         if self.requires:
             # pylint: disable=cyclic-import
