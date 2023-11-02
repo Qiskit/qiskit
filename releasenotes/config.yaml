@@ -10,7 +10,7 @@ sections:
     - [features_providers, Providers Features]
     - [features_pulse, Pulse Features]
     - [features_qasm, OpenQASM Features]
-    - [features_qpy, QPY Features]]
+    - [features_qpy, QPY Features]
     - [features_quantum_info, Quantum Information Features]
     - [features_synthesis, Synthesis Features]
     - [features_transpiler, Transpiler Features]
