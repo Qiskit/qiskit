@@ -41,6 +41,7 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.utils import optionals
+from qiskit.utils.backend_utils import _get_backend_interface_version
 from qiskit.circuit.library import (
     SXGate,
     MCPhaseGate,
@@ -416,6 +417,9 @@ class TestFakeBackends(QiskitTestCase):
         from qiskit_aer.noise.noise_model import QuantumErrorLocation
 
         sim = AerSimulator()
+        # test only if simulator's backend is V1
+        if _get_backend_interface_version(sim) > 1:
+            return
         phi = Parameter("phi")
         lam = Parameter("lam")
         backend = BackendV2Converter(

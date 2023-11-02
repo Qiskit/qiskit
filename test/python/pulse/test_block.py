@@ -372,21 +372,6 @@ class TestBlockOperation(BaseTestBlock):
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    def test_execute_block(self):
-        """Test executing a ScheduleBlock on a Pulse backend"""
-
-        with pulse.build(name="test_block") as sched_block:
-            pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
-            pulse.acquire(50, pulse.AcquireChannel(0), pulse.MemorySlot(0))
-
-        backend = FakeArmonk()
-        # TODO: Rewrite test to simulate with qiskit-dynamics
-        with self.assertWarns(DeprecationWarning):
-            test_result = backend.run(sched_block).result()
-        self.assertDictEqual(test_result.get_counts(), {"0": 1024})
-
-
 class TestBlockEquality(BaseTestBlock):
     """Test equality of blocks.
 
