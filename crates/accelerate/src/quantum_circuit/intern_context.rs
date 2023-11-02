@@ -23,6 +23,13 @@ pub struct InternContext {
 }
 
 impl InternContext {
+    pub fn new() -> Self {
+        InternContext {
+            slots: Vec::new(),
+            slot_lookup: HashMap::new(),
+        }
+    }
+
     pub fn intern(&mut self, args: Vec<BitType>) -> IndexType {
         if let Some(slot_idx) = self.slot_lookup.get(&args) {
             return *slot_idx;
@@ -35,17 +42,8 @@ impl InternContext {
         slot_idx
     }
 
-    pub fn lookup(&self, slot_idx: IndexType) -> &Vec<BitType> {
+    pub fn lookup(&self, slot_idx: IndexType) -> &[BitType] {
         self.slots.get(slot_idx as usize).unwrap()
-    }
-}
-
-impl InternContext {
-    pub fn new() -> Self {
-        InternContext {
-            slots: Vec::new(),
-            slot_lookup: HashMap::new(),
-        }
     }
 }
 
