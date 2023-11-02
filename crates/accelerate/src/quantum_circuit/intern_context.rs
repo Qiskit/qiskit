@@ -18,6 +18,12 @@ use std::sync::Arc;
 pub type IndexType = u32;
 pub type BitType = u32;
 
+/// A Rust-only data structure (not a pyclass!) for interning
+/// `Vec<BitType>`.
+///
+/// Takes ownership of vectors given to [InternContext.intern]
+/// and returns an [IndexType] index that can be used to look up
+/// an _equivalent_ sequence by reference via [InternContext.lookup].
 #[derive(Clone, Debug)]
 pub struct InternContext {
     slots: Vec<Arc<Vec<BitType>>>,
@@ -32,6 +38,9 @@ impl InternContext {
         }
     }
 
+    /// Takes `args` by reference and returns an index that can be used
+    /// to obtain a reference to an equivalent sequence of `BitType` by
+    /// calling [CircuitData.lookup].
     pub fn intern(&mut self, args: Vec<BitType>) -> PyResult<IndexType> {
         if let Some(slot_idx) = self.slot_lookup.get(&args) {
             return Ok(*slot_idx);
@@ -48,6 +57,8 @@ impl InternContext {
         Ok(slot_idx)
     }
 
+    /// Returns the sequence corresponding to `slot_idx`, which must
+    /// be a value returned by [InternContext.intern].
     pub fn lookup(&self, slot_idx: IndexType) -> &[BitType] {
         self.slots.get(slot_idx as usize).unwrap()
     }

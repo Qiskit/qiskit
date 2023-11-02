@@ -20,18 +20,34 @@ use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
 
-// Private type used to store instructions with interned arg lists.
+/// Private type used to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
 struct InternedInstruction {
+    /// The Python-side operation instance.
     op: PyObject,
+    /// The index under which the interner has stored `qubits`.
     qubits_id: IndexType,
+    /// The index under which the interner has stored `clbits`.
     clbits_id: IndexType,
 }
 
+/// Private wrapper for Python-side Bit instances that implements
+/// [Hash] and [Eq], allowing them to be used in Rust hash-based
+/// sets and maps.
+///
+/// Python's `hash()` is called on the wrapped Bit instance during
+/// construction and returned from Rust's [Hash] trait impl.
+/// The impl of [PartialEq] first compares the native Py pointers
+/// to determine equality. If these are not equal, only then does
+/// it call `repr()` on both sides, which has a significant
+/// performance advantage.
 #[derive(Clone, Debug)]
 struct _BitAsKey {
+    /// Python's `hash()` of the wrapped instance.
     hash: isize,
+    /// The native Py pointer for the instance.
     id: u64,
+    /// The wrapped instance.
     bit: PyObject,
 }
 
@@ -67,21 +83,61 @@ impl PartialEq for _BitAsKey {
 
 impl Eq for _BitAsKey {}
 
+/// A container for [QuantumCircuit] instruction listings that stores
+/// [CircuitInstruction] instances in a compressed form by interning
+/// their `qubits` and `clbits` to Rust type `Vec<u32>`.
+///
+/// Before adding a [CircuitInstruction] to this container, the
+/// [Qubit] and [Clbit] instances of its `qubits` and `clbits`
+/// fields MUST be registered via the constructor or via
+/// [CircuitData.add_qubit] and [CircuitData.add_clbit], respectively.
+/// This is because the order in which bits of the same type are added
+/// to the [CircuitData] determines their associated indices used for
+/// storage and retrieval.
+///
+/// As a convenience, [CircuitData.qubits] and [CircuitData.clbits]
+/// are exposed to Python as `list` instances, which are updated
+/// inplace as new bits are added via [CircuitData.add_qubit] and
+/// [CircuitData.add_clbit]. **DO NOT MODIFY THESE LISTS DIRECTLY**,
+/// or they will become out of sync with the internals of this class.
+/// In this way, a [CircuitData] _owns_ its `qubits` and `clbits`.
+///
+/// Once constructed, a [CircuitData] behaves like a Python list of
+/// [CircuitInstruction] instances. However, these [CircuitInstruction]
+/// instances are created and destroyed on the fly, and thus should be
+/// treated as ephemeral. For example::
+///
+///     qubits = [Qubit()]
+///     data = CircuitData(qubits)
+///     data.append(CircuitInstruction(XGate(), (qubits[0],), ()))
+///     assert(data[0] == data[0]) # => Ok.
+///     assert(data[0] is data[0]) # => PANICS!
+///
 #[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
+    /// The interned instruction listing.
     data: Vec<InternedInstruction>,
+    /// The intern context used to intern the instruction listing.
     intern_context: InternContext,
+    /// The qubits registered (e.g. through [CircuitData.add_qubit]).
+    qubits_native: Vec<PyObject>,
+    /// The clbits registered (e.g. through [CircuitData.add_clbit]).
+    clbits_native: Vec<PyObject>,
+    /// Map of Python [Qubit] instances to their index in [CircuitData.qubits].
+    qubit_indices_native: HashMap<_BitAsKey, BitType>,
+    /// Map of Python [Clbit] instances to their index in [CircuitData.clbits].
+    clbit_indices_native: HashMap<_BitAsKey, BitType>,
+    /// The qubits registered, as a Python list.
     #[pyo3(get)]
     qubits: Py<PyList>,
+    /// The clbits registered, as a Python list.
     #[pyo3(get)]
     clbits: Py<PyList>,
-    qubits_native: Vec<PyObject>,
-    clbits_native: Vec<PyObject>,
-    qubit_indices_native: HashMap<_BitAsKey, BitType>,
-    clbit_indices_native: HashMap<_BitAsKey, BitType>,
 }
 
+/// A private enumeration type used to extract arguments to `pymethod`s
+/// that may be either an index or a slice.
 #[derive(FromPyObject)]
 pub enum SliceOrInt<'a> {
     Slice(&'a PySlice),
@@ -106,12 +162,12 @@ impl CircuitData {
                 Vec::new()
             },
             intern_context: InternContext::new(),
-            qubits: PyList::empty(py).into_py(py),
-            clbits: PyList::empty(py).into_py(py),
             qubits_native: Vec::new(),
             clbits_native: Vec::new(),
             qubit_indices_native: HashMap::new(),
             clbit_indices_native: HashMap::new(),
+            qubits: PyList::empty(py).into_py(py),
+            clbits: PyList::empty(py).into_py(py),
         };
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
@@ -143,6 +199,7 @@ impl CircuitData {
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
     }
 
+    /// Registers a [Qubit] instance.
     pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
         let idx = self.qubits_native.len() as u32;
         self.qubit_indices_native.insert(_BitAsKey::new(bit)?, idx);
@@ -150,6 +207,7 @@ impl CircuitData {
         self.qubits.as_ref(py).append(bit)
     }
 
+    /// Registers a [Clbit] instance.
     pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
         let idx = self.clbits_native.len() as u32;
         self.clbit_indices_native.insert(_BitAsKey::new(bit)?, idx);
@@ -157,18 +215,19 @@ impl CircuitData {
         self.clbits.as_ref(py).append(bit)
     }
 
+    /// Performs a shallow copy.
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
         Ok(CircuitData {
             data: self.data.clone(),
             // TODO: reuse intern context once concurrency is properly
             //  handled.
             intern_context: self.intern_context.clone(),
-            qubits: self.qubits.clone_ref(py),
-            clbits: self.clbits.clone_ref(py),
             qubits_native: self.qubits_native.clone(),
             clbits_native: self.clbits_native.clone(),
             qubit_indices_native: self.qubit_indices_native.clone(),
             clbit_indices_native: self.clbit_indices_native.clone(),
+            qubits: self.qubits.clone_ref(py),
+            clbits: self.clbits.clone_ref(py),
         })
     }
 
@@ -331,6 +390,8 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Reserves capacity for at least `additional` more [CircuitInstruction]
+    /// instances to be added to this container.
     pub fn reserve(&mut self, _py: Python<'_>, additional: usize) {
         self.data.reserve(additional);
     }
@@ -362,6 +423,7 @@ impl CircuitData {
         Ok(())
     }
 
+    // Marks this pyclass as NOT hashable.
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
 
@@ -422,6 +484,8 @@ impl CircuitData {
 }
 
 impl CircuitData {
+    /// Converts a Python slice to a `Vec` of indices into
+    /// the instruction listing, [CircuitData.data].
     fn convert_py_slice(&self, slice: &PySlice) -> PyResult<Vec<isize>> {
         let indices = slice.indices(self.data.len().try_into().unwrap())?;
         if indices.step > 0 {
@@ -439,6 +503,10 @@ impl CircuitData {
         }
     }
 
+    /// Converts a Python index to an index into the instruction listing,
+    /// or one past its end.
+    /// If the resulting index would be < 0, clamps to 0.
+    /// If the resulting index would be > len(data), clamps to len(data).
     fn convert_py_index_clamped(&self, index: isize) -> usize {
         let index = if index < 0 {
             index + self.data.len() as isize
@@ -448,6 +516,7 @@ impl CircuitData {
         std::cmp::min(std::cmp::max(0, index), self.data.len() as isize) as usize
     }
 
+    /// Converts a Python index to an index into the instruction listing.
     fn convert_py_index(&self, index: isize) -> PyResult<usize> {
         let index = if index < 0 {
             index + self.data.len() as isize
@@ -464,6 +533,9 @@ impl CircuitData {
         Ok(index as usize)
     }
 
+    /// Returns an [InternedInstruction] containing the original operation
+    /// of `elem` and [InternContext] indices of its `qubits` and `clbits`
+    /// fields.
     fn intern_instruction(
         &mut self,
         py: Python<'_>,
