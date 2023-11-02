@@ -16,5 +16,5 @@ prelude: |
   * We have also designed the :class:`~.AnnotatedOperation` class, which allows to formulate complex circuit
     instructions as a base instruction with a set of modifiers. For example, instead of a specific operation
     type that implements the controlled inverse of a :class:`~.RXGate`, we can now use an annotated
-    :class:`~.RXGate` with inverse and control attributes.
+    :class:`~.RXGate` with inverse and control attributes. See feature notes for more details.
 
