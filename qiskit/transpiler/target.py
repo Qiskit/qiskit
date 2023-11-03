@@ -822,7 +822,7 @@ class Target(Mapping):
             if parameters is not None:
                 obj = self._gate_name_map[operation_name]
                 if inspect.isclass(obj):
-                    # The parameters' argument was set and the operation_name specified is
+                    # The parameters argument was set and the operation_name specified is
                     # defined as a globally supported class in the target. This means
                     # there is no available validation (including whether the specified
                     # operation supports parameters), the returned value will not factor
