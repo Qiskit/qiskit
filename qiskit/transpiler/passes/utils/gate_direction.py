@@ -21,7 +21,9 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit import QuantumRegister, ControlFlowOp
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit.library.standard_gates import (
-    RYGate,
+    SGate,
+    SdgGate,
+    SXGate,
     HGate,
     CXGate,
     CZGate,
@@ -49,11 +51,14 @@ class GateDirection(TransformationPass):
         q_1: ┤ X ├      q_1: ┤ H ├──■──┤ H ├
              └───┘           └───┘     └───┘
 
-             ┌──────┐          ┌───────────┐┌──────┐┌───┐
-        q_0: ┤0     ├     q_0: ┤ RY(-pi/2) ├┤1     ├┤ H ├
-             │  ECR │  =       └┬──────────┤│  ECR │├───┤
-        q_1: ┤1     ├     q_1: ─┤ RY(pi/2) ├┤0     ├┤ H ├
-             └──────┘           └──────────┘└──────┘└───┘
+
+                          global phase: 3π/2
+             ┌──────┐           ┌───┐ ┌────┐┌─────┐┌──────┐┌───┐
+        q_0: ┤0     ├     q_0: ─┤ S ├─┤ √X ├┤ Sdg ├┤1     ├┤ H ├
+             │  ECR │  =       ┌┴───┴┐├────┤└┬───┬┘│  Ecr │├───┤
+        q_1: ┤1     ├     q_1: ┤ Sdg ├┤ √X ├─┤ S ├─┤0     ├┤ H ├
+             └──────┘          └─────┘└────┘ └───┘ └──────┘└───┘
+
 
              ┌──────┐          ┌───┐┌──────┐┌───┐
         q_0: ┤0     ├     q_0: ┤ H ├┤1     ├┤ H ├
@@ -90,11 +95,19 @@ class GateDirection(TransformationPass):
         self._cx_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._cx_dag.apply_operation_back(HGate(), [qr[1]], [])
 
+        # This is done in terms of less-efficient S/SX/Sdg gates instead of the more natural
+        # `RY(pi /2)` so we have a chance for basis translation to keep things in a discrete basis
+        # during resynthesis, if that's what's being asked for.
         self._ecr_dag = DAGCircuit()
         qr = QuantumRegister(2)
+        self._ecr_dag.global_phase = -pi / 2
         self._ecr_dag.add_qreg(qr)
-        self._ecr_dag.apply_operation_back(RYGate(-pi / 2), [qr[0]], [])
-        self._ecr_dag.apply_operation_back(RYGate(pi / 2), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(SGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(SXGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(SdgGate(), [qr[0]], [])
+        self._ecr_dag.apply_operation_back(SdgGate(), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(SXGate(), [qr[1]], [])
+        self._ecr_dag.apply_operation_back(SGate(), [qr[1]], [])
         self._ecr_dag.apply_operation_back(ECRGate(), [qr[1], qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[1]], [])

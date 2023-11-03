@@ -242,7 +242,12 @@ class Target(Mapping):
         "concurrent_measurements",
     )
 
-    @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
+    @deprecate_arg(
+        "aquire_alignment",
+        new_alias="acquire_alignment",
+        since="0.23.0",
+        package_name="qiskit-terra",
+    )
     def __init__(
         self,
         description=None,
@@ -725,7 +730,7 @@ class Target(Mapping):
                 target contains the operation). Normally you would not set this argument
                 if you wanted to check more generally that the target supports an operation
                 with the ``parameters`` on any qubits.
-            operation_class (qiskit.circuit.Instruction): The operation class to check whether
+            operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
                 the target supports a particular operation by class rather
                 than by name. This lookup is more expensive as it needs to
                 iterate over all operations in the target instead of just a
@@ -1073,7 +1078,7 @@ class Target(Mapping):
             return None
 
     def _filter_coupling_graph(self):
-        has_operations = set(itertools.chain.from_iterable(self.qargs))
+        has_operations = set(itertools.chain.from_iterable(x for x in self.qargs if x is not None))
         graph = self._coupling_graph.copy()
         to_remove = set(graph.node_indices()).difference(has_operations)
         if to_remove:
@@ -1143,6 +1148,7 @@ class Target(Mapping):
         additional_msg="Use the property ``acquire_alignment`` instead.",
         since="0.24.0",
         is_property=True,
+        package_name="qiskit-terra",
     )
     def aquire_alignment(self):
         """Alias of deprecated name. This will be removed."""
@@ -1153,6 +1159,7 @@ class Target(Mapping):
         additional_msg="Use the property ``acquire_alignment`` instead.",
         since="0.24.0",
         is_property=True,
+        package_name="qiskit-terra",
     )
     def aquire_alignment(self, new_value: int):
         """Alias of deprecated name. This will be removed."""

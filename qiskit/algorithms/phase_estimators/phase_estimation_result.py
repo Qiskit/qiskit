@@ -70,6 +70,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
     @deprecate_func(
         additional_msg="Instead, use the property ``phase``, which behaves the same.",
         since="0.18.0",
+        package_name="qiskit-terra",
         is_property=True,
     )
     def most_likely_phase(self) -> float:

@@ -13,7 +13,7 @@
 """Choose a noise-adaptive Layout based on current calibration data for the backend."""
 
 import math
-
+from copy import deepcopy
 import rustworkx as rx
 
 from qiskit.transpiler.layout import Layout
@@ -55,11 +55,14 @@ class NoiseAdaptiveLayout(AnalysisPass):
          by being set in `property_set`.
     """
 
-    def __init__(self, backend_prop):
+    def __init__(self, backend_prop, coupling_map=None):
         """NoiseAdaptiveLayout initializer.
 
         Args:
             backend_prop (Union[BackendProperties, Target]): backend properties object
+            coupling_map (CouplingMap): Optional. To filter the backend_prop qubits/gates.
+                This parameter is ignored if :class:`.Target` is provided in ``backend_prop``.
+                That method is preferred.
 
         Raises:
             TranspilerError: if invalid options
@@ -70,7 +73,21 @@ class NoiseAdaptiveLayout(AnalysisPass):
             self.backend_prop = target_to_backend_properties(self.target)
         else:
             self.target = None
+
+            if coupling_map:
+                # A backend might have more properties than qubits/gates in the configuration. This is a
+                # problem that the Target path should handle differently (by solving that possible
+                # inconsistency internally). For the non-target path, this is a possible solution.
+                # See https://github.com/Qiskit/qiskit/issues/7677
+                backend_prop = deepcopy(backend_prop)
+                edge_set = set(coupling_map.graph.edge_list())
+                backend_prop.gates = filter(
+                    lambda ginfo: tuple(ginfo.qubits) in edge_set,
+                    backend_prop.gates,
+                )
+                backend_prop.qubits = backend_prop.qubits[: 1 + max(coupling_map.physical_qubits)]
             self.backend_prop = backend_prop
+
         self.swap_graph = rx.PyDiGraph()
         self.cx_reliability = {}
         self.readout_reliability = {}

@@ -10,6 +10,7 @@ API Reference
    circuit
    circuit_library
    circuit_classical
+   circuit_singleton
    compiler
    execute
    visualization

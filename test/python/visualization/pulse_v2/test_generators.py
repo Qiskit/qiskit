@@ -83,7 +83,7 @@ class TestWaveformGenerators(QiskitTestCase):
 
     def test_parse_waveform(self):
         """Test helper function that parse waveform with Waveform instance."""
-        test_pulse = pulse.library.gaussian(10, 0.1, 3)
+        test_pulse = pulse.library.Gaussian(10, 0.1, 3).get_waveform()
 
         inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
         inst_data = create_instruction(inst, 0, 0, 10, 0.1)

@@ -14,6 +14,7 @@
 
 
 import unittest
+import warnings
 from functools import partial
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -61,7 +62,9 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         super().setUp()
         self.optimal_value = -1.38
         self.optimal_bitstring = "10"
-        algorithm_globals.random_seed = 42
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 42
 
     @data(PAULI_OP, OP)
     def test_exact_sampler(self, op):

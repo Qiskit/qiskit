@@ -294,3 +294,13 @@ class TranspileLayoutTest(QiskitTestCase):
                 }
             ),
         )
+
+    def test_initial_layout_consistency_for_range_and_list(self):
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        cmap = CouplingMap.from_line(3, bidirectional=False)
+        tqc_1 = transpile(qc, coupling_map=cmap, initial_layout=range(3), seed_transpiler=42)
+        tqc_2 = transpile(qc, coupling_map=cmap, initial_layout=list(range(3)), seed_transpiler=42)
+        self.assertEqual(tqc_1.layout.initial_index_layout(), tqc_2.layout.initial_index_layout())

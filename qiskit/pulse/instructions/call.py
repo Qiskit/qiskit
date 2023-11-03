@@ -33,6 +33,7 @@ class Call(instruction.Instruction):
 
     @deprecate_func(
         since="0.25.0",
+        package_name="qiskit-terra",
         additional_msg="Instead, use the pulse builder function "
         "qiskit.pulse.builder.call(subroutine) within an active building context.",
     )

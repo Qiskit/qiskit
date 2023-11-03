@@ -2940,6 +2940,64 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
 
+    def test_global_phase_of_blocks(self):
+        """It should be possible to set a global phase of a scope independantly of the containing
+        scope and other sibling scopes."""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr, global_phase=math.pi)
+
+        with qc.if_test((qc.clbits[0], False)):
+            # This scope's phase shouldn't be affected by the outer scope.
+            self.assertEqual(qc.global_phase, 0.0)
+            qc.global_phase += math.pi / 2
+            self.assertEqual(qc.global_phase, math.pi / 2)
+        # Back outside the scope, the phase shouldn't have changed...
+        self.assertEqual(qc.global_phase, math.pi)
+        # ... but we still should be able to see the phase in the built block definition.
+        self.assertEqual(qc.data[-1].operation.blocks[0].global_phase, math.pi / 2)
+
+        with qc.while_loop((qc.clbits[1], False)):
+            self.assertEqual(qc.global_phase, 0.0)
+            qc.global_phase = 1 * math.pi / 7
+            with qc.for_loop(range(3)):
+                self.assertEqual(qc.global_phase, 0.0)
+                qc.global_phase = 2 * math.pi / 7
+
+            with qc.if_test((qc.clbits[2], False)) as else_:
+                self.assertEqual(qc.global_phase, 0.0)
+                qc.global_phase = 3 * math.pi / 7
+            with else_:
+                self.assertEqual(qc.global_phase, 0.0)
+                qc.global_phase = 4 * math.pi / 7
+
+            with qc.switch(cr) as case:
+                with case(0):
+                    self.assertEqual(qc.global_phase, 0.0)
+                    qc.global_phase = 5 * math.pi / 7
+                with case(case.DEFAULT):
+                    self.assertEqual(qc.global_phase, 0.0)
+                    qc.global_phase = 6 * math.pi / 7
+
+        while_body = qc.data[-1].operation.blocks[0]
+        for_body = while_body.data[0].operation.blocks[0]
+        if_body, else_body = while_body.data[1].operation.blocks
+        case_0_body, case_default_body = while_body.data[2].operation.blocks
+
+        # The setter should respect exact floating-point equality since the values are in the
+        # interval [0, pi).
+        self.assertEqual(
+            [
+                while_body.global_phase,
+                for_body.global_phase,
+                if_body.global_phase,
+                else_body.global_phase,
+                case_0_body.global_phase,
+                case_default_body.global_phase,
+            ],
+            [i * math.pi / 7 for i in range(1, 7)],
+        )
+
 
 @ddt.ddt
 class TestControlFlowBuildersFailurePaths(QiskitTestCase):

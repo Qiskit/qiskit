@@ -13,6 +13,8 @@
 """Test of scikit-quant optimizers."""
 
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
@@ -34,7 +36,9 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
     def setUp(self):
         """Set the problem."""
         super().setUp()
-        algorithm_globals.random_seed = 50
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 50
         with self.assertWarns(DeprecationWarning):
             self.qubit_op = PauliSumOp.from_list(
                 [

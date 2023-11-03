@@ -350,11 +350,15 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         def test_func(dur: int):
             sched = Schedule()
-            sched += Play(library.constant(int(dur), amp), DriveChannel(0))
+            with self.assertWarns(DeprecationWarning):
+                waveform = library.constant(int(dur), amp)
+            sched += Play(waveform, DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        expected_sched += Play(library.constant(dur_val, amp), DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            cons_waveform = library.constant(dur_val, amp)
+        expected_sched += Play(cons_waveform, DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add("f", (0,), test_func)
@@ -371,11 +375,15 @@ class TestInstructionScheduleMap(QiskitTestCase):
         def test_func(dur: ParameterExpression, t_val: int):
             dur_bound = dur.bind({t_param: t_val})
             sched = Schedule()
-            sched += Play(library.constant(int(float(dur_bound)), amp), DriveChannel(0))
+            with self.assertWarns(DeprecationWarning):
+                waveform = library.constant(int(float(dur_bound)), amp)
+            sched += Play(waveform, DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        expected_sched += Play(library.constant(10, amp), DriveChannel(0))
+        with self.assertWarns(DeprecationWarning):
+            cons_waveform = library.constant(10, amp)
+        expected_sched += Play(cons_waveform, DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add("f", (0,), test_func)
