@@ -211,7 +211,7 @@ It is important to warn the user when your breaking changes are coming.
 for the function so that it shows up in docs.
 
 If you are not using those decorators, you should directly add a `Sphinx deprecated directive
-<https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-deprecated>`__ :
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-deprecated>`__:
 
 .. code-block:: python
 
