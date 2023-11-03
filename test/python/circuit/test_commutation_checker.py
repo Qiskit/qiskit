@@ -150,34 +150,44 @@ class TestCommutationChecker(QiskitTestCase):
         res = comm_checker.commute(CXGate(), [qr[0], qr[1]], [], CXGate(), [qr[1], qr[2]], [])
         self.assertFalse(res)
 
-    def test_caching_positive_results(self):
-        """Check that hashing positive results in commutativity checker works as expected."""
-
+    def test_standard_gates_commutations(self):
+        """Check that commutativity checker uses standard gates commutations as expected."""
         comm_checker = CommutationChecker()
         res = comm_checker.commute(ZGate(), [0], [], CXGate(), [0, 1], [])
         self.assertTrue(res)
-        self.assertGreater(len(comm_checker.cache), 0)
+        self.assertEqual(len(comm_checker._cached_commutations), 0)
+
+    def test_caching_positive_results(self):
+        """Check that hashing positive results in commutativity checker works as expected."""
+        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
+        NewGateCX.name = "cx_new"
+        comm_checker = CommutationChecker()
+        res = comm_checker.commute(ZGate(), [0], [], NewGateCX(), [0, 1], [])
+        self.assertTrue(res)
+        self.assertGreater(len(comm_checker._cached_commutations), 0)
 
     def test_caching_negative_results(self):
         """Check that hashing negative results in commutativity checker works as expected."""
-
+        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
+        NewGateCX.name = "cx_new"
         comm_checker = CommutationChecker()
-        res = comm_checker.commute(XGate(), [0], [], CXGate(), [0, 1], [])
+        res = comm_checker.commute(XGate(), [0], [], NewGateCX(), [0, 1], [])
         self.assertFalse(res)
-        self.assertGreater(len(comm_checker.cache), 0)
+        self.assertGreater(len(comm_checker._cached_commutations), 0)
 
     def test_caching_different_qubit_sets(self):
         """Check that hashing same commutativity results over different qubit sets works as expected."""
-
+        NewGateCX = type("MyClass", (CXGate,), {"content": {}})
+        NewGateCX.name = "cx_new"
         comm_checker = CommutationChecker()
 
         # All the following should be cached in the same way
         # though each relation gets cached twice: (A, B) and (B, A)
-        comm_checker.commute(XGate(), [0], [], CXGate(), [0, 1], [])
-        comm_checker.commute(XGate(), [10], [], CXGate(), [10, 20], [])
-        comm_checker.commute(XGate(), [10], [], CXGate(), [10, 5], [])
-        comm_checker.commute(XGate(), [5], [], CXGate(), [5, 7], [])
-        self.assertEqual(len(comm_checker.cache), 2)
+        comm_checker.commute(XGate(), [0], [], NewGateCX(), [0, 1], [])
+        comm_checker.commute(XGate(), [10], [], NewGateCX(), [10, 20], [])
+        comm_checker.commute(XGate(), [10], [], NewGateCX(), [10, 5], [])
+        comm_checker.commute(XGate(), [5], [], NewGateCX(), [5, 7], [])
+        self.assertEqual(len(comm_checker._cached_commutations), 1)
 
     def test_gates_with_parameters(self):
         """Check commutativity between (non-parameterized) gates with parameters."""

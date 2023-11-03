@@ -384,6 +384,7 @@ from .bit import Bit
 from .register import Register
 from . import library
 from .commutation_checker import CommutationChecker
+from .commutation_library import SessionCommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
