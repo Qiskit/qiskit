@@ -231,6 +231,12 @@ impl CircuitData {
         })
     }
 
+    /// Reserves capacity for at least `additional` more [CircuitInstruction]
+    /// instances to be added to this container.
+    pub fn reserve(&mut self, _py: Python<'_>, additional: usize) {
+        self.data.reserve(additional);
+    }
+
     pub fn __len__(&self) -> usize {
         self.data.len()
     }
@@ -388,12 +394,6 @@ impl CircuitData {
         let interned = self.intern_instruction(py, value)?;
         self.data.push(interned);
         Ok(())
-    }
-
-    /// Reserves capacity for at least `additional` more [CircuitInstruction]
-    /// instances to be added to this container.
-    pub fn reserve(&mut self, _py: Python<'_>, additional: usize) {
-        self.data.reserve(additional);
     }
 
     pub fn extend(&mut self, py: Python<'_>, itr: &PyAny) -> PyResult<()> {
