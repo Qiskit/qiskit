@@ -1,9 +1,10 @@
 ---
-features:
+features_visualization:
   - |
     In :class:`~qiskit.visualization.circuit.TextDrawer`, operations
     built from :class:`~qiskit.circuit.ControlFlowOp`, including
     ``if``, ``else``, ``while``, ``for``, and ``switch/case``, whether
-    directly instantiated or built using methods in :class:`~qiskit.circuit.QuantumCircuit`,
+    directly instantiated or built using methods in
+    :class:`~qiskit.circuit.QuantumCircuit`,
     will now fully display the circuits defined in the ControlFlowOps
     with brackets to delineate the circuits.

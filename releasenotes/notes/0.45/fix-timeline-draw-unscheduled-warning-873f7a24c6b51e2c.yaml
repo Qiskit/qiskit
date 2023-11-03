@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_visualization:
   - |
     Passing a circuit to :func:`qiskit.visualization.timeline_drawer` that does not have scheduled
     node start-time information is deprecated.  Only circuits that have gone through one of the

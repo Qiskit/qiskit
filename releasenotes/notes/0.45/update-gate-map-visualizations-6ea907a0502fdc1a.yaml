@@ -1,14 +1,21 @@
 ---
-features:
+features_visualization:
   - |
     The visualizations from the :func:`~.plot_gate_map`,  :func:`~.plot_coupling_map`.
-    :func:`~.plot_error_map`,  and :func:`~.plot_circuit_layout` functions have been significantly
+    :func:`~.plot_error_map`, and :func:`~.plot_circuit_layout` functions have been significantly
     improved for rendering layouts of backends with large numbers of qubits. This was accomplished
     by leveraging `graphviz <https://graphviz.org/>`__ through rustworkx's ``graphviz_draw()`` function
     to perform a more sophisticated algorithmic graph layout that scales for large numbers of
     qubits.
 
-upgrade:
+    .. plot::
+
+        from qiskit.visualization import plot_coupling_map
+        from rustworkx.generators import grid_graph
+        graph = grid_graph(50, 10)
+        plot_coupling_map(len(graph), None, graph.edge_list())
+
+upgrade_visualization:
   - |
     The visualization functions: :func:`~.plot_gate_map`,  :func:`~.plot_coupling_map`.
     :func:`~.plot_error_map`,  and :func:`~.plot_circuit_layout` now depend on

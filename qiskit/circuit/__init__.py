@@ -294,6 +294,7 @@ Control Flow Operations
    BreakLoopOp
    ContinueLoopOp
 
+
 The :class:`.SwitchCaseOp` also understands a special value:
 
 .. py:data:: CASE_DEFAULT
@@ -349,6 +350,25 @@ Random Circuits
 .. autofunction:: random_circuit
 .. currentmodule:: qiskit.circuit
 
+Circuit Analysis
+----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
+
+Annotated Operations
+--------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AnnotatedOperation
+   ControlModifier
+   PowerModifier
+   InverseModifier
+
 Exceptions
 ----------
 
@@ -384,6 +404,7 @@ from .bit import Bit
 from .register import Register
 from . import library
 from .commutation_checker import CommutationChecker
+from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier, InverseModifier
 
 from .controlflow import (
     ControlFlowOp,

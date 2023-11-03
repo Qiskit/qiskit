@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a new option ``max_num_qubits`` to :meth:`qiskit.circuit.CommutationChecker.commute`
     that specifies the maximum number of qubits to consider for the more expensive

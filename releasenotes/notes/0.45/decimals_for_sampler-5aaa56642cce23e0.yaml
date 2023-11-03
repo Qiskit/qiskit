@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     The :class:`~.QuasiDistribution` values might include floating-point errors.
     ``QuasiDistribution.__repr__`` rounds using :meth:`numpy.round`

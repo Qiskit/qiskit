@@ -1,6 +1,15 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
-    Disables the use of :class:`.RemoveResetInZeroState` in the preset passmanagers.
-    This better aligns circuits to the notion of arbitrary initial states
-    unless explicitly set to zeros with resets.
+    Disabled the use of the :class:`.RemoveResetInZeroState` class in the preset passmanagers.
+    Previously, when :func:`.transpile` or :func:`.generate_preset_pass_manager` was run with
+    ``optimization_level`` at level 1, 2, or 3, it would run :class:`.RemoveResetInZeroState`.
+    However, this pass prohibited the notion of arbitrary initial states unless explicitly set
+    to zeros with resets. If you need to run the pass as part of your compilation pipeline, you
+    can run something like::
+
+        pm = generate_preset_pass_manager(1, backend)
+        pm.init.append(RemoveResetInZeroState())
+        pm.run(circuit)
+
+    to retain this functionality for your circuit compilation.

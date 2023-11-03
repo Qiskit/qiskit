@@ -1,4 +1,7 @@
 ---
-upgrade:
+upgrade_misc:
   - |
-    The magic ``%qiskit_version_table`` from ``qiskit.tools.jupyter`` and the deprecated ``qiskit.__qiskit_version__`` do not include `qiskit-terra` anymore. Now Qiskit Terra is called Qiskit.
+    The magic ``%qiskit_version_table`` from ``qiskit.tools.jupyter`` and the deprecated
+    ``qiskit.__qiskit_version__`` do not include `qiskit-terra` anymore. Now that Qiskit
+    Terra is called Qiskit, these entries are not needed anymore and you can just refer
+    to the ``qiskit`` entry.

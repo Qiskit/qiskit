@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_circuits:
   - |
     The method :meth:`.QuantumCircuit.bind_parameters` is now deprecated and will be removed
     from the codebase in no less than 3 months from the release date. Its functionality

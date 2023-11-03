@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Add early validation for :class:`.BaseSampler` when input :class:`.QuantumCircuit` does not
-    have measurements.

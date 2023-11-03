@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The :class:`.DAGCircuit` methods :meth:`~.DAGCircuit.apply_operation_back` and
     :meth:`~.DAGCircuit.apply_operation_front` have gained a ``check`` keyword argument that can be

@@ -1,5 +1,5 @@
 ---
-features:
+features_qasm:
   - |
     The OpenQASM 2 module :mod:`qiskit.qasm2` has gained the export functions
     :func:`~.qasm2.dump` and :func:`~.qasm2.dumps`.  These are used in a very
@@ -20,7 +20,7 @@ features:
     gave no indication of the OpenQASM version, and since it was originally
     added, Qiskit has gained several serialisation modules that could easily
     become confused.
-deprecations:
+deprecations_circuits:
   - |
     The little-used :class:`.QuantumCircuit` class data attributes
     :attr:`~.QuantumCircuit.header` and :attr:`~.QuantumCircuit.extension_lib`

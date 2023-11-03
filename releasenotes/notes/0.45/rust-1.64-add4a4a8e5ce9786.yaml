@@ -1,5 +1,6 @@
 ---
-upgrade:
+upgrade_misc:
   - |
-    Building Qiskit from source now requires a Rust compiler compatible with language version 1.64,
-    up from 1.61.
+    Building Qiskit from source now requires a Rust compiler compatible with language version 1.64.
+    This has been increased from the previous minimum supported Rust version of 1.61 for building
+    earlier versions of Qiskit.

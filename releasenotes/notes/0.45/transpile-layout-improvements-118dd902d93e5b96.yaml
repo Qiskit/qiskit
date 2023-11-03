@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added new methods to :class:`.TranspileLayout`, :meth:`~.TranspileLayout.initial_index_layout`
     and :meth:`~.TranspileLayout.routing_permutation`, which are used to generate a list view of

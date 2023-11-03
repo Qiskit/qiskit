@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_circuits:
   - |
     Passing ``None`` as the ``qargs`` or ``cargs`` arguments to :meth:`.DAGCircuit.apply_operation_back`
     or :meth:`~.DAGCircuit.apply_operation_front` is deprecated and will be removed in Qiskit 1.0.

@@ -1,74 +1,76 @@
 ---
-features:
+features_transpiler:
   - |
-    A new module :mod:`qiskit.passmanager` is added.
+    A new :mod:`qiskit.passmanager` module has been added to the Qiskit library.
     This module implements a generic pass manager and flow controllers,
     and provides infrastructure to manage execution of pass manager tasks.
-    The pass manager is a base class and not aware of the input and output object types,
-    and subclass must be created for a particular program type to optimize.
-    The :mod:`qiskit.transpiler` module is also reorganized to rebuild the existing
-    pass manager based off of the generic pass manager.
+    The module provides base classes for passes (:class:`.GenericPass`) and
+    flow controllers (:class:`.BaseController`),
+    as well as a new interface class, :class:`.passmanager.Task`, to manage the
+    execution of the pass manager (see the :meth:`.Task.execute` method).
+    These new classes follow the composite pattern, as flow controllers are
+    collections of passes, and a controller can be recursively nested into
+    the task pipeline. It must also be noted the base classes are not not aware
+    of the input and output object types,
+    and they must be subclassed for a particular program type to optimize.
+    This unified design reduces the complexity of the conventional pass manager,
+    and no longer requires the use of classes such as the :class:`.RunningPassManager`
+    to handle the execution logic dispatch and task structure renormalization.
+    The :mod:`qiskit.transpiler` module has been reorganized to rebuild the existing
+    pass managers based off of the generic pass manager.
     See upgrade notes for more details.
-upgrade:
+
+
+upgrade_transpiler:
   - |
-    One new base class for passes (:class:`.GenericPass`) and one for flow controllers (:class:`.BaseController`)
-    are introduced in the :mod:`qiskit.passmanager` module.
-    Because the flow controller is a collection of passes and a controller can be recursively
-    nested into the task pipeline, new classes are designed with the idea of
-    the composite pattern, and the interface class :class:`.passmanager.Task`
-    is also introduced. This class defines the signature of a :meth:`.Task.execute` method.
-    This unified design eliminates complexity of the conventional pass manager;
-    the execution logic dispatch and task structure renormalization
-    are no longer necessary, whom the :class:`.RunningPassManager` used to be responsible for.
-    Existing flow controllers :class:`.FlowControllerLinear`,
+    As a consequence of the pass manager refactoring efforts, existing flow controllers:
+    :class:`.FlowControllerLinear`,
     :class:`.ConditionalController`, and :class:`.DoWhileController` are now subclasses of
     the :class:`.BaseController`.
-    Note that these controllers are no longer iterable, as they drop the implementation of
-    :meth:`~object.__iter__` method; they are now only iterable in the context of a flow-controller
+    Note that these controllers have dropped the implementation of the :meth:`~object.__iter__`
+    method. They are now only iterable in the context of a flow-controller
     execution, which threads the compilation state through after each inner task is executed.
   - |
-    The :class:`.RunningPassManager` becomes largely an alias of :class:`.FlowControllerLinear`,
-    and this class will be completely replaced with the flow controller in the feature release.
-    This means the running pass manager becomes a stateless flow controller, and
-    the pass manager framework consists of :class:`.BasePassManager` and :class:`.BaseController`.
-    The pass manager is responsible for the construction of task pipeline,
-    while the controller is responsible for the execution of associated tasks.
-    Subclassing the :class:`.RunningPassManager` is no longer recommended.
+    The functionalitly of the :class:`.RunningPassManager` class has been superseded by the
+    new pass manager framework (:class:`.BasePassManager` and :class:`.BaseController`).
+    The running pass manager is now a stateless flow controller (essentially, an alias of
+    :class:`.FlowControllerLinear`), as the pass manager is responsible for the construction
+    of task pipeline, while the controller is responsible for the execution of associated tasks.
+    Subclassing the :class:`.RunningPassManager` is no longer recommended, and this class
+    will be completely replaced with the flow controller in future releases.
   - |
-    A new class :class:`.WorkflowStatus` is introduced to track the status of pass manager workflow.
-    This portable object is created when the pass manager is run,
+    A new class, :class:`.WorkflowStatus`, has been introduced to track the status of the
+    pass manager workflow. This portable object is created when the pass manager is run,
     and handed over to the underlying tasks.
-    Such status was previously managed by the :class:`.RunningPassManager` with instance variables,
-    however, now running pass manager becomes a controller object.
+    Such status was previously managed by the :class:`.RunningPassManager` with instance
+    variables.
   - |
-    The transpiler-specific (:func:`.transpile`) :class:`.transpiler.PassManager` is now a subclass of
-    the :class:`.passmanager.BasePassManager`.
-    There is no API break at public member level due to this class hierarchy change.
+    The transpiler-specific :class:`.transpiler.PassManager` (used in :func:`.transpile`)
+    is now a subclass of :class:`.passmanager.BasePassManager`. However, this class hierarchy
+    change doesn't introduce any breaking change to the public-facing API.
   - |
-    A new exception :exc:`~qiskit.passmanager.PassManagerError` is introduced as the base class of
-    exceptions raised during pass-manager execution.  The transpiler-specific
-    :class:`.transpile.PassManager` continues to raise :exc:`.TranspilerError`, which is now a
-    subclass of :exc:`.PassManagerError`, for errors raised by specific tasks.  A generic failure of
-    the pass-manager machinery, typically indicating programmer error and not recoverable, will
-    raise :exc:`.PassManagerError` for general pass managers, but :class:`.transpile.PassManager`
-    will currently wrap this in its specific :exc:`.TranspilerError` for backwards compatibility.
+    Exceptions raised during pass-manager execution now inherit from the newly introduced
+    :exc:`~qiskit.passmanager.PassManagerError`. A generic failure of the pass-manager
+    machinery will raise :exc:`.PassManagerError` for general pass managers, but the
+    transpiler-specific :class:`.transpile.PassManager` will currently wrap this in its
+    specific :exc:`.TranspilerError` for backwards compatibility.
     This wrapping will be removed in the future.
   - |
-    Use of :class:`.FencedObject` in the pass manager framework is removed.
-    These wrapper class cannot protect mutable object attribute from modification,
-    and protection doesn't matter as long as the code is properly implemented;
-    analysis passes should not modify an input IR,
-    controllers should not update the property set, and so forth.
-    Implementation of the proper code is the responsibility of pass manager developer.
-deprecations:
+    The use of :class:`.FencedObject` in the pass manager framework has been removed.
+    This wrapper class cannot protect mutable object attributes from modification,
+    and this should not be an issue for properly implemented code. Analysis passes
+    should not modify an input IR, controllers should not update the property set,
+    and so forth. It's the pass manager developer's responsibility to ensure that
+    the pass is not modifying object attributes,
+deprecations_transpiler:
   - |
     The flow controller factory method :meth:`.FlowController.controller_factory` is deprecated
     along with :meth:`.FlowController.add_flow_controller` and
-    :meth:`.FlowController.remove_flow_controller`,
-    as we are also going to deprecate task construction with
-    keyword arguments in the :meth:`.BasePassManager.append` method.
+    :meth:`.FlowController.remove_flow_controller`. In the future,
+    task construction with keyword arguments in the :meth:`.BasePassManager.append` method
+    will also be deprecated.
     Controllers must be explicitly instantiated and appended to the pass manager.
-    For example, conventional syntax
+    For example, the previously used conventional syntax
 
     .. code-block:: python
 
@@ -88,11 +90,11 @@ deprecations:
   - |
     The :meth:`.FlowControllerLinear.append`, :meth:`.DoWhileController.append`,
     and :meth:`.ConditionalController.append` methods are all deprecated immediately.
-    The construction of pass manager task pipeline is the role of :class:`.BasePassManager`,
-    and individual flow controller do not need to implement method like this.  For a flow
-    controller, you should pass all the passes in one go directly to the constructor.
+    The construction of the pass manager task pipeline is now the role of :class:`.BasePassManager`,
+    and individual flow controllers do not need to this method.  For a flow
+    controller, all the passes should be specificed in one go directly to the constructor.
   - |
     The general attribute and variable name :code:`passes` is replaced with :code:`tasks`
     all over the :mod:`qiskit.passmanager` module. Note that a task must indicate a union of pass
     and controller, and the singular form `pass` conflicts with the Python keyword.
-    In this sense, use of `tasks` is much preferable.
+    In this sense, the use of `tasks` is much preferable.

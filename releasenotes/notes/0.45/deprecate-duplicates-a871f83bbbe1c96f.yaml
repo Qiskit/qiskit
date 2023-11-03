@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_circuits:
   - |
     Deprecate duplicate gate methods on :class:`.QuantumCircuit`. The rule applied is that
     the method names reflect that gate names, e.g. the :class:`.CXGate` is added via

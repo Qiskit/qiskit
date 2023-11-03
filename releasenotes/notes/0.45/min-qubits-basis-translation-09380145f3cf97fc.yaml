@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new keyword argument, ``min_qubits``, to the constructor of the
     :class:`.BasisTranslator` transpiler pass. When set to a non-zero value this
