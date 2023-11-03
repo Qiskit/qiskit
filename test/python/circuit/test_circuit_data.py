@@ -13,7 +13,16 @@
 """Test operations on circuit.data."""
 import ddt
 from qiskit._accelerate.quantum_circuit import CircuitData
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction, Operation
+
+from qiskit.circuit import (
+    ClassicalRegister,
+    QuantumCircuit,
+    QuantumRegister,
+    Parameter,
+    CircuitInstruction,
+    Operation,
+    Qubit,
+)
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
 
 from qiskit.test import QiskitTestCase
@@ -37,7 +46,8 @@ class TestQuantumCircuitData(QiskitTestCase):
         slice(-10, -5, 1),
         slice(4, -1, -1),
     )
-    def test_slice(self, s):
+    def test_getitem_slice(self, sl):
+        """Test that __getitem__ with slice is equivalent to that of list."""
         qr = QuantumRegister(5)
         data_list = [
             CircuitInstruction(XGate(), [qr[0]], []),
@@ -47,7 +57,32 @@ class TestQuantumCircuitData(QiskitTestCase):
             CircuitInstruction(XGate(), [qr[4]], []),
         ]
         data = CircuitData(qubits=list(qr), data=data_list)
-        self.assertEqual(data[s], data_list[s])
+        self.assertEqual(data[sl], data_list[sl])
+
+    def test_unregistered_bit_error_new(self):
+        """Test using foreign bits is not allowed."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+            CircuitData(qr, cr, [CircuitInstruction(XGate(), [Qubit()], [])])
+
+    def test_unregistered_bit_error_append(self):
+        """Test using foreign bits is not allowed."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        data = CircuitData(qr, cr)
+        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+            qr_foreign = QuantumRegister(1)
+            data.append(CircuitInstruction(XGate(), [qr_foreign[0]], []))
+
+    def test_unregistered_bit_error_set(self):
+        """Test using foreign bits is not allowed."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        data = CircuitData(qr, cr, [CircuitInstruction(XGate(), [qr[0]], [])])
+        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+            qr_foreign = QuantumRegister(1)
+            data[0] = CircuitInstruction(XGate(), [qr_foreign[0]], [])
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
