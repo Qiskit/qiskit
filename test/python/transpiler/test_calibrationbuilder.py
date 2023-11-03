@@ -140,7 +140,8 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1p_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+            with self.assertWarns(DeprecationWarning):
+                builder.x(0)
             with builder.align_left():
                 # Negative CRs
                 u0m_params = u0m_play.pulse.parameters
@@ -157,7 +158,9 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1m_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+            with self.assertWarns(DeprecationWarning):
+                builder.x(0)
+
         return ref_sched
 
     def build_reverse(
@@ -179,12 +182,19 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             default_transpiler_settings={"optimization_level": 0},
         ) as ref_sched:
             # Hadamard gates
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(SXGate(), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            builder.call_gate(SXGate(), qubits=(1,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(SXGate(), qubits=(0,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(SXGate(), qubits=(1,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+
             with builder.align_left():
                 # Positive CRs
                 u0p_params = u0p_play.pulse.parameters
@@ -201,7 +211,9 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1p_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+            with self.assertWarns(DeprecationWarning):
+                builder.x(0)
+
             with builder.align_left():
                 # Negative CRs
                 u0m_params = u0m_play.pulse.parameters
@@ -218,14 +230,22 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1m_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+            with self.assertWarns(DeprecationWarning):
+                builder.x(0)
+            
             # Hadamard gates
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(SXGate(), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            builder.call_gate(SXGate(), qubits=(1,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(SXGate(), qubits=(0,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(SXGate(), qubits=(1,))
+            with self.assertWarns(DeprecationWarning):
+                builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
 
         return ref_sched
 

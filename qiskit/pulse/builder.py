@@ -2549,9 +2549,10 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
 
 
 # Gate instructions
-@deprecate_func(since='1.0.0',
-                additional_msg="Calling gates directly within the pulse builder namespace is now deprecated.
-                Instead use: backend.target['gate_name'][(qubit,)].calibration")
+@deprecate_func(
+    since="1.0.0",
+    additional_msg="Instead use: ``backend.target['gate_name'][(qubit,)].calibration``",
+)
 def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
@@ -2605,9 +2606,9 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     _active_builder().call_gate(gate, qubits, lazy=lazy)
 
 
-@deprecate_func(since='1.0.0',
-                additional_msg="Calling gates directly within the pulse builder namespace is now deprecated.
-                Instead use: backend.target['cx'][(qubit,)].calibration")
+@deprecate_func(
+    since="1.0.0", additional_msg="Instead use: ``backend.target['cx'][(qubit,)].calibration``"
+)
 def cx(control: int, target: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.CXGate` on the
     input physical qubits.
@@ -2633,8 +2634,7 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
     call_gate(gates.CXGate(), (control, target))
 
 
-@deprecate_func(since='1.0.0',
-                additional_msg="Calling gates directly within the pulse builder namespace is now deprecated.")
+@deprecate_func(since="1.0.0")
 def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U1Gate` on the
     input physical qubit.
@@ -2662,8 +2662,7 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
     call_gate(gates.U1Gate(theta), qubit)
 
 
-@deprecate_func(since='1.0.0',
-                additional_msg="Calling gates directly within the pulse builder namespace is now deprecated.")
+@deprecate_func(since="1.0.0")
 def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U2Gate` on the
     input physical qubit.
@@ -2691,8 +2690,7 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
-@deprecate_func(since='1.0.0',
-                additional_msg="Calling gates directly within the pulse builder namespace is now deprecated.")
+@deprecate_func(since="1.0.0")
 def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U3Gate` on the
     input physical qubit.
@@ -2719,9 +2717,10 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
     """
     call_gate(gates.U3Gate(theta, phi, lam), qubit)
 
-@deprecate_func(since='1.0.0',
-                additional_msg="Calling gates directly within the pulse builder namespace is now deprecated.
-                Instead use: backend.target['x'][(qubit,)].calibration")
+
+@deprecate_func(
+    since="1.0.0", additional_msg="Instead use: ``backend.target['x'][(qubit,)].calibration``"
+)
 def x(qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.XGate` on the
     input physical qubit.
