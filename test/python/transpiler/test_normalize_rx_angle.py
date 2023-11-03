@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit
 from qiskit.transpiler.passes.optimization.normalize_rx_angle import (
     NormalizeRXAngle,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.transpiler import Target
 from qiskit.circuit.library.standard_gates import SXGate

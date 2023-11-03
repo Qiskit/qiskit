@@ -15,7 +15,7 @@
 import unittest
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IQP

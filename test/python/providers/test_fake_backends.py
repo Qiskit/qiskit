@@ -26,7 +26,7 @@ from qiskit.compiler import assemble
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.execute_function import execute
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeProviderForBackendV2,
     FakeProvider,

@@ -17,7 +17,7 @@ import sys
 import unittest
 
 from qiskit.utils import optionals
-from qiskit.test import Path, QiskitTestCase, slow_test
+from test.utils import Path, QiskitTestCase, slow_test
 
 
 # Timeout (in seconds) for a single notebook.

@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     ControlModifier,

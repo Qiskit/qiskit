@@ -32,7 +32,7 @@ from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
 from test.utils import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
+from test.utils._canonical import canonicalize_control_flow
 
 
 class SentinelException(Exception):

@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 from numpy import sqrt, isclose
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit.library import PhaseOracle
 from qiskit.quantum_info import Statevector
 from qiskit.utils.optionals import HAS_TWEEDLEDUM

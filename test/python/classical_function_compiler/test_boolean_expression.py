@@ -16,7 +16,7 @@ import unittest
 from os import path
 from ddt import ddt, unpack, data
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit import execute, BasicAer
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 

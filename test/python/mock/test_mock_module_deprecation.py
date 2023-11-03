@@ -21,8 +21,8 @@ class MockModuleDeprecationTest(QiskitTestCase):
         """Test that the mock module is deprecated."""
         # pylint: disable=unused-import,no-name-in-module
         with self.assertWarns(DeprecationWarning):
-            from qiskit.test.mock import FakeWashington
+            from test.utils.mock import FakeWashington
         with self.assertWarns(DeprecationWarning):
-            from qiskit.test.mock.backends import FakeWashington
+            from test.utils.mock.backends import FakeWashington
         with self.assertWarns(DeprecationWarning):
-            from qiskit.test.mock.backends.washington import FakeWashington
+            from test.utils.mock.backends.washington import FakeWashington

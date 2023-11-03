@@ -16,7 +16,7 @@ import unittest
 from ddt import ddt, data
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit.library import Diagonal
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal

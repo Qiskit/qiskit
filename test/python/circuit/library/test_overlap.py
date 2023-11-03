@@ -14,7 +14,7 @@
 import unittest
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.circuit.library import EfficientSU2, UnitaryOverlap
 from qiskit.quantum_info import Statevector

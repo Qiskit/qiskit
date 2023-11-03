@@ -29,7 +29,7 @@ from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from test.utils import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
+from test.utils._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
 
 

@@ -19,11 +19,11 @@ from qiskit.providers.fake_provider import FakeParis, FakeTokyo
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
-from qiskit.test.base import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
-    """Test Test InstructionDurations class."""
+    """Test InstructionDurations class."""
 
     def test_empty(self):
         durations = InstructionDurations()

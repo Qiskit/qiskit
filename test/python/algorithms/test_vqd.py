@@ -42,7 +42,7 @@ from qiskit.opflow import (
 )
 
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
-from qiskit.test import slow_test
+from test.utils import slow_test
 
 
 if has_aer():

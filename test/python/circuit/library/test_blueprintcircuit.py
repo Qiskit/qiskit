@@ -15,7 +15,7 @@
 import unittest
 from ddt import ddt, data
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import (
     QuantumRegister,
     Parameter,

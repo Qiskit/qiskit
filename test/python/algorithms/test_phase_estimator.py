@@ -39,7 +39,7 @@ from qiskit.opflow import (
     MatrixEvolution,
     PauliSumOp,
 )
-from qiskit.test import slow_test
+from test.utils import slow_test
 
 
 @ddt

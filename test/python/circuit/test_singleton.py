@@ -40,7 +40,7 @@ from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegi
 from qiskit.circuit.singleton import SingletonGate, SingletonInstruction
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 
 
 class TestSingletonGate(QiskitTestCase):

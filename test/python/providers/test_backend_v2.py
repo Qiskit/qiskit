@@ -21,7 +21,7 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
 from qiskit.providers.fake_provider.fake_backend_v2 import (
     FakeBackendV2,

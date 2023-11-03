@@ -24,7 +24,7 @@ from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import providers
+from test.utils import providers
 
 
 class StreamHandlerRaiseException(StreamHandler):

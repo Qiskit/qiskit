@@ -15,7 +15,7 @@
 import unittest
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
 from qiskit.converters import circuit_to_dag

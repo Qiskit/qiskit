@@ -19,7 +19,7 @@ import numpy as np
 
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
 from qiskit.circuit.library import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, HGate
 from qiskit.quantum_info import Operator

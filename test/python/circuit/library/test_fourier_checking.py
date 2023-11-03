@@ -16,7 +16,7 @@ import unittest
 from ddt import ddt, data, unpack
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit.library import FourierChecking
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info import Operator

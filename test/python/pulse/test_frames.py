@@ -18,7 +18,7 @@ from qiskit.pulse import (
     QubitFrame,
     MeasurementFrame,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestFrames(QiskitTestCase):

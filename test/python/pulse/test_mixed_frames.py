@@ -17,7 +17,7 @@ from qiskit.pulse import (
     GenericFrame,
     MixedFrame,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestMixedFrames(QiskitTestCase):

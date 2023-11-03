@@ -16,7 +16,7 @@ import unittest
 from ddt import ddt, data
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import QuadraticForm
 from qiskit.quantum_info import Statevector

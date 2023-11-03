@@ -20,8 +20,8 @@ from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.test import ReferenceCircuits
-from qiskit.test import providers
+from test.utils import ReferenceCircuits
+from test.utils import providers
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import process_fidelity, Operator
 

@@ -19,7 +19,7 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit import BasicAer, execute
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import LinearAmplitudeFunction
 

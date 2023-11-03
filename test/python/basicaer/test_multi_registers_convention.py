@@ -17,6 +17,7 @@ from qiskit import BasicAer, execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, Statevector, process_fidelity, state_fidelity
 
+
 class TestCircuitMultiRegs(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
 

@@ -17,7 +17,7 @@ from qiskit.pulse import (
     Qubit,
     Coupler,
 )
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase
 
 
 class TestLogicalElements(QiskitTestCase):

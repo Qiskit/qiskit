@@ -19,7 +19,7 @@ from qiskit.circuit import Delay
 from qiskit.circuit import Parameter, ParameterVector
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 
 
 class TestDelayClass(QiskitTestCase):

@@ -22,7 +22,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
 from qiskit.opflow.gradients import Gradient
-from qiskit.test import slow_test
+from test.utils import slow_test
 
 
 class TestOptimizerAQGD(QiskitAlgorithmsTestCase):

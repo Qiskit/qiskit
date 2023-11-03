@@ -14,7 +14,7 @@
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit, Clbit
 from test.utils import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
+from test.utils._canonical import canonicalize_control_flow
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import ConvertConditionsToIfOps
 
