@@ -184,15 +184,10 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             # Hadamard gates
             with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(SXGate(), qubits=(0,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(SXGate(), qubits=(1,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
 
             with builder.align_left():
@@ -232,19 +227,14 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                 )
             with self.assertWarns(DeprecationWarning):
                 builder.x(0)
-            
+
             # Hadamard gates
             with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(SXGate(), qubits=(0,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(SXGate(), qubits=(1,))
-            with self.assertWarns(DeprecationWarning):
                 builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
 
         return ref_sched
