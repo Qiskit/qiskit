@@ -33,11 +33,13 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def __init__(self, *regs, name: str | None = None) -> None:
         """Create a new blueprint circuit."""
+        self._is_initialized = False
         super().__init__(*regs, name=name)
         self._qregs: list[QuantumRegister] = []
         self._cregs: list[ClassicalRegister] = []
         self._qubit_indices = {}
         self._is_built = False
+        self._is_initialized = True
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -78,6 +80,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     @qregs.setter
     def qregs(self, qregs):
         """Set the quantum registers associated with the circuit."""
+        if not self._is_initialized:
+            # Workaround to ignore calls from QuantumCircuit.__init__() which
+            # doesn't expect 'qregs' to be an overridden property!
+            return
         self._qregs = []
         self._ancillas = []
         self._qubit_indices = {}
