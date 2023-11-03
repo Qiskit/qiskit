@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Instead use `draw` method in `~qiskit..visualization.pulse_v2.interface.py`
+deprecations:
+  - |
+    The deprecated function in :func:`~qiskit..visualization.pulse.matplotlib.py` will be remove in the future release
+fixes:
+  - |
+    Issue #11144 `Remove deprecated code since 0.23`

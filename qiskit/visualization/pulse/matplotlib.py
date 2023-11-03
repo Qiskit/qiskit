@@ -22,7 +22,6 @@ from typing import Any
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (
     DriveChannel,
@@ -46,21 +45,11 @@ from qiskit.pulse import (
     SetPhase,
 )
 from qiskit.pulse.schedule import ScheduleComponent
-from qiskit.utils.deprecation import deprecate_func
 
 
 class EventsOutputChannels:
     """Pulse dataset for channel."""
 
-    @deprecate_func(
-        additional_msg=(
-            "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
-            "pulse visualization."
-        ),
-        since="0.23.0",
-        removal_timeline="no earlier than 6 months after the release date",
-        package_name="qiskit-terra",
-    )
     def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
 
@@ -290,23 +279,6 @@ class EventsOutputChannels:
 class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
-    @deprecate_func(
-        additional_msg=(
-            "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
-            "pulse visualization."
-        ),
-        since="0.23.0",
-        removal_timeline="no earlier than 6 months after the release date",
-        package_name="qiskit-terra",
-    )
-    def __init__(self, style: PulseStyle):
-        """Create new figure.
-
-        Args:
-            style: Style sheet for pulse visualization.
-        """
-        self.style = style or PulseStyle()
-
     @_optionals.HAS_MATPLOTLIB.require_in_call("waveform drawer")
     def draw(
         self,
@@ -393,30 +365,6 @@ class WaveformDrawer:
 @_optionals.HAS_MATPLOTLIB.require_in_instance
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
-
-    @deprecate_func(
-        additional_msg=(
-            "Instead, use the new interface in ``qiskit.visualization.pulse_drawer`` for "
-            "pulse visualization."
-        ),
-        since="0.23.0",
-        removal_timeline="no earlier than 6 months after the release date",
-        package_name="qiskit-terra",
-    )
-    def __init__(self, style: SchedStyle):
-        """Create new figure.
-
-        Args:
-            style: Style sheet for pulse schedule visualization.
-        Raises:
-            MissingOptionalLibraryError: If matplotlib is not installed
-        """
-        from matplotlib import pyplot as plt
-        from matplotlib import gridspec
-
-        self.plt_mod = plt
-        self.gridspec_mod = gridspec
-        self.style = style or SchedStyle()
 
     def _build_channels(
         self,
