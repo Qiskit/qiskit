@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence, Iterable
+from collections.abc import Callable, Iterable
 from itertools import chain
 from typing import Any
 
@@ -169,14 +169,16 @@ class BasePassManager(ABC):
 
     def run(
         self,
-        in_programs: Any,
+        in_programs: Any | list[Any],
         callback: Callable = None,
         **kwargs,
     ) -> Any:
-        """Run all the passes on the specified ``circuits``.
+        """Run all the passes on the specified ``in_programs``.
 
         Args:
             in_programs: Input programs to transform via all the registered passes.
+                A single input object cannot be a Python builtin list object.
+                A list object is considered as multiple input objects to optimize.
             callback: A callback function that will be called after each pass execution. The
                 function will be called with 4 keyword arguments::
 
@@ -212,7 +214,7 @@ class BasePassManager(ABC):
             return in_programs
 
         is_list = True
-        if not isinstance(in_programs, Sequence):
+        if not isinstance(in_programs, list):
             in_programs = [in_programs]
             is_list = False
 

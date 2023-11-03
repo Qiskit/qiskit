@@ -23,7 +23,9 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 @deprecate_func(
-    additional_msg="Instead, use the function qiskit.synthesis.synth_clifford_full.", since="0.23.0"
+    additional_msg="Instead, use the function qiskit.synthesis.synth_clifford_full.",
+    since="0.23.0",
+    package_name="qiskit-terra",
 )
 def decompose_clifford(clifford, method=None):
     """DEPRECATED: Decompose a Clifford operator into a QuantumCircuit.
