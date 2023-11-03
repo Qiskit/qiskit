@@ -286,7 +286,8 @@ class TestMeasCal(QiskitTestCase):
 
                 # Perform an ideal execution on the generated circuits
                 backend = AerSimulator()
-                job = qiskit.execute(meas_calibs, backend=backend, shots=self.shots)
+                with self.assertWarns(DeprecationWarning):
+                    job = qiskit.execute(meas_calibs, backend=backend, shots=self.shots)
                 cal_results = job.result()
 
                 with self.assertWarns(DeprecationWarning):
@@ -339,13 +340,14 @@ class TestMeasCal(QiskitTestCase):
 
         # Run the calibration circuits
         backend = AerSimulator()
-        job = qiskit.execute(
-            meas_calibs,
-            backend=backend,
-            shots=self.shots,
-            seed_simulator=SEED,
-            seed_transpiler=SEED,
-        )
+        with self.assertWarns(DeprecationWarning):
+            job = qiskit.execute(
+                meas_calibs,
+                backend=backend,
+                shots=self.shots,
+                seed_simulator=SEED,
+                seed_transpiler=SEED,
+            )
         cal_results = job.result()
 
         with self.assertWarns(DeprecationWarning):
@@ -353,10 +355,10 @@ class TestMeasCal(QiskitTestCase):
             meas_cal = CompleteMeasFitter(cal_results, state_labels)
         # Calculate the fidelity
         fidelity = meas_cal.readout_fidelity()
-
-        job = qiskit.execute(
-            [ghz], backend=backend, shots=self.shots, seed_simulator=SEED, seed_transpiler=SEED
-        )
+        with self.assertWarns(DeprecationWarning):
+            job = qiskit.execute(
+                [ghz], backend=backend, shots=self.shots, seed_simulator=SEED, seed_transpiler=SEED
+            )
         results = job.result()
 
         # Predicted equally distributed results
@@ -403,7 +405,9 @@ class TestMeasCal(QiskitTestCase):
 
         # Perform an ideal execution on the generated circuits
         backend = AerSimulator()
-        cal_results = qiskit.execute(meas_calibs, backend=backend, shots=self.shots).result()
+        with self.assertWarns(DeprecationWarning):
+            job = qiskit.execute(meas_calibs, backend=backend, shots=self.shots)
+        cal_results = job.result()
 
         with self.assertWarns(DeprecationWarning):
             # Make calibration matrices
@@ -459,13 +463,15 @@ class TestMeasCal(QiskitTestCase):
 
         # Run the calibration circuits
         backend = AerSimulator()
-        cal_results = qiskit.execute(
-            meas_calibs,
-            backend=backend,
-            shots=self.shots,
-            seed_simulator=SEED,
-            seed_transpiler=SEED,
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            job = qiskit.execute(
+                meas_calibs,
+                backend=backend,
+                shots=self.shots,
+                seed_simulator=SEED,
+                seed_transpiler=SEED,
+            )
+        cal_results = job.result()
 
         with self.assertWarns(DeprecationWarning):
             # Make a calibration matrix
@@ -473,9 +479,10 @@ class TestMeasCal(QiskitTestCase):
         # Calculate the fidelity
         fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
 
-        results = qiskit.execute(
-            [ghz], backend=backend, shots=self.shots, seed_simulator=SEED, seed_transpiler=SEED
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            results = qiskit.execute(
+                [ghz], backend=backend, shots=self.shots, seed_simulator=SEED, seed_transpiler=SEED
+            ).result()
 
         # Predicted equally distributed results
         predicted_results = {"000": 0.5, "111": 0.5}

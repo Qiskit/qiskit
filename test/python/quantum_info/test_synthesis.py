@@ -270,7 +270,9 @@ class CheckDecompositions(QiskitTestCase):
         decomp_circuit = decomposer(target_unitary, _num_basis_uses=num_basis_uses)
         if num_basis_uses is not None:
             self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get("unitary", 0))
-        result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
+        with self.assertWarns(DeprecationWarning):
+            job = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0)
+        result = job.result()
         decomp_unitary = result.get_unitary()
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(
@@ -1100,9 +1102,9 @@ class TestTwoQubitDecompose(CheckDecompositions):
         for i in range(4):
             with self.subTest(i=i):
                 decomp_circuit = decomposer(tgt, _num_basis_uses=i)
-                result = execute(
-                    decomp_circuit, UnitarySimulatorPy(), optimization_level=0
-                ).result()
+                with self.assertWarns(DeprecationWarning):
+                    job = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0)
+                result = job.result()
                 decomp_unitary = result.get_unitary()
                 tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
                 self.assertAlmostEqual(
@@ -1124,7 +1126,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        with self.assertWarns(DeprecationWarning):
+            unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
@@ -1145,7 +1148,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        with self.assertWarns(DeprecationWarning):
+            unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
@@ -1171,7 +1175,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        with self.assertWarns(DeprecationWarning):
+            unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
@@ -1202,7 +1207,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        with self.assertWarns(DeprecationWarning):
+            unitary = execute(qc, sim).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 

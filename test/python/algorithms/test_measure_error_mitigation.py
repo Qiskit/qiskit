@@ -508,9 +508,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         circuit.measure(2, 1)
         circuit.measure(0, 2)
 
-        result = execute(
-            circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            job = execute(circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0)
+        result = job.result()
         with self.subTest(subset=subset):
             with self.assertWarns(DeprecationWarning):
                 new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)
