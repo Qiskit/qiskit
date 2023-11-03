@@ -1046,7 +1046,7 @@ class Target(Mapping):
             return None
         if None not in self.qargs and any(len(x) > 2 for x in self.qargs):
             logger.warning(
-                "This Target object contains multi-qubit gates that "
+                "This Target object contains multiqubit gates that "
                 "operate on > 2 qubits. This will not be reflected in "
                 "the output coupling map."
             )
