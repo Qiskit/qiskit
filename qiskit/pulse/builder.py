@@ -1197,6 +1197,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
     return channels
 
 
+@deprecate_func(since="1.0.0")
 def active_transpiler_settings() -> Dict[str, Any]:
     """Return the current active builder context's transpiler settings.
 
@@ -1223,6 +1224,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
     return dict(_active_builder().transpiler_settings)
 
 
+@deprecate_func(since="1.0.0")
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return the current active builder context's circuit scheduler settings.
 
@@ -1507,6 +1509,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         builder.append_subroutine(current)
 
 
+@deprecate_func(since="1.0.0")
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the currently active transpiler settings for this context.
