@@ -297,9 +297,17 @@ impl CircuitData {
     pub fn __delitem__(&mut self, py: Python<'_>, index: SliceOrInt) -> PyResult<()> {
         match index {
             SliceOrInt::Slice(slice) => {
-                let slice = self.convert_py_slice(slice)?;
-                for (i, x) in slice.into_iter().enumerate() {
-                    self.__delitem__(py, SliceOrInt::Int(x - i as isize))?;
+                let slice = {
+                    let mut s = self.convert_py_slice(slice)?;
+                    if s.len() > 1 && s.first().unwrap() < s.last().unwrap() {
+                        // Reverse the order so we're sure to delete items
+                        // at the back first (avoids messing up indices).
+                        s.reverse()
+                    }
+                    s
+                };
+                for i in slice.into_iter() {
+                    self.__delitem__(py, SliceOrInt::Int(i))?;
                 }
                 Ok(())
             }
@@ -330,6 +338,8 @@ impl CircuitData {
                 let slice = self.convert_py_slice(slice)?;
                 let values = value.iter()?.collect::<PyResult<Vec<&PyAny>>>()?;
                 if indices.step != 1 && slice.len() != values.len() {
+                    // A replacement of a different length when step isn't exactly '1'
+                    // would result in holes.
                     return Err(PyValueError::new_err(format!(
                         "attempt to assign sequence of size {:?} to extended slice of size {:?}",
                         values.len(),
@@ -341,15 +351,15 @@ impl CircuitData {
                     self.__setitem__(py, SliceOrInt::Int(*i), *v)?;
                 }
 
-                // Delete any extras.
                 if slice.len() >= values.len() {
-                    for _ in 0..(slice.len() - values.len()) {
-                        let res = self.__delitem__(py, SliceOrInt::Int(indices.stop - 1));
-                        if res.is_err() {
-                            // We're empty!
-                            break;
-                        }
-                    }
+                    // Delete any extras.
+                    let slice = PySlice::new(
+                        py,
+                        indices.start + values.len() as isize,
+                        indices.stop,
+                        1isize,
+                    );
+                    self.__delitem__(py, SliceOrInt::Slice(slice))?;
                 } else {
                     // Insert any extra values.
                     for v in values.iter().skip(slice.len()).rev() {

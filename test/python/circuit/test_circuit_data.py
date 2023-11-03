@@ -46,7 +46,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         slice(-10, -5, 1),
         slice(4, -1, -1),
     )
-    def test_getitem_slice(self, sl):
+    def test_getitem_slice(self, sli):
         """Test that __getitem__ with slice is equivalent to that of list."""
         qr = QuantumRegister(5)
         data_list = [
@@ -57,7 +57,107 @@ class TestQuantumCircuitData(QiskitTestCase):
             CircuitInstruction(XGate(), [qr[4]], []),
         ]
         data = CircuitData(qubits=list(qr), data=data_list)
-        self.assertEqual(data[sl], data_list[sl])
+        self.assertEqual(data[sli], data_list[sli])
+
+    @ddt.data(
+        slice(0, 5, 1),
+        slice(0, 4, 1),
+        slice(0, 5, 2),
+        slice(1, 5, 1),
+        slice(0, 5, -1),
+        slice(5, 0, -1),
+        slice(5, 0, -2),
+        slice(-1, 0, -1),
+        slice(-1, -5, -1),
+        slice(-10, -5, 1),
+        slice(4, -1, -1),
+        slice(0, 10, 1),
+    )
+    def test_delitem_slice(self, sli):
+        """Test that __delitem__ with slice is equivalent to that of list."""
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+
+        del data_list[sli]
+        del data[sli]
+        if data_list[sli] != data[sli]:
+            print(f"data_list: {data_list}")
+            print(f"data: {list(data)}")
+
+        self.assertEqual(data[sli], data_list[sli])
+
+    @ddt.data(
+        (slice(0, 5, 1), 5),
+        (slice(0, 4, 1), 4),
+        (slice(0, 4, 1), 5),
+        (slice(0, 4, 1), 10),
+        (slice(0, 5, 2), 3),
+        (slice(2, 2, 1), 1),
+        (slice(2, 3, 1), 1),
+        (slice(2, 3, 1), 10),
+        (slice(4, 10, 1), 2),
+        (slice(5, 10, 1), 10),
+        (slice(4, 0, -1), 4),
+        (slice(-1, -6, -1), 5),
+        (slice(3, 4, 1), 10),
+    )
+    @ddt.unpack
+    def test_setitem_slice(self, sli, value_length):
+        """Test that __setitem__ with slice is equivalent to that of list."""
+        reg_size = 20
+        assert value_length <= reg_size
+        qr = QuantumRegister(reg_size)
+        default_bit = Qubit()
+        data_list = [
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+        ]
+        data = CircuitData(qubits=list(qr) + [default_bit], data=data_list)
+
+        value = [CircuitInstruction(XGate(), [qr[i]]) for i in range(value_length)]
+        data_list[sli] = value
+        data[sli] = value
+        self.assertEqual(data, data_list)
+
+    @ddt.data(
+        (slice(0, 5, 2), 2),
+        (slice(0, 5, 2), 4),
+        (slice(4, 0, -1), 10),
+        (slice(-1, -6, -1), 6),
+        (slice(4, 3, -1), 10),
+    )
+    @ddt.unpack
+    def test_setitem_slice_negative(self, sli, value_length):
+        """Test that __setitem__ with slice is equivalent to that of list."""
+        reg_size = 20
+        assert value_length <= reg_size
+        qr = QuantumRegister(reg_size)
+        default_bit = Qubit()
+        data_list = [
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+            CircuitInstruction(XGate(), [default_bit], []),
+        ]
+        data = CircuitData(qubits=list(qr) + [default_bit], data=data_list)
+
+        value = [CircuitInstruction(XGate(), [qr[i]]) for i in range(value_length)]
+        with self.assertRaises(ValueError):
+            data_list[sli] = value
+        with self.assertRaises(ValueError):
+            data[sli] = value
+        self.assertEqual(data, data_list)
 
     def test_unregistered_bit_error_new(self):
         """Test using foreign bits is not allowed."""
