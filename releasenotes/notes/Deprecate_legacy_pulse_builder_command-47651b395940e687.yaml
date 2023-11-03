@@ -24,6 +24,7 @@ deprecations:
     
     Modified related tests in
     :file:`test/python/pulse/test_builder.py`,
+    :file:`test/python/pulse/test_block.py`
     :file:`test/python/pulse/test_builder_v2.py`
     :file:`test/python/transpiler/test_calibrationbuilder.py`
 
