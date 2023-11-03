@@ -14,7 +14,7 @@
 
 
 """
-Tests for singleton gate behavior
+Tests for singleton gate and instruction behavior
 """
 
 import copy
@@ -36,15 +36,16 @@ from qiskit.circuit.library import (
     XGate,
     C4XGate,
 )
+from qiskit.circuit import Measure, Reset
 from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.singleton import SingletonGate, SingletonInstruction
+from qiskit.circuit.singleton import SingletonGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 
 from qiskit.test.base import QiskitTestCase
 
 
-class TestSingletonGate(QiskitTestCase):
-    """Qiskit SingletonGate tests."""
+class TestSingleton(QiskitTestCase):
+    """Qiskit SingletonGate and SingletonInstruction tests."""
 
     def test_default_singleton(self):
         gate = HGate()
@@ -325,20 +326,42 @@ class TestSingletonGate(QiskitTestCase):
         self.assertEqual(gate.x, 1)
         self.assertIsNot(MyAbstractGate(1), MyAbstractGate(1))
 
-    def test_inherit_singleton(self):
-        class Measure(SingletonInstruction):
-            def __init__(self):
-                super().__init__("measure", 1, 1, [])
+    def test_return_type_singleton_instructions(self):
+        measure = Measure()
+        self.assertEqual(measure.__class__.__name__, "_SingletonMeasure")
 
+        reset = Reset()
+        self.assertEqual(reset.__class__.__name__, "_SingletonReset")
+
+    def test_singleton_instruction_integration(self):
+        qc = QuantumCircuit(1, 1)
+        measure = Measure()
+        reset = Reset()
+        qc.append(measure, [0], [0])
+        qc.append(reset, [0])
+        self.assertEqual(qc.data[0].operation.__class__.__name__, "_SingletonMeasure")
+        self.assertEqual(qc.data[1].operation.__class__.__name__, "_SingletonReset")
+
+    def test_inherit_singleton_instructions(self):
         class ESPMeasure(Measure):
             pass
 
-        base = Measure()
-        esp = ESPMeasure()
-        self.assertIs(esp, ESPMeasure())
-        self.assertIsNot(esp, base)
-        self.assertIs(base.base_class, Measure)
-        self.assertIs(esp.base_class, ESPMeasure)
+        measure_base = Measure()
+        esp_measure = ESPMeasure()
+        self.assertIs(esp_measure, ESPMeasure())
+        self.assertIsNot(esp_measure, measure_base)
+        self.assertIs(measure_base.base_class, Measure)
+        self.assertIs(esp_measure.base_class, ESPMeasure)
+
+        class ESPReset(Reset):
+            pass
+
+        reset_base = Reset()
+        esp_reset = ESPReset()
+        self.assertIs(esp_reset, ESPReset())
+        self.assertIsNot(esp_reset, reset_base)
+        self.assertIs(reset_base.base_class, Reset)
+        self.assertIs(esp_reset.base_class, ESPReset)
 
     def test_singleton_with_default(self):
         # Explicitly setting the label to its default.
