@@ -364,7 +364,7 @@ Annotated Operations
 .. autosummary::
    :toctree: ../stubs/
 
-   CommutationChecker
+   AnnotatedOperation
    ControlModifier
    PowerModifier
    InverseModifier
