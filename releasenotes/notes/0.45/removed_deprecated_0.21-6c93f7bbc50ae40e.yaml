@@ -2,28 +2,8 @@
 upgrade_misc:
   - |
     The function :func:`~qiskit.execute_function.execute`
-    does not accept the arguments ``qobj_id`` and  ``qobj_header`` anymore.
+    does not accept the arguments ``qobj_id`` and  ``qobj_header`` any more.
     Their use was deprecated in Qiskit 0.37 (with Terra 0.21), released on June 2022.
-upgrade_transpiler:
-  - |
-    The transpilation pass ``qiskit.transpiler.passes.ALAPSchedule`` is removed. Its use was deprecated
-    in Qiskit 0.37 (with Terra 0.21), released on June 2022 and replaced by
-    :class:`~.transpiler.passes.ALAPScheduleAnalysis`, which is an
-    analysis pass.
-  - |
-    The transpilation pass ``qiskit.transpiler.passes.ASAPSchedule`` is removed. Its use was deprecated
-    in Qiskit 0.37 (with Terra 0.21), released on June 2022. It has been superseded by
-    :class:`~.ASAPScheduleAnalysis` and the new scheduling workflow.
-  - |
-    The transpilation pass ``qiskit.transpiler.passes.DynamicalDecoupling`` is removed. Its use was deprecated
-    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
-    Instead, use :class:`~.transpiler.passes.PadDynamicalDecoupling`, which performs the same
-    function but requires scheduling and alignment analysis passes to run prior to it.
-  - |
-    The transpilation pass ``qiskit.transpiler.passes.AlignMeasures`` is removed. Its use was deprecated
-    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
-    Instead, use :class:`~.ConstrainedReschedule`, which performs the same function
-    and also supports aligning to additional timing constraints.
   - |
     The transpilation pass ``qiskit.transpiler.passes.CXDirection`` is removed. Its use was deprecated
     in Qiskit 0.37 (with Terra 0.21), released on June 2022.
@@ -36,13 +16,10 @@ upgrade_pulse:
   - |
     The methods ``to_dict`` in the classes :class:`.pulse.transforms.AlignmentKind`,
     :class:`.pulse.transforms.AlignEquispaced`, and :class:`.pulse.transforms.AlignFunc` are removed.
-    They were deprecated
-    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    They were deprecatedin Qiskit 0.37 (with Terra 0.21), released on June 2022.
 upgrade_qpy:
   - |
-    The use of the keyword ``circuits`` for the first positional argument in the function :func:`qiskit.qpy.dump`
-    is removed as its usage was deprecated
-    in Qiskit 0.37 (with Terra 0.21), released on June 2022.
-    The keyword ``programs`` can be used instead (or just pass the argument in positionally),
-    which behaves identically.
+    The argument ``circuits`` in the method :meth:`qiskit.qpy.interface.dump`
+    is removed as its usage was deprecated in Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use the argument ``programs``, which behaves identically.
 
