@@ -28,14 +28,10 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models.backendproperties import Gate as GateSchema
-from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
 
-@deprecate_arg(name="custom_name_mapping", since="1.0.0")
-@deprecate_arg(name="add_delay", since="1.0.0")
-@deprecate_arg(name="filter_faulty", since="1.0.0")
 def convert_to_target(
     configuration: BackendConfiguration,
     properties: Optional[Union[BackendProperties, Dict]] = None,
@@ -270,8 +266,7 @@ def _decode_qubit_property(qubit_specs: List[Dict]) -> Tuple[QubitProperties, bo
     for spec in qubit_specs:
         name = (spec["name"]).lower()
         if name == "operational":
-            in_data[name] = bool(spec["value"])
-            operational = in_data[name]
+            operational = bool(spec["value"])
         elif name in QubitProperties.__slots__:
             in_data[name] = apply_prefix(value=spec["value"], unit=spec.get("unit", None))
     return QubitProperties(**in_data), operational  # type: ignore[no-untyped-call]
@@ -555,7 +550,7 @@ class BackendV2Converter(BackendV2):
         self,
         backend: BackendV1,
         name_mapping: Optional[Dict[str, Any]] = None,
-        add_delay: bool = False,
+        add_delay: bool = True,
         filter_faulty: bool = False,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
@@ -606,7 +601,7 @@ class BackendV2Converter(BackendV2):
                 self._defaults = self._backend.defaults()
             if self._properties is None and hasattr(self._backend, "properties"):
                 self._properties = self._backend.properties()
-            self._target = convert_to_target_legacy(
+            self._target = convert_to_target(
                 configuration=self._config,
                 properties=self._properties,
                 defaults=self._defaults,
