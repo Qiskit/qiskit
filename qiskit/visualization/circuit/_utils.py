@@ -28,6 +28,7 @@ from qiskit.circuit import (
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -46,6 +47,26 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+    anno_list = []
+    anno_text = ""
+    if isinstance(op, AnnotatedOperation) and op.modifiers:
+        found_mod = False
+        for modifier in op.modifiers:
+            if isinstance(modifier, InverseModifier):
+                # if found_mod:
+                #     anno_text += ", "
+                anno_list.append("Inv")
+                found_mod = True
+            elif isinstance(modifier, PowerModifier):
+                # if found_mod:
+                #     anno_text += ", "
+                anno_list.append("Pow(" + str(modifier.power)[:3] + ")")
+                found_mod = True
+        # if anno_text[-1] == ",":
+        #     anno_text = gate_text[:-1]
+        #return gate_text, None, gate_text
+        anno_text = ", ".join(anno_list)
+
     op_label = getattr(op, "label", None)
     op_type = type(op)
     base_name = base_label = base_type = None
@@ -53,6 +74,8 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         base_name = op.base_gate.name
         base_label = op.base_gate.label
         base_type = type(op.base_gate)
+    if hasattr(op, "base_op"):
+        base_name = op.base_op.name
     ctrl_text = None
 
     if base_label:
@@ -113,6 +136,9 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             ctrl_text = "(cal)\n" + ctrl_text
         else:
             gate_text = gate_text + "\n(cal)"
+
+    if anno_text:
+        gate_text += " - " + anno_text
 
     return gate_text, ctrl_text, raw_gate_text
 
