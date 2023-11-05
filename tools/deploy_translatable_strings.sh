@@ -14,74 +14,96 @@
 
 # Script for pushing the translatable messages to poBranch.
 
+# DO NOT `set -x`.  We have to pass secrets to `openssl` on the command line,
+# and we don't want them appearing in the log.  This script instead manually
+# 'echo's its status at various points.
+set -eu -o pipefail
+
+if [[ "$#" -ne 1 ]]; then
+    echo "Usage: deploy_translatable_string.sh /path/to/translations/artifact" >&2
+    exit 1
+fi
 
 # Variables used by this script.
 # From github actions the docs/locale/en directory from the sphinx build
 # gets downloaded from the github actions artifacts as deploy directory
-TARGET_REPOSITORY="git@github.com:qiskit-community/qiskit-translations.git"
-SOURCE_DIR=`pwd`
-SOURCE_LANG='en'
 
-SOURCE_REPOSITORY="git@github.com:Qiskit/qiskit.git"
-TARGET_BRANCH_PO="main"
-DOC_DIR_PO="deploy"
-TARGET_DOCS_DIR_PO="docs/locale"
+TARGET_REPO="git@github.com:qiskit-community/qiskit-translations.git"
+TARGET_REPO_BRANCH="main"
 
-echo "show current dir: "
-pwd
+SOURCE_TOOLS_DIR="$(dirname "$(realpath "$0")")"
+# Absolute paths to the git repository roots for the source repository (which
+# this file lives in) and where we're going to clone the target repository.
+SOURCE_REPO_ROOT="$(dirname "$SOURCE_TOOLS_DIR")"
+TARGET_REPO_ROOT="${SOURCE_REPO_ROOT}/_qiskit_translations"
 
-echo "Setup ssh keys"
-pwd
-set -e
-# Add poBranch push key to ssh-agent
-openssl enc -aes-256-cbc -d -in ../tools/github_poBranch_update_key.enc -out github_poBranch_deploy_key -K $encrypted_deploy_po_branch_key -iv $encrypted_deploy_po_branch_iv
-chmod 600 github_poBranch_deploy_key
-eval $(ssh-agent -s)
-ssh-add github_poBranch_deploy_key
+SOURCE_LANG="en"
+# Absolute paths to the source and target directories for the translations
+# files.  CI should feed the source in for us - it depends on the particulars of
+# how it was built in a previous job.  The target is under our control.
+SOURCE_PO_DIR="$1"
+TARGET_PO_DIR="${TARGET_REPO_ROOT}/docs/locale/${SOURCE_LANG}"
 
-# Clone to the working repository for .po and pot files
-popd
-pwd
-echo "git clone for working repo"
-git clone --depth 1 $TARGET_REPOSITORY temp --single-branch --branch $TARGET_BRANCH_PO
-pushd temp
+# Add the SSH key needed to verify ourselves when pushing to the target remote.
+echo "+ setup ssh keys"
+eval "$(ssh-agent -s)"
+openssl enc -aes-256-cbc -d \
+    -in "${SOURCE_REPO_ROOT}/tools/github_poBranch_update_key.enc" \
+    -K "$encrypted_deploy_po_branch_key" \
+    -iv "$encrypted_deploy_po_branch_iv" \
+    | ssh-add -
 
+# Clone the target repository so we can build our commit in it.
+echo "+ 'git clone' translations target repository"
+git clone --depth 1 "$TARGET_REPO" "$TARGET_REPO_ROOT" --single-branch --branch "$TARGET_REPO_BRANCH"
+pushd "$TARGET_REPO_ROOT"
+
+echo "+ setup git configuration for commit"
 git config user.name "Qiskit Autodeploy"
 git config user.email "qiskit@qiskit.org"
 
-echo "git rm -rf for the translation po files"
-git rm -rf --ignore-unmatch $TARGET_DOC_DIR_PO/$SOURCE_LANG/LC_MESSAGES/*.po \
-    $TARGET_DOCS_DIR_PO/$SOURCE_LANG/LC_MESSAGES/api \
-    $TARGET_DOCS_DIR_PO/$SOURCE_LANG/LC_MESSAGES/apidoc \
-    $TARGET_DOCS_DIR_PO/$SOURCE_LANG/LC_MESSAGES/apidoc_legacy \
-    $TARGET_DOCS_DIR_PO/$SOURCE_LANG/LC_MESSAGES/theme \
-    $TARGET_DOCS_DIR_PO/$SOURCE_LANG/LC_MESSAGES/_*
+echo "+ 'git rm' current translations files"
+# Remove existing versions of the translations, to ensure deletions in the source repository are recognised.
+git rm -rf --ignore-unmatch \
+    "$TARGET_PO_DIR/LC_MESSAGES/"*.po \
+    "$TARGET_PO_DIR/LC_MESSAGES/api" \
+    "$TARGET_PO_DIR/LC_MESSAGES/apidoc" \
+    "$TARGET_PO_DIR/LC_MESSAGES/apidoc_legacy" \
+    "$TARGET_PO_DIR/LC_MESSAGES/theme" \
+    "$TARGET_PO_DIR/LC_MESSAGES/"_*
 
-# Remove api/ and apidoc/ to avoid confusion while translating
-rm -rf $SOURCE_DIR/$DOC_DIR_PO/LC_MESSAGES/api/ \
-    $SOURCE_DIR/$DOC_DIR_PO/LC_MESSAGES/apidoc/ \
-    $SOURCE_DIR/$DOC_DIR_PO/LC_MESSAGES/apidoc_legacy/ \
-    $SOURCE_DIR/$DOC_DIR_PO/LC_MESSAGES/stubs/ \
-    $SOURCE_DIR/$DOC_DIR_PO/LC_MESSAGES/theme/
+echo "+ 'rm' unwanted files from source documentation"
+# Remove files from the deployment that we don't want translating.
+rm -rf \
+    "$SOURCE_PO_DIR/LC_MESSAGES/api/" \
+    "$SOURCE_PO_DIR/LC_MESSAGES/apidoc/" \
+    "$SOURCE_PO_DIR/LC_MESSAGES/apidoc_legacy/" \
+    "$SOURCE_PO_DIR/LC_MESSAGES/stubs/" \
+    "$SOURCE_PO_DIR/LC_MESSAGES/theme/"
 
+echo "+ 'cp' wanted files from source to target"
 # Copy the new rendered files and add them to the commit.
-echo "copy directory"
-cp -r $SOURCE_DIR/$DOC_DIR_PO/. $TARGET_DOCS_DIR_PO/$SOURCE_LANG
-cp $SOURCE_DIR/qiskit_pkg/setup.py .
-cp $SOURCE_DIR/requirements-dev.txt .
-# Append optional requirements to the dev list as some are needed for
-# docs builds
-cat $SOURCE_DIR/requirements-optionals.txt >> requirements-dev.txt
-cp $SOURCE_DIR/constraints.txt .
+cp -r "$SOURCE_PO_DIR/." "$TARGET_PO_DIR"
+# Copy files necessary to build the Qiskit metapackage.
+cp "$SOURCE_REPO_ROOT/qiskit_pkg/setup.py" "${TARGET_REPO_ROOT}"
+cat "$SOURCE_REPO_ROOT/requirements-dev.txt" "$SOURCE_REPO_ROOT/requirements-optional.txt" \
+    > "${TARGET_REPO_ROOT}/requirements-dev.txt"
+cp "$SOURCE_REPO_ROOT/constraints.txt" "${TARGET_REPO_ROOT}"
+# Add commit hash to be able to run the build with the commit hash before the actual release
+echo $GITHUB_SHA > "${TARGET_REPO_ROOT}/qiskit-commit-hash"
 
-echo "add to po files to target dir"
-git add docs/
-git add setup.py
-git add requirements-dev.txt constraints.txt
+echo "+ 'git add' files to target commit"
+git add docs/ setup.py requirements-dev.txt constraints.txt qiskit-commit-hash
 
+echo "+ 'git commit' wanted files"
 # Commit and push the changes.
-git commit -m "Automated documentation update to add .po files from qiskit" -m "skip ci" -m "Commit: $GITHUB_SHA" -m "Github Actions Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-echo "git push"
-git push --quiet origin $TARGET_BRANCH_PO
+git commit \
+    -m "Automated documentation update to add .po files from qiskit" \
+    -m "skip ci" \
+    -m "Commit: $GITHUB_SHA" \
+    -m "Github Actions Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+echo "+ 'git push' to target repository"
+git push --quiet origin "$TARGET_REPO_BRANCH"
 echo "********** End of pushing po to working repo! *************"
 popd

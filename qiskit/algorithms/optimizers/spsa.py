@@ -328,7 +328,7 @@ class SPSA(Optimizer):
         steps = 25
         points = []
         for _ in range(steps):
-            # compute the random directon
+            # compute the random direction
             pert = bernoulli_perturbation(dim)
             points += [initial_point + c * pert, initial_point - c * pert]
 
@@ -656,6 +656,7 @@ class SPSA(Optimizer):
             "containing additional information."
         ),
         since="0.21.0",
+        package_name="qiskit-terra",
     )
     def optimize(
         self,

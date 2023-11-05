@@ -114,13 +114,13 @@ Scheduling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
-   AlignMeasures
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
+   AlignMeasures
 
 Circuit Analysis
 ================
@@ -164,9 +164,7 @@ Additional Passes
    :toctree: ../stubs/
 
    CheckMap
-   CheckCXDirection
    CheckGateDirection
-   CXDirection
    GateDirection
    MergeAdjacentBarriers
    RemoveBarriers
@@ -267,21 +265,19 @@ from .calibration import RXCalibrationBuilder
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPScheduleAnalysis
 from .scheduling import ASAPScheduleAnalysis
-from .scheduling import ALAPSchedule
-from .scheduling import ASAPSchedule
 from .scheduling import PadDynamicalDecoupling
-from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import DynamicalDecoupling
+from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
-from .utils import CheckCXDirection  # Deprecated
-from .utils import CXDirection  # Deprecated
 from .utils import CheckGateDirection
 from .utils import GateDirection
 from .utils import BarrierBeforeFinalMeasurements

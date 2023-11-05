@@ -69,32 +69,24 @@ class NormalizeRXAngle(TransformationPass):
         that differ within a resolution provided by the user.
 
         Args:
-            qubit (Qubit): This will be the dict key to access the list of quantized rotation angles.
+            qubit (qiskit.circuit.Qubit): This will be the dict key to access the list of
+                quantized rotation angles.
             original_angle (float): Original rotation angle, before quantization.
 
         Returns:
             float: Quantized angle.
         """
 
-        # check if there is already a calibration for a simliar angle
-        try:
-            angles = self.already_generated[qubit]  # 1d ndarray of already generated angles
-            similar_angle = angles[
-                np.isclose(angles, original_angle, atol=self.resolution_in_radian / 2)
-            ]
-            quantized_angle = (
-                float(similar_angle[0]) if len(similar_angle) > 1 else float(similar_angle)
-            )
-        except KeyError:
-            quantized_angle = original_angle
-            self.already_generated[qubit] = np.array([quantized_angle])
-        except TypeError:
-            quantized_angle = original_angle
-            self.already_generated[qubit] = np.append(
-                self.already_generated[qubit], quantized_angle
-            )
-
-        return quantized_angle
+        if (angles := self.already_generated.get(qubit)) is None:
+            self.already_generated[qubit] = np.array([original_angle])
+            return original_angle
+        similar_angles = angles[
+            np.isclose(angles, original_angle, atol=self.resolution_in_radian / 2)
+        ]
+        if similar_angles.size == 0:
+            self.already_generated[qubit] = np.append(angles, original_angle)
+            return original_angle
+        return float(similar_angles[0])
 
     def run(self, dag):
         """Run the NormalizeRXAngle pass on ``dag``.

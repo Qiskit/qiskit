@@ -17,10 +17,11 @@ from __future__ import annotations
 from abc import ABC
 from collections.abc import Sequence
 
-import numpy as np
-
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import Options
+from qiskit.utils.deprecation import deprecate_func
+
+from . import validation
 
 
 class BasePrimitive(ABC):
@@ -49,83 +50,25 @@ class BasePrimitive(ABC):
         self._run_options.update_options(**fields)
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _validate_circuits(
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
     ) -> tuple[QuantumCircuit, ...]:
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        elif not isinstance(circuits, Sequence) or not all(
-            isinstance(cir, QuantumCircuit) for cir in circuits
-        ):
-            raise TypeError("Invalid circuits, expected Sequence[QuantumCircuit].")
-        elif not isinstance(circuits, tuple):
-            circuits = tuple(circuits)
-        if len(circuits) == 0:
-            raise ValueError("No circuits were provided.")
-        return circuits
+        return validation._validate_circuits(circuits)
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _validate_parameter_values(
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None,
         default: Sequence[Sequence[float]] | Sequence[float] | None = None,
     ) -> tuple[tuple[float, ...], ...]:
-        # Allow optional (if default)
-        if parameter_values is None:
-            if default is None:
-                raise ValueError("No default `parameter_values`, optional input disallowed.")
-            parameter_values = default
-
-        # Support numpy ndarray
-        if isinstance(parameter_values, np.ndarray):
-            parameter_values = parameter_values.tolist()
-        elif isinstance(parameter_values, Sequence):
-            parameter_values = tuple(
-                vector.tolist() if isinstance(vector, np.ndarray) else vector
-                for vector in parameter_values
-            )
-
-        # Allow single value
-        if _isreal(parameter_values):
-            parameter_values = ((parameter_values,),)
-        elif isinstance(parameter_values, Sequence) and not any(
-            isinstance(vector, Sequence) for vector in parameter_values
-        ):
-            parameter_values = (parameter_values,)
-
-        # Validation
-        if (
-            not isinstance(parameter_values, Sequence)
-            or not all(isinstance(vector, Sequence) for vector in parameter_values)
-            or not all(all(_isreal(value) for value in vector) for vector in parameter_values)
-        ):
-            raise TypeError("Invalid parameter values, expected Sequence[Sequence[float]].")
-
-        return tuple(tuple(float(value) for value in vector) for vector in parameter_values)
+        return validation._validate_parameter_values(parameter_values, default=default)
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _cross_validate_circuits_parameter_values(
         circuits: tuple[QuantumCircuit, ...], parameter_values: tuple[tuple[float, ...], ...]
     ) -> None:
-        if len(circuits) != len(parameter_values):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
-            )
-        for i, (circuit, vector) in enumerate(zip(circuits, parameter_values)):
-            if len(vector) != circuit.num_parameters:
-                raise ValueError(
-                    f"The number of values ({len(vector)}) does not match "
-                    f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
-                )
-
-
-def _isint(obj: Sequence[Sequence[float]] | Sequence[float] | float) -> bool:
-    """Check if object is int."""
-    int_types = (int, np.integer)
-    return isinstance(obj, int_types) and not isinstance(obj, bool)
-
-
-def _isreal(obj: Sequence[Sequence[float]] | Sequence[float] | float) -> bool:
-    """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
-    float_types = (float, np.floating)
-    return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")
+        return validation._cross_validate_circuits_parameter_values(
+            circuits, parameter_values=parameter_values
+        )

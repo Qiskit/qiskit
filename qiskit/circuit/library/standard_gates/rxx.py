@@ -72,9 +72,11 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RXX gate."""
-        super().__init__("rxx", 2, [theta], label=label)
+        super().__init__("rxx", 2, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
