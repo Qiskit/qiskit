@@ -102,7 +102,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit, backend).result()
+        result = backend.run(circuit).result()
         state = result.get_statevector(circuit)
 
         fname = "bloch_multivector.png"
@@ -124,7 +124,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit, backend).result()
+        result = backend.run(circuit).result()
         state = result.get_statevector(circuit)
 
         fname = "hinton.png"
@@ -146,7 +146,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit, backend).result()
+        result = backend.run(circuit).result()
         state = result.get_statevector(circuit)
 
         fname = "qsphere.png"
@@ -168,7 +168,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit, backend).result()
+        result = backend.run(circuit).result()
         state = result.get_statevector(circuit)
 
         fname = "state_city.png"
@@ -648,7 +648,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit, backend).result()
+        result = backend.run(circuit).result()
         state = result.get_statevector(circuit)
 
         fname = "bloch_multivector_figsize_improvements.png"
