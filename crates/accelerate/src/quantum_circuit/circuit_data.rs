@@ -351,7 +351,7 @@ impl CircuitData {
                     self.__setitem__(py, SliceOrInt::Int(*i), *v)?;
                 }
 
-                if slice.len() >= values.len() {
+                if slice.len() > values.len() {
                     // Delete any extras.
                     let slice = PySlice::new(
                         py,

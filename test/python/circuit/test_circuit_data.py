@@ -34,17 +34,17 @@ class TestQuantumCircuitData(QiskitTestCase):
     """CircuitData (Rust) operation tests."""
 
     @ddt.data(
-        slice(0, 5, 1),
-        slice(0, 4, 1),
-        slice(0, 5, 2),
-        slice(1, 5, 1),
-        slice(0, 5, -1),
-        slice(5, 0, -1),
-        slice(5, 0, -2),
-        slice(-1, 0, -1),
-        slice(-1, -5, -1),
-        slice(-10, -5, 1),
-        slice(4, -1, -1),
+        slice(0, 5, 1),  # Get everything.
+        slice(-1, -6, -1),  # Get everything, reversed.
+        slice(0, 4, 1),  # Get subslice.
+        slice(0, 5, 2),  # Get every other.
+        slice(-1, -6, -2),  # Get every other, reversed.
+        slice(2, 2, 1),  # Get nothing.
+        slice(2, 3, 1),  # Get at index 2.
+        slice(4, 10, 1),  # Get index 4 to end, using excessive upper bound.
+        slice(5, 0, -2),  # Get every other, reversed, excluding index 0.
+        slice(-10, -5, 1),  # Get nothing.
+        slice(0, 10, 1),  # Get everything.
     )
     def test_getitem_slice(self, sli):
         """Test that __getitem__ with slice is equivalent to that of list."""
@@ -60,18 +60,17 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data[sli], data_list[sli])
 
     @ddt.data(
-        slice(0, 5, 1),
-        slice(0, 4, 1),
-        slice(0, 5, 2),
-        slice(1, 5, 1),
-        slice(0, 5, -1),
-        slice(5, 0, -1),
-        slice(5, 0, -2),
-        slice(-1, 0, -1),
-        slice(-1, -5, -1),
-        slice(-10, -5, 1),
-        slice(4, -1, -1),
-        slice(0, 10, 1),
+        slice(0, 5, 1),  # Delete everything.
+        slice(-1, -6, -1),  # Delete everything, reversed.
+        slice(0, 4, 1),  # Delete subslice.
+        slice(0, 5, 2),  # Delete every other.
+        slice(-1, -6, -2),  # Delete every other, reversed.
+        slice(2, 2, 1),  # Delete nothing.
+        slice(2, 3, 1),  # Delete at index 2.
+        slice(4, 10, 1),  # Delete index 4 to end, excessive upper bound.
+        slice(5, 0, -2),  # Delete every other, reversed, excluding index 0.
+        slice(-10, -5, 1),  # Delete nothing.
+        slice(0, 10, 1),  # Delete everything, excessive upper bound.
     )
     def test_delitem_slice(self, sli):
         """Test that __delitem__ with slice is equivalent to that of list."""
@@ -94,19 +93,18 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data[sli], data_list[sli])
 
     @ddt.data(
-        (slice(0, 5, 1), 5),
-        (slice(0, 4, 1), 4),
-        (slice(0, 4, 1), 5),
-        (slice(0, 4, 1), 10),
-        (slice(0, 5, 2), 3),
-        (slice(2, 2, 1), 1),
-        (slice(2, 3, 1), 1),
-        (slice(2, 3, 1), 10),
-        (slice(4, 10, 1), 2),
-        (slice(5, 10, 1), 10),
-        (slice(4, 0, -1), 4),
-        (slice(-1, -6, -1), 5),
-        (slice(3, 4, 1), 10),
+        (slice(0, 5, 1), 5),  # Replace entire slice.
+        (slice(-1, -6, -1), 5),  # Replace entire slice, reversed.
+        (slice(0, 4, 1), 4),  # Replace subslice.
+        (slice(0, 4, 1), 10),  # Replace subslice with bigger sequence.
+        (slice(0, 5, 2), 3),  # Replace every other.
+        (slice(-1, -6, -2), 3),  # Replace every other, reversed.
+        (slice(2, 2, 1), 1),  # Insert at index 2.
+        (slice(2, 3, 1), 1),  # Replace at index 2.
+        (slice(2, 3, 1), 10),  # Replace at index 2 with bigger sequence.
+        (slice(4, 10, 1), 2),  # Replace index 4 with bigger sequence, excessive upper bound.
+        (slice(5, 10, 1), 10),  # Append sequence.
+        (slice(4, 0, -1), 4),  # Replace subslice at end, reversed.
     )
     @ddt.unpack
     def test_setitem_slice(self, sli, value_length):
@@ -130,11 +128,11 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data, data_list)
 
     @ddt.data(
-        (slice(0, 5, 2), 2),
-        (slice(0, 5, 2), 4),
-        (slice(4, 0, -1), 10),
-        (slice(-1, -6, -1), 6),
-        (slice(4, 3, -1), 10),
+        (slice(0, 5, 2), 2),  # Replace smaller, with gaps.
+        (slice(0, 5, 2), 4),  # Replace larger, with gaps.
+        (slice(4, 0, -1), 10),  # Replace larger, reversed.
+        (slice(-1, -6, -1), 6),  # Replace larger, reversed, negative notation.
+        (slice(4, 3, -1), 10),  # Replace at index 4 with bigger sequence, reversed.
     )
     @ddt.unpack
     def test_setitem_slice_negative(self, sli, value_length):
