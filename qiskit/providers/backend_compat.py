@@ -21,11 +21,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
-from qiskit.providers.models.backendconfiguration import (
-    QasmBackendConfiguration,
-    PulseBackendConfiguration,
-)
-
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
 
@@ -33,64 +28,40 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.providers.models.backendproperties import Gate as GateSchema
-
+from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
 
-class IBMQubitProperties(QubitProperties):
-    """A representation of the properties of a qubit on an IBM backend."""
-
-    __slots__ = (  # pylint: disable=redefined-slots-in-subclass
-        "t1",
-        "t2",
-        "frequency",
-        "anharmonicity",
-        "operational",
-    )
-
-    def __init__(  # type: ignore[no-untyped-def]
-        self,
-        t1=None,
-        t2=None,
-        frequency=None,
-        anharmonicity=None,
-        operational=True,
-    ):
-        """Create a new ``IBMQubitProperties`` object
-
-        Args:
-            t1: The T1 time for a qubit in secs
-            t2: The T2 time for a qubit in secs
-            frequency: The frequency of a qubit in Hz
-            anharmonicity: The anharmonicity of a qubit in Hz
-            operational: A boolean value representing if this qubit is operational.
-        """
-        super().__init__(t1=t1, t2=t2, frequency=frequency)
-        self.anharmonicity = anharmonicity
-        self.operational = operational
-
-    def __repr__(self):  # type: ignore[no-untyped-def]
-        return (
-            f"IBMQubitProperties(t1={self.t1}, t2={self.t2}, frequency={self.frequency}, "
-            f"anharmonicity={self.anharmonicity})"
-        )
-
-
+@deprecate_arg(name="custom_name_mapping", since="1.0.0")
+@deprecate_arg(name="add_delay", since="1.0.0")
+@deprecate_arg(name="filter_faulty", since="1.0.0")
 def convert_to_target(
-    configuration: Union[QasmBackendConfiguration, PulseBackendConfiguration],
-    pulse_defaults: Optional[Dict] = None,
-    properties: Optional[Dict] = None,
+    configuration: BackendConfiguration,
+    properties: Optional[Union[BackendProperties, Dict]] = None,
+    defaults: Optional[Union[PulseDefaults, Dict]] = None,
+    custom_name_mapping: Optional[Dict[str, Any]] = None,
+    add_delay: bool = True,
+    filter_faulty: bool = True,
 ):
     """Decode transpiler target from backend data set.
 
     This function directly generates ``Target`` instance without generating
     intermediate legacy objects such as ``BackendProperties`` and ``PulseDefaults``.
 
+    .. note::
+        Passing in legacy objects like BackendProperties as properties and PulseDefaults
+        as defaults will be deprecated in the future.
+
     Args:
-        configuration: Backend configuration.
-        pulse_defaults: Backend pulse defaults dictionary.
-        properties: Backend property dictionary.
+        configuration: Backend configuration as ``BackendConfiguration``
+        properties: Backend property dictionary or ``BackendProperties``
+        defaults: Backend pulse defaults dictionary or ``PulseDefaults``
+        custom_name_mapping: A name mapping must be supplied for the operation
+        not included in Qiskit Standard Gate name mapping, otherwise the operation
+        will be dropped in the resulting ``Target`` object.
+        add_delay: If True, adds delay to the instruction set.
+        filter_faulty: If True, this filters the non-operational qubits.
 
     Returns:
         A ``Target`` instance.
@@ -108,9 +79,17 @@ def convert_to_target(
     from qiskit.circuit.gate import Gate
 
     required = ["measure", "delay"]
+    if isinstance(defaults, PulseDefaults):
+        defaults = defaults.to_dict()
+
+    if isinstance(properties, BackendProperties):
+        properties = properties.to_dict()
 
     # Load Qiskit object representation
     qiskit_inst_mapping = get_standard_gate_name_mapping()
+    if custom_name_mapping:
+        qiskit_inst_mapping.update(custom_name_mapping)
+
     qiskit_control_flow_mapping = {
         "if_else": IfElseOp,
         "while_loop": WhileLoopOp,
@@ -178,7 +157,9 @@ def convert_to_target(
     if properties:
         qubit_properties = list(map(_decode_qubit_property, properties["qubits"]))
         in_data["qubit_properties"] = qubit_properties
-        faulty_qubits = {q for q, prop in enumerate(qubit_properties) if not prop.operational}
+        faulty_qubits = {
+            q for q, (prop, oper) in enumerate(qubit_properties) if filter_faulty and not oper
+        }
 
         for gate_spec in map(GateSchema.from_dict, properties["gates"]):
             name = gate_spec.gate
@@ -194,11 +175,13 @@ def convert_to_target(
                 )
                 continue
             inst_prop, operational = _decode_instruction_property(gate_spec)
-            if set.intersection(faulty_qubits, qubits) or not operational:
+            if filter_faulty and (set.intersection(faulty_qubits, qubits) or not operational):
                 faulty_ops.add((name, qubits))
                 try:
                     del prop_name_map[name][qubits]
                 except KeyError:
+                    pass
+                except TypeError:
                     pass
                 continue
             if prop_name_map[name] is None:
@@ -214,16 +197,16 @@ def convert_to_target(
             prop_name_map["measure"][qubits] = measure_prop
 
     # Special case for real IBM backend. They don't have delay in gate configuration.
-    if "delay" not in prop_name_map:
+    if add_delay and "delay" not in prop_name_map:
         prop_name_map["delay"] = {
             (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
         }
 
     # Define pulse qobj converter and command sequence for lazy conversion
-    if pulse_defaults:
-        pulse_lib = list(map(PulseLibraryItem.from_dict, pulse_defaults["pulse_library"]))
+    if defaults:
+        pulse_lib = list(map(PulseLibraryItem.from_dict, defaults["pulse_library"]))
         converter = QobjToInstructionConverter(pulse_lib)
-        for cmd in map(Command.from_dict, pulse_defaults["cmd_def"]):
+        for cmd in map(Command.from_dict, defaults["cmd_def"]):
             name = cmd.name
             qubits = tuple(cmd.qubits)
             if (
@@ -273,23 +256,25 @@ def convert_to_target(
     return target
 
 
-def _decode_qubit_property(qubit_specs: List[Dict]) -> IBMQubitProperties:
-    """Decode qubit property data to generate IBMQubitProperty instance.
+def _decode_qubit_property(qubit_specs: List[Dict]) -> Tuple[QubitProperties, bool]:
+    """Decode qubit property data to generate QubitProperty instance.
 
     Args:
         qubit_specs: List of qubit property dictionary.
 
     Returns:
-        An ``IBMQubitProperty`` instance.
+        An ``QubitProperty`` instance.
     """
     in_data = {}
+    operational = True
     for spec in qubit_specs:
         name = (spec["name"]).lower()
         if name == "operational":
             in_data[name] = bool(spec["value"])
-        elif name in IBMQubitProperties.__slots__:
+            operational = in_data[name]
+        elif name in QubitProperties.__slots__:
             in_data[name] = apply_prefix(value=spec["value"], unit=spec.get("unit", None))
-    return IBMQubitProperties(**in_data)  # type: ignore[no-untyped-call]
+    return QubitProperties(**in_data), operational  # type: ignore[no-untyped-call]
 
 
 def _decode_instruction_property(
@@ -622,9 +607,9 @@ class BackendV2Converter(BackendV2):
             if self._properties is None and hasattr(self._backend, "properties"):
                 self._properties = self._backend.properties()
             self._target = convert_to_target_legacy(
-                self._config,
-                self._properties,
-                self._defaults,
+                configuration=self._config,
+                properties=self._properties,
+                defaults=self._defaults,
                 custom_name_mapping=self._name_mapping,
                 add_delay=self._add_delay,
                 filter_faulty=self._filter_faulty,

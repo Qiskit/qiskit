@@ -177,7 +177,7 @@ class FakeBackendV2(BackendV2):
                 defaults = self._defs_dict
 
             self._target = convert_to_target(
-                configuration=conf, pulse_defaults=defaults, properties=props
+                configuration=conf, properties=props, defaults=defaults
             )
         return self._target
 
