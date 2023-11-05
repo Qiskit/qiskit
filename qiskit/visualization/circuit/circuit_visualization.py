@@ -33,6 +33,7 @@ from warnings import warn
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
+from qiskit.circuit import ControlFlowOp, Measure
 from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib
@@ -247,6 +248,28 @@ def circuit_drawer(
                 2,
             )
         cregbundle = False
+
+    def check_clbit_in_inst(circuit, cregbundle):
+        if cregbundle is False:
+            return False
+        for inst in circuit.data:
+            if isinstance(inst.operation, ControlFlowOp):
+                for block in inst.operation.blocks:
+                    if check_clbit_in_inst(block, cregbundle) is False:
+                        return False
+            elif inst.clbits and not isinstance(inst.operation, Measure):
+                if cregbundle is not False:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        3,
+                    )
+                return False
+
+        return True
+
+    cregbundle = check_clbit_in_inst(circuit, cregbundle)
 
     if output == "text":
         return _text_circuit_drawer(

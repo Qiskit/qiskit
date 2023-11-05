@@ -14,6 +14,7 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
+import warnings
 import sys
 import typing
 from collections.abc import Iterable
@@ -23,7 +24,7 @@ import numpy as np
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.library.data_preparation import Initialize
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import SparsePauliOp, Statevector, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 
@@ -82,6 +83,15 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
         return SparsePauliOp.from_operator(observable)
     else:
+        if isinstance(observable, PauliList):
+            warnings.warn(
+                "Implicit conversion from a PauliList to a SparsePauliOp with coeffs=1 in"
+                " estimator observable arguments is deprecated as of Qiskit 0.46 and will be"
+                " in Qiskit 1.0. You should explicitly convert to a SparsePauli op using"
+                " SparsePauliOp(pauli_list) to avoid this warning.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         return SparsePauliOp(observable)
 
 

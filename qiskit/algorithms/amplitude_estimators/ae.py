@@ -71,6 +71,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             "migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,
@@ -135,6 +136,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
     @deprecate_func(
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
         since="0.24.0",
+        package_name="qiskit-terra",
         is_property=True,
     )
     def quantum_instance(self) -> QuantumInstance | None:
@@ -149,6 +151,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
     @deprecate_func(
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
         since="0.24.0",
+        package_name="qiskit-terra",
         is_property=True,
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:

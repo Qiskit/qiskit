@@ -38,6 +38,7 @@ from .list_or_dict import ListOrDict
         "https://qisk.it/algo_migration for a migration guide."
     ),
     since="0.24.0",
+    package_name="qiskit-terra",
 )
 def eval_observables(
     quantum_instance: QuantumInstance | Backend,
