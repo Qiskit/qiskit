@@ -1088,11 +1088,24 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         res = op.apply_layout([4, 0], 5)
         self.assertEqual(SparsePauliOp.from_list([("IIIIY", 2), ("IIIIX", 1)]), res)
 
-    def test_apply_layout_null_layout(self):
+    def test_apply_layout_null_layout_no_num_qubits(self):
         """Test apply_layout with a null layout"""
         op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
-        res = op.apply_layout(layout=None, num_qubits=5)
+        res = op.apply_layout(layout=None)
         self.assertEqual(op, res)
+
+    def test_apply_layout_null_layout_and_num_qubits(self):
+        """Test apply_layout with a null layout a num_qubits provided"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        res = op.apply_layout(layout=None, num_qubits=5)
+        # this should expand the operator
+        self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIIZ", 2), ("IIIXI", 3)]), res)
+
+    def test_apply_layout_null_layout_invalid_num_qubits(self):
+        """Test apply_layout with a null layout and num_qubits smaller than capable"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=None, num_qubits=1)
 
 
 if __name__ == "__main__":
