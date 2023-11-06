@@ -32,7 +32,7 @@ compatibility the next major version but potentially keeping support for > 1
 release series at a time and giving their users a migration path.
 
 Upgrade Strategy
-----------------
+================
 
 Whenever a new major version is released the recommended upgrade path
 is to first upgrade to use the most recent minor version on the previous major
@@ -57,7 +57,7 @@ For example, specifying in a requirements file ``qiskit<2`` will ensure that
 you're using a version of Qiskit that won't have breaking API changes.
 
 Pre-releases
-------------
+============
 
 For each minor and major version release Qiskit will publish pre-releases that
 are compatible with `PEP440 <https://peps.python.org/pep-0440/>`__. Typically
@@ -71,7 +71,7 @@ and the final release with that version number. For example, ``1.0.0pre1`` has
 a different final API from ``1.0.0``.
 
 Post-releases
--------------
+=============
 
 If there are issues with the packaging of a given release a post-release may be
 issued to correct this. These will follow the form ``1.2.1.1`` where the fourth
