@@ -128,9 +128,8 @@ class TestUnitaryOverlap(QiskitTestCase):
         unitary1.barrier()
         unitary2 = EfficientSU2(1, reps=1)
         unitary2.barrier()
-
-        _ = UnitaryOverlap(unitary1, unitary2)
-
+        overlap = UnitaryOverlap(unitary1, unitary2)
+        self.assertEqual(overlap.num_parameters, unitary1.num_parameters + unitary2.num_parameters)
 
 
 if __name__ == "__main__":
