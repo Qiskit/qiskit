@@ -1084,12 +1084,7 @@ class TextDrawing:
                 bot_box.append(ctrl_qubit)
             else:
                 in_box.append(ctrl_qubit)
-        #return (top_box, bot_box, in_box, args_qubits)
 
-        # def _set_ctrl_state(self, node, conditional, ctrl_text, bottom):
-        #     """Takes the ctrl_state from node.op and appends Bullet or OpenBullet
-        #     to gates depending on whether the bit in ctrl_state is 1 or 0. Returns gates"""
-        #     op = node.op
         gates = []
         for i in range(len(ctrl_qubits)):
             # For sidetext gate alignment, need to set every Bullet with
@@ -1184,39 +1179,37 @@ class TextDrawing:
         elif isinstance(op, ControlledGate) or mod_control:
             controls_array = TextDrawing.controlled_wires(node, gate_wire_map, ctrl_text, conditional, mod_control)
             gates, controlled_top, controlled_bot, controlled_edge, rest = controls_array
-            #gates = self._set_ctrl_state(node, conditional, ctrl_text, bool(controlled_bot))
-            if not mod_control:
-                if base_gate.name == "z":
-                    # cz
-                    gates.append(Bullet(conditional=conditional))
-                elif base_gate.name in ["u1", "p"]:
-                    # cu1
-                    connection_label = f"{base_gate.name.upper()}{params}"
-                    gates.append(Bullet(conditional=conditional))
-                elif base_gate.name == "swap":
-                    # cswap
-                    gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
-                    add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
-                elif base_gate.name == "rzz":
-                    # crzz
-                    connection_label = "ZZ%s" % params
-                    gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
-                elif len(rest) > 1:
-                    top_connect = "┴" if controlled_top else None
-                    bot_connect = "┬" if controlled_bot else None
-                    indexes = layer.set_qu_multibox(
-                        rest,
-                        gate_text,
-                        conditional=conditional,
-                        controlled_edge=controlled_edge,
-                        top_connect=top_connect,
-                        bot_connect=bot_connect,
-                    )
-                    for index in range(min(indexes), max(indexes) + 1):
-                        # Dummy element to connect the multibox with the bullets
-                        current_cons.append((index, DrawElement("")))
-                else:
-                    gates.append(BoxOnQuWire(gate_text, conditional=conditional))
+            if mod_control:
+                gates.append(BoxOnQuWire(gate_text, conditional=conditional))
+            elif base_gate.name == "z":
+                # cz
+                gates.append(Bullet(conditional=conditional))
+            elif base_gate.name in ["u1", "p"]:
+                # cu1
+                connection_label = f"{base_gate.name.upper()}{params}"
+                gates.append(Bullet(conditional=conditional))
+            elif base_gate.name == "swap":
+                # cswap
+                gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
+                add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
+            elif base_gate.name == "rzz":
+                # crzz
+                connection_label = "ZZ%s" % params
+                gates += [Bullet(conditional=conditional), Bullet(conditional=conditional)]
+            elif len(rest) > 1:
+                top_connect = "┴" if controlled_top else None
+                bot_connect = "┬" if controlled_bot else None
+                indexes = layer.set_qu_multibox(
+                    rest,
+                    gate_text,
+                    conditional=conditional,
+                    controlled_edge=controlled_edge,
+                    top_connect=top_connect,
+                    bot_connect=bot_connect,
+                )
+                for index in range(min(indexes), max(indexes) + 1):
+                    # Dummy element to connect the multibox with the bullets
+                    current_cons.append((index, DrawElement("")))
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
 

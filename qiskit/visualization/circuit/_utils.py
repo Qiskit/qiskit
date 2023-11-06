@@ -28,7 +28,7 @@ from qiskit.circuit import (
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -50,21 +50,11 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     anno_list = []
     anno_text = ""
     if isinstance(op, AnnotatedOperation) and op.modifiers:
-        found_mod = False
         for modifier in op.modifiers:
             if isinstance(modifier, InverseModifier):
-                # if found_mod:
-                #     anno_text += ", "
                 anno_list.append("Inv")
-                found_mod = True
             elif isinstance(modifier, PowerModifier):
-                # if found_mod:
-                #     anno_text += ", "
                 anno_list.append("Pow(" + str(modifier.power)[:3] + ")")
-                found_mod = True
-        # if anno_text[-1] == ",":
-        #     anno_text = gate_text[:-1]
-        #return gate_text, None, gate_text
         anno_text = ", ".join(anno_list)
 
     op_label = getattr(op, "label", None)
@@ -223,7 +213,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -311,7 +301,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 

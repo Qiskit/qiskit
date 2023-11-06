@@ -1082,12 +1082,10 @@ class MatplotlibDrawer:
 
                 # draw single qubit gates
                 elif len(node_data[node].q_xy) == 1 and not node.cargs:
-                    print("IN GATE, top")
                     self._gate(node, node_data, glob_data)
 
                 # draw controlled gates
                 elif isinstance(op, ControlledGate) or mod_control:
-                    print("in control")
                     self._control_gate(node, node_data, glob_data, mod_control)
 
                 # draw multi-qubit gate as final default
@@ -1681,9 +1679,8 @@ class MatplotlibDrawer:
         num_ctrl_qubits = mod_control.num_ctrl_qubits if mod_control else op.num_ctrl_qubits
         num_qargs = len(xy) - num_ctrl_qubits
         ctrl_state = mod_control.ctrl_state if mod_control else op.ctrl_state
-        print("ctrl, num", ctrl_state, num_ctrl_qubits)
         self._set_ctrl_bits(
-            ctrl_state,#op.ctrl_state,
+            ctrl_state,
             num_ctrl_qubits,
             xy,
             glob_data,
@@ -1694,8 +1691,6 @@ class MatplotlibDrawer:
         )
         self._line(qubit_b, qubit_t, lc=node_data[node].lc)
 
-        print("num qargs", num_qargs)
-
         if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, ZGate, RZZGate)):
             self._symmetric_gate(node, node_data, base_type, glob_data)
 
@@ -1705,14 +1700,12 @@ class MatplotlibDrawer:
             self._x_tgt_qubit(xy[num_ctrl_qubits], glob_data, ec=node_data[node].ec, ac=tgt)
 
         elif num_qargs == 1:
-            print("IN GATE")
             self._gate(node, node_data, glob_data, xy[num_ctrl_qubits:][0])
 
         elif isinstance(base_type, SwapGate):
             self._swap(xy[num_ctrl_qubits:], node, node_data, node_data[node].lc)
 
         else:
-            print("in multi")
             self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
 
     def _set_ctrl_bits(
