@@ -11,7 +11,7 @@ Stable Branch Policy
 ====================
 
 The stable branch is intended to be a safe source of fixes for high-impact
-bugs and security issues that have been fixed on master since a
+bugs and security issues that have been fixed on ``main`` since a
 release. When reviewing a stable branch PR, we must balance the risk
 of any given patch with the value that it will provide to users of the
 stable branch. Only a limited class of changes are appropriate for
@@ -29,8 +29,8 @@ change:
     also refactors a lot of code, it's probably worth thinking about
     what a less risky fix might look like.
 -   Whether the fix is already on ``main``: a change must be a backport of
-    a change already merged onto master, unless the change simply does
-    not make sense on master.
+    a change already merged onto ``main``, unless the change simply does
+    not make sense on ``main``.
 
 
 Backporting
