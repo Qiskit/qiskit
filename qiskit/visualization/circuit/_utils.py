@@ -54,7 +54,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             if isinstance(modifier, InverseModifier):
                 anno_list.append("Inv")
             elif isinstance(modifier, PowerModifier):
-                anno_list.append("Pow(" + str(modifier.power)[:3] + ")")
+                anno_list.append("Pow(" + str(round(modifier.power, 1)) + ")")
         anno_text = ", ".join(anno_list)
 
     op_label = getattr(op, "label", None)
