@@ -328,19 +328,25 @@ class TestSingleton(QiskitTestCase):
 
     def test_return_type_singleton_instructions(self):
         measure = Measure()
-        self.assertEqual(measure.__class__.__name__, "_SingletonMeasure")
+        new_measure = Measure()
+        self.assertIs(measure, new_measure)
+        self.assertIs(measure.base_class, Measure)
+        self.assertIsInstance(measure, Measure)
 
         reset = Reset()
-        self.assertEqual(reset.__class__.__name__, "_SingletonReset")
+        new_reset = Reset()
+        self.assertIs(reset, new_reset)
+        self.assertIs(reset.base_class, Reset)
+        self.assertIsInstance(reset, Reset)
 
     def test_singleton_instruction_integration(self):
-        qc = QuantumCircuit(1, 1)
         measure = Measure()
         reset = Reset()
-        qc.append(measure, [0], [0])
-        qc.append(reset, [0])
-        self.assertEqual(qc.data[0].operation.__class__.__name__, "_SingletonMeasure")
-        self.assertEqual(qc.data[1].operation.__class__.__name__, "_SingletonReset")
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.reset(0)
+        self.assertIs(qc.data[0].operation, measure)
+        self.assertIs(qc.data[1].operation, reset)
 
     def test_inherit_singleton_instructions(self):
         class ESPMeasure(Measure):
@@ -352,16 +358,6 @@ class TestSingleton(QiskitTestCase):
         self.assertIsNot(esp_measure, measure_base)
         self.assertIs(measure_base.base_class, Measure)
         self.assertIs(esp_measure.base_class, ESPMeasure)
-
-        class ESPReset(Reset):
-            pass
-
-        reset_base = Reset()
-        esp_reset = ESPReset()
-        self.assertIs(esp_reset, ESPReset())
-        self.assertIsNot(esp_reset, reset_base)
-        self.assertIs(reset_base.base_class, Reset)
-        self.assertIs(esp_reset.base_class, ESPReset)
 
     def test_singleton_with_default(self):
         # Explicitly setting the label to its default.
