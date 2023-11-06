@@ -1056,6 +1056,10 @@ class TextDrawing:
         Args:
             node (DAGNode): node to analyse
             wire_map (dict): map of qubits/clbits to position
+            ctrl_text (str): text for a control label
+            conditional (bool): is this a node with a condition
+            mod_control (ControlModifier): an instance of a modifier for an
+                AnnotatedOperation
 
         Returns:
             Tuple(list, list, list):
@@ -1094,7 +1098,9 @@ class TextDrawing:
             if ctrl_state[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box)))
             else:
-                gates.append(OpenBullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box)))
+                gates.append(
+                    OpenBullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box))
+                )
         return (gates, top_box, bot_box, in_box, args_qubits)
 
     def _node_to_gate(self, node, layer, gate_wire_map):
@@ -1177,7 +1183,9 @@ class TextDrawing:
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
         elif isinstance(op, ControlledGate) or mod_control:
-            controls_array = TextDrawing.controlled_wires(node, gate_wire_map, ctrl_text, conditional, mod_control)
+            controls_array = TextDrawing.controlled_wires(
+                node, gate_wire_map, ctrl_text, conditional, mod_control
+            )
             gates, controlled_top, controlled_bot, controlled_edge, rest = controls_array
             if mod_control:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
