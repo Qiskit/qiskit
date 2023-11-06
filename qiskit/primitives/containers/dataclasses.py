@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -9,12 +9,19 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
-Abstract base classes for primitives module.
+Dataclass
 """
 
-from .base_estimator import BaseEstimator, BaseEstimatorV2
-from .base_sampler import BaseSampler
-from .estimator_result import EstimatorResult
-from .sampler_result import SamplerResult
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
+
+mutable_dataclass = dataclass(
+    config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid")
+)
+
+frozen_dataclass = dataclass(
+    config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid"),
+    frozen=True,
+    slots=True,
+)

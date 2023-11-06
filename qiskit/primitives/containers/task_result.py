@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,10 +11,22 @@
 # that they have been altered from the originals.
 
 """
-Abstract base classes for primitives module.
+Base Task class
 """
 
-from .base_estimator import BaseEstimator, BaseEstimatorV2
-from .base_sampler import BaseSampler
-from .estimator_result import EstimatorResult
-from .sampler_result import SamplerResult
+from __future__ import annotations
+
+from pydantic import Field
+
+from .data_bin import DataBin
+from .dataclasses import frozen_dataclass
+
+
+@frozen_dataclass
+class TaskResult:
+    """Result of task."""
+
+    data: DataBin
+    """Result data for the task"""
+    metadata: dict = Field(default_factory=dict)
+    """Metadata for the task"""

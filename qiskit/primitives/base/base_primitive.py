@@ -16,15 +16,17 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
+from typing import Optional
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.primitives.containers import BasePrimitiveOptions, BasePrimitiveOptionsLike
 from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_func
 
 from . import validation
 
 
-class BasePrimitive(ABC):
+class BasePrimitiveV1(ABC):
     """Primitive abstract base class."""
 
     def __init__(self, options: dict | None = None):
@@ -72,3 +74,38 @@ class BasePrimitive(ABC):
         return validation._cross_validate_circuits_parameter_values(
             circuits, parameter_values=parameter_values
         )
+
+
+BasePrimitive = BasePrimitiveV1
+
+
+class BasePrimitiveV2(ABC):
+    """Primitive abstract base class version 2."""
+
+    version = 2
+    _options_class: type[BasePrimitiveOptions] = BasePrimitiveOptions
+
+    def __init__(self, options: Optional[BasePrimitiveOptionsLike] = None):
+        self._options: type(self)._options_class
+        self._set_options(options)
+
+    @property
+    def options(self) -> BasePrimitiveOptions:
+        """Options for BaseEstimator"""
+        return self._options
+
+    @options.setter
+    def options(self, options: BasePrimitiveOptionsLike):
+        self._set_options(options)
+
+    def _set_options(self, options):
+        if options is None:
+            self._options = self._options_class()
+        elif isinstance(options, dict):
+            self._options = self._options_class(**options)
+        elif isinstance(options, self._options_class):
+            self._options = options
+        else:
+            raise TypeError(
+                f"Invalid 'options' type. It can only be a dictionary of {self._options_class}"
+            )

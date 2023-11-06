@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,10 +11,13 @@
 # that they have been altered from the originals.
 
 """
-Abstract base classes for primitives module.
+Data containers for primitives.
 """
 
-from .base_estimator import BaseEstimator, BaseEstimatorV2
-from .base_sampler import BaseSampler
-from .estimator_result import EstimatorResult
-from .sampler_result import SamplerResult
+from .bindings_array import BindingsArray
+from .data_bin import make_databin
+from .estimator_task import EstimatorTask
+from .observables_array import ObservablesArray
+from .options import BasePrimitiveOptions, BasePrimitiveOptionsLike
+from .primitive_result import PrimitiveResult
+from .task_result import TaskResult
