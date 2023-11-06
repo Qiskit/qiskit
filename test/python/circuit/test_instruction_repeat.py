@@ -19,8 +19,7 @@ from numpy import pi
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library import SGate, U3Gate, CXGate
+from qiskit.circuit.library import SGate, U3Gate, CXGate, UnitaryGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.transpiler.passes import Unroller
 from qiskit.circuit.exceptions import CircuitError
@@ -132,7 +131,8 @@ class TestRepeatUnroller(QiskitTestCase):
 
         circuit = QuantumCircuit(qr)
         circuit.append(SGate().repeat(2), [qr[0]])
-        result = PassManager(Unroller("u3")).run(circuit)
+        with self.assertWarns(DeprecationWarning):
+            result = PassManager(Unroller("u3")).run(circuit)
 
         expected = QuantumCircuit(qr)
         expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
@@ -146,7 +146,8 @@ class TestRepeatUnroller(QiskitTestCase):
 
         circuit = QuantumCircuit(qr)
         circuit.append(SGate().repeat(1), [qr[0]])
-        result = PassManager(Unroller("u3")).run(circuit)
+        with self.assertWarns(DeprecationWarning):
+            result = PassManager(Unroller("u3")).run(circuit)
 
         expected = QuantumCircuit(qr)
         expected.append(U3Gate(0, 0, pi / 2), [qr[0]])

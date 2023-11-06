@@ -149,7 +149,9 @@ Version 10
 ==========
 
 Version 10 adds support for symengine-native serialization for objects of type
-:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks.
+:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks. Version
+10 also adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
+0.45.0 release.
 
 The symbolic_encoding field is added to the file header, and a new encoding type char
 is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
@@ -171,6 +173,26 @@ The contents of FILE_HEADER after V10 are defined as a C struct as:
         char symbolic_encoding;
     }
 
+LAYOUT
+------
+
+The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
+With version 10 the ``LAYOUT`` struct is now:
+
+.. code-block:: c
+
+    struct {
+        char exists;
+        int32_t initial_layout_size;
+        int32_t input_mapping_size;
+        int32_t final_layout_size;
+        uint32_t extra_registers;
+        int32_t input_qubit_count;
+    }
+
+The rest of the layout data after the ``LAYOUT`` struct is represented as in previous versions. If
+``input qubit_count`` is < 0 that indicates that both ``_input_qubit_count``
+and ``_output_qubit_list`` in the :class:`~.TranspileLayout` object are ``None``.
 
 .. _qpy_version_9:
 

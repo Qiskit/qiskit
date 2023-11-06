@@ -45,10 +45,10 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.seed = 88
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         qasm_filename = os.path.join(qasm_dir, "example.qasm")
-        transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
-        transpiled_circuit.name = "test"
-        transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
-        self.qobj = assemble(transpiled_circuit, shots=1000, seed_simulator=self.seed)
+        qcirc = QuantumCircuit.from_qasm_file(qasm_filename)
+        qcirc.name = "test"
+        self.transpiled_circuit = transpile(qcirc, backend=self.backend)
+        self.qobj = assemble(self.transpiled_circuit, shots=1000, seed_simulator=self.seed)
         logger = getLogger()
         self.addCleanup(logger.setLevel, logger.level)
         logger.setLevel("DEBUG")
@@ -75,8 +75,9 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        self.qobj.config.shots = shots
-        result = self.backend.run(self.qobj).result()
+        result = self.backend.run(
+            self.transpiled_circuit, shots=shots, seed_simulator=self.seed
+        ).result()
         self.assertEqual(result.success, True)
 
     def test_measure_sampler_repeated_qubits(self):
@@ -152,7 +153,9 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        result = self.backend.run(self.qobj).result()
+        result = self.backend.run(
+            self.transpiled_circuit, shots=1000, seed_simulator=self.seed
+        ).result()
         shots = 1024
         threshold = 0.04 * shots
         counts = result.get_counts("test")

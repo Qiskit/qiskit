@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 import unittest
+import warnings
 from typing import Tuple
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -38,7 +39,9 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = self.seed
 
         self.threshold = 1e-8
 

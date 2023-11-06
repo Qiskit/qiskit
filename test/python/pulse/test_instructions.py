@@ -117,7 +117,7 @@ class TestDelay(QiskitTestCase):
         op_delay = Operator(circ)
 
         expected = QuantumCircuit(1)
-        expected.i(0)
+        expected.id(0)
         op_identity = Operator(expected)
         self.assertEqual(op_delay, op_identity)
 

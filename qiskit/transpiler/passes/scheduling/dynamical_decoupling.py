@@ -53,6 +53,20 @@ class DynamicalDecoupling(TransformationPass):
         from qiskit.transpiler import PassManager, InstructionDurations
         from qiskit.transpiler.passes import ALAPSchedule, DynamicalDecoupling
         from qiskit.visualization import timeline_drawer
+
+        # Because the legacy passes do not propagate the scheduling information correctly, it is
+        # necessary to run a no-op "re-schedule" before the output circuits can be drawn.
+        def draw(circuit):
+            from qiskit import transpile
+
+            scheduled = transpile(
+                circuit,
+                optimization_level=0,
+                instruction_durations=InstructionDurations(),
+                scheduling_method="alap",
+            )
+            return timeline_drawer(scheduled)
+
         circ = QuantumCircuit(4)
         circ.h(0)
         circ.cx(0, 1)
@@ -69,7 +83,7 @@ class DynamicalDecoupling(TransformationPass):
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        draw(circ_dd)
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -87,7 +101,7 @@ class DynamicalDecoupling(TransformationPass):
             ]
         )
         circ_dd = pm.run(circ)
-        timeline_drawer(circ_dd)
+        draw(circ_dd)
     """
 
     @deprecate_func(
@@ -260,7 +274,7 @@ class DynamicalDecoupling(TransformationPass):
                 if gate is not None:
                     new_dag.apply_operation_back(gate, [dag_qubit], check=False)
 
-            new_dag.global_phase = _mod_2pi(new_dag.global_phase + sequence_gphase)
+            new_dag.global_phase = new_dag.global_phase + sequence_gphase
 
         return new_dag
 
@@ -269,11 +283,3 @@ class DynamicalDecoupling(TransformationPass):
         if self._target is None or self._target.instruction_supported(gate.name, qargs=(qarg,)):
             return True
         return False
-
-
-def _mod_2pi(angle: float, atol: float = 0):
-    """Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π"""
-    wrapped = (angle + np.pi) % (2 * np.pi) - np.pi
-    if abs(wrapped - np.pi) < atol:
-        wrapped = -np.pi
-    return wrapped

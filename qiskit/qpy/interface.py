@@ -25,7 +25,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
-from qiskit.utils.deprecation import deprecate_arg
 
 
 # pylint: disable=invalid-name
@@ -72,7 +71,6 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_arg("circuits", new_alias="programs", since="0.21.0")
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
@@ -232,6 +230,12 @@ def load(
     # identify file header version
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(0)
+
+    if version > common.QPY_VERSION:
+        raise QiskitError(
+            f"The QPY format version being read, {version}, isn't supported by "
+            "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
+        )
 
     if version < 10:
         data = formats.FILE_HEADER._make(

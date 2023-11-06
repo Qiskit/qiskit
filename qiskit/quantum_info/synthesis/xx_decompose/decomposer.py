@@ -251,7 +251,7 @@ class XXDecomposer:
             basis_fidelity, approximate=approximate
         )
 
-        from qiskit.extensions import UnitaryGate  # pylint: disable=cyclic-import
+        from qiskit.circuit.library import UnitaryGate  # pylint: disable=cyclic-import
 
         # get the associated _positive_ canonical coordinate
         weyl_decomposition = TwoQubitWeylDecomposition(unitary)

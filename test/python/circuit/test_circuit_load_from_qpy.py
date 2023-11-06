@@ -40,12 +40,15 @@ from qiskit.circuit.library import (
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
+    UnitaryGate,
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.extensions import UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.quantum_info import Pauli, SparsePauliOp
@@ -169,6 +172,22 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_controlled_unitary_gate(self):
+        """Test that numpy array parameters are correctly serialized
+        in controlled unitary gate."""
+        qc = QuantumCircuit(2)
+        unitary = np.array([[0, 1], [1, 0]])
+        gate = UnitaryGate(unitary)
+        qc.append(gate.control(1), [0, 1])
+
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc.decompose(reps=5), new_circ.decompose(reps=5))
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_opaque_gate(self):
@@ -1193,9 +1212,11 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_ucr_gates(self):
         """Test qpy with UCRX, UCRY, and UCRZ gates."""
         qc = QuantumCircuit(3)
-        qc.ucrz([0, 0, 0, -np.pi], [0, 1], 2)
-        qc.ucry([0, 0, 0, -np.pi], [0, 2], 1)
-        qc.ucrx([0, 0, 0, -np.pi], [2, 1], 0)
+        angles = [0, 0, 0, -np.pi]
+        ucrx, ucry, ucrz = UCRXGate(angles), UCRYGate(angles), UCRZGate(angles)
+        qc.append(ucrz, [2, 0, 1])
+        qc.append(ucry, [1, 0, 2])
+        qc.append(ucrx, [0, 2, 1])
         qc.measure_all()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1275,7 +1296,6 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.append(mcx_recursive_gate, list(range(0, 5)))
         qc.append(mcx_vchain_gate, list(range(0, 5)))
         qc.mcp(np.pi, [0, 2], 1)
-        qc.mct([0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
         qpy_file = io.BytesIO()
@@ -1437,7 +1457,9 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
         qc = QuantumCircuit(2)
-        qc.diagonal([1, -1, -1, 1], [0, 1])
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.diagonal([1, -1, -1, 1], [0, 1])
+
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)

@@ -62,12 +62,10 @@ class TestCompiler(QiskitTestCase):
         bell.measure(qr[0], cr[0])
         bell.measure(qr[1], cr[1])
         shots = 2048
-        bell_backend = transpile(bell, backend=backend)
-        ghz_backend = transpile(ghz, backend=backend, coupling_map=coupling_map)
-        bell_qobj = assemble(bell_backend, shots=shots, seed_simulator=10)
-        ghz_qobj = assemble(ghz_backend, shots=shots, seed_simulator=10)
-        bell_result = backend.run(bell_qobj).result()
-        ghz_result = backend.run(ghz_qobj).result()
+        bell_qcirc = transpile(bell, backend=backend)
+        ghz_qcirc = transpile(ghz, backend=backend, coupling_map=coupling_map)
+        bell_result = backend.run(bell_qcirc, shots=shots, seed_simulator=10).result()
+        ghz_result = backend.run(ghz_qcirc, shots=shots, seed_simulator=10).result()
 
         threshold = 0.05 * shots
         counts_bell = bell_result.get_counts()
@@ -100,8 +98,7 @@ class TestCompiler(QiskitTestCase):
         qc_b = transpile(
             qc, backend=backend, coupling_map=coupling_map, initial_layout=initial_layout
         )
-        qobj = assemble(qc_b, shots=shots, seed_simulator=88)
-        job = backend.run(qobj)
+        job = backend.run(qc_b, shots=shots, seed_simulator=88)
         result = job.result()
         qasm_to_check = qc.qasm()
         self.assertEqual(len(qasm_to_check), 173)
@@ -260,10 +257,10 @@ class TestCompiler(QiskitTestCase):
         qc.barrier(qr)
         qc.measure(qr, cr)
         backend = BasicAer.get_backend("qasm_simulator")
-        qrtrue = assemble(transpile(qc, backend, seed_transpiler=8), seed_simulator=42)
-        rtrue = backend.run(qrtrue).result()
-        qrfalse = assemble(PassManager().run(qc), seed_simulator=42)
-        rfalse = backend.run(qrfalse).result()
+        qrtrue = transpile(qc, backend, seed_transpiler=8)
+        rtrue = backend.run(qrtrue, seed_simulator=42).result()
+        qrfalse = PassManager().run(qc)
+        rfalse = backend.run(qrfalse, seed_simulator=42).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
     def test_mapper_overoptimization(self):

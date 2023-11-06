@@ -12,6 +12,8 @@
 
 """Tests for PVQD."""
 import unittest
+import warnings
+
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from functools import partial
 
@@ -63,7 +65,9 @@ class TestPVQD(QiskitAlgorithmsTestCase):
         self.observable = Pauli("ZZ")
         self.ansatz = EfficientSU2(2, reps=1)
         self.initial_parameters = np.zeros(self.ansatz.num_parameters)
-        algorithm_globals.random_seed = 123
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 123
 
     @data(("ising", True, 2), ("pauli", False, None), ("pauli_sum_op", True, 2))
     @unpack

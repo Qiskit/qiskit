@@ -108,7 +108,7 @@ class ForLoopOp(ControlFlowOp):
             )
 
         # Consume indexset into a tuple unless it was provided as a range.
-        # Preserve ranges so that they can be exported as OpenQASM3 ranges.
+        # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
         indexset = indexset if isinstance(indexset, range) else tuple(indexset)
 
         self._params = [indexset, loop_parameter, body]

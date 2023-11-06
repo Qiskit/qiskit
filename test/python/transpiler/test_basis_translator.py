@@ -644,7 +644,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.cy(qr[1], qr[2])
         circuit.cz(qr[2], qr[0])
         circuit.h(qr[1])
-        circuit.i(qr[0])
+        circuit.id(qr[0])
         circuit.rx(0.1, qr[0])
         circuit.ry(0.2, qr[1])
         circuit.rz(0.3, qr[2])
@@ -742,7 +742,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U3Gate(0, 0, pi / 2), [qr[2]])
         ref_circuit.cx(qr[2], qr[0])
         ref_circuit.append(U3Gate(pi / 2, 0, pi), [qr[0]])
-        ref_circuit.i(qr[0])
+        ref_circuit.id(qr[0])
         ref_circuit.append(U3Gate(0.1, -pi / 2, pi / 2), [qr[0]])
         ref_circuit.cx(qr[1], qr[0])
         ref_circuit.append(U3Gate(0, 0, 0.6), [qr[0]])
@@ -928,22 +928,19 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
-        #         ┌────────────┐   ┌─────────────┐┌──────┐┌──────────┐
-        # q_0: ───┤ U(π/2,0,π) ├───┤ U(0,0,-π/2) ├┤0     ├┤ U(π,0,π) ├
-        #      ┌──┴────────────┴──┐└─────────────┘│  Ecr │└──────────┘
-        # q_1: ┤ U(-π/2,-π/2,π/2) ├───────────────┤1     ├────────────
-        #      └──────────────────┘               └──────┘
-
         qr = QuantumRegister(2, "q")
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
         expected.u(0, 0, -pi / 2, qr[0])
-        expected.u(-pi / 2, -pi / 2, pi / 2, qr[1])
+        expected.u(pi, 0, 0, qr[0])
+        expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
         expected.ecr(0, 1)
-        expected.u(pi, 0, pi, qr[0])
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
+        self.assertEqual(
+            Operator.from_circuit(bell), Operator.from_circuit(dag_to_circuit(out_dag))
+        )
 
     def test_cx_bell_to_cp(self):
         """Verify we can translate a CX bell to CP,U."""

@@ -113,7 +113,7 @@ def _mcsu2_real_diagonal(
     """
     # pylint: disable=cyclic-import
     from .x import MCXVChain
-    from qiskit.extensions import UnitaryGate
+    from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
     from qiskit.compiler import transpile
 

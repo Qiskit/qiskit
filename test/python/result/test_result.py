@@ -479,7 +479,7 @@ class TestResultOperations(QiskitTestCase):
         """Test measurement level 1 average result."""
         # 3 qubits
         raw_memory = [[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]]
-        processed_memory = np.array([1.0j, 1.0, 0.5 + 0.5j], dtype=np.complex_)
+        processed_memory = np.array([1.0j, 1.0, 0.5 + 0.5j], dtype=np.complex128)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(
             shots=2, success=True, meas_level=1, meas_return="avg", data=data
@@ -488,7 +488,7 @@ class TestResultOperations(QiskitTestCase):
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (3,))
-        self.assertEqual(memory.dtype, np.complex_)
+        self.assertEqual(memory.dtype, np.complex128)
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_meas_level_1_single(self):
@@ -496,7 +496,7 @@ class TestResultOperations(QiskitTestCase):
         # 3 qubits
         raw_memory = [[[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]], [[0.5, 0.5], [1.0, 0.0], [0.0, 1.0]]]
         processed_memory = np.array(
-            [[1.0j, 1.0, 0.5 + 0.5j], [0.5 + 0.5j, 1.0, 1.0j]], dtype=np.complex_
+            [[1.0j, 1.0, 0.5 + 0.5j], [0.5 + 0.5j, 1.0, 1.0j]], dtype=np.complex128
         )
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(
@@ -506,14 +506,14 @@ class TestResultOperations(QiskitTestCase):
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (2, 3))
-        self.assertEqual(memory.dtype, np.complex_)
+        self.assertEqual(memory.dtype, np.complex128)
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_meas_level_0_avg(self):
         """Test measurement level 0 average result."""
         # 3 qubits
         raw_memory = [[[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], [[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]]]
-        processed_memory = np.array([[1.0j, 1.0j, 1.0j], [1.0, 1.0, 1.0]], dtype=np.complex_)
+        processed_memory = np.array([[1.0j, 1.0j, 1.0j], [1.0, 1.0, 1.0]], dtype=np.complex128)
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(
             shots=2, success=True, meas_level=0, meas_return="avg", data=data
@@ -522,7 +522,7 @@ class TestResultOperations(QiskitTestCase):
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (2, 3))
-        self.assertEqual(memory.dtype, np.complex_)
+        self.assertEqual(memory.dtype, np.complex128)
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_meas_level_0_single(self):
@@ -534,7 +534,7 @@ class TestResultOperations(QiskitTestCase):
         ]
         processed_memory = np.array(
             [[[1.0j, 1.0j, 1.0j], [1.0, 1.0, 1.0]], [[1.0j, 1.0j, 1.0j], [1.0, 1.0, 1.0]]],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         data = models.ExperimentResultData(memory=raw_memory)
         exp_result = models.ExperimentResult(
@@ -544,7 +544,7 @@ class TestResultOperations(QiskitTestCase):
         memory = result.get_memory(0)
 
         self.assertEqual(memory.shape, (2, 2, 3))
-        self.assertEqual(memory.dtype, np.complex_)
+        self.assertEqual(memory.dtype, np.complex128)
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_circuit_statevector_repr_without_decimal(self):
@@ -560,7 +560,7 @@ class TestResultOperations(QiskitTestCase):
                 0.35355339 + 0.0j,
                 0.35355339 + 0.0j,
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         processed_sv = np.array(
             [
@@ -573,14 +573,14 @@ class TestResultOperations(QiskitTestCase):
                 0.35355339 + 0.0j,
                 0.35355339 + 0.0j,
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         data = models.ExperimentResultData(statevector=raw_statevector)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
         result = Result(results=[exp_result], **self.base_result_args)
         statevector = result.get_statevector()
         self.assertEqual(statevector.shape, (8,))
-        self.assertEqual(statevector.dtype, np.complex_)
+        self.assertEqual(statevector.dtype, np.complex128)
         np.testing.assert_almost_equal(statevector, processed_sv)
 
     def test_circuit_statevector_repr_decimal(self):
@@ -596,7 +596,7 @@ class TestResultOperations(QiskitTestCase):
                 0.35355339 + 0.0j,
                 0.35355339 + 0.0j,
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         processed_sv = np.array(
             [
@@ -609,14 +609,14 @@ class TestResultOperations(QiskitTestCase):
                 0.354 + 0.0j,
                 0.354 + 0.0j,
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         data = models.ExperimentResultData(statevector=raw_statevector)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
         result = Result(results=[exp_result], **self.base_result_args)
         statevector = result.get_statevector(decimals=3)
         self.assertEqual(statevector.shape, (8,))
-        self.assertEqual(statevector.dtype, np.complex_)
+        self.assertEqual(statevector.dtype, np.complex128)
         np.testing.assert_almost_equal(statevector, processed_sv)
 
     def test_circuit_unitary_repr_without_decimal(self):
@@ -626,21 +626,21 @@ class TestResultOperations(QiskitTestCase):
                 [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
                 [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         processed_unitary = np.array(
             [
                 [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
                 [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         data = models.ExperimentResultData(unitary=raw_unitary)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
         result = Result(results=[exp_result], **self.base_result_args)
         unitary = result.get_unitary()
         self.assertEqual(unitary.shape, (2, 2))
-        self.assertEqual(unitary.dtype, np.complex_)
+        self.assertEqual(unitary.dtype, np.complex128)
         np.testing.assert_almost_equal(unitary, processed_unitary)
 
     def test_circuit_unitary_repr_decimal(self):
@@ -650,17 +650,17 @@ class TestResultOperations(QiskitTestCase):
                 [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
                 [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
             ],
-            dtype=np.complex_,
+            dtype=np.complex128,
         )
         processed_unitary = np.array(
-            [[0.707 + 0.0j, 0.707 - 0.0j], [0.707 + 0.0j, -0.707 + 0.0j]], dtype=np.complex_
+            [[0.707 + 0.0j, 0.707 - 0.0j], [0.707 + 0.0j, -0.707 + 0.0j]], dtype=np.complex128
         )
         data = models.ExperimentResultData(unitary=raw_unitary)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
         result = Result(results=[exp_result], **self.base_result_args)
         unitary = result.get_unitary(decimals=3)
         self.assertEqual(unitary.shape, (2, 2))
-        self.assertEqual(unitary.dtype, np.complex_)
+        self.assertEqual(unitary.dtype, np.complex128)
         np.testing.assert_almost_equal(unitary, processed_unitary)
 
     def test_additional_result_data(self):
