@@ -32,14 +32,27 @@ change:
     a change already merged onto ``main``, unless the change simply does
     not make sense on ``main``.
 
+At any given time Qiskit has up to two supported stable branches, one for the
+previous minor version release series and the other for the final minor
+release series on the previous major release. For example, if the ``main``
+branch is developing the 1.2.0 release, then the ``stable/1.1`` branch and
+potentially the ``stable/0.46`` branches are supported.
 
 Backporting
 -----------
 
 When a PR tagged with ``stable backport potential`` is merged, or when a
 merged PR is given that tag, the `Mergify bot <https://mergify.com>`__ will
-open a PR to the current stable branch.  You can review and merge this PR
-like normal.
+open a PR to the most recent supported stable branch. You can review and merge
+this PR like normal. If you're backporting from main to a different stable
+branch you can leave a comment of the form ``@Mergifyio backport branch`` on a
+merged PR to manually have the Mergify bot backport the PR to the specified
+branch.
+
+If the version of the code has diverged or no longer exists on the stable
+branch it is acceptable to directly propose a change to the stable branch. But
+it is expected to document the reasons why in the commit message, as the
+typical procedure is to merge on ``main`` first.
 
 
 Documentation Structure

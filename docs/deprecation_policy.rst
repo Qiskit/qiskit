@@ -1,3 +1,86 @@
+#############################
+Versioning and Support Policy
+#############################
+
+Qiskit version numbers follow `Sematinc Versioning <https://semver.org/>`__.
+The version number is comprised of 3 primary components, the major, minor, and
+patch versions. For a version number ``X.Y.Z`` where ``X`` is the major version,
+``Y`` is the minor version, and ``Z`` is the patch version.
+
+Breaking API changes are reserved for major version releases. The **minimum**
+period between major version releases is one year. Minor versions will be
+periodically (currently every three months) published for the current major
+version which adds new features and bug fixes. For the most recent minor version
+there will also be new patch versions published as bugs are identified and fixed
+on that release series.
+
+<TODO Add calendar diagrams>
+
+With the release of a new major version, the previous major version is supported
+for at least 6 months; only bug and security fixes will be accepted during this
+time and only patch releases will be published for this major version. A final
+patch version will be published when support is dropped and that release will
+also document the end of support for that major version series. A longer
+support window is needed for the previous major version as this gives downstream
+consumers of Qiskit a chance to migrate not only their code but also their
+users. It's typically not acceptable for a downstream library maintainer that
+depends on Qiskit to immediately bump their minimum Qiskit version to a new
+major version release immediately because their user base also needs a chance
+to migrate to handle the API changes. By having an extended support window
+for the previous major version that gives downstream maintainers to fix
+compatibility the next major version but potentially keeping support for > 1
+release series at a time and giving their users a migration path.
+
+Upgrade Strategy
+----------------
+
+Whenever a new major version is released the recommended upgrade path
+is to first upgrade to use the most recent minor version on the previous major
+version. Immediately preceding a new major version a final minor version will
+be published. This final minor version release ``0.N+1.0`` is equivalent to
+``0.N.0`` but with warnings and deprecations for any API changes that are
+made on the new major version series.
+
+For example, on the release of Qiskit 1.0.0 a 0.46.0 release was published
+immediately proceeding the 1.0.0 release. The 0.46.0 release was equivalent
+to the 0.45.0 release but with additional deprecation warnings that documents
+the API changes that are being made as part of the 1.0.0 release. This pattern
+will be used for any future major version releases.
+
+As a user of Qiskit it's recommended that you first upgrade to this final minor
+version first, so you can see any deprecation warnings and adjust your Qiskit
+usage ahead of time before trying a potentially breaking release. The previous
+major version will be supported for at least 6 months to give sufficient time
+to upgrade. A typical pattern to deal with this is to pin the max version to
+avoid using the next major release series until you're sure of compatibility.
+For example, specifying in a requirements file ``qiskit<2`` will ensure that
+you're using a version of Qiskit that won't have breaking API changes.
+
+Pre-releases
+------------
+
+For each minor and major version release Qiskit will publish pre-releases that
+are compatible with `PEP440 <https://peps.python.org/pep-0440/>`__. Typically
+these are just release candidates of the form ``1.2.0rc1``. The ``rc`` will have
+a finalized API surface and are used to test a prospective release.
+
+If another PEP440 pre-release suffix (such as ``a``, ``b``, or ``pre``) are
+published these do not have the same guarantees as an ``rc`` release, and are
+just preview releases. The API likely will change between these pre-releases
+and the final release with that version number. For example, ``1.0.0pre1`` has
+a different final API from ``1.0.0``.
+
+Post-releases
+-------------
+
+If there are issues with the packaging of a given release a post-release may be
+issued to correct this. These will follow the form ``1.2.1.1`` where the fourth
+integer is used to indicate it is the 4th post release of the ``1.2.1`` release.
+For example, the qiskit-terra (the legacy package name for Qiskit) 0.25.2
+release had some issue with the sdist package publishing and a post-release
+0.25.2.1 was published that corrected this issue. The code was identical, and
+0.25.2.1 just fixed the packaging issue for the release.
+
 ##################
 Deprecation Policy
 ##################
@@ -21,17 +104,20 @@ underscore (``_``).
 
 The guiding principles are:
 
-- we must not remove or change code without active warnings for least three
-  months or two complete version cycles;
+- we must not remove or change code without active warnings on a supported
+  release series for at least three months and removals can only occur on
+  major version releases;
 
 - there must always be a way to achieve valid goals that does not issue any
   warnings;
 
 - never assume that a function that isn't explicitly internal isn't in use;
 
-- all deprecations, changes and removals are considered API changes, and can
-  only occur in minor releases not patch releases, per the
-  :ref:`stable branch policy <stable_branch_policy>`.
+- all deprecations can only occur in minor version releases not patch version
+  releases, per the :ref:`stable branch policy <stable_branch_policy>`.
+
+- API changes and removals are considered breaking changes, and can only
+  occur in major version releases.
 
 .. _removing-features:
 
