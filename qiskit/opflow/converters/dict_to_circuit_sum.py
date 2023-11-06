@@ -31,6 +31,7 @@ class DictToCircuitSum(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(

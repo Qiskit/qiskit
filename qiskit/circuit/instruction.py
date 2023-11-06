@@ -523,6 +523,7 @@ class Instruction(Operation):
             "provided, because the premise is wrong."
         ),
         since="0.25.0",
+        package_name="qiskit-terra",
     )
     def qasm(self):
         """Return a default OpenQASM string for the instruction.
