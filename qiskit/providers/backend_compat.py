@@ -243,6 +243,11 @@ def convert_to_target(
                 instruction=qiskit_control_flow_mapping[inst_name],
                 name=inst_name,
             )
+        elif properties is None:
+            target.add_instruction(
+                instruction=inst_name_map[inst_name],
+                name=inst_name,
+            )
         else:
             target.add_instruction(
                 instruction=inst_name_map[inst_name],
