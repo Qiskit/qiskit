@@ -122,6 +122,16 @@ class TestUnitaryOverlap(QiskitTestCase):
         with self.assertRaises(CircuitError):
             _ = UnitaryOverlap(unitary1, unitary2)
 
+    def test_barrier(self):
+        """Test that barriers on input circuits are well handled"""
+        unitary1 = EfficientSU2(1, reps=0)
+        unitary1.barrier()
+        unitary2 = EfficientSU2(1, reps=1)
+        unitary2.barrier()
+
+        _ = UnitaryOverlap(unitary1, unitary2)
+
+
 
 if __name__ == "__main__":
     unittest.main()
