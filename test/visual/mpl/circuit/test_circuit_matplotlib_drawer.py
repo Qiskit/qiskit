@@ -34,15 +34,23 @@ from qiskit.circuit.library import (
     DCXGate,
     ZGate,
     SGate,
+    SXGate,
     U1Gate,
     CPhaseGate,
     HamiltonianGate,
     Isometry,
 )
 from qiskit.circuit.library import MCXVChain
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
 from qiskit.circuit.library import IQP
 from qiskit.circuit.classical import expr
+from qiskit.quantum_info import Clifford, random_clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 
@@ -2207,6 +2215,32 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 PendingDeprecationWarning, 'Instead, use "iqp" and "iqp-dark"'
             ):
                 qc.draw("mpl", style=style)
+
+    def test_annotated_operation(self):
+        """Test AnnotatedOperations and other non-Instructions."""
+        circuit = QuantumCircuit(3)
+        cliff = random_clifford(2)
+        circuit.append(cliff, [0, 1])
+        circuit.x(0)
+        circuit.h(1)
+        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
+        circuit.ccx(0, 1, 2)
+        op1 = AnnotatedOperation(
+            SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]
+        )
+        circuit.append(op1, [0, 1, 2])
+        circuit.append(SXGate(), [1])
+        fname = "annotated.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
 
 
 if __name__ == "__main__":
