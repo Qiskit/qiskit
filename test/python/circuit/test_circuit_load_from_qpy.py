@@ -1687,6 +1687,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     @ddt.data(0, "01", [1, 0, 0, 0])
     def test_valid_circuit_with_initialize_instruction(self, param):
+        """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
         qc = QuantumCircuit(2)
         qc.initialize(param, qc.qubits)
         with io.BytesIO() as fptr:
