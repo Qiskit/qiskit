@@ -16,5 +16,10 @@ Abstract base classes for primitives module.
 
 from .base_estimator import BaseEstimator, BaseEstimatorV2
 from .base_sampler import BaseSampler
+from .bindings_array import BindingsArray
 from .estimator_result import EstimatorResult
+from .estimator_task import EstimatorTask
+from .observables_array import ObservablesArray
+from .options import BasePrimitiveOptions, BasePrimitiveOptionsLike
 from .sampler_result import SamplerResult
+from .task_result import TaskResult
