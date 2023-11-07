@@ -20,7 +20,6 @@ from ddt import data, ddt, unpack
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
@@ -350,7 +349,7 @@ class TestObservableValidation(QiskitTestCase):
         ("IXYZ", (SparsePauliOp("IXYZ"),)),
         (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
+        (SparsePauliOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
         (
             ["IXYZ", "ZYXI"],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
@@ -364,7 +363,7 @@ class TestObservableValidation(QiskitTestCase):
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
         (
-            [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
+            [SparsePauliOp(SparsePauliOp("IXYZ")), SparsePauliOp(SparsePauliOp("ZYXI"))],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
     )
