@@ -329,6 +329,16 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("t", new_circ.count_ops())
         self.assertNotIn("tdg", new_circ.count_ops())
 
+    def test_half_of_an_inverse_pair(self):
+        """Test that half of an inverse pair doesn't do anything."""
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.t(0)
+        qc.t(0)
+        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, qc)
+
 
 if __name__ == "__main__":
     unittest.main()
