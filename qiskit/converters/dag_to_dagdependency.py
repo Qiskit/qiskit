@@ -14,7 +14,7 @@
 from qiskit.dagcircuit.dagdependency import DAGDependency
 
 
-def dag_to_dagdependency(dag, create_preds_and_succs=True):
+def dag_to_dagdependency(dag, create_preds_and_succs=False):
     """Build a ``DAGDependency`` object from a ``DAGCircuit``.
 
     Args:

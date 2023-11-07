@@ -404,13 +404,10 @@ class DAGDependency:
             cindices_list = []
 
         new_node = DAGDepNode(
-            type="op",
             op=operation,
             name=operation.name,
             qargs=qargs,
             cargs=cargs,
-            successors=[],
-            predecessors=[],
             qindices=qindices_list,
             cindices=cindices_list,
         )
