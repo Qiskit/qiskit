@@ -75,7 +75,7 @@ Post-releases
 
 If there are issues with the packaging of a given release a post-release may be
 issued to correct this. These will follow the form ``1.2.1.1`` where the fourth
-integer is used to indicate it is the 4th post release of the ``1.2.1`` release.
+integer is used to indicate it is the 1st post release of the ``1.2.1`` release.
 For example, the qiskit-terra (the legacy package name for Qiskit) 0.25.2
 release had some issue with the sdist package publishing and a post-release
 0.25.2.1 was published that corrected this issue. The code was identical, and
