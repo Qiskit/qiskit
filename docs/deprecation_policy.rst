@@ -14,6 +14,16 @@ version which adds new features and bug fixes. For the most recent minor version
 there will also be new patch versions published as bugs are identified and fixed
 on that release series.
 
+For the purposes of semantic versioning, the Qiskit public API is considered
+any documented module, class, function, or method that is not marked as private
+(with a ``_`` prefix). The supported Python versions, minimum supported Rust
+version (for building Qiskit from source), and any depedency Python packages
+(including the minimum supported versions of dependencies) used by Qiskit are
+not part of the backwards compatibility guarantees and may change during any
+release. Only minor or major version releases will raise minimum requirements
+for using or building Qiskit (including adding new dependencies), but patch
+fixes might include support for new versions of Python or other dependencies.
+
 <TODO Add calendar diagrams>
 
 With the release of a new major version, the previous major version is supported
