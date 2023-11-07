@@ -477,7 +477,7 @@ from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.utils.deprecation import deprecate_func
+from qiskit.utils.deprecation import deprecate_func, deprecate_arg
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
@@ -942,6 +942,8 @@ class _PulseBuilder:
         return self.backend.configuration().dt
 
 
+@deprecate_arg(name="default_transpiler_settings", since="0.46.0")
+@deprecate_arg(name="default_circuit_scheduler_settings", since="0.46.0")
 def build(
     backend=None,
     schedule: Optional[ScheduleBlock] = None,
