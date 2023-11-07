@@ -81,12 +81,12 @@ class InverseCancellation(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         if self.self_inverse_gates:
-            dag = self._run_on_self_inverse(dag, self.self_inverse_gates)
+            dag = self._run_on_self_inverse(dag)
         if self.inverse_gate_pairs:
-            dag = self._run_on_inverse_pairs(dag, self.inverse_gate_pairs)
+            dag = self._run_on_inverse_pairs(dag)
         return dag
 
-    def _run_on_self_inverse(self, dag: DAGCircuit, self_inverse_gates: List[Gate]):
+    def _run_on_self_inverse(self, dag: DAGCircuit):
         """
         Run self-inverse gates on `dag`.
 
@@ -97,11 +97,16 @@ class InverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-        if not self.self_inverse_gate_names.intersection(dag.count_ops()):
+        op_counts = dag.count_ops()
+        if not self.self_inverse_gate_names.intersection(op_counts):
             return dag
         # Sets of gate runs by name, for instance: [{(H 0, H 0), (H 1, H 1)}, {(X 0, X 0}]
-        gate_runs_sets = [dag.collect_runs([gate.name]) for gate in self_inverse_gates]
-        for gate_runs in gate_runs_sets:
+        for gate in self.self_inverse_gates:
+            gate_name = gate.name
+            gate_count = op_counts.get(gate_name, 0)
+            if gate_count <= 1:
+                continue
+            gate_runs = dag.collect_runs([gate_name])
             for gate_cancel_run in gate_runs:
                 partitions = []
                 chunk = []
@@ -120,7 +125,7 @@ class InverseCancellation(TransformationPass):
                         dag.remove_op_node(node)
         return dag
 
-    def _run_on_inverse_pairs(self, dag: DAGCircuit, inverse_gate_pairs: List[Tuple[Gate, Gate]]):
+    def _run_on_inverse_pairs(self, dag: DAGCircuit):
         """
         Run inverse gate pairs on `dag`.
 
@@ -131,11 +136,16 @@ class InverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-        if not self.inverse_gate_pairs_names.intersection(dag.count_ops()):
+        op_counts = dag.count_ops()
+        if not self.inverse_gate_pairs_names.intersection(op_counts):
             return dag
 
-        for pair in inverse_gate_pairs:
-            gate_cancel_runs = dag.collect_runs([pair[0].name, pair[1].name])
+        for pair in self.inverse_gate_pairs:
+            gate_0_name = pair[0].name
+            gate_1_name = pair[1].name
+            if gate_0_name not in op_counts or gate_1_name not in op_counts:
+                continue
+            gate_cancel_runs = dag.collect_runs([gate_0_name, gate_1_name])
             for dag_nodes in gate_cancel_runs:
                 i = 0
                 while i < len(dag_nodes) - 1:
