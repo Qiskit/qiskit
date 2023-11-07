@@ -10,14 +10,14 @@ patch versions. For a version number ``X.Y.Z`` where ``X`` is the major version,
 Breaking API changes are reserved for major version releases. The **minimum**
 period between major version releases is one year. Minor versions will be
 periodically (currently every three months) published for the current major
-version which adds new features and bug fixes. For the most recent minor version
+version which to add new features and bug fixes. For the most recent minor version
 there will also be new patch versions published as bugs are identified and fixed
 on that release series.
 
 For the purposes of semantic versioning, the Qiskit public API is considered
 any documented module, class, function, or method that is not marked as private
 (with a ``_`` prefix). The supported Python versions, minimum supported Rust
-version (for building Qiskit from source), and any depedency Python packages
+version (for building Qiskit from source), and any Python package dependencies
 (including the minimum supported versions of dependencies) used by Qiskit are
 not part of the backwards compatibility guarantees and may change during any
 release. Only minor or major version releases will raise minimum requirements
@@ -33,13 +33,13 @@ patch version will be published when support is dropped and that release will
 also document the end of support for that major version series. A longer
 support window is needed for the previous major version as this gives downstream
 consumers of Qiskit a chance to migrate not only their code but also their
-users. It's typically not acceptable for a downstream library maintainer that
-depends on Qiskit to immediately bump their minimum Qiskit version to a new
-major version release immediately because their user base also needs a chance
-to migrate to handle the API changes. By having an extended support window
-for the previous major version that gives downstream maintainers to fix
-compatibility the next major version but potentially keeping support for > 1
-release series at a time and giving their users a migration path.
+users. It's typically not recommended for a downstream library that
+depends on Qiskit to bump its minimum Qiskit version to a new
+major version release immediately because its user base also needs a chance
+to migrate to the new API changes. Having an extended support window
+for the previous major Qiskit version gives downstream projects time to fix
+compatibility with the next major version. Downstream projects can provide support for two
+release series at a time to give their users a migration path.
 
 Upgrade Strategy
 ================
@@ -47,14 +47,14 @@ Upgrade Strategy
 Whenever a new major version is released the recommended upgrade path
 is to first upgrade to use the most recent minor version on the previous major
 version. Immediately preceding a new major version a final minor version will
-be published. This final minor version release ``0.N+1.0`` is equivalent to
-``0.N.0`` but with warnings and deprecations for any API changes that are
+be published. This final minor version release ``M.N+1.0`` is equivalent to
+``M.N.0`` but with warnings and deprecations for any API changes that are
 made on the new major version series.
 
 For example, on the release of Qiskit 1.0.0 a 0.46.0 release was published
 immediately proceeding the 1.0.0 release. The 0.46.0 release was equivalent
-to the 0.45.0 release but with additional deprecation warnings that documents
-the API changes that are being made as part of the 1.0.0 release. This pattern
+to the 0.45.0 release but with additional deprecation warnings that document
+the API changes that were made as part of the 1.0.0 release. This pattern
 will be used for any future major version releases.
 
 As a user of Qiskit it's recommended that you first upgrade to this final minor
@@ -63,7 +63,7 @@ usage ahead of time before trying a potentially breaking release. The previous
 major version will be supported for at least 6 months to give sufficient time
 to upgrade. A typical pattern to deal with this is to pin the max version to
 avoid using the next major release series until you're sure of compatibility.
-For example, specifying in a requirements file ``qiskit<2`` will ensure that
+For example, specifying in a requirements file ``qiskit<2`` when the current major Qiskit version is 1 will ensure that
 you're using a version of Qiskit that won't have breaking API changes.
 
 Pre-releases
@@ -71,7 +71,7 @@ Pre-releases
 
 For each minor and major version release Qiskit will publish pre-releases that
 are compatible with `PEP440 <https://peps.python.org/pep-0440/>`__. Typically
-these are just release candidates of the form ``1.2.0rc1``. The ``rc`` will have
+these are just release candidates of the form ``1.2.0rc1``. The ``rc`` releases will have
 a finalized API surface and are used to test a prospective release.
 
 If another PEP440 pre-release suffix (such as ``a``, ``b``, or ``pre``) are
