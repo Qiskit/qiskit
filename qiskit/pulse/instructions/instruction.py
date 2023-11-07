@@ -29,8 +29,6 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.utils import optionals as _optionals
 
-from qiskit.utils.deprecation import deprecate_func
-
 
 # pylint: disable=bad-docstring-quotes
 
@@ -222,76 +220,6 @@ class Instruction(ABC):
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return any(self.parameters)
-
-    @deprecate_func(
-        additional_msg=(
-            "No direct alternative is being provided to drawing individual pulses. But, "
-            "instructions can be visualized as part of a complete schedule using "
-            "``qiskit.visualization.pulse_drawer``."
-        ),
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    @_optionals.HAS_MATPLOTLIB.require_in_call
-    def draw(
-        self,
-        dt: float = 1,
-        style=None,
-        filename: Optional[str] = None,
-        interp_method: Optional[Callable] = None,
-        scale: float = 1,
-        plot_all: bool = False,
-        plot_range: Optional[Tuple[float]] = None,
-        interactive: bool = False,
-        table: bool = True,
-        label: bool = False,
-        framechange: bool = True,
-        channels: Optional[List[Channel]] = None,
-    ):
-        """Plot the instruction.
-
-        Args:
-            dt: Time interval of samples
-            style (Optional[SchedStyle]): A style sheet to configure plot appearance
-            filename: Name required to save pulse image
-            interp_method: A function for interpolation
-            scale: Relative visual scaling of waveform amplitudes
-            plot_all: Plot empty channels
-            plot_range: A tuple of time range to plot
-            interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this)
-            table: Draw event table for supported instructions
-            label: Label individual instructions
-            framechange: Add framechange indicators
-            channels: A list of channel names to plot
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse schedule
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.visualization.pulse.matplotlib import ScheduleDrawer
-        from qiskit.visualization.utils import matplotlib_close_if_inline
-
-        drawer = ScheduleDrawer(style=style)
-        image = drawer.draw(
-            self,
-            dt=dt,
-            interp_method=interp_method,
-            scale=scale,
-            plot_range=plot_range,
-            plot_all=plot_all,
-            table=table,
-            label=label,
-            framechange=framechange,
-            channels=channels,
-        )
-        if filename:
-            image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
-
-        matplotlib_close_if_inline(image)
-        if image and interactive:
-            image.show()
-        return image
 
     def __eq__(self, other: "Instruction") -> bool:
         """Check if this Instruction is equal to the `other` instruction.
