@@ -1197,7 +1197,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
     return channels
 
 
-@deprecate_func(since="1.0.0")
+@deprecate_func(since="0.46.0")
 def active_transpiler_settings() -> Dict[str, Any]:
     """Return the current active builder context's transpiler settings.
 
@@ -1224,7 +1224,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
     return dict(_active_builder().transpiler_settings)
 
 
-@deprecate_func(since="1.0.0")
+@deprecate_func(since="0.46.0")
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return the current active builder context's circuit scheduler settings.
 
@@ -1509,7 +1509,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         builder.append_subroutine(current)
 
 
-@deprecate_func(since="1.0.0")
+@deprecate_func(since="0.46.0")
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the currently active transpiler settings for this context.
@@ -2553,7 +2553,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
 
 # Gate instructions
 @deprecate_func(
-    since="1.0.0",
+    since="0.46.0",
     additional_msg="Instead use: ``backend.target['gate_name'][(qubit,)].calibration``",
 )
 def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -2610,7 +2610,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
 
 @deprecate_func(
-    since="1.0.0", additional_msg="Instead use: ``backend.target['cx'][(qubit,)].calibration``"
+    since="0.46.0", additional_msg="Instead use: ``backend.target['cx'][(qubit,)].calibration``"
 )
 def cx(control: int, target: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.CXGate` on the
@@ -2637,7 +2637,7 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
     call_gate(gates.CXGate(), (control, target))
 
 
-@deprecate_func(since="1.0.0")
+@deprecate_func(since="0.46.0")
 def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U1Gate` on the
     input physical qubit.
@@ -2665,7 +2665,7 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
     call_gate(gates.U1Gate(theta), qubit)
 
 
-@deprecate_func(since="1.0.0")
+@deprecate_func(since="0.46.0")
 def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U2Gate` on the
     input physical qubit.
@@ -2693,7 +2693,7 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     call_gate(gates.U2Gate(phi, lam), qubit)
 
 
-@deprecate_func(since="1.0.0")
+@deprecate_func(since="0.46.0")
 def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U3Gate` on the
     input physical qubit.
@@ -2722,7 +2722,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
 
 
 @deprecate_func(
-    since="1.0.0", additional_msg="Instead use: ``backend.target['x'][(qubit,)].calibration``"
+    since="0.46.0", additional_msg="Instead use: ``backend.target['x'][(qubit,)].calibration``"
 )
 def x(qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.XGate` on the
