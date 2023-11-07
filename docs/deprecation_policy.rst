@@ -10,7 +10,7 @@ patch versions. For a version number ``X.Y.Z`` where ``X`` is the major version,
 Breaking API changes are reserved for major version releases. The **minimum**
 period between major version releases is one year. Minor versions will be
 periodically (currently every three months) published for the current major
-version which to add new features and bug fixes. For the most recent minor version
+version which add new features and bug fixes. For the most recent minor version
 there will also be new patch versions published as bugs are identified and fixed
 on that release series.
 
