@@ -2,8 +2,8 @@
 fixes:
   - |
     Fixed an issue in the ``text`` circuit drawer when displaying operations
-    that were not :class:`.Instruction` class. These operations would
-    cause the drawer to fail. Examples were :class:`.Clifford` and
+    that were not :class:`.circuit.instruction.Instruction` class. These operations
+    would cause the drawer to fail. Examples were :class:`.Clifford` and
     :class:`.AnnotatedOperation`.
 features:
   - |
