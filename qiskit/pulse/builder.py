@@ -115,6 +115,8 @@ automatically lowered to be run as a pulse program:
            registers = pulse.measure_all()
 
    decoupled_bell_prep_and_measure.draw()
+.. warning::
+    Calling gates directly within the pulse builder namespace is deprecated as of qiskit 0.46.0.
 
 With the pulse builder we are able to blend programming on qubits and channels.
 While the pulse schedule is based on instructions that operate on
@@ -227,6 +229,9 @@ In the example below we demonstrate some more features of the pulse builder:
            # offset contexts
            with pulse.phase_offset(math.pi, d0):
                pulse.play(gaussian_pulse, d0)
+
+.. warning::
+    Calling gates directly within the pulse builder namespace is deprecated as of qiskit 0.46.0.
 
 The above is just a small taste of what is possible with the builder. See the rest of the module
 documentation for more information on its capabilities.
@@ -373,8 +378,8 @@ To use circuit level gates within your pulse program call a circuit
 with :func:`call`.
 
 .. warning::
-    These will be removed in future versions with the release of a circuit
-    builder interface in which it will be possible to calibrate a gate in
+    Calling gates directly within the pulse builder namespace is deprecated as of qiskit 0.46.0.
+    In favor of a circuit builder interface in which it is now possible to calibrate a gate in
     terms of pulses and use that gate in a circuit.
 
 .. code-block::
@@ -2000,7 +2005,7 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 @deprecate_arg(
     name="target",
     since="0.46.0",
-    deprecation_description="QuantumCircuit type for the argument target is being deprecated",
+    deprecation_description="QuantumCircuit type for the argument target",
     predicate=lambda qc_arg: isinstance(qc_arg, circuit.QuantumCircuit),
 )
 def call(
@@ -2221,9 +2226,9 @@ def call(
 
         .. warning::
 
-            Calling a circuit from a schedule is not encouraged. Currently, the Qiskit execution model
-            is migrating toward the pulse gate model, where schedules are attached to
-            circuits through the :meth:`.QuantumCircuit.add_calibration` method.
+            Calling a circuit from a schedule is deprecated as of qiskit 0.46.0. The Qiskit execution
+            model has migrating toward the pulse gate model, where schedules are attached to circuits
+            through the :meth:`.QuantumCircuit.add_calibration` method.
 
     Args:
         target: Target circuit or pulse schedule to call.
@@ -2568,11 +2573,6 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
     pulse instruction.
 
-    .. note::
-        Calling gates directly within the pulse builder namespace has been
-        deprecated in favor of tight integration with a circuit
-        builder interface.
-
     Examples:
 
     .. code-block::
@@ -2624,11 +2624,6 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.CXGate` on the
     input physical qubits.
 
-    .. note::
-        Calling gates directly within the pulse builder namespace has been
-        deprecated in favor of tight integration with a circuit
-        builder interface.
-
     Examples:
 
     .. code-block::
@@ -2649,11 +2644,6 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
 def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U1Gate` on the
     input physical qubit.
-
-    .. note::
-        Calling gates directly within the pulse builder namespace has been
-        deprecated in favor of tight integration with a circuit
-        builder interface.
 
     Examples:
 
@@ -2678,11 +2668,6 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U2Gate` on the
     input physical qubit.
 
-    .. note::
-        Calling gates directly within the pulse builder namespace has been
-        deprecated in favor of tight integration with a circuit
-        builder interface.
-
     Examples:
 
     .. code-block::
@@ -2705,11 +2690,6 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
 def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.U3Gate` on the
     input physical qubit.
-
-    .. note::
-        Calling gates directly within the pulse builder namespace has been
-        deprecated in favor of tight integration with a circuit
-        builder interface.
 
     Examples:
 
@@ -2735,11 +2715,6 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
 def x(qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.XGate` on the
     input physical qubit.
-
-    .. note::
-        Calling gates directly within the pulse builder namespace has been
-        deprecated in favor of tight integration with a circuit
-        builder interface.
 
     Examples:
 
