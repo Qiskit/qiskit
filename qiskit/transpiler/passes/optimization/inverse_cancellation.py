@@ -58,12 +58,16 @@ class InverseCancellation(TransformationPass):
 
         self.self_inverse_gates = []
         self.inverse_gate_pairs = []
+        self.self_inverse_gate_names = set()
+        self.inverse_gate_pairs_names = set()
 
         for gates in gates_to_cancel:
             if isinstance(gates, Gate):
                 self.self_inverse_gates.append(gates)
+                self.self_inverse_gate_names.add(gates.name)
             else:
                 self.inverse_gate_pairs.append(gates)
+                self.inverse_gate_pairs_names.update(x.name for x in gates)
 
         super().__init__()
 
@@ -76,9 +80,11 @@ class InverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-
-        dag = self._run_on_self_inverse(dag, self.self_inverse_gates)
-        return self._run_on_inverse_pairs(dag, self.inverse_gate_pairs)
+        if self.self_inverse_gates:
+            dag = self._run_on_self_inverse(dag, self.self_inverse_gates)
+        if self.inverse_gate_pairs:
+            dag = self._run_on_inverse_pairs(dag, self.inverse_gate_pairs)
+        return dag
 
     def _run_on_self_inverse(self, dag: DAGCircuit, self_inverse_gates: List[Gate]):
         """
@@ -91,6 +97,8 @@ class InverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
+        if not self.self_inverse_gate_names.intersection(dag.count_ops()):
+            return dag
         # Sets of gate runs by name, for instance: [{(H 0, H 0), (H 1, H 1)}, {(X 0, X 0}]
         gate_runs_sets = [dag.collect_runs([gate.name]) for gate in self_inverse_gates]
         for gate_runs in gate_runs_sets:
@@ -123,6 +131,9 @@ class InverseCancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
+        if not self.inverse_gate_pairs_names.intersection(dag.count_ops()):
+            return dag
+
         for pair in inverse_gate_pairs:
             gate_cancel_runs = dag.collect_runs([pair[0].name, pair[1].name])
             for dag_nodes in gate_cancel_runs:
