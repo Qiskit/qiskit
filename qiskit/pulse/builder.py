@@ -1997,6 +1997,12 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
     append_instruction(instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
+@deprecate_arg(
+    name="target",
+    since="0.46.0",
+    deprecation_description="QuantumCircuit type for the argument target is being deprecated",
+    predicate=lambda qc_arg: isinstance(qc_arg, circuit.QuantumCircuit),
+)
 def call(
     target: Optional[Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]],
     name: Optional[str] = None,
