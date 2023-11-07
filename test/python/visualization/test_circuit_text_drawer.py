@@ -29,7 +29,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
-from qiskit.quantum_info import Clifford, random_clifford
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
