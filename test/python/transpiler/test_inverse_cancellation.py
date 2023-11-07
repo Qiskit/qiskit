@@ -22,7 +22,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate, TGate, TdgGate
+from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate, TGate, TdgGate, CZGate
 
 
 class TestInverseCancellation(QiskitTestCase):
@@ -270,6 +270,64 @@ class TestInverseCancellation(QiskitTestCase):
         gates_after = new_circ.count_ops()
         self.assertIn("cx", gates_after)
         self.assertEqual(gates_after["cx"], 2)
+
+    def test_no_gates_to_cancel(self):
+        """Test when there are no gates to cancel."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        inverse_pass = InverseCancellation([HGate()])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(qc, new_circ)
+
+    def test_some_cancel_rules_to_cancel(self):
+        """Test when there are some gates to cancel."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.h(0)
+        qc.h(0)
+        inverse_pass = InverseCancellation([HGate(), CXGate(), CZGate()])
+        new_circ = inverse_pass(qc)
+        self.assertNotIn("h", new_circ.count_ops())
+
+    def test_no_inverse_pairs(self):
+        """Test when there are no inverse pairs to cancel."""
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.sdg(0)
+        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(qc, new_circ)
+
+    def test_some_inverse_pairs(self):
+        """Test when there are some but not all inverse pairs to cancel."""
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.sdg(0)
+        qc.t(0)
+        qc.tdg(0)
+        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        new_circ = inverse_pass(qc)
+        self.assertNotIn("t", new_circ.count_ops())
+        self.assertNotIn("tdg", new_circ.count_ops())
+
+    def test_some_inverse_and_cancelled(self):
+        """Test when there are some but not all pairs to cancel."""
+        qc = QuantumCircuit(2)
+        qc.s(0)
+        qc.sdg(0)
+        qc.t(0)
+        qc.tdg(0)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.h(0)
+        qc.h(0)
+        inverse_pass = InverseCancellation([HGate(), CXGate(), CZGate(), (TGate(), TdgGate())])
+        new_circ = inverse_pass(qc)
+        self.assertNotIn("h", new_circ.count_ops())
+        self.assertNotIn("t", new_circ.count_ops())
+        self.assertNotIn("tdg", new_circ.count_ops())
 
 
 if __name__ == "__main__":
