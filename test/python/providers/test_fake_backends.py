@@ -41,7 +41,6 @@ from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.utils import optionals
-from qiskit.utils.backend_utils import _get_backend_interface_version
 from qiskit.circuit.library import (
     SXGate,
     MCPhaseGate,
