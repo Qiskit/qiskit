@@ -418,7 +418,7 @@ class TestFakeBackends(QiskitTestCase):
 
         sim = AerSimulator()
         # test only if simulator's backend is V1
-        if sim.version > 1::
+        if sim.version > 1:
             return
         phi = Parameter("phi")
         lam = Parameter("lam")
