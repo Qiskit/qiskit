@@ -23,33 +23,33 @@ from qiskit.pulse.exceptions import PulseError
 class PulseTarget(ABC):
     """Base class of pulse target.
 
+    A :class:`PulseTarget` object identifies a hardware component the user can control, the typical
+    example being playing pulses on. Other examples include measurement related instruments.
+
     When playing a pulse on a quantum hardware, one typically has to define on what hardware component
     the pulse will be played, and the frame (frequency and phase) of the carrier wave.
-    :class:`PulseTarget` addresses the first of two, and identifies the component which is the target
-    of the pulse. Every played pulse and most other instructions are associated with a
+    :class:`PulseTarget` addresses only the first of the two, and identifies the component which is the
+    target of the pulse. Every played pulse and most other instructions are associated with a
     :class:`PulseTarget` on which they are performed.
+
+    A subclass of :class:`PulseTarget` has to be hashable.
     """
 
-    def __init__(self, hash_identifier):
-        """Create ``PulseTarget``.
-
-        Args:
-            hash_identifier: A hashable unique identifier.
-        """
-        self._hash = hash((hash_identifier, type(self)))
-
+    @abstractmethod
     def __hash__(self) -> int:
-        return self._hash
+        pass
 
 
 class Port(PulseTarget):
     """A ``Port`` type ``PulseTarget``.
 
-    A :class:`Port` is the most basic ``PulseTarget`` - simply a hardware port responsible for
-    pulse emission. A :class:`Port` is identified by a string, which must be recognized by the
+    A :class:`Port` is the most basic ``PulseTarget`` - simply a hardware port the user can control,
+    (typically for playing pulses, but not only, for example data acquisition).
+
+    A :class:`Port` is identified by a string, which is set, and must be recognized, by the
     backend. Therefore, using pulse level control with :class:`Port` requires an extensive
-    knowledge of the hardware. When possible, it is recommended to use :class:`LogicalElement`,
-    which provides an abstraction layer, with more robust syntax and verification.
+    knowledge of the hardware. Programs with string identifiers which are not recognized by the
+    backend will fail to execute.
     """
 
     def __init__(self, name: str):
@@ -59,7 +59,7 @@ class Port(PulseTarget):
             name: A string identifying the port.
         """
         self._name = name
-        super().__init__(name)
+        self._hash = hash((name, type(self)))
 
     @property
     def name(self) -> str:
@@ -104,7 +104,7 @@ class LogicalElement(PulseTarget, ABC):
         """
         self._validate_index(index)
         self._index = index
-        super().__init__(index)
+        self._hash = hash((index, type(self)))
 
     @property
     def index(self) -> Tuple[int, ...]:
@@ -151,7 +151,7 @@ class Qubit(LogicalElement):
         """Qubit logical element.
 
         Args:
-            index: Qubit index.
+            index: Qubit index (positive integer).
         """
         super().__init__((index,))
 

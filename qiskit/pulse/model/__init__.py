@@ -23,9 +23,9 @@ in the quantum computing system on which instructions could be applied. On the o
 each :class:`.Frame` represents a frequency and phase duo for the carrier of the pulse.
 
 While :class:`.PulseTarget` includes a :class`.Port` variant allowing for direct control over
-hardware ports, it is recommended to use the abstraction layer provided by :class:`.LogicalElement`.
+hardware ports, an abstraction layer is provided by :class:`.LogicalElement`.
 The abstraction allows to write pulse level programs with less knowledge of the hardware, and in
-a level which is more similar to the circuit level programing. i.e., instead of specifying specific
+a level which is more similar to the circuit level programing. i.e., instead of specifying
 ports, one can use Qubits, Couplers, etc.
 
 This logical and virtual representation allows the user to write template pulse
@@ -39,9 +39,10 @@ to hardware aware objects is left to the Pulse Compiler.
 
 PulseTarget
 ================
-:class:`.PulseTarget` includes :class:`.Port` who's objects are identified by a unique string identifier defined by the control system, and
-:class:`.LogicalElement` s are identified by their type and index. Currently, the most prominent example
-of a :class:`.LogicalElement` is the :class:`~.pulse.Qubit`.
+:class:`.PulseTarget` includes :class:`.Port` who's objects are identified by a unique string identifier
+defined by the control system, and :class:`.LogicalElement` who's objects are identified by their type
+and index. Currently, the most prominent example of a :class:`.LogicalElement` is the
+:class:`~.pulse.Qubit`.
 
 .. autosummary::
    :toctree: ../stubs/
