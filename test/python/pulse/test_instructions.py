@@ -17,6 +17,7 @@ import numpy as np
 from qiskit import pulse, circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
 from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
+from qiskit.pulse.model import Qubit, QubitFrame, MixedFrame
 from qiskit.test import QiskitTestCase
 
 
@@ -288,7 +289,8 @@ class TestPlay(QiskitTestCase):
 
     def test_play(self):
         """Test basic play instruction."""
-        play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
         self.assertEqual(play.name, self.pulse_op.name)
@@ -298,6 +300,50 @@ class TestPlay(QiskitTestCase):
             "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
             " DriveChannel(1), name='test')",
         )
+
+    def test_play_new_model(self):
+        """Test basic play instruction with the new model"""
+        play = instructions.Play(self.pulse_op, pulse_target=Qubit(1), frame=QubitFrame(1))
+        self.assertIsInstance(play.id, int)
+        self.assertEqual(play.name, self.pulse_op.name)
+        self.assertEqual(play.duration, self.duration)
+        self.assertEqual(play.channel, None)
+        self.assertEqual(play.mixed_frame, MixedFrame(Qubit(1), QubitFrame(1)))
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, pulse_target=Qubit(1))
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, frame=QubitFrame(1))
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(
+                self.pulse_op,
+                mixed_frame=MixedFrame(Qubit(2), QubitFrame(2)),
+                frame=QubitFrame(1),
+                pulse_target=Qubit(1),
+            )
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(
+                self.pulse_op,
+                mixed_frame=MixedFrame(Qubit(2), QubitFrame(2)),
+                channel=channels.DriveChannel(1),
+            )
+
+    def test_arg_order_deprecation(self):
+        """Test are order deprecation warnings"""
+        with self.assertWarns(DeprecationWarning):
+            play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
+        self.assertEqual(play.channel, channels.DriveChannel(1))
+        with self.assertWarns(DeprecationWarning):
+            play = instructions.Play(self.pulse_op, channels.DriveChannel(1), "name1")
+        self.assertEqual(play.channel, channels.DriveChannel(1))
+        self.assertEqual(play.mixed_frame, channels.DriveChannel(1))
+        self.assertEqual(play.name, "name1")
+
+        play = instructions.Play(self.pulse_op, channel=channels.DriveChannel(1))
+        self.assertEqual(play.channel, channels.DriveChannel(1))
+        self.assertEqual(play.mixed_frame, channels.DriveChannel(1))
+
+        instructions.Play(self.pulse_op, channel=channels.DriveChannel(1), name="name1")
 
     def test_play_non_pulse_ch_raises(self):
         """Test that play instruction on non-pulse channel raises a pulse error."""
