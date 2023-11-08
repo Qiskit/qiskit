@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Logical Elements
+PulseTarget
 """
 from abc import ABC, abstractmethod
 from typing import Tuple
@@ -20,15 +20,80 @@ import numpy as np
 from qiskit.pulse.exceptions import PulseError
 
 
-class LogicalElement(ABC):
+class PulseTarget(ABC):
+    """Base class of pulse target.
+
+    When playing a pulse on a quantum hardware, one typically has to define on what hardware component
+    the pulse will be played, and the frame (frequency and phase) of the carrier wave.
+    :class:`PulseTarget` addresses the first of two, and identifies the component which is the target
+    of the pulse. Every played pulse and most other instructions are associated with a
+    :class:`PulseTarget` on which they are performed.
+    """
+
+    def __init__(self, hash_identifier):
+        """Create ``PulseTarget``.
+
+        Args:
+            hash_identifier: A hashable unique identifier.
+        """
+        self._hash = hash((hash_identifier, type(self)))
+
+    def __hash__(self) -> int:
+        return self._hash
+
+
+class Port(PulseTarget):
+    """A ``Port`` type ``PulseTarget``.
+
+    A :class:`Port` is the most basic ``PulseTarget`` - simply a hardware port responsible for
+    pulse emission. A :class:`Port` is identified by a string, which must be recognized by the
+    backend. Therefore, using pulse level control with :class:`Port` requires an extensive
+    knowledge of the hardware. When possible, it is recommended to use :class:`LogicalElement`,
+    which provides an abstraction layer, with more robust syntax and verification.
+    """
+
+    def __init__(self, name: str):
+        """Create ``Port``.
+
+        Args:
+            name: A string identifying the port.
+        """
+        self._name = name
+        super().__init__(name)
+
+    @property
+    def name(self) -> str:
+        """Return the ``name`` of this port."""
+        return self._name
+
+    def __eq__(self, other: "Port") -> bool:
+        """Return True iff self and other are equal, specifically, iff they have the same type
+        and the same ``name``.
+
+        Args:
+            other: The Port to compare to this one.
+
+        Returns:
+            True iff equal.
+        """
+        return type(self) is type(other) and self._name == other._name
+
+    def __repr__(self) -> str:
+        return f"Port({self._name})"
+
+    def __hash__(self) -> int:
+        return self._hash
+
+
+class LogicalElement(PulseTarget, ABC):
     """Base class of logical elements.
 
-    A :class:`LogicalElement` is an abstraction of a quantum hardware component which can be controlled
-    by the user (instructions can be applied to it).
-    Every played pulse and most other instructions are associated with a :class:`LogicalElement` on which
-    they are performed.
-    A logical element is identified by its type and index.
+    Class :class:`LogicalElement` provides an abstraction layer to ``PulseTarget``. The abstraction
+    allows to write pulse level programs with less knowledge of the hardware, and in a level which
+    is more similar to the circuit level programing. i.e., instead of specifying specific ports, one
+    can use Qubits, Couplers, etc.
 
+    A logical element is identified by its type and index.
     """
 
     def __init__(self, index: Tuple[int, ...]):
@@ -39,7 +104,7 @@ class LogicalElement(ABC):
         """
         self._validate_index(index)
         self._index = index
-        self._hash = hash((self._index, type(self)))
+        super().__init__(index)
 
     @property
     def index(self) -> Tuple[int, ...]:

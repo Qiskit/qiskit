@@ -12,15 +12,21 @@
 
 r"""
 ==========================================================
-Logical Elements & Frames (:mod:`qiskit.pulse.model`)
+Pulse Targets & Frames (:mod:`qiskit.pulse.model`)
 ==========================================================
 
 Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
-low-level control. Qiskit Pulse's logical element and frames create a flexible framework
+low-level control. Qiskit Pulse's pulse targets and frames create a flexible framework
 to define where pulse instructions are applied, and what would be their carrier frequency and phase
-(because typically AC pulses are used). Each :class:`.LogicalElement` represents a separate component
+(because typically AC pulses are used). Each :class:`.PulseTarget` represents a separate component
 in the quantum computing system on which instructions could be applied. On the other hand,
 each :class:`.Frame` represents a frequency and phase duo for the carrier of the pulse.
+
+While :class:`.PulseTarget` includes a :class`.Port` variant allowing for direct control over
+hardware ports, it is recommended to use the abstraction layer provided by :class:`.LogicalElement`.
+The abstraction allows to write pulse level programs with less knowledge of the hardware, and in
+a level which is more similar to the circuit level programing. i.e., instead of specifying specific
+ports, one can use Qubits, Couplers, etc.
 
 This logical and virtual representation allows the user to write template pulse
 programs without worrying about the exact details of the hardware implementation
@@ -29,16 +35,18 @@ allowing for effective utilization of the quantum hardware. The burden of mappin
 the different combinations of :class:`.LogicalElement` and :class:`.Frame`
 to hardware aware objects is left to the Pulse Compiler.
 
-.. _logical_elements:
+.. _pulse_targets:
 
-LogicalElement
+PulseTarget
 ================
+:class:`.PulseTarget` includes :class:`.Port` who's objects are identified by a string, and
 :class:`.LogicalElement` s are identified by their type and index. Currently, the most prominent example
-is the :class:`~.pulse.Qubit`.
+of a :class:`.LogicalElement` is the :class:`~.pulse.Qubit`.
 
 .. autosummary::
    :toctree: ../stubs/
 
+   Port
    Qubit
    Coupler
 
@@ -73,7 +81,9 @@ The combination of a :class:`.LogicalElement` and :class:`.Frame` is dubbed a :c
    MixedFrame
 """
 
-from .logical_elements import (
+from .pulse_target import (
+    PulseTarget,
+    Port,
     LogicalElement,
     Qubit,
     Coupler,
