@@ -22,12 +22,11 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable, List, Optional, Set, Tuple
+from typing import Iterable, List, Optional, Set, Tuple
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.utils import optionals as _optionals
 
 
 # pylint: disable=bad-docstring-quotes

@@ -222,17 +222,6 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
-Pulse Visualizations
-====================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   pulse_drawer
-   ~qiskit.visualization.pulse.IQXStandard
-   ~qiskit.visualization.pulse.IQXSimple
-   ~qiskit.visualization.pulse.IQXDebugging
-
 Timeline Visualizations
 =======================
 
