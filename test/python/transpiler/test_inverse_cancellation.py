@@ -22,7 +22,17 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate, TGate, TdgGate, CZGate
+from qiskit.circuit.library import (
+    RXGate,
+    HGate,
+    CXGate,
+    PhaseGate,
+    XGate,
+    TGate,
+    TdgGate,
+    CZGate,
+    RZGate,
+)
 
 
 class TestInverseCancellation(QiskitTestCase):
@@ -338,6 +348,43 @@ class TestInverseCancellation(QiskitTestCase):
         inverse_pass = InverseCancellation([(TGate(), TdgGate())])
         new_circ = inverse_pass(qc)
         self.assertEqual(new_circ, qc)
+
+    def test_parameterized_self_inverse(self):
+        """Test that a parameterized self inverse gate cancels correctly."""
+        qc = QuantumCircuit(1)
+        qc.rz(0, 0)
+        qc.rz(0, 0)
+        inverse_pass = InverseCancellation([RZGate(0)])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, QuantumCircuit(1))
+
+    def test_parameterized_self_inverse_not_equal_parameter(self):
+        """Test that a parameterized self inverse gate doesn't cancel incorrectly."""
+        qc = QuantumCircuit(1)
+        qc.rz(0, 0)
+        qc.rz(3.14159, 0)
+        qc.rz(0, 0)
+        inverse_pass = InverseCancellation([RZGate(0)])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, qc)
+
+    def test_controlled_gate_open_control_does_not_cancel(self):
+        """Test that a controlled gate with an open control doesn't cancel."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1, ctrl_state=0)
+        inverse_pass = InverseCancellation([CXGate()])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, qc)
+
+    def test_backwards_pair(self):
+        """Test a backwards inverse pair works."""
+        qc = QuantumCircuit(1)
+        qc.tdg(0)
+        qc.t(0)
+        inverse_pass = InverseCancellation([(TGate(), TdgGate())])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, QuantumCircuit(1))
 
 
 if __name__ == "__main__":

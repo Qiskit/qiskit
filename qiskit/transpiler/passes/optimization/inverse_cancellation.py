@@ -111,7 +111,13 @@ class InverseCancellation(TransformationPass):
                 partitions = []
                 chunk = []
                 for i in range(len(gate_cancel_run) - 1):
-                    chunk.append(gate_cancel_run[i])
+                    if gate_cancel_run[i].op == gate:
+                        chunk.append(gate_cancel_run[i])
+                    else:
+                        if chunk:
+                            partitions.append(chunk)
+                            chunk = []
+                        continue
                     if gate_cancel_run[i].qargs != gate_cancel_run[i + 1].qargs:
                         partitions.append(chunk)
                         chunk = []
