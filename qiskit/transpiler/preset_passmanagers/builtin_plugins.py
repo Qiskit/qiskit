@@ -61,6 +61,8 @@ from qiskit.circuit.library.standard_gates import (
     SdgGate,
     HGate,
     CYGate,
+    SXGate,
+    SXdgGate,
 )
 
 
@@ -496,6 +498,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                             SwapGate(),
                             (TGate(), TdgGate()),
                             (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
                         ]
                     ),
                 ]
