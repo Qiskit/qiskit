@@ -39,7 +39,7 @@ to hardware aware objects is left to the Pulse Compiler.
 
 PulseTarget
 ================
-:class:`.PulseTarget` includes :class:`.Port` who's objects are identified by a string, and
+:class:`.PulseTarget` includes :class:`.Port` who's objects are identified by a unique string identifier defined by the control system, and
 :class:`.LogicalElement` s are identified by their type and index. Currently, the most prominent example
 of a :class:`.LogicalElement` is the :class:`~.pulse.Qubit`.
 
