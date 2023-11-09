@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The :class:`.QuantumCircuit` class now performs interning for the
+    ``qubits`` and ``clbits`` of the :class:`.CircuitInstruction`
+    instances that it stores, resulting in a potentially significant
+    reduction in memory footprint, especially for large circuits.
