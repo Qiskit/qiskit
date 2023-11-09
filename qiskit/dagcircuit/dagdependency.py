@@ -345,7 +345,8 @@ class DAGDependency:
         Returns:
             List: all successors id as a sorted list
         """
-        return self._multi_graph.get_node_data(node_id).successors
+        #return sorted(list(self._multi_graph.adj_direction(node_id, False).keys()))
+        return self._multi_graph.successors(self._multi_graph.get_node_data(node_id))
 
     def predecessors(self, node_id):
         """
@@ -357,7 +358,8 @@ class DAGDependency:
         Returns:
             List: all predecessors id as a sorted list
         """
-        return self._multi_graph.get_node_data(node_id).predecessors
+        #return sorted(list(self._multi_graph.adj_direction(node_id, True).keys()))
+        return self._multi_graph.predecessors(self._multi_graph.get_node_data(node_id))
 
     def topological_nodes(self):
         """
@@ -474,26 +476,38 @@ class DAGDependency:
                 for predecessor_id in predecessor_ids:
                     reachable[predecessor_id] = False
 
-    def _add_successors(self):
-        """
-        Create the list of successors. Update DAGDependency 'successors' attribute. It has to
-        be used when the DAGDependency() object is complete (i.e. converters).
-        """
-        for node_id in range(len(self._multi_graph) - 1, -1, -1):
-            self._multi_graph.get_node_data(node_id).successors = list(
-                rx.descendants(self._multi_graph, node_id)
-            )
+    # def _add_successors(self):
+    #     """
+    #     Create the list of successors. Update DAGDependency 'successors' attribute. It has to
+    #     be used when the DAGDependency() object is complete (i.e. converters).
+    #     """
+    #     for node_id in range(len(self._multi_graph) - 1, -1, -1):
+    #         self._multi_graph.get_node_data(node_id).successors = list(
+    #             rx.descendants(self._multi_graph, node_id)
+    #         )
 
-    def _add_predecessors(self):
-        """
-        Create the list of predecessors for each node. Update DAGDependency
-        'predecessors' attribute. It has to be used when the DAGDependency() object
-        is complete (i.e. converters).
-        """
-        for node_id in range(0, len(self._multi_graph)):
-            self._multi_graph.get_node_data(node_id).predecessors = list(
-                rx.ancestors(self._multi_graph, node_id)
-            )
+    # def _add_predecessors(self):
+    #     """
+    #     Create the list of predecessors for each node. Update DAGDependency
+    #     'predecessors' attribute. It has to be used when the DAGDependency() object
+    #     is complete (i.e. converters).
+    #     """
+    #     for node_id in range(0, len(self._multi_graph)):
+    #         self._multi_graph.get_node_data(node_id).predecessors = list(
+    #             rx.ancestors(self._multi_graph, node_id)
+    #         )
+
+    def get_descendants(self, node_id):
+        return list(rx.descendants(self._multi_graph, node_id))
+
+    def get_ancestors(self, node_id):
+        return list(rx.ancestors(self._multi_graph, node_id))
+
+    def get_successors(self, node_id):
+        return list(self._multi_graph.successors(node_id))
+
+    def get_predecessors(self, node_id):
+        return list(self._multi_graph.predecessors(node_id))
 
     def copy(self):
         """

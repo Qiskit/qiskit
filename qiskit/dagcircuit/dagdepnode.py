@@ -31,10 +31,6 @@ class DAGDepNode:
         "cargs",
         "sort_key",
         "node_id",
-        "reachable",
-        "matchedwith",
-        "isblocked",
-        "successorstovisit",
         "qindices",
         "cindices",
     ]
@@ -45,10 +41,6 @@ class DAGDepNode:
         name=None,
         qargs=(),
         cargs=(),
-        reachable=None,
-        matchedwith=None,
-        successorstovisit=None,
-        isblocked=None,
         qindices=None,
         cindices=None,
         nid=-1,
@@ -60,10 +52,6 @@ class DAGDepNode:
         self.cargs = tuple(cargs) if cargs is not None else ()
         self.node_id = nid
         self.sort_key = str(self._qargs)
-        self.reachable = reachable
-        self.matchedwith = matchedwith if matchedwith is not None else []
-        self.isblocked = isblocked
-        self.successorstovisit = successorstovisit if successorstovisit is not None else []
         self.qindices = qindices if qindices is not None else []
         self.cindices = cindices if cindices is not None else []
 
@@ -131,11 +119,7 @@ class DAGDepNode:
         dagdepnode.cargs = self.cargs
         dagdepnode.node_id = self.node_id
         dagdepnode.sort_key = self.sort_key
-        dagdepnode.reachable = self.reachable
-        dagdepnode.isblocked = self.isblocked
-        dagdepnode.successorstovisit = self.successorstovisit
         dagdepnode.qindices = self.qindices
         dagdepnode.cindices = self.cindices
-        dagdepnode.matchedwith = self.matchedwith.copy()
 
         return dagdepnode

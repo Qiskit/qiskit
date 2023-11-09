@@ -42,9 +42,9 @@ def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
     for instruction in circuit.data:
         dagdependency.add_op_node(instruction.operation, instruction.qubits, instruction.clbits)
 
-    if create_preds_and_succs:
-        dagdependency._add_predecessors()
-        dagdependency._add_successors()
+    # if create_preds_and_succs:
+    #     dagdependency._add_predecessors()
+    #     dagdependency._add_successors()
 
     dagdependency.calibrations = circuit.calibrations
 

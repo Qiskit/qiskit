@@ -186,10 +186,10 @@ class BackwardMatch:
 
         matches_template = sorted(match[0] for match in matches)
 
-        successors = self.template_dag_dep.get_node(self.node_id_t).successors
+        descendants = self.template_dag_dep.get_descendents(self.node_id_t)#self.template_dag_dep.get_node(self.node_id_t).successors
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
-            if (index not in successors) and (index not in template_block):
+            if (index not in descendants) and (index not in template_block):
                 potential.append(index)
 
         candidates_indices = list(set(potential) - set(matches_template))
@@ -524,18 +524,18 @@ class BackwardMatch:
 
                     # Loop to check if the match is not connected, in this case
                     # the successors matches are blocked and unmatched.
-                    for potential_block in self.template_dag_dep.successors(template_id):
+                    for potential_block in self.template_dag_dep.get_descendents(template_id):#self.template_dag_dep.successors(template_id):
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
                             block_list.append(potential_block)
                             for block_id in block_list:
-                                for succ_id in self.template_dag_dep.successors(block_id):
-                                    template_blocked_match[succ_id] = True
-                                    if template_matched_match[succ_id]:
-                                        new_id = template_matched_match[succ_id][0]
+                                for desc_id in self.template_dag_dep.get_descendents(block_id):
+                                    template_blocked_match[desc_id] = True
+                                    if template_matched_match[desc_id]:
+                                        new_id = template_matched_match[desc_id][0]
                                         circuit_matched_match[new_id] = []
-                                        template_matched_match[succ_id] = []
-                                        broken_matches_match.append(succ_id)
+                                        template_matched_match[desc_id] = []
+                                        broken_matches_match.append(desc_id)
 
                     if broken_matches_match:
                         global_broken.append(True)
@@ -590,13 +590,13 @@ class BackwardMatch:
 
                 # Second option, not a greedy match, block all successors (push the gate
                 # to the right).
-                for succ in self.circuit_dag_dep.get_node(circuit_id).successors:
-                    circuit_blocked_block_s[succ] = True
-                    if circuit_matched_block_s[succ]:
-                        broken_matches.append(succ)
-                        new_id = circuit_matched_block_s[succ][0]
+                for desc in self.circuit_dag_dep.get_descendents(circuit_id):#self.circuit_dag_dep.get_node(circuit_id).desc:
+                    circuit_blocked_block_s[desc] = True
+                    if circuit_matched_block_s[desc]:
+                        broken_matches.append(desc)
+                        new_id = circuit_matched_block_s[desc][0]
                         template_matched_block_s[new_id] = []
-                        circuit_matched_block_s[succ] = []
+                        circuit_matched_block_s[desc] = []
 
                 new_matches_scenario_block_s = [
                     elem for elem in matches_scenario_block_s if elem[1] not in broken_matches
@@ -636,8 +636,8 @@ class BackwardMatch:
 
                     circuit_blocked_block_p[circuit_id] = True
 
-                    for pred in self.circuit_dag_dep.get_node(circuit_id).predecessors:
-                        circuit_blocked_block_p[pred] = True
+                    for ancestor in self.circuit_dag_dep.get_ancestors(circuit_id):#get_node(circuit_id).predecessors:
+                        circuit_blocked_block_p[ancestor] = True
 
                     matching_scenario = MatchingScenarios(
                         circuit_matched_block_p,
@@ -656,16 +656,16 @@ class BackwardMatch:
 
                 following_matches = []
 
-                successors = self.circuit_dag_dep.get_node(circuit_id).successors
-                for succ in successors:
-                    if circuit_matched[succ]:
-                        following_matches.append(succ)
+                descendents = self.circuit_dag_dep.get_descendents(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
+                for desc in descendents:
+                    if circuit_matched[desc]:
+                        following_matches.append(desc)
 
                 # First option, the circuit gate is not disturbing because there are no
                 # following match and no predecessors.
-                predecessors = self.circuit_dag_dep.get_node(circuit_id).predecessors
+                ancestors = self.circuit_dag_dep.get_ancestors(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).predecessors
 
-                if not predecessors or not following_matches:
+                if not ancestors or not following_matches:
 
                     matching_scenario = MatchingScenarios(
                         circuit_matched,
@@ -689,8 +689,8 @@ class BackwardMatch:
 
                     # Second option, all predecessors are blocked (circuit gate is
                     # moved to the left).
-                    for pred in predecessors:
-                        circuit_blocked[pred] = True
+                    for ancestor in ancestors:
+                        circuit_blocked[ancestor] = True
 
                     matching_scenario = MatchingScenarios(
                         circuit_matched,
@@ -707,13 +707,13 @@ class BackwardMatch:
 
                     broken_matches = []
 
-                    successors = self.circuit_dag_dep.get_node(circuit_id).successors
+                    descendants = self.circuit_dag_dep.get_descendents(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
 
-                    for succ in successors:
-                        circuit_blocked_nomatch[succ] = True
-                        if circuit_matched_nomatch[succ]:
-                            broken_matches.append(succ)
-                            circuit_matched_nomatch[succ] = []
+                    for desc in descendents:
+                        circuit_blocked_nomatch[desc] = True
+                        if circuit_matched_nomatch[desc]:
+                            broken_matches.append(desc)
+                            circuit_matched_nomatch[desc] = []
 
                     new_matches_scenario_nomatch = [
                         elem for elem in matches_scenario_nomatch if elem[1] not in broken_matches
