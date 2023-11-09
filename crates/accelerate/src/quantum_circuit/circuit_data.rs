@@ -83,29 +83,33 @@ impl PartialEq for _BitAsKey {
 
 impl Eq for _BitAsKey {}
 
-/// A container for [QuantumCircuit] instruction listings that stores
-/// [CircuitInstruction] instances in a compressed form by interning
-/// their `qubits` and `clbits` to Rust type `Vec<u32>`.
+/// A container for :class:`.QuantumCircuit` instruction listings that stores
+/// :class:`.CircuitInstruction` instances in a compressed form by interning
+/// their :attr:`~.CircuitInstruction.qubits` and
+/// :attr:`~.CircuitInstruction.clbits` to native vectors of indices.
 ///
-/// Before adding a [CircuitInstruction] to this container, the
-/// [Qubit] and [Clbit] instances of its `qubits` and `clbits`
-/// fields MUST be registered via the constructor or via
-/// [CircuitData.add_qubit] and [CircuitData.add_clbit], respectively.
-/// This is because the order in which bits of the same type are added
-/// to the [CircuitData] determines their associated indices used for
-/// storage and retrieval.
+/// Before adding a :class:`.CircuitInstruction` to this container, its
+/// :class:`.Qubit` and :class:`.Clbit` instances MUST be registered via the
+/// constructor or via :meth:`.CircuitData.add_qubit` and
+/// :meth:`.CircuitData.add_clbit`. This is because the order in which
+/// bits of the same type are added to the container determines their
+/// associated indices used for storage and retrieval.
 ///
-/// As a convenience, [CircuitData.qubits] and [CircuitData.clbits]
-/// are exposed to Python as `list` instances, which are updated
-/// inplace as new bits are added via [CircuitData.add_qubit] and
-/// [CircuitData.add_clbit]. **DO NOT MODIFY THESE LISTS DIRECTLY**,
+/// As a convenience, :attr:`.CircuitData.qubits` and
+/// :attr:`.CircuitData.clbits` are exposed to Python as ``list`` instances,
+/// which are updated inplace as new bits are added via
+/// :meth:`~.CircuitData.add_qubit` and :meth:`~.CircuitData.add_clbit`.
+/// **DO NOT MODIFY THESE LISTS DIRECTLY**,
 /// or they will become out of sync with the internals of this class.
-/// In this way, a [CircuitData] _owns_ its `qubits` and `clbits`.
+/// In this way, a :class:`.CircuitData` owns its ``qubits`` and ``clbits``.
 ///
-/// Once constructed, a [CircuitData] behaves like a Python list of
-/// [CircuitInstruction] instances. However, these [CircuitInstruction]
-/// instances are created and destroyed on the fly, and thus should be
-/// treated as ephemeral. For example::
+/// Once constructed, this container behaves like a Python list of
+/// :class:`.CircuitInstruction` instances. However, these instances are
+/// created and destroyed on the fly, and thus should be treated as ephemeral.
+///
+/// For example,
+///
+/// .. code-block::
 ///
 ///     qubits = [Qubit()]
 ///     data = CircuitData(qubits)
@@ -113,6 +117,28 @@ impl Eq for _BitAsKey {}
 ///     assert(data[0] == data[0]) # => Ok.
 ///     assert(data[0] is data[0]) # => PANICS!
 ///
+/// .. warning::
+///
+///     This is an internal interface and no part of it should be relied upon
+///     outside of Qiskit.
+///
+/// Args:
+///     qubits (Iterable[:class:`.Qubit`] | None): The initial sequence of
+///         qubits, used to map :class:`.Qubit` instances to and from its
+///         indices.
+///     clbits (Iterable[:class:`.Clbit`] | None): The initial sequence of
+///         clbits, used to map :class:`.Clbit` instances to and from its
+///         indices.
+///     data (Iterable[:class:`.CircuitInstruction`]): An initial instruction
+///         listing to add to this container. All bits appearing in the
+///         instructions in this list must also exist in ``qubits`` and
+///         ``clbits``.
+///     reserve (int): An additional capacity to reserve beyond the container's
+///         initial capacity.
+///
+/// Raises:
+///     KeyError: if ``data`` contains a reference to a bit that is not present
+///         in ``qubits`` or ``clbits``.
 #[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
@@ -120,23 +146,25 @@ pub struct CircuitData {
     data: Vec<InternedInstruction>,
     /// The intern context used to intern the instruction listing.
     intern_context: InternContext,
-    /// The qubits registered (e.g. through [CircuitData.add_qubit]).
+    /// The qubits registered (e.g. through :meth:`~.CircuitData.add_qubit`).
     qubits_native: Vec<PyObject>,
-    /// The clbits registered (e.g. through [CircuitData.add_clbit]).
+    /// The clbits registered (e.g. through :meth:`~.CircuitData.add_clbit`).
     clbits_native: Vec<PyObject>,
-    /// Map of Python [Qubit] instances to their index in [CircuitData.qubits].
+    /// Map of :class:`.Qubit` instances to their index in
+    /// :attr:`.CircuitData.qubits`.
     qubit_indices_native: HashMap<_BitAsKey, BitType>,
-    /// Map of Python [Clbit] instances to their index in [CircuitData.clbits].
+    /// Map of :class:`.Clbit` instances to their index in
+    /// :attr:`.CircuitData.clbits`.
     clbit_indices_native: HashMap<_BitAsKey, BitType>,
-    /// The qubits registered, as a Python list.
+    /// The qubits registered, as a ``list[Qubit]``.
     #[pyo3(get)]
     qubits: Py<PyList>,
-    /// The clbits registered, as a Python list.
+    /// The clbits registered, as a ``list[Clbit]``.
     #[pyo3(get)]
     clbits: Py<PyList>,
 }
 
-/// A private enumeration type used to extract arguments to `pymethod`s
+/// A private enumeration type used to extract arguments to pymethods
 /// that may be either an index or a slice.
 #[derive(FromPyObject)]
 pub enum SliceOrInt<'a> {
@@ -181,6 +209,7 @@ impl CircuitData {
         }
         if let Some(data) = data {
             self_.extend(py, data)?;
+            self_.reserve(py, reserve);
         }
         Ok(self_)
     }
@@ -199,7 +228,10 @@ impl CircuitData {
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
     }
 
-    /// Registers a [Qubit] instance.
+    /// Registers a :class:`.Qubit` instance.
+    ///
+    /// Args:
+    ///     bit (:class:`.Qubit`): The qubit to register.
     pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
         let idx = self.qubits_native.len() as u32;
         self.qubit_indices_native.insert(_BitAsKey::new(bit)?, idx);
@@ -207,7 +239,10 @@ impl CircuitData {
         self.qubits.as_ref(py).append(bit)
     }
 
-    /// Registers a [Clbit] instance.
+    /// Registers a :class:`.Clbit` instance.
+    ///
+    /// Args:
+    ///     bit (:class:`.Clbit`): The clbit to register.
     pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
         let idx = self.clbits_native.len() as u32;
         self.clbit_indices_native.insert(_BitAsKey::new(bit)?, idx);
@@ -216,6 +251,9 @@ impl CircuitData {
     }
 
     /// Performs a shallow copy.
+    ///
+    /// Returns:
+    ///     CircuitData: The shallow copy.
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
         Ok(CircuitData {
             data: self.data.clone(),
@@ -231,8 +269,12 @@ impl CircuitData {
         })
     }
 
-    /// Reserves capacity for at least `additional` more [CircuitInstruction]
-    /// instances to be added to this container.
+    /// Reserves capacity for at least ``additional`` more
+    /// :class:`.CircuitInstruction` instances to be added to this container.
+    ///
+    /// Args:
+    ///     additional (int): The additional capacity to reserve. If the
+    ///         capacity is already sufficient, does nothing.
     pub fn reserve(&mut self, _py: Python<'_>, additional: usize) {
         self.data.reserve(additional);
     }

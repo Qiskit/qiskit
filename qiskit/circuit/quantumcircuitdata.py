@@ -23,39 +23,6 @@ from .operation import Operation
 
 
 CircuitInstruction = qiskit._accelerate.quantum_circuit.CircuitInstruction
-"""A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
-various operands.
-
-.. note::
-
-    There is some possible confusion in the names of this class, :class:`~.circuit.Instruction`,
-    and :class:`~.circuit.Operation`, and this class's attribute :attr:`operation`.  Our
-    preferred terminology is by analogy to assembly languages, where an "instruction" is made up
-    of an "operation" and its "operands".
-
-    Historically, :class:`~.circuit.Instruction` came first, and originally contained the qubits
-    it operated on and any parameters, so it was a true "instruction".  Over time,
-    :class:`.QuantumCircuit` became responsible for tracking qubits and clbits, and the class
-    became better described as an "operation".  Changing the name of such a core object would be
-    a very unpleasant API break for users, and so we have stuck with it.
-
-    This class was created to provide a formal "instruction" context object in
-    :class:`.QuantumCircuit.data`, which had long been made of ad-hoc tuples.  With this, and
-    the advent of the :class:`~.circuit.Operation` interface for adding more complex objects to
-    circuits, we took the opportunity to correct the historical naming.  For the time being,
-    this leads to an awkward case where :attr:`.CircuitInstruction.operation` is often an
-    :class:`~.circuit.Instruction` instance (:class:`~.circuit.Instruction` implements the
-    :class:`.Operation` interface), but as the :class:`.Operation` interface gains more use,
-    this confusion will hopefully abate.
-
-.. warning::
-
-    This is a lightweight internal class and there is minimal error checking; you must respect
-    the type hints when using it.  It is the user's responsibility to ensure that direct
-    mutations of the object do not invalidate the types, nor the restrictions placed on it by
-    its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
-    of distinct items, with no duplicates.
-"""
 
 
 class QuantumCircuitData(MutableSequence):
