@@ -23,7 +23,6 @@ directly from the graph.
 from collections import OrderedDict, defaultdict, deque, namedtuple
 import copy
 import math
-import warnings
 from typing import Dict, Generator, Any, List
 
 import numpy as np
@@ -424,10 +423,10 @@ class DAGCircuit:
         also be removed.
 
         Args:
-            qubits (List[Qubit]): The bits to remove.
+            qubits (List[~qiskit.circuit.Qubit]): The bits to remove.
 
         Raises:
-            DAGCircuitError: a qubit is not a :obj:`.Qubit`, is not in the circuit,
+            DAGCircuitError: a qubit is not a :obj:`~.circuit.Qubit`, is not in the circuit,
                 or is not idle.
         """
         if any(not isinstance(qubit, Qubit) for qubit in qubits):
@@ -643,11 +642,11 @@ class DAGCircuit:
 
         Args:
             op (qiskit.circuit.Operation): the operation associated with the DAG node
-            qargs (tuple[Qubit]): qubits that op will be applied to
+            qargs (tuple[~qiskit.circuit.Qubit]): qubits that op will be applied to
             cargs (tuple[Clbit]): cbits that op will be applied to
             check (bool): If ``True`` (default), this function will enforce that the
                 :class:`.DAGCircuit` data-structure invariants are maintained (all ``qargs`` are
-                :class:`.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
+                :class:`~.circuit.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
                 uphold these invariants itself, but the cost of several checks will be skipped.
                 This is most useful when building a new DAG from a source of known-good nodes.
         Returns:
@@ -657,16 +656,8 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        if qargs is None:
-            _warn_none_args()
-            qargs = ()
-        else:
-            qargs = tuple(qargs)
-        if cargs is None:
-            _warn_none_args()
-            cargs = ()
-        else:
-            cargs = tuple(cargs)
+        qargs = tuple(qargs)
+        cargs = tuple(cargs)
 
         if self._operation_may_have_bits(op):
             # This is the slow path; most of the time, this won't happen.
@@ -697,11 +688,11 @@ class DAGCircuit:
 
         Args:
             op (qiskit.circuit.Operation): the operation associated with the DAG node
-            qargs (tuple[Qubit]): qubits that op will be applied to
+            qargs (tuple[~qiskit.circuit.Qubit]): qubits that op will be applied to
             cargs (tuple[Clbit]): cbits that op will be applied to
             check (bool): If ``True`` (default), this function will enforce that the
                 :class:`.DAGCircuit` data-structure invariants are maintained (all ``qargs`` are
-                :class:`.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
+                :class:`~.circuit.Qubit`\\ s, all are in the DAG, etc).  If ``False``, the caller *must*
                 uphold these invariants itself, but the cost of several checks will be skipped.
                 This is most useful when building a new DAG from a source of known-good nodes.
         Returns:
@@ -710,16 +701,8 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
-        if qargs is None:
-            _warn_none_args()
-            qargs = ()
-        else:
-            qargs = tuple(qargs)
-        if cargs is None:
-            _warn_none_args()
-            cargs = ()
-        else:
-            cargs = tuple(cargs)
+        qargs = tuple(qargs)
+        cargs = tuple(cargs)
 
         if self._operation_may_have_bits(op):
             # This is the slow path; most of the time, this won't happen.
@@ -755,7 +738,7 @@ class DAGCircuit:
 
         Args:
             other (DAGCircuit): circuit to compose with self
-            qubits (list[Qubit|int]): qubits of self to compose onto.
+            qubits (list[~qiskit.circuit.Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet)
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
@@ -821,7 +804,7 @@ class DAGCircuit:
         for gate, cals in other.calibrations.items():
             dag._calibrations[gate].update(cals)
 
-        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatiblity.
+        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatibility.
         def _reject_new_register(reg):
             raise DAGCircuitError(f"No register with '{reg.bits}' to map this expression onto.")
 
@@ -1204,7 +1187,7 @@ class DAGCircuit:
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
                 conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
-                treated as if it is ``False``); replacements of those must already fulfil the same
+                treated as if it is ``False``); replacements of those must already fulfill the same
                 conditional logic or this function would be close to useless for them.
 
         Returns:
@@ -2042,10 +2025,10 @@ class DAGCircuit:
         classical bit wires are ignored for the purposes of building the causal cone.
 
         Args:
-            qubit (Qubit): The output qubit for which we want to find the causal cone.
+            qubit (~qiskit.circuit.Qubit): The output qubit for which we want to find the causal cone.
 
         Returns:
-            Set[Qubit]: The set of qubits whose interactions affect ``qubit``.
+            Set[~qiskit.circuit.Qubit]: The set of qubits whose interactions affect ``qubit``.
         """
         # Retrieve the output node from the qubit
         output_node = self.output_map.get(qubit, None)
@@ -2116,12 +2099,3 @@ class DAGCircuit:
         from qiskit.visualization.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
-
-
-def _warn_none_args():
-    warnings.warn(
-        "Passing 'None' as the qubits or clbits of an operation to 'DAGCircuit' methods"
-        " is deprecated since Qiskit 0.45 and will be removed in Qiskit 1.0.  Instead, pass '()'.",
-        DeprecationWarning,
-        stacklevel=3,
-    )

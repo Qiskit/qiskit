@@ -80,19 +80,21 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
+import warnings
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from ..utils import init_observable
 from .base_primitive import BasePrimitive
+from . import validation
 
 T = TypeVar("T", bound=Job)
 
@@ -117,10 +119,28 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         Args:
             options: Default options.
         """
-        self._circuits = []
-        self._observables = []
-        self._parameters = []
         super().__init__(options)
+
+    def __getattr__(self, name: str) -> any:
+        # Work around to enable deprecation of the init attributes in BaseEstimator incase
+        # existing subclasses depend on them (which some do)
+        dep_defaults = {
+            "_circuits": [],
+            "_observables": [],
+            "_parameters": [],
+        }
+        if name not in dep_defaults:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        warnings.warn(
+            f"The init attribute `{name}` in BaseEstimator is deprecated as of Qiskit 0.46."
+            " To continue to use this attribute in a subclass and avoid this warning the"
+            " subclass should initialize it itself.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        setattr(self, name, dep_defaults[name])
+        return getattr(self, name)
 
     def run(
         self,
@@ -165,17 +185,10 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             TypeError: Invalid argument type given.
             ValueError: Invalid argument values given.
         """
-        # Singular validation
-        circuits = self._validate_circuits(circuits)
-        observables = self._validate_observables(observables)
-        parameter_values = self._validate_parameter_values(
-            parameter_values,
-            default=[()] * len(circuits),
+        # Validation
+        circuits, observables, parameter_values = validation._validate_estimator_args(
+            circuits, observables, parameter_values
         )
-
-        # Cross-validation
-        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
-        self._cross_validate_circuits_observables(circuits, observables)
 
         # Options
         run_opts = copy(self.options)
@@ -196,36 +209,24 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> T:
-        raise NotImplementedError("The subclass of BaseEstimator must implment `_run` method.")
+        raise NotImplementedError("The subclass of BaseEstimator must implement `_run` method.")
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _validate_observables(
         observables: Sequence[BaseOperator | str] | BaseOperator | str,
     ) -> tuple[SparsePauliOp, ...]:
-        if isinstance(observables, str) or not isinstance(observables, Sequence):
-            observables = (observables,)
-        if len(observables) == 0:
-            raise ValueError("No observables were provided.")
-        return tuple(init_observable(obs) for obs in observables)
+        return validation._validate_observables(observables)
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _cross_validate_circuits_observables(
         circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
     ) -> None:
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
+        return validation._cross_validate_circuits_observables(circuits, observables)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
@@ -235,6 +236,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables to be estimated.
 
@@ -244,6 +246,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._observables)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of the quantum circuits.
 

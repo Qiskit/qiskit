@@ -381,8 +381,8 @@ class QuantumCircuit:
                 elements must either be instances of :class:`.CircuitInstruction` (preferred), or a
                 3-tuple of ``(instruction, qargs, cargs)`` (legacy).  In the legacy format,
                 ``instruction`` must be an :class:`~.circuit.Instruction`, while ``qargs`` and
-                ``cargs`` must be iterables of :class:`.Qubit` or :class:`.Clbit` specifiers
-                (similar to the allowed forms in calls to :meth:`append`).
+                ``cargs`` must be iterables of :class:`~.circuit.Qubit` or :class:`.Clbit`
+                specifiers (similar to the allowed forms in calls to :meth:`append`).
         """
         # If data_input is QuantumCircuitData(self), clearing self._data
         # below will also empty data_input, so make a shallow copy first.
@@ -1188,7 +1188,7 @@ class QuantumCircuit:
         if isinstance(specifier, ClassicalRegister):
             # This is linear complexity for something that should be constant, but QuantumCircuit
             # does not currently keep a hashmap of registers, and requires non-trivial changes to
-            # how it exposes its registers publically before such a map can be safely stored so it
+            # how it exposes its registers publicly before such a map can be safely stored so it
             # doesn't miss updates. (Jake, 2021-11-10).
             if specifier not in self.cregs:
                 raise CircuitError(f"Register {specifier} is not present in this circuit.")
@@ -1230,7 +1230,7 @@ class QuantumCircuit:
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
                 :class:`.CircuitInstruction` with all its context.
-            qargs: specifiers of the :class:`.Qubit`\\ s to attach instruction to.
+            qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
 
         Returns:
@@ -2802,10 +2802,7 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
-    @deprecate_func(
-        additional_msg=("Use assign_parameters() instead"),
-        since="0.45.0",
-    )
+    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
     ) -> "QuantumCircuit":
