@@ -4,7 +4,7 @@
     "project_url": "https://qiskit.org",
     "repo": ".",
     "install_command": [
-        "in-dir={env_dir} python -m pip install {wheel_file}[all] python-constraint qiskit-experiments==0.3.0"
+        "in-dir={env_dir} python -m pip install {wheel_file}[all] python-constraint"
       ],
     "uninstall_command": [
         "return-code=any python -m pip uninstall -y qiskit qiskit-terra"
