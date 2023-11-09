@@ -81,15 +81,12 @@ class TestSampledExpval(QiskitTestCase):
         exp2 = sampled_expectation_value(counts, Pauli(oper))
         self.assertAlmostEqual(exp2, ans)
 
-        exp3 = sampled_expectation_value(counts, Pauli(oper))
+        spo = SparsePauliOp([oper], coeffs=[1])
+        exp3 = sampled_expectation_value(counts, spo)
         self.assertAlmostEqual(exp3, ans)
 
-        spo = SparsePauliOp([oper], coeffs=[1])
-        exp4 = sampled_expectation_value(counts, spo)
+        exp4 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
         self.assertAlmostEqual(exp4, ans)
-
-        exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
-        self.assertAlmostEqual(exp5, ans)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""
