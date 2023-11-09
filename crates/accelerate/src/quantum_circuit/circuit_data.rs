@@ -42,7 +42,7 @@ struct InternedInstruction {
 /// it call `repr()` on both sides, which has a significant
 /// performance advantage.
 #[derive(Clone, Debug)]
-struct _BitAsKey {
+struct BitAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The native Py pointer for the instance.
@@ -51,9 +51,9 @@ struct _BitAsKey {
     bit: PyObject,
 }
 
-impl _BitAsKey {
+impl BitAsKey {
     fn new(bit: &PyAny) -> PyResult<Self> {
-        Ok(_BitAsKey {
+        Ok(BitAsKey {
             hash: bit.hash()?,
             id: bit.as_ptr() as u64,
             bit: bit.into_py(bit.py()),
@@ -61,13 +61,13 @@ impl _BitAsKey {
     }
 }
 
-impl Hash for _BitAsKey {
+impl Hash for BitAsKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_isize(self.hash);
     }
 }
 
-impl PartialEq for _BitAsKey {
+impl PartialEq for BitAsKey {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
             || Python::with_gil(|py| {
@@ -81,7 +81,7 @@ impl PartialEq for _BitAsKey {
     }
 }
 
-impl Eq for _BitAsKey {}
+impl Eq for BitAsKey {}
 
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
 /// :class:`.CircuitInstruction` instances in a compressed form by interning
@@ -152,10 +152,10 @@ pub struct CircuitData {
     clbits_native: Vec<PyObject>,
     /// Map of :class:`.Qubit` instances to their index in
     /// :attr:`.CircuitData.qubits`.
-    qubit_indices_native: HashMap<_BitAsKey, BitType>,
+    qubit_indices_native: HashMap<BitAsKey, BitType>,
     /// Map of :class:`.Clbit` instances to their index in
     /// :attr:`.CircuitData.clbits`.
-    clbit_indices_native: HashMap<_BitAsKey, BitType>,
+    clbit_indices_native: HashMap<BitAsKey, BitType>,
     /// The qubits registered, as a ``list[Qubit]``.
     #[pyo3(get)]
     qubits: Py<PyList>,
@@ -234,7 +234,7 @@ impl CircuitData {
     ///     bit (:class:`.Qubit`): The qubit to register.
     pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
         let idx = self.qubits_native.len() as u32;
-        self.qubit_indices_native.insert(_BitAsKey::new(bit)?, idx);
+        self.qubit_indices_native.insert(BitAsKey::new(bit)?, idx);
         self.qubits_native.push(bit.into_py(py));
         self.qubits.as_ref(py).append(bit)
     }
@@ -245,7 +245,7 @@ impl CircuitData {
     ///     bit (:class:`.Clbit`): The clbit to register.
     pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
         let idx = self.clbits_native.len() as u32;
-        self.clbit_indices_native.insert(_BitAsKey::new(bit)?, idx);
+        self.clbit_indices_native.insert(BitAsKey::new(bit)?, idx);
         self.clbits_native.push(bit.into_py(py));
         self.clbits.as_ref(py).append(bit)
     }
@@ -594,11 +594,11 @@ impl CircuitData {
         elem: PyRef<CircuitInstruction>,
     ) -> PyResult<InternedInstruction> {
         let mut interned_bits =
-            |indices: &HashMap<_BitAsKey, u32>, bits: &PyTuple| -> PyResult<IndexType> {
+            |indices: &HashMap<BitAsKey, u32>, bits: &PyTuple| -> PyResult<IndexType> {
                 let args = bits
                     .into_iter()
                     .map(|b| {
-                        let key = _BitAsKey::new(b)?;
+                        let key = BitAsKey::new(b)?;
                         indices.get(&key).cloned().ok_or_else(|| {
                             PyKeyError::new_err(format!(
                                 "Bit {:?} has not been added to this circuit.",
