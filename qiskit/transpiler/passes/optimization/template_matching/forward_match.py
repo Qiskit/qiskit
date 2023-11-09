@@ -89,7 +89,7 @@ class ForwardMatch:
         """
         for i in range(0, self.circuit_dag_dep.size()):
             if i == self.node_id_c:
-                self.descendantstovisit[self.circuit_dag_dep.get_node(i)] = self.circuit_dag_dep.get_successors(i)
+                self.descendantstovisit[self.circuit_dag_dep.get_node(i)] = self.circuit_dag_dep.direct_successors(i)
                 # self.circuit_dag_dep.get_node(
                 #     i
                 # ).descendantstovisit = self.circuit_dag_dep.direct_successors(i)
@@ -208,7 +208,7 @@ class ForwardMatch:
         # node_update = node
         # node_update.descendantstovisit.pop(successor_id)
         # return node_update
-        return self.descendantstovisit.pop(successor_id)
+        return self.circuit_dag_dep.get_node(self.descendantstovisit[node].pop(successor_id))
 
     def _get_descendants_to_visit(self, node, list_id):
         """
@@ -221,7 +221,7 @@ class ForwardMatch:
             int: id of the successor to get.
         """
         #successor_id = node.descendantstovisit[list_id]
-        return self.circuit_dag_dep.get_node(self.descendantstovisit[node][list_id])
+        return self.descendantstovisit[node][list_id]
 
     def _update_qarg_indices(self, qarg):
         """
@@ -374,6 +374,8 @@ class ForwardMatch:
 
             # Update the matched_nodes_list with new attribute successor to visit and sort the list.
             self.matched_nodes_list.append([v_first.node_id, v_first])
+            print("\nMMMMMMMMMMM matched", self.matched_nodes_list)
+            print("v_first, v_first.node_id", v_first, v_first.node_id)
             self.matched_nodes_list.sort(key=lambda x: self.descendantstovisit[x[1]])
 
             # If the node is blocked and already matched go to the end
