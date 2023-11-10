@@ -23,6 +23,9 @@ not part of the backwards compatibility guarantees and may change during any
 release. Only minor or major version releases will raise minimum requirements
 for using or building Qiskit (including adding new dependencies), but patch
 fixes might include support for new versions of Python or other dependencies.
+Usually the minimum version of a dependency is only increased when older
+dependency versions go out of support or when it is not possible to maintain
+compatibility with the latest release of the dependency and the older version.
 
 <TODO Add calendar diagrams>
 
@@ -65,6 +68,12 @@ to upgrade. A typical pattern to deal with this is to pin the max version to
 avoid using the next major release series until you're sure of compatibility.
 For example, specifying in a requirements file ``qiskit<2`` when the current major Qiskit version is 1 will ensure that
 you're using a version of Qiskit that won't have breaking API changes.
+
+Pre-emptively capping the version less than the next major version is neccessary to ensure you get a chance to see deprecation warnings before a
+major version release. The normal release schedule means the last minor
+version release which includes any final deprecation warnings will be released
+at the same time as the next major version and ``pip`` will default to using
+the newest version available unless the version cap is set.
 
 Pre-releases
 ============
