@@ -18,7 +18,7 @@ from test.visual import VisualTestUtilities
 from contextlib import contextmanager
 from pathlib import Path
 
-from qiskit import BasicAer
+from qiskit import BasicAer, transpile
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
@@ -648,7 +648,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit).result()
+        result = backend.run(transpile(circuit, backend)).result()
         state = result.get_statevector(circuit)
 
         fname = "bloch_multivector_figsize_improvements.png"
