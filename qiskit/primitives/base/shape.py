@@ -21,7 +21,7 @@ from typing import Protocol, Tuple, Union, runtime_checkable
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-ShapeInput = Union[int, Iterable["ShapeInput"]]
+ShapeInput = Union[int, "Iterable[ShapeInput]"]
 """An input that is coercible into a shape tuple."""
 
 
