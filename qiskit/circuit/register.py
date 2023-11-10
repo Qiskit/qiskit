@@ -235,7 +235,6 @@ class Register:
                 # For new-style bits, check bitwise equality.
                 sbit == obit
                 for sbit, obit in zip(self, other)
-                if None in (sbit._index, obit._index)
             )
         ):
             res = True

@@ -36,6 +36,9 @@ class Bit:
         """Return the official string representing the bit."""
         return object.__repr__(self)
 
+    def __eq__(self, other):
+        return self.__class__.__name__ == other.__class__.__name__
+
     def __hash__(self):
         return object.__hash__(self)
 
