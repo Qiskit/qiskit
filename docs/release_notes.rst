@@ -9,4 +9,9 @@ This page contains the release notes for Qiskit, starting from the point at whic
 "meta-package" structure of Qiskit, see :ref:`legacy-release-notes`.
 
 .. release-notes::
-   :earliest-version: 0.25.0rc1
+   :earliest-version: 0.45.0
+   :branch: stable/0.45
+
+.. release-notes::
+   :earliest-version: 0.25.0
+   :branch: stable/0.25
