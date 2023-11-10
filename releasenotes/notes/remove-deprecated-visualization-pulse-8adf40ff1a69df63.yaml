@@ -1,9 +1,12 @@
 ---
 upgrade:
   - |
-    Use the new interface `~qiskit.visualization.pulse_drawer` for pulse visualization.
-deprecations:
-  - |
-    The classes implemented in `~qiskit.visualization.pulse` are deprecated since 0.23.
-    The `pulse` folder is removed.
-
+    The :class: `qiskit.visualization.pulse.SchedStyle`,
+    `qiskit.visualization.pulse.PulseStyle`, 
+    `qiskit.visualization.pulse.matplotlib.EventsOutputChannels` 
+    `qiskit.visualization.pulse.matplotlib.WaveformDrawer`,
+    `qiskit.visualization.pulse.matplotlib.ScheduleDrawer`
+    and :func: `qiskit.visualization.pulse.interpolation.interp1d`, 
+    `qiskit.visualization.interpolation.pulse.step_wise`
+    are deprecated. Use the new interface `qiskit.visualization.pulse_drawer` for pulse 
+    visualization.
