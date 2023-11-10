@@ -17,11 +17,17 @@ Options class
 from __future__ import annotations
 
 from abc import ABC
-from dataclasses import dataclass
 from typing import Union
 
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
 
-@dataclass
+primitive_dataclass = dataclass(
+    config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid")
+)
+
+
+@primitive_dataclass
 class BasePrimitiveOptions(ABC):
     """Base calss of options for primitives."""
 
