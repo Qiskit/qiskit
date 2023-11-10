@@ -16,8 +16,15 @@ import unittest
 from ddt import ddt, data
 
 from qiskit.test.base import QiskitTestCase
-from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit, Gate, Instruction
-from qiskit.circuit.library import BlueprintCircuit
+from qiskit.circuit import (
+    QuantumRegister,
+    Parameter,
+    QuantumCircuit,
+    Gate,
+    Instruction,
+    CircuitInstruction,
+)
+from qiskit.circuit.library import BlueprintCircuit, XGate
 
 
 class MockBlueprint(BlueprintCircuit):
@@ -138,6 +145,34 @@ class TestBlueprintCircuit(QiskitTestCase):
         else:
             gate = circuit.to_instruction()
             self.assertIsInstance(gate, Instruction)
+
+    def test_build_before_appends(self):
+        """Test that both forms of direct append (public and semi-public) function correctly."""
+
+        class DummyBlueprint(BlueprintCircuit):
+            """Dummy circuit."""
+
+            def _check_configuration(self, raise_on_failure=True):
+                return True
+
+            def _build(self):
+                super()._build()
+                self.z(0)
+
+        expected = QuantumCircuit(2)
+        expected.z(0)
+        expected.x(0)
+
+        qr = QuantumRegister(2, "q")
+        mock = DummyBlueprint()
+        mock.add_register(qr)
+        mock.append(XGate(), [qr[0]], [])
+        self.assertEqual(expected, mock)
+
+        mock = DummyBlueprint()
+        mock.add_register(qr)
+        mock._append(CircuitInstruction(XGate(), (qr[0],), ()))
+        self.assertEqual(expected, mock)
 
 
 if __name__ == "__main__":
