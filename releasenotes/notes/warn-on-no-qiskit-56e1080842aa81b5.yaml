@@ -1,0 +1,23 @@
+---
+deprecations:
+  - |
+    The ``qiskit-terra`` python package is deprecated and will no longer receive
+    updates starting in Qiskit 1.0.0. If you're installing ``qiskit-terra`` by
+    itself this will no longer be updated for Qiskit>=1.0.0. If you're running
+    qiskit without the ``qiskit`` package a ``FutureWarning`` will be emitted on
+    import of :mod:`qiskit` to indicate you're not using the ``qiskit`` package.
+critical:
+  - |
+    When updating Qiskit from ``0.46.x`` to ``1.0.0`` you will not be able to
+    update in place. For example, ``pip install -U qiskit`` or
+    ``pip install --upgrade qiskit`` is not supported and likely will **not**
+    work. To upgrade qiskit the recommended path is to create a new virtual
+    environment (:mod:`venv`) to build a new separate environment for
+    Qiskit>=1.0.0. For example::
+
+        python -m venv qiskit_1.0
+        source qiskit_1.0/bin/activate
+        pip install qiskit>=1
+
+    will create a new virtual environment named ``qiskit_1.0`` will contain the
+    new version of Qiskit.
