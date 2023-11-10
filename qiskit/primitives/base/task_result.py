@@ -23,5 +23,5 @@ from dataclasses import dataclass
 class TaskResult:
     """Result of task."""
 
-    result: dict
+    data: dict
     metadata: dict

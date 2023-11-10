@@ -18,7 +18,7 @@ Estiamtor Task class
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 
