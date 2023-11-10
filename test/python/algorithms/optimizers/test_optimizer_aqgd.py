@@ -15,14 +15,14 @@
 import unittest
 import warnings
 
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals, optionals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
 from qiskit.opflow.gradients import Gradient
-from test.utils import slow_test
+from test.utils import slow_test  # pylint: disable=wrong-import-order
+from test.python.algorithms import QiskitAlgorithmsTestCase  # pylint: disable=wrong-import-order
 
 
 class TestOptimizerAQGD(QiskitAlgorithmsTestCase):

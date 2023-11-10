@@ -16,16 +16,14 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from test.utils import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Clifford
-
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction, PermutationGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-
 from qiskit.quantum_info.operators import Operator
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def random_linear_circuit(

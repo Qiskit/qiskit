@@ -17,14 +17,13 @@ import unittest
 import io
 from logging import StreamHandler, getLogger
 import sys
-
 import numpy as np
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
-from test.utils import providers
+from test.utils import providers  # pylint: disable=wrong-import-order
 
 
 class StreamHandlerRaiseException(StreamHandler):

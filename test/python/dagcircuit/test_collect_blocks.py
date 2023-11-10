@@ -23,9 +23,9 @@ from qiskit.converters import (
     dag_to_circuit,
     dagdependency_to_circuit,
 )
-from test.utils import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Measure, Clbit
 from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockSplitter, BlockCollapser
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCollectBlocks(QiskitTestCase):

@@ -19,8 +19,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import FullAncillaAllocation
-from test.utils import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestFullAncillaAllocation(QiskitTestCase):

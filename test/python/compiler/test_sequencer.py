@@ -19,8 +19,7 @@ from qiskit import QuantumCircuit, pulse
 from qiskit.compiler import sequence, transpile, schedule
 from qiskit.pulse.transforms import pad
 from qiskit.providers.fake_provider import FakeParis
-
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSequence(QiskitTestCase):

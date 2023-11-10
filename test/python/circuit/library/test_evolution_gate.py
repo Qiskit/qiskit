@@ -21,9 +21,9 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.converters import circuit_to_dag
-from test.utils import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

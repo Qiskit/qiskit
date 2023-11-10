@@ -19,12 +19,12 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumRegister
-from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation, PermutationGate
 from qiskit.quantum_info import Operator
 from qiskit.qpy import dump, load
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPermutationLibrary(QiskitTestCase):

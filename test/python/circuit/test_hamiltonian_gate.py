@@ -19,12 +19,12 @@ from numpy.testing import assert_allclose
 
 import qiskit
 from qiskit.circuit.library import HamiltonianGate, UnitaryGate
-from test.utils import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.exceptions import CircuitError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestHamiltonianGate(QiskitTestCase):

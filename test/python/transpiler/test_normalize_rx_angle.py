@@ -17,14 +17,13 @@ import numpy as np
 from ddt import ddt, named_data
 
 from qiskit import QuantumCircuit
-
 from qiskit.transpiler.passes.optimization.normalize_rx_angle import (
     NormalizeRXAngle,
 )
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBelemV2
 from qiskit.transpiler import Target
 from qiskit.circuit.library.standard_gates import SXGate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

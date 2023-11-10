@@ -14,7 +14,7 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
-from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
+
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
@@ -34,8 +34,11 @@ from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
-from test.utils import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+    random_clifford_circuit,
+)
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):

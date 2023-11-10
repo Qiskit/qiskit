@@ -15,16 +15,14 @@
 import itertools
 import unittest
 from ddt import ddt, data
-
 import numpy as np
 from scipy.linalg import block_diag
 
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
-from test.utils import QiskitTestCase
-
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler import transpile
 from qiskit.circuit.library import UCRXGate, UCRYGate, UCRZGate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 angles_list = [
     [0],

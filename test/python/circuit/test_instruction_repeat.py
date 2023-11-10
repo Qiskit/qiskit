@@ -18,11 +18,11 @@ from numpy import pi
 
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from test.utils import QiskitTestCase
 from qiskit.circuit.library import SGate, U3Gate, CXGate, UnitaryGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.transpiler.passes import Unroller
 from qiskit.circuit.exceptions import CircuitError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRepeatInt1Q(QiskitTestCase):

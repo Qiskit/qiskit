@@ -14,9 +14,6 @@
 
 import unittest
 import warnings
-
-from test.python.algorithms import QiskitAlgorithmsTestCase
-
 import numpy as np
 from ddt import data, ddt, unpack
 
@@ -40,9 +37,9 @@ from qiskit.opflow import (
     X,
     Z,
 )
-
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
-from test.utils import slow_test
+from test.python.algorithms import QiskitAlgorithmsTestCase  # pylint: disable=wrong-import-order
+from test.utils import slow_test  # pylint: disable=wrong-import-order
 
 
 if has_aer():

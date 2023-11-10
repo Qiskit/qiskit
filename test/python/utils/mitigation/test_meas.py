@@ -28,10 +28,9 @@ expected (equally distributed) result
 """
 
 import unittest
-import numpy as np
 
+import numpy as np
 import qiskit
-from test.utils import QiskitTestCase
 from qiskit.result.result import Result
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
@@ -41,8 +40,8 @@ from qiskit.utils.mitigation import (
 )
 from qiskit.utils.mitigation._filters import MeasurementFilter
 from qiskit.utils.mitigation.circuits import count_keys
-
 from qiskit.utils import optionals
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_AER:
     # pylint: disable=no-name-in-module

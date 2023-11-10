@@ -14,13 +14,13 @@
 
 from qiskit.transpiler.passes.basis import UnrollCustomDefinitions
 
-from test.utils import QiskitTestCase
 from qiskit.circuit import EquivalenceLibrary, Gate, Qubit, Clbit, Parameter
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import Target
 from qiskit.circuit.library import CXGate, U3Gate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGate(Gate):

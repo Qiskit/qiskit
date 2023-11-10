@@ -25,7 +25,7 @@ from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManager(QiskitTestCase):

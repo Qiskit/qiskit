@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 
 """Tests LogicNetwork.Tweedledum2Qiskit converter."""
+
 import unittest
 
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-from test.utils import QiskitTestCase
-
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     # pylint: disable=import-error

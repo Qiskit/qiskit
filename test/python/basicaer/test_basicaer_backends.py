@@ -15,7 +15,7 @@
 from qiskit import BasicAer
 from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from test.utils import providers
+from test.utils import providers  # pylint: disable=wrong-import-order
 
 
 class TestBasicAerBackends(providers.ProviderTestCase):

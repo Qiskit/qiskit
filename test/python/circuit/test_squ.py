@@ -20,10 +20,10 @@ import numpy as np
 from ddt import ddt
 from qiskit.quantum_info.random import random_unitary
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
-from test.utils import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 squs = [
     np.eye(2, 2),

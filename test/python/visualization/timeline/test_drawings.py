@@ -15,8 +15,8 @@
 import numpy as np
 
 import qiskit
-from test.utils import QiskitTestCase
 from qiskit.visualization.timeline import drawings, types
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDrawingObjects(QiskitTestCase):

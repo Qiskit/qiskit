@@ -17,10 +17,10 @@ from math import pi
 import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from test.utils import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
 from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, PermutationGate
 from qiskit.qasm.exceptions import QasmError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")

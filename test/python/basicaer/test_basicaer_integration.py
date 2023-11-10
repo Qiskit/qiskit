@@ -14,12 +14,10 @@
 
 import unittest
 
-from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
 from qiskit.result import Result
 from qiskit.providers.basicaer import BasicAerError
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBasicAerIntegration(QiskitTestCase):

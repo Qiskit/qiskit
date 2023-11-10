@@ -13,6 +13,7 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
 """Test the staged passmanager logic"""
+
 from unittest.mock import patch
 
 from ddt import data, ddt
@@ -20,7 +21,7 @@ from ddt import data, ddt
 from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth, BasicSwap
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

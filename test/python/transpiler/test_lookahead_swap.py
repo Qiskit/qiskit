@@ -14,14 +14,15 @@
 
 import unittest
 from numpy import pi
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLookaheadSwap(QiskitTestCase):

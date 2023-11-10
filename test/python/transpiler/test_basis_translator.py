@@ -19,7 +19,6 @@ from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
-from test.utils import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
 from qiskit.circuit.library import (
     U1Gate,
@@ -39,11 +38,10 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class OneQubitZeroParamGate(Gate):

@@ -21,8 +21,8 @@ from io import StringIO
 import qiskit
 from qiskit import providers
 from qiskit.tools.monitor import backend_overview, backend_monitor
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeProviderFactory, FakeBackend, FakeVigo
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBackendOverview(QiskitTestCase):

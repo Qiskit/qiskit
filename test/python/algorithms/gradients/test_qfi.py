@@ -15,8 +15,6 @@
 
 import unittest
 from ddt import ddt, data
-from test.utils import QiskitTestCase
-
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -24,6 +22,7 @@ from qiskit.algorithms.gradients import LinCombQGT, ReverseQGT, QFI, DerivativeT
 from qiskit.circuit import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

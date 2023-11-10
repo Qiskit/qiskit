@@ -21,9 +21,9 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Statevector, Operator
-from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import StatePreparation
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

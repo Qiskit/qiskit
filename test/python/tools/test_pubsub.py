@@ -13,7 +13,7 @@
 """Tests for qiskit/tools/events/_pubsub.py"""
 
 from qiskit.tools.events.pubsub import Publisher, Subscriber
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class DummySubscriber(Subscriber):

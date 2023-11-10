@@ -16,12 +16,10 @@ import unittest
 
 import os
 import math
-from test.visual import VisualTestUtilities
 from pathlib import Path
 import numpy as np
 from numpy import pi
 
-from test.utils import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife, FakeBelemV2
 from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
@@ -45,6 +43,8 @@ from qiskit.circuit.library import IQP
 from qiskit.circuit.classical import expr
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
+from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close

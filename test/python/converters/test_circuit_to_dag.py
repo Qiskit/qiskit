@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, C
 from qiskit.circuit.library import HGate, Measure
 from qiskit.circuit.classical import expr
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitToDag(QiskitTestCase):

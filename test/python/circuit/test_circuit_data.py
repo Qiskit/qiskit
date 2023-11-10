@@ -14,9 +14,8 @@
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction, Operation
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
-
-from test.utils import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):

@@ -23,9 +23,9 @@ from qiskit.circuit import Gate, Parameter
 from qiskit.converters import ast_to_dag, dag_to_circuit
 from qiskit.exceptions import QiskitError
 from qiskit.qasm import Qasm
-from test.utils import QiskitTestCase
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def from_qasm_str(qasm_str):

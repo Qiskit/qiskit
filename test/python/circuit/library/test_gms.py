@@ -15,9 +15,9 @@
 import unittest
 import numpy as np
 
-from test.utils.base import QiskitTestCase
 from qiskit.circuit.library import GMS, RXXGate
 from qiskit.quantum_info import Operator
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGMSLibrary(QiskitTestCase):

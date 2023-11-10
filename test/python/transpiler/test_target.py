@@ -42,7 +42,6 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBackendV2,
     FakeMumbaiFractionalCX,
@@ -50,6 +49,7 @@ from qiskit.providers.fake_provider import (
     FakeNairobi,
     FakeGeneva,
 )
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestTarget(QiskitTestCase):

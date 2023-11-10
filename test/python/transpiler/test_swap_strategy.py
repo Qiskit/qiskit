@@ -17,10 +17,9 @@ from ddt import data, ddt, unpack
 import numpy as np
 
 from qiskit import QiskitError
-from test.utils import QiskitTestCase
 from qiskit.transpiler import CouplingMap
-
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import SwapStrategy
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

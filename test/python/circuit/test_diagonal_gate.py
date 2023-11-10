@@ -16,13 +16,11 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble
-
-from qiskit import QiskitError
-from test.utils import QiskitTestCase
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble, QiskitError
 from qiskit.compiler import transpile
 from qiskit.extensions.quantum_initializer import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDiagonalGate(QiskitTestCase):

@@ -17,7 +17,7 @@ import numpy as np
 from qiskit import pulse, circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
 from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAcquire(QiskitTestCase):

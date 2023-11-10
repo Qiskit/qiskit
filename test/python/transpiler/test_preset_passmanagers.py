@@ -47,7 +47,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def mock_get_passmanager_stage(

@@ -16,8 +16,8 @@ from math import pi, erf
 
 import numpy as np
 from ddt import data, ddt
-from qiskit.converters import circuit_to_dag
 
+from qiskit.converters import circuit_to_dag
 from qiskit import circuit, schedule, QiskitError, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library.standard_gates import SXGate, RZGate, RXGate
@@ -44,7 +44,7 @@ from qiskit.transpiler.passes.calibration.builders import (
     RZXCalibrationBuilderNoEcho,
     RXCalibrationBuilder,
 )
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCalibrationBuilder(QiskitTestCase):

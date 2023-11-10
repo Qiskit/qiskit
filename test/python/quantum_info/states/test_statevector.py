@@ -20,20 +20,19 @@ from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
-from test.utils import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.utils import optionals
-
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 

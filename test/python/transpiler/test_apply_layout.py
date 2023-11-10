@@ -16,13 +16,13 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
-from test.utils import QiskitTestCase
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.providers.fake_provider import FakeVigoV2
 from qiskit.transpiler import PassManager
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestApplyLayout(QiskitTestCase):

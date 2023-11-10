@@ -12,10 +12,10 @@
 
 """Test executing multiple-register circuits on BasicAer."""
 
-from test.utils import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, Statevector, process_fidelity, state_fidelity
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitMultiRegs(QiskitTestCase):

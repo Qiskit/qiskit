@@ -45,8 +45,8 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, _overlaps, _find_insertion_index
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BaseTestSchedule(QiskitTestCase):

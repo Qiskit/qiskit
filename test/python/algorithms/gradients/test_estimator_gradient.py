@@ -14,7 +14,6 @@
 """Test Estimator Gradients"""
 
 import unittest
-from test.utils import QiskitTestCase
 
 import numpy as np
 from ddt import ddt, data, unpack
@@ -34,6 +33,7 @@ from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZ
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 from qiskit.quantum_info.random import random_pauli_list
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .logging_primitives import LoggingEstimator
 

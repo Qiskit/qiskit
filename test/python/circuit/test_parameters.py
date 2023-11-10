@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test circuits with variable parameters."""
+
 import unittest
 import warnings
 import cmath
@@ -18,8 +19,6 @@ import math
 import copy
 import pickle
 from operator import add, mul, sub, truediv
-
-from test import combine
 
 import numpy
 from ddt import data, ddt, named_data
@@ -35,9 +34,10 @@ from qiskit.compiler import assemble, transpile
 from qiskit.execute_function import execute
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOurense
 from qiskit.tools import parallel_map
+from test import combine  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def raise_if_parameter_table_invalid(circuit):

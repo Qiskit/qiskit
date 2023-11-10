@@ -18,7 +18,7 @@ import re
 from itertools import zip_longest
 from logging import getLogger
 
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class PassManagerTestCase(QiskitTestCase):

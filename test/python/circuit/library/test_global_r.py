@@ -15,9 +15,9 @@
 import unittest
 import numpy as np
 
-from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GR, GRX, GRY, GRZ, RGate, RZGate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGlobalRLibrary(QiskitTestCase):

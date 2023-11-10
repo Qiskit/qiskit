@@ -13,9 +13,9 @@
 """Test phase estimation"""
 
 import unittest
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
+
 from qiskit.circuit.library import ZGate, XGate, HGate, IGate
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector, Operator
 from qiskit.synthesis import MatrixExponential, SuzukiTrotter
@@ -39,7 +39,8 @@ from qiskit.opflow import (
     MatrixEvolution,
     PauliSumOp,
 )
-from test.utils import slow_test
+from test.python.algorithms import QiskitAlgorithmsTestCase  # pylint: disable=wrong-import-order
+from test.utils import slow_test  # pylint: disable=wrong-import-order
 
 
 @ddt

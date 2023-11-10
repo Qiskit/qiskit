@@ -26,9 +26,9 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import expr, types
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from test.utils import QiskitTestCase
 from qiskit.pulse import Schedule
 from qiskit.circuit.gate import Gate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDagCompose(QiskitTestCase):

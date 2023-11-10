@@ -16,11 +16,12 @@ Tests for Layer2Q implementation.
 
 import unittest
 from random import randint
-import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
+
 import qiskit.transpiler.synthesis.aqc.fast_gradient.layer as lr
 from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
-from test.utils import QiskitTestCase
+import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLayer2q(QiskitTestCase):

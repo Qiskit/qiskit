@@ -17,7 +17,7 @@ import unittest
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import Clifford
-from test.utils.base import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGraphStateLibrary(QiskitTestCase):

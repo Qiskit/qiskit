@@ -14,7 +14,6 @@
 
 import itertools
 import unittest
-from test import combine
 
 import numpy as np
 from ddt import ddt
@@ -41,7 +40,8 @@ from qiskit.quantum_info.operators import (
     PauliList,
 )
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
-from test.utils import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .test_pauli import pauli_group_labels
 

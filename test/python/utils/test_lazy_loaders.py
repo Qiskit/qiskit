@@ -14,12 +14,11 @@
 
 import sys
 from unittest import mock
-
 import ddt
 
 from qiskit.exceptions import MissingOptionalLibraryError
-from test.utils import QiskitTestCase
 from qiskit.utils import LazyImportTester, LazySubprocessTester
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def available_importer(**kwargs):

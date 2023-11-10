@@ -13,8 +13,8 @@
 """Tests for core modules of pulse drawer."""
 
 from qiskit import pulse
-from test.utils import QiskitTestCase
 from qiskit.visualization.pulse_v2 import drawings, types
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDrawingObjects(QiskitTestCase):

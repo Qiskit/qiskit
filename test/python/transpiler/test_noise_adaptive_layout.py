@@ -14,12 +14,13 @@
 
 from datetime import datetime
 import unittest
+
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from test.utils import QiskitTestCase
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Nduv, Gate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def make_qubit_with_error(readout_error):

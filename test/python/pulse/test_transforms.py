@@ -37,8 +37,8 @@ from qiskit.pulse.channels import (
     SnapshotChannel,
 )
 from qiskit.pulse.instructions import directives
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAlignMeasures(QiskitTestCase):

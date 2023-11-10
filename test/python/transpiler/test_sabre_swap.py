@@ -28,9 +28,9 @@ from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from test.utils import QiskitTestCase
-from test.utils._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):

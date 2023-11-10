@@ -14,9 +14,6 @@
 """Tests for Clifford class."""
 
 import unittest
-
-from test import combine
-
 import numpy as np
 from ddt import ddt
 
@@ -67,7 +64,8 @@ from qiskit.synthesis.clifford import (
     synth_clifford_greedy,
 )
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 class VGate(Gate):

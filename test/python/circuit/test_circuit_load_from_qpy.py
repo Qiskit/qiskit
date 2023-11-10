@@ -49,13 +49,13 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from test.utils import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
 from qiskit.exceptions import MissingOptionalLibraryError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

@@ -19,8 +19,6 @@ import scipy
 
 from ddt import ddt, data
 
-from test.utils import QiskitTestCase
-
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import TGate, TdgGate, HGate, SGate, SdgGate, IGate, QFT
@@ -35,6 +33,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
 from qiskit.transpiler.passes.synthesis import SolovayKitaev, SolovayKitaevSynthesis
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _trace_distance(circuit1, circuit2):

@@ -20,10 +20,9 @@ from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from test.utils import ReferenceCircuits
-from test.utils import providers
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import process_fidelity, Operator
+from test.utils import ReferenceCircuits, providers  # pylint: disable=wrong-import-order
 
 
 class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):

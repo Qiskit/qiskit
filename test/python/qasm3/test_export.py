@@ -26,10 +26,10 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import CASE_DEFAULT
-from test.utils import QiskitTestCase
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 # Tests marked with this decorator should be restored after gate definition with parameters is fixed

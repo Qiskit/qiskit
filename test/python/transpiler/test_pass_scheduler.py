@@ -24,7 +24,6 @@ from qiskit.transpiler.runningpassmanager import (
     ConditionalController,
     FlowController,
 )
-from test.utils import QiskitTestCase
 from ._dummy_passes import (
     PassA_TP_NR_NP,
     PassB_TP_RA_PA,
@@ -36,6 +35,7 @@ from ._dummy_passes import (
     PassK_check_fixed_point_property,
     PassM_AP_NR_NP,
 )
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class SchedulerTestCase(QiskitTestCase):

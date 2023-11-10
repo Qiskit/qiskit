@@ -15,10 +15,10 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManagerRun(QiskitTestCase):

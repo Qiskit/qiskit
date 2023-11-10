@@ -28,9 +28,9 @@ from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.library.standard_gates.s import SGate
 from qiskit.circuit.library.standard_gates.t import TGate
-from test.utils import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructions(QiskitTestCase):

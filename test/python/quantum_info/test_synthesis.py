@@ -17,7 +17,6 @@ import unittest
 import contextlib
 import logging
 import math
-from test import combine
 
 import numpy as np
 import scipy
@@ -75,10 +74,10 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     decompose_two_qubit_product_gate,
     TwoQubitDecomposeUpToDiagonal,
 )
-
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.quantum_info.synthesis import qsd
-from test.utils import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def make_oneq_cliffords():

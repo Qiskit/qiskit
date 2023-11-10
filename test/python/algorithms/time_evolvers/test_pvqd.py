@@ -13,8 +13,6 @@
 """Tests for PVQD."""
 import unittest
 import warnings
-
-from test.python.algorithms import QiskitAlgorithmsTestCase
 from functools import partial
 
 import numpy as np
@@ -30,9 +28,9 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, Sampler
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from test.utils import QiskitTestCase
 from qiskit.utils import algorithm_globals
-
+from test.python.algorithms import QiskitAlgorithmsTestCase  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # pylint: disable=unused-argument, invalid-name
 def gradient_supplied(fun, x0, jac, info):

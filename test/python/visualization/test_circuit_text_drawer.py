@@ -25,7 +25,6 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
-from test.utils import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.visualization import circuit_drawer
@@ -52,6 +51,8 @@ from qiskit.circuit.library import (
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 if HAS_TWEEDLEDUM:

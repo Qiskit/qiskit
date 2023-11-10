@@ -14,8 +14,6 @@
 
 import itertools as it
 import unittest
-from test import combine
-
 import numpy as np
 from ddt import ddt
 
@@ -27,7 +25,8 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import FakeNairobiV2
 from qiskit.compiler.transpiler import transpile
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 def pauli_mat(label):

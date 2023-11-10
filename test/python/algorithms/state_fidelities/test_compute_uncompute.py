@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestComputeUncompute(QiskitTestCase):

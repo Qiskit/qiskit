@@ -47,8 +47,8 @@ from qiskit.qobj.converters import (
     QobjToInstructionConverter,
     LoConfigConverter,
 )
-from test.utils import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):

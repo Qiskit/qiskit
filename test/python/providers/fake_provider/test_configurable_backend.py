@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Test of configurable backend generation."""
-from test.utils import QiskitTestCase
+
 from qiskit.providers.fake_provider.utils.configurable_backend import ConfigurableFakeBackend
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestConfigurableFakeBackend(QiskitTestCase):

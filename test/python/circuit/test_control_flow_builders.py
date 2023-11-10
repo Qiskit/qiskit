@@ -31,8 +31,8 @@ from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchC
 from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
-from test.utils import QiskitTestCase
-from test.utils._canonical import canonicalize_control_flow
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
 
 
 class SentinelException(Exception):

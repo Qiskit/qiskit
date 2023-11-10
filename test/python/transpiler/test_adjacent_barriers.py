@@ -14,10 +14,11 @@
 
 import random
 import unittest
+
 from qiskit.transpiler.passes import MergeAdjacentBarriers
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestMergeAdjacentBarriers(QiskitTestCase):

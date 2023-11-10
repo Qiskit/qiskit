@@ -17,8 +17,8 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import SetLayout, ApplyLayout, FullAncillaAllocation
-from test.utils import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspilerError
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSetLayout(QiskitTestCase):

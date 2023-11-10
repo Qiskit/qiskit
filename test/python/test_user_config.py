@@ -15,11 +15,11 @@
 import os
 import configparser as cp
 from uuid import uuid4
-
 from unittest import mock
+
 from qiskit import exceptions
-from test.utils import QiskitTestCase
 from qiskit import user_config
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUserConfig(QiskitTestCase):

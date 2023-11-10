@@ -48,8 +48,8 @@ from qiskit.pulse.library import (
 )
 
 from qiskit.pulse import functional_pulse, PulseError
-from test.utils import QiskitTestCase
 from qiskit.utils import optionals as _optional
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if _optional.HAS_SYMENGINE:
     import symengine as sym

@@ -13,8 +13,8 @@
 """Tests for core modules of pulse drawer."""
 
 from qiskit import pulse, circuit
-from test.utils import QiskitTestCase
 from qiskit.visualization.pulse_v2 import events
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestChannelEvents(QiskitTestCase):

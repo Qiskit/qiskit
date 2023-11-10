@@ -25,8 +25,9 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
-from test.utils import QiskitTestCase
 from qiskit.utils import optionals
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 logger = logging.getLogger(__name__)
 

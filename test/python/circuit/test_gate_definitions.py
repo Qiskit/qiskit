@@ -20,9 +20,7 @@ from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
-from test.utils import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
-
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate,
@@ -64,10 +62,11 @@ from qiskit.circuit.library import (
     RVGate,
     XXMinusYYGate,
 )
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 from .gate_utils import _get_free_params
 

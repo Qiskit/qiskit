@@ -14,12 +14,11 @@
 
 import copy
 import pickle
-
 import ddt
 
-from test.utils import QiskitTestCase
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.classical import expr, types
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

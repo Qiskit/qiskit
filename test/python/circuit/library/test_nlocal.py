@@ -19,7 +19,6 @@ import numpy as np
 
 from ddt import ddt, data, unpack
 
-from test.utils.base import QiskitTestCase
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.library import (
@@ -42,6 +41,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.quantum_info import Operator
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

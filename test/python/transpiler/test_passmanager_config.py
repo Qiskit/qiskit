@@ -18,7 +18,7 @@ from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi,
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManagerConfig(QiskitTestCase):
@@ -114,7 +114,7 @@ class TestPassManagerConfig(QiskitTestCase):
 	sx(0,): 7.111111111111111e-08 s
 	x(0,): 7.111111111111111e-08 s
 	measure(0,): 4.977777777777777e-06 s
-	
+
 	backend_properties: {'backend_name': 'ibmq_armonk',
 	 'backend_version': '2.4.3',
 	 'gates': [{'gate': 'id',

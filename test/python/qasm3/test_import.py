@@ -23,8 +23,8 @@ import unittest
 
 from qiskit import qasm3
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from test.utils import QiskitTestCase
 from qiskit.utils import optionals
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestQASM3Import(QiskitTestCase):

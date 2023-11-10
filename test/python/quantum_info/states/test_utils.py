@@ -15,9 +15,9 @@
 import unittest
 import numpy as np
 
-from test.utils import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
 from qiskit.quantum_info.states import partial_trace, shannon_entropy, schmidt_decomposition
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStateUtils(QiskitTestCase):

@@ -25,7 +25,7 @@ from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
 from qiskit.compiler import transpile
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyCircuitTestCase(QiskitTestCase):

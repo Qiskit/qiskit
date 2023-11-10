@@ -34,7 +34,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.circuit.classical import expr
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitCompose(QiskitTestCase):

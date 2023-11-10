@@ -16,7 +16,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Clbit, Qubit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CXCancellation
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCXCancellation(QiskitTestCase):

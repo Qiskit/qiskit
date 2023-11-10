@@ -14,11 +14,15 @@ Tests analytical gradient vs the one computed via finite differences.
 """
 
 import unittest
-from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 import numpy as np
-from test.utils import QiskitTestCase
+
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+from test.python.transpiler.aqc.sample_data import (  # pylint: disable=wrong-import-order
+    ORIGINAL_CIRCUIT,
+    INITIAL_THETAS,
+)
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGradientAgainstFiniteDiff(QiskitTestCase):

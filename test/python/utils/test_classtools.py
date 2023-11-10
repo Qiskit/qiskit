@@ -27,7 +27,7 @@ import unittest
 import sys
 
 from qiskit.utils import wrap_method
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def call_first_argument_with(*args, **kwargs):

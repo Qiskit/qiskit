@@ -23,12 +23,12 @@ from scipy.optimize import minimize
 
 from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.quantum_info import Operator
-from test.utils import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

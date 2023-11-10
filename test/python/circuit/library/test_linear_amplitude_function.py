@@ -19,9 +19,9 @@ from ddt import ddt, data, unpack
 import numpy as np
 
 from qiskit import BasicAer, execute
-from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import LinearAmplitudeFunction
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

@@ -14,12 +14,10 @@
 
 import unittest
 import os
-from test.visual import VisualTestUtilities
 from contextlib import contextmanager
 from pathlib import Path
 
 from qiskit import BasicAer, execute
-from test.utils import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
 from qiskit.visualization.state_visualization import state_drawer
@@ -33,6 +31,8 @@ from qiskit.providers.fake_provider import (
     FakeMumbai,
     FakeManhattan,
 )
+from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close

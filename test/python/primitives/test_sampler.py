@@ -21,7 +21,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSampler(QiskitTestCase):

@@ -26,7 +26,7 @@ from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestEstimator(QiskitTestCase):

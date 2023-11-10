@@ -17,8 +17,8 @@ from test.python.transpiler.aqc.sample_data import CARTAN_4, CARTAN_3
 import numpy as np
 from ddt import ddt, data, unpack
 
-from test.utils import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc import make_cnot_network
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

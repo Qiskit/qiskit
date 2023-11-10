@@ -39,8 +39,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit import Clbit, QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.singleton import SingletonGate, SingletonInstruction
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-
-from test.utils.base import QiskitTestCase
+from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSingletonGate(QiskitTestCase):

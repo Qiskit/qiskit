@@ -11,13 +11,13 @@
 # that they have been altered from the originals.
 
 """Tests ClassicalFunction as a gate."""
-import unittest
 
-from test.utils import QiskitTestCase
+import unittest
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import XGate
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     from . import examples

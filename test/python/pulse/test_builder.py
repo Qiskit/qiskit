@@ -13,19 +13,18 @@
 """Test pulse builder context utilities."""
 
 from math import pi
-
 import numpy as np
 
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from qiskit.providers.fake_provider.utils.configurable_backend import (
     ConfigurableFakeBackend as ConfigurableBackend,
 )
 from qiskit.pulse import library, instructions
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBuilder(QiskitTestCase):

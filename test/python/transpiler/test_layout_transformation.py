@@ -16,10 +16,10 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from test.utils import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import LayoutTransformation
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLayoutTransformation(QiskitTestCase):

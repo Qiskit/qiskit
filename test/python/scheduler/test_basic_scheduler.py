@@ -31,9 +31,8 @@ from qiskit.pulse import (
     transforms,
 )
 from qiskit.pulse import build, macros, play, InstructionScheduleMap
-
-from test.utils import QiskitTestCase
 from qiskit.providers.fake_provider import FakeBackend, FakeOpenPulse2Q, FakeOpenPulse3Q, FakePerth
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBasicSchedule(QiskitTestCase):

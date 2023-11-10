@@ -13,15 +13,16 @@
 """Testing naming functionality of transpiled circuits"""
 
 import unittest
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit import BasicAer
 from qiskit.transpiler.exceptions import TranspilerError
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestNamingTranspiledCircuits(QiskitTestCase):
-    """Testing the naming fuctionality for transpiled circuits."""
+    """Testing the naming functionality for transpiled circuits."""
 
     def setUp(self):
         super().setUp()

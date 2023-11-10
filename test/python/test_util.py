@@ -16,8 +16,8 @@ from unittest import mock
 import numpy as np
 
 from qiskit.utils.multiprocessing import local_hardware_info
-from test.utils import QiskitTestCase
 from qiskit.utils.arithmetic import triu_to_dense
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUtil(QiskitTestCase):

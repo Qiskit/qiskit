@@ -28,8 +28,8 @@ from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
-from test.utils import QiskitTestCase
-from test.utils._canonical import canonicalize_control_flow
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
 
 
 @ddt

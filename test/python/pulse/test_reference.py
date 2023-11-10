@@ -17,7 +17,7 @@ import numpy as np
 from qiskit import circuit, pulse
 from qiskit.pulse import builder
 from qiskit.pulse.transforms import inline_subroutines
-from test.utils import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestReference(QiskitTestCase):
