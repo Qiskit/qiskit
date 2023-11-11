@@ -144,8 +144,8 @@ can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
-APIs, such as :func:`~qiskit.execute_function.execute` and higher level algorithms in
-:mod:`qiskit.algorithms`, to get results from executing circuits on devices in a standard
+APIs, such as :func:`~qiskit.execute_function.execute` to get results from
+executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:
 
@@ -635,7 +635,7 @@ mitigation to improve the quality of the results, you could implement a
 provider-specific :class:`~.Sampler` implementation that leverages the
 ``M3Mitigation`` class internally to run the circuits and return
 quasi-probabilities directly from mthree in the result. Doing this would
-enable algorithms from :mod:`qiskit.algorithms` to get the best results with
+enable algorithms to get the best results with
 mitigation applied directly from your backends. You can refer to the
 documentation in :mod:`qiskit.primitives` on how to write custom
 implementations. Also the built-in implementations: :class:`~.Sampler`,
