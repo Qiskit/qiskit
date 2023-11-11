@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Count the operations on the longest path in a :class:`.DAGCircuit`."""
+"""Count the operations on the longest path in a DAGCircuit."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
