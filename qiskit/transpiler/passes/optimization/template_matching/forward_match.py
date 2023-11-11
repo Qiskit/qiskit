@@ -221,6 +221,7 @@ class ForwardMatch:
             int: id of the successor to get.
         """
         #successor_id = node.descendantstovisit[list_id]
+        print("in desc to visit", node, list_id)
         return self.descendantstovisit[node][list_id]
 
     def _update_qarg_indices(self, qarg):
