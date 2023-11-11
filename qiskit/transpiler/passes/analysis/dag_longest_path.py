@@ -17,7 +17,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 class DAGLongestPath(AnalysisPass):
     """Return the longest path in a :class:`.DAGCircuit` as a list of
-    DAGOpNodes, DAGInNodes, and DAGOutNodes."""
+    :class:`.DAGOpNode`\\ s, :class:`.DAGInNode`\\ s, and :class:`.DAGOutNode`\\ s."""
 
     def run(self, dag):
         """Run the DAGLongestPath pass on `dag`."""
