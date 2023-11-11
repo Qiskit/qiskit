@@ -750,8 +750,6 @@ There is also a :class:`~.BackendV2Converter` class available that enables you
 to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
 
-import pkgutil
-
 # Providers interface
 from qiskit.providers.provider import Provider
 from qiskit.providers.provider import ProviderV1
@@ -773,8 +771,3 @@ from qiskit.providers.exceptions import (
     BackendConfigurationError,
 )
 from qiskit.providers.jobstatus import JobStatus
-
-
-# Support for the deprecated extending this namespace.
-# Remove this after 0.46.0 release
-__path__ = pkgutil.extend_path(__path__, __name__)

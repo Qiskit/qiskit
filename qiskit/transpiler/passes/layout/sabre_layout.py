@@ -279,6 +279,10 @@ class SabreLayout(TransformationPass):
             }
         )
 
+        # Add the existing registers to the layout
+        for qreg in dag.qregs.values():
+            self.property_set["layout"].add_register(qreg)
+
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
         # We also skip routing here if there is more than one connected

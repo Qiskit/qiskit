@@ -103,6 +103,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,
@@ -781,6 +782,7 @@ class VQDResult(VariationalResult, EigensolverResult):
             "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(self) -> None:
         super().__init__()

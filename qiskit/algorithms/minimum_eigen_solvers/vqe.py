@@ -133,6 +133,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,
@@ -674,6 +675,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
             "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():

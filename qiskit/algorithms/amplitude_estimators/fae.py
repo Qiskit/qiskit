@@ -55,6 +55,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             "migration guide."
         ),
         since="0.24.0",
+        package_name="qiskit-terra",
     )
     def __init__(
         self,
@@ -112,6 +113,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
     @property
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         is_property=True,
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
@@ -126,6 +128,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
     @quantum_instance.setter
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         is_property=True,
         additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
