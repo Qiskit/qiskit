@@ -1332,7 +1332,7 @@ def _paramvec_names(prefix, length):
 class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
-    supported_operations = [add, sub, mul, truediv]
+    supported_operations = [add, sub, mul, truediv, pow]
 
     def setUp(self):
         super().setUp()

@@ -362,6 +362,12 @@ class ParameterExpression:
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def __pow__(self, other):
+        return self._apply_operation(pow, other)
+
+    def __rpow__(self, other):
+        return self._apply_operation(pow, other, reflected=True)
+
     def _call(self, ufunc):
         return ParameterExpression(self._parameter_symbols, ufunc(self._symbol_expr))
 
