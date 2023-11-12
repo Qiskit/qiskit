@@ -19,10 +19,4 @@ Pulse IR (:mod:`qiskit.pulse.ir`)
 
 """
 
-from .ir_instructions import (
-    BaseIRInstruction,
-    GenericInstruction,
-    AcquireInstruction,
-)
-
-from .pulse_ir import PulseIR
+from .ir import IrElement, IrBlock, IrInstruction
