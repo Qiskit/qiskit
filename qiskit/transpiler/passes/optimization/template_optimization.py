@@ -57,7 +57,7 @@ class TemplateOptimization(TransformationPass):
             heuristics_backward_param (list[int]): [length, survivor] Those are the parameters for
                 applying heuristics on the backward part of the algorithm. This part of the
                 algorithm creates a tree of matching scenario. This tree grows exponentially. The
-                heuristic evaluates which scenarios have the longest match and keep only those.
+                heuristics evaluate which scenarios have the longest match and keep only those.
                 The length is the interval in the tree for cutting it and survivor is the number
                 of scenarios that are kept. We advise to use l=3 and s=1 to have serious time
                 advantage. We remind that the heuristics implies losing a part of the maximal
