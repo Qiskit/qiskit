@@ -25,7 +25,7 @@ class TimeUnitConversion(TransformationPass):
     """Choose a time unit to be used in the following time-aware passes,
     and make all circuit time units consistent with that.
 
-    This pass will add a ``.duration`` metadata to each op whose duration is known
+    This pass will add a :attr:`.Instruction.duration` metadata to each op whose duration is known
     which will be used by subsequent scheduling passes for scheduling.
 
     If ``dt`` (in seconds) is known to transpiler, the unit ``'dt'`` is chosen. Otherwise,
