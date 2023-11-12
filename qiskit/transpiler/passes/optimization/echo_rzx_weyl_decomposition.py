@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Weyl-decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
+"""Weyl decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
 
 from typing import Tuple
 
