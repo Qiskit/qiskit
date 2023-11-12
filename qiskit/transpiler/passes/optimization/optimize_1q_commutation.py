@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Reduce 1Q gate complexity by commuting through 2Q gates and re-synthesizing."""
+"""Reduce 1Q gate complexity by commuting through 2Q gates and resynthesizing."""
 
 from copy import copy
 import logging
@@ -47,7 +47,7 @@ NOTE: These rules are _symmetric_, so that they may be applied in reverse.
 class Optimize1qGatesSimpleCommutation(TransformationPass):
     """
     Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and
-    re-synthesizing the results.  The commutation rules are stored in ``commutation_table``.
+    resynthesizing the results.  The commutation rules are stored in ``commutation_table``.
 
     NOTE: In addition to those mentioned in ``commutation_table``, this pass has some limitations:
           + Does not handle multiple commutations in a row without intermediate progress.
@@ -83,7 +83,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         Finds the run which abuts `run` from the front (or the rear if `front == False`), separated
         by a blocking node.
 
-        Returns a pair of the abutting multi-qubit gate and the run which it separates from this
+        Returns a pair of the abutting multiqubit gate and the run which it separates from this
         one. The next run can be the empty list `[]` if it is absent.
         """
         edge_node = run[0] if front else run[-1]
