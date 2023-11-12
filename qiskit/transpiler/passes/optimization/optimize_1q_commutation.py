@@ -58,7 +58,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             barriers.)
     """
 
-    # NOTE: A run from ``dag.collect_1q_runs`` is always nonempty, so we sometimes use an empty list
+    # NOTE: A run from dag.collect_1q_runs is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
     def __init__(self, basis=None, run_to_completion=False, target=None):
