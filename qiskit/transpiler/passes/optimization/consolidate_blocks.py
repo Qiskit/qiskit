@@ -55,7 +55,7 @@ class ConsolidateBlocks(TransformationPass):
     ):
         """ConsolidateBlocks initializer.
 
-        If `kak_basis_gate` is not ``None`` it will be used as the basis gate for KAK decomposition.
+        If ``kak_basis_gate`` is not ``None`` it will be used as the basis gate for KAK decomposition.
         Otherwise, if ``basis_gates`` is not ``None`` a basis gate will be chosen from this list.
         Otherwise, the basis gate will be :class:`.CXGate`.
 
