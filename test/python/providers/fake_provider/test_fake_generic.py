@@ -14,7 +14,7 @@
 from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.providers.fake_provider.fake_generic import GenericTarget
 from qiskit.transpiler import CouplingMap
-
+from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 
 
@@ -30,7 +30,7 @@ class TestGenericTarget(QiskitTestCase):
 
     def test_supported_basis_gates(self):
         """Test that target raises error if basis_gate not in ``supported_names``."""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(QiskitError):
             GenericTarget(
                 num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"], coupling_map=self.cmap
             )
@@ -47,7 +47,7 @@ class TestGenericTarget(QiskitTestCase):
 
     def test_incompatible_coupling_map(self):
         """Test that the size of the coupling map must match num_qubits."""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(QiskitError):
             FakeGeneric(
                 num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=self.cmap
             )

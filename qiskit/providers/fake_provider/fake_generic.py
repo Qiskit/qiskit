@@ -46,6 +46,8 @@ class GenericTarget(Target):
     """
     This class will generate a :class:`~.Target` instance with
     default qubit, instruction and calibration properties.
+    A target object represents the minimum set of information
+    the transpiler needs from a backend.
     """
 
     def __init__(
@@ -59,11 +61,12 @@ class GenericTarget(Target):
     ):
         """
         Args:
-            num_qubits (int): Number of qubits.
+            num_qubits (int): Number of qubits in the target.
 
             basis_gates (list[str]): List of basis gate names to be supported by
-                the target. The currently supported instructions can be consulted via
-                the ``supported_names`` property.
+                the target. These must be within the supported operations of this
+                target generator, which can be consulted through the
+                ``supported_operations`` property.
                 Common sets of basis gates are ``{"cx", "id", "rz", "sx", "x"}``
                 and ``{"ecr", "id", "rz", "sx", "x"}``.
 
@@ -80,20 +83,20 @@ class GenericTarget(Target):
             rng (np.random.Generator): Optional fixed-seed generator for default random values.
         """
         self._rng = rng if rng else np.random.default_rng(seed=42)
-        self._num_qubits = num_qubits
 
-        if coupling_map.size() != num_qubits:
-            raise ValueError(
-                f"The number of qubits in the coupling map "
-                f"({coupling_map.size()}) does not match the "
-                f"number of qubits defined in the target ({num_qubits})."
+        if num_qubits != coupling_map.size():
+            raise QiskitError(
+                f"The number of qubits (got {num_qubits}) must match "
+                f"the size of the provided coupling map (got {coupling_map.size()})."
             )
+
+        self._num_qubits = num_qubits
         self._coupling_map = coupling_map
 
-        # hardcode default target attributes. To modify,
-        # access corresponding properties through the public Target API
+        # hardcoded default target attributes. To modify,
+        # access corresponding properties through the public `Target` API
         super().__init__(
-            description="Fake Target",
+            description="Generic Target",
             num_qubits=num_qubits,
             dt=0.222e-9,
             qubit_properties=[
@@ -107,21 +110,20 @@ class GenericTarget(Target):
             concurrent_measurements=[list(range(num_qubits))],
         )
 
-        # ensure that reset, delay and measure are in basis_gates
-        basis_gates = set(basis_gates)
-        for name in ["delay", "measure", "reset"]:
-            basis_gates.add(name)
-        self._basis_gates = basis_gates
+        # ensure that Reset, Delay and Measure are in basis_gates
+        self._basis_gates = set(basis_gates)
+        for name in ["reset", "delay", "measure"]:
+            self._basis_gates.add(name)
 
-        # iterate over gates, generate noise params from defaults
+        # iterate over gates, generate noise params. from defaults
         # and add instructions to target
         for name in self._basis_gates:
-            if name not in self.supported_names:
-                raise ValueError(
+            if name not in self.supported_operations:
+                raise QiskitError(
                     f"Provided base gate {name} is not a supported "
-                    f"instruction ({self.supported_names})."
+                    f"operation ({self.supported_operations})."
                 )
-            gate = self.supported_names[name]
+            gate = self.supported_operations[name]
             noise_params = self.noise_defaults[name]
             self.add_noisy_instruction(gate, noise_params)
 
@@ -134,17 +136,19 @@ class GenericTarget(Target):
             self.add_instruction(ContinueLoopOp, name="continue")
 
         # generate block of calibration defaults and add to target
+        # Note: this could be improved if we could generate and add
+        # calibration defaults per-gate, and not as a block.
         if calibrate_gates is not None:
             defaults = self._generate_calibration_defaults(calibrate_gates)
             self.add_calibration_defaults(defaults)
 
     @property
-    def supported_names(self) -> dict[str, Instruction]:
-        """Mapping of names to class instances for instructions supported
+    def supported_operations(self) -> dict[str, Instruction]:
+        """Mapping of names to class instances for operations supported
         in ``basis_gates``.
 
         Returns:
-            Dictionary mapping instruction names to instruction instances
+            Dictionary mapping operation names to class instances.
         """
         return {
             "cx": CXGate(),
@@ -343,7 +347,7 @@ class GenericTarget(Target):
 class FakeGeneric(BackendV2):
     """
     Configurable fake :class:`~.BackendV2` generator. This class will
-    generate a fake backend from a combination of random defaults
+    generate a fake backend from a combination of generated defaults
     (with a fixable ``seed``) driven from a series of optional input arguments.
     """
 
@@ -365,7 +369,8 @@ class FakeGeneric(BackendV2):
                 Common sets of basis gates are ``["cx", "id", "rz", "sx", "x"]``
                 and ``["ecr", "id", "rz", "sx", "x"]``.
 
-            num_qubits (int): Number of qubits for the fake backend.
+            num_qubits (int): Number of qubits of the fake backend. Note that this
+                fake backend runs on a local noisy simulator,
 
             coupling_map (list[list[int]] | CouplingMap | None): Optional coupling map
                 for the fake backend. Multiple formats are supported:
@@ -399,7 +404,6 @@ class FakeGeneric(BackendV2):
         self._rng = np.random.default_rng(seed=seed)
 
         # the coupling map is necessary to build the default channels
-        # (duplicating a bit of logic)
         if coupling_map is None:
             self._coupling_map = CouplingMap().from_full(num_qubits)
         else:
