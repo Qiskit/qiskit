@@ -117,19 +117,18 @@ The proper way to raise a deprecation warning is to use the decorators `@depreca
 and add the deprecation to that function's docstring so that it shows up in the docs.
 
 
-```
-   from qiskit.utils.deprecation import deprecate_arg, deprecate_func
+```python
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
-    @deprecate_func(since="0.24.0", additional_msg="No replacement is provided.")
-    def deprecated_func():
-        pass
+@deprecate_func(since="0.24.0", additional_msg="No replacement is provided.")
+def deprecated_func():
+    pass
 
-    @deprecate_arg("bad_arg", new_alias="new_name", since="0.24.0")
-    def another_func(bad_arg: str, new_name: str):
-        pass
-```
+@deprecate_arg("bad_arg", new_alias="new_name", since="0.24.0")
+def another_func(bad_arg: str, new_name: str):
+    pass
 
-Usually, you should set `additional_msg: str ` with the format `"Instead, use ..."` so that
+Usually, you should set `additional_msg: str` with the format `"Instead, use ..."` so that
 people know how to migrate. Read those functions' docstrings for additional arguments like
 `pending: bool` and `predicate`.
 
@@ -142,13 +141,13 @@ them. Otherwise, you can directly call the `warn` function
 from the [warnings module in the Python standard library](https://docs.python.org/3/library/warnings.html),
 using the category `DeprecationWarning`.  For example:
 
-```
+```python
 import warnings
 
 def deprecated_function():
    warnings.warn(
       "The function qiskit.deprecated_function() is deprecated since "
-      "Qiskit Terra 0.20.0, and will be removed 3 months or more later. "
+      "Qiskit 0.44.0, and will be removed 3 months or more later. "
       "Instead, you should use qiskit.other_function().",
       category=DeprecationWarning,
       stacklevel=2,
@@ -161,7 +160,7 @@ Make sure you include the version of the package that introduced the deprecation
 warning (so maintainers can easily see when it is valid to remove it), and what
 the alternative path is.
 
-Take note of the `stackleve`` argument.  This controls which function is
+Take note of the `stacklevel` argument.  This controls which function is
 accused of being deprecated.  Setting `stacklevel=1` (the default) means the
 warning will blame the `warn` function itself, while `stacklevel=2` will
 correctly blame the containing function.  It is unusual to set this to anything
@@ -181,7 +180,7 @@ own assertion block.  For subclasses of `unittest.TestCase` (which all Qiskit
 test cases are), this is done by:
 
 
-```
+```python
 class MyTestSuite(QiskitTestCase):
    def test_deprecated_function(self):
       with self.assertWarns(DeprecationWarning):
@@ -200,26 +199,27 @@ for the function so that it shows up in docs.
 If you are not using those decorators, you should directly add a [Sphinx deprecated directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-deprecated):
 
 
-```
-   def deprecated_function():
-      """
-      Short description of the deprecated function.
+```python
+def deprecated_function():
+    """
+    Short description of the deprecated function.
 
-      .. deprecated:: 0.20.0
-         The function qiskit.deprecated_function() is deprecated since
-         Qiskit Terra 0.20.0, and will be removed 3 months or more later.
-         Instead, you should use qiskit.other_function().
+    .. deprecated:: 0.44.0
+       The function qiskit.deprecated_function() is deprecated since
+       Qiskit 0.44.0, and will be removed 3 months or more later.
+       Instead, you should use qiskit.other_function().
 
-      <rest of the docstring>
-      """
-      # ... the rest of the function ...
-```
+    <rest of the docstring>
+    """
+    # ... the rest of the function ...
 
 
 You should also document the deprecation in the changelog by using Reno. Explain the deprecation
 and how to migrate.
 
 In particular situations where a deprecation or change might be a major disruptor for users, a
-*migration guide* might be needed. Once the migration guide is written and published, deprecation
+*migration guide* might be needed. Please write these guides in Qiskit's documentation at
+https://github.com/Qiskit/documentation/tree/main/docs/api/migration-guides. Once
+the migration guide is written and published, deprecation
 messages and documentation should link to it (use the `additional_msg: str` argument for
 `@deprecate_arg` and `@deprecate_func`).
