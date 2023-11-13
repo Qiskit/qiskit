@@ -38,8 +38,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     any measurement mitigation, it just computes the probability distribution
     from the counts. It facilitates using backends that do not provide a
     native :class:`~.BaseSampler` implementation in places that work with
-    :class:`~.BaseSampler`, such as algorithms in :mod:`qiskit.algorithms`
-    including :class:`~.qiskit.algorithms.minimum_eigensolvers.SamplingVQE`.
+    :class:`~.BaseSampler`.
     However, if you're using a provider that has a native implementation of
     :class:`~.BaseSampler`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be
