@@ -351,6 +351,6 @@ BindingsArrayLike = Union[
     BindingsArray,
     NDArray,
     "Mapping[Parameter, NDArray]",
-    Sequence[NDArray],
+    "Sequence[NDArray]",
     None,
 ]

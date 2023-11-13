@@ -18,7 +18,7 @@ Estiamtor Task class
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -88,5 +88,5 @@ class EstimatorTask(BaseTask, ShapedMixin):
 
 
 EstimatorTaskLike = Union[
-    EstimatorTask, tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
+    EstimatorTask, Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
 ]
