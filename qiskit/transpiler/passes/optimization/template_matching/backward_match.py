@@ -454,6 +454,12 @@ class BackwardMatch:
             template_blocked = scenario.template_blocked
             matches_scenario = scenario.matches
             counter_scenario = scenario.counter
+            print("c match", circuit_matched)
+            print("c block", circuit_blocked)
+            print("t match", template_matched)
+            print("t block", template_blocked)
+            print("match", matches_scenario)
+            print("count", counter_scenario)
 
             # Part of the match list coming from the backward match.
             match_backward = [
