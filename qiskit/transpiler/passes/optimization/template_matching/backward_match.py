@@ -125,6 +125,8 @@ class BackwardMatch:
         qubits,
         clbits=None,
         heuristics_backward_param=None,
+        isblocked={},
+        matchedwith={},
     ):
         """
         Create a ForwardMatch class with necessary arguments.
@@ -139,18 +141,21 @@ class BackwardMatch:
             heuristics_backward_param (list): list that contains the two parameters for
             applying the heuristics (length and survivor).
         """
-        self.circuit_dag_dep = circuit_dag_dep.copy()
-        self.template_dag_dep = template_dag_dep.copy()
+        self.circuit_dag_dep = circuit_dag_dep#.copy()
+        self.template_dag_dep = template_dag_dep#.copy()
         self.qubits = qubits
         self.clbits = clbits if clbits is not None else []
         self.node_id_c = node_id_c
         self.node_id_t = node_id_t
         self.forward_matches = forward_matches
+        print("forw matcheds", forward_matches)
         self.match_final = []
         self.heuristics_backward_param = (
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
         self.matching_list = MatchingScenariosList()
+        self.isblocked = isblocked
+        self.matchedwith = matchedwith
 
     def _gate_indices(self):
         """
@@ -164,7 +169,7 @@ class BackwardMatch:
         current_dag = self.circuit_dag_dep
 
         for node in current_dag.get_nodes():
-            if (not node.matchedwith) and (not node.isblocked):
+            if (not self.matchedwith[node]) and (not self.isblocked[node]):
                 gate_indices.append(node.node_id)
         gate_indices.reverse()
         return gate_indices
@@ -187,6 +192,7 @@ class BackwardMatch:
         matches_template = sorted(match[0] for match in matches)
 
         descendants = self.template_dag_dep.get_descendents(self.node_id_t)#self.template_dag_dep.get_node(self.node_id_t).successors
+        print("back cand desc", descendants)
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
             if (index not in descendants) and (index not in template_block):
@@ -330,16 +336,22 @@ class BackwardMatch:
         circuit_matched = []
         circuit_blocked = []
 
+        #print("\nself.mat", self.matchedwith)
+        #print("self.isb", self.isblocked)
         for node in self.circuit_dag_dep.get_nodes():
-            circuit_matched.append(node.matchedwith)
-            circuit_blocked.append(node.isblocked)
+            pass
+            #print("NODE", node)
+            # circuit_matched.append(self.matchedwith[node])
+            # circuit_blocked.append(self.isblocked[node])
 
         template_matched = []
         template_blocked = []
 
         for node in self.template_dag_dep.get_nodes():
-            template_matched.append(node.matchedwith)
-            template_blocked.append(node.isblocked)
+            pass
+            #print()
+            # template_matched.append(self.matchedwith[node])
+            # template_blocked.append(self.isblocked[node])
 
         return circuit_matched, circuit_blocked, template_matched, template_blocked
 
@@ -423,6 +435,7 @@ class BackwardMatch:
         )
 
         # While the scenario stack is not empty.
+        print("scenarias", self.matching_list.matching_scenarios_list)
         while self.matching_list.matching_scenarios_list:
 
             # If parameters are given, the heuristics is applied.
@@ -477,6 +490,7 @@ class BackwardMatch:
 
             # The candidates in the template.
             candidates_indices = self._find_backward_candidates(template_blocked, matches_scenario)
+            print("CAND IND", candidates_indices)
             # Update of the qubits/clbits indices in the circuit in order to be
             # comparable with the one in the template.
             qarg1 = node_circuit.qindices
