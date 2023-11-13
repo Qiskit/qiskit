@@ -350,7 +350,7 @@ def _infer_shape(
 BindingsArrayLike = Union[
     BindingsArray,
     NDArray,
-    Mapping[Parameter, NDArray],
+    "Mapping[Parameter, NDArray]",
     Sequence[NDArray],
     None,
 ]
