@@ -48,9 +48,8 @@ Algorithm Utilities
 
 A QuantumInstance holds the Qiskit `backend` as well as a number of compile and
 runtime parameters controlling circuit compilation and execution. Quantum
-:mod:`algorithms <qiskit.algorithms>`
-are run on a device or simulator by passing a QuantumInstance setup with the desired
-backend etc.
+algorithms are run on a device or simulator by passing a QuantumInstance setup
+with the desired backend etc.
 
 
 Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)

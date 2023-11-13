@@ -57,5 +57,4 @@ Deprecated Modules
 .. toctree::
    :maxdepth: 1
 
-   algorithms
    opflow
