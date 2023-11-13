@@ -16,6 +16,7 @@ from qiskit.pulse import (
     PulseError,
     Qubit,
     Coupler,
+    Port,
 )
 from qiskit.test import QiskitTestCase
 
@@ -64,3 +65,25 @@ class TestLogicalElements(QiskitTestCase):
 
         self.assertEqual(Coupler(0, 1), Coupler(0, 1))
         self.assertNotEqual(Coupler(0, 1), Coupler(0, 2))
+
+
+class TestPorts(QiskitTestCase):
+    """Test ports."""
+
+    def test_ports_initialization(self):
+        """Test that Ports are created correctly"""
+        port = Port("d0")
+        self.assertEqual(port.name, "d0")
+
+    def test_ports_comparison(self):
+        """Test that Ports are compared correctly"""
+        port1 = Port("d0")
+        port2 = Port("d0")
+        port3 = Port("d1")
+        self.assertEqual(port1, port2)
+        self.assertNotEqual(port1, port3)
+
+    def test_ports_representation(self):
+        """Test Ports repr"""
+        port1 = Port("d0")
+        self.assertEqual(str(port1), "Port(d0)")
