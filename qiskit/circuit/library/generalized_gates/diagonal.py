@@ -25,6 +25,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 _EPS = 1e-10
 
+
 class Diagonal(QuantumCircuit):
     r"""Diagonal circuit.
 
@@ -144,6 +145,7 @@ class Diagonal(QuantumCircuit):
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
 
+
 def _fwht(a: np.ndarray) -> np.ndarray:
     """Fast Walsh-Hadamard Transform of array a."""
     step = 1
@@ -155,6 +157,7 @@ def _fwht(a: np.ndarray) -> np.ndarray:
         a /= np.sqrt(2)
         step *= 2
     return a
+
 
 class DiagonalGate(Gate):
     """Gate implementing a diagonal transformation."""
@@ -183,4 +186,3 @@ class DiagonalGate(Gate):
     def inverse(self):
         """Return the inverse of the diagonal gate."""
         return DiagonalGate([np.conj(entry) for entry in self.params])
-
