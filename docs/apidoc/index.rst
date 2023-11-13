@@ -44,5 +44,4 @@ API Reference
    transpiler_synthesis_plugins
    transpiler_builtin_plugins
    utils
-   utils_mitigation
    exceptions
