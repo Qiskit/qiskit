@@ -498,6 +498,7 @@ class DAGDependency:
     #         )
 
     def get_descendants(self, node_id):
+        return rx.descendants(self._multi_graph, node_id)
         desc_list = []
         print("IN DESC")
         for node in rx.descendants(self._multi_graph, node_id):

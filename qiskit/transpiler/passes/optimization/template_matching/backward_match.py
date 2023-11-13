@@ -191,7 +191,7 @@ class BackwardMatch:
 
         matches_template = sorted(match[0] for match in matches)
 
-        descendants = self.template_dag_dep.get_descendents(self.node_id_t)#self.template_dag_dep.get_node(self.node_id_t).successors
+        descendants = self.template_dag_dep.get_descendants(self.node_id_t)#self.template_dag_dep.get_node(self.node_id_t).successors
         print("back cand desc", descendants)
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
@@ -309,8 +309,7 @@ class BackwardMatch:
             bool: True if possible, False otherwise.
         """
         if (
-            node_circuit.type == "op"
-            and getattr(node_circuit.op, "condition", None)
+            getattr(node_circuit.op, "condition", None)
             and node_template.type == "op"
             and getattr(node_template.op, "condition", None)
         ):
@@ -336,22 +335,20 @@ class BackwardMatch:
         circuit_matched = []
         circuit_blocked = []
 
-        #print("\nself.mat", self.matchedwith)
-        #print("self.isb", self.isblocked)
+        print("\nself.mat", self.matchedwith)
+        print("self.isb", self.isblocked)
         for node in self.circuit_dag_dep.get_nodes():
-            pass
             #print("NODE", node)
-            # circuit_matched.append(self.matchedwith[node])
-            # circuit_blocked.append(self.isblocked[node])
+            circuit_matched.append(self.matchedwith[node])
+            circuit_blocked.append(self.isblocked[node])
 
         template_matched = []
         template_blocked = []
 
         for node in self.template_dag_dep.get_nodes():
-            pass
             #print()
-            # template_matched.append(self.matchedwith[node])
-            # template_blocked.append(self.isblocked[node])
+            template_matched.append(self.matchedwith[node])
+            template_blocked.append(self.isblocked[node])
 
         return circuit_matched, circuit_blocked, template_matched, template_blocked
 
@@ -544,12 +541,12 @@ class BackwardMatch:
 
                     # Loop to check if the match is not connected, in this case
                     # the successors matches are blocked and unmatched.
-                    for potential_block in self.template_dag_dep.get_descendents(template_id):#self.template_dag_dep.successors(template_id):
+                    for potential_block in self.template_dag_dep.get_descendants(template_id):#self.template_dag_dep.successors(template_id):
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
                             block_list.append(potential_block)
                             for block_id in block_list:
-                                for desc_id in self.template_dag_dep.get_descendents(block_id):
+                                for desc_id in self.template_dag_dep.get_descendants(block_id):
                                     template_blocked_match[desc_id] = True
                                     if template_matched_match[desc_id]:
                                         new_id = template_matched_match[desc_id][0]
@@ -596,6 +593,7 @@ class BackwardMatch:
                         global_match = True
 
             if global_match:
+                print("circ matched", circuit_matched)
                 circuit_matched_block_s = circuit_matched.copy()
                 circuit_blocked_block_s = circuit_blocked.copy()
 
@@ -610,7 +608,8 @@ class BackwardMatch:
 
                 # Second option, not a greedy match, block all successors (push the gate
                 # to the right).
-                for desc in self.circuit_dag_dep.get_descendents(circuit_id):#self.circuit_dag_dep.get_node(circuit_id).desc:
+                for desc in self.circuit_dag_dep.get_descendants(circuit_id):#self.circuit_dag_dep.get_node(circuit_id).desc:
+                    print("desc", desc)
                     circuit_blocked_block_s[desc] = True
                     if circuit_matched_block_s[desc]:
                         broken_matches.append(desc)
@@ -676,8 +675,8 @@ class BackwardMatch:
 
                 following_matches = []
 
-                descendents = self.circuit_dag_dep.get_descendents(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
-                for desc in descendents:
+                descendants = self.circuit_dag_dep.get_descendants(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
+                for desc in descendants:
                     if circuit_matched[desc]:
                         following_matches.append(desc)
 
@@ -727,9 +726,9 @@ class BackwardMatch:
 
                     broken_matches = []
 
-                    descendants = self.circuit_dag_dep.get_descendents(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
+                    descendants = self.circuit_dag_dep.get_descendants(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
 
-                    for desc in descendents:
+                    for desc in descendants:
                         circuit_blocked_nomatch[desc] = True
                         if circuit_matched_nomatch[desc]:
                             broken_matches.append(desc)
