@@ -23,6 +23,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
+_EPS = 1e-10
 
 class Diagonal(QuantumCircuit):
     r"""Diagonal circuit.
@@ -140,7 +141,7 @@ class Diagonal(QuantumCircuit):
         num_qubits = np.log2(len(diag))
         if num_qubits < 1 or not num_qubits.is_integer():
             raise CircuitError("The number of diagonal entries is not a positive power of 2.")
-        if not np.allclose(np.abs(diag), 1):
+        if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
 
 def _fwht(a: np.ndarray) -> np.ndarray:
