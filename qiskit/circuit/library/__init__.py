@@ -181,6 +181,7 @@ set the amount of qubits involved at instantiation time.
    :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
+   DiagonalGate
    MCMT
    MCMTVChain
    Permutation
@@ -198,6 +199,13 @@ set the amount of qubits involved at instantiation time.
    RVGate
    PauliGate
    LinearFunction
+   Isometry
+   UnitaryGate
+   UCGate
+   UCPauliRotGate
+   UCRXGate
+   UCRYGate
+   UCRZGate
 
 Boolean Logic Circuits
 ======================
@@ -324,6 +332,8 @@ Particular Quantum Circuits
    PhaseOracle
    EvolvedOperatorAnsatz
    PauliEvolutionGate
+   HamiltonianGate
+   UnitaryOverlap
 
 
 N-local circuits
@@ -360,6 +370,7 @@ data in quantum states and are used as feature maps for classification.
    ZFeatureMap
    ZZFeatureMap
    StatePreparation
+   Initialize
 
 Template circuits
 =================
@@ -492,6 +503,7 @@ from ..reset import Reset
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
+    DiagonalGate,
     MCMT,
     MCMTVChain,
     Permutation,
@@ -505,8 +517,16 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
     LinearFunction,
+    Isometry,
+    UnitaryGate,
+    UCGate,
+    UCPauliRotGate,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
 )
 from .pauli_evolution import PauliEvolutionGate
+from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,
     OR,
@@ -542,7 +562,13 @@ from .n_local import (
     ExcitationPreserving,
     QAOAAnsatz,
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap,
+    StatePreparation,
+    Initialize,
+)
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
 from .graph_state import GraphState
@@ -552,3 +578,4 @@ from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
 from .evolved_operator_ansatz import EvolvedOperatorAnsatz
+from .overlap import UnitaryOverlap

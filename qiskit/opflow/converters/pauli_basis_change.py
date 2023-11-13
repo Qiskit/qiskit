@@ -58,6 +58,7 @@ class PauliBasisChange(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
@@ -463,7 +464,7 @@ class PauliBasisChange(ConverterBase):
             cnots.swap(origin_anchor_bit, dest_anchor_bit)
 
         # Need to do this or a Terra bug sometimes flips cnots. No time to investigate.
-        cnots.i(0)
+        cnots.id(0)
 
         # Step 6)
         for i in sig_in_dest_only_indices:

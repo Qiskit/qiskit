@@ -39,7 +39,7 @@ from qiskit.transpiler.passes.optimization import (
     CommutativeCancellation,
     Collect2qBlocks,
     ConsolidateBlocks,
-    CXCancellation,
+    InverseCancellation,
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -47,6 +47,23 @@ from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesi
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    ECRGate,
+    CZGate,
+    XGate,
+    YGate,
+    ZGate,
+    TGate,
+    TdgGate,
+    SwapGate,
+    SGate,
+    SdgGate,
+    HGate,
+    CYGate,
+    SXGate,
+    SXdgGate,
+)
 
 
 class DefaultInitPassManager(PassManagerStagePlugin):
@@ -468,7 +485,22 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CXCancellation(),
+                    InverseCancellation(
+                        [
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
+                    ),
                 ]
             elif optimization_level == 2:
                 # Steps for optimization level 2
@@ -775,7 +807,9 @@ class NoiseAdaptiveLayoutPassManager(PassManagerStagePlugin):
         layout.append(_given_layout)
         if pass_manager_config.target is None:
             layout.append(
-                NoiseAdaptiveLayout(pass_manager_config.backend_properties),
+                NoiseAdaptiveLayout(
+                    pass_manager_config.backend_properties, pass_manager_config.coupling_map
+                ),
                 condition=_choose_layout_condition,
             )
         else:

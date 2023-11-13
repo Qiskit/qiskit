@@ -755,7 +755,7 @@ class TestCircuitQASM3(QiskitTestCase):
         )
 
     def test_reset_statement(self):
-        """Test that a reset statement gets output into valid QASM 3.  This includes tests of reset
+        """Test that a reset statement gets output into valid OpenQASM 3.  This includes tests of reset
         operations on single qubits and in nested scopes."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
@@ -775,7 +775,7 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
 
     def test_delay_statement(self):
-        """Test that delay operations get output into valid QASM 3."""
+        """Test that delay operations get output into valid OpenQASM 3."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
         qc.delay(100, qreg[0], unit="ms")
@@ -2364,7 +2364,7 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         qc.for_loop(indices, None, loop_body, [], [])
         exporter = Exporter()
         with self.assertRaisesRegex(
-            QASM3ExporterError, r"The values in QASM 3 'for' loops must all be integers.*"
+            QASM3ExporterError, r"The values in OpenQASM 3 'for' loops must all be integers.*"
         ):
             exporter.dumps(qc)
 

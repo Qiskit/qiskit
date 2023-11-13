@@ -14,10 +14,10 @@
 A module for drawing circuits in ascii art or some other text representation
 """
 
+from io import StringIO
 from warnings import warn
 from shutil import get_terminal_size
 import collections
-import itertools
 import sys
 
 from qiskit.circuit import Qubit, Clbit, ClassicalRegister
@@ -27,6 +27,8 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3.printer import BasicPrinter
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -709,6 +711,7 @@ class TextDrawing:
         cregbundle=None,
         encoding=None,
         with_layout=False,
+        expr_len=30,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -727,24 +730,12 @@ class TextDrawing:
         self.plotbarriers = plotbarriers
         self.reverse_bits = reverse_bits
         self.line_length = line_length
+        self.expr_len = expr_len
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
         self._wire_map = {}
-
-        for node in itertools.chain.from_iterable(self.nodes):
-            if node.cargs and node.op.name != "measure":
-                if cregbundle:
-                    warn(
-                        "Cregbundle set to False since an instruction needs to refer"
-                        " to individual classical wire",
-                        RuntimeWarning,
-                        2,
-                    )
-                self.cregbundle = False
-                break
-        else:
-            self.cregbundle = True if cregbundle is None else cregbundle
+        self.cregbundle = cregbundle
 
         if encoding:
             self.encoding = encoding
@@ -755,6 +746,8 @@ class TextDrawing:
                 self.encoding = "utf8"
 
         self._nest_depth = 0  # nesting depth for control flow ops
+        self._expr_text = ""  # expression text to display
+        self._builder = None  # QASM3Builder class instance for expressions
 
         # Because jupyter calls both __repr__ and __repr_html__ for some backends,
         # the entire drawer can be run twice which can result in different output
@@ -980,7 +973,7 @@ class TextDrawing:
     def special_label(node):
         """Some instructions have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
-        node_type = type(node)
+        node_type = node.base_class
         return labels.get(node_type, None)
 
     @staticmethod
@@ -1257,7 +1250,13 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, self._wire_map)
+            layer = Layer(
+                self.qubits,
+                self.clbits,
+                self.cregbundle,
+                self._circuit,
+                self._wire_map,
+            )
             for node in node_layer:
                 if isinstance(node.op, ControlFlowOp):
                     self._nest_depth = 0
@@ -1276,6 +1275,26 @@ class TextDrawing:
     def add_control_flow(self, node, layers, wire_map):
         """Add control flow ops to the circuit drawing."""
 
+        if (isinstance(node.op, SwitchCaseOp) and isinstance(node.op.target, expr.Expr)) or (
+            getattr(node.op, "condition", None) and isinstance(node.op.condition, expr.Expr)
+        ):
+            condition = node.op.target if isinstance(node.op, SwitchCaseOp) else node.op.condition
+            if self._builder is None:
+                self._builder = QASM3Builder(
+                    self._circuit,
+                    includeslist=("stdgates.inc",),
+                    basis_gates=("U",),
+                    disable_constants=False,
+                    allow_aliasing=False,
+                )
+                self._builder.build_classical_declarations()
+            stream = StringIO()
+            BasicPrinter(stream, indent="  ").visit(self._builder.build_expression(condition))
+            self._expr_text = stream.getvalue()
+            # Truncate expr_text at 30 chars or user-set expr_len
+            if len(self._expr_text) > self.expr_len:
+                self._expr_text = self._expr_text[: self.expr_len] + "..."
+
         # # Draw a left box such as If, While, For, and Switch
         flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT)
         layers.append(flow_layer.full_layer)
@@ -1291,25 +1310,27 @@ class TextDrawing:
             # Update the wire_map with the qubits and clbits from the inner circuit
             flow_wire_map = wire_map.copy()
             flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.qargs, circuit.qubits)
+                {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}
             )
-            flow_wire_map.update(
-                (inner, wire_map[outer]) for outer, inner in zip(node.cargs, circuit.clbits)
-            )
+            for outer, inner in zip(node.cargs, circuit.clbits):
+                if self.cregbundle and (
+                    (in_reg := get_bit_register(self._circuit, inner)) is not None
+                ):
+                    out_reg = get_bit_register(self._circuit, outer)
+                    flow_wire_map.update({in_reg: wire_map[out_reg]})
+                else:
+                    flow_wire_map.update({inner: wire_map[outer]})
+
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
                 flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
                 layers.append(flow_layer.full_layer)
 
-            qubits, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            _, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(
-                    qubits[: len(self.qubits)],
-                    self.clbits,
-                    self.cregbundle,
-                    circuit,
-                    flow_wire_map,
+                    self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map
                 )
                 for layer_node in layer_nodes:
                     if isinstance(layer_node.op, ControlFlowOp):
@@ -1337,15 +1358,19 @@ class TextDrawing:
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
         """Draw the left, middle, or right of a control flow box"""
 
-        conditional = section == CF_LEFT and not isinstance(node.op, ForLoopOp)
+        op = node.op
+        conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
-            if isinstance(node.op, IfElseOp):
-                label = "If-" + depth
-            elif isinstance(node.op, WhileLoopOp):
-                label = "While-" + depth
-            elif isinstance(node.op, ForLoopOp):
-                indexset = node.op.params[0]
+            etext = ""
+            if self._expr_text:
+                etext = " " + self._expr_text
+            if isinstance(op, IfElseOp):
+                label = "If-" + depth + etext
+            elif isinstance(op, WhileLoopOp):
+                label = "While-" + depth + etext
+            elif isinstance(op, ForLoopOp):
+                indexset = op.params[0]
                 # If tuple of values instead of range, cut it off at 4 items
                 if "range" not in str(indexset) and len(indexset) > 4:
                     index_str = str(indexset[:4])
@@ -1354,13 +1379,13 @@ class TextDrawing:
                     index_str = str(indexset)
                 label = "For-" + depth + " " + index_str
             else:
-                label = "Switch-" + depth
+                label = "Switch-" + depth + etext
         elif section == CF_MID:
-            if isinstance(node.op, IfElseOp):
+            if isinstance(op, IfElseOp):
                 label = "Else-" + depth
             else:
                 jump_list = []
-                for jump_values, _ in list(node.op.cases_specifier()):
+                for jump_values, _ in list(op.cases_specifier()):
                     jump_list.append(jump_values)
 
                 if "default" in str(jump_list[circ_num][0]):
@@ -1372,7 +1397,13 @@ class TextDrawing:
         else:
             label = "End-" + depth
 
-        flow_layer = Layer(self.qubits, self.clbits, self.cregbundle, self._circuit, flow_wire_map)
+        flow_layer = Layer(
+            self.qubits,
+            self.clbits,
+            self.cregbundle,
+            self._circuit,
+            flow_wire_map,
+        )
         # If only 1 qubit, draw basic 1 qubit box
         if len(node.qargs) == 1:
             flow_layer.set_qubit(
@@ -1412,7 +1443,9 @@ class TextDrawing:
             )
         if conditional:
             if isinstance(node.op, SwitchCaseOp):
-                if isinstance(node.op.target, Clbit):
+                if isinstance(node.op.target, expr.Expr):
+                    condition = node.op.target
+                elif isinstance(node.op.target, Clbit):
                     condition = (node.op.target, 1)
                 else:
                     condition = (node.op.target, 2 ** (node.op.target.size) - 1)
@@ -1428,9 +1461,7 @@ class Layer:
 
     def __init__(self, qubits, clbits, cregbundle, circuit, wire_map):
         self.qubits = qubits
-        self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
         self._circuit = circuit
-
         if cregbundle:
             self.clbits = []
             previous_creg = None
@@ -1626,14 +1657,16 @@ class Layer:
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
-            label = "<expression>"
+            label = "[expr]"
             out = []
             condition_bits = node_resources(condition).clbits
             registers = collections.defaultdict(list)
             for bit in condition_bits:
                 registers[get_bit_register(self._circuit, bit)].append(bit)
             if registerless := registers.pop(None, ()):
-                out.extend(self.set_cond_bullets(label, ["1"] * len(registerless), registerless))
+                out.extend(
+                    self.set_cond_bullets(label, ["1"] * len(registerless), registerless, wire_map)
+                )
             if self.cregbundle:
                 # It's hard to do something properly sensible here without more major rewrites, so
                 # as a minimum to *not crash* we'll just treat a condition that touches part of a
@@ -1642,7 +1675,7 @@ class Layer:
                     self.set_clbit(register[0], BoxOnClWire(label=label, top_connect=top_connect))
             else:
                 for register, bits in registers.items():
-                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits))
+                    out.extend(self.set_cond_bullets(label, ["1"] * len(bits), bits, wire_map))
             return out
 
         label, val_bits = get_condition_label_val(condition, self._circuit, self.cregbundle)

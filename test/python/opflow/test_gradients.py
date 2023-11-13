@@ -14,18 +14,17 @@
 """Test Quantum Gradient Framework"""
 
 import unittest
+import warnings
 from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
-from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
-from qiskit.algorithms import VQE
-from qiskit.algorithms.optimizers import CG
+
 from qiskit.opflow import (
     I,
     X,
@@ -57,7 +56,9 @@ class TestGradients(QiskitOpflowTestCase):
 
     def setUp(self):
         super().setUp()
-        algorithm_globals.random_seed = 50
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            algorithm_globals.random_seed = 50
 
     @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_p(self, method):
@@ -1162,51 +1163,6 @@ class TestGradients(QiskitOpflowTestCase):
                 )
                 result = grad(value)
             self.assertTrue(np.allclose(result, correct_values[i], atol=atol))
-
-    @slow_test
-    def test_vqe(self):
-        """Test VQE with gradients"""
-
-        method = "lin_comb"
-        backend = "qasm_simulator"
-
-        with self.assertWarns(DeprecationWarning):
-            q_instance = QuantumInstance(
-                BasicAer.get_backend(backend), seed_simulator=79, seed_transpiler=2
-            )
-
-        # Define the Hamiltonian
-        h2_hamiltonian = (
-            -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
-        )
-        h2_energy = -1.85727503
-
-        # Define the Ansatz
-        wavefunction = QuantumCircuit(2)
-        params = ParameterVector("theta", length=8)
-        itr = iter(params)
-        wavefunction.ry(next(itr), 0)
-        wavefunction.ry(next(itr), 1)
-        wavefunction.rz(next(itr), 0)
-        wavefunction.rz(next(itr), 1)
-        wavefunction.cx(0, 1)
-        wavefunction.ry(next(itr), 0)
-        wavefunction.ry(next(itr), 1)
-        wavefunction.rz(next(itr), 0)
-        wavefunction.rz(next(itr), 1)
-
-        # Conjugate Gradient algorithm
-        optimizer = CG(maxiter=10)
-
-        grad = Gradient(grad_method=method)
-
-        # Gradient callable
-        with self.assertWarns(DeprecationWarning):
-            vqe = VQE(
-                ansatz=wavefunction, optimizer=optimizer, gradient=grad, quantum_instance=q_instance
-            )
-            result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
-        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
     def test_qfi_overlap_works_with_bound_parameters(self):
         """Test all QFI methods work if the circuit contains a gate with bound parameters."""

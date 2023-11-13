@@ -244,20 +244,6 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
-                with self.assertWarns(DeprecationWarning):
-                    value_table = cliff.table._array
-                    value_phase = cliff.table._phase
-                    value_stabilizer = cliff.stabilizer.to_labels()
-                    value_destabilizer = cliff.destabilizer.to_labels()
-                self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
-                self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
-                self.assertTrue(
-                    np.all(np.array(value_stabilizer == [target_stabilizer[gate_name]]))
-                )
-                self.assertTrue(
-                    np.all(np.array(value_destabilizer == [target_destabilizer[gate_name]]))
-                )
-                # New methods
                 value_table = cliff.tableau[:, :-1]
                 value_phase = cliff.phase
                 value_stabilizer = cliff.to_labels(mode="S")
@@ -1067,6 +1053,12 @@ class TestCliffordOperators(QiskitTestCase):
             expected = random_clifford(num_qubits, seed=42 + i)
             actual = Clifford.from_matrix(expected.to_matrix())
             self.assertEqual(expected, actual)
+
+    def test_from_non_clifford_diagonal_operator(self):
+        """Test if failing with non-clifford diagonal operator.
+        See https://github.com/Qiskit/qiskit/issues/10903"""
+        with self.assertRaises(QiskitError):
+            Clifford.from_operator(Operator(RZZGate(0.2)))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_from_operator_round_trip(self, num_qubits):

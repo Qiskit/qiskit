@@ -10,7 +10,7 @@ fixes:
     `#9805 <https://github.com/Qiskit/qiskit-terra/issues/9805>`__.
   - |
     The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now handle multiple and nested
-    definitions of :class:`.UnitaryGate`.  See
+    definitions of :class:`~.library.UnitaryGate`.  See
     `#4623 <https://github.com/Qiskit/qiskit-terra/issues/4623>`__,
     `#6712 <https://github.com/Qiskit/qiskit-terra/issues/6712>`__,
     `#7772 <https://github.com/Qiskit/qiskit-terra/issues/7772>`__, and

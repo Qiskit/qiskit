@@ -18,8 +18,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import RealAmplitudes
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.test import QiskitTestCase

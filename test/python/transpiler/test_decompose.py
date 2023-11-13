@@ -55,7 +55,7 @@ class TestDecompose(QiskitTestCase):
         qc = QuantumCircuit(q_bits)
         qc.append(my_gate, q_bits[:3])
         qc.append(my_gate2, q_bits[2:])
-        qc.mct(q_bits[:4], q_bits[4])
+        qc.mcx(q_bits[:4], q_bits[4])
         qc.h(0)
         qc.append(circ3, [0, 1])
         self.complex_circuit = qc

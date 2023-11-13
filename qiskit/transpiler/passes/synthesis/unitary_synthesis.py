@@ -152,7 +152,7 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
-                if isinstance(target_op, type(inst.operation)) and (
+                if isinstance(target_op, inst.operation.base_class) and (
                     target_op.is_parameterized()
                     or all(
                         isclose(float(p1), float(p2))
@@ -784,7 +784,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     error = 0.0
                 basis_2q_fidelity[strength] = 1 - error
             # rewrite XX of the same strength in terms of it
-            embodiment = XXEmbodiments[type(v)]
+            embodiment = XXEmbodiments[v.base_class]
             if len(embodiment.parameters) == 1:
                 embodiments[strength] = embodiment.assign_parameters([strength])
             else:
@@ -804,7 +804,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                         basis_fidelity=basis_2q_fidelity,
                         pulse_optimize=True,
                     )
-                    embodiments.update({pi / 2: XXEmbodiments[type(pi2_decomposer.gate)]})
+                    embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})
                 else:
                     pi2_decomposer = None
                 decomposer = XXDecomposer(

@@ -14,6 +14,7 @@
 
 import itertools
 import unittest
+import warnings
 from test.python.opflow import QiskitOpflowTestCase
 
 import numpy as np
@@ -187,16 +188,22 @@ class TestPauliExpectation(QiskitOpflowTestCase):
 
         # now set global variable or argument
         try:
-            algorithm_globals.massive = True
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.massive = True
             with self.assertRaises(MemoryError):
                 states_op.to_matrix()
                 paulis_op.to_matrix()
-            algorithm_globals.massive = False
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.massive = False
             with self.assertRaises(MemoryError):
                 states_op.to_matrix(massive=True)
                 paulis_op.to_matrix(massive=True)
         finally:
-            algorithm_globals.massive = False
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                algorithm_globals.massive = False
 
     def test_not_to_matrix_called(self):
         """45 qubit calculation - literally will not work if to_matrix is

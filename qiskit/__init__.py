@@ -14,7 +14,6 @@
 
 """Main Qiskit public functionality."""
 
-import pkgutil
 import sys
 import warnings
 
@@ -66,19 +65,8 @@ from qiskit.circuit import QuantumCircuit
 # user config
 from qiskit import user_config as _user_config
 
-# The qiskit.extensions.x imports needs to be placed here due to the
-# mechanism for adding gates dynamically.
-import qiskit.extensions
 import qiskit.circuit.measure
 import qiskit.circuit.reset
-
-# Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports or any non-import code AND *before*
-# importing the package you want to allow extensions for (in this case `backends`).
-
-# Support for the deprecated extending this namespace.
-# Remove this after 0.46.0 release
-__path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer

@@ -18,13 +18,13 @@ from numpy.testing import assert_allclose
 
 
 import qiskit
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
-from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.library import HamiltonianGate, UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.circuit.exceptions import CircuitError
 
 
 class TestHamiltonianGate(QiskitTestCase):
@@ -37,12 +37,12 @@ class TestHamiltonianGate(QiskitTestCase):
 
     def test_set_matrix_raises(self):
         """test non-unitary"""
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             HamiltonianGate([[1, 0], [1, 1]], 1)
 
     def test_complex_time_raises(self):
         """test non-unitary"""
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             HamiltonianGate([[1, 0], [1, 1]], 1j)
 
     def test_conjugate(self):
@@ -93,7 +93,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         """test that an error is thrown if the method `qasm` is called."""
         matrix = np.zeros((2, 2))
         hamiltonian_gate = HamiltonianGate(data=matrix, time=1)
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(CircuitError):
             with self.assertWarns(DeprecationWarning):
                 hamiltonian_gate.qasm()
 

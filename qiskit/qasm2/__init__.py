@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
+r'''
 ================================
 OpenQASM 2 (:mod:`qiskit.qasm2`)
 ================================
@@ -60,6 +60,9 @@ instruction that has a different number of parameters or qubits as a defined ins
 program.  Each element of the argument iterable should be a particular data class:
 
 .. autoclass:: CustomInstruction
+
+This can be particularly useful when trying to resolve ambiguities in the global-phase conventions
+of an OpenQASM 2 program.  See :ref:`qasm2-phase-conventions` for more details.
 
 .. _qasm2-custom-classical:
 
@@ -183,7 +186,7 @@ Use :func:`loads` to import an OpenQASM 2 program in a string into a :class:`.Qu
 .. code-block:: python
 
     import qiskit.qasm2
-    program = '''
+    program = """
         OPENQASM 2.0;
         include "qelib1.inc";
         qreg q[2];
@@ -193,7 +196,7 @@ Use :func:`loads` to import an OpenQASM 2 program in a string into a :class:`.Qu
         cx q[0], q[1];
 
         measure q -> c;
-    '''
+    """
     circuit = qiskit.qasm2.loads(program)
     circuit.draw()
 
@@ -222,10 +225,10 @@ influence the search path used for finding these files with the ``include_path``
 .. code-block:: python
 
     import qiskit.qasm2
-    program = '''
+    program = """
         include "other.qasm";
         // ... and so on
-    '''
+    """
     circuit = qiskit.qasm2.loads(program, include_path=("/path/to/a", "/path/to/b", "."))
 
 For :func:`load` only, there is an extra argument ``include_input_directory``, which can be used to
@@ -269,12 +272,12 @@ automatically be associated with a suitable Qiskit circuit-library gate, but you
         def __init__(self):
             super().__init__("builtin", 1, [])
 
-    program = '''
+    program = """
         opaque my(theta) q1, q2;
         qreg q[2];
         my(0.5) q[0], q[1];
         builtin q[0];
-    '''
+    """
     customs = [
         CustomInstruction(name="my", num_params=1, num_qubits=2, constructor=MyGate),
         # Setting 'builtin=True' means the instruction doesn't require a declaration to be usable.
@@ -286,7 +289,7 @@ automatically be associated with a suitable Qiskit circuit-library gate, but you
 Similarly, you can add new classical functions used during the description of arguments to gates,
 both in the main body of the program (which come out constant-folded) and within the bodies of
 defined gates (which are computed on demand).  Here we provide a Python version of ``atan2(y, x)``,
-which mathematically is :math:`\atan(y/x)` but correctly handling angle quadrants and infinities,
+which mathematically is :math:`\arctan(y/x)` but correctly handling angle quadrants and infinities,
 and a custom ``add_one`` function:
 
 .. code-block:: python
@@ -294,12 +297,12 @@ and a custom ``add_one`` function:
     import math
     from qiskit.qasm2 import loads, CustomClassical
 
-    program = '''
+    program = """
         include "qelib1.inc";
         qreg q[2];
         rx(atan2(pi, 3 + add_one(0.2))) q[0];
         cx q[0], q[1];
-    '''
+    """
 
     def add_one(x):
         return x + 1
@@ -311,6 +314,77 @@ and a custom ``add_one`` function:
         CustomClassical("add_one", 1, add_one),
     ]
     circuit = loads(program, custom_classical=customs)
+
+
+.. _qasm2-phase-conventions:
+
+OpenQASM 2 Phase Conventions
+============================
+
+As a language, OpenQASM 2 does not have a way to specify the global phase of a complete program, nor
+of particular gate definitions.  This means that parsers of the language may interpret particular
+gates with a different global phase than what you might expect.  For example, the *de facto*
+standard library of OpenQASM 2 ``qelib1.inc`` contains definitions of ``u1`` and ``rz`` as follows:
+
+.. code-block:: text
+
+    gate u1(lambda) q {
+        U(0, 0, lambda) q;
+    }
+
+    gate rz(phi) a {
+        u1(phi) a;
+    }
+
+In other words, ``rz`` appears to be a direct alias for ``u1``.  However, the interpretation of
+``u1`` is specified in `equation (3) of the paper describing the language
+<https://arxiv.org/abs/1707.03429>`__ as
+
+.. math::
+
+    u_1(\lambda) = \operatorname{diag}\bigl(1, e^{i\lambda}\bigr) \sim R_z(\lambda)
+
+where the :math:`\sim` symbol denotes equivalence only up to a global phase.  When parsing OpenQASM
+2, we need to choose how to handle a distinction between such gates; ``u1`` is defined in the prose
+to be different by a phase to ``rz``, but the language is not designed to represent this.
+
+Qiskit's default position is to interpret a usage of the standard-library ``rz`` using
+:class:`.RZGate`, and a usage of ``u1`` as using the phase-distinct :class:`.U1Gate`.  If you wish
+to use the phase conventions more implied by a direct interpretation of the ``gate`` statements in
+the header file, you can use :class:`CustomInstruction` to override how Qiskit builds the circuit.
+
+For the standard ``qelib1.inc`` include there is only one point of difference, and so the override
+needed to switch its phase convention is:
+
+.. code-block:: python
+
+    from qiskit import qasm2
+    from qiskit.circuit.library import PhaseGate
+    from qiskit.quantum_info import Operator
+
+    program = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        rz(pi / 2) q[0];
+    """
+
+    custom = [
+        qasm2.CustomInstruction("rz", 1, 1, PhaseGate),
+    ]
+
+This will use Qiskit's :class:`.PhaseGate` class to represent the ``rz`` instruction, which is
+equal (including the phase) to :class:`.U1Gate`:
+
+.. code-block:: python
+
+    Operator(qasm2.loads(program, custom_instructions=custom))
+
+.. code-block:: text
+
+    Operator([[1.000000e+00+0.j, 0.000000e+00+0.j],
+              [0.000000e+00+0.j, 6.123234e-17+1.j]],
+             input_dims=(2,), output_dims=(2,))
 
 
 .. _qasm2-legacy-compatibility:
@@ -418,7 +492,7 @@ of these match each other.
 
 .. note::
 
-   Circuits imported with :func:`load` and :func:`loads` with the above legacy-compability settings
+   Circuits imported with :func:`load` and :func:`loads` with the above legacy-compatibility settings
    should compare equal to those created by Qiskit's legacy importer, provided no non-``qelib1.inc``
    user gates are defined.  User-defined gates are handled slightly differently in the new importer,
    and while they should have equivalent :attr:`~.Instruction.definition` fields on inspection, this
@@ -444,7 +518,7 @@ Qiskit has some rudimentary support for OpenQASM 3 already; see :mod:`qiskit.qas
 OpenQASM 2 is not a suitable serialization language for Qiskit's :class:`.QuantumCircuit`.  This
 module is provided for interoperability purposes, not as a general serialization format.  If that is
 what you need, consider using :mod:`qiskit.qpy` instead.
-"""
+'''
 
 __all__ = [
     "load",

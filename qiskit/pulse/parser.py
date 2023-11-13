@@ -108,8 +108,8 @@ class PulseExpression(ast.NodeTransformer):
         Raises:
             PulseError: When parameters are not bound.
         """
-        if isinstance(self._tree.body, (ast.Constant, ast.Num)):
-            return self._tree.body.n
+        if isinstance(self._tree.body, ast.Constant):
+            return self._tree.body.value
 
         self._locals_dict.clear()
         if args:
@@ -133,12 +133,12 @@ class PulseExpression(ast.NodeTransformer):
 
         expr = self.visit(self._tree)
 
-        if not isinstance(expr.body, (ast.Constant, ast.Num)):
+        if not isinstance(expr.body, ast.Constant):
             if self._partial_binding:
                 return PulseExpression(expr, self._partial_binding)
             else:
                 raise PulseError("Parameters %s are not all bound." % self.params)
-        return expr.body.n
+        return expr.body.value
 
     @staticmethod
     def _match_ops(opr: ast.AST, opr_dict: Dict, *args) -> complex:
@@ -174,19 +174,6 @@ class PulseExpression(ast.NodeTransformer):
 
         return tmp_node
 
-    def visit_Num(self, node: ast.Num) -> ast.Num:
-        """Return number as it is.
-
-        Args:
-            node: Number.
-
-        Returns:
-            Input node.
-        """
-        # node that Num node is deprecated in Python 3.8.
-        # Constant node is recommended.
-        return node
-
     def visit_Constant(self, node: ast.Constant) -> ast.Constant:
         """Return constant value as it is.
 
@@ -211,7 +198,7 @@ class PulseExpression(ast.NodeTransformer):
             PulseError: When parameter value is not a number.
         """
         if node.id in self._math_ops:
-            val = ast.Constant(n=self._math_ops[node.id])
+            val = ast.Constant(self._math_ops[node.id])
             return ast.copy_location(val, node)
         elif node.id in self._locals_dict:
             _val = self._locals_dict[node.id]
@@ -226,7 +213,7 @@ class PulseExpression(ast.NodeTransformer):
                         f"Invalid parameter value {node.id} = {self._locals_dict[node.id]} is "
                         "specified."
                     ) from ex
-            val = ast.Constant(n=_val)
+            val = ast.Constant(_val)
             return ast.copy_location(val, node)
         self._params.add(node.id)
         return node
@@ -242,8 +229,8 @@ class PulseExpression(ast.NodeTransformer):
         """
         node = copy.copy(node)
         node.operand = self.visit(node.operand)
-        if isinstance(node.operand, (ast.Constant, ast.Num)):
-            val = ast.Constant(n=self._match_ops(node.op, self._unary_ops, node.operand.n))
+        if isinstance(node.operand, ast.Constant):
+            val = ast.Constant(self._match_ops(node.op, self._unary_ops, node.operand.value))
             return ast.copy_location(val, node)
         return node
 
@@ -259,11 +246,9 @@ class PulseExpression(ast.NodeTransformer):
         node = copy.copy(node)
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
-        if isinstance(node.left, (ast.Constant, ast.Num)) and isinstance(
-            node.right, (ast.Constant, ast.Num)
-        ):
+        if isinstance(node.left, ast.Constant) and isinstance(node.right, ast.Constant):
             val = ast.Constant(
-                n=self._match_ops(node.op, self._binary_ops, node.left.n, node.right.n)
+                self._match_ops(node.op, self._binary_ops, node.left.value, node.right.value)
             )
             return ast.copy_location(val, node)
         return node
@@ -284,14 +269,14 @@ class PulseExpression(ast.NodeTransformer):
             raise PulseError("Unsafe expression is detected.")
         node = copy.copy(node)
         node.args = [self.visit(arg) for arg in node.args]
-        if all(isinstance(arg, (ast.Constant, ast.Num)) for arg in node.args):
+        if all(isinstance(arg, ast.Constant) for arg in node.args):
             if node.func.id not in self._math_ops.keys():
                 raise PulseError("Function %s is not supported." % node.func.id)
-            _args = [arg.n for arg in node.args]
+            _args = [arg.value for arg in node.args]
             _val = self._math_ops[node.func.id](*_args)
             if not _val.imag:
                 _val = _val.real
-            val = ast.Constant(n=_val)
+            val = ast.Constant(_val)
             return ast.copy_location(val, node)
         return node
 

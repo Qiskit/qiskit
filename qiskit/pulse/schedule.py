@@ -1969,8 +1969,7 @@ def _collect_scoped_parameters(
 
         if filter_regex and not re.search(filter_regex, new_name):
             continue
-        scoped_param = Parameter.__new__(Parameter, new_name, uuid=getattr(param, "_uuid"))
-        scoped_param.__init__(new_name)
+        scoped_param = Parameter(new_name, uuid=getattr(param, "_uuid"))
 
         unique_key = new_name, hash(param)
         parameters_out[unique_key] = scoped_param

@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import X, Y, Z, I, MatrixEvolution
 from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 
-from qiskit.circuit.library import EvolvedOperatorAnsatz
+from qiskit.circuit.library import EvolvedOperatorAnsatz, HamiltonianGate
 from qiskit.synthesis.evolution import MatrixExponential
 from qiskit.test import QiskitTestCase
 
@@ -69,7 +69,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             parameters = evo.parameters
 
         reference = QuantumCircuit(3)
-        reference.hamiltonian(matrix, parameters[0], [0, 1, 2])
+        reference.append(HamiltonianGate(matrix, parameters[0]), [0, 1, 2])
 
         decomposed = evo.decompose()
         if not use_opflow:

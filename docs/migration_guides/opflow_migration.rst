@@ -1004,8 +1004,8 @@ delayed synthesis of the gates or efficient transpilation of the circuits, so th
     (for example, :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE`\).
 
     In a similar manner, the :class:`qiskit.opflow.evolutions.MatrixEvolution` class performs evolution by classical matrix exponentiation,
-    constructing a circuit with :class:`.UnitaryGate`\s or :class:`.HamiltonianGate`\s containing the exponentiation of the operator.
-    This class is no longer necessary, as the :class:`.HamiltonianGate`\s can be directly handled by the algorithms.
+    constructing a circuit with :class:`~.library.UnitaryGate`\s or :class:`~.library.HamiltonianGate`\s containing the exponentiation of the operator.
+    This class is no longer necessary, as the :class:`~.library.HamiltonianGate`\s can be directly handled by the algorithms.
 
 Trotterizations
 ---------------
@@ -1046,7 +1046,7 @@ Other Evolution Classes
      - No direct replacement. The workflow no longer requires a specific operator for evolutions.
 
    * - :class:`~qiskit.opflow.evolutions.MatrixEvolution`
-     - :class:`.HamiltonianGate`
+     - :class:`~.library.HamiltonianGate`
 
    * - :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution`
      - :class:`.PauliEvolutionGate`
@@ -1211,7 +1211,7 @@ Algorithm-Agnostic Expectations
      - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.expectations.AerPauliExpectation`
-     - Use :class:`qiskit_aer.primitives.Estimator`  with ``approximation=True`` and ``shots=None`` as ``run_options``.
+     - Use :class:`qiskit_aer.primitives.Estimator`  with ``approximation=True``, and then ``shots=None`` as ``run_options``.
        See example below.
 
    * - :class:`~qiskit.opflow.expectations.MatrixExpectation`
@@ -1262,7 +1262,7 @@ Algorithm-Agnostic Expectations
         from qiskit import QuantumCircuit
         from qiskit_aer.primitives import Estimator
 
-        estimator = Estimator(run_options={"approximation": True, "shots": None})
+        estimator = Estimator(approximation=True, run_options={"shots": None})
 
         op = SparsePauliOp.from_list([("X", 1j)])
         states_op = QuantumCircuit(1)

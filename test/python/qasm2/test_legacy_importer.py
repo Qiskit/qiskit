@@ -501,8 +501,8 @@ class LoadFromQasmTest(QiskitTestCase):
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
-
-        circuit_result = Unroller(basis).run(circuit_dag)
-        expected_result = Unroller(basis).run(expected_dag)
+        with self.assertWarns(DeprecationWarning):
+            circuit_result = Unroller(basis).run(circuit_dag)
+            expected_result = Unroller(basis).run(expected_dag)
 
         self.assertEqual(circuit_result, expected_result)

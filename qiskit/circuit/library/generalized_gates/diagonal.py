@@ -14,9 +14,12 @@
 """Diagonal matrix circuit."""
 
 from __future__ import annotations
+from collections.abc import Sequence
+
 import cmath
 import numpy as np
 
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
@@ -48,9 +51,9 @@ class Diagonal(QuantumCircuit):
             \end{pmatrix}
 
     Diagonal gates are useful as representations of Boolean functions,
-    as they can map from :math:`\{0,1\}^n` to :math:`\{0,1\}^n` space. For example a phase
-    oracle can be seen as a diagonal gate with {+1, -1} on the diagonals. Such
-    an oracle will induce a +1 or -1 phase on the amplitude of any corresponding
+    as they can map from :math:`\{0,1\}^{2^n}` to :math:`\{0,1\}^{2^n}` space. For example a phase
+    oracle can be seen as a diagonal gate with :math:`\{1, -1\}` on the diagonals. Such
+    an oracle will induce a :math:`+1` or :math`-1` phase on the amplitude of any corresponding
     basis state.
 
     Diagonal gates appear in many classically hard oracular problems such as
@@ -68,25 +71,18 @@ class Diagonal(QuantumCircuit):
     `arXiv:2212.01002 <https://arxiv.org/abs/2212.01002>`_
     """
 
-    def __init__(self, diag: list[complex] | np.ndarray) -> None:
-        """Create a new Diagonal circuit.
-
+    def __init__(self, diag: Sequence[complex]) -> None:
+        r"""
         Args:
-            diag: list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+            diag: List of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
 
         Raises:
             CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
-                if the number of diagonal entries is not 2^k, where k denotes the number of qubits
+                if the number of diagonal entries is not :math:`2^k`, where :math:`k` denotes the
+                number of qubits.
         """
-        if not isinstance(diag, (list, np.ndarray)):
-            raise CircuitError("Diagonal entries must be in a list or numpy array.")
-        num_qubits = np.log2(len(diag))
-        if num_qubits < 1 or not num_qubits.is_integer():
-            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
-        if not np.allclose(np.abs(diag), 1):
-            raise CircuitError("A diagonal element does not have absolute value one.")
-
-        num_qubits = int(num_qubits)
+        self._check_input(diag)
+        num_qubits = int(np.log2(len(diag)))
 
         gate_list = [[] for _ in range(2**num_qubits)]
 
@@ -136,6 +132,16 @@ class Diagonal(QuantumCircuit):
         super().__init__(num_qubits, name="Diagonal")
         self.append(circuit.to_gate(), self.qubits)
 
+    @staticmethod
+    def _check_input(diag):
+        """Check if ``diag`` is in valid format."""
+        if not isinstance(diag, (list, np.ndarray)):
+            raise CircuitError("Diagonal entries must be in a list or numpy array.")
+        num_qubits = np.log2(len(diag))
+        if num_qubits < 1 or not num_qubits.is_integer():
+            raise CircuitError("The number of diagonal entries is not a positive power of 2.")
+        if not np.allclose(np.abs(diag), 1):
+            raise CircuitError("A diagonal element does not have absolute value one.")
 
 def _fwht(a: np.ndarray) -> np.ndarray:
     """Fast Walsh-Hadamard Transform of array a."""
@@ -148,3 +154,32 @@ def _fwht(a: np.ndarray) -> np.ndarray:
         a /= np.sqrt(2)
         step *= 2
     return a
+
+class DiagonalGate(Gate):
+    """Gate implementing a diagonal transformation."""
+
+    def __init__(self, diag: Sequence[complex]) -> None:
+        r"""
+        Args:
+            diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
+        """
+        Diagonal._check_input(diag)
+        num_qubits = int(np.log2(len(diag)))
+
+        super().__init__("diagonal", num_qubits, diag)
+
+    def _define(self):
+        self.definition = Diagonal(self.params).decompose()
+
+    def validate_parameter(self, parameter):
+        """Diagonal Gate parameter should accept complex
+        (in addition to the Gate parameter types) and always return build-in complex."""
+        if isinstance(parameter, complex):
+            return complex(parameter)
+        else:
+            return complex(super().validate_parameter(parameter))
+
+    def inverse(self):
+        """Return the inverse of the diagonal gate."""
+        return DiagonalGate([np.conj(entry) for entry in self.params])
+
