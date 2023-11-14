@@ -25,7 +25,7 @@ import re
 from typing import List, Iterable
 
 from qiskit import circuit
-from qiskit.providers.models import QasmBackendConfiguration, BackendProperties
+from qiskit.providers.models import BackendProperties, BackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
@@ -168,13 +168,13 @@ class FakeBackendV2(BackendV2):
                 self._set_props_dict_from_json()
             if self._defs_dict is None:
                 self._set_defs_dict_from_json()
-            conf = QasmBackendConfiguration.from_dict(self._conf_dict)
+            conf = BackendConfiguration.from_dict(self._conf_dict)
             props = None
             if self._props_dict is not None:
-                props = self._props_dict
+                props = BackendProperties.from_dict(self._props_dict)
             defaults = None
             if self._defs_dict is not None:
-                defaults = self._defs_dict
+                defaults = PulseDefaults.from_dict(self._defs_dict)
 
             self._target = convert_to_target(
                 configuration=conf, properties=props, defaults=defaults

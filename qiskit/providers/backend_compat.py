@@ -62,7 +62,7 @@ def convert_to_target(
     """
 
     # importing pacakges where they are needed, to avoid cyclic-import.
-    from qiskit.transpiler.target import Target  # pylint: disable=cyclic-import
+    from qiskit.transpiler.target import Target, InstructionProperties  # pylint: disable=cyclic-import
     from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
     from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
     from qiskit.qobj.pulse_qobj import PulseLibraryItem
@@ -73,11 +73,6 @@ def convert_to_target(
     from qiskit.circuit.gate import Gate
 
     required = ["measure", "delay"]
-    if isinstance(defaults, PulseDefaults):
-        defaults = defaults.to_dict()
-
-    if isinstance(properties, BackendProperties):
-        properties = properties.to_dict()
 
     # Load Qiskit object representation
     qiskit_inst_mapping = get_standard_gate_name_mapping()
@@ -106,8 +101,8 @@ def convert_to_target(
     prop_name_map = {}  # type: Dict[str, Dict[Tuple[int, ...], InstructionProperties]]
     all_instructions = set.union(basis_gates, set(required))
 
-    faulty_qubits = set()
     faulty_ops = set()
+    faulty_qubits = []
     unsupported_instructions = []
 
     # Create name to Qiskit instruction object repr mapping
@@ -149,15 +144,27 @@ def convert_to_target(
 
     # Populate instruction properties
     if properties:
-        qubit_properties = list(map(_decode_qubit_property, properties["qubits"]))
+        qubit_properties = list(
+            map(
+                lambda qubit_specs: QubitProperties(
+                    t1=qubit_specs["T1"][0],
+                    t2=qubit_specs["T2"][0],
+                    frequency=qubit_specs["frequency"][0],
+                ),
+                [
+                    properties.qubit_property(qubit_idx)
+                    for qubit_idx in range(0, configuration.num_qubits)
+                ],
+            )
+        )
         in_data["qubit_properties"] = qubit_properties
-        faulty_qubits = {
-            q for q, (prop, oper) in enumerate(qubit_properties) if filter_faulty and not oper
-        }
 
-        for gate_spec in map(GateSchema.from_dict, properties["gates"]):
-            name = gate_spec.gate
-            qubits = tuple(gate_spec.qubits)
+        if filter_faulty:
+            faulty_qubits = properties.faulty_qubits()
+
+        for gate in properties.gates:
+            name = gate.gate
+            qubits = tuple(gate.qubits)
             if name not in all_instructions:
                 logger.info(
                     "Gate property for instruction %s on qubits %s is found "
@@ -168,8 +175,17 @@ def convert_to_target(
                     qubits,
                 )
                 continue
-            inst_prop, operational = _decode_instruction_property(gate_spec)
-            if filter_faulty and (set.intersection(faulty_qubits, qubits) or not operational):
+
+            in_param = {}
+            for param in gate.parameters:
+                if param.name == "gate_error":
+                    in_param["error"] = param.value
+                elif param.name == "gate_length":
+                    in_param["duration"] = apply_prefix(value=param.value, unit=param.unit)
+
+            inst_prop = InstructionProperties(**in_param)
+
+            if filter_faulty and ((not properties.is_gate_operational(name, gate.qubits)) or any(not properties.is_qubit_operational(qubit) for qubit in gate.qubits)):
                 faulty_ops.add((name, qubits))
                 try:
                     del prop_name_map[name][qubits]
@@ -178,11 +194,24 @@ def convert_to_target(
                 except TypeError:
                     pass
                 continue
+
             if prop_name_map[name] is None:
                 prop_name_map[name] = {}
             prop_name_map[name][qubits] = inst_prop
+
         # Measure instruction property is stored in qubit property in IBM
-        measure_props = list(map(_decode_measure_property, properties["qubits"]))
+        measure_props = []
+
+        for qubit_idx in range(configuration.num_qubits):
+            qubit_prop = properties.qubit_property(qubit_idx)
+            in_prop={}
+            if "readout_length" in qubit_prop:
+                in_prop["duration"] = qubit_prop["readout_length"][0]
+            elif "readout_error" in qubit_prop:
+                in_prop["error"] = qubit_prop["readout_error"][0]
+            measure_props.append(InstructionProperties(**in_prop))
+
+
         prop_name_map["measure"] = {}
         for qubit, measure_prop in enumerate(measure_props):
             if qubit in faulty_qubits:
@@ -198,9 +227,9 @@ def convert_to_target(
 
     # Define pulse qobj converter and command sequence for lazy conversion
     if defaults:
-        pulse_lib = list(map(PulseLibraryItem.from_dict, defaults["pulse_library"]))
+        pulse_lib = [pulse_lib_item for pulse_lib_item in defaults.pulse_library]
         converter = QobjToInstructionConverter(pulse_lib)
-        for cmd in map(Command.from_dict, defaults["cmd_def"]):
+        for cmd in defaults.cmd_def:
             name = cmd.name
             qubits = tuple(cmd.qubits)
             if (
@@ -258,77 +287,6 @@ def convert_to_target(
             )
 
     return target
-
-
-def _decode_qubit_property(qubit_specs: List[Dict]) -> Tuple[QubitProperties, bool]:
-    """Decode qubit property data to generate QubitProperty instance.
-
-    Args:
-        qubit_specs: List of qubit property dictionary.
-
-    Returns:
-        An ``QubitProperty`` instance.
-    """
-    in_data = {}
-    operational = True
-    for spec in qubit_specs:
-        name = (spec["name"]).lower()
-        if name == "operational":
-            operational = bool(spec["value"])
-        elif name in QubitProperties.__slots__:
-            in_data[name] = apply_prefix(value=spec["value"], unit=spec.get("unit", None))
-    return QubitProperties(**in_data), operational  # type: ignore[no-untyped-call]
-
-
-def _decode_instruction_property(
-    gate_spec: GateSchema,
-):
-    """Decode gate property data to generate InstructionProperties instance.
-
-    Args:
-        gate_spec: List of gate property dictionary.
-
-    Returns:
-        An ``InstructionProperties`` instance and a boolean value representing
-        if this gate is operational.
-    """
-
-    # importing pacakges where they are needed, to avoid cyclic-import.
-    from qiskit.transpiler.target import InstructionProperties
-
-    in_data = {}
-    operational = True
-    for param in gate_spec.parameters:
-        if param.name == "gate_error":
-            in_data["error"] = param.value
-        if param.name == "gate_length":
-            in_data["duration"] = apply_prefix(value=param.value, unit=param.unit)
-        if param.name == "operational" and not param.value:
-            operational = bool(param.value)
-    return InstructionProperties(**in_data), operational
-
-
-def _decode_measure_property(qubit_specs: List[Dict]):
-    """Decode qubit property data to generate InstructionProperties instance.
-
-    Args:
-        qubit_specs: List of qubit property dictionary.
-
-    Returns:
-        An ``InstructionProperties`` instance.
-    """
-
-    # importing pacakges where they are needed, to avoid cyclic-import.
-    from qiskit.transpiler.target import InstructionProperties
-
-    in_data = {}
-    for spec in qubit_specs:
-        name = spec["name"]
-        if name == "readout_error":
-            in_data["error"] = spec["value"]
-        if name == "readout_length":
-            in_data["duration"] = apply_prefix(value=spec["value"], unit=spec.get("unit", None))
-    return InstructionProperties(**in_data)
 
 
 def qubit_props_list_from_props(
@@ -422,9 +380,13 @@ class BackendV2Converter(BackendV2):
         )
         self._options = self._backend._options
         self._properties = None
+        self._defaults = None
+
         if hasattr(self._backend, "properties"):
             self._properties = self._backend.properties()
-        self._defaults = None
+        if hasattr(self._backend, "defaults"):
+            self._defaults = self._backend.defaults()
+
         self._target = None
         self._name_mapping = name_mapping
         self._add_delay = add_delay
@@ -437,10 +399,6 @@ class BackendV2Converter(BackendV2):
         :rtype: Target
         """
         if self._target is None:
-            if self._defaults is None and hasattr(self._backend, "defaults"):
-                self._defaults = self._backend.defaults()
-            if self._properties is None and hasattr(self._backend, "properties"):
-                self._properties = self._backend.properties()
             self._target = convert_to_target(
                 configuration=self._config,
                 properties=self._properties,
