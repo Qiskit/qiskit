@@ -51,5 +51,5 @@ class LayoutError(QiskitError):
         return repr(self.msg)
 
 
-class CircuitToWideForTarget(TranspilerError):
+class CircuitTooWideForTarget(TranspilerError):
     """Error raised if the circuit is too wide for the target."""

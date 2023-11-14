@@ -1251,7 +1251,7 @@ Exceptions
 .. autoexception:: TranspilerAccessError
 .. autoexception:: CouplingError
 .. autoexception:: LayoutError
-.. autoexception:: CircuitToWideForTarget
+.. autoexception:: CircuitTooWideForTarget
 
 """
 
@@ -1270,7 +1270,7 @@ from .exceptions import (
     TranspilerAccessError,
     CouplingError,
     LayoutError,
-    CircuitToWideForTarget,
+    CircuitTooWideForTarget,
 )
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
