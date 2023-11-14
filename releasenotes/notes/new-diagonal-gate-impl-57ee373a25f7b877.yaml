@@ -1,0 +1,5 @@
+features:
+  - |
+    Changed the implementation of :class:`~qiskit.circuit.library.Diagonal` gate
+    to reduce its depth by approximately 50% based on the algorithm of Zhang et al.'s paper.
+
