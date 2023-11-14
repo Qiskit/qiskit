@@ -21,7 +21,7 @@ class FixedPoint(AnalysisPass):
     """Check if a property reached a fixed point.
 
     A dummy analysis pass that checks if a property reached a fixed point.
-    The results is saved in ``property_set['<property>_fixed_point']``
+    The result is saved in ``property_set['<property>_fixed_point']``
     as a boolean.
     """
 

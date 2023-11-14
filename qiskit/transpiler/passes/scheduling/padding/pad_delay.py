@@ -57,7 +57,7 @@ class PadDelay(BasePadding):
         Args:
             fill_very_end: Set ``True`` to fill the end of circuit with delay.
             target: The :class:`~.Target` representing the target backend.
-                If it supplied and it does not support delay instruction on a qubit,
+                If it is supplied and does not support delay instruction on a qubit,
                 padding passes do not pad any idle time of the qubit.
         """
         super().__init__(target=target)
