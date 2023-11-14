@@ -131,10 +131,12 @@ impl Eq for BitAsKey {}
 ///         indices.
 ///     data (Iterable[:class:`.CircuitInstruction`]): An initial instruction
 ///         listing to add to this container. All bits appearing in the
-///         instructions in this list must also exist in ``qubits`` and
+///         instructions in this iterable must also exist in ``qubits`` and
 ///         ``clbits``.
-///     reserve (int): An additional capacity to reserve beyond the container's
-///         initial capacity.
+///     reserve (int): The container's initial capacity. This is reserved
+///         before copying instructions into the container when ``data``
+///         is provided, so the initialized container's unused capacity will
+///         be ``max(0, reserve - len(data))``.
 ///
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
@@ -184,11 +186,7 @@ impl CircuitData {
         reserve: usize,
     ) -> PyResult<Self> {
         let mut self_ = CircuitData {
-            data: if reserve > 0 {
-                Vec::with_capacity(reserve)
-            } else {
-                Vec::new()
-            },
+            data: Vec::new(),
             intern_context: InternContext::new(),
             qubits_native: Vec::new(),
             clbits_native: Vec::new(),
@@ -208,8 +206,8 @@ impl CircuitData {
             }
         }
         if let Some(data) = data {
-            self_.extend(py, data)?;
             self_.reserve(py, reserve);
+            self_.extend(py, data)?;
         }
         Ok(self_)
     }
