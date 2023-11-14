@@ -456,16 +456,27 @@ impl CircuitData {
         Ok(())
     }
 
+    // To prevent the entire iterator from being loaded into memory,
+    // we create a `GILPool` for each iteration of the loop, which
+    // ensures that the `CircuitInstruction` returned by the call
+    // to `next` is dropped before the next iteration.
     pub fn extend(&mut self, py: Python<'_>, itr: &PyAny) -> PyResult<()> {
+        // To ensure proper lifetime management, we explicitly store
+        // the result of calling `iter(itr)` as a GIL-independent
+        // reference that we access only with the most recent GILPool.
+        // It would be dangerous to access the original `itr` or any
+        // GIL-dependent derivatives of it after creating the new pool.
         let itr: Py<PyIterator> = itr.iter()?.into_py(py);
         loop {
-            // Create a new pool, so that PyO3 can clear memory at the end of the loop.
+            // Create a new pool, so that PyO3 can clear memory at
+            // the end of the loop.
             let pool = unsafe { py.new_pool() };
 
-            // It is recommended to *always* immediately set py to the pool's Python, to help
-            // avoid creating references with invalid lifetimes.
+            // It is recommended to *always* immediately set py to the pool's
+            // Python, to help avoid creating references with invalid lifetimes.
             let py = pool.python();
 
+            // Access the iterator using the new pool.
             match itr.as_ref(py).next() {
                 None => {
                     break;
@@ -474,6 +485,9 @@ impl CircuitData {
                     self.append(py, v?.extract()?)?;
                 }
             }
+            // The GILPool is dropped here, which cleans up the ref
+            // returned from `next` as well as any resources used by
+            // `self.append`.
         }
         Ok(())
     }
