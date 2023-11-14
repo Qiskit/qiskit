@@ -22,18 +22,34 @@ from qiskit.circuit.library import QFT
 from qiskit.synthesis.qft import synth_qft_line
 from qiskit.quantum_info import Operator
 
+from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
+
 
 @ddt
 class TestQFTLNN(QiskitTestCase):
     """Tests for QFT synthesis functions."""
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[2, 3, 4, 5, 6, 7, 8])
     def test_qft_lnn(self, num_qubits):
         """Assert that the original and synthesized QFT circuits are the same."""
         qft_circ = QFT(num_qubits, do_swaps=True)
         qft_lnn = synth_qft_line(num_qubits)
 
         self.assertTrue(Operator(qft_circ).equiv(Operator(qft_lnn)))
+
+        # Check that the output circuit has LNN connectivity
+        self.assertTrue(check_lnn_connectivity(qft_lnn))
+
+    @combine(num_qubits=[2, 3, 4, 5, 6, 7, 8])
+    def test_qft_lnn_no_swaps(self, num_qubits):
+        """Assert that the original and synthesized QFT circuits are the same w/o swaps."""
+        qft_circ = QFT(num_qubits, do_swaps=False)
+        qft_lnn = synth_qft_line(num_qubits, do_swaps=False)
+
+        self.assertTrue(Operator(qft_circ).equiv(Operator(qft_lnn)))
+
+        # Check that the output circuit has LNN connectivity
+        self.assertTrue(check_lnn_connectivity(qft_lnn))
 
 
 if __name__ == "__main__":
