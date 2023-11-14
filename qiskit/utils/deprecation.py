@@ -26,7 +26,7 @@ def deprecate_func(
     since: str,
     additional_msg: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit-terra",
+    package_name: str = "qiskit",
     removal_timeline: str = "no earlier than 3 months after the release date",
     is_property: bool = False,
 ):
@@ -108,7 +108,7 @@ def deprecate_arg(
     additional_msg: str | None = None,
     deprecation_description: str | None = None,
     pending: bool = False,
-    package_name: str = "qiskit-terra",
+    package_name: str = "qiskit",
     new_alias: str | None = None,
     predicate: Callable[[Any], bool] | None = None,
     removal_timeline: str = "no earlier than 3 months after the release date",
@@ -433,7 +433,7 @@ def add_deprecation_to_docstring(
             "This is a simplification to facilitate deprecation messages being added to the "
             "documentation. If you have a compelling reason to need "
             "new lines, feel free to improve this function or open a request at "
-            "https://github.com/Qiskit/qiskit-terra/issues."
+            "https://github.com/Qiskit/qiskit/issues."
         )
 
     if since is None:

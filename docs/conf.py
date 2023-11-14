@@ -133,7 +133,7 @@ html_last_updated_fmt = "%Y/%m/%d"
 html_context = {
     # Enable segment analytics for qiskit.org/documentation
     "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
-    "theme_announcement": "🎉 Starting on December 1, 2023, Qiskit Documentation will only live on IBM Quantum",
+    "theme_announcement": "🎉 Starting on November 29, 2023, Qiskit Documentation will only live on IBM Quantum",
     "announcement_url": "https://medium.com/qiskit/important-changes-to-qiskit-documentation-and-learning-resources-7f4e346b19ab",
     "announcement_url_text": "Learn More",
 }
@@ -242,6 +242,7 @@ nbsphinx_prolog = """
 # Redirects
 # ----------------------------------------------------------------------------------
 
+
 def determine_api_redirects() -> dict[str, str]:
     """Set up API redirects for functions that we moved to module pages.
 
@@ -257,8 +258,7 @@ def determine_api_redirects() -> dict[str, str]:
         obj_name, new_module_page_name = line.split(" ")
         # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
         new_url = (
-            "https://qiskit.org/documentation/apidoc/" +
-            f"{new_module_page_name}.html#{obj_name}"
+            "https://qiskit.org/documentation/apidoc/" + f"{new_module_page_name}.html#{obj_name}"
         )
         result[f"stubs/{obj_name}"] = new_url
     return result

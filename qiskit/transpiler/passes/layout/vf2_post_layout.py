@@ -34,13 +34,14 @@ class VF2PostLayoutStopReason(Enum):
     """Stop reasons for VF2PostLayout pass."""
 
     SOLUTION_FOUND = "solution found"
+    NO_BETTER_SOLUTION_FOUND = "no better solution found"
     NO_SOLUTION_FOUND = "nonexistent solution"
     MORE_THAN_2Q = ">2q gates in basis"
 
 
 def _target_match(node_a, node_b):
     # Node A is the set of operations in the target. Node B is the count dict
-    # of oeprations on the node or edge in the circuit.
+    # of operations on the node or edge in the circuit.
     if isinstance(node_a, set):
         return node_a.issuperset(node_b.keys())
     # Node A is the count dict of operations on the node or edge in the circuit
@@ -50,7 +51,7 @@ def _target_match(node_a, node_b):
 
 
 class VF2PostLayout(AnalysisPass):
-    """A pass for choosing a Layout after transpilation of a circuit onto a
+    """A pass for improving an existing Layout after transpilation of a circuit onto a
     Coupling graph, as a subgraph isomorphism problem, solved by VF2++.
 
     Unlike the :class:`~.VF2Layout` transpiler pass which is designed to find an
@@ -65,17 +66,18 @@ class VF2PostLayout(AnalysisPass):
 
     If a solution is found that means there is a lower error layout available for the
     circuit. If a solution is found the layout will be set in the property set as
-    ``property_set['post_layout']``. However, if no solution is found, no
+    ``property_set['post_layout']``. However, if no solution or no better solution is found, no
     ``property_set['post_layout']`` is set. The stopping reason is
     set in ``property_set['VF2PostLayout_stop_reason']`` in all the cases and will be
     one of the values enumerated in ``VF2PostLayoutStopReason`` which has the
     following values:
 
         * ``"solution found"``: If a solution was found.
+        * ``"no better solution found"``: If the initial layout of the circuit is the best solution.
         * ``"nonexistent solution"``: If no solution was found.
-        * ``">2q gates in basis"``: If VF2PostLayout can't work with basis
+        * ``">2q gates in basis"``: If VF2PostLayout can't work with the basis of the circuit.
 
-    By default this pass will construct a heuristic scoring map based on the
+    By default, this pass will construct a heuristic scoring map based on
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
@@ -180,7 +182,7 @@ class VF2PostLayout(AnalysisPass):
             else:
                 cm_graph = PyGraph(multigraph=False)
             # If None is present in qargs there are globally defined ideal operations
-            # we should add these to all entries based on the number of qubits so we
+            # we should add these to all entries based on the number of qubits, so we
             # treat that as a valid operation even if there is no scoring for the
             # strict direction case
             global_ops = None
@@ -279,6 +281,8 @@ class VF2PostLayout(AnalysisPass):
                     edge_list=scoring_edge_list,
                     bit_list=scoring_bit_list,
                 )
+            chosen_layout = initial_layout
+            stop_reason = VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
             self.property_set[
@@ -293,7 +297,6 @@ class VF2PostLayout(AnalysisPass):
         for mapping in mappings:
             trials += 1
             logger.debug("Running trial: %s", trials)
-            stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
             layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             if self.strict_direction:
                 layout = Layout(
@@ -327,6 +330,7 @@ class VF2PostLayout(AnalysisPass):
                 )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
+                stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
 
             if self.max_trials and trials >= self.max_trials:
                 logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
@@ -340,9 +344,7 @@ class VF2PostLayout(AnalysisPass):
                     self.time_limit,
                 )
                 break
-        if chosen_layout is None:
-            stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
-        else:
+        if stop_reason == VF2PostLayoutStopReason.SOLUTION_FOUND:
             chosen_layout = vf2_utils.map_free_qubits(
                 free_nodes,
                 chosen_layout,
@@ -366,7 +368,10 @@ class VF2PostLayout(AnalysisPass):
                                 chosen_layout.add(bit, i)
                                 break
             self.property_set["post_layout"] = chosen_layout
-
+        else:
+            if chosen_layout is None:
+                stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+            # else the initial layout is optimal -> don't set post_layout, return 'no better solution'
         self.property_set["VF2PostLayout_stop_reason"] = stop_reason
 
     def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):

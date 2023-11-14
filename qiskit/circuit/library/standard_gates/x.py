@@ -590,7 +590,7 @@ class C3SXGate(SingletonControlledGate):
 
         self.definition = qc
 
-    @deprecate_func(since="0.25.0")
+    @deprecate_func(since="0.25.0", package_name="qiskit-terra")
     def qasm(self):
         # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
         # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
@@ -640,7 +640,7 @@ class C3XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3x a,b,c,d
