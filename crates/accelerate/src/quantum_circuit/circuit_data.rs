@@ -14,7 +14,7 @@ use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use crate::quantum_circuit::py_ext;
 use hashbrown::HashMap;
-use pyo3::exceptions::{PyIndexError, PyKeyError, PyValueError};
+use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
@@ -233,7 +233,11 @@ impl CircuitData {
     /// Args:
     ///     bit (:class:`.Qubit`): The qubit to register.
     pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
-        let idx = self.qubits_native.len() as u32;
+        let idx: u32 = self.qubits_native.len().try_into().map_err(|_| {
+            PyRuntimeError::new_err(
+                "The number of qubits in the circuit has exceeded the maximum capacity",
+            )
+        })?;
         self.qubit_indices_native.insert(BitAsKey::new(bit)?, idx);
         self.qubits_native.push(bit.into_py(py));
         self.qubits.as_ref(py).append(bit)
@@ -244,7 +248,11 @@ impl CircuitData {
     /// Args:
     ///     bit (:class:`.Clbit`): The clbit to register.
     pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
-        let idx = self.clbits_native.len() as u32;
+        let idx: u32 = self.clbits_native.len().try_into().map_err(|_| {
+            PyRuntimeError::new_err(
+                "The number of clbits in the circuit has exceeded the maximum capacity",
+            )
+        })?;
         self.clbit_indices_native.insert(BitAsKey::new(bit)?, idx);
         self.clbits_native.push(bit.into_py(py));
         self.clbits.as_ref(py).append(bit)
