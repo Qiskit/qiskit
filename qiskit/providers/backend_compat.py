@@ -25,7 +25,6 @@ from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.providers.models.backendproperties import Gate as GateSchema
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +61,14 @@ def convert_to_target(
     """
 
     # importing pacakges where they are needed, to avoid cyclic-import.
-    from qiskit.transpiler.target import Target, InstructionProperties  # pylint: disable=cyclic-import
+    # pylint: disable=cyclic-import
+    from qiskit.transpiler.target import (
+        Target,
+        InstructionProperties,
+    )
     from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
     from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-    from qiskit.qobj.pulse_qobj import PulseLibraryItem
     from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
-    from qiskit.providers.models.pulsedefaults import Command
     from qiskit.pulse.calibration_entries import PulseQobjDef
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.gate import Gate
@@ -144,19 +145,15 @@ def convert_to_target(
 
     # Populate instruction properties
     if properties:
-        qubit_properties = list(
-            map(
-                lambda qubit_specs: QubitProperties(
-                    t1=qubit_specs["T1"][0],
-                    t2=qubit_specs["T2"][0],
-                    frequency=qubit_specs["frequency"][0],
-                ),
-                [
-                    properties.qubit_property(qubit_idx)
-                    for qubit_idx in range(0, configuration.num_qubits)
-                ],
+        qubit_properties = [
+            QubitProperties(
+                t1=properties.qubit_property(qubit_idx)["T1"][0],
+                t2=properties.qubit_property(qubit_idx)["T2"][0],
+                frequency=properties.qubit_property(qubit_idx)["frequency"][0],
             )
-        )
+            for qubit_idx in range(0, configuration.num_qubits)
+        ]
+
         in_data["qubit_properties"] = qubit_properties
 
         if filter_faulty:
@@ -185,7 +182,10 @@ def convert_to_target(
 
             inst_prop = InstructionProperties(**in_param)
 
-            if filter_faulty and ((not properties.is_gate_operational(name, gate.qubits)) or any(not properties.is_qubit_operational(qubit) for qubit in gate.qubits)):
+            if filter_faulty and (
+                (not properties.is_gate_operational(name, gate.qubits))
+                or any(not properties.is_qubit_operational(qubit) for qubit in gate.qubits)
+            ):
                 faulty_ops.add((name, qubits))
                 try:
                     del prop_name_map[name][qubits]
@@ -204,13 +204,12 @@ def convert_to_target(
 
         for qubit_idx in range(configuration.num_qubits):
             qubit_prop = properties.qubit_property(qubit_idx)
-            in_prop={}
+            in_prop = {}
             if "readout_length" in qubit_prop:
                 in_prop["duration"] = qubit_prop["readout_length"][0]
             elif "readout_error" in qubit_prop:
                 in_prop["error"] = qubit_prop["readout_error"][0]
             measure_props.append(InstructionProperties(**in_prop))
-
 
         prop_name_map["measure"] = {}
         for qubit, measure_prop in enumerate(measure_props):
@@ -227,7 +226,7 @@ def convert_to_target(
 
     # Define pulse qobj converter and command sequence for lazy conversion
     if defaults:
-        pulse_lib = [pulse_lib_item for pulse_lib_item in defaults.pulse_library]
+        pulse_lib = list(defaults.pulse_library)
         converter = QobjToInstructionConverter(pulse_lib)
         for cmd in defaults.cmd_def:
             name = cmd.name
