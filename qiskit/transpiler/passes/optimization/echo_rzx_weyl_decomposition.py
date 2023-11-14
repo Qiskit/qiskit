@@ -41,7 +41,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
             instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
                 :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
             target (Target): The :class:`~.Target` representing the target backend, if both
-                ``instruction_schedule_map`` and this are specified then this argument will take
+                ``instruction_schedule_map`` and ``target`` are specified then this argument will take
                 precedence and ``instruction_schedule_map`` will be ignored.
         """
         super().__init__()
