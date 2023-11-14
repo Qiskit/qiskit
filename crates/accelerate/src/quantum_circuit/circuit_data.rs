@@ -22,7 +22,7 @@ use std::hash::{Hash, Hasher};
 
 /// Private type used to store instructions with interned arg lists.
 #[derive(Clone, Debug)]
-struct InternedInstruction {
+struct PackedInstruction {
     /// The Python-side operation instance.
     op: PyObject,
     /// The index under which the interner has stored `qubits`.
@@ -84,7 +84,7 @@ impl PartialEq for BitAsKey {
 impl Eq for BitAsKey {}
 
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
-/// :class:`.CircuitInstruction` instances in a compressed form by interning
+/// :class:`.CircuitInstruction` instances in a packed form by interning
 /// their :attr:`~.CircuitInstruction.qubits` and
 /// :attr:`~.CircuitInstruction.clbits` to native vectors of indices.
 ///
@@ -142,9 +142,9 @@ impl Eq for BitAsKey {}
 #[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
-    /// The interned instruction listing.
-    data: Vec<InternedInstruction>,
-    /// The intern context used to intern the instruction listing.
+    /// The packed instruction listing.
+    data: Vec<PackedInstruction>,
+    /// The intern context used to intern instruction bits.
     intern_context: InternContext,
     /// The qubits registered (e.g. through :meth:`~.CircuitData.add_qubit`).
     qubits_native: Vec<PyObject>,
@@ -293,6 +293,8 @@ impl CircuitData {
 
     // Note: we also rely on this to make us iterable!
     pub fn __getitem__<'py>(&self, py: Python<'py>, index: &PyAny) -> PyResult<PyObject> {
+        // Internal helper function to get a specific
+        // instruction by index.
         fn get_at(
             self_: &CircuitData,
             py: Python<'_>,
@@ -300,30 +302,7 @@ impl CircuitData {
         ) -> PyResult<Py<CircuitInstruction>> {
             let index = self_.convert_py_index(index)?;
             if let Some(inst) = self_.data.get(index) {
-                Py::new(
-                    py,
-                    CircuitInstruction {
-                        operation: inst.op.clone_ref(py),
-                        qubits: py_ext::tuple_new(
-                            py,
-                            self_
-                                .intern_context
-                                .lookup(inst.qubits_id)
-                                .iter()
-                                .map(|i| self_.qubits_native[*i as usize].clone_ref(py))
-                                .collect(),
-                        ),
-                        clbits: py_ext::tuple_new(
-                            py,
-                            self_
-                                .intern_context
-                                .lookup(inst.clbits_id)
-                                .iter()
-                                .map(|i| self_.clbits_native[*i as usize].clone_ref(py))
-                                .collect(),
-                        ),
-                    },
-                )
+                self_.unpack(py, inst)
             } else {
                 Err(PyIndexError::new_err(format!(
                     "No element at index {:?} in circuit data",
@@ -423,8 +402,8 @@ impl CircuitData {
             SliceOrInt::Int(index) => {
                 let index = self.convert_py_index(index)?;
                 let value: PyRef<CircuitInstruction> = value.extract()?;
-                let mut interned = self.intern_instruction(py, value)?;
-                std::mem::swap(&mut interned, &mut self.data[index]);
+                let mut packed = self.pack(py, value)?;
+                std::mem::swap(&mut packed, &mut self.data[index]);
                 Ok(())
             }
         }
@@ -437,8 +416,8 @@ impl CircuitData {
         value: PyRef<CircuitInstruction>,
     ) -> PyResult<()> {
         let index = self.convert_py_index_clamped(index);
-        let interned = self.intern_instruction(py, value)?;
-        self.data.insert(index, interned);
+        let packed = self.pack(py, value)?;
+        self.data.insert(index, packed);
         Ok(())
     }
 
@@ -451,8 +430,8 @@ impl CircuitData {
     }
 
     pub fn append(&mut self, py: Python<'_>, value: PyRef<CircuitInstruction>) -> PyResult<()> {
-        let interned = self.intern_instruction(py, value)?;
-        self.data.push(interned);
+        let packed = self.pack(py, value)?;
+        self.data.push(packed);
         Ok(())
     }
 
@@ -531,8 +510,8 @@ impl CircuitData {
     }
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        for interned in self.data.iter() {
-            visit.call(&interned.op)?;
+        for packed in self.data.iter() {
+            visit.call(&packed.op)?;
         }
         for bit in self.qubits_native.iter().chain(self.clbits_native.iter()) {
             visit.call(bit)?;
@@ -607,14 +586,14 @@ impl CircuitData {
         Ok(index as usize)
     }
 
-    /// Returns an [InternedInstruction] containing the original operation
+    /// Returns a [PackedInstruction] containing the original operation
     /// of `elem` and [InternContext] indices of its `qubits` and `clbits`
     /// fields.
-    fn intern_instruction(
+    fn pack(
         &mut self,
         py: Python<'_>,
-        elem: PyRef<CircuitInstruction>,
-    ) -> PyResult<InternedInstruction> {
+        inst: PyRef<CircuitInstruction>,
+    ) -> PyResult<PackedInstruction> {
         let mut interned_bits =
             |indices: &HashMap<BitAsKey, BitType>, bits: &PyTuple| -> PyResult<IndexType> {
                 let args = bits
@@ -631,10 +610,35 @@ impl CircuitData {
                     .collect::<PyResult<Vec<BitType>>>()?;
                 self.intern_context.intern(args)
             };
-        Ok(InternedInstruction {
-            op: elem.operation.clone_ref(py),
-            qubits_id: interned_bits(&self.qubit_indices_native, elem.qubits.as_ref(py))?,
-            clbits_id: interned_bits(&self.clbit_indices_native, elem.clbits.as_ref(py))?,
+        Ok(PackedInstruction {
+            op: inst.operation.clone_ref(py),
+            qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.as_ref(py))?,
+            clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.as_ref(py))?,
         })
+    }
+
+    fn unpack(&self, py: Python<'_>, inst: &PackedInstruction) -> PyResult<Py<CircuitInstruction>> {
+        Py::new(
+            py,
+            CircuitInstruction {
+                operation: inst.op.clone_ref(py),
+                qubits: py_ext::tuple_new(
+                    py,
+                    self.intern_context
+                        .lookup(inst.qubits_id)
+                        .iter()
+                        .map(|i| self.qubits_native[*i as usize].clone_ref(py))
+                        .collect(),
+                ),
+                clbits: py_ext::tuple_new(
+                    py,
+                    self.intern_context
+                        .lookup(inst.clbits_id)
+                        .iter()
+                        .map(|i| self.clbits_native[*i as usize].clone_ref(py))
+                        .collect(),
+                ),
+            },
+        )
     }
 }
