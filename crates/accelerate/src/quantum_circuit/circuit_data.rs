@@ -233,7 +233,7 @@ impl CircuitData {
     /// Args:
     ///     bit (:class:`.Qubit`): The qubit to register.
     pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
-        let idx: u32 = self.qubits_native.len().try_into().map_err(|_| {
+        let idx: BitType = self.qubits_native.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of qubits in the circuit has exceeded the maximum capacity",
             )
@@ -248,7 +248,7 @@ impl CircuitData {
     /// Args:
     ///     bit (:class:`.Clbit`): The clbit to register.
     pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
-        let idx: u32 = self.clbits_native.len().try_into().map_err(|_| {
+        let idx: BitType = self.clbits_native.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of clbits in the circuit has exceeded the maximum capacity",
             )
@@ -602,7 +602,7 @@ impl CircuitData {
         elem: PyRef<CircuitInstruction>,
     ) -> PyResult<InternedInstruction> {
         let mut interned_bits =
-            |indices: &HashMap<BitAsKey, u32>, bits: &PyTuple| -> PyResult<IndexType> {
+            |indices: &HashMap<BitAsKey, BitType>, bits: &PyTuple| -> PyResult<IndexType> {
                 let args = bits
                     .into_iter()
                     .map(|b| {
