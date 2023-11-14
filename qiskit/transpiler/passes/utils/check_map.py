@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 class CheckMap(AnalysisPass):
     """Check if a DAG circuit is already mapped to a coupling map.
 
-    Check if a DAGCircuit is mapped to `coupling_map` by checking that all
+    Check if a DAGCircuit is mapped to ``coupling_map`` by checking that all
     2-qubit interactions are laid out to be on adjacent qubits in the global coupling
     map of the device, setting the property set field (either specified with ``property_set_field``
     or the default ``is_swap_mapped``) to ``True`` or ``False`` accordingly. Note this does not
