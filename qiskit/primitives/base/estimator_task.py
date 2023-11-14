@@ -37,7 +37,7 @@ class EstimatorTask(BaseTask, ShapedMixin):
     """
 
     observables: ObservablesArray
-    parameter_values: BindingsArray
+    parameter_values: BindingsArray = BindingsArray(shape=())
     _shape: tuple[int, ...] = field(init=False)
 
     def __post_init__(self):
@@ -60,9 +60,9 @@ class EstimatorTask(BaseTask, ShapedMixin):
             raise ValueError(f"The length of task must be 2 or 3, but length {len(task)} is given.")
         circuit = task[0]
         observables = ObservablesArray.coerce(task[1])
-        parameter_values = (
-            BindingsArray.coerce(task[2]) if len(task) == 3 else BindingsArray([], shape=(1,))
-        )
+        if len(task) == 2:
+            return cls(circuit=circuit, observables=observables)
+        parameter_values = BindingsArray.coerce(task[2])
         return cls(circuit=circuit, observables=observables, parameter_values=parameter_values)
 
     def validate(self) -> None:

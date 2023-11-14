@@ -28,6 +28,6 @@ class BaseTask:
     circuit: QuantumCircuit
 
     def validate(self):
-        """TODO: docstring"""
+        """Validate the data"""
         if not isinstance(self.circuit, QuantumCircuit):
             raise TypeError("circuit must be QuantumCircuit.")
