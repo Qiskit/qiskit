@@ -46,7 +46,7 @@ struct BitAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The native Py pointer for the instance.
-    id: u64,
+    id: usize,
     /// The wrapped instance.
     bit: PyObject,
 }
@@ -55,7 +55,7 @@ impl BitAsKey {
     fn new(bit: &PyAny) -> PyResult<Self> {
         Ok(BitAsKey {
             hash: bit.hash()?,
-            id: bit.as_ptr() as u64,
+            id: bit.as_ptr() as usize,
             bit: bit.into_py(bit.py()),
         })
     }
