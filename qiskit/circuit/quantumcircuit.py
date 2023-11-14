@@ -59,8 +59,6 @@ from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
-from .measure import Measure
-from .reset import Reset
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -2180,6 +2178,8 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instruction.
         """
+        from .reset import Reset
+
         return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
@@ -2255,6 +2255,8 @@ class QuantumCircuit:
                 circuit.measure(qreg[1], creg[1])
 
         """
+        from .measure import Measure
+
         return self.append(Measure(), [qubit], [cbit])
 
     def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
