@@ -191,15 +191,15 @@ def convert_to_target(
                     del prop_name_map[name][qubits]
                 except KeyError:
                     pass
-                except TypeError:
-                    pass
+                # except TypeError:
+                # pass
                 continue
 
             if prop_name_map[name] is None:
                 prop_name_map[name] = {}
             prop_name_map[name][qubits] = inst_prop
 
-        # Measure instruction property is stored in qubit property in IBM
+        # Measure instruction property is stored in qubit property
         measure_props = []
 
         for qubit_idx in range(configuration.num_qubits):
@@ -218,7 +218,6 @@ def convert_to_target(
             qubits = (qubit,)
             prop_name_map["measure"][qubits] = measure_prop
 
-    # Special case for real IBM backend. They don't have delay in gate configuration.
     if add_delay and "delay" not in prop_name_map:
         prop_name_map["delay"] = {
             (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
