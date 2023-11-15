@@ -1,24 +1,22 @@
 ---
-deprecations:
+upgrade:
   - |
-    Deprecated injecting circuit gate operation into the pulse context.
+    Removed logic for injecting circuit gate operation into the pulse context.
     
-    Deprecated
+    Removed
     :func:`~qiskit.pulse.builder.call_gate`,
     :func:`~qiskit.pulse.builder.cx`,
     :func:`~qiskit.pulse.builder.u1`,
     :func:`~qiskit.pulse.builder.u2`,
     :func:`~qiskit.pulse.builder.u3`,
     :func:`~qiskit.pulse.builder.x`
-
     .. code-block:: python
-
        # This example shows how to get pulse gate instructions.
        from qiskit.providers.fake_provider import FakePerth
        backend=FakePerth()
        sched=backend.target['x'][(qubit,)].calibration
     
-    Deprecated
+    Removed
     :func:`~qiskit.pulse.builder.active_transpiler_settings`
     :func:`~qiskit.pulse.builder.active_circuit_scheduler_settings`
     :func:`~qiskit.pulse.builder.transpiler_settings`
@@ -26,14 +24,12 @@ deprecations:
     Modified module doc of :mod:`qiskit.pulse.builder` related with example
     code with circuit elements.
 
-    Deprecated arguments :code:`default_transpiler_settings`, :code:`default_circuit_scheduler_settings`
+    Removed arguments :code:`default_transpiler_settings`, :code:`default_circuit_scheduler_settings`
     in :func:`~qiskit.pulse.builder.build`
-
-    Deprecated argument of :class:`.QuantumCircuit` type in :func:`~qiskit.pulse.builder.call`
+    Removed argument of :class:`.QuantumCircuit` type in :func:`~qiskit.pulse.builder.call`
     
     Modified related tests in
     :file:`test/python/pulse/test_builder.py`,
     :file:`test/python/pulse/test_block.py`
     :file:`test/python/pulse/test_builder_v2.py`
     :file:`test/python/transpiler/test_calibrationbuilder.py`
-
