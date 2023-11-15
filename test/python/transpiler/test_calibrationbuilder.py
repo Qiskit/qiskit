@@ -119,45 +119,47 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         duration = self.compute_stretch_duration(u0p_play, theta)
         width = self.compute_stretch_width(u0p_play, theta)
 
-        with builder.build(
-            backend,
-            default_alignment="sequential",
-            default_transpiler_settings={"optimization_level": 0},
-        ) as ref_sched:
-            with builder.align_left():
-                # Positive CRs
-                u0p_params = u0p_play.pulse.parameters
-                u0p_params["duration"] = duration
-                u0p_params["width"] = width
-                builder.play(
-                    GaussianSquare(**u0p_params),
-                    ControlChannel(0),
-                )
-                d1p_params = d1p_play.pulse.parameters
-                d1p_params["duration"] = duration
-                d1p_params["width"] = width
-                builder.play(
-                    GaussianSquare(**d1p_params),
-                    DriveChannel(1),
-                )
-            builder.x(0)
-            with builder.align_left():
-                # Negative CRs
-                u0m_params = u0m_play.pulse.parameters
-                u0m_params["duration"] = duration
-                u0m_params["width"] = width
-                builder.play(
-                    GaussianSquare(**u0m_params),
-                    ControlChannel(0),
-                )
-                d1m_params = d1m_play.pulse.parameters
-                d1m_params["duration"] = duration
-                d1m_params["width"] = width
-                builder.play(
-                    GaussianSquare(**d1m_params),
-                    DriveChannel(1),
-                )
-            builder.x(0)
+        with self.assertWarns(DeprecationWarning):
+            with builder.build(
+                backend,
+                default_alignment="sequential",
+                default_transpiler_settings={"optimization_level": 0},
+            ) as ref_sched:
+                with builder.align_left():
+                    # Positive CRs
+                    u0p_params = u0p_play.pulse.parameters
+                    u0p_params["duration"] = duration
+                    u0p_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**u0p_params),
+                        ControlChannel(0),
+                    )
+                    d1p_params = d1p_play.pulse.parameters
+                    d1p_params["duration"] = duration
+                    d1p_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**d1p_params),
+                        DriveChannel(1),
+                    )
+
+                builder.x(0)
+                with builder.align_left():
+                    # Negative CRs
+                    u0m_params = u0m_play.pulse.parameters
+                    u0m_params["duration"] = duration
+                    u0m_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**u0m_params),
+                        ControlChannel(0),
+                    )
+                    d1m_params = d1m_play.pulse.parameters
+                    d1m_params["duration"] = duration
+                    d1m_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**d1m_params),
+                        DriveChannel(1),
+                    )
+                builder.x(0)
         return ref_sched
 
     def build_reverse(
@@ -173,61 +175,61 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         duration = self.compute_stretch_duration(u0p_play, theta)
         width = self.compute_stretch_width(u0p_play, theta)
 
-        with builder.build(
-            backend,
-            default_alignment="sequential",
-            default_transpiler_settings={"optimization_level": 0},
-        ) as ref_sched:
-            # Hadamard gates
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(SXGate(), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            builder.call_gate(SXGate(), qubits=(1,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            with builder.align_left():
-                # Positive CRs
-                u0p_params = u0p_play.pulse.parameters
-                u0p_params["duration"] = duration
-                u0p_params["width"] = width
-                builder.play(
-                    GaussianSquare(**u0p_params),
-                    ControlChannel(0),
-                )
-                d1p_params = d1p_play.pulse.parameters
-                d1p_params["duration"] = duration
-                d1p_params["width"] = width
-                builder.play(
-                    GaussianSquare(**d1p_params),
-                    DriveChannel(1),
-                )
-            builder.x(0)
-            with builder.align_left():
-                # Negative CRs
-                u0m_params = u0m_play.pulse.parameters
-                u0m_params["duration"] = duration
-                u0m_params["width"] = width
-                builder.play(
-                    GaussianSquare(**u0m_params),
-                    ControlChannel(0),
-                )
-                d1m_params = d1m_play.pulse.parameters
-                d1m_params["duration"] = duration
-                d1m_params["width"] = width
-                builder.play(
-                    GaussianSquare(**d1m_params),
-                    DriveChannel(1),
-                )
-            builder.x(0)
-            # Hadamard gates
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(SXGate(), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            builder.call_gate(SXGate(), qubits=(1,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-
-        return ref_sched
+        with self.assertWarns(DeprecationWarning):
+            with builder.build(
+                backend,
+                default_alignment="sequential",
+                default_transpiler_settings={"optimization_level": 0},
+            ) as ref_sched:
+                # Hadamard gates
+                builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+                builder.call_gate(SXGate(), qubits=(0,))
+                builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+                builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+                builder.call_gate(SXGate(), qubits=(1,))
+                builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+                with builder.align_left():
+                    # Positive CRs
+                    u0p_params = u0p_play.pulse.parameters
+                    u0p_params["duration"] = duration
+                    u0p_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**u0p_params),
+                        ControlChannel(0),
+                    )
+                    d1p_params = d1p_play.pulse.parameters
+                    d1p_params["duration"] = duration
+                    d1p_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**d1p_params),
+                        DriveChannel(1),
+                    )
+                builder.x(0)
+                with builder.align_left():
+                    # Negative CRs
+                    u0m_params = u0m_play.pulse.parameters
+                    u0m_params["duration"] = duration
+                    u0m_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**u0m_params),
+                        ControlChannel(0),
+                    )
+                    d1m_params = d1m_play.pulse.parameters
+                    d1m_params["duration"] = duration
+                    d1m_params["width"] = width
+                    builder.play(
+                        GaussianSquare(**d1m_params),
+                        DriveChannel(1),
+                    )
+                    builder.x(0)
+                    # Hadamard gates
+                    builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+                    builder.call_gate(SXGate(), qubits=(0,))
+                    builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+                    builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+                    builder.call_gate(SXGate(), qubits=(1,))
+                    builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            return ref_sched
 
     @data(-np.pi / 4, 0.1, np.pi / 4, np.pi / 2, np.pi)
     def test_rzx_calibration_cr_pulse_stretch(self, theta: float):

@@ -194,13 +194,15 @@ class TestContexts(TestBuilder):
         twice_cx_qc.cx(0, 1)
 
         with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(optimization_level=0):
-                builder.call(twice_cx_qc)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(optimization_level=0):
+                    builder.call(twice_cx_qc)
         self.assertNotEqual(len(schedule.instructions), 0)
 
         with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(optimization_level=3):
-                builder.call(twice_cx_qc)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(optimization_level=3):
+                    builder.call(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
 
     def test_scheduler_settings(self):
@@ -219,9 +221,10 @@ class TestContexts(TestBuilder):
         x_qc.x(0)
 
         with pulse.build(backend=self.backend) as schedule:
-            with pulse.transpiler_settings(basis_gates=["x"]):
-                with pulse.circuit_scheduler_settings(inst_map=inst_map):
-                    builder.call(x_qc)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(basis_gates=["x"]):
+                    with pulse.circuit_scheduler_settings(inst_map=inst_map):
+                        builder.call(x_qc)
 
         self.assertScheduleEqual(schedule, ref_sched)
 
@@ -606,16 +609,18 @@ class TestUtilities(TestBuilder):
     def test_active_transpiler_settings(self):
         """Test setting settings of active builder's transpiler."""
         with pulse.build(self.backend):
-            self.assertFalse(pulse.active_transpiler_settings())
-            with pulse.transpiler_settings(test_setting=1):
-                self.assertEqual(pulse.active_transpiler_settings()["test_setting"], 1)
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(pulse.active_transpiler_settings())
+                with pulse.transpiler_settings(test_setting=1):
+                    self.assertEqual(pulse.active_transpiler_settings()["test_setting"], 1)
 
     def test_active_circuit_scheduler_settings(self):
         """Test setting settings of active builder's circuit scheduler."""
         with pulse.build(self.backend):
-            self.assertFalse(pulse.active_circuit_scheduler_settings())
-            with pulse.circuit_scheduler_settings(test_setting=1):
-                self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(pulse.active_circuit_scheduler_settings())
+                with pulse.circuit_scheduler_settings(test_setting=1):
+                    self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
 
     def test_num_qubits(self):
         """Test builder utility to get number of qubits."""
@@ -787,7 +792,8 @@ class TestGates(TestBuilder):
     def test_cx(self):
         """Test cx gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.cx(0, 1)
+            with self.assertWarns(DeprecationWarning):
+                pulse.cx(0, 1)
 
         reference_qc = circuit.QuantumCircuit(2)
         reference_qc.cx(0, 1)
@@ -798,8 +804,9 @@ class TestGates(TestBuilder):
     def test_u1(self):
         """Test u1 gate."""
         with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(layout_method="trivial"):
-                pulse.u1(np.pi / 2, 0)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(layout_method="trivial"):
+                    pulse.u1(np.pi / 2, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.append(circuit.library.U1Gate(np.pi / 2), [0])
@@ -810,7 +817,8 @@ class TestGates(TestBuilder):
     def test_u2(self):
         """Test u2 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u2(np.pi / 2, 0, 0)
+            with self.assertWarns(DeprecationWarning):
+                pulse.u2(np.pi / 2, 0, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.append(circuit.library.U2Gate(np.pi / 2, 0), [0])
@@ -821,7 +829,8 @@ class TestGates(TestBuilder):
     def test_u3(self):
         """Test u3 gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.u3(np.pi / 8, np.pi / 16, np.pi / 4, 0)
+            with self.assertWarns(DeprecationWarning):
+                pulse.u3(np.pi / 8, np.pi / 16, np.pi / 4, 0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.append(circuit.library.U3Gate(np.pi / 8, np.pi / 16, np.pi / 4), [0])
@@ -832,7 +841,8 @@ class TestGates(TestBuilder):
     def test_x(self):
         """Test x gate."""
         with pulse.build(self.backend) as schedule:
-            pulse.x(0)
+            with self.assertWarns(DeprecationWarning):
+                pulse.x(0)
 
         reference_qc = circuit.QuantumCircuit(1)
         reference_qc.x(0)
@@ -844,8 +854,9 @@ class TestGates(TestBuilder):
     def test_lazy_evaluation_with_transpiler(self):
         """Test that the two cx gates are optimizied away by the transpiler."""
         with pulse.build(self.backend) as schedule:
-            pulse.cx(0, 1)
-            pulse.cx(0, 1)
+            with self.assertWarns(DeprecationWarning):
+                pulse.cx(0, 1)
+                pulse.cx(0, 1)
 
         reference_qc = circuit.QuantumCircuit(2)
         reference = compiler.schedule(reference_qc, self.backend)
@@ -857,7 +868,8 @@ class TestGates(TestBuilder):
         ensure agreement."""
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
-                pulse.x(0)
+                with self.assertWarns(DeprecationWarning):
+                    pulse.x(0)
                 pulse.measure(0)
 
         reference_qc = circuit.QuantumCircuit(1, 1)
@@ -872,7 +884,8 @@ class TestGates(TestBuilder):
         """Test that a backend is required to use a gate."""
         with self.assertRaises(exceptions.BackendNotSet):
             with pulse.build():
-                pulse.x(0)
+                with self.assertWarns(DeprecationWarning):
+                    pulse.x(0)
 
 
 class TestBuilderComposition(TestBuilder):
@@ -891,15 +904,18 @@ class TestBuilderComposition(TestBuilder):
         with pulse.build(self.backend) as schedule:
             with pulse.align_sequential():
                 pulse.delay(delay_dur, d0)
-                pulse.u2(0, pi / 2, 1)
+                with self.assertWarns(DeprecationWarning):
+                    pulse.u2(0, pi / 2, 1)
             with pulse.align_right():
                 pulse.play(library.Constant(short_dur, 0.1), d1)
                 pulse.play(library.Constant(long_dur, 0.1), d2)
-                pulse.u2(0, pi / 2, 1)
+                with self.assertWarns(DeprecationWarning):
+                    pulse.u2(0, pi / 2, 1)
             with pulse.align_left():
-                pulse.u2(0, pi / 2, 0)
-                pulse.u2(0, pi / 2, 1)
-                pulse.u2(0, pi / 2, 0)
+                with self.assertWarns(DeprecationWarning):
+                    pulse.u2(0, pi / 2, 0)
+                    pulse.u2(0, pi / 2, 1)
+                    pulse.u2(0, pi / 2, 0)
             pulse.measure(0)
 
         # prepare and schedule circuits that will be used.
@@ -1027,7 +1043,8 @@ class TestSubroutineCall(TestBuilder):
                 # this is circuit, a subroutine stored as Call instruction
                 pulse.call(h_control)
                 # this is instruction, not subroutine
-                pulse.cx(0, 1)
+                with self.assertWarns(DeprecationWarning):
+                    pulse.cx(0, 1)
                 # this is macro, not subroutine
                 pulse.measure([0, 1])
 
