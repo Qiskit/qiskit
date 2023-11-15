@@ -87,7 +87,7 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.test import QiskitTestCase, slow_test
 from qiskit.tools import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -987,7 +987,7 @@ class TestTranspile(QiskitTestCase):
 
         qc = QuantumCircuit(15, 15)
 
-        with self.assertRaises(TranspilerError):
+        with self.assertRaises(CircuitTooWideForTarget):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
