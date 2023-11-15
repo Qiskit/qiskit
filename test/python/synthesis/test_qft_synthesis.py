@@ -51,6 +51,21 @@ class TestQFTLNN(QiskitTestCase):
         # Check that the output circuit has LNN connectivity
         self.assertTrue(check_lnn_connectivity(qft_lnn))
 
+        @combine(
+            num_qubits=[2, 3, 4, 5, 6, 7, 8], do_swaps=[True, False], approximation_degree=[2, 3, 5]
+        )
+        def test_qft_lnn_approximated(self, num_qubits, do_swaps, approximation_degree):
+            """Assert that the original and synthesized QFT circuits are the same with approximation."""
+            qft_circ = QFT(num_qubits, do_swaps=do_swaps, approximation_degree=approximation_degree)
+            qft_lnn = synth_qft_line(
+                num_qubits, do_swaps=do_swaps, approximation_degree=approximation_degree
+            )
+
+            self.assertTrue(Operator(qft_circ).equiv(Operator(qft_lnn)))
+
+            # Check that the output circuit has LNN connectivity
+            self.assertTrue(check_lnn_connectivity(qft_lnn))
+
 
 if __name__ == "__main__":
     unittest.main()
