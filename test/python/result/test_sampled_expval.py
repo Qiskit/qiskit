@@ -85,9 +85,6 @@ class TestSampledExpval(QiskitTestCase):
         exp3 = sampled_expectation_value(counts, spo)
         self.assertAlmostEqual(exp3, ans)
 
-        exp4 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
-        self.assertAlmostEqual(exp4, ans)
-
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""
         dist = QuasiDistribution(PROBS)
