@@ -149,6 +149,15 @@ qiskit.pulse.builder.samples_to_seconds pulse
 qiskit.pulse.builder.seconds_to_samples pulse
 
 qiskit.pulse.library.Constant_class pulse
+qiskit.pulse.library.Sawtooth_class pulse
+qiskit.pulse.library.Triangle_class pulse
+qiskit.pulse.library.Cos_class pulse
+qiskit.pulse.library.Sin_class pulse
+qiskit.pulse.library.Gaussian_class pulse
+qiskit.pulse.library.Drag_class pulse
+qiskit.pulse.library.Square_fun pulse
+qiskit.pulse.library.Sech_fun pulse
+
 qiskit.pulse.library.constant pulse
 qiskit.pulse.library.zero pulse
 qiskit.pulse.library.square pulse
