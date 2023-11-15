@@ -13,7 +13,7 @@ This page contains the release notes for Qiskit, starting from the point at whic
    :branch: main
 
 .. release-notes::
-   :earliest-version: 0.46.0
+   :earliest-version: 0.45.0rc1
    :branch: stable/0.46
 
 .. release-notes::
