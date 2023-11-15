@@ -169,4 +169,4 @@ class TestHamiltonianCircuit(QiskitTestCase):
         qc.append(uni2q, [0, 1])
         qc = qc.assign_parameters({theta: -np.pi / 2}).decompose()
         decomposed_ham = qc.data[0].operation
-        self.assertEqual(decomposed_ham, UnitaryGate(Operator.from_label("XY")))
+        self.assertEqual(Operator(decomposed_ham), 1j * Operator.from_label("XY"))
