@@ -21,6 +21,27 @@ ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
 
+def _get_phase_difference(mat1, mat2, atol=ATOL_DEFAULT):
+    """Assumes that mat1 and mat2 only differ by a phase
+    (as in the case when ``matrix_equal(mat1, mat2, ignore_phase=True)`` returns True).
+    Returns this phase difference.
+    """
+    if not isinstance(mat1, np.ndarray):
+        mat1 = np.array(mat1)
+    if not isinstance(mat2, np.ndarray):
+        mat2 = np.array(mat2)
+    phase_difference = 0
+    for elt in mat1.flat:
+        if abs(elt) > atol:
+            phase_difference -= np.angle(elt)
+            break
+    for elt in mat2.flat:
+        if abs(elt) > atol:
+            phase_difference += np.angle(elt)
+            break
+    return phase_difference
+
+
 def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if two arrays are equal.
 
