@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag circuit to a dag dependency"""
-from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 
 
 def dag_to_dagdependency(dag, create_preds_and_succs=False):
@@ -26,7 +26,7 @@ def dag_to_dagdependency(dag, create_preds_and_succs=False):
         DAGDependency: the DAG representing the input circuit as a dag dependency.
     """
 
-    dagdependency = DAGDependency()
+    dagdependency = DAGDependencyV2()
     dagdependency.name = dag.name
     dagdependency.metadata = dag.metadata
 
