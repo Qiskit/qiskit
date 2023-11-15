@@ -18,7 +18,7 @@ from numpy.testing import assert_allclose
 
 
 import qiskit
-from qiskit.circuit.library import HamiltonianGate, UnitaryGate
+from qiskit.circuit.library import HamiltonianGate
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
