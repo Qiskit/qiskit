@@ -148,6 +148,7 @@ qiskit.pulse.builder.qubit_channels pulse
 qiskit.pulse.builder.samples_to_seconds pulse
 qiskit.pulse.builder.seconds_to_samples pulse
 
+qiskit.pulse.library.Constant_class pulse
 qiskit.pulse.library.constant pulse
 qiskit.pulse.library.zero pulse
 qiskit.pulse.library.square pulse
