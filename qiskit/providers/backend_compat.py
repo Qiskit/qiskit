@@ -191,8 +191,6 @@ def convert_to_target(
                     del prop_name_map[name][qubits]
                 except KeyError:
                     pass
-                # except TypeError:
-                # pass
                 continue
 
             if prop_name_map[name] is None:
