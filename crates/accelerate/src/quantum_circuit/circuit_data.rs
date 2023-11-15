@@ -598,7 +598,7 @@ impl CircuitData {
                     .into_iter()
                     .map(|b| {
                         let key = BitAsKey::new(b)?;
-                        indices.get(&key).cloned().ok_or_else(|| {
+                        indices.get(&key).copied().ok_or_else(|| {
                             PyKeyError::new_err(format!(
                                 "Bit {:?} has not been added to this circuit.",
                                 b
