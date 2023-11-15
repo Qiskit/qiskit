@@ -2,7 +2,7 @@
 Versioning and Support Policy
 #############################
 
-Qiskit version numbers follow `Sematinc Versioning <https://semver.org/>`__.
+Qiskit version numbers follow `Semantic Versioning <https://semver.org/>`__.
 The version number is comprised of 3 primary components, the major, minor, and
 patch versions. For a version number ``X.Y.Z`` where ``X`` is the major version,
 ``Y`` is the minor version, and ``Z`` is the patch version.
