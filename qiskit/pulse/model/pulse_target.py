@@ -59,7 +59,6 @@ class Port(PulseTarget):
             name: A string identifying the port.
         """
         self._name = name
-        self._hash = hash((name, type(self)))
 
     @property
     def name(self) -> str:
@@ -78,11 +77,11 @@ class Port(PulseTarget):
         """
         return type(self) is type(other) and self._name == other._name
 
+    def __hash__(self) -> int:
+        return hash((self._name, type(self)))
+
     def __repr__(self) -> str:
         return f"Port({self._name})"
-
-    def __hash__(self) -> int:
-        return self._hash
 
 
 class LogicalElement(PulseTarget, ABC):
@@ -104,7 +103,6 @@ class LogicalElement(PulseTarget, ABC):
         """
         self._validate_index(index)
         self._index = index
-        self._hash = hash((index, type(self)))
 
     @property
     def index(self) -> Tuple[int, ...]:
@@ -132,12 +130,12 @@ class LogicalElement(PulseTarget, ABC):
         """
         return type(self) is type(other) and self._index == other._index
 
+    def __hash__(self) -> int:
+        return hash((self._index, type(self)))
+
     def __repr__(self) -> str:
         ind_str = str(self._index) if len(self._index) > 1 else f"({self._index[0]})"
         return type(self).__name__ + ind_str
-
-    def __hash__(self) -> int:
-        return self._hash
 
 
 class Qubit(LogicalElement):
