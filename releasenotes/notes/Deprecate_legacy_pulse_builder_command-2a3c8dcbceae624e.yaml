@@ -10,7 +10,9 @@ deprecations:
     :func:`~qiskit.pulse.builder.u2`,
     :func:`~qiskit.pulse.builder.u3`,
     :func:`~qiskit.pulse.builder.x`
+
     .. code-block:: python
+
        # This example shows how to get pulse gate instructions.
        from qiskit.providers.fake_provider import FakePerth
        backend=FakePerth()
