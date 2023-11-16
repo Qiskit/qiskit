@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Fixed a bug in :func:`__read_instruction()` in which if the circuit from the qpy file had a statepreparation
+    instruction, when the circuit was loaded back it would fail if it was initially constructed with anything but
+    a list of amplitudes. This was because of how the reader interpreted the arguments as being always a list, in
+    contrast to the multiple ways the statepraparation supports to be constructed. This is now fixed and the
+    statepreparation instruction can be correctly retrieved independent of initial construction.
