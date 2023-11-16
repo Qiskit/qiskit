@@ -170,7 +170,6 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.append(PermutationGate([1, 2, 0]), [2, 4, 5])
         circuit.h(4)
-        print(circuit)
 
         qpy_file = io.BytesIO()
         dump(circuit, qpy_file)

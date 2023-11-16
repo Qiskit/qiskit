@@ -19,7 +19,7 @@ jobs:
           python -m pip install -U pip setuptools wheel
           python -m pip install -U -r requirements.txt -c constraints.txt
           python -m pip install -U -r requirements-dev.txt -c constraints.txt
-          python -m pip install -c constraints.txt -e .
+          python -m pip install -c constraints.txt -e . ./qiskit_pkg
           python -m pip install "qiskit-aer" "z3-solver" "cplex" -c constraints.txt
         env:
           SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
