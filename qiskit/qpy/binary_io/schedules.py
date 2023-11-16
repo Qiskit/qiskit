@@ -169,8 +169,8 @@ def _read_symbolic_pulse(file_obj, version):
 
         # And warn that this will change in future releases:
         warnings.warn(
-            "Complex amp support for symbolic library pulses will be deprecated in Qiskit 1.0.0. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
+            "Complex amp support for symbolic library pulses is deprecated. Once removed "
+            "in Qiskit 1.0.0, library pulses loaded from old QPY files (Terra version < 0.23),"
             " will be converted automatically to float (amp,angle) representation.",
             DeprecationWarning,
         )
