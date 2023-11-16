@@ -77,22 +77,24 @@ from __future__ import annotations
 
 import warnings
 from abc import abstractmethod
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from copy import copy
-from typing import Generic, TypeVar
+from typing import Generic, Optional, TypeVar
 
-from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
+from qiskit.utils.deprecation import deprecate_func
 
-from .base_primitive import BasePrimitive
+from ..containers.options import BasePrimitiveOptionsLike
+from ..containers.sampler_task import SamplerTask, SamplerTaskLike
 from . import validation
+from .base_primitive import BasePrimitiveV1, BasePrimitiveV2
 
 T = TypeVar("T", bound=Job)
 
 
-class BaseSampler(BasePrimitive, Generic[T]):
+class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
     """Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
@@ -200,3 +202,44 @@ class BaseSampler(BasePrimitive, Generic[T]):
             List of the parameters in each quantum circuit.
         """
         return tuple(self._parameters)
+
+
+BaseSampler = BaseSamplerV1
+
+
+class BaseSamplerV2(BasePrimitiveV2, Generic[T]):
+    """Sampler base class version 2.
+
+    Sampler returns samples of bitstrings of quantum circuits.
+    """
+
+    def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
+        super().__init__(options=options)
+
+    def run(self, tasks: SamplerTaskLike | Iterable[SamplerTaskLike]) -> T:
+        """Run the tasks of samples.
+
+        Args:
+            tasks: a task-like object. Typically, list of tuple
+                ``(QuantumCircuit, parameter_values)``
+
+        Returns:
+            The job object of Sampler's Result.
+        """
+        if isinstance(tasks, SamplerTask):
+            tasks = [tasks]
+        elif isinstance(tasks, QuantumCircuit):
+            tasks = [SamplerTask.coerce(tasks)]
+        elif isinstance(tasks, tuple) and isinstance(tasks[0], QuantumCircuit):
+            tasks = [SamplerTask.coerce(tasks)]
+        elif tasks is not SamplerTask:
+            tasks = [SamplerTask.coerce(task) for task in tasks]
+
+        for task in tasks:
+            task.validate()
+
+        return self._run(tasks)
+
+    @abstractmethod
+    def _run(self, tasks: list[SamplerTask]) -> T:
+        pass
