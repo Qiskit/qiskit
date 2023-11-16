@@ -354,7 +354,7 @@ class TemplateMatching:
                                         # Apply the forward match part of the algorithm.
                                         for node in self.circuit_dag_dep.get_nodes():
                                             pass
-                                            print("TOP OF FORWARD 2", node)
+                                            print("TOP OF FORWARD 2", node, node_id_c, node_id_t)
                                         forward = ForwardMatch(
                                             self.circuit_dag_dep,
                                             self.template_dag_dep,

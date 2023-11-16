@@ -103,12 +103,16 @@ class DAGDependencyV2():
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
 
+        # Map of number of each kind of op, keyed on op name
         self._op_names = {}
 
         self.duration = None
         self.unit = "dt"
 
         self.comm_checker = CommutationChecker()
+
+        # Map of node to node index
+        self.node_map = {}
 
     @property
     def global_phase(self):
@@ -265,17 +269,106 @@ class DAGDependencyV2():
                 f"Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
             ) from err
 
-    def _add_multi_graph_node(self, node):
-        """
+    def _create_op_node(self, operation, qargs, cargs):
+        """Creates a DAGDepNode to the graph and update the edges.
+
         Args:
-            node (DAGDepNode): considered node.
+            operation (qiskit.circuit.Operation): operation
+            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
+            cargs (list[Clbit]): list of classical wires to attach to
 
         Returns:
-            _node_id(int): corresponding label to the added node.
+            DAGDepNode: the newly added node.
         """
-        _node_id = self._multi_graph.add_node(node)
-        node._node_id = _node_id
-        return _node_id
+        directives = ["measure"]
+        if not getattr(operation, "_directive", False) and operation.name not in directives:
+            qindices_list = []
+            for elem in qargs:
+                qindices_list.append(self.qubits.index(elem))
+
+            if getattr(operation, "condition", None):
+                # The change to handling operation.condition follows code patterns in quantum_circuit.py.
+                # However:
+                #   (1) cindices_list are specific to template optimization and should not be computed
+                #       in this place.
+                #   (2) Template optimization pass needs currently does not handle general conditions.
+                cond_bits = condition_resources(operation.condition).clbits
+                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
+            else:
+                cindices_list = []
+        else:
+            qindices_list = []
+            cindices_list = []
+
+        new_node = DAGOpNode(
+            op=operation,
+            qargs=qargs,
+            cargs=cargs,
+            dag=self,
+        )
+        return new_node
+
+    def add_op_node(self, operation, qargs, cargs):
+        """Add a DAGDepNode to the graph and update the edges.
+
+        Args:
+            operation (qiskit.circuit.Operation): operation as a quantum gate
+            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
+            cargs (list[Clbit]): list of classical wires to attach to
+        """
+        new_node = self._create_op_node(operation, qargs, cargs)
+        node_idx = self._multi_graph.add_node(new_node)
+        self.node_map[new_node] = node_idx
+        self._update_edges()
+
+    def _update_edges(self):
+        """
+        Updates DagDependency by adding edges to the newly added node (max_node)
+        from the previously added nodes.
+        For each previously added node (prev_node), an edge from prev_node to max_node
+        is added if max_node is "reachable" from prev_node (this means that the two
+        nodes can be made adjacent by commuting them with other nodes), but the two nodes
+        themselves do not commute.
+
+        Currently. this function is only used when creating a new DAGDependency from another
+        representation of a circuit, and hence there are no removed nodes (this is why
+        iterating over all nodes is fine).
+        """
+        max__node_id = len(self._multi_graph) - 1
+        max_node = self.get_node(max__node_id)
+
+        reachable = [True] * max__node_id
+
+        # Analyze nodes in the reverse topological order.
+        # An improvement to the original algorithm is to consider only direct predecessors
+        # and to avoid constructing the lists of forward and backward reachable predecessors
+        # for every node when not required.
+        for prev__node_id in range(max__node_id - 1, -1, -1):
+            if reachable[prev__node_id]:
+                prev_node = self.get_node(prev__node_id)
+
+                if not self.comm_checker.commute(
+                    prev_node.op,
+                    prev_node.qargs,
+                    prev_node.cargs,
+                    max_node.op,
+                    max_node.qargs,
+                    max_node.cargs,
+                ):
+                    # If prev_node and max_node do not commute, then we add an edge
+                    # between the two, and mark all direct predecessors of prev_node
+                    # as not reaching max_node.
+                    self._multi_graph.add_edge(prev__node_id, max__node_id, {"commute": False})
+
+                    predecessor_ids = self._multi_graph.predecessor_indices(prev__node_id)
+                    for predecessor_id in predecessor_ids:
+                        reachable[predecessor_id] = False
+            else:
+                # If prev_node cannot reach max_node, then none of its predecessors can
+                # reach max_node either.
+                predecessor_ids = self._multi_graph.predecessor_indices(prev__node_id)
+                for predecessor_id in predecessor_ids:
+                    reachable[predecessor_id] = False
 
     def get_nodes(self):
         """
@@ -392,7 +485,9 @@ class DAGDependencyV2():
             List: all successors id as a sorted list
         """
         #return sorted(list(self._multi_graph.adj_direction(_node_id, False).keys()))
-        return self._multi_graph.successors(_node_id)#self._multi_graph.get_node_data(_node_id))
+        x =  self._multi_graph.successor_indices(_node_id)#self._multi_graph.get_node_data(_node_id))
+        print("succs", x)
+        return x
 
     def predecessors(self, _node_id):
         """
@@ -405,7 +500,7 @@ class DAGDependencyV2():
             List: all predecessors id as a sorted list
         """
         #return sorted(list(self._multi_graph.adj_direction(_node_id, True).keys()))
-        return self._multi_graph.predecessors(self._multi_graph.get_node_data(_node_id))
+        return self._multi_graph.predecessor_indices(self._multi_graph.get_node_data(_node_id))
 
     def topological_nodes(self):
         """
@@ -420,106 +515,6 @@ class DAGDependencyV2():
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
-    def _create_op_node(self, operation, qargs, cargs):
-        """Creates a DAGDepNode to the graph and update the edges.
-
-        Args:
-            operation (qiskit.circuit.Operation): operation
-            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
-            cargs (list[Clbit]): list of classical wires to attach to
-
-        Returns:
-            DAGDepNode: the newly added node.
-        """
-        directives = ["measure"]
-        if not getattr(operation, "_directive", False) and operation.name not in directives:
-            qindices_list = []
-            for elem in qargs:
-                qindices_list.append(self.qubits.index(elem))
-
-            if getattr(operation, "condition", None):
-                # The change to handling operation.condition follows code patterns in quantum_circuit.py.
-                # However:
-                #   (1) cindices_list are specific to template optimization and should not be computed
-                #       in this place.
-                #   (2) Template optimization pass needs currently does not handle general conditions.
-                cond_bits = condition_resources(operation.condition).clbits
-                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
-            else:
-                cindices_list = []
-        else:
-            qindices_list = []
-            cindices_list = []
-
-        new_node = DAGOpNode(
-            op=operation,
-            qargs=qargs,
-            cargs=cargs,
-            dag=self,
-        )
-        return new_node
-
-    def add_op_node(self, operation, qargs, cargs):
-        """Add a DAGDepNode to the graph and update the edges.
-
-        Args:
-            operation (qiskit.circuit.Operation): operation as a quantum gate
-            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
-            cargs (list[Clbit]): list of classical wires to attach to
-        """
-        new_node = self._create_op_node(operation, qargs, cargs)
-        self._add_multi_graph_node(new_node)
-        self._update_edges()
-
-    def _update_edges(self):
-        """
-        Updates DagDependency by adding edges to the newly added node (max_node)
-        from the previously added nodes.
-        For each previously added node (prev_node), an edge from prev_node to max_node
-        is added if max_node is "reachable" from prev_node (this means that the two
-        nodes can be made adjacent by commuting them with other nodes), but the two nodes
-        themselves do not commute.
-
-        Currently. this function is only used when creating a new DAGDependency from another
-        representation of a circuit, and hence there are no removed nodes (this is why
-        iterating over all nodes is fine).
-        """
-        max__node_id = len(self._multi_graph) - 1
-        max_node = self.get_node(max__node_id)
-
-        reachable = [True] * max__node_id
-
-        # Analyze nodes in the reverse topological order.
-        # An improvement to the original algorithm is to consider only direct predecessors
-        # and to avoid constructing the lists of forward and backward reachable predecessors
-        # for every node when not required.
-        for prev__node_id in range(max__node_id - 1, -1, -1):
-            if reachable[prev__node_id]:
-                prev_node = self.get_node(prev__node_id)
-
-                if not self.comm_checker.commute(
-                    prev_node.op,
-                    prev_node.qargs,
-                    prev_node.cargs,
-                    max_node.op,
-                    max_node.qargs,
-                    max_node.cargs,
-                ):
-                    # If prev_node and max_node do not commute, then we add an edge
-                    # between the two, and mark all direct predecessors of prev_node
-                    # as not reaching max_node.
-                    self._multi_graph.add_edge(prev__node_id, max__node_id, {"commute": False})
-
-                    predecessor_ids = self._multi_graph.predecessor_indices(prev__node_id)
-                    for predecessor_id in predecessor_ids:
-                        reachable[predecessor_id] = False
-            else:
-                # If prev_node cannot reach max_node, then none of its predecessors can
-                # reach max_node either.
-                predecessor_ids = self._multi_graph.predecessor_indices(prev__node_id)
-                for predecessor_id in predecessor_ids:
-                    reachable[predecessor_id] = False
-
     def get_descendants(self, _node_id):
         return rx.descendants(self._multi_graph, _node_id)
         desc_list = []
@@ -530,16 +525,17 @@ class DAGDependencyV2():
         return desc_list
 
     def get_ancestors(self, _node_id):
+        return rx.ancestors(self._multi_graph, _node_id)
         anc_list = []
         for node in rx.ancestors(self._multi_graph, _node_id):
             anc_list.append(self._multi_graph.get_node_data(node))
         return anc_list
 
     def get_successors(self, _node_id):
-        return list(self._multi_graph.successors(_node_id))
+        return list(self._multi_graph.successor_indices(_node_id))
 
     def get_predecessors(self, _node_id):
-        return list(self._multi_graph.predecessors(_node_id))
+        return list(self._multi_graph.predecessor_indices(_node_id))
 
     def copy(self):
         """

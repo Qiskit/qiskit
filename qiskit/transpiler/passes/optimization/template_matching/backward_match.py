@@ -170,7 +170,7 @@ class BackwardMatch:
 
         for node in current_dag.get_nodes():
             if (not self.matchedwith[node]) and (not self.isblocked[node]):
-                gate_indices.append(node._node_id)
+                gate_indices.append(current_dag.node_map[node])
         gate_indices.reverse()
         return gate_indices
 
@@ -475,6 +475,7 @@ class BackwardMatch:
                 continue
 
             # First circuit candidate.
+            print("gate indi", gate_indices)
             circuit_id = gate_indices[counter_scenario - 1]
             node_circuit = self.circuit_dag_dep.get_node(circuit_id)
 
@@ -611,7 +612,8 @@ class BackwardMatch:
                 for desc in self.circuit_dag_dep.get_descendants(circuit_id):#self.circuit_dag_dep.get_node(circuit_id).desc:
                     print("desc", desc)
                     circuit_blocked_block_s[desc] = True
-                    if circuit_matched_block_s[desc]:
+                    print("circ mat block s", circuit_matched_block_s)
+                    if not isinstance(circuit_matched_block_s[desc], bool) and len(circuit_matched_block_s[desc]) > 0:
                         broken_matches.append(desc)
                         new_id = circuit_matched_block_s[desc][0]
                         template_matched_block_s[new_id] = []
@@ -708,6 +710,7 @@ class BackwardMatch:
 
                     # Second option, all predecessors are blocked (circuit gate is
                     # moved to the left).
+                    print("anc", ancestors)
                     for ancestor in ancestors:
                         circuit_blocked[ancestor] = True
 
