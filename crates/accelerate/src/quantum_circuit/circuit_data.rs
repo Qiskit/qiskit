@@ -45,8 +45,6 @@ struct PackedInstruction {
 struct BitAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
-    /// The native Py pointer for the instance.
-    id: usize,
     /// The wrapped instance.
     bit: PyObject,
 }
@@ -55,7 +53,6 @@ impl BitAsKey {
     fn new(bit: &PyAny) -> PyResult<Self> {
         Ok(BitAsKey {
             hash: bit.hash()?,
-            id: bit.as_ptr() as usize,
             bit: bit.into_py(bit.py()),
         })
     }
@@ -69,7 +66,7 @@ impl Hash for BitAsKey {
 
 impl PartialEq for BitAsKey {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.bit.is(&other.bit)
             || Python::with_gil(|py| {
                 self.bit
                     .as_ref(py)
