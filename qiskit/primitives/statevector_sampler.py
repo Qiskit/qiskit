@@ -16,12 +16,13 @@ Sampler class
 from __future__ import annotations
 
 from typing import List, Optional, Union
+from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
 
-from qiskit import ClassicalRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumCircuit, QiskitError
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
@@ -36,7 +37,7 @@ from .utils import bound_circuit_to_instruction
 class ExecutionOptions(BasePrimitiveOptions):
     """Options for execution."""
 
-    shots: Optional[int] = None
+    shots: int = 1  # TODO: discuss the default number of shots
     seed: Optional[Union[int, np.random.Generator]] = None
 
 
@@ -49,6 +50,14 @@ class Options(BasePrimitiveOptions):
     """
 
     execution: ExecutionOptions = Field(default_factory=ExecutionOptions)
+
+
+@dataclass
+class _MeasureInfo:
+    creg_name: str
+    num_bits: int
+    packed_size: int
+    qreg_indices: list[int]
 
 
 class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
@@ -78,6 +87,7 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             options = Options()
         elif not isinstance(options, Options):
             options = Options(**options)
+        print(options)
         super().__init__(options=options)
 
     def _run(self, tasks: list[SamplerTask]) -> PrimitiveJob[list[TaskResult]]:
@@ -86,60 +96,73 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
         return job
 
     def _run_task(self, tasks: list[SamplerTask]) -> list[TaskResult]:
-        shots = self.options.execution.shots or 1
+        shots = self.options.execution.shots
+        if shots is None:
+            raise QiskitError("`shots` should be a positive integer")
+        seed = self.options.execution.seed
 
         results = []
         for task in tasks:
-            circuit, qargs, num_bits, q_indices, packed_sizes = self._preprocess_circuit(
-                task.circuit
-            )
+            circuit, qargs, meas_info = _preprocess_circuit(task.circuit)
             parameter_values = task.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
             arrays = {
-                name: np.zeros(bound_circuits.shape + (shots, packed_size), dtype=np.uint8)
-                for name, packed_size in packed_sizes.items()
+                item.creg_name: np.zeros(
+                    bound_circuits.shape + (shots, item.packed_size), dtype=np.uint8
+                )
+                for item in meas_info
             }
             for index in np.ndindex(*bound_circuits.shape):
                 bound_circuit = bound_circuits[index]
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
+                final_state.seed(seed)
                 samples = final_state.sample_memory(shots=shots, qargs=qargs)
-                for name in num_bits:
-                    ary = self._samples_to_packed_array(samples, num_bits[name], q_indices[name])
-                    arrays[name][index] = ary
-            meas = {name: BitArray(arrays[name], num_bits[name]) for name in num_bits}
+                for item in meas_info:
+                    ary = _samples_to_packed_array(samples, item.num_bits, item.qreg_indices)
+                    arrays[item.creg_name][index] = ary
+            meas = {
+                item.creg_name: BitArray(arrays[item.creg_name], item.num_bits)
+                for item in meas_info
+            }
             results.append(TaskResult(meas, metadata={"shots": shots}))
 
         return results
 
-    @staticmethod
-    def _preprocess_circuit(circuit: QuantumCircuit):
-        mapping = _final_measurement_mapping(circuit)
-        qargs = list(mapping.values())
-        circuit = circuit.remove_final_measurements(inplace=False)
-        num_qubits = circuit.num_qubits
-        num_bits = {key[0].name: key[0].size for key in mapping}
-        # num_qubits is used as sentinel to fill 0
-        indices = {key: [num_qubits] * val for key, val in num_bits.items()}
-        for key, qreg in mapping.items():
-            creg, ind = key
-            indices[creg.name][ind] = qreg
-        packed_sizes = {
-            name: num_bits // 8 + (num_bits % 8 > 0) for name, num_bits in num_bits.items()
-        }
-        return circuit, qargs, num_bits, indices, packed_sizes
 
-    @staticmethod
-    def _samples_to_packed_array(
-        samples: NDArray[str], num_bits: int, indices: list[int]
-    ) -> NDArray[np.uint8]:
-        pad_size = (8 - num_bits % 8) % 8
-        ary = np.array([np.fromiter(sample, dtype=np.uint8) for sample in samples])
-        # pad 0 to be used for the sentinel introduced by _preprocess_circuit
-        ary = np.pad(ary, ((0, 0), (0, 1)), constant_values=0)
-        ary = ary[:, indices]
-        ary = np.pad(ary, ((0, 0), (pad_size, 0)), constant_values=0)
-        ary = np.packbits(ary, axis=-1)
-        return ary
+def _preprocess_circuit(circuit: QuantumCircuit):
+    mapping = _final_measurement_mapping(circuit)
+    qargs = list(mapping.values())
+    circuit = circuit.remove_final_measurements(inplace=False)
+    num_qubits = circuit.num_qubits
+    num_bits_dict = {key[0].name: key[0].size for key in mapping}
+    # num_qubits is used as sentinel to fill 0
+    indices = {key: [num_qubits] * val for key, val in num_bits_dict.items()}
+    for key, qreg in mapping.items():
+        creg, ind = key
+        indices[creg.name][ind] = qreg
+    meas_info = [
+        _MeasureInfo(
+            creg_name=name,
+            num_bits=num_bits,
+            qreg_indices=indices[name],
+            packed_size=num_bits // 8 + (num_bits % 8 > 0),
+        )
+        for name, num_bits in num_bits_dict.items()
+    ]
+    return circuit, qargs, meas_info
+
+
+def _samples_to_packed_array(
+    samples: NDArray[str], num_bits: int, indices: list[int]
+) -> NDArray[np.uint8]:
+    pad_size = (8 - num_bits % 8) % 8
+    ary = np.array([np.fromiter(sample, dtype=np.uint8) for sample in samples])
+    # pad 0 to be used for the sentinel introduced by _preprocess_circuit
+    ary = np.pad(ary, ((0, 0), (0, 1)), constant_values=0)
+    ary = ary[:, indices]
+    ary = np.pad(ary, ((0, 0), (pad_size, 0)), constant_values=0)
+    ary = np.packbits(ary, axis=-1)
+    return ary
 
 
 def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalRegister, int], int]:
