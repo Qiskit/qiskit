@@ -791,12 +791,11 @@ class TestBlockFilter(BaseTestBlock):
             with pulse.align_sequential():
                 pulse.play(self.test_waveform0, self.d0)
                 pulse.delay(5, self.d0)
-
-                with pulse.build(self.backend) as cx_blk:
-                    with self.assertWarns(DeprecationWarning):
-                        pulse.cx(0, 1)
-
-                pulse.call(cx_blk)
+                pulse.call(
+                    self.backend.defaults()
+                    .instruction_schedule_map._get_calibration_entry("cx", (0, 1))
+                    .get_schedule()
+                )
 
         for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
             filtered_blk = self._filter_and_test_consistency(blk, channels=[ch])

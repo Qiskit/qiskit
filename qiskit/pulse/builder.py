@@ -467,7 +467,6 @@ from typing import (
 import numpy as np
 
 from qiskit import circuit
-from qiskit.circuit.library import standard_gates as gates
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import (
     channels as chans,
@@ -1202,7 +1201,6 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
                 f'{channel_or_qubit} is not a "Channel" or qubit (integer).'
             )
     return channels
-
 
 
 # Contexts
@@ -2475,5 +2473,3 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
     with align_left():
         for chan in qubit_chans:
             delay(duration, chan)
-
-

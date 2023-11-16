@@ -67,8 +67,6 @@ Exceptions
 from qiskit.pulse.builder import (
     # Construction methods.
     active_backend,
-    active_transpiler_settings,
-    active_circuit_scheduler_settings,
     build,
     num_qubits,
     qubit_channels,
@@ -100,18 +98,11 @@ from qiskit.pulse.builder import (
     circuit_scheduler_settings,
     frequency_offset,
     phase_offset,
-    transpiler_settings,
     # Macros.
     macro,
     measure,
     measure_all,
     delay_qubits,
-    # Circuit instructions.
-    cx,
-    u1,
-    u2,
-    u3,
-    x,
 )
 from qiskit.pulse.channels import (
     AcquireChannel,
