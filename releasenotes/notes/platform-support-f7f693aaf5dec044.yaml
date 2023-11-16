@@ -26,3 +26,9 @@ upgrade:
     build Qiskit from source while the Qiskit MSRV (minimum supported Rust
     version) is < 1.74, but the precompiled binaries published to PyPI will
     only be compatible with macOS >= 10.12.
+
+fixes:
+  - |
+    Fixed an issue with :class:`.qpy.dump` which would cause the function to
+    potentially ignore the value of ``use_symengine`` when serializing a
+    :class:`.ScheduleBlock` object.

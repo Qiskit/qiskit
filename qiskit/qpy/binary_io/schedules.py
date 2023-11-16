@@ -104,12 +104,13 @@ def _read_discriminator(file_obj, version):
 def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     if expr_bytes == b"":
         return None
+    expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        return load_basic(zlib.decompress(expr_bytes))
+        return load_basic(expr_bytes)
     else:
         from sympy import parse_expr
 
-        expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
+        expr_txt = expr_bytes.decode(common.ENCODE)
         expr = parse_expr(expr_txt)
         return sym.sympify(expr)
 
@@ -472,7 +473,7 @@ def _dumps_operand(operand, use_symengine):
 def _write_element(file_obj, element, metadata_serializer, use_symengine):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
-        write_schedule_block(file_obj, element, metadata_serializer)
+        write_schedule_block(file_obj, element, metadata_serializer, use_symengine)
     else:
         type_key = type_keys.ScheduleInstruction.assign(element)
         common.write_type_key(file_obj, type_key)
