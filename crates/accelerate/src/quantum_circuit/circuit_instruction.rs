@@ -177,14 +177,12 @@ impl CircuitInstruction {
     // like that via unpacking or similar.  That means that the `parameters` field is completely
     // absent, and the qubits and clbits must be converted to lists.
     pub fn _legacy_format(&self, py: Python<'_>) -> PyObject {
-        // Note: previously, we converted qubits and clbits to list,
-        //       but this appears no longer necessary.
         PyTuple::new(
             py,
             [
                 self.operation.as_ref(py),
-                self.qubits.as_ref(py),
-                self.clbits.as_ref(py),
+                self.qubits.as_ref(py).to_list(),
+                self.clbits.as_ref(py).to_list(),
             ],
         )
         .into_py(py)
