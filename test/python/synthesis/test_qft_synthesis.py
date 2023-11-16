@@ -35,7 +35,7 @@ class TestQFTLNN(QiskitTestCase):
         qft_circ = QFT(num_qubits, do_swaps=True)
         qft_lnn = synth_qft_line(num_qubits)
 
-        self.assertTrue(Operator(qft_circ).equiv(Operator(qft_lnn)))
+        self.assertEqual(Operator(qft_circ), Operator(qft_lnn))
 
         # Check that the output circuit has LNN connectivity
         self.assertTrue(check_lnn_connectivity(qft_lnn))
@@ -46,7 +46,7 @@ class TestQFTLNN(QiskitTestCase):
         qft_circ = QFT(num_qubits, do_swaps=False)
         qft_lnn = synth_qft_line(num_qubits, do_swaps=False)
 
-        self.assertTrue(Operator(qft_circ).equiv(Operator(qft_lnn)))
+        self.assertEqual(Operator(qft_circ), Operator(qft_lnn))
 
         # Check that the output circuit has LNN connectivity
         self.assertTrue(check_lnn_connectivity(qft_lnn))
@@ -61,7 +61,7 @@ class TestQFTLNN(QiskitTestCase):
                 num_qubits, do_swaps=do_swaps, approximation_degree=approximation_degree
             )
 
-            self.assertTrue(Operator(qft_circ).equiv(Operator(qft_lnn)))
+            self.assertEqual(Operator(qft_circ), Operator(qft_lnn))
 
             # Check that the output circuit has LNN connectivity
             self.assertTrue(check_lnn_connectivity(qft_lnn))
