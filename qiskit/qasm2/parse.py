@@ -234,15 +234,13 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
             qc._append(CircuitInstruction(Measure(), (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.ConditionedMeasure:
             qubit, clbit, creg, value = op.operands
-            measure = Measure()
-            measure.condition = (qc.cregs[creg], value)
+            measure = Measure().c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(measure, (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.Reset:
             qc._append(CircuitInstruction(Reset(), (qubits[op.operands[0]],)))
         elif opcode == OpCode.ConditionedReset:
             qubit, creg, value = op.operands
-            reset = Reset()
-            reset.condition = (qc.cregs[creg], value)
+            reset = Reset().c_if(qc.cregs[creg], value)
             qc._append(CircuitInstruction(reset, (qubits[qubit],)))
         elif opcode == OpCode.Barrier:
             op_qubits = op.operands[0]
