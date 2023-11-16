@@ -23,8 +23,11 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
+
+ParameterLike = Union[Parameter, str]
 
 
 class BindingsArray(ShapedMixin):
@@ -65,11 +68,12 @@ class BindingsArray(ShapedMixin):
             {("c", "a"): np.empty((10, 10, 2)), "b": np.empty((10, 10))}
         )
     """
+    __slots__ = ("_vals", "_kwvals")
 
     def __init__(
         self,
         vals: Union[None, ArrayLike, Iterable[ArrayLike]] = None,
-        kwvals: Union[None, Mapping[Parameter, Iterable[Parameter]], ArrayLike] = None,
+        kwvals: Union[None, Mapping[ParameterLike, Iterable[ParameterValueType]], ArrayLike] = None,
         shape: Optional[ShapeInput] = None,
     ):
         """
@@ -122,15 +126,11 @@ class BindingsArray(ShapedMixin):
         self._shape = shape_tuple(shape)
         for idx, val in enumerate(vals):
             vals[idx] = _standardize_shape(val, self._shape)
-        for parameters, val in kwvals.items():
-            val = kwvals[parameters] = _standardize_shape(val, self._shape)
-            if len(parameters) != val.shape[-1]:
-                raise ValueError(
-                    f"Length of {parameters} inconsistent with last dimension of {val}"
-                )
 
         self._vals = vals
         self._kwvals = kwvals
+
+        self.validate()
 
     def __getitem__(self, args) -> BindingsArray:
         # because the parameters live on the last axis, we don't need to do anything special to
@@ -268,12 +268,19 @@ class BindingsArray(ShapedMixin):
                 bindings_array = bindings_array.reshape((1, -1))
             bindings_array = cls(bindings_array)
         elif isinstance(bindings_array, Mapping):
-            bindings_array = cls(kwargs=bindings_array)
+            bindings_array = cls(kwvals=bindings_array)
+        else:
+            raise TypeError(f"Unsupported type {type(bindings_array)} is given.")
         return bindings_array
 
     def validate(self):
         """Validate the consistency in bindings_array."""
-        pass
+        for parameters, val in self.kwvals.items():
+            val = self.kwvals[parameters] = _standardize_shape(val, self._shape)
+            if len(parameters) != val.shape[-1]:
+                raise ValueError(
+                    f"Length of {parameters} inconsistent with last dimension of {val}"
+                )
 
 
 def _standardize_shape(val: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
