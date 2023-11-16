@@ -111,9 +111,7 @@ class UnitaryGate(Gate):
             return False
         if self.label != other.label:
             return False
-        # Should we match unitaries as equal if they are equal
-        # up to global phase?
-        return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
+        return matrix_equal(self.params[0], other.params[0])
 
     def __array__(self, dtype=None):
         """Return matrix for the unitary."""
