@@ -5,7 +5,7 @@ people of all backgrounds. This page describes how you can join the Qiskit
 community in this goal.
 
 
-### Contents
+## Contents
 * [Before you start](#before-you-start)
 * [Choose an issue to work on](#Choose-an-issue-to-work-on)
 * [Set up Python virtual development environment](#set-up-python-virtual-development-environment)
@@ -179,11 +179,6 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
-   For more details you can refer to:
-
-   https://qiskit.org/documentation/contributing_to_qiskit.html#documentation-structure
-
-
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
 4. Ensure that if your change has an end user facing impact (new feature,
