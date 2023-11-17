@@ -92,14 +92,6 @@ impl Eq for BitAsKey {}
 /// bits of the same type are added to the container determines their
 /// associated indices used for storage and retrieval.
 ///
-/// As a convenience, :attr:`.CircuitData.qubits` and
-/// :attr:`.CircuitData.clbits` are exposed to Python as ``list`` instances,
-/// which are updated inplace as new bits are added via
-/// :meth:`~.CircuitData.add_qubit` and :meth:`~.CircuitData.add_clbit`.
-/// **DO NOT MODIFY THESE LISTS DIRECTLY**,
-/// or they will become out of sync with the internals of this class.
-/// In this way, a :class:`.CircuitData` owns its ``qubits`` and ``clbits``.
-///
 /// Once constructed, this container behaves like a Python list of
 /// :class:`.CircuitInstruction` instances. However, these instances are
 /// created and destroyed on the fly, and thus should be treated as ephemeral.
@@ -155,11 +147,9 @@ pub struct CircuitData {
     /// Map of :class:`.Clbit` instances to their index in
     /// :attr:`.CircuitData.clbits`.
     clbit_indices_native: HashMap<BitAsKey, BitType>,
-    /// The qubits registered, as a ``list[Qubit]``.
-    #[pyo3(get)]
+    /// The qubits registered, cached as a ``list[Qubit]``.
     qubits: Py<PyList>,
-    /// The clbits registered, as a ``list[Clbit]``.
-    #[pyo3(get)]
+    /// The clbits registered, cached as a ``list[Clbit]``.
     clbits: Py<PyList>,
 }
 
@@ -223,6 +213,34 @@ impl CircuitData {
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
     }
 
+    /// Returns the current sequence of registered :class:`.Qubit`
+    /// instances as a list.
+    ///
+    /// .. note::
+    ///
+    ///     This list is not kept in sync with the container.
+    ///
+    /// Returns:
+    ///     list(:class:`.Qubit`): The current sequence of registered qubits.
+    #[getter]
+    pub fn qubits(&self, py: Python<'_>) -> PyObject {
+        PyList::new(py, self.qubits.as_ref(py)).into_py(py)
+    }
+
+    /// Returns the current sequence of registered :class:`.Clbit`
+    /// instances as a list.
+    ///
+    /// .. note::
+    ///
+    ///     This list is not kept in sync with the container.
+    ///
+    /// Returns:
+    ///     list(:class:`.Clbit`): The current sequence of registered clbits.
+    #[getter]
+    pub fn clbits(&self, py: Python<'_>) -> PyObject {
+        PyList::new(py, self.clbits.as_ref(py)).into_py(py)
+    }
+
     /// Registers a :class:`.Qubit` instance.
     ///
     /// Args:
@@ -235,7 +253,8 @@ impl CircuitData {
         })?;
         self.qubit_indices_native.insert(BitAsKey::new(bit)?, idx);
         self.qubits_native.push(bit.into_py(py));
-        self.qubits.as_ref(py).append(bit)
+        self.qubits = PyList::new(py, &self.qubits_native).into_py(py);
+        Ok(())
     }
 
     /// Registers a :class:`.Clbit` instance.
@@ -250,7 +269,8 @@ impl CircuitData {
         })?;
         self.clbit_indices_native.insert(BitAsKey::new(bit)?, idx);
         self.clbits_native.push(bit.into_py(py));
-        self.clbits.as_ref(py).append(bit)
+        self.clbits = PyList::new(py, &self.clbits_native).into_py(py);
+        Ok(())
     }
 
     /// Performs a shallow copy.
@@ -260,15 +280,13 @@ impl CircuitData {
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
         Ok(CircuitData {
             data: self.data.clone(),
-            // TODO: reuse intern context once concurrency is properly
-            //  handled.
             intern_context: self.intern_context.clone(),
             qubits_native: self.qubits_native.clone(),
             clbits_native: self.clbits_native.clone(),
             qubit_indices_native: self.qubit_indices_native.clone(),
             clbit_indices_native: self.clbit_indices_native.clone(),
-            qubits: self.qubits.clone_ref(py),
-            clbits: self.clbits.clone_ref(py),
+            qubits: PyList::new(py, &self.qubits_native).into_py(py),
+            clbits: PyList::new(py, &self.clbits_native).into_py(py),
         })
     }
 
