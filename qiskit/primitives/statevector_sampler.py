@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Sampler class
+Statevector Sampler class
 """
 
 from __future__ import annotations
@@ -87,7 +87,6 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             options = Options()
         elif not isinstance(options, Options):
             options = Options(**options)
-        print(options)
         super().__init__(options=options)
 
     def _run(self, tasks: list[SamplerTask]) -> PrimitiveJob[list[TaskResult]]:
@@ -135,7 +134,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
     circuit = circuit.remove_final_measurements(inplace=False)
     num_qubits = circuit.num_qubits
     num_bits_dict = {key[0].name: key[0].size for key in mapping}
-    # num_qubits is used as sentinel to fill 0
+    # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
     indices = {key: [num_qubits] * val for key, val in num_bits_dict.items()}
     for key, qreg in mapping.items():
         creg, ind = key
@@ -155,12 +154,18 @@ def _preprocess_circuit(circuit: QuantumCircuit):
 def _samples_to_packed_array(
     samples: NDArray[str], num_bits: int, indices: list[int]
 ) -> NDArray[np.uint8]:
-    pad_size = (8 - num_bits % 8) % 8
+    # samples of `Statevector.sample_memory` will be the order of
+    # qubit_0, qubit_1, ..., qubit_last
     ary = np.array([np.fromiter(sample, dtype=np.uint8) for sample in samples])
-    # pad 0 to be used for the sentinel introduced by _preprocess_circuit
+    # pad 0 in the rightmost to be used for the sentinel introduced by _preprocess_circuit
     ary = np.pad(ary, ((0, 0), (0, 1)), constant_values=0)
-    ary = ary[:, indices]
+    # place samples in the order of clbit_last, ..., clbit_1, clbit_0
+    ary = ary[:, indices[::-1]]
+    # pad 0 in the left to align the number to be mod 8
+    # since np.packbits(bitorder='big') pads 0 to the right.
+    pad_size = (8 - num_bits % 8) % 8
     ary = np.pad(ary, ((0, 0), (pad_size, 0)), constant_values=0)
+    # pack bits in big endian order
     ary = np.packbits(ary, axis=-1)
     return ary
 
