@@ -2852,23 +2852,12 @@ class QuantumCircuit:
         """
         from .barrier import Barrier
 
-        qubits: list[QubitSpecifier] = []
-
-        if not qargs:  # None
-            qubits.extend(self.qubits)
-
-        for qarg in qargs:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, range):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
+        qubits = (
+            # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
+            list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
+            if qargs
+            else self.qubits.copy()
+        )
         return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(
