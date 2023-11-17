@@ -31,7 +31,7 @@ community in this goal.
 
 If you are new to Qiskit contributing we recommend you do the following before diving into the code:
 
-* Read the [Code of Conduct](https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md)
+* Read the [Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md)
 * Familiarize yourself with the Qiskit community (via [Slack](https://qisk.it/join-slack),
    [Stack Exchange](https://quantumcomputing.stackexchange.com), [GitHub](https://github.com/qiskit-community/feedback/discussions) etc.)
 
@@ -210,7 +210,7 @@ Please be patient! Maintainers have a number of other priorities to focus on and
 some time for your work to get reviewed and merged. PRs that are in a good shape (i.e. following the [Pull request checklist](#pull-request-checklist))
 are easier for maintainers to review and more likely to get merged in a timely manner. Please also make
 sure to always be kind and respectful in your interactions with maintainers and other contributors, you can read
-[the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md).
+[the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md).
 
 
 ## Contributor Licensing Agreement
