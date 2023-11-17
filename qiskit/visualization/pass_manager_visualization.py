@@ -27,7 +27,7 @@ DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PYDOT.require_in_call
-def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, inputs=True):
     """
     Draws the pass manager.
 
@@ -91,7 +91,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
     for index, controller_group in enumerate(passes):
         subgraph, component_id, prev_node = draw_subgraph(
-            controller_group, component_id, style, prev_node, index
+            controller_group, component_id, style, prev_node, index, inputs
         )
         graph.add_subgraph(subgraph)
 
@@ -115,7 +115,7 @@ def _get_node_color(pss, style):
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PYDOT.require_in_call
-def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, inputs=True):
     """
     Draws the staged pass manager.
 
@@ -178,7 +178,7 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
             stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
             for controller_group in passes:
                 subgraph, component_id, prev_node = draw_subgraph(
-                    controller_group, component_id, style, prev_node, idx
+                    controller_group, component_id, style, prev_node, idx, inputs
                 )
                 stagegraph.add_subgraph(subgraph)
                 idx += 1
@@ -188,7 +188,7 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
     return output
 
 
-def draw_subgraph(controller_group, component_id, style, prev_node, idx):
+def draw_subgraph(controller_group, component_id, style, prev_node, idx, inputs):
     """Draw subgraph."""
     import pydot
 
@@ -213,33 +213,34 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
         subgraph.add_node(node)
         component_id += 1
 
-        # the arguments that were provided to the pass when it was created
-        arg_spec = inspect.getfullargspec(pass_.__init__)
-        # 0 is the args, 1: to remove the self arg
-        args = arg_spec[0][1:]
+        if inputs:
+            # the arguments that were provided to the pass when it was created
+            arg_spec = inspect.getfullargspec(pass_.__init__)
+            # 0 is the args, 1: to remove the self arg
+            args = arg_spec[0][1:]
 
-        num_optional = len(arg_spec[3]) if arg_spec[3] else 0
+            num_optional = len(arg_spec[3]) if arg_spec[3] else 0
 
-        # add in the inputs to the pass
-        for arg_index, arg in enumerate(args):
-            nd_style = "solid"
-            # any optional args are dashed
-            # the num of optional counts from the end towards the start of the list
-            if arg_index >= (len(args) - num_optional):
-                nd_style = "dashed"
+            # add in the inputs to the pass
+            for arg_index, arg in enumerate(args):
+                nd_style = "solid"
+                # any optional args are dashed
+                # the num of optional counts from the end towards the start of the list
+                if arg_index >= (len(args) - num_optional):
+                    nd_style = "dashed"
 
-            input_node = pydot.Node(
-                component_id,
-                label=arg,
-                color="black",
-                shape="ellipse",
-                fontsize=10,
-                style=nd_style,
-                fontname="helvetica",
-            )
-            subgraph.add_node(input_node)
-            component_id += 1
-            subgraph.add_edge(pydot.Edge(input_node, node))
+                input_node = pydot.Node(
+                    component_id,
+                    label=arg,
+                    color="black",
+                    shape="ellipse",
+                    fontsize=10,
+                    style=nd_style,
+                    fontname="helvetica",
+                )
+                subgraph.add_node(input_node)
+                component_id += 1
+                subgraph.add_edge(pydot.Edge(input_node, node))
 
         # if there is a previous node, add an edge between them
         if prev_node:
