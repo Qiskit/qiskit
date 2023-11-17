@@ -12,8 +12,8 @@
 
 """Remove reset when it is the final instruction on a qubit."""
 
-from qiskit.circuit import Reset
-from qiskit.dagcircuit import DAGOutNode
+from qiskit.circuit import Reset, Qubit
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -29,9 +29,9 @@ class RemoveFinalReset(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        resets = dag.op_nodes(Reset)
-        for reset in resets:
-            successor = next(dag.successors(reset))
-            if isinstance(successor, DAGOutNode):
-                dag.remove_op_node(reset)
+        for output_node in dag.output_map.values():
+            if isinstance(output_node.wire, Qubit):
+                pred = next(dag.predecessors(output_node))
+                if isinstance(pred, DAGOpNode) and isinstance(pred.op, Reset):
+                    dag.remove_op_node(pred)
         return dag
