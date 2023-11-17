@@ -127,6 +127,7 @@ def deprecated_func():
 @deprecate_arg("bad_arg", new_alias="new_name", since="0.24.0")
 def another_func(bad_arg: str, new_name: str):
     pass
+```
 
 Usually, you should set `additional_msg: str` with the format `"Instead, use ..."` so that
 people know how to migrate. Read those functions' docstrings for additional arguments like
@@ -212,6 +213,7 @@ def deprecated_function():
     <rest of the docstring>
     """
     # ... the rest of the function ...
+```
 
 
 You should also document the deprecation in the changelog by using Reno. Explain the deprecation
