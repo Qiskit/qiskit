@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
+from qiskit.transpiler.passes import RemoveFinalReset
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
@@ -542,6 +543,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             else:
                 raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            _opt.append(RemoveFinalReset())
 
             unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
             # Build nested Flow controllers
