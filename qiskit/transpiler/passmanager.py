@@ -320,6 +320,12 @@ class PassManager(BasePassManager):
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
+    def pprint(self):
+        """TODO"""
+        from qiskit.visualization import pass_manager_drawer
+
+        return pass_manager_drawer(self, pprint=True)
+
     def passes(self) -> list[dict[str, BasePass]]:
         """Return a list structure of the appended passes and its options.
 
@@ -531,11 +537,17 @@ class StagedPassManager(PassManager):
         self._update_passmanager()
         return super().run(circuits, output_name, callback)
 
-    def draw(self, filename=None, style=None, raw=False):
+    def draw(self, filename=None, style=None, raw=False, args=True):
         """Draw the staged pass manager."""
         from qiskit.visualization import staged_pass_manager_drawer
 
-        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)
+        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw, args=args)
+
+    def pprint(self):
+        """TODO"""
+        from qiskit.visualization import staged_pass_manager_drawer
+
+        return staged_pass_manager_drawer(self, pprint=True)
 
 
 # A temporary error handling with slight overhead at class loading.
