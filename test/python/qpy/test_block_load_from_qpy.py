@@ -278,6 +278,7 @@ class TestLoadFromQPY(QpyScheduleTestCase):
 
         self.assert_roundtrip_equal(test_sched)
 
+    @unittest.skipUnless(_optional.HAS_SYMENGINE)
     def test_bell_schedule_use_symengine(self):
         """Test complex schedule to create a Bell state."""
         with builder.build() as test_sched:
