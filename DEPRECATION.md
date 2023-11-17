@@ -40,7 +40,7 @@ we will follow this procedure:
    warnings are issued.  For example, if we want to replace the function `foo()`
    with `bar()`, we must make at least one release with both functions before
    issuing any warnings within `foo()`.  You may issue
-   `PendingDeprecationWarning`\ s from the old paths immediately.
+   `PendingDeprecationWarning`s from the old paths immediately.
 
    *Reason*: we need to give people time to swap over without breaking their
    code as soon as they upgrade.
