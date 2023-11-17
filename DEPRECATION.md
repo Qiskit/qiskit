@@ -37,37 +37,37 @@ When removing a feature (for example a class, function or function parameter),
 we will follow this procedure:
 
 - The alternative path must be in place for one minor version before any
-   warnings are issued.  For example, if we want to replace the function `foo()`
-   with `bar()`, we must make at least one release with both functions before
-   issuing any warnings within `foo()`.  You may issue
-   `PendingDeprecationWarning`s from the old paths immediately.
+  warnings are issued.  For example, if we want to replace the function `foo()`
+  with `bar()`, we must make at least one release with both functions before
+  issuing any warnings within `foo()`.  You may issue
+  `PendingDeprecationWarning`s from the old paths immediately.
 
    *Reason*: we need to give people time to swap over without breaking their
    code as soon as they upgrade.
 
 - After the alternative path has been in place for at least one minor version,
-   [issue the deprecation warnings](#issuing-deprecation-warnings).  Add a
-   release note with a `deprecations` section listing all deprecated paths,
-   their alternatives, and the reason for deprecation.  [Update the tests to test the warnings](#testing-deprecated-functionality).
+  [issue the deprecation warnings](#issuing-deprecation-warnings).  Add a
+  release note with a `deprecations` section listing all deprecated paths,
+  their alternatives, and the reason for deprecation.  [Update the tests to test the warnings](#testing-deprecated-functionality).
 
    *Reason*: removals must be highly visible for at least one version, to
    minimize the surprise to users when they actually go.
 
 - Set a removal date for the old feature, and remove it (and the warnings) when
-   reached.  This must be at least three months after the version with the
-   warnings was first released, and cannot be the minor version immediately
-   after the warnings.  Add an `upgrade` release note that lists all the
-   removals.  For example, if the alternative path was provided in `0.19.0`
-   and the warnings were added in `0.20.0`, the earliest version for removal
-   is `0.22.0`, even if `0.21.0` was released more than three months after
-   `0.20.0`.
+  reached.  This must be at least three months after the version with the
+  warnings was first released, and cannot be the minor version immediately
+  after the warnings.  Add an `upgrade` release note that lists all the
+  removals.  For example, if the alternative path was provided in `0.19.0`
+  and the warnings were added in `0.20.0`, the earliest version for removal
+  is `0.22.0`, even if `0.21.0` was released more than three months after
+  `0.20.0`.
 
-   **Note: These are *minimum* requirements.  For removal of significant or core features, give
-   users at least an extra minor version if not longer.**
+  **Note: These are _minimum_** requirements.  For removal of significant or core features, give
+  users at least an extra minor version if not longer.**
 
-   *Reason*: there needs to be time for users to see these messages, and to give
-   them time to adjust.  Not all users will update their version of Qiskit
-   immediately, and some may skip minor versions.
+  *Reason*: there needs to be time for users to see these messages, and to give
+  them time to adjust.  Not all users will update their version of Qiskit
+  immediately, and some may skip minor versions.
 
 When a feature is marked as deprecated it is slated for removal, but users
 should still be able to rely on it to work correctly.  We consider a feature
@@ -221,5 +221,5 @@ In particular situations where a deprecation or change might be a major disrupto
 *migration guide* might be needed. Please write these guides in Qiskit's documentation at
 https://github.com/Qiskit/documentation/tree/main/docs/api/migration-guides. Once
 the migration guide is written and published, deprecation
-messages and documentation should link to it (use the `additional_msg: str` argument for
+messages and documentation should link to it (use the `additional_msg` argument for
 `@deprecate_arg` and `@deprecate_func`).
