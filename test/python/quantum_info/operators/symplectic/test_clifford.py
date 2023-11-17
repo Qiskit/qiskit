@@ -1044,7 +1044,8 @@ class TestCliffordOperators(QiskitTestCase):
         # An error may be thrown if visualization code calls op.condition instead
         # of getattr(op, "condition", None)
         clifford = random_clifford(3, seed=0)
-        print(clifford)
+        _ = str(clifford)
+        _ = repr(clifford)
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_from_matrix_round_trip(self, num_qubits):

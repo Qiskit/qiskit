@@ -90,7 +90,7 @@ class LookaheadSwap(TransformationPass):
             coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
-            fake_run (bool): if true, it only pretend to do routing, i.e., no
+            fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
         """
 
