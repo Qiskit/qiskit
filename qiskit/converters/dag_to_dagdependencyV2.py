@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag circuit to a dag dependency"""
-from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 
 
-def dag_to_dagdependency(dag, create_preds_and_succs=True):
+def dag_to_dagdependency(dag, create_preds_and_succs=False):
     """Build a ``DAGDependency`` object from a ``DAGCircuit``.
 
     Args:
@@ -26,7 +26,7 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
         DAGDependency: the DAG representing the input circuit as a dag dependency.
     """
 
-    dagdependency = DAGDependency()
+    dagdependency = DAGDependencyV2()
     dagdependency.name = dag.name
     dagdependency.metadata = dag.metadata
 
@@ -44,9 +44,9 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
         inst = node.op.copy()
         dagdependency.add_op_node(inst, node.qargs, node.cargs)
 
-    if create_preds_and_succs:
-        dagdependency._add_predecessors()
-        dagdependency._add_successors()
+    # if create_preds_and_succs:
+    #     dagdependency._add_predecessors()
+    #     dagdependency._add_successors()
 
     # copy metadata
     dagdependency.global_phase = dag.global_phase

@@ -12,7 +12,7 @@
 
 """Helper function for converting a circuit to a dag dependency"""
 
-from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 
 
 def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
@@ -26,7 +26,7 @@ def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
     Return:
         DAGDependency: the DAG representing the input circuit as a dag dependency.
     """
-    dagdependency = DAGDependency()
+    dagdependency = DAGDependencyV2()
     dagdependency.name = circuit.name
     dagdependency.metadata = circuit.metadata
 
@@ -42,9 +42,9 @@ def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
     for instruction in circuit.data:
         dagdependency.add_op_node(instruction.operation, instruction.qubits, instruction.clbits)
 
-    if create_preds_and_succs:
-        dagdependency._add_predecessors()
-        dagdependency._add_successors()
+    # if create_preds_and_succs:
+    #     dagdependency._add_predecessors()
+    #     dagdependency._add_successors()
 
     dagdependency.calibrations = circuit.calibrations
 

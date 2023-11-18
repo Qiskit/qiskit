@@ -16,7 +16,7 @@ into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependency
+from . import DAGOpNode, DAGCircuit, DAGDependencyV2
 from .exceptions import DAGCircuitError
 
 

@@ -518,10 +518,7 @@ class DAGDependencyV2():
         Returns:
             List: all successor id's as a sorted list
         """
-        x = sorted(list(self._multi_graph.successor_indices(node_id)))
-        if x and not isinstance(x[0], int):
-            print("IN get succ", x)
-        return x
+        return sorted(list(self._multi_graph.successor_indices(node_id)))
 
     def get_predecessors(self, node_id):
         """
@@ -579,7 +576,7 @@ class DAGDependencyV2():
             DAGDependency: a copy of a DAGDependency object.
         """
 
-        dag = DAGDependencyV2()
+        dag = DAGDependency()
         dag.name = self.name
         dag.cregs = self.cregs.copy()
         dag.qregs = self.qregs.copy()
