@@ -55,7 +55,7 @@ class BlockCollector:
         if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
 
-        elif isinstance(dag, DAGDependency):
+        elif isinstance(dag, DAGDependencyV2):
             self.is_dag_dependency = True
 
         else:

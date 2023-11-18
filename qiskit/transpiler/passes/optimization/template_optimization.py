@@ -23,7 +23,6 @@ Exact and practical pattern matching for quantum circuit optimization.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.dagcircuit import DAGDependency
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.dag_to_dagdependency import dag_to_dagdependency
@@ -96,11 +95,13 @@ class TemplateOptimization(TransformationPass):
             TranspilerError: If the template has not the right form or
              if the output circuit acts differently as the input circuit.
         """
+        from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
+
         circuit_dag = dag
         circuit_dag_dep = dag_to_dagdependency(circuit_dag)
 
         for template in self.template_list:
-            if not isinstance(template, (QuantumCircuit, DAGDependency)):
+            if not isinstance(template, (QuantumCircuit, DAGDependencyV2)):
                 raise TranspilerError("A template is a Quantumciruit or a DAGDependency.")
 
             if len(template.qubits) > len(circuit_dag_dep.qubits):
@@ -108,7 +109,7 @@ class TemplateOptimization(TransformationPass):
 
             identity = np.identity(2 ** len(template.qubits), dtype=complex)
             try:
-                if isinstance(template, DAGDependency):
+                if isinstance(template, DAGDependencyV2):
                     data = Operator(dagdependency_to_circuit(template)).data
                 else:
                     data = Operator(template).data

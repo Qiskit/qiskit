@@ -157,6 +157,62 @@ class DAGDependencyV2():
         """
         self._calibrations = defaultdict(dict, calibrations)
 
+    def add_calibration(self, gate, qubits, schedule, params=None):
+        """Register a low-level, custom pulse definition for the given gate.
+
+        Args:
+            gate (Union[Gate, str]): Gate information.
+            qubits (Union[int, Tuple[int]]): List of qubits to be measured.
+            schedule (Schedule): Schedule information.
+            params (Optional[List[Union[float, Parameter]]]): A list of parameters.
+
+        Raises:
+            Exception: if the gate is of type string and params is None.
+        """
+
+        def _format(operand):
+            try:
+                # Using float/complex value as a dict key is not good idea.
+                # This makes the mapping quite sensitive to the rounding error.
+                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
+                # and we cannot easily update this rule.
+                # The same logic exists in QuantumCircuit.add_calibration.
+                evaluated = complex(operand)
+                if np.isreal(evaluated):
+                    evaluated = float(evaluated.real)
+                    if evaluated.is_integer():
+                        evaluated = int(evaluated)
+                return evaluated
+            except TypeError:
+                # Unassigned parameter
+                return operand
+
+        if isinstance(gate, Gate):
+            params = gate.params
+            gate = gate.name
+        if params is not None:
+            params = tuple(map(_format, params))
+        else:
+            params = ()
+
+        self._calibrations[gate][(tuple(qubits), params)] = schedule
+
+    def has_calibration_for(self, node):
+        """Return True if the dag has a calibration defined for the node operation. In this
+        case, the operation does not need to be translated to the device basis.
+        """
+        if not self.calibrations or node.op.name not in self.calibrations:
+            return False
+        qubits = tuple(self.qubits.index(qubit) for qubit in node.qargs)
+        params = []
+        for p in node.op.params:
+            if isinstance(p, ParameterExpression) and not p.parameters:
+                params.append(float(p))
+            else:
+                params.append(p)
+        params = tuple(params)
+        return (qubits, params) in self.calibrations[node.op.name]
+
     def to_rustworkx(self):
         """Returns the DAGDependency in rustworkx format."""
         return self._multi_graph
@@ -269,57 +325,59 @@ class DAGDependencyV2():
                 f"Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
             ) from err
 
-    def _create_op_node(self, operation, qargs, cargs):
-        """Creates a DAGDepNode to the graph and update the edges.
-
-        Args:
-            operation (qiskit.circuit.Operation): operation
-            qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
-            cargs (list[Clbit]): list of classical wires to attach to
-
-        Returns:
-            DAGDepNode: the newly added node.
-        """
-        directives = ["measure"]
-        if not getattr(operation, "_directive", False) and operation.name not in directives:
-            qindices_list = []
-            for elem in qargs:
-                qindices_list.append(self.qubits.index(elem))
-
-            if getattr(operation, "condition", None):
-                # The change to handling operation.condition follows code patterns in quantum_circuit.py.
-                # However:
-                #   (1) cindices_list are specific to template optimization and should not be computed
-                #       in this place.
-                #   (2) Template optimization pass needs currently does not handle general conditions.
-                cond_bits = condition_resources(operation.condition).clbits
-                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
-            else:
-                cindices_list = []
-        else:
-            qindices_list = []
-            cindices_list = []
-
-        new_node = DAGOpNode(
-            op=operation,
-            qargs=qargs,
-            cargs=cargs,
-            dag=self,
-        )
-        return new_node
-
     def add_op_node(self, operation, qargs, cargs):
-        """Add a DAGDepNode to the graph and update the edges.
+        """Add a DAGOpNode to the graph and update the edges.
 
         Args:
             operation (qiskit.circuit.Operation): operation as a quantum gate
             qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
         """
-        new_node = self._create_op_node(operation, qargs, cargs)
-        node_idx = self._multi_graph.add_node(new_node)
-        self.node_map[new_node] = node_idx
+        new_node = DAGOpNode(
+            op=operation,
+            qargs=qargs,
+            cargs=cargs,
+            dag=self,
+        )
+        node_id = self._multi_graph.add_node(new_node)
+        self.node_map[new_node] = node_id
         self._update_edges()
+        self._increment_op(new_node.op)
+
+    def remove_all_ops_named(self, opname):
+        """Remove all operation nodes with the given name."""
+        for n in self.named_nodes(opname):
+            self.remove_op_node(n)
+
+    def named_nodes(self, *names):
+        """Get the set of "op" nodes with the given name."""
+        named_nodes = []
+        for node in self._multi_graph.nodes():
+            if isinstance(node, DAGOpNode) and node.op.name in names:
+                named_nodes.append(node)
+        return named_nodes
+
+    def _increment_op(self, op):
+        if op.name in self._op_names:
+            self._op_names[op.name] += 1
+        else:
+            self._op_names[op.name] = 1
+
+    def _decrement_op(self, op):
+        if self._op_names[op.name] == 1:
+            del self._op_names[op.name]
+        else:
+            self._op_names[op.name] -= 1
+
+    def remove_op_node(self, node):
+        """Remove an operation node n.
+
+        Add edges from predecessors to successors.
+        """
+        self._multi_graph.remove_node_retain_edges(
+            node.node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
+        )
+        self._decrement_op(node.op)
 
     def _update_edges(self):
         """
@@ -334,18 +392,18 @@ class DAGDependencyV2():
         representation of a circuit, and hence there are no removed nodes (this is why
         iterating over all nodes is fine).
         """
-        max__node_id = len(self._multi_graph) - 1
-        max_node = self.get_node(max__node_id)
+        max_node_id = len(self._multi_graph) - 1
+        max_node = self.get_node(max_node_id)
 
-        reachable = [True] * max__node_id
+        reachable = [True] * max_node_id
 
         # Analyze nodes in the reverse topological order.
         # An improvement to the original algorithm is to consider only direct predecessors
         # and to avoid constructing the lists of forward and backward reachable predecessors
         # for every node when not required.
-        for prev__node_id in range(max__node_id - 1, -1, -1):
-            if reachable[prev__node_id]:
-                prev_node = self.get_node(prev__node_id)
+        for prev_node_id in range(max_node_id - 1, -1, -1):
+            if reachable[prev_node_id]:
+                prev_node = self.get_node(prev_node_id)
 
                 if not self.comm_checker.commute(
                     prev_node.op,
@@ -358,15 +416,15 @@ class DAGDependencyV2():
                     # If prev_node and max_node do not commute, then we add an edge
                     # between the two, and mark all direct predecessors of prev_node
                     # as not reaching max_node.
-                    self._multi_graph.add_edge(prev__node_id, max__node_id, {"commute": False})
+                    self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
 
-                    predecessor_ids = self._multi_graph.predecessor_indices(prev__node_id)
+                    predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
                     for predecessor_id in predecessor_ids:
                         reachable[predecessor_id] = False
             else:
                 # If prev_node cannot reach max_node, then none of its predecessors can
                 # reach max_node either.
-                predecessor_ids = self._multi_graph.predecessor_indices(prev__node_id)
+                predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
                 for predecessor_id in predecessor_ids:
                     reachable[predecessor_id] = False
 
@@ -377,15 +435,15 @@ class DAGDependencyV2():
         """
         return iter(self._multi_graph.nodes())
 
-    def get_node(self, _node_id):
+    def get_node(self, node_id):
         """
         Args:
-            _node_id (int): label of considered node.
+            node_id (int): label of considered node.
 
         Returns:
             node: corresponding to the label.
         """
-        return self._multi_graph.get_node_data(_node_id)
+        return self._multi_graph.get_node_data(node_id)
 
     def _add_multi_graph_edge(self, src_id, dest_id, data):
         """
@@ -423,84 +481,80 @@ class DAGDependencyV2():
         return [
             (src, dest, data)
             for src_node in self._multi_graph.nodes()
-            for (src, dest, data) in self._multi_graph.out_edges(src_node._node_id)
+            for (src, dest, data) in self._multi_graph.out_edges(src_node.node_id)
         ]
 
-    def get_in_edges(self, _node_id):
+    def get_in_edges(self, node_id):
         """
         Enumeration of all incoming edges for a given node.
 
         Args:
-            _node_id (int): label of considered node.
+            node_id (int): label of considered node.
 
         Returns:
             List: corresponding incoming edges data.
         """
-        return self._multi_graph.in_edges(_node_id)
+        return self._multi_graph.in_edges(node_id)
 
-    def get_out_edges(self, _node_id):
+    def get_out_edges(self, node_id):
         """
         Enumeration of all outgoing edges for a given node.
 
         Args:
-            _node_id (int): label of considered node.
+            node_id (int): label of considered node.
 
         Returns:
             List: corresponding outgoing edges data.
         """
-        return self._multi_graph.out_edges(_node_id)
+        return self._multi_graph.out_edges(node_id)
 
-    # def direct_successors(self, _node_id):
-    #     """
-    #     Direct successors id of a given node as sorted list.
-
-    #     Args:
-    #         _node_id (int): label of considered node.
-
-    #     Returns:
-    #         List: direct successors id as a sorted list
-    #     """
-    #     return sorted(self._multi_graph.adj_direction(_node_id, False).keys())
-
-    # def direct_predecessors(self, _node_id):
-    #     """
-    #     Direct predecessors id of a given node as sorted list.
-
-    #     Args:
-    #         _node_id (int): label of considered node.
-
-    #     Returns:
-    #         List: direct predecessors id as a sorted list
-    #     """
-    #     return sorted(self._multi_graph.adj_direction(_node_id, True).keys())
-
-    def successors(self, _node_id):
+    def get_successors(self, node_id):
         """
-        Successors id of a given node as sorted list.
+        Node id's of direct successors of a given node as sorted list.
 
         Args:
-            _node_id (int): label of considered node.
+            node_id (int): label of considered node.
 
         Returns:
-            List: all successors id as a sorted list
+            List: all successor id's as a sorted list
         """
-        #return sorted(list(self._multi_graph.adj_direction(_node_id, False).keys()))
-        x =  self._multi_graph.successor_indices(_node_id)#self._multi_graph.get_node_data(_node_id))
-        print("succs", x)
-        return x
+        return sorted(list(self._multi_graph.successor_indices(node_id)))
 
-    def predecessors(self, _node_id):
+    def get_predecessors(self, node_id):
         """
-        Predecessors id of a given node as sorted list.
+        Node id's of direct predecessors of a given node as a sorted list.
 
         Args:
-            _node_id (int): label of considered node.
+            node_id (int): label of considered node.
 
         Returns:
-            List: all predecessors id as a sorted list
+            List: all predecessor id's as a sorted list
         """
-        #return sorted(list(self._multi_graph.adj_direction(_node_id, True).keys()))
-        return self._multi_graph.predecessor_indices(self._multi_graph.get_node_data(_node_id))
+        return sorted(list(self._multi_graph.predecessor_indices(node_id)))
+
+    def get_descendants(self, node_id):
+        """
+        Node id's of descendants of a given node as a list.
+
+        Args:
+            node_id (int): label of considered node.
+
+        Returns:
+            List: all descendant id's as a list
+        """
+        return list(rx.descendants(self._multi_graph, node_id))
+
+    def get_ancestors(self, node_id):
+        """
+        Node id's of ancestors of a given node as a list.
+
+        Args:
+            node_id (int): label of considered node.
+
+        Returns:
+            List: all ancestor id's as a list
+        """
+        return list(rx.ancestors(self._multi_graph, node_id))
 
     def topological_nodes(self):
         """
@@ -514,28 +568,6 @@ class DAGDependencyV2():
             return x.sort_key
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
-
-    def get_descendants(self, _node_id):
-        return rx.descendants(self._multi_graph, _node_id)
-        desc_list = []
-        print("IN DESC")
-        for node in rx.descendants(self._multi_graph, _node_id):
-            print(node)
-            desc_list.append(self._multi_graph.get_node_data(node))
-        return desc_list
-
-    def get_ancestors(self, _node_id):
-        return rx.ancestors(self._multi_graph, _node_id)
-        anc_list = []
-        for node in rx.ancestors(self._multi_graph, _node_id):
-            anc_list.append(self._multi_graph.get_node_data(node))
-        return anc_list
-
-    def get_successors(self, _node_id):
-        return list(self._multi_graph.successor_indices(_node_id))
-
-    def get_predecessors(self, _node_id):
-        return list(self._multi_graph.predecessor_indices(_node_id))
 
     def copy(self):
         """
@@ -578,7 +610,7 @@ class DAGDependencyV2():
     def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
         """Replace a block of nodes with a single node.
 
-        This is used to consolidate a block of DAGDepNodes into a single
+        This is used to consolidate a block of DAGOpNodes into a single
         operation. A typical example is a block of CX and SWAP gates consolidated
         into a LinearFunction. This function is an adaptation of a similar
         function from DAGCircuit.
@@ -596,7 +628,7 @@ class DAGDependencyV2():
         suboptimal but not to incorrect results.
 
         Args:
-            node_block (List[DAGDepNode]): A list of dag nodes that represents the
+            node_block (List[DAGOpNode]): A list of dag nodes that represents the
                 node block to be replaced
             op (qiskit.circuit.Operation): The operation to replace the
                 block with
@@ -619,7 +651,7 @@ class DAGDependencyV2():
         """
         block_qargs = set()
         block_cargs = set()
-        block_ids = [x._node_id for x in node_block]
+        block_ids = [x.node_id for x in node_block]
 
         # If node block is empty return early
         if not node_block:
@@ -633,10 +665,11 @@ class DAGDependencyV2():
                 block_cargs.update(condition_resources(cond).clbits)
 
         # Create replacement node
-        new_node = self._create_op_node(
+        new_node = DAGOpNode(
             op,
             qargs=sorted(block_qargs, key=lambda x: wire_pos_map[x]),
             cargs=sorted(block_cargs, key=lambda x: wire_pos_map[x]),
+            dag=self
         )
 
         try:
@@ -647,6 +680,13 @@ class DAGDependencyV2():
             raise DAGDependencyError(
                 "Replacing the specified node block would introduce a cycle"
             ) from ex
+
+        self._increment_op(op)
+
+        for nd in node_block:
+            self._decrement_op(nd.op)
+
+        return new_node
 
 
 def merge_no_duplicates(*iterables):

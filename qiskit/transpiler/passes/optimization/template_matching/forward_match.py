@@ -89,7 +89,7 @@ class ForwardMatch:
         """
         for i in range(0, self.circuit_dag_dep.size()):
             if i == self.node_id_c:
-                print("\nfound desc in init", i, self.circuit_dag_dep.get_successors(i))
+                # print("\nfound desc in init", i, self.circuit_dag_dep.get_successors(i))
                 self.descendantstovisit[self.circuit_dag_dep.get_node(i)] = self.circuit_dag_dep.get_successors(i)
                 # self.circuit_dag_dep.get_node(
                 #     i
@@ -328,9 +328,7 @@ class ForwardMatch:
             bool: True if possible, False otherwise.
         """
         if (
-            node_circuit.type == "op"
-            and getattr(node_circuit.op, "condition", None)
-            and node_template.type == "op"
+            getattr(node_circuit.op, "condition", None)
             and getattr(node_template.op, "condition", None)
         ):
             if set(self.carg_indices) != set(node_template.cindices):
@@ -369,14 +367,15 @@ class ForwardMatch:
             self._remove_node_forward(0)
 
             # If there is no successors to visit go to the end
-            print("\n\n desc visit", self.descendantstovisit)
-            print(v_first)
+            # print("\n\n desc visit", self.descendantstovisit)
+            # print(v_first)
             if not self.descendantstovisit[v_first]:
                 continue
 
             # Get the label and the node of the first successor to visit
             label = self._get_descendants_to_visit(v_first, 0)
-            print("\n\nDDDDDDDDDDDDDDD", self.circuit_dag_dep.node_map[v_first], label)
+            print("\nLABEL", label)
+            # print("\n\nDDDDDDDDDDDDDDD", self.circuit_dag_dep.node_map[v_first], label)
             v = [label, self.circuit_dag_dep.get_node(label)]
 
             # Update of the SuccessorsToVisit attribute
@@ -384,8 +383,8 @@ class ForwardMatch:
 
             # Update the matched_nodes_list with new attribute successor to visit and sort the list.
             self.matched_nodes_list.append([self.circuit_dag_dep.node_map[v_first], v_first])
-            print("\nMMMMMMMMMMM matched", self.matched_nodes_list)
-            print("v_first, v_first.node_id", v_first, self.circuit_dag_dep.node_map[v_first])
+            # print("\nMMMMMMMMMMM matched", self.matched_nodes_list)
+            # print("v_first, v_first.node_id", v_first, self.circuit_dag_dep.node_map[v_first])
             self.matched_nodes_list.sort(key=lambda x: self.descendantstovisit[x[1]])
 
             # If the node is blocked and already matched go to the end
@@ -441,7 +440,7 @@ class ForwardMatch:
                     self.match.append([i, label])
 
                     # Potential successors to visit (circuit) for a given match.
-                    potential = self.circuit_dag_dep.successors(label)
+                    potential = self.circuit_dag_dep.get_successors(label)
 
                     # If the potential successors to visit are blocked or match, it is removed.
                     for potential_id in potential:

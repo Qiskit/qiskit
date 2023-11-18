@@ -137,7 +137,7 @@ class TemplateSubstitution:
         """
         predecessors = set()
         for node_id in circuit_sublist:
-            predecessors = predecessors | set(self.circuit_dag_dep.get_node(node_id).predecessors)
+            predecessors = predecessors | set(self.circuit_dag_dep.get_predecessors(node_id))
 
         exclude = set()
         for elem in self.substitution_list[:index]:
@@ -204,12 +204,12 @@ class TemplateSubstitution:
 
         pred = set()
         for index in template_sublist:
-            pred = pred | set(self.template_dag_dep.get_node(index).predecessors)
+            pred = pred | set(self.template_dag_dep.get_predecessors(index))
         pred = list(pred - set(template_sublist))
 
         succ = set()
         for index in template_sublist:
-            succ = succ | set(self.template_dag_dep.get_node(index).successors)
+            succ = succ | set(self.template_dag_dep.get_successors(index))
         succ = list(succ - set(template_sublist))
 
         comm = list(set(template_list) - set(pred) - set(succ))
@@ -248,7 +248,7 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             predecessors = set()
             for match in scenario.circuit_config:
-                predecessors = predecessors | set(self.circuit_dag_dep.get_node(match).predecessors)
+                predecessors = predecessors | set(self.circuit_dag_dep.get_predecessors(match))
             predecessors = predecessors - set(scenario.circuit_config)
             index = self.substitution_list.index(scenario)
             for scenario_b in self.substitution_list[index::]:
@@ -274,7 +274,7 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             predecessors = set()
             for index in scenario.circuit_config:
-                predecessors = predecessors | set(self.circuit_dag_dep.get_node(index).predecessors)
+                predecessors = predecessors | set(self.circuit_dag_dep.get_predecessors(index))
             list_predecessors.append(predecessors)
 
         # Check if two groups of matches are incompatible.
@@ -433,8 +433,8 @@ class TemplateSubstitution:
                 inst = node.op.copy()
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
 
-            dag_dep_opt._add_predecessors()
-            dag_dep_opt._add_successors()
+            # dag_dep_opt._add_predecessors()
+            # dag_dep_opt._add_successors()
         # If there is no valid match, it returns the original dag.
         else:
             dag_dep_opt = self.circuit_dag_dep
