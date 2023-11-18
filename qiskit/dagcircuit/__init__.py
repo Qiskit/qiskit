@@ -39,6 +39,6 @@ Exceptions
 """
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
-from .dagdepnode import DAGDepNode
+#from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError, DAGDependencyError
-from .dagdependency import DAGDependency
+from .dagdependency import DAGDependencyV2

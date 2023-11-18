@@ -79,21 +79,22 @@ class ForwardMatch:
         # Transformation of the carg indices of the circuit to be adapted to the template indices
         self.carg_indices = []
 
-        self.descendantstovisit = {}
+        self.successorstovisit = {}
         self.isblocked = {}
         self.matchedwith = {}
 
-    def _init_descendants_to_visit(self):
+    def _init_successors_to_visit(self):
         """
         Initialize the attribute list 'SuccessorsToVisit'
         """
         for i in range(0, self.circuit_dag_dep.size()):
             if i == self.node_id_c:
                 # print("\nfound desc in init", i, self.circuit_dag_dep.get_successors(i))
-                self.descendantstovisit[self.circuit_dag_dep.get_node(i)] = self.circuit_dag_dep.get_successors(i)
+                self.successorstovisit[self.circuit_dag_dep.get_node(i)] = self.circuit_dag_dep.get_successors(i)
                 # self.circuit_dag_dep.get_node(
                 #     i
-                # ).descendantstovisit = self.circuit_dag_dep.direct_successors(i)
+                # ).successorstovisit = self.circuit_dag_dep.direct_successors(i)
+        #print("succ to visit", self.node_id_c, self.successorstovisit)
 
     def _init_matched_with_circuit(self):
         """
@@ -214,12 +215,16 @@ class ForwardMatch:
             DAGOpNode or DAGOutNode: Node with updated attribute 'SuccessorToVisit'.
         """
         # node_update = node
-        # node_update.descendantstovisit.pop(successor_id)
+        # node_update.successorstovisit.pop(successor_id)
         # return node_update
-        self.descendantstovisit[node].pop(successor_id)
+        #print("before update", self.successorstovisit[node])
+        if self.successorstovisit:
+            self.successorstovisit[node].pop(successor_id)
+        #print("after update", self.successorstovisit[node])
+
         return node
 
-    def _get_descendants_to_visit(self, node, list_id):
+    def _get_successors_to_visit(self, node, list_id):
         """
         Return the successor for a given node and id.
         Args:
@@ -229,9 +234,9 @@ class ForwardMatch:
         Returns:
             int: id of the successor to get.
         """
-        #successor_id = node.descendantstovisit[list_id]
+        #successor_id = node.successorstovisit[list_id]
         #print("in desc to visit", node, list_id)
-        return self.descendantstovisit[node][list_id]
+        return self.successorstovisit[node][list_id]
 
     def _update_qarg_indices(self, qarg):
         """
@@ -347,7 +352,7 @@ class ForwardMatch:
         """
 
         # Initialize the new attributes of the DAGDepNodes of the DAGDependency object
-        self._init_descendants_to_visit()
+        self._init_successors_to_visit()
 
         self._init_matched_with_circuit()
         self._init_matched_with_template()
@@ -367,25 +372,27 @@ class ForwardMatch:
             self._remove_node_forward(0)
 
             # If there is no successors to visit go to the end
-            # print("\n\n desc visit", self.descendantstovisit)
+            # print("\n\n desc visit", self.successorstovisit)
             # print(v_first)
-            if not self.descendantstovisit[v_first]:
+            if not self.successorstovisit[v_first]:
                 continue
 
             # Get the label and the node of the first successor to visit
-            label = self._get_descendants_to_visit(v_first, 0)
-            print("\nLABEL", label)
+            label = self._get_successors_to_visit(v_first, 0)
+            if not isinstance(label, int):
+                print("\nLABEL", label, self.successorstovisit)
+                print(v_first)
             # print("\n\nDDDDDDDDDDDDDDD", self.circuit_dag_dep.node_map[v_first], label)
             v = [label, self.circuit_dag_dep.get_node(label)]
 
             # Update of the SuccessorsToVisit attribute
-            v_first = self._update_successor(v_first, 0)
+            self._update_successor(v_first, 0)
 
             # Update the matched_nodes_list with new attribute successor to visit and sort the list.
             self.matched_nodes_list.append([self.circuit_dag_dep.node_map[v_first], v_first])
             # print("\nMMMMMMMMMMM matched", self.matched_nodes_list)
             # print("v_first, v_first.node_id", v_first, self.circuit_dag_dep.node_map[v_first])
-            self.matched_nodes_list.sort(key=lambda x: self.descendantstovisit[x[1]])
+            self.matched_nodes_list.sort(key=lambda x: self.successorstovisit[x[1]])
 
             # If the node is blocked and already matched go to the end
             if self.isblocked[v[1]] | (self.matchedwith[v[1]] != []):
@@ -452,11 +459,11 @@ class ForwardMatch:
                     sorted_potential = sorted(potential)
 
                     #  Update the successor to visit attribute
-                    self.descendantstovisit[v[1]] = sorted_potential
+                    self.successorstovisit[v[1]] = sorted_potential
 
                     # Add the updated node to the stack.
                     self.matched_nodes_list.append([v[0], v[1]])
-                    self.matched_nodes_list.sort(key=lambda x: self.descendantstovisit[x[1]])
+                    self.matched_nodes_list.sort(key=lambda x: self.successorstovisit[x[1]])
                     match = True
                     continue
 
