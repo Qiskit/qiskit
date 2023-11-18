@@ -18,7 +18,7 @@ import unittest
 from qiskit import QuantumRegister, ClassicalRegister
 from qiskit.converters import (
     circuit_to_dag,
-    circuit_to_dagdependency,
+    circuit_to_dagdependencyV2,
     circuit_to_instruction,
     dag_to_circuit,
     dagdependency_to_circuit,
@@ -106,7 +106,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(qc))
         blocks = block_collector.collect_all_matching_blocks(
             lambda node: node.op.name == "cx",
             split_blocks=False,
@@ -126,7 +126,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(qc))
         blocks = block_collector.collect_all_matching_blocks(
             lambda node: node.op.name in ["cx", "z"],
             split_blocks=False,
@@ -171,7 +171,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.swap(1, 0)
         qc.cz(5, 3)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(qc))
         blocks = block_collector.collect_all_matching_blocks(
             lambda node: True,
             split_blocks=False,
@@ -223,7 +223,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.x(0)
         qc.cx(1, 0)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(qc))
         blocks = block_collector.collect_all_matching_blocks(
             lambda node: node.op.name in ["x", "cx"],
             split_blocks=False,
@@ -287,7 +287,7 @@ class TestCollectBlocks(QiskitTestCase):
 
         # If the filter_function does not look at conditions, we should collect all
         # gates into the block.
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(qc))
         blocks = block_collector.collect_all_matching_blocks(
             lambda node: node.op.name in ["x", "cx"],
             split_blocks=False,
@@ -446,7 +446,7 @@ class TestCollectBlocks(QiskitTestCase):
         circuit.cx(1, 4)
         circuit.swap(4, 2)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(circuit))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(circuit))
 
         # Check that we have a single linear block
         blocks = block_collector.collect_all_matching_blocks(
@@ -507,7 +507,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.h(2)
         qc.measure_all()
 
-        dag = circuit_to_dagdependency(qc)
+        dag = circuit_to_dagdependencyV2(qc)
 
         # Collect all measure instructions
         blocks = BlockCollector(dag).collect_all_matching_blocks(
@@ -586,7 +586,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(0, 1)
         qc.cx(2, 3).c_if(1, 0)
 
-        dag = circuit_to_dagdependency(qc)
+        dag = circuit_to_dagdependencyV2(qc)
 
         # Collect all cx gates (including the conditional ones)
         blocks = BlockCollector(dag).collect_all_matching_blocks(
@@ -741,7 +741,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.cx(1, 2)
         qc.cx(0, 1).c_if(creg[2], 1)
 
-        dag = circuit_to_dagdependency(qc)
+        dag = circuit_to_dagdependencyV2(qc)
 
         # Collect all cx gates (including the conditional ones)
         blocks = BlockCollector(dag).collect_all_matching_blocks(
@@ -823,7 +823,7 @@ class TestCollectBlocks(QiskitTestCase):
         qc.h(2)
         qc.h(3)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(qc))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(qc))
 
         # When collecting in the forward direction, there are two blocks of
         # single-qubit gates: the first of size 6, and the second of size 2.
@@ -895,7 +895,7 @@ class TestCollectBlocks(QiskitTestCase):
         circuit.swap(3, 2)
         circuit.swap(4, 1)
 
-        block_collector = BlockCollector(circuit_to_dagdependency(circuit))
+        block_collector = BlockCollector(circuit_to_dagdependencyV2(circuit))
 
         # If we split the gates into depth-1 layers, we expect four linear blocks:
         #   CX(0, 2), CX(1, 4)

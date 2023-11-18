@@ -375,7 +375,7 @@ class DAGDependencyV2():
         Add edges from predecessors to successors.
         """
         self._multi_graph.remove_node_retain_edges(
-            node.node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
+            self.node_map[node], use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
         self._decrement_op(node.op)
 
@@ -481,7 +481,7 @@ class DAGDependencyV2():
         return [
             (src, dest, data)
             for src_node in self._multi_graph.nodes()
-            for (src, dest, data) in self._multi_graph.out_edges(src_node.node_id)
+            for (src, dest, data) in self._multi_graph.out_edges(self.node_map[src_node])
         ]
 
     def get_in_edges(self, node_id):
@@ -651,7 +651,7 @@ class DAGDependencyV2():
         """
         block_qargs = set()
         block_cargs = set()
-        block_ids = [x.node_id for x in node_block]
+        block_ids = [self.node_map[x] for x in node_block]
 
         # If node block is empty return early
         if not node_block:

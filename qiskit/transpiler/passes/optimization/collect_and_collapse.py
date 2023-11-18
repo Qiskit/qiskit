@@ -15,7 +15,7 @@
 in a circuit."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.converters import dag_to_dagdependency, dagdependency_to_dag
+from qiskit.converters import dag_to_dagdependencyV2, dagdependency_to_dag
 from qiskit.dagcircuit.collect_blocks import BlockCollector, BlockCollapser
 from qiskit.transpiler.passes.utils import control_flow
 
@@ -73,7 +73,7 @@ class CollectAndCollapse(TransformationPass):
 
         # If the option commutative_analysis is set, construct DAGDependency from the given DAGCircuit.
         if self.do_commutative_analysis:
-            dag = dag_to_dagdependency(dag)
+            dag = dag_to_dagdependencyV2(dag)
 
         # call collect_function to collect blocks from DAG
         blocks = self.collect_function(dag)
