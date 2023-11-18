@@ -313,9 +313,6 @@ class TemplateMatching:
                                                 )
 
                                                 # Apply the forward match part of the algorithm.
-                                                for node in self.circuit_dag_dep.get_nodes():
-                                                    pass
-                                                    # print("TOP OF FORWARD", node)
                                                 forward = ForwardMatch(
                                                     self.circuit_dag_dep,
                                                     self.template_dag_dep,
@@ -325,9 +322,6 @@ class TemplateMatching:
                                                     list_clbit_circuit,
                                                 )
                                                 isblocked, matchedwith = forward.run_forward_match()
-                                                for node in self.circuit_dag_dep.get_nodes():
-                                                    pass
-                                                    # print("END OF FORWARD", node)
 
                                                 # Apply the backward match part of the algorithm.
                                                 backward = BackwardMatch(
@@ -344,17 +338,11 @@ class TemplateMatching:
                                                 )
 
                                                 backward.run_backward_match()
-                                                for node in self.circuit_dag_dep.get_nodes():
-                                                    pass
-                                                    # print("END OF BACK", node)
 
                                                 # Add the matches to the list.
                                                 self._add_match(backward.match_final)
                                     else:
                                         # Apply the forward match part of the algorithm.
-                                        for node in self.circuit_dag_dep.get_nodes():
-                                            pass
-                                            # print("TOP OF FORWARD 2", node, node_id_c, node_id_t)
                                         forward = ForwardMatch(
                                             self.circuit_dag_dep,
                                             self.template_dag_dep,
@@ -363,9 +351,6 @@ class TemplateMatching:
                                             list_qubit_circuit,
                                         )
                                         isblocked, matchedwith = forward.run_forward_match()
-                                        for node in self.circuit_dag_dep.get_nodes():
-                                            pass
-                                            # print("END OF FORWARD 2", node)
 
                                         # Apply the backward match part of the algorithm.
                                         backward = BackwardMatch(
@@ -381,9 +366,6 @@ class TemplateMatching:
                                             matchedwith,
                                         )
                                         backward.run_backward_match()
-                                        for node in self.circuit_dag_dep.get_nodes():
-                                            pass
-                                            # print("END OF BACk 2", node)
 
                                         # Add the matches to the list.
                                         self._add_match(backward.match_final)

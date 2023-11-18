@@ -30,7 +30,7 @@ from qiskit.circuit.library.templates.clifford import (
     clifford_4_2,
 )
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
+from qiskit.converters.circuit_to_dagdependencyV2 import circuit_to_dagdependencyV2
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
@@ -247,7 +247,7 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(0, 1)
         circuit_in.cx(0, 1)
 
-        templates = [circuit_to_dagdependency(circuit_in)]
+        templates = [circuit_to_dagdependencyV2(circuit_in)]
 
         pass_ = TemplateOptimization(template_list=templates)
         circuit_out = PassManager(pass_).run(circuit_in)

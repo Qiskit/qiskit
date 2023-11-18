@@ -20,7 +20,7 @@ import itertools
 
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 
 
@@ -80,7 +80,7 @@ class TemplateSubstitution:
 
         self.substitution_list = []
         self.unmatched_list = []
-        self.dag_dep_optimized = DAGDependency()
+        self.dag_dep_optimized = DAGDependencyV2()
         self.dag_optimized = DAGCircuit()
 
         if user_cost_dict is not None:
@@ -368,7 +368,7 @@ class TemplateSubstitution:
         """
         self._substitution()
 
-        dag_dep_opt = DAGDependency()
+        dag_dep_opt = DAGDependencyV2()
 
         dag_dep_opt.name = self.circuit_dag_dep.name
 

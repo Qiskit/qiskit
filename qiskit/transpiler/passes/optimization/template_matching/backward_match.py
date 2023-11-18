@@ -148,7 +148,6 @@ class BackwardMatch:
         self.node_id_c = node_id_c
         self.node_id_t = node_id_t
         self.forward_matches = forward_matches
-        # print("forw matcheds", forward_matches)
         self.match_final = []
         self.heuristics_backward_param = (
             heuristics_backward_param if heuristics_backward_param is not None else []
@@ -192,7 +191,6 @@ class BackwardMatch:
         matches_template = sorted(match[0] for match in matches)
 
         descendants = self.template_dag_dep.get_descendants(self.node_id_t)#self.template_dag_dep.get_node(self.node_id_t).successors
-        # print("back cand desc", descendants)
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
             if (index not in descendants) and (index not in template_block):
@@ -243,8 +241,8 @@ class BackwardMatch:
         """
         Check if two instructions are the same.
         Args:
-            node_circuit (DAGDepNode): node in the circuit.
-            node_template (DAGDepNode): node in the template.
+            node_circuit (DAGOpNode): node in the circuit.
+            node_template (DAGOpNode): node in the template.
         Returns:
             bool: True if the same, False otherwise.
         """
@@ -254,8 +252,8 @@ class BackwardMatch:
         """
         Check if the qubits configurations are compatible.
         Args:
-            node_circuit (DAGDepNode): node in the circuit.
-            node_template (DAGDepNode): node in the template.
+            node_circuit (DAGOpNode): node in the circuit.
+            node_template (DAGOpNode): node in the template.
             qarg_circuit (list): qubits configuration for the Instruction in the circuit.
         Returns:
             bool: True if possible, False otherwise.
@@ -302,8 +300,8 @@ class BackwardMatch:
         """
         Check if the clbits configurations are compatible.
         Args:
-            node_circuit (DAGDepNode): node in the circuit.
-            node_template (DAGDepNode): node in the template.
+            node_circuit (DAGOpNode): node in the circuit.
+            node_template (DAGOpNode): node in the template.
             carg_circuit (list): clbits configuration for the Instruction in the circuit.
         Returns:
             bool: True if possible, False otherwise.
@@ -334,10 +332,7 @@ class BackwardMatch:
         circuit_matched = []
         circuit_blocked = []
 
-        # print("\nself.mat", self.matchedwith)
-        # print("self.isb", self.isblocked)
         for node in self.circuit_dag_dep.get_nodes():
-            #print("NODE", node)
             circuit_matched.append(self.matchedwith[node])
             circuit_blocked.append(self.isblocked[node])
 
@@ -345,7 +340,6 @@ class BackwardMatch:
         template_blocked = []
 
         for node in self.template_dag_dep.get_nodes():
-            #print()
             template_matched.append(self.matchedwith[node])
             template_blocked.append(self.isblocked[node])
 
@@ -431,7 +425,6 @@ class BackwardMatch:
         )
 
         # While the scenario stack is not empty.
-        # print("scenarias", self.matching_list.matching_scenarios_list)
         while self.matching_list.matching_scenarios_list:
 
             # If parameters are given, the heuristics is applied.
@@ -450,12 +443,6 @@ class BackwardMatch:
             template_blocked = scenario.template_blocked
             matches_scenario = scenario.matches
             counter_scenario = scenario.counter
-            # print("c match", circuit_matched)
-            # print("c block", circuit_blocked)
-            # print("t match", template_matched)
-            # print("t block", template_blocked)
-            # print("match", matches_scenario)
-            # print("count", counter_scenario)
 
             # Part of the match list coming from the backward match.
             match_backward = [
@@ -474,7 +461,6 @@ class BackwardMatch:
                 continue
 
             # First circuit candidate.
-            # print("gate indi", gate_indices)
             circuit_id = gate_indices[counter_scenario - 1]
             node_circuit = self.circuit_dag_dep.get_node(circuit_id)
 
@@ -493,7 +479,7 @@ class BackwardMatch:
 
             # The candidates in the template.
             candidates_indices = self._find_backward_candidates(template_blocked, matches_scenario)
-            # print("CAND IND", candidates_indices)
+
             # Update of the qubits/clbits indices in the circuit in order to be
             # comparable with the one in the template.
             qarg1 = node_circuit.qindices
@@ -593,7 +579,6 @@ class BackwardMatch:
                         global_match = True
 
             if global_match:
-                # print("circ matched", circuit_matched)
                 circuit_matched_block_s = circuit_matched.copy()
                 circuit_blocked_block_s = circuit_blocked.copy()
 
@@ -608,10 +593,8 @@ class BackwardMatch:
 
                 # Second option, not a greedy match, block all successors (push the gate
                 # to the right).
-                for desc in self.circuit_dag_dep.get_descendants(circuit_id):#self.circuit_dag_dep.get_node(circuit_id).desc:
-                    # print("desc", desc)
+                for desc in self.circuit_dag_dep.get_descendants(circuit_id):
                     circuit_blocked_block_s[desc] = True
-                    # print("circ mat block s", circuit_matched_block_s)
                     if not isinstance(circuit_matched_block_s[desc], bool) and len(circuit_matched_block_s[desc]) > 0:
                         broken_matches.append(desc)
                         new_id = circuit_matched_block_s[desc][0]
@@ -709,7 +692,6 @@ class BackwardMatch:
 
                     # Second option, all predecessors are blocked (circuit gate is
                     # moved to the left).
-                    # print("anc", ancestors)
                     for ancestor in ancestors:
                         circuit_blocked[ancestor] = True
 
