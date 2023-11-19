@@ -800,21 +800,27 @@ class TestBuilderComposition(TestBuilder):
         short_dur = 20
         long_dur = 49
 
+        def get_sched(qubit_idx:[int], backend):
+            qc = circuit.QuantumCircuit(2)
+            for idx in qubit_idx:
+                qc.append(circuit.library.U2Gate(0, pi/2), [idx])
+            return compiler.schedule(compiler.transpile(qc, backend=backend), backend)
+
+
         with pulse.build(self.backend) as schedule:
+
             with pulse.align_sequential():
                 pulse.delay(delay_dur, d0)
-                with self.assertWarns(DeprecationWarning):
-                    pulse.u2(0, pi / 2, 1)
+                pulse.call(get_sched([1], self.backend))
+
             with pulse.align_right():
                 pulse.play(library.Constant(short_dur, 0.1), d1)
                 pulse.play(library.Constant(long_dur, 0.1), d2)
-                with self.assertWarns(DeprecationWarning):
-                    pulse.u2(0, pi / 2, 1)
+                pulse.call(get_sched([1], self.backend))
+
             with pulse.align_left():
-                with self.assertWarns(DeprecationWarning):
-                    pulse.u2(0, pi / 2, 0)
-                    pulse.u2(0, pi / 2, 1)
-                    pulse.u2(0, pi / 2, 0)
+                pulse.call(get_sched([0, 1, 0], self.backend))
+
             pulse.measure(0)
 
         # prepare and schedule circuits that will be used.
@@ -942,8 +948,7 @@ class TestSubroutineCall(TestBuilder):
                 # this is circuit, a subroutine stored as Call instruction
                 pulse.call(h_control)
                 # this is instruction, not subroutine
-                with self.assertWarns(DeprecationWarning):
-                    pulse.cx(0, 1)
+                pulse.call(self.inst_map._get_calibration_entry(instruction = circuit.library.CXGate(), qubits = (0, 1)).get_schedule())
                 # this is macro, not subroutine
                 pulse.measure([0, 1])
 
@@ -951,9 +956,7 @@ class TestSubroutineCall(TestBuilder):
         h_reference = compiler.schedule(compiler.transpile(h_control, self.backend), self.backend)
 
         # gate
-        cx_circ = circuit.QuantumCircuit(2)
-        cx_circ.cx(0, 1)
-        cx_reference = compiler.schedule(compiler.transpile(cx_circ, self.backend), self.backend)
+        cx_reference = self.inst_map._get_calibration_entry(instruction = circuit.library.CXGate(), qubits = (0, 1)).get_schedule()
 
         # measurement
         measure_reference = macros.measure(
