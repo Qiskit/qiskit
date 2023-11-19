@@ -45,7 +45,10 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous
-from qiskit.pulse import library
+from qiskit.pulse.library.symbolic_pulses import Gaussian as SymGaussian
+from qiskit.pulse.library.symbolic_pulses import GaussianSquare as SymGaussianSquare
+from qiskit.pulse.library.symbolic_pulses import Drag as SymDrag
+from qiskit.pulse.library.symbolic_pulses import Constant as SymConstant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 from qiskit.utils.deprecation import deprecate_func
@@ -179,7 +182,7 @@ class Gaussian(ParametricPulse):
         return self._sigma
 
     def get_waveform(self) -> Waveform:
-        return library.Gaussian(
+        return SymGaussian(
             duration=self.duration,
             amp=np.abs(self.amp),
             angle=np.angle(self.amp),
@@ -324,7 +327,7 @@ class GaussianSquare(ParametricPulse):
         return self._width
 
     def get_waveform(self) -> Waveform:
-        return library.GaussianSquare(
+        return SymGaussianSquare(
             duration=self.duration,
             amp=np.abs(self.amp),
             angle=np.angle(self.amp),
@@ -482,7 +485,7 @@ class Drag(ParametricPulse):
         return self._beta
 
     def get_waveform(self) -> Waveform:
-        return library.Drag(
+        return SymDrag(
             duration=self.duration,
             amp=np.abs(self.amp),
             angle=np.angle(self.amp),
@@ -595,7 +598,7 @@ class Constant(ParametricPulse):
         return self._amp
 
     def get_waveform(self) -> Waveform:
-        return library.Constant(
+        return SymConstant(
             duration=self.duration, amp=np.abs(self.amp), angle=np.angle(self.amp)
         ).get_waveform()
 

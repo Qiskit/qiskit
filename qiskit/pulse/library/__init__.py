@@ -23,8 +23,7 @@ The :class:`~Waveform` model directly stores the waveform data points in each cl
 This model provides the most flexibility to express arbitrary waveforms and allows
 a rapid prototyping of new control techniques. However, this model is typically memory
 inefficient and might be hard to scale to large-size quantum processors.
-Several waveform subclasses are defined by :ref:`waveforms`,
-but a user can also directly instantiate the :class:`~Waveform` class with ``samples`` argument
+A user can directly instantiate the :class:`~Waveform` class with ``samples`` argument
 which is usually a complex numpy array or any kind of array-like data.
 
 In contrast, the :class:`~SymbolicPulse` model only stores the function and its parameters
