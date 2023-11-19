@@ -13,6 +13,7 @@
 """
 A generic InverseCancellation pass for any set of gate-inverse pairs.
 """
+import math
 from typing import List, Tuple, Union
 
 from qiskit.circuit import Gate
@@ -111,7 +112,9 @@ class InverseCancellation(TransformationPass):
                 partitions = []
                 chunk = []
                 for i in range(len(gate_cancel_run) - 1):
-                    if gate_cancel_run[i].op == gate:
+                    if gate_cancel_run[i].name == gate.name and almost_equal(
+                        gate.params, gate_cancel_run[i].op.params
+                    ):
                         chunk.append(gate_cancel_run[i])
                     else:
                         if chunk:
@@ -157,16 +160,20 @@ class InverseCancellation(TransformationPass):
                 while i < len(dag_nodes) - 1:
                     if (
                         dag_nodes[i].qargs == dag_nodes[i + 1].qargs
-                        and dag_nodes[i].op == pair[0]
-                        and dag_nodes[i + 1].op == pair[1]
+                        and dag_nodes[i].op.name == pair[0].name
+                        and almost_equal(dag_nodes[i].op.params, pair[0].params)
+                        and dag_nodes[i + 1].op.name == pair[1].name
+                        and almost_equal(dag_nodes[i + 1].op.params, pair[1].params)
                     ):
                         dag.remove_op_node(dag_nodes[i])
                         dag.remove_op_node(dag_nodes[i + 1])
                         i = i + 2
                     elif (
                         dag_nodes[i].qargs == dag_nodes[i + 1].qargs
-                        and dag_nodes[i].op == pair[1]
-                        and dag_nodes[i + 1].op == pair[0]
+                        and dag_nodes[i].op.name == pair[1].name
+                        and almost_equal(dag_nodes[i].op.params, pair[1].params)
+                        and dag_nodes[i + 1].op.name == pair[0].name
+                        and almost_equal(dag_nodes[i + 1].op.params, pair[0].params)
                     ):
                         dag.remove_op_node(dag_nodes[i])
                         dag.remove_op_node(dag_nodes[i + 1])
@@ -174,3 +181,15 @@ class InverseCancellation(TransformationPass):
                     else:
                         i = i + 1
         return dag
+
+
+def almost_equal(params_a, params_b):
+    """Return whether params are equivalent."""
+    for a, b in zip(params_a, params_b):
+        try:
+            res = math.isclose(a, b)
+        except TypeError:
+            res = a == b
+        if not res:
+            return False
+    return True
