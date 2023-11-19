@@ -248,6 +248,8 @@ class ForwardMatch:
         if isinstance(node_circuit.op, ControlledGate):
 
             c_template = node_template.op.num_ctrl_qubits
+            #print("qarg_indices", c_template.qindices)
+            #print("temp", node_template.qindices)
 
             if c_template == 1:
                 return self.qarg_indices == node_template.qindices
@@ -349,10 +351,15 @@ class ForwardMatch:
             qarg1 = self.circuit_dag_dep.get_node(label).qindices
             carg1 = self.circuit_dag_dep.get_node(label).cindices
 
+            print(label, self.circuit_dag_dep.get_node(label))
+            print("RUN QIND", qarg1)
+
             # Update the indices for both qubits and clbits in order to be comparable with  the
             # indices in the template circuit.
             self._update_qarg_indices(qarg1)
             self._update_carg_indices(carg1)
+
+            print("run qarg", self.qarg_indices)
 
             match = False
 

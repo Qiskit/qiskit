@@ -249,6 +249,9 @@ class TemplateMatching:
         n_qubits_t = len(self.template_dag_dep.qubits)
         n_clbits_t = len(self.template_dag_dep.clbits)
 
+        for n in self.circuit_dag_dep.get_nodes():
+            print("circ nodes qind", n.qindices, n)
+
         # Loop over the indices of both template and circuit.
         for template_index in range(0, self.template_dag_dep.size()):
             for circuit_index in range(0, self.circuit_dag_dep.size()):
@@ -259,6 +262,7 @@ class TemplateMatching:
 
                     qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
                     carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
+                    print("temp match qarc_c", qarg_c)
 
                     qarg_t = self.template_dag_dep.get_node(template_index).qindices
                     carg_t = self.template_dag_dep.get_node(template_index).cindices

@@ -333,13 +333,37 @@ class DAGDependencyV2():
             qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
         """
+        directives = ["measure"]
+        if not getattr(operation, "_directive", False) and operation.name not in directives:
+            qindices_list = []
+            for elem in qargs:
+                qindices_list.append(self.qubits.index(elem))
+
+            if getattr(operation, "condition", None):
+                # The change to handling operation.condition follows code patterns in quantum_circuit.py.
+                # However:
+                #   (1) cindices_list are specific to template optimization and should not be computed
+                #       in this place.
+                #   (2) Template optimization pass needs currently does not handle general conditions.
+                cond_bits = condition_resources(operation.condition).clbits
+                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
+            else:
+                cindices_list = []
+        else:
+            qindices_list = []
+            cindices_list = []
+        print("dag dep qindices", qindices_list)
+
         new_node = DAGOpNode(
             op=operation,
             qargs=qargs,
             cargs=cargs,
+            qindices=qindices_list,
+            cindices=cindices_list,
             dag=self,
         )
         node_id = self._multi_graph.add_node(new_node)
+        print("new_node", node_id, new_node, new_node.qindices)
         self.node_map[new_node] = node_id
         self._update_edges()
         self._increment_op(new_node.op)
