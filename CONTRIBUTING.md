@@ -525,7 +525,7 @@ def test_method2(self):
    self.assertEqual(result, <expected>)
 ```
 
-`test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy)).
+`test_method1_deprecated` can be removed after `Obj.method1` is removed (following the [Qiskit Deprecation Policy](https://qiskit.org/documentation/deprecation_policy.html)).
 
 ## Using dependencies
 
