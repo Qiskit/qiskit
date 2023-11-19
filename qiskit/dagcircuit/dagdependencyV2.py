@@ -78,9 +78,6 @@ class DAGDependencyV2():
         # Cache of dag op node sort keys
         self._key_cache = {}
 
-        # Set of wires (Register,idx) in the dag
-        self._wires = set()
-
         # Directed multigraph whose nodes are operations(gates) and edges
         # represent non-commutativity between two gates.
         self._multi_graph = rx.PyDAG()
@@ -113,6 +110,10 @@ class DAGDependencyV2():
 
         # Map of node to node index
         self.node_map = {}
+
+        # Maps of qarg/carg indices
+        self.qindices_map = {}
+        self.cindices_map = {}
 
     @property
     def global_phase(self):
@@ -241,7 +242,6 @@ class DAGDependencyV2():
         for qubit in qubits:
             self.qubits.append(qubit)
             self._qubit_indices[qubit] = BitLocations(len(self.qubits) - 1, [])
-            #self._add_wire(qubit)
 
     def add_clbits(self, clbits):
         """Add individual clbit wires."""
@@ -255,7 +255,6 @@ class DAGDependencyV2():
         for clbit in clbits:
             self.clbits.append(clbit)
             self._clbit_indices[clbit] = BitLocations(len(self.clbits) - 1, [])
-            #self._add_wire(clbit)
 
     def add_qreg(self, qreg):
         """Add qubits in a quantum register."""
@@ -273,7 +272,6 @@ class DAGDependencyV2():
                 self._qubit_indices[qreg[j]] = BitLocations(
                     len(self.qubits) - 1, registers=[(qreg, j)]
                 )
-                #self._add_wire(qreg[j])
 
     def add_creg(self, creg):
         """Add clbits in a classical register."""
@@ -291,7 +289,6 @@ class DAGDependencyV2():
                 self._clbit_indices[creg[j]] = BitLocations(
                     len(self.clbits) - 1, registers=[(creg, j)]
                 )
-                #self._add_wire(creg[j])
 
     def find_bit(self, bit: Bit) -> BitLocations:
         """
@@ -333,11 +330,24 @@ class DAGDependencyV2():
             qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
         """
+        new_node = DAGOpNode(
+            op=operation,
+            qargs=qargs,
+            cargs=cargs,
+            dag=self,
+        )
+        node_id = self._multi_graph.add_node(new_node)
+        #print("new_node", node_id, new_node, new_node.qindices)
+        self.node_map[new_node] = node_id
+        self._update_edges()
+        self._increment_op(new_node.op)
+
         directives = ["measure"]
         if not getattr(operation, "_directive", False) and operation.name not in directives:
-            qindices_list = []
-            for elem in qargs:
-                qindices_list.append(self.qubits.index(elem))
+            self.qindices_map[new_node] = [self.find_bit(q).index for q in qargs]
+            # qindices_list = []
+            # for elem in qargs:
+            #     qindices_list.append(self.qubits.index(elem))
 
             if getattr(operation, "condition", None):
                 # The change to handling operation.condition follows code patterns in quantum_circuit.py.
@@ -346,27 +356,12 @@ class DAGDependencyV2():
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
                 cond_bits = condition_resources(operation.condition).clbits
-                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
+                self.cindices_map[new_node] = [self.find_bit(c).index for c in cond_bits]
             else:
-                cindices_list = []
+                self.cindices_map[new_node] = []
         else:
-            qindices_list = []
-            cindices_list = []
-        print("dag dep qindices", qindices_list)
-
-        new_node = DAGOpNode(
-            op=operation,
-            qargs=qargs,
-            cargs=cargs,
-            qindices=qindices_list,
-            cindices=cindices_list,
-            dag=self,
-        )
-        node_id = self._multi_graph.add_node(new_node)
-        print("new_node", node_id, new_node, new_node.qindices)
-        self.node_map[new_node] = node_id
-        self._update_edges()
-        self._increment_op(new_node.op)
+            self.qindices_map[new_node] = []
+            self.cindices_map[new_node] = []
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""

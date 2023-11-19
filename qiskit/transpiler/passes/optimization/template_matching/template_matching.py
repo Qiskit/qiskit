@@ -77,17 +77,17 @@ class TemplateMatching:
         # Controlled gate
         if isinstance(node_circuit.op, ControlledGate) and node_template.op.num_ctrl_qubits > 1:
             control = node_template.op.num_ctrl_qubits
-            control_qubits_circuit = node_circuit.qindices[:control]
-            not_control_qubits_circuit = node_circuit.qindices[control::]
+            control_qubits_circuit = self.circuit_dag_dep.qindices_map[node_circuit][:control]
+            not_control_qubits_circuit = self.circuit_dag_dep.qindices_map[node_circuit][control::]
 
             # Symmetric base gate
             if node_template.op.base_gate.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
                 for control_perm_q in itertools.permutations(control_qubits_circuit):
                     control_perm_q = list(control_perm_q)
                     l_q_sub = [-1] * n_qubits_t
-                    for q in node_template.qindices:
+                    for q in self.template_dag_dep.qindices_map[node_template]:
                         node_circuit_perm = control_perm_q + not_control_qubits_circuit
-                        l_q_sub[q] = node_circuit_perm[node_template.qindices.index(q)]
+                        l_q_sub[q] = node_circuit_perm[self.template_dag_dep.qindices_map[node_template].index(q)]
                     l_q.append(l_q_sub)
             # Not symmetric base gate
             else:
@@ -96,24 +96,25 @@ class TemplateMatching:
                     for not_control_perm_q in itertools.permutations(not_control_qubits_circuit):
                         not_control_perm_q = list(not_control_perm_q)
                         l_q_sub = [-1] * n_qubits_t
-                        for q in node_template.qindices:
+                        for q in self.template_dag_dep.qindices_map[node_template]:
                             node_circuit_perm = control_perm_q + not_control_perm_q
-                            l_q_sub[q] = node_circuit_perm[node_template.qindices.index(q)]
+                            l_q_sub[q] = node_circuit_perm[self.template_dag_dep.qindices_map[node_template].index(q)]
                         l_q.append(l_q_sub)
         # Not controlled
         else:
             # Symmetric gate
             if node_template.op.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
                 l_q_sub = [-1] * n_qubits_t
-                for q in node_template.qindices:
-                    l_q_sub[q] = node_circuit.qindices[node_template.qindices.index(q)]
+                for q in self.template_dag_dep.qindices_map[node_template]:
+                    l_q_sub[q] = self.circuit_dag_dep.qindices_map[node_circuit][self.template_dag_dep.qindices_map[node_template].index(q)]
                 l_q.append(l_q_sub)
             # Not symmetric
             else:
-                for perm_q in itertools.permutations(node_circuit.qindices):
+                for perm_q in itertools.permutations(self.circuit_dag_dep.qindices_map[node_circuit]):
                     l_q_sub = [-1] * n_qubits_t
-                    for q in node_template.qindices:
-                        l_q_sub[q] = perm_q[node_template.qindices.index(q)]
+                    for q in self.template_dag_dep.qindices_map[node_template]:
+                        #print("\n\nq, perm", q, perm_q)
+                        l_q_sub[q] = perm_q[self.template_dag_dep.qindices_map[node_template].index(q)]
                     l_q.append(l_q_sub)
 
         # Classical control
@@ -249,8 +250,8 @@ class TemplateMatching:
         n_qubits_t = len(self.template_dag_dep.qubits)
         n_clbits_t = len(self.template_dag_dep.clbits)
 
-        for n in self.circuit_dag_dep.get_nodes():
-            print("circ nodes qind", n.qindices, n)
+        # for n in self.circuit_dag_dep.get_nodes():
+        #     print("circ nodes qind", n.qindices, n)
 
         # Loop over the indices of both template and circuit.
         for template_index in range(0, self.template_dag_dep.size()):
@@ -262,7 +263,7 @@ class TemplateMatching:
 
                     qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
                     carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
-                    print("temp match qarc_c", qarg_c)
+                    #print("temp match qarc_c", qarg_c)
 
                     qarg_t = self.template_dag_dep.get_node(template_index).qindices
                     carg_t = self.template_dag_dep.get_node(template_index).cindices
