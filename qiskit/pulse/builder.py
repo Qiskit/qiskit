@@ -433,8 +433,6 @@ how the program is built.
     There are 1e-06 seconds in 4500 samples.
 
 .. autofunction:: active_backend
-.. autofunction:: active_transpiler_settings
-.. autofunction:: active_circuit_scheduler_settings
 .. autofunction:: num_qubits
 .. autofunction:: qubit_channels
 .. autofunction:: samples_to_seconds

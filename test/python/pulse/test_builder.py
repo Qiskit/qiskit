@@ -184,50 +184,6 @@ class TestContexts(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-    def test_transpiler_settings(self):
-        """Test the transpiler settings context.
-
-        Tests that two cx gates are optimized away with higher optimization level.
-        """
-        twice_cx_qc = circuit.QuantumCircuit(2)
-        twice_cx_qc.cx(0, 1)
-        twice_cx_qc.cx(0, 1)
-
-        with pulse.build(self.backend) as schedule:
-            with self.assertWarns(DeprecationWarning):
-                with pulse.transpiler_settings(optimization_level=0):
-                    builder.call(twice_cx_qc)
-        self.assertNotEqual(len(schedule.instructions), 0)
-
-        with pulse.build(self.backend) as schedule:
-            with self.assertWarns(DeprecationWarning):
-                with pulse.transpiler_settings(optimization_level=3):
-                    builder.call(twice_cx_qc)
-        self.assertEqual(len(schedule.instructions), 0)
-
-    def test_scheduler_settings(self):
-        """Test the circuit scheduler settings context."""
-        inst_map = pulse.InstructionScheduleMap()
-        d0 = pulse.DriveChannel(0)
-        test_x_sched = pulse.Schedule()
-        test_x_sched += instructions.Delay(10, d0)
-        inst_map.add("x", (0,), test_x_sched)
-
-        ref_sched = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            ref_sched += pulse.instructions.Call(test_x_sched)
-
-        x_qc = circuit.QuantumCircuit(2)
-        x_qc.x(0)
-
-        with pulse.build(backend=self.backend) as schedule:
-            with self.assertWarns(DeprecationWarning):
-                with pulse.transpiler_settings(basis_gates=["x"]):
-                    with pulse.circuit_scheduler_settings(inst_map=inst_map):
-                        builder.call(x_qc)
-
-        self.assertScheduleEqual(schedule, ref_sched)
-
     def test_phase_offset(self):
         """Test the phase offset context."""
         d0 = pulse.DriveChannel(0)
@@ -606,23 +562,6 @@ class TestUtilities(TestBuilder):
             },
         )
 
-    def test_active_transpiler_settings(self):
-        """Test setting settings of active builder's transpiler."""
-        with pulse.build(self.backend):
-            with self.assertWarns(DeprecationWarning):
-                self.assertFalse(pulse.active_transpiler_settings())
-                with pulse.transpiler_settings(test_setting=1):
-                    self.assertEqual(pulse.active_transpiler_settings()["test_setting"], 1)
-
-    def test_active_circuit_scheduler_settings(self):
-        """Test setting settings of active builder's circuit scheduler."""
-        with pulse.build(self.backend):
-            with self.assertWarns(DeprecationWarning):
-                self.assertFalse(pulse.active_circuit_scheduler_settings())
-            with pulse.circuit_scheduler_settings(test_setting=1):
-                with self.assertWarns(DeprecationWarning):
-                    self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
-
     def test_num_qubits(self):
         """Test builder utility to get number of qubits."""
         with pulse.build(self.backend):
@@ -800,12 +739,11 @@ class TestBuilderComposition(TestBuilder):
         short_dur = 20
         long_dur = 49
 
-        def get_sched(qubit_idx:[int], backend):
+        def get_sched(qubit_idx: [int], backend):
             qc = circuit.QuantumCircuit(2)
             for idx in qubit_idx:
-                qc.append(circuit.library.U2Gate(0, pi/2), [idx])
+                qc.append(circuit.library.U2Gate(0, pi / 2), [idx])
             return compiler.schedule(compiler.transpile(qc, backend=backend), backend)
-
 
         with pulse.build(self.backend) as schedule:
 
@@ -948,7 +886,11 @@ class TestSubroutineCall(TestBuilder):
                 # this is circuit, a subroutine stored as Call instruction
                 pulse.call(h_control)
                 # this is instruction, not subroutine
-                pulse.call(self.inst_map._get_calibration_entry(instruction = circuit.library.CXGate(), qubits = (0, 1)).get_schedule())
+                pulse.call(
+                    self.inst_map._get_calibration_entry(
+                        instruction=circuit.library.CXGate(), qubits=(0, 1)
+                    ).get_schedule()
+                )
                 # this is macro, not subroutine
                 pulse.measure([0, 1])
 
@@ -956,7 +898,9 @@ class TestSubroutineCall(TestBuilder):
         h_reference = compiler.schedule(compiler.transpile(h_control, self.backend), self.backend)
 
         # gate
-        cx_reference = self.inst_map._get_calibration_entry(instruction = circuit.library.CXGate(), qubits = (0, 1)).get_schedule()
+        cx_reference = self.inst_map._get_calibration_entry(
+            instruction=circuit.library.CXGate(), qubits=(0, 1)
+        ).get_schedule()
 
         # measurement
         measure_reference = macros.measure(
