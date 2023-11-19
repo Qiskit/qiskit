@@ -47,7 +47,6 @@ class MixedFrame:
         """
         self._pulse_target = pulse_target
         self._frame = frame
-        self._hash = hash((self._pulse_target, self._frame, type(self)))
 
     @property
     def pulse_target(self) -> PulseTarget:
@@ -75,4 +74,4 @@ class MixedFrame:
         return self._pulse_target == other._pulse_target and self._frame == other._frame
 
     def __hash__(self) -> int:
-        return self._hash
+        return hash((self._pulse_target, self._frame, type(self)))
