@@ -625,7 +625,6 @@ class _PulseBuilder:
             return self.backend.num_qubits
         return self.backend.configuration().n_qubits
 
-
     @property
     def circuit_scheduler_settings(self) -> Mapping:
         """The builder's circuit to pulse scheduler settings."""
@@ -1392,10 +1391,10 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
         from qiskit.providers.fake_provider import FakePerth
         backend = FakePerth()
-        
+
         from qiskit import pulse
         from qiskit import compiler
-        
+
         with pulse.build(backend) as sched:
 
             with pulse.circuit_scheduler_settings(method='alap'):
