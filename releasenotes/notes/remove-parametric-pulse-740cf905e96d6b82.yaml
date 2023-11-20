@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    The ``ParametricPulse`` base class and pulse library were removed (previously located
+    at ``qiskit.pulse.library.parametric_pulses``), following their deprecation on
+    Qiskit 0.46.
+
+    The ``ParametricPulse`` base class and pulse library were superseded by the
+    :class:`~qiskit.pulse.SymbolicPulse` class and pulse library, which provide
+    better performance and QPY support. All removed library pulses have a
+    :class:`~qiskit.pulse.SymbolicPulse` counterpart, namely:
+
+    * :class:`~qiskit.pulse.Constant`
+    * :class:`~qiskit.pulse.Drag`
+    * :class:`~qiskit.pulse.Gaussian`
+    * :class:`~qiskit.pulse.GaussianSquare`
+

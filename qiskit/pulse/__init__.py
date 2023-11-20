@@ -163,7 +163,6 @@ from qiskit.pulse.library import (
     GaussianDeriv,
     Sech,
     SechDeriv,
-    ParametricPulse,
     SymbolicPulse,
     ScalableSymbolicPulse,
     Waveform,

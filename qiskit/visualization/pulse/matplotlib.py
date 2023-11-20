@@ -38,7 +38,6 @@ from qiskit.pulse import (
     Play,
     Acquire,
     PulseError,
-    ParametricPulse,
     SetFrequency,
     ShiftPhase,
     Instruction,
@@ -257,8 +256,6 @@ class EventsOutputChannels:
             for command in commands:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
-                if isinstance(command, ParametricPulse):
-                    command = command.get_waveform()
                 if isinstance(command, Waveform):
                     wf[time:tf] = np.exp(1j * fc) * command.samples[: tf - time]
                     pv[time:] = 0

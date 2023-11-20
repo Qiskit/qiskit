@@ -1473,8 +1473,7 @@ class Constant(metaclass=_PulseType):
         # Note this is implemented using Piecewise instead of just returning amp
         # directly because otherwise the expression has no t dependence and sympy's
         # lambdify will produce a function f that for an array t returns amp
-        # instead of amp * np.ones(t.shape). This does not work well with
-        # ParametricPulse.get_waveform().
+        # instead of amp * np.ones(t.shape).
         #
         # See: https://github.com/sympy/sympy/issues/5642
         envelope_expr = (
