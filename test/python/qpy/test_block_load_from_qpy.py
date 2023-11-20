@@ -52,10 +52,10 @@ else:
 class QpyScheduleTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, block):
+    def assert_roundtrip_equal(self, block, use_symengine=False):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(block, qpy_file)
+        dump(block, qpy_file, use_symengine=use_symengine)
         qpy_file.seek(0)
         new_block = load(qpy_file)[0]
 
@@ -276,6 +276,31 @@ class TestLoadFromQPY(QpyScheduleTestCase):
                     builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
 
         self.assert_roundtrip_equal(test_sched)
+
+    @unittest.skipUnless(_optional.HAS_SYMENGINE, "Symengine required for this test")
+    def test_bell_schedule_use_symengine(self):
+        """Test complex schedule to create a Bell state."""
+        with builder.build() as test_sched:
+            with builder.align_sequential():
+                # H
+                builder.shift_phase(-1.57, DriveChannel(0))
+                builder.play(Drag(160, 0.05, 40, 1.3), DriveChannel(0))
+                builder.shift_phase(-1.57, DriveChannel(0))
+                # ECR
+                with builder.align_left():
+                    builder.play(GaussianSquare(800, 0.05, 64, 544), DriveChannel(1))
+                    builder.play(GaussianSquare(800, 0.22, 64, 544, 2), ControlChannel(0))
+                builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
+                with builder.align_left():
+                    builder.play(GaussianSquare(800, -0.05, 64, 544), DriveChannel(1))
+                    builder.play(GaussianSquare(800, -0.22, 64, 544, 2), ControlChannel(0))
+                builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
+                # Measure
+                with builder.align_left():
+                    builder.play(GaussianSquare(8000, 0.2, 64, 7744), MeasureChannel(0))
+                    builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
+
+        self.assert_roundtrip_equal(test_sched, True)
 
     def test_with_acquire_instruction_with_kernel(self):
         """Test a schedblk with acquire instruction with kernel."""
