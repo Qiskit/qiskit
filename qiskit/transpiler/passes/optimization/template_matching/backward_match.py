@@ -264,15 +264,15 @@ class BackwardMatch:
             c_template = node_template.op.num_ctrl_qubits
 
             if c_template == 1:
-                return qarg_circuit == node_template.qindices
+                return qarg_circuit == self.template_dag_dep.qindices_map[node_template]
 
             else:
-                control_qubits_template = node_template.qindices[:c_template]
+                control_qubits_template = self.template_dag_dep.qindices_map[node_template][:c_template]
                 control_qubits_circuit = qarg_circuit[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
 
-                    target_qubits_template = node_template.qindices[c_template::]
+                    target_qubits_template = self.template_dag_dep.qindices_map[node_template][c_template::]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
                     if node_template.op.base_gate.name in [
@@ -292,9 +292,9 @@ class BackwardMatch:
         # But for non-symmetric gates the qubits indices have to be compared as lists.
         else:
             if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(qarg_circuit) == set(node_template.qindices)
+                return set(qarg_circuit) == set(self.template_dag_dep.qindices_map[node_template])
             else:
-                return qarg_circuit == node_template.qindices
+                return qarg_circuit == self.template_dag_dep.qindices_map[node_template]
 
     def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
         """
@@ -310,7 +310,7 @@ class BackwardMatch:
             getattr(node_circuit.op, "condition", None)
             and getattr(node_template.op, "condition", None)
         ):
-            if set(carg_circuit) != set(node_template.cindices):
+            if set(carg_circuit) != set(self.template_dag_dep.cindices_map[node_template]):
                 return False
             if (
                 getattr(node_circuit.op, "condition", None)[1]
@@ -482,8 +482,8 @@ class BackwardMatch:
 
             # Update of the qubits/clbits indices in the circuit in order to be
             # comparable with the one in the template.
-            qarg1 = node_circuit.qindices
-            carg1 = node_circuit.cindices
+            qarg1 = self.circuit_dag_dep.qindices_map[node_circuit]
+            carg1 = self.circuit_dag_dep.cindices_map[node_circuit]
 
             qarg1 = self._update_qarg_indices(qarg1)
             carg1 = self._update_carg_indices(carg1)
@@ -495,7 +495,7 @@ class BackwardMatch:
             for template_id in candidates_indices:
 
                 node_template = self.template_dag_dep.get_node(template_id)
-                qarg2 = self.template_dag_dep.get_node(template_id).qindices
+                qarg2 = self.template_dag_dep.qindices_map[self.template_dag_dep.get_node(template_id)]
 
                 # Necessary but not sufficient conditions for a match to happen.
                 if (

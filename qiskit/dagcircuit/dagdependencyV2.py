@@ -337,7 +337,6 @@ class DAGDependencyV2():
             dag=self,
         )
         node_id = self._multi_graph.add_node(new_node)
-        #print("new_node", node_id, new_node, new_node.qindices)
         self.node_map[new_node] = node_id
         self._update_edges()
         self._increment_op(new_node.op)
@@ -345,16 +344,12 @@ class DAGDependencyV2():
         directives = ["measure"]
         if not getattr(operation, "_directive", False) and operation.name not in directives:
             self.qindices_map[new_node] = [self.find_bit(q).index for q in qargs]
-            # qindices_list = []
-            # for elem in qargs:
-            #     qindices_list.append(self.qubits.index(elem))
-
             if getattr(operation, "condition", None):
                 # The change to handling operation.condition follows code patterns in quantum_circuit.py.
                 # However:
-                #   (1) cindices_list are specific to template optimization and should not be computed
+                #   (1) cindices_map is specific to template optimization and should not be computed
                 #       in this place.
-                #   (2) Template optimization pass needs currently does not handle general conditions.
+                #   (2) Template optimization pass currently does not handle general conditions.
                 cond_bits = condition_resources(operation.condition).clbits
                 self.cindices_map[new_node] = [self.find_bit(c).index for c in cond_bits]
             else:

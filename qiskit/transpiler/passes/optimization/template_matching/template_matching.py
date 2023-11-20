@@ -118,12 +118,12 @@ class TemplateMatching:
                     l_q.append(l_q_sub)
 
         # Classical control
-        if not node_template.cindices or not node_circuit.cindices:
+        if not self.template_dag_dep.cindices_map[node_template] or not self.circuit_dag_dep.cindices_map[node_template]:
             l_c = []
         else:
             l_c = [-1] * n_clbits_t
-            for c in node_template.cindices:
-                l_c[c] = node_circuit[node_template.cindices.index(c)]
+            for c in self.template_dag_dep.cindices_map[node_template]:
+                l_c[c] = node_circuit[self.template_dag_dep.cindices_map[node_template].index(c)]
 
         return l_q, l_c
 
@@ -203,11 +203,11 @@ class TemplateMatching:
         successors_template = self.template_dag_dep.get_successors(node_id_t)
 
         counter = 1
-        qubit_set = set(self.circuit_dag_dep.get_node(node_id_c).qindices)
+        qubit_set = set(self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(node_id_c)])
         if 2 * len(successors_template) > len(template_nodes):
             successors = self.circuit_dag_dep.get_successors(node_id_t)
             for succ in successors:
-                qarg = self.circuit_dag_dep.get_node(succ).qindices
+                qarg = self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(succ)]
                 if (len(qubit_set | set(qarg))) <= n_qubits_t and counter <= length:
                     qubit_set = qubit_set | set(qarg)
                     counter += 1
@@ -225,7 +225,7 @@ class TemplateMatching:
             ]
 
             for not_succ in candidate:
-                qarg = self.circuit_dag_dep.get_node(not_succ).qindices
+                qarg = self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(not_succ)]
                 if counter <= length and (len(qubit_set | set(qarg))) <= n_qubits_t:
                     qubit_set = qubit_set | set(qarg)
                     counter += 1
@@ -253,6 +253,7 @@ class TemplateMatching:
         # for n in self.circuit_dag_dep.get_nodes():
         #     print("circ nodes qind", n.qindices, n)
 
+        count = 0
         # Loop over the indices of both template and circuit.
         for template_index in range(0, self.template_dag_dep.size()):
             for circuit_index in range(0, self.circuit_dag_dep.size()):
@@ -261,12 +262,12 @@ class TemplateMatching:
                     self.template_dag_dep.get_node(template_index).op
                 ):
 
-                    qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
-                    carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
+                    qarg_c = self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(circuit_index)]
+                    carg_c = self.circuit_dag_dep.cindices_map[self.circuit_dag_dep.get_node(circuit_index)]
                     #print("temp match qarc_c", qarg_c)
 
-                    qarg_t = self.template_dag_dep.get_node(template_index).qindices
-                    carg_t = self.template_dag_dep.get_node(template_index).cindices
+                    qarg_t = self.template_dag_dep.qindices_map[self.template_dag_dep.get_node(template_index)]
+                    carg_t = self.template_dag_dep.cindices_map[self.template_dag_dep.get_node(template_index)]
 
                     node_id_c = circuit_index
                     node_id_t = template_index
@@ -327,6 +328,7 @@ class TemplateMatching:
                                                     list_clbit_circuit,
                                                 )
                                                 isblocked, matchedwith = forward.run_forward_match()
+                                                #print("\nafter forward")#, isblocked, matchedwith)
 
                                                 # Apply the backward match part of the algorithm.
                                                 backward = BackwardMatch(
@@ -343,6 +345,7 @@ class TemplateMatching:
                                                 )
 
                                                 backward.run_backward_match()
+                                                #print("after backward")
 
                                                 # Add the matches to the list.
                                                 self._add_match(backward.match_final)
@@ -356,6 +359,7 @@ class TemplateMatching:
                                             list_qubit_circuit,
                                         )
                                         isblocked, matchedwith = forward.run_forward_match()
+                                        #print("\nafter forward")#, isblocked, matchedwith)
 
                                         # Apply the backward match part of the algorithm.
                                         backward = BackwardMatch(
@@ -371,6 +375,8 @@ class TemplateMatching:
                                             matchedwith,
                                         )
                                         backward.run_backward_match()
+                                        count += 1
+                                        #print("after backward", count)
 
                                         # Add the matches to the list.
                                         self._add_match(backward.match_final)

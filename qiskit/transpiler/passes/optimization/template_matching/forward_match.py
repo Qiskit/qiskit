@@ -252,15 +252,15 @@ class ForwardMatch:
             #print("temp", node_template.qindices)
 
             if c_template == 1:
-                return self.qarg_indices == node_template.qindices
+                return self.qarg_indices == self.template_dag_dep.qindices_map[node_template]
 
             else:
-                control_qubits_template = node_template.qindices[:c_template]
+                control_qubits_template = self.template_dag_dep.qindices_map[node_template][:c_template]
                 control_qubits_circuit = self.qarg_indices[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
 
-                    target_qubits_template = node_template.qindices[c_template::]
+                    target_qubits_template = self.template_dag_dep.qindices_map[node_template][c_template::]
                     target_qubits_circuit = self.qarg_indices[c_template::]
 
                     if node_template.op.base_gate.name in [
@@ -278,9 +278,9 @@ class ForwardMatch:
                     return False
         else:
             if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(self.qarg_indices) == set(node_template.qindices)
+                return set(self.qarg_indices) == set(self.template_dag_dep.qindices_map[node_template])
             else:
-                return self.qarg_indices == node_template.qindices
+                return self.qarg_indices == self.template_dag_dep.qindices_map[node_template]
 
     def _is_same_c_conf(self, node_circuit, node_template):
         """
@@ -295,7 +295,7 @@ class ForwardMatch:
             getattr(node_circuit.op, "condition", None)
             and getattr(node_template.op, "condition", None)
         ):
-            if set(self.carg_indices) != set(node_template.cindices):
+            if set(self.carg_indices) != set(self.template_dag_dep.cindices_map[node_template]):
                 return False
             if (
                 getattr(node_circuit.op, "condition", None)[1]
@@ -348,8 +348,8 @@ class ForwardMatch:
             # Search for potential candidates in the template
             self._find_forward_candidates(self.matchedwith[v_first][0])
 
-            qarg1 = self.circuit_dag_dep.get_node(label).qindices
-            carg1 = self.circuit_dag_dep.get_node(label).cindices
+            qarg1 = self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(label)]
+            carg1 = self.circuit_dag_dep.cindices_map[self.circuit_dag_dep.get_node(label)]
 
             #print(label, self.circuit_dag_dep.get_node(label))
             #print("RUN QIND", qarg1)
@@ -377,8 +377,8 @@ class ForwardMatch:
 
                 # Necessary but not sufficient conditions for a match to happen.
                 if (
-                    len(self.qarg_indices) != len(node_template.qindices)
-                    or set(self.qarg_indices) != set(node_template.qindices)
+                    len(self.qarg_indices) != len(self.template_dag_dep.qindices_map[node_template])
+                    or set(self.qarg_indices) != set(self.template_dag_dep.qindices_map[node_template])
                     or node_circuit.name != node_template.name
                 ):
                     continue
