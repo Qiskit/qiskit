@@ -15,19 +15,20 @@ Statevector Sampler class
 
 from __future__ import annotations
 
-from typing import List, Optional, Union
 from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
 
-from qiskit import ClassicalRegister, QuantumCircuit, QiskitError
+from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
 from .containers import BasePrimitiveOptions, BasePrimitiveOptionsLike, SamplerTask, TaskResult
 from .containers.bit_array import BitArray
+from .containers.data_bin import make_databin
 from .containers.options import mutable_dataclass
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
@@ -57,7 +58,7 @@ class _MeasureInfo:
     creg_name: str
     num_bits: int
     packed_size: int
-    qreg_indices: list[int]
+    qreg_indices: List[int]
 
 
 class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
@@ -89,12 +90,12 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             options = Options(**options)
         super().__init__(options=options)
 
-    def _run(self, tasks: list[SamplerTask]) -> PrimitiveJob[list[TaskResult]]:
+    def _run(self, tasks: List[SamplerTask]) -> PrimitiveJob[List[TaskResult]]:
         job = PrimitiveJob(self._run_task, tasks)
         job.submit()
         return job
 
-    def _run_task(self, tasks: list[SamplerTask]) -> list[TaskResult]:
+    def _run_task(self, tasks: List[SamplerTask]) -> List[TaskResult]:
         shots = self.options.execution.shots
         if shots is None:
             raise QiskitError("`shots` should be a positive integer")
@@ -111,6 +112,7 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
                 )
                 for item in meas_info
             }
+
             for index in np.ndindex(*bound_circuits.shape):
                 bound_circuit = bound_circuits[index]
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
@@ -119,11 +121,17 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
                 for item in meas_info:
                     ary = _samples_to_packed_array(samples, item.num_bits, item.qreg_indices)
                     arrays[item.creg_name][index] = ary
+
+            data_bin_cls = make_databin(
+                [(item.creg_name, BitArray) for item in meas_info],
+                shape=bound_circuits.shape,
+            )
             meas = {
                 item.creg_name: BitArray(arrays[item.creg_name], item.num_bits)
                 for item in meas_info
             }
-            results.append(TaskResult(meas, metadata={"shots": shots}))
+            data_bin = data_bin_cls(**meas)
+            results.append(TaskResult(data_bin, metadata={"shots": shots}))
 
         return results
 
@@ -152,7 +160,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
 
 
 def _samples_to_packed_array(
-    samples: NDArray[str], num_bits: int, indices: list[int]
+    samples: NDArray[str], num_bits: int, indices: List[int]
 ) -> NDArray[np.uint8]:
     # samples of `Statevector.sample_memory` will be the order of
     # qubit_0, qubit_1, ..., qubit_last
@@ -170,7 +178,7 @@ def _samples_to_packed_array(
     return ary
 
 
-def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalRegister, int], int]:
+def _final_measurement_mapping(circuit: QuantumCircuit) -> Dict[Tuple[ClassicalRegister, int], int]:
     """Return the final measurement mapping for the circuit.
 
     Parameters:

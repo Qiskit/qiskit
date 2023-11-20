@@ -35,7 +35,7 @@ class SamplerTask(BaseTask, ShapedMixin):
     """
 
     parameter_values: BindingsArray = BindingsArray(shape=())
-    _shape: tuple[int, ...] = ()
+    _shape: Tuple[int, ...] = ()
 
     def __post_init__(self):
         self._shape = self.parameter_values.shape
@@ -64,7 +64,9 @@ class SamplerTask(BaseTask, ShapedMixin):
 
     def validate(self):
         """Validate the task."""
-        super(SamplerTask, self).validate()
+        super(SamplerTask, self).validate()  # pylint: disable=super-with-arguments
+        # I'm not sure why these arguments for super are needed. But if no args, tests are failed
+        # for Python >=3.10. Seems to be some bug, but I can't fix.
         self.parameter_values.validate()
         # Cross validate circuits and parameter values
         num_parameters = self.parameter_values.num_parameters

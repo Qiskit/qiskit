@@ -12,37 +12,45 @@
 
 """
 BitArray
-"""
 
-from collections import defaultdict
-from functools import partial
-from typing import Callable, Dict, Optional, Tuple
+Details
+=======
 
-import numpy as np
-from numpy.typing import NDArray
-
-from .shape import ShapedMixin
-
-
-class BitArray(ShapedMixin):
-    """Stores bit outcomes.
-
-    This object is somewhat analagous to an object array of ``memory=True`` results.
-    However, unlike an object array, all of the data is contiguous, stored in one big array.
-    The last axis is over packed bits, the second last axis is over samples, and the preceding
-    axes correspond to the shape of the task that was executed.
     We use the word "samples" in reference to the fact that this is a primary data type returned by
     the Sampler whose job is to supply samples, and whose name we can't easily change.
     This is certainly confusing because this library uses the word "samples" to also refer to random
     circuit instances.
+"""
+
+from __future__ import annotations
+
+from typing import Callable, Dict, Iterable, Literal, Mapping, Tuple
+from collections import defaultdict
+from functools import partial
+from itertools import chain, repeat
+
+import numpy as np
+from numpy.typing import NDArray
+from qiskit.result import Counts
+
+from .shape import ShapedMixin, ShapeInput, shape_tuple
+
+# this lookup table tells you how many bits are 1 in each uint8 value
+_WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
+
+
+class BitArray(ShapedMixin):
+    """Stores an array of bit values.
+
+    This object contains a single, contiguous block of data that represents an array of bitstrings.
+    The last axis is over packed bits, the second last axis is over samples (aka shots), and the
+    preceding axes correspond to the shape of the task that was executed.
     """
 
     def __init__(self, array: NDArray[np.uint8], num_bits: int):
         """
         Args:
-            array: The data, where the last axis is over packed bits, the second last axis is over
-                shots, and the preceding axes correspond to the shape of the experiment. The byte
-                order is big endian.
+            array: The ``uint8`` data array.
             num_bits: How many bit are in each outcome.
 
         Raises:
@@ -60,6 +68,40 @@ class BitArray(ShapedMixin):
         if self._array.shape[-1] != (expected := num_bits // 8 + (num_bits % 8 > 0)):
             raise ValueError(f"The input array is expected to have {expected} bytes per sample.")
 
+    def _prepare_broadcastable(self, other: "BitArray") -> Tuple[NDArray[np.uint8], ...]:
+        """Validation and broadcasting of two bit arrays before element-wise binary operation."""
+        if self.num_bits != other.num_bits:
+            raise ValueError(f"'num_bits' must match in {self} and {other}.")
+        self_shape = self.shape + (self.num_samples,)
+        other_shape = other.shape + (other.num_samples,)
+        try:
+            shape = np.broadcast_shapes(self_shape, other_shape) + (self._array.shape[-1],)
+        except ValueError as ex:
+            raise ValueError(f"{self} and {other} are not compatible for this operation.") from ex
+        return np.broadcast_to(self.array, shape), np.broadcast_to(other.array, shape)
+
+    def __and__(self, other: "BitArray") -> "BitArray":
+        return BitArray(np.bitwise_and(*self._prepare_broadcastable(other)), self.num_bits)
+
+    def __eq__(self, other: "BitArray") -> bool:
+        if (n := self.num_bits) != other.num_bits:
+            return False
+        arrs = [self._array, other._array]
+        if n % 8 > 0:
+            # ignore straggling bits on the left
+            mask = np.array([255 >> ((-n) % 8)] + [255] * (n // 8), dtype=np.uint8)
+            arrs = [np.bitwise_and(arr, mask) for arr in arrs]
+        return np.array_equal(*arrs, equal_nan=False)
+
+    def __invert__(self) -> "BitArray":
+        return BitArray(np.bitwise_not(self._array), self.num_bits)
+
+    def __or__(self, other: "BitArray") -> "BitArray":
+        return BitArray(np.bitwise_or(*self._prepare_broadcastable(other)), self.num_bits)
+
+    def __xor__(self, other: "BitArray") -> "BitArray":
+        return BitArray(np.bitwise_xor(*self._prepare_broadcastable(other)), self.num_bits)
+
     def __repr__(self):
         desc = f"<num_samples={self.num_samples}, num_bits={self.num_bits}, shape={self.shape}>"
         return f"BitArray({desc})"
@@ -71,7 +113,7 @@ class BitArray(ShapedMixin):
 
     @property
     def num_bits(self) -> int:
-        """The number of bits in the register this array stores data for.
+        """The number of bits in the register that this array stores data for.
 
         For example, a ``ClassicalRegister(5, "meas")`` would have ``num_bits=5``.
         """
@@ -94,7 +136,7 @@ class BitArray(ShapedMixin):
     def _bytes_to_int(data: bytes, mask: int) -> int:
         return int.from_bytes(data, "big") & mask
 
-    def _get_counts(self, *, loc: Optional[Tuple[int, ...]], converter: Callable) -> Dict[str, int]:
+    def _get_counts(self, *, loc: Tuple[int, ...] | None, converter: Callable) -> Dict[str, int]:
         if loc is None and self.size == 1:
             loc = (0,) * self.ndim
 
@@ -110,7 +152,133 @@ class BitArray(ShapedMixin):
             counts[converter(shot_row.tobytes())] += 1
         return dict(counts)
 
-    def get_counts(self, loc: Optional[Tuple[int, ...]] = None) -> Dict[str, int]:
+    def bitcount(self) -> NDArray[np.uint64]:
+        """Compute the number of ones appearing in the binary representation of each sample.
+
+        Returns:
+            A ``numpy.uint64``-array with shape ``(*shape, num_samples)``.
+        """
+        return _WEIGHT_LOOKUP[self._array].sum(axis=-1)
+
+    @staticmethod
+    def from_bool_array(
+        array: NDArray[np.bool], order: Literal["big", "little"] = "big"
+    ) -> "BitArray":
+        """Construct a new bit array from an array of bools.
+
+        Args:
+            array: The array to convert, with "bitstrings" along the last axis.
+            order: One of ``"big"`` or ``"little"``, indicating whether ``array[..., 0]``
+                correspond to the most significant bits or the least significant bits of each
+                bitstring, respectively.
+
+        Returns:
+            A new bit array.
+        """
+        array = np.array(array, dtype=bool, copy=False)
+
+        if array.ndim < 2:
+            raise ValueError("Expecting at least two dimensions.")
+
+        if order == "little":
+            # np.unpackbits assumes "big"
+            array = array[..., ::-1]
+
+        num_bits = array.shape[-1]
+        if remainder := (-num_bits) % 8:
+            # unpackbits has strange (incorrect?) behaviour when the number of bits doesn't align
+            # to a multiple of 8, so we pad with zeros
+            pad = np.zeros(shape_tuple(array.shape[:-1], remainder), dtype=bool)
+            array = np.concatenate([pad, array], axis=-1)
+
+        return BitArray(np.packbits(array, axis=-1), num_bits=num_bits)
+
+    @staticmethod
+    def from_counts(
+        counts: Mapping[str | int, int] | Iterable[Mapping[str | int, int]],
+        num_bits: int | None = None,
+    ) -> "BitArray":
+        """Construct a new bit array from one or more ``Counts``-like objects.
+
+        The ``counts`` can have keys that are (uniformly) integers, hexstrings, or bitstrings.
+        Their values represent numbers of occurences of that value.
+
+        Args:
+            counts: One or more counts-like mappings.
+            num_bits: The desired number of bits per sample. If unset, the biggest sample provided
+                is used to determine this value.
+
+        Returns:
+            A new bit array.
+
+        Raises:
+            ValueError: If different mappings have different numbers of samples.
+            ValueError: If no counts dictionaries are supplied.
+        """
+        if singleton := isinstance(counts, Mapping):
+            counts = [counts]
+        else:
+            counts = list(counts)
+            if not counts:
+                raise ValueError("At least one counts mapping expected.")
+
+        counts = [
+            mapping.int_outcomes() if isinstance(mapping, Counts) else mapping for mapping in counts
+        ]
+
+        data = (v for mapping in counts for vs, count in mapping.items() for v in repeat(vs, count))
+
+        bit_array = BitArray.from_samples(data, num_bits)
+        if not singleton:
+            if bit_array.num_samples % len(counts) > 0:
+                raise ValueError("All of your mappings need to have the same number of samples.")
+            bit_array = bit_array.reshape(len(counts), bit_array.num_samples // len(counts))
+        return bit_array
+
+    @staticmethod
+    def from_samples(
+        samples: Iterable[str] | Iterable[int], num_bits: int | None = None
+    ) -> "BitArray":
+        """Construct a new bit array from an iterable of bitstrings, hexstrings, or integers.
+
+        All samples are assumed to be integers if the first one is.
+        Strings are all assumed to be bitstrings whenever the first string doesn't start with
+        ``"0x"``.
+
+        Consider pairing this method with :meth:`~reshape` if your samples represent nested data.
+
+        Args:
+            samples: A list of bitstrings, a list of integers, or a list of hexstrings.
+            num_bits: The desired number of bits per sample. If unset, the biggest sample provided
+                is used to determine this value.
+
+        Returns:
+            A new bit array.
+
+        Raises:
+            ValueError: If no strings are given.
+        """
+        samples = iter(samples)
+        try:
+            first_sample = next(samples)
+        except StopIteration as ex:
+            raise ValueError("At least one sample is required.") from ex
+
+        ints = chain([first_sample], samples)
+        if isinstance(first_sample, str):
+            base = 16 if first_sample.startswith("0x") else 2
+            ints = (int(val, base=base) for val in ints)
+
+        if num_bits is None:
+            ints = list(ints)
+            num_bits = max(map(int.bit_length, ints))
+
+        num_bytes = num_bits // 8 + (num_bits % 8 > 0)
+        data = b"".join(val.to_bytes(num_bytes, "big") for val in ints)
+        array = np.frombuffer(data, dtype=np.uint8, count=len(data))
+        return BitArray(array.reshape(-1, num_bytes), num_bits)
+
+    def get_counts(self, loc: Tuple[int, ...] | None = None) -> Dict[str, int]:
         """Return a counts dictionary.
 
         Args:
@@ -126,7 +294,7 @@ class BitArray(ShapedMixin):
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
         return self._get_counts(loc=loc, converter=converter)
 
-    def get_int_counts(self, loc: Optional[Tuple[int, ...]] = None) -> Dict[int, int]:
+    def get_int_counts(self, loc: Tuple[int, ...] | None = None) -> Dict[int, int]:
         r"""Return a counts dictionary, where bitstrings are stored as ``int``\s.
 
         Args:
@@ -140,3 +308,31 @@ class BitArray(ShapedMixin):
         """
         converter = partial(self._bytes_to_int, mask=2**self.num_bits - 1)
         return self._get_counts(loc=loc, converter=converter)
+
+    def reshape(self, *shape: ShapeInput) -> "BitArray":
+        """Return a new reshaped bit array.
+
+        The :attr:`~num_samples` axis is either included or excluded from the reshaping procedure
+        depending on which picture the new shape is compatible with. For example, if this bit array
+        has shape ``(20, 5)`` and ``64`` samples, then a reshape to ``(100,)`` would leave the
+        number of samples intact, whereas a reshape to ``(200, 32)`` would change the number of
+        samples to ``32``.
+
+        Args:
+            *shape: The new desired shape.
+
+        Returns:
+            A new bit array.
+
+        Raises:
+            ValueError: If the size corresponding to your new shape is not equal to either
+                :attr:`~size`, or the product of :attr:`~size` and :attr:`~num_samples`.
+        """
+        shape = shape_tuple(shape)
+        if (size := np.product(shape, dtype=int)) == self.size:
+            shape = shape_tuple(shape, self._array.shape[-2:])
+        elif size == self.size * self.num_samples:
+            shape = shape_tuple(shape, self._array.shape[-1:])
+        else:
+            raise ValueError("Cannot change the size of the array.")
+        return BitArray(self._array.reshape(shape), self.num_bits)
