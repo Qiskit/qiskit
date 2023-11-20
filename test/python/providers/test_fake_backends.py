@@ -416,6 +416,9 @@ class TestFakeBackends(QiskitTestCase):
         from qiskit_aer.noise.noise_model import QuantumErrorLocation
 
         sim = AerSimulator()
+        # test only if simulator's backend is V1
+        if sim.version > 1:
+            return
         phi = Parameter("phi")
         lam = Parameter("lam")
         backend = BackendV2Converter(
