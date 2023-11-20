@@ -533,6 +533,9 @@ class _PulseBuilder:
         #: QuantumCircuit: Lazily constructed quantum circuit
         self._lazy_circuit = None
 
+        #: Dict[str, Any]: Scheduler setting dictionary.
+        self._circuit_scheduler_settings = {}
+
         #: List[ScheduleBlock]: Stack of context.
         self._context_stack = []
 
@@ -748,7 +751,7 @@ class _PulseBuilder:
         """
         raise exceptions.PulseError(
             f"Subroutine type {subroutine.__class__.__name__} is "
-            "not valid data format. Call QuantumCircuit, "
+            "not valid data format. Call "
             "Schedule, or ScheduleBlock."
         )
 
