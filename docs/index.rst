@@ -83,6 +83,5 @@ Main Qiskit-related projects
    :caption: Contributing
    :hidden:
 
-   contributing_to_qiskit
    deprecation_policy
    maintainers_guide
