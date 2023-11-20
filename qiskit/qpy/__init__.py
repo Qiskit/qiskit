@@ -92,6 +92,12 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+If a feature being loaded is deprecated in the corresponding qiskit release, QPY will
+raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation period
+and how the feature will be internally handled.
+
+.. autoexception:: QPYLoadingDeprecatedFeatureWarning
+
 .. _qpy_format:
 
 **********
