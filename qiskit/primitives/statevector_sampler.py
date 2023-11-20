@@ -26,6 +26,7 @@ from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
+from .base.validation import _has_measure
 from .containers import BasePrimitiveOptions, BasePrimitiveOptionsLike, SamplerTask, TaskResult
 from .containers.bit_array import BitArray
 from .containers.data_bin import make_databin
@@ -138,8 +139,10 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
 
 def _preprocess_circuit(circuit: QuantumCircuit):
     mapping = _final_measurement_mapping(circuit)
-    qargs = list(mapping.values())
+    qargs = sorted(set(mapping.values()))
     circuit = circuit.remove_final_measurements(inplace=False)
+    if _has_measure(circuit):
+        raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
     num_qubits = circuit.num_qubits
     num_bits_dict = {key[0].name: key[0].size for key in mapping}
     # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
@@ -192,7 +195,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> Dict[Tuple[ClassicalR
 
     # Find final measurements starting in back
     mapping = {}
-    for item in circuit._data[::-1]:
+    for item in circuit[::-1]:
         if item.operation.name == "measure":
             loc = circuit.find_bit(item.clbits[0])
             cbit = loc.index
@@ -201,7 +204,6 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> Dict[Tuple[ClassicalR
             if cbit in active_cbits and qbit in active_qubits:
                 mapping[creg] = qbit
                 active_cbits.remove(cbit)
-                active_qubits.remove(qbit)
         elif item.operation.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
