@@ -92,31 +92,37 @@ automatically lowered to be run as a pulse program:
 .. plot::
    :include-source:
 
-   import math
+   from math import pi
+   from qiskit.compiler import schedule
+   from qiskit.circuit import QuantumCircuit
 
    from qiskit import pulse
-   from qiskit.providers.fake_provider import FakeOpenPulse3Q
+   from qiskit.providers.fake_provider import FakePerth
 
-   # TODO: This example should use a real mock backend.
-   backend = FakeOpenPulse3Q()
+   backend = FakePerth()
 
    d2 = pulse.DriveChannel(2)
 
-   with pulse.build(backend) as bell_prep:
-       pulse.u2(0, math.pi, 0)
-       pulse.cx(0, 1)
+   qc = QuantumCircuit(2)
+   # Hadamard
+   qc.rz(pi/2, 0)
+   qc.sx(0)
+   qc.rz(pi/2, 0)
+
+   qc.cx(0, 1)
+
+   bell_sched = schedule(qc, backend)
 
    with pulse.build(backend) as decoupled_bell_prep_and_measure:
        # We call our bell state preparation schedule constructed above.
        with pulse.align_right():
-           pulse.call(bell_prep)
-           pulse.play(pulse.Constant(bell_prep.duration, 0.02), d2)
+           pulse.call(bell_sched)
+           pulse.play(pulse.Constant(bell_sched.duration, 0.02), d2)
            pulse.barrier(0, 1, 2)
            registers = pulse.measure_all()
 
    decoupled_bell_prep_and_measure.draw()
-.. warning::
-    Calling gates directly within the pulse builder namespace is deprecated as of qiskit 0.46.0.
+
 
 With the pulse builder we are able to blend programming on qubits and channels.
 While the pulse schedule is based on instructions that operate on
@@ -128,12 +134,16 @@ In the example below we demonstrate some more features of the pulse builder:
 .. code-block::
 
    import math
+   from qiskit.compiler import schedule
 
    from qiskit import pulse, QuantumCircuit
    from qiskit.pulse import library
    from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
    backend = FakeOpenPulse2Q()
+
+   qc = QuantumCircuit(2, 2)
+   qc.cx(0, 1)
 
    with pulse.build(backend) as pulse_prog:
        # Create a pulse.
@@ -200,17 +210,12 @@ In the example below we demonstrate some more features of the pulse builder:
            # delay for 100 cycles on qubits 0 and 1.
            pulse.delay_qubits(100, 0, 1)
 
-           # Call a quantum circuit. The pulse builder lazily constructs a quantum
-           # circuit which is then transpiled and scheduled before inserting into
-           # a pulse schedule.
-           # NOTE: Quantum register indices correspond to physical qubit indices.
+           # Call a schedule for a quantum circuit thereby inserting into
+           # the pulse schedule.
            qc = QuantumCircuit(2, 2)
            qc.cx(0, 1)
-           pulse.call(qc)
-           # Calling a small set of standard gates and decomposing to pulses is
-           # also supported with more natural syntax.
-           pulse.u3(0, math.pi, 0, 0)
-           pulse.cx(0, 1)
+           qc_sched = schedule(qc, backend)
+           pulse.call(qc_sched)
 
 
            # It is also be possible to call a preexisting schedule
@@ -230,8 +235,6 @@ In the example below we demonstrate some more features of the pulse builder:
            with pulse.phase_offset(math.pi, d0):
                pulse.play(gaussian_pulse, d0)
 
-.. warning::
-    Calling gates directly within the pulse builder namespace is deprecated as of qiskit 0.46.0.
 
 The above is just a small taste of what is possible with the builder. See the rest of the module
 documentation for more information on its capabilities.
@@ -343,7 +346,6 @@ be used to align all pulses as late as possible in a pulse program.
 .. autofunction:: circuit_scheduler_settings
 .. autofunction:: frequency_offset
 .. autofunction:: phase_offset
-.. autofunction:: transpiler_settings
 
 
 Macros
@@ -369,36 +371,6 @@ Macros help you add more complex functionality to your pulse program.
 .. autofunction:: measure
 .. autofunction:: measure_all
 .. autofunction:: delay_qubits
-
-
-Circuit Gates
-=============
-
-To use circuit level gates within your pulse program call a circuit
-with :func:`call`.
-
-.. warning::
-    Calling gates directly within the pulse builder namespace is deprecated as of qiskit 0.46.0.
-    In favor of a circuit builder interface in which it is now possible to calibrate a gate in
-    terms of pulses and use that gate in a circuit.
-
-.. code-block::
-
-    import math
-
-    from qiskit import pulse
-    from qiskit.providers.fake_provider import FakeArmonk
-
-    backend = FakeArmonk()
-
-    with pulse.build(backend) as u3_sched:
-        pulse.u3(math.pi, 0, math.pi, 0)
-
-.. autofunction:: cx
-.. autofunction:: u1
-.. autofunction:: u2
-.. autofunction:: u3
-.. autofunction:: x
 
 
 Utilities
@@ -447,7 +419,6 @@ import warnings
 from contextlib import contextmanager
 from functools import singledispatchmethod
 from typing import (
-    Any,
     Callable,
     ContextManager,
     Dict,
@@ -479,7 +450,6 @@ from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.utils.deprecation import deprecate_arg
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
@@ -532,8 +502,6 @@ class _PulseBuilder:
         block: Optional[ScheduleBlock] = None,
         name: Optional[str] = None,
         default_alignment: Union[str, AlignmentKind] = "left",
-        default_transpiler_settings: Mapping = None,
-        default_circuit_scheduler_settings: Mapping = None,
     ):
         """Initialize the builder context.
 
@@ -567,12 +535,6 @@ class _PulseBuilder:
 
         #: QuantumCircuit: Lazily constructed quantum circuit
         self._lazy_circuit = None
-
-        #: Dict[str, Any]: Transpiler setting dictionary.
-        self._transpiler_settings = default_transpiler_settings or {}
-
-        #: Dict[str, Any]: Scheduler setting dictionary.
-        self._circuit_scheduler_settings = default_circuit_scheduler_settings or {}
 
         #: List[ScheduleBlock]: Stack of context.
         self._context_stack = []
@@ -771,7 +733,7 @@ class _PulseBuilder:
     @singledispatchmethod
     def call_subroutine(
         self,
-        subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
+        subroutine: Union[Schedule, ScheduleBlock],
         name: Optional[str] = None,
         value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
         **kw_params: ParameterValueType,
@@ -866,25 +828,6 @@ class _PulseBuilder:
             **kw_params,
         )
 
-    @call_subroutine.register
-    def _(
-        self,
-        target_circuit: circuit.QuantumCircuit,
-        name: Optional[str] = None,
-        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
-        **kw_params: ParameterValueType,
-    ):
-        if len(target_circuit) == 0:
-            return
-
-        self._compile_lazy_circuit()
-        self.call_subroutine(
-            self._compile_circuit(target_circuit),
-            name=name,
-            value_dict=value_dict,
-            **kw_params,
-        )
-
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
         """Call the circuit ``gate`` in the pulse program.
@@ -944,15 +887,11 @@ class _PulseBuilder:
         return self.backend.configuration().dt
 
 
-@deprecate_arg(name="default_transpiler_settings", since="0.46.0")
-@deprecate_arg(name="default_circuit_scheduler_settings", since="0.46.0")
 def build(
     backend=None,
     schedule: Optional[ScheduleBlock] = None,
     name: Optional[str] = None,
     default_alignment: Optional[Union[str, AlignmentKind]] = "left",
-    default_transpiler_settings: Optional[Dict[str, Any]] = None,
-    default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None,
 ) -> ContextManager[ScheduleBlock]:
     """Create a context manager for launching the imperative pulse builder DSL.
 
@@ -986,9 +925,6 @@ def build(
         name: Name of pulse program to be built.
         default_alignment: Default scheduling alignment for builder.
             One of ``left``, ``right``, ``sequential`` or an alignment context.
-        default_transpiler_settings: Default settings for the transpiler.
-        default_circuit_scheduler_settings: Default settings for the
-            circuit to pulse scheduler.
 
     Returns:
         A new builder context which has the active builder initialized.
@@ -998,8 +934,6 @@ def build(
         block=schedule,
         name=name,
         default_alignment=default_alignment,
-        default_transpiler_settings=default_transpiler_settings,
-        default_circuit_scheduler_settings=default_circuit_scheduler_settings,
     )
 
 
@@ -1911,14 +1845,8 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
     append_instruction(instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
-@deprecate_arg(
-    name="target",
-    since="0.46.0",
-    deprecation_description="QuantumCircuit type for the argument target",
-    predicate=lambda qc_arg: isinstance(qc_arg, circuit.QuantumCircuit),
-)
 def call(
-    target: Optional[Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]],
+    target: Optional[Union[Schedule, ScheduleBlock]],
     name: Optional[str] = None,
     value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
     **kw_params: ParameterValueType,
@@ -2092,52 +2020,6 @@ def call(
         The parameter assignment mechanism is available also for schedules.
         However, the called schedule is not treated as a reference.
 
-        3. Calling a quantum circuit
-
-        .. code-block::
-
-            backend = FakeBogotaV2()
-
-            qc = circuit.QuantumCircuit(1)
-            qc.x(0)
-
-            with pulse.build(backend) as pulse_prog:
-                pulse.call(qc)
-
-            print(pulse_prog)
-
-        .. parsed-literal::
-
-            ScheduleBlock(
-                Call(
-                    Schedule(
-                        (
-                            0,
-                            Play(
-                                Drag(
-                                    duration=160,
-                                    amp=(0.18989731546729305+0j),
-                                    sigma=40,
-                                    beta=-1.201258305015517,
-                                    name='drag_86a8'
-                                ),
-                                DriveChannel(0),
-                                name='drag_86a8'
-                            )
-                        ),
-                        name="circuit-87"
-                    ),
-                    name='circuit-87'
-                ),
-                name="block7",
-                transform=AlignLeft()
-            )
-
-        .. warning::
-
-            Calling a circuit from a schedule is deprecated as of qiskit 0.46.0. The Qiskit execution
-            model has migrating toward the pulse gate model, where schedules are attached to circuits
-            through the :meth:`.QuantumCircuit.add_calibration` method.
 
     Args:
         target: Target circuit or pulse schedule to call.
@@ -2234,14 +2116,14 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
 
         with pulse.build(backend) as pulse_prog:
             with pulse.align_right():
-                pulse.x(1)
+                pulse.call(backend.defaults.instruction_schedule_map.get('x', (1,)))
                 # Barrier qubit 1 and d0.
                 pulse.barrier(1, d0)
                 # Due to barrier this will play before the gate on qubit 1.
                 pulse.play(pulse.Constant(10, 1.0), d0)
                 # This will end at the same time as the pulse above due to
                 # the barrier.
-                pulse.x(1)
+                pulse.call(backend.defaults.instruction_schedule_map.get('x', (1,)))
 
     .. note:: Requires the active builder context to have a backend set if
         qubits are barriered on.
