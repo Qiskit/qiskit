@@ -520,9 +520,6 @@ class _PulseBuilder:
             default_alignment: Default scheduling alignment for builder.
                 One of ``left``, ``right``, ``sequential`` or an instance of
                 :class:`~qiskit.pulse.transforms.alignments.AlignmentKind` subclass.
-            default_transpiler_settings: Default settings for the transpiler.
-            default_circuit_scheduler_settings: Default settings for the
-                circuit to pulse scheduler.
 
         Raises:
             PulseError: When invalid ``default_alignment`` or `block` is specified.
@@ -625,16 +622,6 @@ class _PulseBuilder:
             return self.backend.num_qubits
         return self.backend.configuration().n_qubits
 
-    @property
-    def transpiler_settings(self) -> Mapping:
-        """The builder's transpiler settings."""
-        return self._transpiler_settings
-
-    @transpiler_settings.setter
-    @_compile_lazy_circuit_before
-    def transpiler_settings(self, settings: Mapping):
-        self._compile_lazy_circuit()
-        self._transpiler_settings = settings
 
     @property
     def circuit_scheduler_settings(self) -> Mapping:
@@ -676,7 +663,7 @@ class _PulseBuilder:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
         from qiskit import compiler  # pylint: disable=cyclic-import
 
-        transpiled_circuit = compiler.transpile(circ, self.backend, **self.transpiler_settings)
+        transpiled_circuit = compiler.transpile(circ, self.backend)
         sched = compiler.schedule(
             transpiled_circuit, self.backend, **self.circuit_scheduler_settings
         )
@@ -1400,15 +1387,26 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
     .. code-block::
 
+        from qiskit.providers.fake_provider import FakePerth
+        backend = FakePerth()
+        
         from qiskit import pulse
-        from qiskit.providers.fake_provider import FakeOpenPulse2Q
+        from qiskit import compiler
+        
+        with pulse.build(backend) as sched:
 
-        backend = FakeOpenPulse2Q()
-
-        with pulse.build(backend):
-            print(pulse.active_circuit_scheduler_settings())
             with pulse.circuit_scheduler_settings(method='alap'):
-                print(pulse.active_circuit_scheduler_settings())
+                pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
+                pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
+                pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(1))
+
+            pulse.barrier(0,1)
+            pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
+            pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(1))
+
+        sched.draw()
+
 
     .. parsed-literal::
 
