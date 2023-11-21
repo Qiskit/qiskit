@@ -147,7 +147,8 @@ In addition to modifying preset pass managers, it is also possible to construct 
 manager to build an entirely custom pipeline for transforming input
 circuits. You can use the :class:`~.StagedPassManager` class directly to do
 this. You can define arbitrary stage names and populate them with a :class:`~.PassManager`
-instance. For example::
+instance. For example, the following code creates a new :class:`~.StagedPassManager`
+that has 2 stages, ``init`` and ``translation``.::
 
     from qiskit.transpiler.passes import (
         UnitarySynthesis,
@@ -172,13 +173,11 @@ instance. For example::
         stages=["init", "translation"], init=init, translation=translate
     )
 
-will create a new :class:`~.StagedPassManager` that has 2 stages ``init`` and ``translation``.
-There is no limit on the number of stages you can put in a custom :class:`~.StagedPassManager`
-instance.
+There is no limit on the number of stages you can put in a :class:`~.StagedPassManager`.
 
-The :ref:`stage_generators` functions may be useful for the construction of custom pass managers.
+The :ref:`stage_generators` may be useful for the construction of custom pass managers.
 They generate stages which provide common functionality used in many pass managers.
-For example, :func:`~.generate_embed_passmanager` can be used to generate a stage
+For example, :func:`~.generate_embed_passmanager` generates a stage
 to "embed" a selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
 Representing Quantum Computers
