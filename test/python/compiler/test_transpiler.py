@@ -1702,7 +1702,12 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
         qc.measure(range(2), range(2))
-        tqc = transpile(qc, initial_layout=[1, 4], coupling_map=[[1, 2], [2, 3], [3, 4]], optimization_level=opt_level)
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
         self.assertNotIn("barrier", tqc.count_ops())
 
     @combine(opt_level=[0, 1, 2, 3])

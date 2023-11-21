@@ -48,6 +48,6 @@ class RemoveLabeledOps(TransformationPass):
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
         for node in dag.op_nodes():
-            if node.op.label == self.label:
+            if getattr(node.op, "label", None) == self.label:
                 dag.remove_op_node(node)
         return dag
