@@ -139,7 +139,7 @@ class EvolvedOperatorAnsatz(NLocal):
     def operators(self, operators=None) -> None:
         """Set the operators to be evolved.
 
-        operators (Optional[Union[QuantumCircuit, list]): The operators to evolve.
+        operators (Optional[Union[QuantumCircuit, list]]): The operators to evolve.
             If a circuit is passed, we assume it implements an already evolved operator and thus
             the circuit is not evolved again. Can be a single operator (circuit) or a list of
             operators (and circuits).

@@ -241,7 +241,6 @@ class TestEvolutionGate(QiskitTestCase):
 
     @data(
         Pauli("XI"),
-        X ^ I,  # SparsePauliOp
         SparsePauliOp(Pauli("XI")),
     )
     def test_different_input_types(self, op):
