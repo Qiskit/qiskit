@@ -87,6 +87,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         dag.compose(barrier_layer)
 
-        # Merge the new barrier into any other barriers
-        adjacent_pass = MergeAdjacentBarriers()
-        return adjacent_pass.run(dag)
+        if self.label is None:
+            # Merge the new barrier into any other barriers
+            adjacent_pass = MergeAdjacentBarriers()
+            return adjacent_pass.run(dag)
+        else:
+            return dag
