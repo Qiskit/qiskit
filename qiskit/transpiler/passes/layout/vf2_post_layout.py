@@ -41,7 +41,7 @@ class VF2PostLayoutStopReason(Enum):
 
 def _target_match(node_a, node_b):
     # Node A is the set of operations in the target. Node B is the count dict
-    # of oeprations on the node or edge in the circuit.
+    # of operations on the node or edge in the circuit.
     if isinstance(node_a, set):
         return node_a.issuperset(node_b.keys())
     # Node A is the count dict of operations on the node or edge in the circuit
@@ -77,7 +77,7 @@ class VF2PostLayout(AnalysisPass):
         * ``"nonexistent solution"``: If no solution was found.
         * ``">2q gates in basis"``: If VF2PostLayout can't work with the basis of the circuit.
 
-    By default this pass will construct a heuristic scoring map based on the
+    By default, this pass will construct a heuristic scoring map based on
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
@@ -182,7 +182,7 @@ class VF2PostLayout(AnalysisPass):
             else:
                 cm_graph = PyGraph(multigraph=False)
             # If None is present in qargs there are globally defined ideal operations
-            # we should add these to all entries based on the number of qubits so we
+            # we should add these to all entries based on the number of qubits, so we
             # treat that as a valid operation even if there is no scoring for the
             # strict direction case
             global_ops = None

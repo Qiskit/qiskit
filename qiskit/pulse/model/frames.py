@@ -33,28 +33,6 @@ class Frame(ABC):
     The default initial phase for every frame is 0.
     """
 
-    def __init__(self, identifier):
-        """Create ``Frame``.
-
-        Args:
-            identifier: A unique identifier used to hash the Frame.
-        """
-        self._hash = hash((type(self), identifier))
-
-    def __eq__(self, other: "Frame") -> bool:
-        """Return True iff self and other are equal, specifically, iff they have the same type and hash.
-
-        Args:
-            other: The frame to compare to this one.
-
-        Returns:
-            True iff equal.
-        """
-        return type(self) is type(other) and self._hash == other._hash
-
-    def __hash__(self) -> int:
-        return self._hash
-
 
 class GenericFrame(Frame):
     """Pulse module GenericFrame.
@@ -74,7 +52,6 @@ class GenericFrame(Frame):
             name: A unique identifier used to identify the frame.
         """
         self._name = name
-        super().__init__(name)
 
     @property
     def name(self) -> str:
@@ -83,6 +60,12 @@ class GenericFrame(Frame):
 
     def __repr__(self) -> str:
         return f"GenericFrame({self._name})"
+
+    def __eq__(self, other):
+        return type(self) is type(other) and self._name == other._name
+
+    def __hash__(self):
+        return hash((type(self), self._name))
 
 
 class QubitFrame(Frame):
@@ -102,7 +85,6 @@ class QubitFrame(Frame):
         """
         self._validate_index(index)
         self._index = index
-        super().__init__("QubitFrame" + str(index))
 
     @property
     def index(self) -> int:
@@ -121,6 +103,12 @@ class QubitFrame(Frame):
 
     def __repr__(self) -> str:
         return f"QubitFrame({self._index})"
+
+    def __eq__(self, other):
+        return type(self) is type(other) and self._index == other._index
+
+    def __hash__(self):
+        return hash((type(self), self._index))
 
 
 class MeasurementFrame(Frame):
@@ -141,7 +129,6 @@ class MeasurementFrame(Frame):
         """
         self._validate_index(index)
         self._index = index
-        super().__init__("MeasurementFrame" + str(index))
 
     @property
     def index(self) -> int:
@@ -160,3 +147,9 @@ class MeasurementFrame(Frame):
 
     def __repr__(self) -> str:
         return f"MeasurementFrame({self._index})"
+
+    def __eq__(self, other):
+        return type(self) is type(other) and self._index == other._index
+
+    def __hash__(self):
+        return hash((type(self), self._index))

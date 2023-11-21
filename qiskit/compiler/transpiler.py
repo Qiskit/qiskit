@@ -28,7 +28,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -455,7 +455,7 @@ def _check_circuits_coupling_map(circuits, cmap, backend):
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
         if max_qubits is not None and (num_qubits > max_qubits):
-            raise TranspilerError(
+            raise CircuitTooWideForTarget(
                 f"Number of qubits ({num_qubits}) in {circuit.name} "
                 f"is greater than maximum ({max_qubits}) in the coupling_map"
             )
