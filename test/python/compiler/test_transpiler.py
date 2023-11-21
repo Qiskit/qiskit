@@ -1728,7 +1728,6 @@ class TestTranspile(QiskitTestCase):
             if inst.operation.name == "barrier":
                 self.assertEqual(len(inst.qubits), 2)
 
-
     @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops(self, opt_level):
         """Test transpilation of circuits with annotated operations."""

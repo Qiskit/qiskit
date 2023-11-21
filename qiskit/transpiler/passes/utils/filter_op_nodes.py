@@ -12,42 +12,52 @@
 
 """Remove all babeled ops from a circuit"""
 
-from qiskit.dagcircuit import DAGCircuit
+from typing import Callable
+
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 
 
-class RemoveLabeledOps(TransformationPass):
-    """Remove all operations with a specific label..
+class FilterOpNodes(TransformationPass):
+    """Remove all operations that match a filter function
 
-    This transformation pass is used to remove
+    This transformation pass is used to remove any operations that matches a
+    the provided filter function.
+
+    Args:
+       predicate: A given callable that will be passed the :class:`.DAGOpNode`
+           for each node in the :class:`.DAGCircuit`.
 
     Example:
+
+        Filter out operations that are labelled ``"foo"``
 
         .. plot::
            :include-source:
 
             from qiskit import QuantumCircuit
-            from qiskit.transpiler.passes import RemoveBarriers
+            from qiskit.transpiler.passes import FilterOpNodes
 
             circuit = QuantumCircuit(1)
             circuit.x(0, label='foo')
             circuit.barrier()
             circuit.h(0)
 
-            circuit = RemoveLabeledOps('foo')(circuit)
+            circuit = FilterOpNodes(
+                lambda node: getattr(node.op, "label") == "foo"
+            )(circuit)
             circuit.draw('mpl')
-
     """
 
-    def __init__(self, label: str):
+    def __init__(self, predicate: Callable[DAGOpNode, bool]):
         super().__init__()
-        self.label = label
+        self.predicate = predicate
 
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
         for node in dag.op_nodes():
-            if getattr(node.op, "label", None) == self.label:
+            if self.predicate(node):
                 dag.remove_op_node(node)
         return dag
