@@ -374,10 +374,6 @@ impl CircuitData {
     /// As such, the primary use-case for this method is to remap a circuit to
     /// a different set of bits in O(1) time.
     ///
-    /// The lists :attr:`.CircuitData.qubits` and :attr:`.CircuitData.clbits`
-    /// are NOT modified in place; they are replaced by reference. The
-    /// previous lists are not kept in sync after the replacement.
-    ///
     /// Args:
     ///     qubits (Iterable[:class:`.Qubit] | None):
     ///         The qubit sequence which should replace the container's
