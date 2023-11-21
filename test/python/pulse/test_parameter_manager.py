@@ -87,7 +87,8 @@ class ParameterTestBase(QiskitTestCase):
         long_schedule += subroutine
         long_schedule += pulse.ShiftPhase(self.phi2, self.d2)
         long_schedule += pulse.Play(self.parametric_waveform2, self.d2)
-        long_schedule += pulse.Call(sched)
+        with self.assertWarns(DeprecationWarning):
+            long_schedule += pulse.Call(sched)
         long_schedule += pulse.Play(self.parametric_waveform3, self.d3)
 
         long_schedule += pulse.Acquire(
@@ -152,7 +153,8 @@ class TestParameterGetter(ParameterTestBase):
         sched = pulse.Schedule()
         sched += pulse.ShiftPhase(self.phi1, self.d1)
 
-        test_obj = pulse.Call(subroutine=sched)
+        with self.assertWarns(DeprecationWarning):
+            test_obj = pulse.Call(subroutine=sched)
 
         visitor = ParameterGetter()
         visitor.visit(test_obj)
@@ -257,7 +259,8 @@ class TestParameterSetter(ParameterTestBase):
         sched = pulse.Schedule()
         sched += pulse.ShiftPhase(self.phi1, self.d1)
 
-        test_obj = pulse.Call(subroutine=sched)
+        with self.assertWarns(DeprecationWarning):
+            test_obj = pulse.Call(subroutine=sched)
 
         value_dict = {self.phi1: 1.57, self.ch1: 2}
 
@@ -267,7 +270,8 @@ class TestParameterSetter(ParameterTestBase):
         ref_sched = pulse.Schedule()
         ref_sched += pulse.ShiftPhase(1.57, pulse.DriveChannel(2))
 
-        ref_obj = pulse.Call(subroutine=ref_sched)
+        with self.assertWarns(DeprecationWarning):
+            ref_obj = pulse.Call(subroutine=ref_sched)
 
         self.assertEqual(assigned, ref_obj)
 
@@ -309,7 +313,8 @@ class TestParameterSetter(ParameterTestBase):
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
         nested_block = pulse.ScheduleBlock()
-        nested_block += pulse.Call(subroutine=subroutine)
+        with self.assertWarns(DeprecationWarning):
+            nested_block += pulse.Call(subroutine=subroutine)
 
         test_obj = pulse.ScheduleBlock()
         test_obj += nested_block
@@ -347,7 +352,8 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
+        with self.assertWarns(DeprecationWarning):
+            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
 
         self.assertEqual(assigned, ref_obj)
 
@@ -363,7 +369,8 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
+        with self.assertWarns(DeprecationWarning):
+            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
 
         self.assertEqual(assigned, ref_obj)
 
@@ -451,7 +458,8 @@ class TestParameterSetter(ParameterTestBase):
         ref_obj += subroutine
         ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2))
         ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), pulse.DriveChannel(2))
-        ref_obj += pulse.Call(sched)
+        with self.assertWarns(DeprecationWarning):
+            ref_obj += pulse.Call(sched)
         ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), pulse.DriveChannel(4))
 
         ref_obj += pulse.Acquire(
@@ -503,12 +511,14 @@ class TestAssignFromProgram(QiskitTestCase):
 
         # from call instruction
         program_layer1 = pulse.Schedule()
-        program_layer1 += pulse.instructions.Call(program_layer0)
+        with self.assertWarns(DeprecationWarning):
+            program_layer1 += pulse.instructions.Call(program_layer0)
         self.assertEqual(program_layer1.get_parameters("amp")[0], param1)
 
         # from nested call instruction
         program_layer2 = pulse.Schedule()
-        program_layer2 += pulse.instructions.Call(program_layer1)
+        with self.assertWarns(DeprecationWarning):
+            program_layer2 += pulse.instructions.Call(program_layer1)
         self.assertEqual(program_layer2.get_parameters("amp")[0], param1)
 
     def test_assign_parameter_to_subroutine(self):
@@ -522,13 +532,15 @@ class TestAssignFromProgram(QiskitTestCase):
 
         # to call instruction
         program_layer1 = pulse.Schedule()
-        program_layer1 += pulse.instructions.Call(program_layer0)
+        with self.assertWarns(DeprecationWarning):
+            program_layer1 += pulse.instructions.Call(program_layer0)
         target = program_layer1.assign_parameters({param1: 0.1}, inplace=False)
         self.assertEqual(inline_subroutines(target), reference)
 
         # to nested call instruction
         program_layer2 = pulse.Schedule()
-        program_layer2 += pulse.instructions.Call(program_layer1)
+        with self.assertWarns(DeprecationWarning):
+            program_layer2 += pulse.instructions.Call(program_layer1)
         target = program_layer2.assign_parameters({param1: 0.1}, inplace=False)
         self.assertEqual(inline_subroutines(target), reference)
 
@@ -546,7 +558,8 @@ class TestAssignFromProgram(QiskitTestCase):
 
         main_prog = pulse.Schedule()
         pdict = {param1: param_sub1 + param_sub2}
-        main_prog += pulse.instructions.Call(subroutine, value_dict=pdict)
+        with self.assertWarns(DeprecationWarning):
+            main_prog += pulse.instructions.Call(subroutine, value_dict=pdict)
 
         # parameter is overwritten by parameters
         self.assertEqual(len(main_prog.parameters), 2)

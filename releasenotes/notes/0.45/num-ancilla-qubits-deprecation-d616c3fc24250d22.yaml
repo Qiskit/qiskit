@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The property ``num_ancilla_qubits`` from the class :class:`.PolynomialPauliRotations` 
+    has been removed, as deprecated in Qiskit 0.23.0.
+    Instead, use the property :attr:`.PolynomialPauliRotations.num_ancillas`.

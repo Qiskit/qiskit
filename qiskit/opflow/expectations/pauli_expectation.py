@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class PauliExpectation(ExpectationBase):
     r"""
-    Deprecated: An Expectation converter for Pauli-basis observables by changing Pauli measurements to a
+    An Expectation converter for Pauli-basis observables by changing Pauli measurements to a
     diagonal ({Z, I}^n) basis and appending circuit post-rotations to the measured state function.
     Optionally groups the Paulis with the same post-rotations (those that commute with one
     another, or form Abelian groups) into single measurements to reduce circuit execution
@@ -44,6 +44,7 @@ class PauliExpectation(ExpectationBase):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, group_paulis: bool = True) -> None:

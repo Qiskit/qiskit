@@ -22,6 +22,7 @@ Output:
  `a XX + b YY + c ZZ`) using the native operations and local gates.
 """
 
+from __future__ import annotations
 from functools import reduce
 import math
 from operator import itemgetter

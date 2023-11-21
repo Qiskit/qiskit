@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    QPY supports the :class:`~qiskit.pulse.configuration.Discriminator` and
+    :class:`~qiskit.pulse.configuration.Kernel` objects.
+    This feature enables users to serialize and deserialize the
+    :class:`~qiskit.pulse.instructions.Acquire` instructions with these objects
+    using QPY.

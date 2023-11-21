@@ -89,11 +89,3 @@ class Fake1Q(FakeBackend):
             general=[],
         )
         super().__init__(configuration)
-
-    def defaults(self):
-        """defaults == configuration"""
-        return self._configuration
-
-    def properties(self):
-        """properties == configuration"""
-        return self._configuration

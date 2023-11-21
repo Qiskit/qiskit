@@ -17,7 +17,8 @@ import math
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate
@@ -25,7 +26,7 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

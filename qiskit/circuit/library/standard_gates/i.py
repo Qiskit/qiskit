@@ -13,11 +13,12 @@
 """Identity gate."""
 
 from typing import Optional
-import numpy
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
+from qiskit.circuit._utils import with_gate_array
 
 
-class IGate(Gate):
+@with_gate_array([[1, 0], [0, 1]])
+class IGate(SingletonGate):
     r"""Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
@@ -44,17 +45,15 @@ class IGate(Gate):
              └───┘
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label)
+        super().__init__("id", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def inverse(self):
         """Invert this gate."""
         return IGate()  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the identity gate."""
-        return numpy.array([[1, 0], [0, 1]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

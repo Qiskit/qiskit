@@ -17,12 +17,14 @@ from typing import Optional
 
 import numpy
 
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array
 
 
-class TGate(Gate):
+@with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
+class TGate(SingletonGate):
     r"""Single qubit T gate (Z**0.25).
 
     It induces a :math:`\pi/4` phase, and is sometimes called the pi/8 gate
@@ -53,9 +55,11 @@ class TGate(Gate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label)
+        super().__init__("t", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -78,16 +82,13 @@ class TGate(Gate):
         """Return inverse T gate (i.e. Tdg)."""
         return TdgGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the T gate."""
-        return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(0.25 * numpy.pi * exponent)
 
 
-class TdgGate(Gate):
+@with_gate_array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]])
+class TdgGate(SingletonGate):
     r"""Single qubit T-adjoint gate (~Z**0.25).
 
     It induces a :math:`-\pi/4` phase.
@@ -117,9 +118,11 @@ class TdgGate(Gate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label)
+        super().__init__("tdg", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -141,10 +144,6 @@ class TdgGate(Gate):
     def inverse(self):
         """Return inverse Tdg gate (i.e. T)."""
         return TGate()
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""

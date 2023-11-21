@@ -12,11 +12,13 @@
 
 # pylint: disable=no-name-in-module,broad-except,cyclic-import
 
-"""Contains the terra version."""
+"""Contains Qiskit version."""
 
 import os
 import subprocess
 from collections.abc import Mapping
+
+import warnings
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -86,23 +88,26 @@ __version__ = get_version_info()
 
 
 class QiskitVersion(Mapping):
-    """A lazy loading wrapper to get qiskit versions."""
+    """DEPRECATED in 0.25.0 use qiskit.__version__"""
 
     __slots__ = ["_version_dict", "_loaded"]
 
     def __init__(self):
         self._version_dict = {
-            "qiskit-terra": __version__,
-            "qiskit-aer": None,
-            "qiskit-ignis": None,
-            "qiskit-ibmq-provider": None,
-            "qiskit": None,
+            "qiskit": __version__,
         }
         self._loaded = False
 
     def _load_versions(self):
-        from importlib.metadata import version
-
+        warnings.warn(
+            "qiskit.__qiskit_version__ is deprecated since "
+            "Qiskit Terra 0.25.0, and will be removed 3 months or more later. "
+            "Instead, you should use qiskit.__version__. The other packages listed in the"
+            "former qiskit.__qiskit_version__ have their own __version__ module level dunder, "
+            "as standard in PEP 8.",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
         try:
             # TODO: Update to use qiskit_aer instead when we remove the
             # namespace redirect
@@ -147,10 +152,6 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
         except Exception:
             self._version_dict["qiskit-machine-learning"] = None
-        try:
-            self._version_dict["qiskit"] = version("qiskit")
-        except Exception:
-            self._version_dict["qiskit"] = None
         self._loaded = True
 
     def __repr__(self):

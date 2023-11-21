@@ -231,10 +231,7 @@ In the example below we demonstrate some more features of the pulse builder:
 The above is just a small taste of what is possible with the builder. See the rest of the module
 documentation for more information on its capabilities.
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    build
+.. autofunction:: build
 
 
 Channels
@@ -257,13 +254,10 @@ Methods to return the correct channels for the respective qubit indices.
 
     DriveChannel(0)
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    acquire_channel
-    control_channels
-    drive_channel
-    measure_channel
+.. autofunction:: acquire_channel
+.. autofunction:: control_channels
+.. autofunction:: drive_channel
+.. autofunction:: measure_channel
 
 
 Instructions
@@ -299,21 +293,17 @@ Pulse instructions are available within the builder interface. Here's an example
 
     drive_sched.draw()
 
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    acquire
-    barrier
-    call
-    delay
-    play
-    reference
-    set_frequency
-    set_phase
-    shift_frequency
-    shift_phase
-    snapshot
+.. autofunction:: acquire
+.. autofunction:: barrier
+.. autofunction:: call
+.. autofunction:: delay
+.. autofunction:: play
+.. autofunction:: reference
+.. autofunction:: set_frequency
+.. autofunction:: set_phase
+.. autofunction:: shift_frequency
+.. autofunction:: shift_phase
+.. autofunction:: snapshot
 
 
 Contexts
@@ -340,18 +330,15 @@ be used to align all pulses as late as possible in a pulse program.
 
    pulse_prog.draw()
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    align_equispaced
-    align_func
-    align_left
-    align_right
-    align_sequential
-    circuit_scheduler_settings
-    frequency_offset
-    phase_offset
-    transpiler_settings
+.. autofunction:: align_equispaced
+.. autofunction:: align_func
+.. autofunction:: align_left
+.. autofunction:: align_right
+.. autofunction:: align_sequential
+.. autofunction:: circuit_scheduler_settings
+.. autofunction:: frequency_offset
+.. autofunction:: phase_offset
+.. autofunction:: transpiler_settings
 
 
 Macros
@@ -374,12 +361,9 @@ Macros help you add more complex functionality to your pulse program.
 
     MemorySlot(0)
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    measure
-    measure_all
-    delay_qubits
+.. autofunction:: measure
+.. autofunction:: measure_all
+.. autofunction:: delay_qubits
 
 
 Circuit Gates
@@ -405,14 +389,11 @@ with :func:`call`.
     with pulse.build(backend) as u3_sched:
         pulse.u3(math.pi, 0, math.pi, 0)
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    cx
-    u1
-    u2
-    u3
-    x
+.. autofunction:: cx
+.. autofunction:: u1
+.. autofunction:: u2
+.. autofunction:: u3
+.. autofunction:: x
 
 
 Utilities
@@ -446,16 +427,13 @@ how the program is built.
     There are 160 samples in 3.5555555555555554e-08 seconds
     There are 1e-06 seconds in 4500 samples.
 
-.. autosummary::
-    :toctree: ../stubs/
-
-    active_backend
-    active_transpiler_settings
-    active_circuit_scheduler_settings
-    num_qubits
-    qubit_channels
-    samples_to_seconds
-    seconds_to_samples
+.. autofunction:: active_backend
+.. autofunction:: active_transpiler_settings
+.. autofunction:: active_circuit_scheduler_settings
+.. autofunction:: num_qubits
+.. autofunction:: qubit_channels
+.. autofunction:: samples_to_seconds
+.. autofunction:: seconds_to_samples
 """
 import collections
 import contextvars
@@ -957,6 +935,12 @@ class _PulseBuilder:
 
         return target_block
 
+    def get_dt(self):
+        """Retrieve dt differently based on the type of Backend"""
+        if isinstance(self.backend, BackendV2):
+            return self.backend.dt
+        return self.backend.configuration().dt
+
 
 def build(
     backend=None,
@@ -1126,15 +1110,10 @@ def seconds_to_samples(seconds: Union[float, np.ndarray]) -> Union[int, np.ndarr
     Returns:
         The number of samples for the time to elapse
     """
-    # backendV2
-    if isinstance(active_backend(), BackendV2):
-        if isinstance(seconds, np.ndarray):
-            return (seconds / active_backend().dt).astype(int)
-        else:
-            return int(seconds / active_backend().dt)
+    dt = _active_builder().get_dt()
     if isinstance(seconds, np.ndarray):
-        return (seconds / active_backend().configuration().dt).astype(int)
-    return int(seconds / active_backend().configuration().dt)
+        return (seconds / dt).astype(int)
+    return int(seconds / dt)
 
 
 def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarray]:
@@ -1147,10 +1126,7 @@ def samples_to_seconds(samples: Union[int, np.ndarray]) -> Union[float, np.ndarr
     Returns:
         The time that elapses in ``samples``.
     """
-    # backendV2
-    if isinstance(active_backend(), BackendV2):
-        return samples * active_backend().dt
-    return samples * active_backend().configuration().dt
+    return samples * _active_builder().get_dt()
 
 
 def qubit_channels(qubit: int) -> Set[chans.Channel]:
@@ -1688,12 +1664,8 @@ def frequency_offset(
     finally:
         if compensate_phase:
             duration = builder.get_context().duration - t0
-            # backendV2
-            if isinstance(active_backend(), BackendV2):
-                dt = active_backend().dt
-            else:
-                dt = active_backend().configuration().dt
-            accumulated_phase = 2 * np.pi * ((duration * dt * frequency) % 1)
+
+            accumulated_phase = 2 * np.pi * ((duration * builder.get_dt() * frequency) % 1)
             for channel in channels:
                 shift_phase(-accumulated_phase, channel)
 

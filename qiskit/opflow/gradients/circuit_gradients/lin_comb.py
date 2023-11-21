@@ -103,6 +103,7 @@ class LinComb(CircuitGradient):
     # pylint: disable=signature-differs, arguments-differ
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, aux_meas_op: OperatorBase = Z):
@@ -532,7 +533,8 @@ class LinComb(CircuitGradient):
         qr_superpos_qubits = tuple(qr_superpos)
         # copy the input circuit taking the gates by reference
         out = QuantumCircuit(*circuit.qregs)
-        out._data = circuit._data.copy()
+        out._data.reserve(len(circuit._data))
+        out._data.extend(circuit._data)
         out._parameter_table = ParameterTable(
             {param: values.copy() for param, values in circuit._parameter_table.items()}
         )
@@ -712,7 +714,7 @@ class LinComb(CircuitGradient):
             parameterized gates to compute the product rule.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            QiskitError: If one of the circuits could not be constructed.
             TypeError: If the operators is of unsupported type.
             ValueError: If the auxiliary operator preparation fails.
         """
@@ -804,7 +806,7 @@ class LinComb(CircuitGradient):
             created per parameterized gates to compute the product rule.
 
         Raises:
-            AquaError: If one of the circuits could not be constructed.
+            QiskitError: If one of the circuits could not be constructed.
             TypeError: If ``operator`` is of unsupported type.
             ValueError: If the auxiliary operator preparation fails.
         """

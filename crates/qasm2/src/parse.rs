@@ -1351,6 +1351,15 @@ impl State {
             }
             self.check_trailing_comma(comma.as_ref())?;
             qubits
+        } else if self.strict {
+            return Err(QASM2ParseError::new_err(message_generic(
+                Some(&Position::new(
+                    self.current_filename(),
+                    barrier_token.line,
+                    barrier_token.col,
+                )),
+                "[strict] barrier statements must have at least one argument",
+            )));
         } else if let Some(num_gate_qubits) = num_gate_qubits {
             (0..num_gate_qubits).map(QubitId::new).collect::<Vec<_>>()
         } else {

@@ -17,13 +17,17 @@ from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
 
-class SGate(Gate):
+_S_ARRAY = numpy.array([[1, 0], [0, 1j]])
+_SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
+
+
+@with_gate_array(_S_ARRAY)
+class SGate(SingletonGate):
     r"""Single qubit S gate (Z**0.5).
 
     It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
@@ -53,9 +57,11 @@ class SGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__("s", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -78,16 +84,15 @@ class SGate(Gate):
         """Return inverse of S (SdgGate)."""
         return SdgGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the S gate."""
-        return numpy.array([[1, 0], [0, 1j]], dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import PhaseGate
+
         return PhaseGate(0.5 * numpy.pi * exponent)
 
 
-class SdgGate(Gate):
+@with_gate_array(_SDG_ARRAY)
+class SdgGate(SingletonGate):
     r"""Single qubit S-adjoint gate (~Z**0.5).
 
     It induces a :math:`-\pi/2` phase.
@@ -117,9 +122,11 @@ class SdgGate(Gate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        super().__init__("sdg", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """
@@ -142,16 +149,15 @@ class SdgGate(Gate):
         """Return inverse of Sdg (SGate)."""
         return SGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Sdg gate."""
-        return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import PhaseGate
+
         return PhaseGate(-0.5 * numpy.pi * exponent)
 
 
-class CSGate(ControlledGate):
+@with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
+class CSGate(SingletonControlledGate):
     r"""Controlled-S gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -179,53 +185,53 @@ class CSGate(ControlledGate):
                 0 & 0 & 0 & i
             \end{pmatrix}
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1j],
-        ]
-    )
-    _matrix0 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1j, 0],
-            [0, 0, 0, 1],
-        ]
-    )
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CS gate."""
         super().__init__(
-            "cs", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=SGate()
+            "cs",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=SGate(label=_base_label),
+            duration=duration,
+            _base_label=_base_label,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """
         gate cs a,b { h b; cp(pi/2) a,b; h b; }
         """
+        from .p import CPhaseGate
+
         self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self):
         """Return inverse of CSGate (CSdgGate)."""
         return CSdgGate(ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CS gate."""
-        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
-
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import CPhaseGate
+
         return CPhaseGate(0.5 * numpy.pi * exponent)
 
 
-class CSdgGate(ControlledGate):
+@with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
+class CSdgGate(SingletonControlledGate):
     r"""Controlled-S^\dagger gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -253,25 +259,16 @@ class CSdgGate(ControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, -1j],
-        ]
-    )
-    _matrix0 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, -1j, 0],
-            [0, 0, 0, 1],
-        ]
-    )
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CSdg gate."""
         super().__init__(
             "csdg",
@@ -280,26 +277,27 @@ class CSdgGate(ControlledGate):
             label=label,
             num_ctrl_qubits=1,
             ctrl_state=ctrl_state,
-            base_gate=SdgGate(),
+            base_gate=SdgGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """
         gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
         """
+        from .p import CPhaseGate
+
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self):
         """Return inverse of CSdgGate (CSGate)."""
         return CSGate(ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CSdg gate."""
-        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
-
     def power(self, exponent: float):
         """Raise gate to a power."""
+        from .p import CPhaseGate
+
         return CPhaseGate(-0.5 * numpy.pi * exponent)

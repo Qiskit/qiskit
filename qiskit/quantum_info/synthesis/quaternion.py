@@ -13,6 +13,7 @@
 """
 A module for using quaternions.
 """
+from __future__ import annotations
 import math
 import numpy as np
 
@@ -50,7 +51,7 @@ class Quaternion:
 
         return la.norm(self.data)
 
-    def normalize(self, inplace=False):
+    def normalize(self, inplace: bool = False) -> Quaternion:
         """Normalizes a Quaternion to unit length
         so that it represents a valid rotation.
 
@@ -69,7 +70,7 @@ class Quaternion:
         data_copy /= nrm
         return Quaternion(data_copy)
 
-    def to_matrix(self):
+    def to_matrix(self) -> np.ndarray:
         """Converts a unit-length quaternion to a rotation matrix.
 
         Returns:
@@ -86,7 +87,7 @@ class Quaternion:
         )
         return mat
 
-    def to_zyz(self):
+    def to_zyz(self) -> np.ndarray:
         """Converts a unit-length quaternion to a sequence
         of ZYZ Euler angles.
 
@@ -108,7 +109,7 @@ class Quaternion:
         return euler
 
     @classmethod
-    def from_axis_rotation(cls, angle, axis):
+    def from_axis_rotation(cls, angle: float, axis: str) -> Quaternion:
         """Return quaternion for rotation about given axis.
 
         Args:
@@ -135,7 +136,7 @@ class Quaternion:
         return cls(out)
 
     @classmethod
-    def from_euler(cls, angles, order="yzy"):
+    def from_euler(cls, angles: list | np.ndarray, order: str = "yzy") -> Quaternion:
         """Generate a quaternion from a set of Euler angles.
 
         Args:

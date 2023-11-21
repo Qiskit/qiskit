@@ -17,6 +17,7 @@ from qiskit.transpiler.passes.utils import control_flow
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import ControlledGate, ControlFlowOp
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Unroller(TransformationPass):
@@ -26,6 +27,11 @@ class Unroller(TransformationPass):
     to a desired basis, using decomposition rules defined for each instruction.
     """
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="This has been replaced by the `BasisTranslator` pass "
+        "and is going to be removed in Qiskit 1.0.",
+    )
     def __init__(self, basis=None, target=None):
         """Unroller initializer.
 
@@ -55,9 +61,6 @@ class Unroller(TransformationPass):
         """
         if self.basis is None and self.target is None:
             return dag
-        qubit_mapping = {}
-        if self.target is not None:
-            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():
@@ -66,12 +69,11 @@ class Unroller(TransformationPass):
 
             run_qubits = None
             if self.target is not None:
-                run_qubits = tuple(qubit_mapping[x] for x in node.qargs)
+                run_qubits = tuple(dag.find_bit(x).index for x in node.qargs)
                 if (
                     self.target.instruction_supported(node.op.name, qargs=run_qubits)
                     or node.op.name == "barrier"
                 ):
-                    print("blue")
                     if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
                         pass
                     else:

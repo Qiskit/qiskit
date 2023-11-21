@@ -44,6 +44,7 @@ class CheckGateDirection(AnalysisPass):
                     inner_wire_map = {
                         inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
                     }
+
                     if not self._coupling_map_visit(circuit_to_dag(block), inner_wire_map, edges):
                         return False
             elif (

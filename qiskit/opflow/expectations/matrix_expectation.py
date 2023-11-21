@@ -22,11 +22,12 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class MatrixExpectation(ExpectationBase):
-    """Deprecated: An Expectation converter which converts Operator measurements to
+    """An Expectation converter which converts Operator measurements to
     be matrix-based so they can be evaluated by matrix multiplication."""
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self) -> None:

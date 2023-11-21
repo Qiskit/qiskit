@@ -12,17 +12,20 @@
 
 """Circuit operation representing an ``switch/case`` statement."""
 
+from __future__ import annotations
+
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
 import contextlib
 from typing import Union, Iterable, Any, Tuple, Optional, List, Literal
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
-from ._builder_utils import unify_circuit_resources, partition_registers
+from ._builder_utils import unify_circuit_resources, partition_registers, node_resources
 
 
 class _DefaultCaseType:
@@ -38,8 +41,7 @@ CASE_DEFAULT = _DefaultCaseType()
 """A special object that represents the "default" case of a switch statement.  If you use this
 as a case target, it must be the last case, and will match anything that wasn't already matched.
 When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as the
-``DEFAULT`` attribute of the bound case-builder object.
-"""
+``DEFAULT`` attribute of the bound case-builder object."""
 
 
 class SwitchCaseOp(ControlFlowOp):
@@ -48,12 +50,12 @@ class SwitchCaseOp(ControlFlowOp):
     be used to represent a default condition.
 
     This is the low-level interface for creating a switch-case statement; in general, the circuit
-    method :meth:`.QuantumCircuit.switch_case` should be used as a context manager to access the
+    method :meth:`.QuantumCircuit.switch` should be used as a context manager to access the
     builder interface.  At the low level, you must ensure that all the circuit blocks contain equal
     numbers of qubits and clbits, and that the order the virtual bits of the containing circuit
     should be bound is the same for all blocks.  This will likely mean that each circuit block is
     wider than its natural width, as each block must span the union of all the spaces covered by
-    _any_ of the blocks.
+    *any* of the blocks.
 
     Args:
         target: the runtime value to switch on.
@@ -64,15 +66,24 @@ class SwitchCaseOp(ControlFlowOp):
 
     def __init__(
         self,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         cases: Iterable[Tuple[Any, QuantumCircuit]],
         *,
         label: Optional[str] = None,
     ):
-        if not isinstance(target, (Clbit, ClassicalRegister)):
+        if isinstance(target, expr.Expr):
+            if target.type.kind not in (types.Uint, types.Bool):
+                raise CircuitError(
+                    "the switch target must be an expression with type 'Uint(n)' or 'Bool()',"
+                    f" not '{target.type}'"
+                )
+        elif not isinstance(target, (Clbit, ClassicalRegister)):
             raise CircuitError("the switch target must be a classical bit or register")
 
-        target_bits = 1 if isinstance(target, Clbit) else len(target)
+        if isinstance(target, expr.Expr):
+            target_bits = 1 if target.type.kind is types.Bool else target.type.width
+        else:
+            target_bits = 1 if isinstance(target, Clbit) else len(target)
         target_max = (1 << target_bits) - 1
 
         case_ids = set()
@@ -127,9 +138,13 @@ class SwitchCaseOp(ControlFlowOp):
     def __eq__(self, other):
         # The general __eq__ will compare the blocks in the right order, so we just need to ensure
         # that all the labels point the right way as well.
-        return super().__eq__(other) and all(
-            set(labels_self) == set(labels_other)
-            for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+        return (
+            super().__eq__(other)
+            and self.target == other.target
+            and all(
+                set(labels_self) == set(labels_other)
+                for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+            )
         )
 
     def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:
@@ -191,7 +206,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
 
     def __init__(
         self,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         cases: List[Tuple[Any, ControlFlowBuilderBlock]],
         *,
         label: Optional[str] = None,
@@ -214,9 +229,13 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         cregs = set()
         if isinstance(self.__target, Clbit):
             clbits.add(self.__target)
-        else:
+        elif isinstance(self.__target, ClassicalRegister):
             clbits.update(self.__target)
             cregs.add(self.__target)
+        else:
+            resources = node_resources(self.__target)
+            clbits.update(resources.clbits)
+            cregs.update(resources.cregs)
         for _, body in self.__cases:
             qubits |= body.qubits
             clbits |= body.clbits
@@ -278,13 +297,23 @@ class SwitchContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         *,
         in_loop: bool,
         label: Optional[str] = None,
     ):
         self.circuit = circuit
-        self.target = target
+        self._target = target
+        if isinstance(target, Clbit):
+            self.target_clbits: tuple[Clbit, ...] = (target,)
+            self.target_cregs: tuple[ClassicalRegister, ...] = ()
+        elif isinstance(target, ClassicalRegister):
+            self.target_clbits = tuple(target)
+            self.target_cregs = (target,)
+        else:
+            resources = node_resources(target)
+            self.target_clbits = resources.clbits
+            self.target_cregs = resources.cregs
         self.in_loop = in_loop
         self.complete = False
         self._op_label = label
@@ -319,7 +348,7 @@ class SwitchContext:
         # If we're in a loop-builder context, we need to emit a placeholder so that any `break` or
         # `continue`s in any of our cases can be expanded when the loop-builder.  If we're not, we
         # need to emit a concrete instruction immediately.
-        placeholder = SwitchCasePlaceholder(self.target, self._cases, label=self._op_label)
+        placeholder = SwitchCasePlaceholder(self._target, self._cases, label=self._op_label)
         initial_resources = placeholder.placeholder_resources()
         if self.in_loop:
             self.circuit.append(placeholder, initial_resources.qubits, initial_resources.clbits)
@@ -370,14 +399,10 @@ class CaseBuilder:
             if self.switch.label_in_use(value) or value in seen:
                 raise CircuitError(f"duplicate case label: '{value}'")
             seen.add(value)
-        if isinstance(self.switch.target, Clbit):
-            target_clbits = [self.switch.target]
-            target_registers = []
-        else:
-            target_clbits = list(self.switch.target)
-            target_registers = [self.switch.target]
         self.switch.circuit._push_scope(
-            clbits=target_clbits, registers=target_registers, allow_jumps=self.switch.in_loop
+            clbits=self.switch.target_clbits,
+            registers=self.switch.target_cregs,
+            allow_jumps=self.switch.in_loop,
         )
 
         try:

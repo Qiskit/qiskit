@@ -13,9 +13,9 @@
 """The n-local circuit class."""
 
 from __future__ import annotations
-
 import typing
-from typing import Union, Optional, Any, Sequence, Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
+
 from itertools import combinations
 
 import numpy
@@ -90,9 +90,9 @@ class NLocal(BlueprintCircuit):
         skip_unentangled_qubits: bool = False,
         initial_state: QuantumCircuit | None = None,
         name: str | None = "nlocal",
+        flatten: bool | None = None,
     ) -> None:
-        """Create a new n-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the circuit.
             rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
@@ -114,9 +114,13 @@ class NLocal(BlueprintCircuit):
             initial_state: A :class:`.QuantumCircuit` object which can be used to describe an initial
                 state prepended to the NLocal circuit.
             name: The name of the circuit.
-
-        Examples:
-            TODO
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         Raises:
             ValueError: If ``reps`` parameter is less than or equal to 0.
@@ -144,6 +148,7 @@ class NLocal(BlueprintCircuit):
         self._initial_state: QuantumCircuit | None = None
         self._initial_state_circuit: QuantumCircuit | None = None
         self._bounds: list[tuple[float | None, float | None]] | None = None
+        self._flatten = flatten
 
         if int(reps) != reps:
             raise TypeError("The value of reps should be int")
@@ -188,7 +193,17 @@ class NLocal(BlueprintCircuit):
             self._num_qubits = num_qubits
             self.qregs = [QuantumRegister(num_qubits, name="q")]
 
-    def _convert_to_block(self, layer: Any) -> QuantumCircuit:
+    @property
+    def flatten(self) -> bool:
+        """Returns whether the circuit is wrapped in nested gates/instructions or flattened."""
+        return bool(self._flatten)
+
+    @flatten.setter
+    def flatten(self, flatten: bool) -> None:
+        self._invalidate()
+        self._flatten = flatten
+
+    def _convert_to_block(self, layer: typing.Any) -> QuantumCircuit:
         """Try to convert ``layer`` to a QuantumCircuit.
 
         Args:
@@ -270,17 +285,9 @@ class NLocal(BlueprintCircuit):
     @property
     def entanglement(
         self,
-    ) -> Union[
-        str,
-        list[str],
-        list[list[str]],
-        list[int],
-        list[list[int]],
-        list[list[list[int]]],
-        list[list[list[list[int]]]],
-        Callable[[int], str],
-        Callable[[int], list[list[int]]],
-    ]:
+    ) -> str | list[str] | list[list[str]] | list[int] | list[list[int]] | list[
+        list[list[int]]
+    ] | list[list[list[list[int]]]] | Callable[[int], str] | Callable[[int], list[list[int]]]:
         """Get the entanglement strategy.
 
         Returns:
@@ -292,19 +299,16 @@ class NLocal(BlueprintCircuit):
     @entanglement.setter
     def entanglement(
         self,
-        entanglement: Optional[
-            Union[
-                str,
-                list[str],
-                list[list[str]],
-                list[int],
-                list[list[int]],
-                list[list[list[int]]],
-                list[list[list[list[int]]]],
-                Callable[[int], str],
-                Callable[[int], list[list[int]]],
-            ]
-        ],
+        entanglement: str
+        | list[str]
+        | list[list[str]]
+        | list[int]
+        | list[list[int]]
+        | list[list[list[int]]]
+        | list[list[list[list[int]]]]
+        | Callable[[int], str]
+        | Callable[[int], list[list[int]]]
+        | None,
     ) -> None:
         """Set the entanglement strategy.
 
@@ -711,7 +715,7 @@ class NLocal(BlueprintCircuit):
 
     def add_layer(
         self,
-        other: Union["NLocal", qiskit.circuit.Instruction, QuantumCircuit],
+        other: QuantumCircuit | qiskit.circuit.Instruction,
         entanglement: list[int] | str | list[list[int]] | None = None,
         front: bool = False,
     ) -> "NLocal":
@@ -779,6 +783,7 @@ class NLocal(BlueprintCircuit):
         parameters: Mapping[Parameter, ParameterExpression | float]
         | Sequence[ParameterExpression | float],
         inplace: bool = False,
+        **kwargs,
     ) -> QuantumCircuit | None:
         """Assign parameters to the n-local circuit.
 
@@ -800,7 +805,7 @@ class NLocal(BlueprintCircuit):
         if not self._is_built:
             self._build()
 
-        return super().assign_parameters(parameters, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace, **kwargs)
 
     def _parameterize_block(
         self, block, param_iter=None, rep_num=None, block_num=None, indices=None, params=None
@@ -899,7 +904,10 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits == 0:
             return
 
-        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        if not self._flatten:
+            circuit = QuantumCircuit(*self.qregs, name=self.name)
+        else:
+            circuit = self
 
         # use the initial state as starting circuit, if it is set
         if self.initial_state:
@@ -943,16 +951,17 @@ class NLocal(BlueprintCircuit):
                 # expression contains free parameters
                 pass
 
-        try:
-            block = circuit.to_gate()
-        except QiskitError:
-            block = circuit.to_instruction()
+        if not self._flatten:
+            try:
+                block = circuit.to_gate()
+            except QiskitError:
+                block = circuit.to_instruction()
 
-        self.append(block, self.qubits)
+            self.append(block, self.qubits)
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
-        """If certain blocks should use certain parameters this method can be overriden."""
+        """If certain blocks should use certain parameters this method can be overridden."""
         return None
 
 

@@ -64,7 +64,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                         old_measure_qarg = successor.qargs[0]
                         new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
                         measure_layer.apply_operation_back(
-                            Measure(), [new_measure_qarg], [successor.cargs[0]]
+                            Measure(), (new_measure_qarg,), (successor.cargs[0],), check=False
                         )
                 dag.compose(measure_layer)
                 dag.remove_op_node(swap)

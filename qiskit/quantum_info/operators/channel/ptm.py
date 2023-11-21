@@ -15,6 +15,7 @@
 Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 import numpy as np
 
@@ -25,6 +26,7 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class PTM(QuantumChannel):
@@ -38,7 +40,7 @@ class PTM(QuantumChannel):
 
     .. math::
 
-        R_{i,j} = \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
+        R_{i,j} = \frac{1}{2^n} \mbox{Tr}\left[P_i \mathcal{E}(P_j) \right]
 
     where :math:`[P_0, P_1, ..., P_{4^{n}-1}]` is the :math:`n`-qubit Pauli basis in
     lexicographic order.
@@ -51,7 +53,7 @@ class PTM(QuantumChannel):
         |\mathcal{E}(\rho)\rangle\!\rangle_P = S_P |\rho\rangle\!\rangle_P
 
     where :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
-    :math:`\langle i | A\rangle\!\rangle_P = \mbox{Tr}[P_i A]`.
+    :math:`\langle i | A\rangle\!\rangle_P = \sqrt{\frac{1}{2^n}} \mbox{Tr}[P_i A]`.
 
     See reference [1] for further details.
 
@@ -61,7 +63,12 @@ class PTM(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
+    ):
         """Initialize a PTM quantum channel operator.
 
         Args:
@@ -154,7 +161,7 @@ class PTM(QuantumChannel):
     def adjoint(self):
         return PTM(SuperOp(self).adjoint())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: PTM, qargs: list | None = None, front: bool = False) -> PTM:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -174,12 +181,12 @@ class PTM(QuantumChannel):
         ret._op_shape = new_shape
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: PTM) -> PTM:
         if not isinstance(other, PTM):
             other = PTM(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: PTM) -> PTM:
         if not isinstance(other, PTM):
             other = PTM(other)
         return self._tensor(other, self)

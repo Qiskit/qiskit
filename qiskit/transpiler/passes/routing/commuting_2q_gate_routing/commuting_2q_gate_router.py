@@ -33,7 +33,7 @@ class Commuting2qGateRouter(TransformationPass):
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
-    qubits. Otherwise we may swap qubits outside of the portion of the chip we want to use.
+    qubits. Otherwise, we may swap qubits outside the portion of the chip we want to use.
     Therefore, the swap strategy and its associated coupling map do not represent physical
     qubits. Instead, they represent an intermediate mapping that corresponds to the physical
     qubits once the initial layout is applied. The example below shows how to map a four
@@ -111,7 +111,7 @@ class Commuting2qGateRouter(TransformationPass):
         Args:
             swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
                 that are used, and the order in which to apply them, to map the instruction to
-                the hardware. If this field is not given if should be contained in the
+                the hardware. If this field is not given, it should be contained in the
                 property set of the pass. This allows other passes to determine the most
                 appropriate swap strategy at run-time.
             edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that
@@ -167,13 +167,11 @@ class Commuting2qGateRouter(TransformationPass):
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
 
-        self._bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-
         for node in dag.topological_op_nodes():
             if isinstance(node.op, Commuting2qBlock):
 
                 # Check that the swap strategy creates enough connectivity for the node.
-                self._check_edges(node, swap_strategy)
+                self._check_edges(dag, node, swap_strategy)
 
                 # Compose any accumulated non-swap strategy gates to the dag
                 accumulator = self._compose_non_swap_nodes(accumulator, current_layout, new_dag)
@@ -214,7 +212,7 @@ class Commuting2qGateRouter(TransformationPass):
         # Re-initialize the node accumulator
         return new_dag.copy_empty_like()
 
-    def _position_in_cmap(self, j: int, k: int, layout: Layout) -> tuple[int, ...]:
+    def _position_in_cmap(self, dag: DAGCircuit, j: int, k: int, layout: Layout) -> tuple[int, ...]:
         """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
@@ -225,8 +223,8 @@ class Commuting2qGateRouter(TransformationPass):
         Returns:
             The position in the coupling map of the virtual qubits j and k as a tuple.
         """
-        bit0 = self._bit_indices[layout.get_physical_bits()[j]]
-        bit1 = self._bit_indices[layout.get_physical_bits()[k]]
+        bit0 = dag.find_bit(layout.get_physical_bits()[j]).index
+        bit1 = dag.find_bit(layout.get_physical_bits()[k]).index
 
         return bit0, bit1
 
@@ -325,7 +323,7 @@ class Commuting2qGateRouter(TransformationPass):
             # to all the gates that can be applied at the ith swap layer.
             current_layer = {}
             for (j, k), local_gate in gate_layers.get(i, {}).items():
-                current_layer[self._position_in_cmap(j, k, current_layout)] = local_gate
+                current_layer[self._position_in_cmap(dag, j, k, current_layout)] = local_gate
 
             # Not all gates that are applied at the ith swap layer can be applied at the same
             # time. We therefore greedily build sub-layers.
@@ -354,7 +352,7 @@ class Commuting2qGateRouter(TransformationPass):
         gate_layers: dict[int, dict[tuple, Gate]] = defaultdict(dict)
 
         for node in op.node_block:
-            edge = (self._bit_indices[node.qargs[0]], self._bit_indices[node.qargs[1]])
+            edge = (dag.find_bit(node.qargs[0]).index, dag.find_bit(node.qargs[1]).index)
 
             bit0 = layout.get_virtual_bits()[dag.qubits[edge[0]]]
             bit1 = layout.get_virtual_bits()[dag.qubits[edge[1]]]
@@ -365,7 +363,7 @@ class Commuting2qGateRouter(TransformationPass):
 
         return gate_layers
 
-    def _check_edges(self, node: DAGOpNode, swap_strategy: SwapStrategy):
+    def _check_edges(self, dag: DAGCircuit, node: DAGOpNode, swap_strategy: SwapStrategy):
         """Check if the swap strategy can create the required connectivity.
 
         Args:
@@ -379,7 +377,7 @@ class Commuting2qGateRouter(TransformationPass):
         required_edges = set()
 
         for sub_node in node.op:
-            edge = (self._bit_indices[sub_node.qargs[0]], self._bit_indices[sub_node.qargs[1]])
+            edge = (dag.find_bit(sub_node.qargs[0]).index, dag.find_bit(sub_node.qargs[1]).index)
             required_edges.add(edge)
 
         # Check that the swap strategy supports all required edges

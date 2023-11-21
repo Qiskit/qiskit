@@ -664,9 +664,9 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         """Test that X gates do not cancel for X-I-H-I-X."""
         circuit = QuantumCircuit(1)
         circuit.x(0)
-        circuit.i(0)
+        circuit.id(0)
         circuit.h(0)
-        circuit.i(0)
+        circuit.id(0)
         circuit.x(0)
 
         passmanager = PassManager(CommutativeInverseCancellation())

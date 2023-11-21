@@ -21,7 +21,7 @@ import warnings
 
 import numpy as np
 
-from qiskit.qobj import Qobj
+from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.utils import circuit_utils
 from qiskit.exceptions import QiskitError
 from qiskit.utils.backend_utils import (
@@ -146,6 +146,7 @@ class QuantumInstance:
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
     )
     def __init__(
@@ -451,7 +452,7 @@ class QuantumInstance:
 
         return transpiled_circuits
 
-    def assemble(self, circuits) -> Qobj:
+    def assemble(self, circuits) -> Union[QasmQobj, PulseQobj]:
         """assemble circuits"""
         # pylint: disable=cyclic-import
         from qiskit import compiler

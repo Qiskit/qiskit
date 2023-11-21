@@ -394,7 +394,7 @@ class Z2Symmetries:
         spo = spo.chop(self.tol)
         return spo
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Z2Symmetries) -> bool:
         """
         Overload `==` operation to evaluate equality between Z2Symmetries.
 
@@ -415,7 +415,7 @@ class Z2Symmetries:
         )
 
 
-def _kernel_f2(matrix_in) -> list[np.ndarray]:
+def _kernel_f2(matrix_in):
     """
     Compute the kernel of a binary matrix on the binary finite field.
 
@@ -439,7 +439,7 @@ def _kernel_f2(matrix_in) -> list[np.ndarray]:
     return kernel
 
 
-def _row_echelon_f2(matrix_in) -> np.ndarray:
+def _row_echelon_f2(matrix_in):
     """
     Compute the row Echelon form of a binary matrix on the binary finite field.
 

@@ -17,6 +17,7 @@ for some generic or specific angles.
 TODO: discover these automatically from the gates' algebraic definition
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter

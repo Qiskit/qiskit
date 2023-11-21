@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed plot legend error when your dataset has a zero value at first position.
+    When one of your counts or distributions had a zero value at first position, the relative legend didn't show up.
+    See `#10158 <https://github.com/Qiskit/qiskit-terra/issues/10158>` for more details.

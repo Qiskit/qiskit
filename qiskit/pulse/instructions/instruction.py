@@ -53,7 +53,6 @@ class Instruction(ABC):
         """
         self._operands = operands
         self._name = name
-        self._hash = None
         self._validate()
 
     def _validate(self):
@@ -230,6 +229,7 @@ class Instruction(ABC):
             "``qiskit.visualization.pulse_drawer``."
         ),
         since="0.23.0",
+        package_name="qiskit-terra",
     )
     @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
@@ -300,9 +300,7 @@ class Instruction(ABC):
         return isinstance(other, type(self)) and self.operands == other.operands
 
     def __hash__(self) -> int:
-        if self._hash is None:
-            self._hash = hash((type(self), self.operands, self.name))
-        return self._hash
+        return hash((type(self), self.operands, self.name))
 
     def __add__(self, other):
         """Return a new schedule with `other` inserted within `self` at `start_time`.

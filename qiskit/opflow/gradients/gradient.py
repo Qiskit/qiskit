@@ -13,11 +13,10 @@
 """The base interface for Opflow's gradient."""
 
 from typing import Union, List, Optional
-import functools
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.circuit._utils import sort_parameters
 from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradients.circuit_gradient import CircuitGradient
@@ -39,6 +38,7 @@ class Gradient(GradientBase):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
@@ -67,7 +67,7 @@ class Gradient(GradientBase):
         if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
         if params is None:
-            params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))
+            params = sort_parameters(operator.parameters)
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.convert(operator, param) for param in params]
             absent_params = [

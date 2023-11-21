@@ -81,7 +81,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         params=[*parameter_dict.values()],
         label=label,
     )
-    out_instruction.condition = None
+    out_instruction._condition = None
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
@@ -100,32 +100,29 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
     clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
 
-    definition = [
-        instruction.replace(
+    qc = QuantumCircuit(*regs, name=out_instruction.name)
+    qc._data.reserve(len(target.data))
+    for instruction in target._data:
+        rule = instruction.replace(
             qubits=[qubit_map[y] for y in instruction.qubits],
             clbits=[clbit_map[y] for y in instruction.clbits],
         )
-        for instruction in target.data
-    ]
 
-    # fix condition
-    for rule in definition:
+        # fix condition
         condition = getattr(rule.operation, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                rule.operation.condition = (clbit_map[reg], val)
+                rule = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
             elif reg.size == c.size:
-                rule.operation.condition = (c, val)
+                rule = rule.replace(operation=rule.operation.c_if(c, val))
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "
                     "multiple classical registers to instruction"
                 )
+        qc._append(rule)
 
-    qc = QuantumCircuit(*regs, name=out_instruction.name)
-    for instruction in definition:
-        qc._append(instruction)
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
 

@@ -33,6 +33,7 @@ from qiskit.circuit import (
     SwitchCaseOp,
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
+from qiskit.circuit.classical import expr
 from qiskit.test import QiskitTestCase
 
 
@@ -788,6 +789,96 @@ class TestCircuitCompose(QiskitTestCase):
         outer.compose(inner, inplace=True)
         self.assertEqual(outer.clbits, inner.clbits)
         self.assertEqual(outer.cregs, [])
+
+    def test_expr_condition_is_mapped(self):
+        """Test that an expression in a condition involving several registers is mapped correctly to
+        the destination circuit."""
+        inner = QuantumCircuit(1)
+        inner.x(0)
+        a_src = ClassicalRegister(2, "a_src")
+        b_src = ClassicalRegister(2, "b_src")
+        c_src = ClassicalRegister(name="c_src", bits=list(a_src) + list(b_src))
+        source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
+
+        test_1 = lambda: expr.lift(a_src[0])
+        test_2 = lambda: expr.logic_not(b_src[1])
+        test_3 = lambda: expr.logic_and(expr.bit_and(b_src, 2), expr.less(c_src, 7))
+        source.if_test(test_1(), inner.copy(), [0], [])
+        source.if_else(test_2(), inner.copy(), inner.copy(), [0], [])
+        source.while_loop(test_3(), inner.copy(), [0], [])
+
+        a_dest = ClassicalRegister(2, "a_dest")
+        b_dest = ClassicalRegister(2, "b_dest")
+        dest = QuantumCircuit(QuantumRegister(1), a_dest, b_dest).compose(source)
+
+        # Check that the input conditions weren't mutated.
+        for in_condition, instruction in zip((test_1, test_2, test_3), source.data):
+            self.assertEqual(in_condition(), instruction.operation.condition)
+
+        # Should be `a_dest`, `b_dest` and an added one to account for `c_src`.
+        self.assertEqual(len(dest.cregs), 3)
+        mapped_reg = dest.cregs[-1]
+
+        expected = QuantumCircuit(dest.qregs[0], a_dest, b_dest, mapped_reg)
+        expected.if_test(expr.lift(a_dest[0]), inner.copy(), [0], [])
+        expected.if_else(expr.logic_not(b_dest[1]), inner.copy(), inner.copy(), [0], [])
+        expected.while_loop(
+            expr.logic_and(expr.bit_and(b_dest, 2), expr.less(mapped_reg, 7)), inner.copy(), [0], []
+        )
+        self.assertEqual(dest, expected)
+
+    def test_expr_target_is_mapped(self):
+        """Test that an expression in a switch statement's target is mapping correctly to the
+        destination circuit."""
+        inner1 = QuantumCircuit(1)
+        inner1.x(0)
+        inner2 = QuantumCircuit(1)
+        inner2.z(0)
+
+        a_src = ClassicalRegister(2, "a_src")
+        b_src = ClassicalRegister(2, "b_src")
+        c_src = ClassicalRegister(name="c_src", bits=list(a_src) + list(b_src))
+        source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
+
+        test_1 = lambda: expr.lift(a_src[0])
+        test_2 = lambda: expr.logic_not(b_src[1])
+        test_3 = lambda: expr.lift(b_src)
+        test_4 = lambda: expr.bit_and(c_src, 7)
+        source.switch(test_1(), [(False, inner1.copy()), (True, inner2.copy())], [0], [])
+        source.switch(test_2(), [(False, inner1.copy()), (True, inner2.copy())], [0], [])
+        source.switch(test_3(), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], [])
+        source.switch(test_4(), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], [])
+
+        a_dest = ClassicalRegister(2, "a_dest")
+        b_dest = ClassicalRegister(2, "b_dest")
+        dest = QuantumCircuit(QuantumRegister(1), a_dest, b_dest).compose(source)
+
+        # Check that the input expressions weren't mutated.
+        for in_target, instruction in zip((test_1, test_2, test_3, test_4), source.data):
+            self.assertEqual(in_target(), instruction.operation.target)
+
+        # Should be `a_dest`, `b_dest` and an added one to account for `c_src`.
+        self.assertEqual(len(dest.cregs), 3)
+        mapped_reg = dest.cregs[-1]
+
+        expected = QuantumCircuit(dest.qregs[0], a_dest, b_dest, mapped_reg)
+        expected.switch(
+            expr.lift(a_dest[0]), [(False, inner1.copy()), (True, inner2.copy())], [0], []
+        )
+        expected.switch(
+            expr.logic_not(b_dest[1]), [(False, inner1.copy()), (True, inner2.copy())], [0], []
+        )
+        expected.switch(
+            expr.lift(b_dest), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], []
+        )
+        expected.switch(
+            expr.bit_and(mapped_reg, 7),
+            [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())],
+            [0],
+            [],
+        )
+
+        self.assertEqual(dest, expected)
 
 
 if __name__ == "__main__":

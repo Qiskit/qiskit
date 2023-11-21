@@ -10,21 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exception for errors raised while parsing OPENQASM.
-"""
+"""Exception for errors raised while handling OpenQASM 2.0."""
 
-from qiskit.exceptions import QiskitError
-
-
-class QasmError(QiskitError):
-    """Base class for errors raised while parsing OPENQASM."""
-
-    def __init__(self, *msg):
-        """Set the error message."""
-        super().__init__(*msg)
-        self.msg = " ".join(msg)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.msg)
+# Re-export from the new place to ensure that old code continues to work.
+from qiskit.qasm2.exceptions import QASM2Error as QasmError  # pylint: disable=unused-import

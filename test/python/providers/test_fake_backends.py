@@ -59,13 +59,15 @@ from qiskit.circuit.library import (
     RYGate,
     CZGate,
     ECRGate,
+    UnitaryGate,
+    UCGate,
+    Initialize,
+    DiagonalGate,
 )
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
-from qiskit.extensions import Initialize, UnitaryGate
-from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
 from qiskit.circuit.controlflow import (
     IfElseOp,
     WhileLoopOp,
@@ -414,6 +416,9 @@ class TestFakeBackends(QiskitTestCase):
         from qiskit_aer.noise.noise_model import QuantumErrorLocation
 
         sim = AerSimulator()
+        # test only if simulator's backend is V1
+        if sim.version > 1:
+            return
         phi = Parameter("phi")
         lam = Parameter("lam")
         backend = BackendV2Converter(

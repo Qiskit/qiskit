@@ -59,9 +59,11 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RZ gate."""
-        super().__init__("rz", 1, [phi], label=label)
+        super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -192,6 +194,10 @@ class CRZGate(ControlledGate):
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CRZ gate."""
         super().__init__(
@@ -201,7 +207,9 @@ class CRZGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RZGate(theta),
+            base_gate=RZGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):

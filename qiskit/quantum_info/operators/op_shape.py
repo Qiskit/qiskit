@@ -14,6 +14,7 @@
 Multi-partite matrix and vector shape class
 """
 
+from __future__ import annotations
 import copy
 from functools import reduce
 from operator import mul

@@ -19,7 +19,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class InstructionDurationCheck(AnalysisPass):
     """Duration validation pass for reschedule.
 
-    This pass investigates the input quantum circuit and checks if the circuit requres
+    This pass investigates the input quantum circuit and checks if the circuit requires
     rescheduling for execution. Note that this pass can be triggered without scheduling.
     This pass only checks the duration of delay instructions and user defined pulse gates,
     which report duration values without pre-scheduling.

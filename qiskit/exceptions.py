@@ -10,7 +10,39 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Exceptions for errors raised by Qiskit."""
+"""
+===============================================
+Top-level exceptions (:mod:`qiskit.exceptions`)
+===============================================
+
+All Qiskit-related errors raised by Qiskit are subclasses of the base:
+
+.. autoexception:: QiskitError
+
+.. note::
+
+    Errors that are just general programming errors, such as incorrect typing, may still raise
+    standard Python errors such as ``TypeError``.  :exc:`QiskitError` is generally for errors raised
+    in usage that is particular to Qiskit.
+
+Many of the Qiskit subpackages define their own more granular error, to help in catching only the
+subset of errors you care about.  For example, :mod:`qiskit.circuit` almost exclusively uses
+:exc:`.CircuitError`, while both :exc:`.QASM2ExportError` and :exc:`.QASM2ParseError` derive from
+:exc:`.QASM2Error` in :mod:`qiskit.qasm2`, which is in turn a type of :exc:`.QiskitError`.
+
+Qiskit has several optional features that depend on other packages that are not required for a
+minimal install.  You can read more about those, and ways to check for their presence, in
+:mod:`qiskit.utils.optionals`.  Trying to use a feature that requires an optional extra will raise a
+particular error, which subclasses both :exc:`QiskitError` and the Python built-in ``ImportError``.
+
+.. autoexception:: MissingOptionalLibraryError
+
+Two more uncommon errors relate to failures in reading user-configuration files, or specifying a
+filename that cannot be used:
+
+.. autoexception:: QiskitUserConfigError
+.. autoexception:: InvalidFileError
+"""
 
 from typing import Optional
 

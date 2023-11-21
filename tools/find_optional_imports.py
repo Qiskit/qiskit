@@ -25,6 +25,7 @@ def _main():
         "networkx",
         "sympy",
         "pydot",
+        "pygments",
         "ipywidgets",
         "scipy.stats",
         "matplotlib",

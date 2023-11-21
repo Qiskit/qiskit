@@ -52,6 +52,7 @@ def _get_backend_provider(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def has_ibmq():
@@ -73,6 +74,7 @@ def has_ibmq():
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def has_aer():
@@ -93,6 +95,7 @@ def has_aer():
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_aer_provider(backend):
@@ -117,6 +120,7 @@ def is_aer_provider(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_basicaer_provider(backend):
@@ -134,6 +138,7 @@ def is_basicaer_provider(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_ibmq_provider(backend):
@@ -154,6 +159,7 @@ def is_ibmq_provider(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_aer_statevector_backend(backend):
@@ -170,6 +176,7 @@ def is_aer_statevector_backend(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_statevector_backend(backend):
@@ -181,16 +188,21 @@ def is_statevector_backend(backend):
     Returns:
         bool: True is statevector
     """
+    if backend is None:
+        return False
+    backend_interface_version = _get_backend_interface_version(backend)
     if has_aer():
         from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
 
         if isinstance(backend, StatevectorSimulator):
             return True
-        if isinstance(backend, AerSimulator) and "aer_simulator_statevector" in backend.name():
-            return True
-    if backend is None:
-        return False
-    backend_interface_version = _get_backend_interface_version(backend)
+        if isinstance(backend, AerSimulator):
+            if backend_interface_version <= 1:
+                name = backend.name()
+            else:
+                name = backend.name
+            if "aer_simulator_statevector" in name:
+                return True
     if backend_interface_version <= 1:
         return backend.name().startswith("statevector")
     else:
@@ -199,6 +211,7 @@ def is_statevector_backend(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_simulator_backend(backend):
@@ -213,11 +226,15 @@ def is_simulator_backend(backend):
     backend_interface_version = _get_backend_interface_version(backend)
     if backend_interface_version <= 1:
         return backend.configuration().simulator
+    else:
+        if "simulator" in backend.name:
+            return True
     return False
 
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_local_backend(backend):
@@ -232,11 +249,15 @@ def is_local_backend(backend):
     backend_interface_version = _get_backend_interface_version(backend)
     if backend_interface_version <= 1:
         return backend.configuration().local
+    else:
+        if "simulator" in backend.name:
+            return True
     return False
 
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def is_aer_qasm(backend):
@@ -257,6 +278,7 @@ def is_aer_qasm(backend):
 
 @deprecate_func(
     since="0.24.0",
+    package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def support_backend_options(backend):

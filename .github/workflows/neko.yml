@@ -16,3 +16,4 @@ jobs:
       - uses: Qiskit/qiskit-neko@main
         with:
           test_selection: terra
+          repo_install_command: "pip install -c constraints.txt ."

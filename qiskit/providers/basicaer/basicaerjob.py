@@ -40,7 +40,7 @@ class BasicAerJob(JobV1):
         """Get job result .
 
         Returns:
-            qiskit.Result: Result object
+            qiskit.result.Result: Result object
         """
         if timeout is not None:
             warnings.warn(

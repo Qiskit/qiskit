@@ -118,7 +118,7 @@ class Mpl2DPlotter(BasePlotter):
                     )
                     self.ax.add_patch(box)
                 else:
-                    VisualizationError(
+                    raise VisualizationError(
                         "Data {name} is not supported "
                         "by {plotter}".format(name=data, plotter=self.__class__.__name__)
                     )

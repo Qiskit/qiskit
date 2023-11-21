@@ -33,6 +33,7 @@ from warnings import warn
 
 from qiskit import user_config
 from qiskit.utils import optionals as _optionals
+from qiskit.circuit import ControlFlowOp, Measure
 from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib
@@ -62,6 +63,7 @@ def circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    expr_len=30,
 ):
     """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -72,6 +74,12 @@ def circuit_drawer(
     **latex**: high-quality images compiled via latex.
 
     **latex_source**: raw uncompiled latex output.
+
+    .. warning::
+
+        Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target` fields
+        is preliminary and incomplete.  The ``text`` and ``mpl`` drawers will make a best-effort
+        attempt to show data dependencies, but the LaTeX-based drawers will skip these completely.
 
     Args:
         circuit (QuantumCircuit): the quantum circuit to draw
@@ -85,15 +93,15 @@ def circuit_drawer(
             then any style elements in the dict will replace the default values
             in the input dict. A file to be loaded must end in ``.json``, but
             the name entered here can omit ``.json``. For example,
-            ``style='iqx.json'`` or ``style='iqx'``.
+            ``style='iqp.json'`` or ``style='iqp'``.
             If `style` is a dict and the ``'name'`` key is set, that name
             will be used to load a json file, followed by loading the other
-            items in the style dict. For example, ``style={'name': 'iqx'}``.
+            items in the style dict. For example, ``style={'name': 'iqp'}``.
             If `style` is not a str and `name` is not a key in the style dict,
             then the default value from the user config file (usually
             ``~/.qiskit/settings.conf``) will be used, for example,
-            ``circuit_mpl_style = iqx``.
-            If none of these are set, the `default` style will be used.
+            ``circuit_mpl_style = iqp``.
+            If none of these are set, the `clifford` style will be used.
             The search path for style json files can be specified in the user
             config, for example,
             ``circuit_mpl_style_path = /home/user/styles:/home/user``.
@@ -101,7 +109,7 @@ def circuit_drawer(
             information on the contents.
         output (str): select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-            By default the `text` drawer is used unless the user config file
+            By default, the `text` drawer is used unless the user config file
             (usually ``~/.qiskit/settings.conf``) has an alternative backend set
             as the default. For example, ``circuit_drawer = latex``. If the output
             kwarg is set, that backend will always be used over the default in
@@ -150,6 +158,9 @@ def circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -182,6 +193,7 @@ def circuit_drawer(
             circuit_drawer(qc, output='mpl', style={'backgroundcolor': '#EEEEEE'})
     """
     image = None
+    expr_len = max(expr_len, 0)
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
@@ -205,27 +217,60 @@ def circuit_drawer(
         raise VisualizationError(
             "The wire_order option cannot be set when the reverse_bits option is True."
         )
-    if wire_order is not None and len(wire_order) != circuit.num_qubits + circuit.num_clbits:
-        raise VisualizationError(
-            "The wire_order list must be the same "
-            "length as the sum of the number of qubits and clbits in the circuit."
-        )
-    if wire_order is not None and set(wire_order) != set(
-        range(circuit.num_qubits + circuit.num_clbits)
-    ):
-        raise VisualizationError(
-            "There must be one and only one entry in the "
-            "wire_order list for the index of each qubit and each clbit in the circuit."
-        )
 
-    if circuit.clbits and (reverse_bits or wire_order is not None):
+    complete_wire_order = wire_order
+    if wire_order is not None:
+        wire_order_len = len(wire_order)
+        total_wire_len = circuit.num_qubits + circuit.num_clbits
+        if wire_order_len not in [circuit.num_qubits, total_wire_len]:
+            raise VisualizationError(
+                f"The wire_order list (length {wire_order_len}) should as long as "
+                f"the number of qubits ({circuit.num_qubits}) or the "
+                f"total numbers of qubits and classical bits {total_wire_len}."
+            )
+
+        if len(set(wire_order)) != len(wire_order):
+            raise VisualizationError("The wire_order list should not have repeated elements.")
+
+        if wire_order_len == circuit.num_qubits:
+            complete_wire_order = wire_order + list(range(circuit.num_qubits, total_wire_len))
+
+    if (
+        circuit.clbits
+        and (reverse_bits or wire_order is not None)
+        and not set(wire_order or []).issubset(set(range(circuit.num_qubits)))
+    ):
         if cregbundle:
             warn(
-                "cregbundle set to False since either reverse_bits or wire_order has been set.",
+                "cregbundle set to False since either reverse_bits or wire_order "
+                "(over classical bit) has been set.",
                 RuntimeWarning,
                 2,
             )
         cregbundle = False
+
+    def check_clbit_in_inst(circuit, cregbundle):
+        if cregbundle is False:
+            return False
+        for inst in circuit.data:
+            if isinstance(inst.operation, ControlFlowOp):
+                for block in inst.operation.blocks:
+                    if check_clbit_in_inst(block, cregbundle) is False:
+                        return False
+            elif inst.clbits and not isinstance(inst.operation, Measure):
+                if cregbundle is not False:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        3,
+                    )
+                return False
+
+        return True
+
+    cregbundle = check_clbit_in_inst(circuit, cregbundle)
+
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -239,7 +284,8 @@ def circuit_drawer(
             fold=fold,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
+            expr_len=expr_len,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
@@ -254,7 +300,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "latex_source":
         return _generate_latex_source(
@@ -269,7 +315,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "mpl":
         image = _matplotlib_circuit_drawer(
@@ -286,7 +332,8 @@ def circuit_drawer(
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
+            expr_len=expr_len,
         )
     else:
         raise VisualizationError(
@@ -317,6 +364,7 @@ def _text_circuit_drawer(
     cregbundle=None,
     encoding=None,
     wire_order=None,
+    expr_len=30,
 ):
     """Draws a circuit using ascii art.
 
@@ -346,12 +394,15 @@ def _text_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
 
     Raises:
-        VisualizationError: When the filename extenstion is not .txt.
+        VisualizationError: When the filename extension is not .txt.
     """
     qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
@@ -370,6 +421,7 @@ def _text_circuit_drawer(
         cregbundle=cregbundle,
         encoding=encoding,
         with_layout=with_layout,
+        expr_len=expr_len,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -595,6 +647,7 @@ def _matplotlib_circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    expr_len=30,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -626,6 +679,9 @@ def _matplotlib_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -656,5 +712,6 @@ def _matplotlib_circuit_drawer(
         initial_state=initial_state,
         cregbundle=cregbundle,
         with_layout=with_layout,
+        expr_len=expr_len,
     )
     return qcd.draw(filename)

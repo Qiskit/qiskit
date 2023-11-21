@@ -17,7 +17,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
-from qiskit.circuit import Gate, Instruction, Measure, Parameter
+from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
@@ -156,6 +156,8 @@ class TestCircuitOperations(QiskitTestCase):
             qc.append(inst, bad_arg, [0, 1])
         with self.assertRaisesRegex(CircuitError, "The amount of clbit arguments"):
             qc.append(inst, [0, 1], bad_arg)
+        with self.assertRaisesRegex(CircuitError, "The amount of qubit arguments"):
+            qc.append(Barrier(4), bad_arg)
 
     def test_anding_self(self):
         """Test that qc &= qc finishes, which can be prone to infinite while-loops.
@@ -389,6 +391,22 @@ class TestCircuitOperations(QiskitTestCase):
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
 
+    def test_circuit_copy_rejects_invalid_types(self):
+        """Test copy method rejects argument with type other than 'string' and 'None' type."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+
+        with self.assertRaises(TypeError):
+            qc.copy([1, "2", 3])
+
+    def test_circuit_copy_empty_like_rejects_invalid_types(self):
+        """Test copy_empty_like method rejects argument with type other than 'string' and 'None' type."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+
+        with self.assertRaises(TypeError):
+            qc.copy_empty_like(123)
+
     def test_clear_circuit(self):
         """Test clear method deletes instructions in circuit."""
         qr = QuantumRegister(2)
@@ -401,6 +419,27 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(len(qc.data), 0)
         self.assertEqual(len(qc._parameter_table), 0)
+
+    def test_barrier(self):
+        """Test multiple argument forms of barrier."""
+        qr1, qr2 = QuantumRegister(3, "qr1"), QuantumRegister(4, "qr2")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.barrier()  # All qubits.
+        qc.barrier(0, 1)
+        qc.barrier([4, 2])
+        qc.barrier(qr1)
+        qc.barrier(slice(3, 5))
+        qc.barrier({1, 4, 2}, range(5, 7))
+
+        expected = QuantumCircuit(qr1, qr2)
+        expected.append(Barrier(expected.num_qubits), expected.qubits.copy(), [])
+        expected.append(Barrier(2), [expected.qubits[0], expected.qubits[1]], [])
+        expected.append(Barrier(2), [expected.qubits[2], expected.qubits[4]], [])
+        expected.append(Barrier(3), expected.qubits[0:3], [])
+        expected.append(Barrier(2), [expected.qubits[3], expected.qubits[4]], [])
+        expected.append(Barrier(5), [expected.qubits[x] for x in [1, 2, 4, 5, 6]], [])
+
+        self.assertEqual(qc, expected)
 
     def test_measure_active(self):
         """Test measure_active
@@ -744,7 +783,7 @@ class TestCircuitOperations(QiskitTestCase):
         circuit = QuantumCircuit(1, global_phase=x)
         self.assertEqual(circuit.parameters, {x})
 
-        bound = circuit.bind_parameters({x: 2})
+        bound = circuit.assign_parameters({x: 2})
         self.assertEqual(bound.global_phase, 2)
         self.assertEqual(bound.parameters, set())
 
@@ -758,7 +797,7 @@ class TestCircuitOperations(QiskitTestCase):
         ref = QuantumCircuit(1, global_phase=2)
         ref.rx(2, 0)
 
-        bound = circuit.bind_parameters({x: 2})
+        bound = circuit.assign_parameters({x: 2})
         self.assertEqual(bound, ref)
         self.assertEqual(bound.parameters, set())
 
@@ -1009,7 +1048,7 @@ class TestCircuitOperations(QiskitTestCase):
     def test_cnot_alias(self):
         """Test that the cnot method alias adds a cx gate."""
         qc = QuantumCircuit(2)
-        qc.cnot(0, 1)
+        qc.cx(0, 1)
 
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
@@ -1165,7 +1204,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         expected = QuantumCircuit([a, b, c, d], [x, y, z])
         for instruction in instructions():
-            expected.append(*instruction)
+            expected.append(instruction.operation, instruction.qubits, instruction.clbits)
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit_tuples, expected)
@@ -1215,10 +1254,32 @@ class TestCircuitOperations(QiskitTestCase):
 
         expected = QuantumCircuit([a, b], global_phase=0.1)
         for instruction in instructions():
-            expected.append(*instruction)
+            expected.append(instruction.operation, instruction.qubits, instruction.clbits)
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
+
+    def test_duplicated_methods_deprecation(self):
+        """Test the now deprecated, duplicated gate method emit a deprecation warning."""
+
+        # {duplicate: (use_this_instead, args)}
+        methods = {
+            "i": ("id", [0]),
+            "cnot": ("cx", [0, 1]),
+            "toffoli": ("ccx", [0, 1, 2]),
+            "mct": ("mcx", [[0, 1], 2]),
+            "fredkin": ("cswap", [0, 1, 2]),
+        }
+
+        for old, (new, args) in methods.items():
+            circuit = QuantumCircuit(3)
+
+            with self.subTest(method=old):
+
+                # check (1) the (pending) deprecation is raised
+                # and (2) the new method is documented there
+                with self.assertWarnsRegex(DeprecationWarning, new):
+                    getattr(circuit, old)(*args)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):
@@ -1247,11 +1308,11 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         x, y = Parameter("x"), Parameter("y")
         test = QuantumCircuit(1, 1)
         test.rx(y, 0)
-        last_instructions = test.u(x, y, 0, 0)
+        last_instructions = list(test.u(x, y, 0, 0))
         self.assertEqual({x, y}, set(test.parameters))
 
         instruction = test._pop_previous_instruction_in_scope()
-        self.assertEqual(list(last_instructions), [instruction])
+        self.assertEqual(last_instructions, [instruction])
         self.assertEqual({y}, set(test.parameters))
 
     def test_decompose_gate_type(self):

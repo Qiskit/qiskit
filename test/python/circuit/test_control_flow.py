@@ -14,11 +14,12 @@
 
 import math
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data, unpack, idata
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
-from qiskit.circuit.controlflow import CASE_DEFAULT
+from qiskit.circuit.classical import expr, types
+from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
 from qiskit.circuit.library import XGate, RXGate
 from qiskit.circuit.exceptions import CircuitError
 
@@ -33,19 +34,29 @@ from qiskit.circuit.controlflow import (
 )
 
 
+CONDITION_PARAMETRISATION = (
+    (Clbit(), True),
+    (ClassicalRegister(3, "test_creg"), 3),
+    (ClassicalRegister(3, "test_creg"), True),
+    expr.lift(Clbit()),
+    expr.logic_not(Clbit()),
+    expr.equal(ClassicalRegister(3, "test_creg"), 3),
+    expr.not_equal(1, ClassicalRegister(3, "test_creg")),
+)
+
+
 @ddt
 class TestCreatingControlFlowOperations(QiskitTestCase):
     """Tests instantiation of instruction subclasses for dynamic QuantumCircuits."""
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_while_loop_instantiation(self, condition):
         """Verify creation and properties of a WhileLoopOp."""
         body = QuantumCircuit(3, 1)
-        body.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
+        resources = condition_resources(condition)
+        body.add_bits(resources.clbits)
+        for reg in resources.cregs:
+            body.add_register(reg)
 
         op = WhileLoopOp(condition, body)
 
@@ -68,6 +79,9 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         with self.assertRaisesRegex(CircuitError, r"A classical condition should be a 2-tuple"):
             _ = WhileLoopOp((Clbit(), None), body)
+
+        with self.assertRaisesRegex(CircuitError, r"type 'Bool\(\)'"):
+            _ = WhileLoopOp(expr.Value(2, types.Uint(2)), body)
 
         with self.assertRaisesRegex(CircuitError, r"of type QuantumCircuit"):
             _ = WhileLoopOp(condition, XGate())
@@ -177,11 +191,7 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter or None"):
             _ = ForLoopOp(indexset, "foo", body)
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_if_else_instantiation_with_else(self, condition):
         """Verify creation and properties of a IfElseOp with an else branch."""
         true_body = QuantumCircuit(3, 1)
@@ -198,11 +208,7 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.condition, condition)
         self.assertEqual(op.blocks, (true_body, false_body))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_if_else_instantiation_without_else(self, condition):
         """Verify creation and properties of a IfElseOp without an else branch."""
         true_body = QuantumCircuit(3, 1)
@@ -229,6 +235,9 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         with self.assertRaisesRegex(CircuitError, r"A classical condition should be a 2-tuple"):
             _ = IfElseOp((1, 2), true_body, false_body)
+
+        with self.assertRaisesRegex(CircuitError, r"type 'Bool\(\)'"):
+            _ = IfElseOp(expr.Value(2, types.Uint(2)), true_body, false_body)
 
         with self.assertRaisesRegex(CircuitError, r"true_body parameter of type QuantumCircuit"):
             _ = IfElseOp(condition, XGate())
@@ -332,6 +341,47 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.cases(), {0: case1, 1: case2, 2: case3})
         self.assertEqual(list(op.blocks), [case1, case2, case3])
 
+    def test_switch_expr_uint(self):
+        """Test that a switch statement can be constructed with a Uint `Expr` as a condition."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+        case3 = QuantumCircuit([qubit], creg)
+        case3.z(0)
+
+        op = SwitchCaseOp(expr.lift(creg), [(0, case1), (1, case2), (2, case3)])
+        self.assertIsInstance(op, Instruction)
+        self.assertEqual(op.name, "switch_case")
+        self.assertEqual(op.num_qubits, 1)
+        self.assertEqual(op.num_clbits, 2)
+        self.assertEqual(op.target, expr.Var(creg, types.Uint(creg.size)))
+        self.assertEqual(op.cases(), {0: case1, 1: case2, 2: case3})
+        self.assertEqual(list(op.blocks), [case1, case2, case3])
+
+    def test_switch_expr_bool(self):
+        """Test that a switch statement can be constructed with a Bool `Expr` as a condition."""
+        qubit = Qubit()
+        clbit = Clbit()
+        case1 = QuantumCircuit([qubit, clbit])
+        case1.x(0)
+        case2 = QuantumCircuit([qubit, clbit])
+        case2.z(0)
+
+        op = SwitchCaseOp(expr.logic_not(clbit), [(True, case1), (False, case2)])
+        self.assertIsInstance(op, Instruction)
+        self.assertEqual(op.name, "switch_case")
+        self.assertEqual(op.num_qubits, 1)
+        self.assertEqual(op.num_clbits, 1)
+        self.assertEqual(
+            op.target,
+            expr.Unary(expr.Unary.Op.LOGIC_NOT, expr.Var(clbit, types.Bool()), types.Bool()),
+        )
+        self.assertEqual(op.cases(), {True: case1, False: case2})
+        self.assertEqual(list(op.blocks), [case1, case2])
+
     def test_switch_with_default(self):
         """Test that a switch statement can be constructed with a default case at the end."""
         qubit = Qubit()
@@ -349,6 +399,28 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.num_qubits, 1)
         self.assertEqual(op.num_clbits, 2)
         self.assertEqual(op.target, creg)
+        self.assertEqual(op.cases(), {0: case1, 1: case2, CASE_DEFAULT: case3})
+        self.assertEqual(list(op.blocks), [case1, case2, case3])
+
+    def test_switch_expr_with_default(self):
+        """Test that a switch statement can be constructed with a default case at the end when the
+        target is an `Expr`."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+        case3 = QuantumCircuit([qubit], creg)
+        case3.z(0)
+
+        target = expr.bit_xor(creg, 0b11)
+        op = SwitchCaseOp(target, [(0, case1), (1, case2), (CASE_DEFAULT, case3)])
+        self.assertIsInstance(op, Instruction)
+        self.assertEqual(op.name, "switch_case")
+        self.assertEqual(op.num_qubits, 1)
+        self.assertEqual(op.num_clbits, 2)
+        self.assertEqual(op.target, target)
         self.assertEqual(op.cases(), {0: case1, 1: case2, CASE_DEFAULT: case3})
         self.assertEqual(list(op.blocks), [case1, case2, case3])
 
@@ -447,6 +519,9 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         (Clbit(), [False, True]),
         (ClassicalRegister(3, "test_creg"), [3, 1]),
         (ClassicalRegister(3, "test_creg"), [0, (1, 2), CASE_DEFAULT]),
+        (expr.lift(Clbit()), [False, True]),
+        (expr.lift(ClassicalRegister(3, "test_creg")), [3, 1]),
+        (expr.bit_not(ClassicalRegister(3, "test_creg")), [0, (1, 2), CASE_DEFAULT]),
     )
     @unpack
     def test_appending_switch_case_op(self, target, labels):
@@ -458,8 +533,13 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(5, 2)
         if isinstance(target, ClassicalRegister):
             qc.add_register(target)
-        else:
+        elif isinstance(target, Clbit):
             qc.add_bits([target])
+        else:
+            resources = node_resources(target)
+            qc.add_bits(resources.clbits)
+            for reg in resources.cregs:
+                qc.add_register(reg)
         qc.append(op, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
@@ -472,6 +552,9 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         (Clbit(), [False, True]),
         (ClassicalRegister(3, "test_creg"), [3, 1]),
         (ClassicalRegister(3, "test_creg"), [0, (1, 2), CASE_DEFAULT]),
+        (expr.lift(Clbit()), [False, True]),
+        (expr.lift(ClassicalRegister(3, "test_creg")), [3, 1]),
+        (expr.bit_not(ClassicalRegister(3, "test_creg")), [0, (1, 2), CASE_DEFAULT]),
     )
     @unpack
     def test_quantumcircuit_switch(self, target, labels):
@@ -481,8 +564,13 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         qc = QuantumCircuit(5, 2)
         if isinstance(target, ClassicalRegister):
             qc.add_register(target)
-        else:
+        elif isinstance(target, Clbit):
             qc.add_bits([target])
+        else:
+            resources = node_resources(target)
+            qc.add_bits(resources.clbits)
+            for reg in resources.cregs:
+                qc.add_register(reg)
         qc.switch(target, zip(labels, bodies), [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "switch_case")
@@ -491,11 +579,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_appending_while_loop_op(self, condition):
         """Verify we can append a WhileLoopOp to a QuantumCircuit."""
         body = QuantumCircuit(3, 1)
@@ -511,20 +595,16 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_quantumcircuit_while_loop(self, condition):
         """Verify we can append a WhileLoopOp to a QuantumCircuit via qc.while_loop."""
         body = QuantumCircuit(3, 1)
 
         qc = QuantumCircuit(5, 2)
-        if isinstance(condition[0], ClassicalRegister):
-            qc.add_register(condition[0])
-        else:
-            qc.add_bits([condition[0]])
+        resources = condition_resources(condition)
+        qc.add_bits(resources.clbits)
+        for reg in resources.cregs:
+            qc.add_register(reg)
         qc.while_loop(condition, body, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "while_loop")
@@ -567,11 +647,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_appending_if_else_op(self, condition):
         """Verify we can append a IfElseOp to a QuantumCircuit."""
         true_body = QuantumCircuit(3, 1)
@@ -580,7 +656,10 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         op = IfElseOp(condition, true_body, false_body)
 
         qc = QuantumCircuit(5, 2)
-        qc.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
+        resources = condition_resources(condition)
+        qc.add_bits(resources.clbits)
+        for reg in resources.cregs:
+            qc.add_register(reg)
         qc.append(op, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "if_else")
@@ -589,18 +668,17 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_quantumcircuit_if_else_op(self, condition):
         """Verify we can append a IfElseOp to a QuantumCircuit via qc.if_else."""
         true_body = QuantumCircuit(3, 1)
         false_body = QuantumCircuit(3, 1)
 
         qc = QuantumCircuit(5, 2)
-        qc.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
+        resources = condition_resources(condition)
+        qc.add_bits(resources.clbits)
+        for reg in resources.cregs:
+            qc.add_register(reg)
         qc.if_else(condition, true_body, false_body, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "if_else")
@@ -609,17 +687,16 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_quantumcircuit_if_test_op(self, condition):
         """Verify we can append a IfElseOp to a QuantumCircuit via qc.if_test."""
         true_body = QuantumCircuit(3, 1)
 
         qc = QuantumCircuit(5, 2)
-        qc.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
+        resources = condition_resources(condition)
+        qc.add_bits(resources.clbits)
+        for reg in resources.cregs:
+            qc.add_register(reg)
         qc.if_test(condition, true_body, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "if_else")
@@ -628,11 +705,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
-    @data(
-        (Clbit(), True),
-        (ClassicalRegister(3, "test_creg"), 3),
-        (ClassicalRegister(3, "test_creg"), True),
-    )
+    @idata(CONDITION_PARAMETRISATION)
     def test_appending_if_else_op_with_condition_outside(self, condition):
         """Verify we catch if IfElseOp has a condition outside outer circuit."""
         true_body = QuantumCircuit(3, 1)

@@ -13,6 +13,7 @@
 """
 Quantum bit and Classical bit objects.
 """
+import copy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
@@ -23,7 +24,7 @@ class Bit:
 
     .. note::
         This class should not be instantiated directly. This is just a superclass
-        for :class:`~.Clbit` and :class:`~.Qubit`.
+        for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
 
     """
 
@@ -62,6 +63,7 @@ class Bit:
     @deprecate_func(
         is_property=True,
         since="0.17",
+        package_name="qiskit-terra",
         additional_msg=(
             "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
             "all the containing registers within a circuit and the index of the bit within the "
@@ -84,6 +86,7 @@ class Bit:
     @deprecate_func(
         is_property=True,
         since="0.17",
+        package_name="qiskit-terra",
         additional_msg=(
             "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
             "all the containing registers within a circuit and the index of the bit within the "
@@ -120,3 +123,20 @@ class Bit:
             return self._repr == other._repr
         except AttributeError:
             return False
+
+    def __copy__(self):
+        # Bits are immutable.
+        return self
+
+    def __deepcopy__(self, memo=None):
+        if (self._register, self._index) == (None, None):
+            return self
+
+        # Old-style bits need special handling for now, since some code seems
+        # to rely on their registers getting deep-copied.
+        bit = type(self).__new__(type(self))
+        bit._register = copy.deepcopy(self._register, memo)
+        bit._index = self._index
+        bit._hash = self._hash
+        bit._repr = self._repr
+        return bit

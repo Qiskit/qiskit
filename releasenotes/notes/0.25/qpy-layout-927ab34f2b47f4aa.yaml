@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The QPY format version emitted by :class:`~.qpy.dump` has increased to 8.
+    This new format version adds support for serializing the
+    :attr:`.QuantumCircuit.layout` attribute.
+fixes:
+  - |
+    Fixed the :mod:`~qiskit.qpy` serialization of :attr:`.QuantumCircuit.layout`
+    attribue. Previously, the :attr:`~.QuantumCircuit.layout` attribute would
+    have been dropped when serializing a circuit to QPY.
+    Fixed `#10112 <https://github.com/Qiskit/qiskit-terra/issues/10112>`__

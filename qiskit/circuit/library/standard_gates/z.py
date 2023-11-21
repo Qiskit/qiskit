@@ -17,15 +17,17 @@ from typing import Optional, Union
 
 import numpy
 
-from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 
 from .p import PhaseGate
 
+_Z_ARRAY = [[1, 0], [0, -1]]
 
-class ZGate(Gate):
+
+@with_gate_array(_Z_ARRAY)
+class ZGate(SingletonGate):
     r"""The single-qubit Pauli-Z gate (:math:`\sigma_z`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -71,9 +73,11 @@ class ZGate(Gate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__("z", 1, [], label=label, duration=duration, unit=unit)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -109,8 +113,7 @@ class ZGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CZGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CZGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
@@ -118,16 +121,13 @@ class ZGate(Gate):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Z gate."""
-        return numpy.array([[1, 0], [0, -1]], dtype=dtype)
-
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(numpy.pi * exponent)
 
 
-class CZGate(ControlledGate):
+@with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
+class CZGate(SingletonControlledGate):
     r"""Controlled-Z gate.
 
     This is a Clifford and symmetric gate.
@@ -160,11 +160,29 @@ class CZGate(ControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CZ gate."""
         super().__init__(
-            "cz", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()
+            "cz",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
 
     def _define(self):
         """
@@ -188,19 +206,9 @@ class CZGate(ControlledGate):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CZ gate."""
-        if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=dtype
-            )
-        else:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
-            )
 
-
-class CCZGate(ControlledGate):
+@with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
+class CCZGate(SingletonControlledGate):
     r"""CCZ gate.
 
     This is a symmetric gate.
@@ -239,11 +247,29 @@ class CCZGate(ControlledGate):
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new CCZ gate."""
         super().__init__(
-            "ccz", 3, [], label=label, num_ctrl_qubits=2, ctrl_state=ctrl_state, base_gate=ZGate()
+            "ccz",
+            3,
+            [],
+            label=label,
+            num_ctrl_qubits=2,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(label=_base_label),
+            duration=duration,
+            unit=unit,
         )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=2)
 
     def _define(self):
         """
@@ -266,12 +292,3 @@ class CCZGate(ControlledGate):
     def inverse(self):
         """Return inverted CCZ gate (itself)."""
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
-
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CCZ gate."""
-        mat = _compute_control_matrix(
-            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
-        )
-        if dtype is not None:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat

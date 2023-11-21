@@ -107,9 +107,10 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         # Asymmetric readout error on qubit-0 only
         try:
             from qiskit.providers.aer.noise import NoiseModel
-            from qiskit import Aer
+            from qiskit_aer import Aer
 
             self.backend = Aer.get_backend("qasm_simulator")
+
         except ImportError as ex:
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return

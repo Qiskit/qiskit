@@ -85,9 +85,12 @@ class U3Gate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new U3 gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label)
+        super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
     def inverse(self):
         r"""Return inverted U3 gate.
@@ -208,6 +211,10 @@ class CU3Gate(ControlledGate):
         lam: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CU3 gate."""
         super().__init__(
@@ -217,7 +224,9 @@ class CU3Gate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=U3Gate(theta, phi, lam),
+            base_gate=U3Gate(theta, phi, lam, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -304,7 +313,7 @@ def _generate_gray_code(num_bits):
 
 
 def _gray_code_chain(q, num_ctrl_qubits, gate):
-    """Apply the gate to the the last qubit in the register ``q``, controlled on all
+    """Apply the gate to the last qubit in the register ``q``, controlled on all
     preceding qubits. This function uses the gray code to propagate down to the last qubit.
 
     Ported and adapted from Aqua (github.com/Qiskit/qiskit-aqua),
