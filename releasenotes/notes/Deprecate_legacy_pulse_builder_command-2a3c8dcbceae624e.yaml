@@ -13,10 +13,34 @@ deprecations:
 
     .. code-block:: python
 
-       # This example shows how to get pulse gate instructions.
-       from qiskit.providers.fake_provider import FakePerth
-       backend=FakePerth()
-       sched=backend.target['x'][(qubit,)].calibration
+      """ Users are encouraged to use gates only in relm of circuits, NOT in pulse(s)
+        Pulse builder should exclusively be used with pulse schedules (like Drag, Gaussian, GaussianSqaure, etc.)
+        Example:"""
+      with pulse.build() as only_pulse_scheds:
+        pulse.play(Drag(180, 0.2, 40, -1.1), DriveChannel(0))
+        pulse.play(Gaussian(160, 0.14, 30), DriveChannel(1))
+        
+      """If a user wishes to get the pulse schedules for a gate.
+      This example shows how to get pulse gate instructions."""
+      from qiskit.providers.fake_provider import FakePerth
+      backend=FakePerth()
+      sched=backend.target['x'][(qubit,)].calibration
+
+      # For BackendV1, like FakeNairobi
+      from qiskit.providers.fake_provider import FakeNairobi
+      FakeNairobi().defaults().instruction_schedule_map.get('x', (qubit,))
+
+      """If a user wishes to get the pulse schedules of a QuantumCirucit"""
+      from math import pi
+      qc = QuatumCircuit(2)
+      qc.rz(pi/2, 0)
+      qc.sx(0)
+      qc.rz(pi/2, 0)
+      qc.cx(0, 1)
+      
+      from compiler import schedule, transpile
+      qc_t = transpile(qc, backend)
+      schedule(qc_t, backend)
     
     Deprecated
     :func:`~qiskit.pulse.builder.active_transpiler_settings`

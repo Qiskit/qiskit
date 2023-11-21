@@ -950,8 +950,18 @@ class _PulseBuilder:
         return self.backend.configuration().dt
 
 
-@deprecate_arg(name="default_transpiler_settings", since="0.46.0")
-@deprecate_arg(name="default_circuit_scheduler_settings", since="0.46.0")
+@deprecate_arg(
+    name="default_transpiler_settings",
+    since="0.46.0",
+    additional_msg="Users are encouraged to do Gate operations in realm of circuit operations,"
+    " and then call transpiler on QuantumCircuit with relevant settings passed.",
+)
+@deprecate_arg(
+    name="default_circuit_scheduler_settings",
+    since="0.46.0",
+    additional_msg="Users are encouraged to do Gate operations in realm of circuit operations,"
+    " and then call transpiler on QuantumCircuit with relevant settings passed.",
+)
 def build(
     backend=None,
     schedule: Optional[ScheduleBlock] = None,
@@ -1207,7 +1217,11 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
     return channels
 
 
-@deprecate_func(since="0.46.0")
+@deprecate_func(
+    since="0.46.0",
+    additional_msg="Users are encouraged to do Gate operations in realm of circuit operations,"
+    " and then call transpiler on QuantumCircuit with relevant settings passed.",
+)
 def active_transpiler_settings() -> Dict[str, Any]:
     """Return the current active builder context's transpiler settings.
 
@@ -1234,7 +1248,11 @@ def active_transpiler_settings() -> Dict[str, Any]:
     return dict(_active_builder().transpiler_settings)
 
 
-@deprecate_func(since="0.46.0")
+@deprecate_func(
+    since="0.46.0",
+    additional_msg="Users are encouraged to do Gate operations in realm of circuit operations,"
+    " and then call transpiler on QuantumCircuit with relevant settings passed.",
+)
 def active_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return the current active builder context's circuit scheduler settings.
 
@@ -1519,7 +1537,11 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         builder.append_subroutine(current)
 
 
-@deprecate_func(since="0.46.0")
+@deprecate_func(
+    since="0.46.0",
+    additional_msg="Users are encouraged to do Gate operations in realm of circuit operations,"
+    " and then call transpiler on QuantumCircuit with relevant settings passed.",
+)
 @contextmanager
 def transpiler_settings(**settings) -> ContextManager[None]:
     """Set the currently active transpiler settings for this context.
@@ -2008,6 +2030,8 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 @deprecate_arg(
     name="target",
     since="0.46.0",
+    additional_msg="Users are encouraged to do Gate operations in realm of circuit operations,"
+    " and call non-circuit part(s) as pulse gate(s).",
     deprecation_description="QuantumCircuit type for the argument target",
     predicate=lambda qc_arg: isinstance(qc_arg, circuit.QuantumCircuit),
 )
@@ -2570,7 +2594,8 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
 # Gate instructions
 @deprecate_func(
     since="0.46.0",
-    additional_msg="Instead use: ``backend.target['gate_name'][(qubit,)].calibration``",
+    additional_msg="Gate should be used with QuantumCircuit instead,"
+    " and attach the rest of non-circuit part(s) as pulse gate(s).",
 )
 def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
     """Call a gate and lazily schedule it to its corresponding
@@ -2622,7 +2647,9 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
 
 @deprecate_func(
-    since="0.46.0", additional_msg="Instead use: ``backend.target['cx'][(qubit,)].calibration``"
+    since="0.46.0",
+    additional_msg="CXGate should be used with QuantumCircuit instead,"
+    " and attach the rest of non-circuit part(s) as pulse gate(s).",
 )
 def cx(control: int, target: int):  # pylint: disable=invalid-name
     """Call a :class:`~qiskit.circuit.library.standard_gates.CXGate` on the
@@ -2718,7 +2745,9 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
 
 
 @deprecate_func(
-    since="0.46.0", additional_msg="Instead use: ``backend.target['x'][(qubit,)].calibration``"
+    since="0.46.0",
+    additional_msg="XGate should be used with QuantumCircuit instead,"
+    " and attach the rest of non-circuit part(s) as pulse gate(s).",
 )
 def x(qubit: int):
     """Call a :class:`~qiskit.circuit.library.standard_gates.XGate` on the
