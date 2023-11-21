@@ -145,7 +145,7 @@ Custom Pass Managers
 
 In addition to modifying preset pass managers, it is also possible to construct a pass
 manager to build an entirely custom pipeline for transforming input
-circuits. You can leverage the :class:`~.StagedPassManager` class directly to do
+circuits. You can use the :class:`~.StagedPassManager` class directly to do
 this. You can define arbitrary stage names and populate them with a :class:`~.PassManager`
 instance. For example::
 
@@ -154,6 +154,7 @@ instance. For example::
         Collect2qBlocks,
         ConsolidateBlocks,
         UnitarySynthesis,
+        Unroll3qOrMore,
     )
     from qiskit.transpiler import PassManager, StagedPassManager
 
