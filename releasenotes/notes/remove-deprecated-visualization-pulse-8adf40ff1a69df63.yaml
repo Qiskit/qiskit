@@ -1,12 +1,13 @@
 ---
 upgrade:
   - |
-    The :class: `qiskit.visualization.pulse.SchedStyle`,
-    `qiskit.visualization.pulse.PulseStyle`, 
-    `qiskit.visualization.pulse.matplotlib.EventsOutputChannels` 
-    `qiskit.visualization.pulse.matplotlib.WaveformDrawer`,
-    `qiskit.visualization.pulse.matplotlib.ScheduleDrawer`
-    and :func: `qiskit.visualization.pulse.interpolation.interp1d`, 
-    `qiskit.visualization.interpolation.pulse.step_wise`
-    are deprecated. Use the new interface `qiskit.visualization.pulse_drawer` for pulse 
-    visualization.
+    The classes and methods in :mod:`qiskit.visualization.pulse`:
+      * :class:`~qiskit.visualization.pulse.SchedStyle`
+      * :class:`~qiskit.visualization.pulse.PulseStyle`
+      * :class:`~qiskit.visualization.pulse.matplotlib.EventsOutputChannels`
+      * :class:`~qiskit.visualization.pulse.matplotlib.WaveformDrawer`
+      * :class:`~qiskit.visualization.pulse.matplotlib.ScheduleDrawer`
+      * :func: `~qiskit.visualization.pulse.interpolation.interp1d`
+      * :func:`~qiskit.visualization.interpolation.pulse.step_wise`
+    Have been removed following their deprecation in Qiskit Terra 0.23.
+    Use the new interface  :func:`qiskit.visualization.pulse_drawer` for pulse visualization.
