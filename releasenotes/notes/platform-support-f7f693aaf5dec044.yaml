@@ -4,20 +4,21 @@ upgrade:
     The ``symengine`` library is now a hard requirement for all platforms.
     Previously, ``symengine`` was required only on platforms that had
     pre-compiled packages available and ``sympy`` would be used as a fallback
-    if it wasn't installed. This split requirements was resulting in increased
-    complexity as it was necessary to determine which libraries were installed
-    to debug an issue. By requiring symengine for all systems greatly decreases
-    the complexity and optimizes Qiskit for higher performance. However, for
+    if it wasn't installed. These split requirements were resulting in increased
+    complexity, as it was necessary to determine which libraries were installed
+    to debug an issue. Requiring ``symengine`` for all systems greatly decreases
+    the complexity and optimizes Qiskit for higher performance. However,
     users on i686 Linux, 32 bit Windows, and s390x Linux (the platforms without
     precompiled packages on PyPI) will need to build symengine from source.
   - |
     Support for 32 bit platforms, i686 Linux and 32 bit Windows, on
     Python < 3.10 has been downgraded from Tier 2 to Tier 3, as documented in
-    the :ref:`platform_support` page. This was required due to making
-    ``symengine`` required for all users and needing to install symengine from
-    source on these platforms.
+    the :ref:`platform_support` page. This is a consequence of making
+    ``symengine`` required for all users, as there is a lack of pre-compiled packages 
+    available for these platforms, so users will need to build symengine from
+    source.
   - |
-    For macOS the minimum version of macOS is now 10.12. Previously, the
+    For macOS users, the minimum version of macOS is now 10.12. Previously, the
     precompiled binary wheel packages for macOS x86_64 were published with
     support for >=10.9. However, because of changes in the
     `support policy <https://blog.rust-lang.org/2023/09/25/Increasing-Apple-Version-Requirements.html>`__
