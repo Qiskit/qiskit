@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The ``qiskit.visualization.pulse`` module has been removed, following its deprecation since
+    qiskit-terra 0.23. Instructions can be visualized as part of a complete schedule using 
+    ``qiskit.visualization.pulse_drawer``.
