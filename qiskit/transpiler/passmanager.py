@@ -356,7 +356,7 @@ class StagedPassManager(PassManager):
     #. ``init`` - Initial passes to run before embedding the circuit to the backend.
     #. ``layout`` - Maps the virtual qubits in the circuit to the physical qubits on
        the backend.
-    #. ``routing`` - Inserts swap gates as needed to move the qubit states around until
+    #. ``routing`` - Inserts gates as needed to move the qubit states around until
        the circuit can be run with the chosen layout on the backend's coupling map.
     #. ``translation`` - Translates the gates in the circuit to the target backend's
        basis gate set.
