@@ -67,7 +67,7 @@ class TestWeightedAdder(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):
-                print(adder.draw())
+                _ = str(adder.draw())
 
         with self.subTest(msg="default weights"):
             adder.num_state_qubits = 3
@@ -81,7 +81,7 @@ class TestWeightedAdder(QiskitTestCase):
         with self.subTest(msg="mismatching number of state qubits and weights"):
             with self.assertRaises(ValueError):
                 adder.weights = [0, 1, 2, 3]
-                print(adder.draw())
+                _ = str(adder.draw())
 
         with self.subTest(msg="change all attributes"):
             adder.num_state_qubits = 4

@@ -103,7 +103,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
-                print(pw_approximation.draw())
+                _ = str(pw_approximation.draw())
 
         with self.subTest(msg="default setup, just setting number of state qubits"):
             pw_approximation.num_state_qubits = 2

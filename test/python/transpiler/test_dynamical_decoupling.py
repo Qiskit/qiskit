@@ -1030,6 +1030,25 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.delay(200, [0])
         self.assertEqual(expected, scheduled)
 
+    def test_paramaterized_global_phase(self):
+        """Test paramaterized global phase in DD circuit.
+        See:https://github.com/Qiskit/qiskit-terra/issues/10569
+        """
+        dd_sequence = [XGate(), YGate()] * 2
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.delay(1700, 0)
+        qc.y(0)
+        qc.global_phase = Parameter("a")
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
+
 
 if __name__ == "__main__":
     unittest.main()

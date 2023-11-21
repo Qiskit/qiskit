@@ -98,8 +98,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`, such as algorithms in :mod:`qiskit.algorithms`
-    including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`. However,
+    :class:`~.BaseEstimator`. However,
     if you're using a provider that has a native implementation of
     :class:`~.BaseEstimator`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be
@@ -201,25 +200,18 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             # 1. transpile a common circuit
             if self._skip_transpilation:
                 transpiled_circuit = common_circuit.copy()
-                perm_pattern = list(range(common_circuit.num_qubits))
+                final_index_layout = list(range(common_circuit.num_qubits))
             else:
                 transpiled_circuit = transpile(
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
                 if transpiled_circuit.layout is not None:
-                    layout = transpiled_circuit.layout
-                    virtual_bit_map = layout.initial_layout.get_virtual_bits()
-                    perm_pattern = [virtual_bit_map[v] for v in common_circuit.qubits]
-                    if layout.final_layout is not None:
-                        final_mapping = dict(
-                            enumerate(layout.final_layout.get_virtual_bits().values())
-                        )
-                        perm_pattern = [final_mapping[i] for i in perm_pattern]
+                    final_index_layout = transpiled_circuit.layout.final_index_layout()
                 else:
-                    perm_pattern = list(range(transpiled_circuit.num_qubits))
+                    final_index_layout = list(range(transpiled_circuit.num_qubits))
 
             # 2. transpile diff circuits
-            passmanager = _passmanager_for_measurement_circuits(perm_pattern, self.backend)
+            passmanager = _passmanager_for_measurement_circuits(final_index_layout, self.backend)
             diff_circuits = passmanager.run(diff_circuits)
             # 3. combine
             transpiled_circuits = []

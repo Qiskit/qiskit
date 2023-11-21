@@ -43,7 +43,7 @@ class Optimize1qGates(TransformationPass):
                 the set `{'u1','u2','u3', 'u', 'p'}`.
             eps (float): EPS to check against
             target (Target): The :class:`~.Target` representing the target backend, if both
-                ``basis`` and this are specified then this argument will take
+                ``basis`` and ``target`` are specified then this argument will take
                 precedence and ``basis`` will be ignored.
         """
         super().__init__()
@@ -61,7 +61,7 @@ class Optimize1qGates(TransformationPass):
             DAGCircuit: the optimized DAG.
 
         Raises:
-            TranspilerError: if YZY and ZYZ angles do not give same rotation matrix.
+            TranspilerError: if ``YZY`` and ``ZYZ`` angles do not give same rotation matrix.
         """
         use_u = "u" in self.basis
         use_p = "p" in self.basis

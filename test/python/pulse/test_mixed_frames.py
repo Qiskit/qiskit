@@ -13,6 +13,7 @@
 """Test pulse logical elements and frames"""
 
 from qiskit.pulse import (
+    Port,
     Qubit,
     GenericFrame,
     MixedFrame,
@@ -28,14 +29,23 @@ class TestMixedFrames(QiskitTestCase):
         frame = GenericFrame("frame1")
         qubit = Qubit(1)
         mixed_frame = MixedFrame(qubit, frame)
-        self.assertEqual(mixed_frame.logical_element, qubit)
+        self.assertEqual(mixed_frame.pulse_target, qubit)
         self.assertEqual(mixed_frame.frame, frame)
+
+        port = Port("d0")
+        mixed_frame = MixedFrame(port, frame)
+        self.assertEqual(mixed_frame.pulse_target, port)
 
     def test_mixed_frames_comparison(self):
         """Test the comparison of various mixed frames"""
         self.assertEqual(
             MixedFrame(Qubit(1), GenericFrame("a")),
             MixedFrame(Qubit(1), GenericFrame("a")),
+        )
+
+        self.assertEqual(
+            MixedFrame(Port("s"), GenericFrame("a")),
+            MixedFrame(Port("s"), GenericFrame("a")),
         )
 
         self.assertNotEqual(

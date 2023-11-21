@@ -71,13 +71,13 @@ class TestIntegerComparator(QiskitTestCase):
 
         with self.subTest(msg="missing num state qubits and value"):
             with self.assertRaises(AttributeError):
-                print(comp.draw())
+                _ = str(comp.draw())
 
         comp.num_state_qubits = 2
 
         with self.subTest(msg="missing value"):
             with self.assertRaises(AttributeError):
-                print(comp.draw())
+                _ = str(comp.draw())
 
         comp.value = 0
         comp.geq = True

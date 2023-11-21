@@ -378,7 +378,7 @@ class TestNLocal(QiskitTestCase):
 
         # pairwise entanglement is only defined if the entangling gate has 2 qubits
         with self.assertRaises(ValueError):
-            print(nlocal.draw())
+            _ = str(nlocal.draw())
 
     def test_entanglement_by_list(self):
         """Test setting the entanglement by list.
