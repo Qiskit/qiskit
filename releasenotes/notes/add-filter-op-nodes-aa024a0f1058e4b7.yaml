@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added a new transpiler pass :class:`.FilterOpNodes` which is used to filter
+    :class:`.DAGOpNode`\s in a :class:`.DAGCircuit`.
+other:
+  - |
+    The preset pass managers used by :func:`.transpile` and returned with
+    :class:`.generate_preset_pass_manager` will no longer insert barriers
+    before final measurements in the output circuits.
