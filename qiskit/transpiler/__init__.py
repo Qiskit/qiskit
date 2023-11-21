@@ -175,9 +175,9 @@ that has 2 stages, ``init`` and ``translation``.::
 
 There is no limit on the number of stages you can put in a :class:`~.StagedPassManager`.
 
-The :ref:`stage_generators` may be useful for the construction of custom pass managers.
-They generate stages which provide common functionality used in many pass managers.
-For example, :func:`~.generate_embed_passmanager` generates a stage
+The :ref:`stage_generators` may be useful for the construction of custom :class:`~.StagedPassManager`s.
+They generate pass managers which provide common functionality used in many stages.
+For example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager`
 to "embed" a selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
 Representing Quantum Computers
