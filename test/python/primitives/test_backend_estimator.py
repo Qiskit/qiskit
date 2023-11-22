@@ -13,9 +13,10 @@
 """Tests for Estimator."""
 
 import unittest
+from multiprocessing import Manager
+
 from test import combine
-from test.python.transpiler._dummy_passes import DummyTP
-from unittest.mock import patch
+from test.python.transpiler._dummy_passes import DummyAP
 
 import numpy as np
 from ddt import ddt
@@ -32,6 +33,18 @@ from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
+
+
+class CallbackPass(DummyAP):
+    """A dummy analysis pass that calls a callback when executed"""
+
+    def __init__(self, message, callback):
+        super().__init__()
+        self.message = message
+        self.callback = callback
+
+    def run(self, dag):
+        self.callback(self.message)
 
 
 @ddt
@@ -346,6 +359,48 @@ class TestBackendEstimator(QiskitTestCase):
                 estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
                 _ = estimator.run([qc, qc], [op, op]).result()
                 self.assertEqual(mock_pass.call_count, 2)
+
+    def test_bound_pass_manager(self):
+        """Test bound pass manager."""
+
+        qc = QuantumCircuit(2)
+        op = SparsePauliOp.from_list([("II", 1)])
+
+        with self.subTest("Test single circuit"):
+            messages = []
+
+            def callback(msg):
+                messages.append(msg)
+
+            bound_counter = CallbackPass("bound_pass_manager", callback)
+            bound_pass = PassManager(bound_counter)
+            estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = estimator.run(qc, op).result()
+            expected = [
+                "bound_pass_manager",
+            ]
+            self.assertEqual(messages, expected)
+
+        with self.subTest("Test circuit batch"):
+            with Manager() as manager:
+                # The multiprocessing manager is used to share data
+                # between different processes. Pass Managers parallelize
+                # execution for batches of circuits, so this is necessary
+                # to keep track of the callback calls for num_circuits > 1
+                messages = manager.list()
+
+                def callback(msg):
+                    messages.append(msg)
+
+                bound_counter = CallbackPass("bound_pass_manager", callback)
+                bound_pass = PassManager(bound_counter)
+                estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                _ = estimator.run([qc, qc], [op, op]).result()
+                expected = [
+                    "bound_pass_manager",
+                    "bound_pass_manager",
+                ]
+                self.assertEqual(list(messages), expected)
 
     @combine(backend=BACKENDS)
     def test_layout(self, backend):
