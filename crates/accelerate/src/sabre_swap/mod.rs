@@ -582,41 +582,44 @@ fn route_reachable_nodes<F>(
         let node_id = to_visit[i];
         let node = &dag.dag[node_id];
         i += 1;
-
-        match dag.node_blocks.get(&node.py_node_id) {
-            Some(blocks) => {
-                // Control flow op. Route all blocks for current layout.
-                let mut block_results: Vec<BlockResult> = Vec::with_capacity(blocks.len());
-                for inner_dag in blocks {
-                    let (inner_dag_routed, inner_final_layout) = route_block_dag(inner_dag, layout);
-                    // For now, we always append a swap circuit that gets the inner block
-                    // back to the parent's layout.
-                    let swap_epilogue =
-                        gen_swap_epilogue(coupling, inner_final_layout, layout, seed);
-                    let block_result = BlockResult {
-                        result: inner_dag_routed,
-                        swap_epilogue,
-                    };
-                    block_results.push(block_result);
+        // If the node is a directive that means it can be placed anywhere
+        if !node.directive {
+            match dag.node_blocks.get(&node.py_node_id) {
+                Some(blocks) => {
+                    // Control flow op. Route all blocks for current layout.
+                    let mut block_results: Vec<BlockResult> = Vec::with_capacity(blocks.len());
+                    for inner_dag in blocks {
+                        let (inner_dag_routed, inner_final_layout) =
+                            route_block_dag(inner_dag, layout);
+                        // For now, we always append a swap circuit that gets the inner block
+                        // back to the parent's layout.
+                        let swap_epilogue =
+                            gen_swap_epilogue(coupling, inner_final_layout, layout, seed);
+                        let block_result = BlockResult {
+                            result: inner_dag_routed,
+                            swap_epilogue,
+                        };
+                        block_results.push(block_result);
+                    }
+                    node_block_results.insert_unique_unchecked(node.py_node_id, block_results);
                 }
-                node_block_results.insert_unique_unchecked(node.py_node_id, block_results);
+                None => match node.qubits[..] {
+                    // A gate op whose connectivity must match the device to be
+                    // placed in the gate order.
+                    [a, b]
+                        if !coupling.contains_edge(
+                            NodeIndex::new(a.to_phys(layout).index()),
+                            NodeIndex::new(b.to_phys(layout).index()),
+                        ) =>
+                    {
+                        // 2Q op that cannot be placed. Add it to the front layer
+                        // and move on.
+                        front_layer.insert(node_id, [a.to_phys(layout), b.to_phys(layout)]);
+                        continue;
+                    }
+                    _ => {}
+                },
             }
-            None => match node.qubits[..] {
-                // A gate op whose connectivity must match the device to be
-                // placed in the gate order.
-                [a, b]
-                    if !coupling.contains_edge(
-                        NodeIndex::new(a.to_phys(layout).index()),
-                        NodeIndex::new(b.to_phys(layout).index()),
-                    ) =>
-                {
-                    // 2Q op that cannot be placed. Add it to the front layer
-                    // and move on.
-                    front_layer.insert(node_id, [a.to_phys(layout), b.to_phys(layout)]);
-                    continue;
-                }
-                _ => {}
-            },
         }
 
         gate_order.push(node.py_node_id);

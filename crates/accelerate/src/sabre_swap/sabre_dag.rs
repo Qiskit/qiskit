@@ -23,6 +23,7 @@ use crate::nlayout::VirtualQubit;
 pub struct DAGNode {
     pub py_node_id: usize,
     pub qubits: Vec<VirtualQubit>,
+    pub directive: bool,
 }
 
 /// A DAG representation of the logical circuit to be routed.  This represents the same dataflow
@@ -41,7 +42,7 @@ pub struct SabreDAG {
     pub num_clbits: usize,
     pub dag: DiGraph<DAGNode, ()>,
     pub first_layer: Vec<NodeIndex>,
-    pub nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>)>,
+    pub nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>, bool)>,
     pub node_blocks: HashMap<usize, Vec<SabreDAG>>,
 }
 
@@ -52,7 +53,7 @@ impl SabreDAG {
     pub fn new(
         num_qubits: usize,
         num_clbits: usize,
-        nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>)>,
+        nodes: Vec<(usize, Vec<VirtualQubit>, HashSet<usize>, bool)>,
         node_blocks: HashMap<usize, Vec<SabreDAG>>,
     ) -> PyResult<Self> {
         let mut qubit_pos: Vec<Option<NodeIndex>> = vec![None; num_qubits];
@@ -65,6 +66,7 @@ impl SabreDAG {
             let gate_index = dag.add_node(DAGNode {
                 py_node_id: node.0,
                 qubits: qargs.clone(),
+                directive: node.3,
             });
             let mut is_front = true;
             for x in qargs {
