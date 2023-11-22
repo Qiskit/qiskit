@@ -360,7 +360,7 @@ def generate_routing_passmanager(
     def filter_fn(node):
         return (
             getattr(node.op, "label", None)
-            == "qiskit.transpiler.internal.routing.protection.barrier"
+            != "qiskit.transpiler.internal.routing.protection.barrier"
         )
 
     routing.append([FilterOpNodes(filter_fn)])

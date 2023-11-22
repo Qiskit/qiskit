@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Remove all babeled ops from a circuit"""
+"""Filter ops from a circuit"""
 
 from typing import Callable
 
@@ -27,7 +27,9 @@ class FilterOpNodes(TransformationPass):
 
     Args:
        predicate: A given callable that will be passed the :class:`.DAGOpNode`
-           for each node in the :class:`.DAGCircuit`.
+           for each node in the :class:`.DAGCircuit`. If the callable returns
+           ``True`` the :class:`.DAGOpNode` is retained in the circuit and if it
+           returns ``False`` it is removed from the circuit.
 
     Example:
 
@@ -45,7 +47,7 @@ class FilterOpNodes(TransformationPass):
             circuit.h(0)
 
             circuit = FilterOpNodes(
-                lambda node: getattr(node.op, "label") == "foo"
+                lambda node: getattr(node.op, "label") != "foo"
             )(circuit)
             circuit.draw('mpl')
     """
@@ -58,6 +60,6 @@ class FilterOpNodes(TransformationPass):
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
         for node in dag.op_nodes():
-            if self.predicate(node):
+            if not self.predicate(node):
                 dag.remove_op_node(node)
         return dag

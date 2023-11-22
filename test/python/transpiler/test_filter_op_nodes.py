@@ -36,7 +36,7 @@ class TestFilterOpNodes(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.measure_all()
 
-        filter_pass = FilterOpNodes(lambda node: node.op.name == "x")
+        filter_pass = FilterOpNodes(lambda node: node.op.name != "x")
 
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
@@ -73,6 +73,6 @@ class TestFilterOpNodes(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.measure_all()
 
-        filter_pass = FilterOpNodes(lambda node: node.op.name == "cz")
+        filter_pass = FilterOpNodes(lambda node: node.op.name != "cz")
 
         self.assertEqual(filter_pass(circuit), circuit)
