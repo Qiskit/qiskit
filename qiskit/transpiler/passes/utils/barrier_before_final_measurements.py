@@ -16,6 +16,8 @@
 from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.circuit.controlflow import ControlFlowOp
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
@@ -30,22 +32,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
     def run(self, dag):
         """Run the BarrierBeforeFinalMeasurements pass on `dag`."""
         # Collect DAG nodes which are followed only by barriers or other measures.
-        final_op_types = ["measure", "barrier"]
-        final_ops = []
-        for candidate_node in dag.named_nodes(*final_op_types):
-            is_final_op = True
-
-            for _, child_successors in dag.bfs_successors(candidate_node):
-
-                if any(
-                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
-                    for suc in child_successors
-                ):
-                    is_final_op = False
-                    break
-
-            if is_final_op:
-                final_ops.append(candidate_node)
+        final_ops = self._get_final_ops(dag)
 
         if not final_ops:
             return dag
@@ -86,3 +73,37 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # Merge the new barrier into any other barriers
         adjacent_pass = MergeAdjacentBarriers()
         return adjacent_pass.run(dag)
+
+    def _get_final_ops(self, dag):
+        """Collect candidate final ops"""
+        final_op_types = ["measure", "barrier"]
+        final_ops = []
+
+        for candidate_node in dag.named_nodes(*final_op_types):
+            is_final_op = True
+            for _, child_successors in dag.bfs_successors(candidate_node):
+                if any(
+                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
+                    for suc in child_successors
+                ):
+                    is_final_op = False
+                    break
+            if is_final_op:
+                final_ops.append(candidate_node)
+
+        for candidate_node in dag.op_nodes(ControlFlowOp):
+            is_final_op = True
+            for _, child_successors in dag.bfs_successors(candidate_node):
+                if any(isinstance(suc, DAGOpNode) for suc in child_successors):
+                    is_final_op = False
+                    break
+            if is_final_op:
+                # since this is a "final" operation it potentially needs to be applied
+                # to the control flow blocks
+                candidate_node.op = candidate_node.op.replace_blocks(
+                    [
+                        dag_to_circuit(self.run(circuit_to_dag(block)))
+                        for block in candidate_node.op.blocks
+                    ]
+                )
+        return final_ops
