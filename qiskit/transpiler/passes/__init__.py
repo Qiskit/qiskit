@@ -177,7 +177,7 @@ Additional Passes
    GatesInBasis
    ConvertConditionsToIfOps
    UnrollForLoops
-   FilterOpNode
+   FilterOpNodes
 """
 
 # layout selection (placement)
