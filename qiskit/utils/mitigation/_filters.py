@@ -235,8 +235,6 @@ class TensoredFilter:
         """
         Initialize a tensored measurement error mitigation filter using
         the cal_matrices from a tensored measurement calibration fitter.
-        A simple usage this class is explained [here]
-        (https://qiskit.org/documentation/tutorials/noise/3_measurement_error_mitigation.html).
 
         Args:
             cal_matrices: the calibration matrices for applying the correction.

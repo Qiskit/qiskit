@@ -83,7 +83,7 @@ For example, to perform an export using the early semantics of ``switch`` suppor
 
     All features enabled by the experimental flags are naturally transient.  If it becomes necessary
     to remove flags, they will be subject to `the standard Qiskit deprecation policy
-    <https://qiskit.org/documentation/deprecation_policy.html>`__.  We will leave these experimental
+    <https://github.com/Qiskit/qiskit/blob/main/DEPRECATION.md>`__.  We will leave these experimental
     flags in place for as long as is reasonable.
 
     However, we cannot guarantee any support windows for *consumers* of OpenQASM 3 code generated

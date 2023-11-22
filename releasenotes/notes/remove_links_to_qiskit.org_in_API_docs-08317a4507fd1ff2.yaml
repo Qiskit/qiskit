@@ -1,0 +1,17 @@
+upgrade:
+  - |
+    Removed links to qiskit.org in API docs::
+    In ``qiskit/utils/optionals.py``,  	https://qiskit.org/documentation/nature is replaced with https://qiskit.org/ecosystem/nature
+    In ``qiskit/utils/mitigation/_filters.py``, https://qiskit.org/documentation/tutorials/noise/3_measurement_error_mitigation.html is deleted
+    In ``qiskit/qpy/init.py``, https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html is replaced
+    with https://docs.quantum-computing.ibm.com/build/pulse
+    In ``qiskit/circuit/quantumcircuit.py``, https://qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html
+    is replaced with https://docs.quantum-computing.ibm.com/build/circuit-construction
+    In ``qiskit/circuit/library/phase_estimation.py``, https://learn.qiskit.org/course/ch-algorithms/quantum-phase-estimation is
+    replaced with https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/quantum-phase-estimation.ipynb
+    In ``qiskit/qasm3/init.py``, https://qiskit.org/documentation/deprecation_policy.html is replaced with
+    https://github.com/Qiskit/qiskit/blob/main/DEPRECATION.md
+    In ``qiskit/transpiler/passes/basis/basis_translator.py``, https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.BasisTranslator 
+    is replaced with Sphinx cross-reference
+    In ``qiskit/transpiler/passes/scheduling/alignments/pulse_gate_validation.py``, https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html
+    is replaced with https://docs.quantum-computing.ibm.com/build/pulse
