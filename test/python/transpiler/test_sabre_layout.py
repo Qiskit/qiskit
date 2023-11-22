@@ -254,7 +254,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
-            [layout[q] for q in qc.qubits], [22, 7, 2, 12, 1, 5, 14, 4, 11, 0, 16, 15, 3, 10]
+            [layout[q] for q in qc.qubits], [10, 16, 8, 4, 11, 20, 15, 19, 18, 7, 12, 1, 2, 0]
         )
 
 
