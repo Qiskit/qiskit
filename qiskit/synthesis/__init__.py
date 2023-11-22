@@ -84,6 +84,11 @@ Discrete Basis Synthesis
 
 .. autofunction:: generate_basic_approximations
 
+Basis Change Synthesis
+======================
+
+.. autofunction:: synth_qft_line
+
 """
 
 from .evolution import (
