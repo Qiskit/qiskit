@@ -14,7 +14,6 @@
 
 import math
 import unittest
-from unittest.mock import patch
 from multiprocessing import Manager
 
 from test import combine
