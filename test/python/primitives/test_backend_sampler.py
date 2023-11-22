@@ -14,6 +14,7 @@
 
 import math
 import unittest
+from unittest.mock import patch
 from multiprocessing import Manager
 
 from test import combine
@@ -421,7 +422,7 @@ class TestBackendSampler(QiskitTestCase):
                 # to keep track of the callback calls for num_circuits > 1
                 messages = manager.list()
 
-                def callback(msg):
+                def callback(msg):  # pylint: disable=function-redefined
                     messages.append(msg)
 
                 bound_counter = CallbackPass("bound_pass_manager", callback)
