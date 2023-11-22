@@ -120,12 +120,24 @@ mod test {
     #[test]
     fn no_panic_on_bad_qubits() {
         let bad_qubits = vec![VirtualQubit::new(0), VirtualQubit::new(2)];
-        assert!(SabreDAG::new(2, 0, vec![(0, bad_qubits, HashSet::new())], HashMap::new()).is_err())
+        assert!(SabreDAG::new(
+            2,
+            0,
+            vec![(0, bad_qubits, HashSet::new(), false)],
+            HashMap::new()
+        )
+        .is_err())
     }
 
     #[test]
     fn no_panic_on_bad_clbits() {
         let good_qubits = vec![VirtualQubit::new(0), VirtualQubit::new(1)];
-        assert!(SabreDAG::new(2, 1, vec![(0, good_qubits, [0, 1].into())], HashMap::new()).is_err())
+        assert!(SabreDAG::new(
+            2,
+            1,
+            vec![(0, good_qubits, [0, 1].into(), false)],
+            HashMap::new()
+        )
+        .is_err())
     }
 }
