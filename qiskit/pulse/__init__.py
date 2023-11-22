@@ -172,6 +172,8 @@ from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
 from qiskit.pulse.model import (
+    PulseTarget,
+    Port,
     LogicalElement,
     Qubit,
     Coupler,

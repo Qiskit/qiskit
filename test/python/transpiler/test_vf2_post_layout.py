@@ -108,7 +108,7 @@ class TestVF2PostLayout(QiskitTestCase):
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
-            VF2PostLayoutStopReason.NO_SOLUTION_FOUND,
+            VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND,
         )
 
     def test_empty_circuit_v2(self):
@@ -119,7 +119,7 @@ class TestVF2PostLayout(QiskitTestCase):
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
-            VF2PostLayoutStopReason.NO_SOLUTION_FOUND,
+            VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND,
         )
 
     def test_skip_3q_circuit(self):
@@ -389,6 +389,46 @@ class TestVF2PostLayout(QiskitTestCase):
         # No layout selected because nothing will beat initial layout
         self.assertNotIn("post_layout", vf2_pass.property_set)
 
+    def test_trivial_layout_is_best(self):
+        """Test that vf2postlayout reports no better solution if the trivial layout is the best layout"""
+        n_qubits = 4
+        trivial_target = Target()
+        trivial_target.add_instruction(
+            CXGate(), {(i, i + 1): InstructionProperties(error=0.001) for i in range(n_qubits - 1)}
+        )
+
+        circuit = QuantumCircuit(n_qubits)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+
+        vf2_pass = VF2PostLayout(target=trivial_target, seed=self.seed, strict_direction=False)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertEqual(
+            vf2_pass.property_set["VF2PostLayout_stop_reason"],
+            VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND,
+        )
+
+    def test_last_qubits_best(self):
+        """Test that vf2postlayout determines the best layout when the last qubits have least error"""
+        n_qubits = 4
+        target_last_qubits_best = Target()
+        target_last_qubits_best.add_instruction(
+            CXGate(),
+            {(i, i + 1): InstructionProperties(error=10**-i) for i in range(n_qubits - 1)},
+        )
+
+        circuit = QuantumCircuit(n_qubits)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+
+        vf2_pass = VF2PostLayout(
+            target=target_last_qubits_best, seed=self.seed, strict_direction=False
+        )
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target_last_qubits_best.build_coupling_map(), vf2_pass.property_set)
+
 
 class TestVF2PostLayoutScoring(QiskitTestCase):
     """Test scoring heuristic function for VF2PostLayout."""
@@ -480,7 +520,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
-            VF2PostLayoutStopReason.NO_SOLUTION_FOUND,
+            VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND,
         )
 
     def test_empty_circuit_v2(self):
@@ -491,7 +531,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         vf2_pass.run(circuit_to_dag(qc))
         self.assertEqual(
             vf2_pass.property_set["VF2PostLayout_stop_reason"],
-            VF2PostLayoutStopReason.NO_SOLUTION_FOUND,
+            VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND,
         )
 
     def test_skip_3q_circuit(self):

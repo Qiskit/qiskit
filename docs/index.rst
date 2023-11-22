@@ -3,7 +3,7 @@ Qiskit |version| documentation
 ##############################
 
 Qiskit is open-source software for working with quantum computers
-at the level of circuits, pulses, and algorithms.
+at the level of circuits and pulses.
 
 The central goal of Qiskit is to build a software stack
 that makes it easy for anyone to use quantum computers, regardless of their skill level or
@@ -78,11 +78,3 @@ Main Qiskit-related projects
    configuration
    GitHub <https://github.com/Qiskit/qiskit-terra>
    faq
-
-.. toctree::
-   :caption: Contributing
-   :hidden:
-
-   contributing_to_qiskit
-   deprecation_policy
-   maintainers_guide

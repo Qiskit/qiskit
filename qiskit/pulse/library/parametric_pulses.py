@@ -45,7 +45,10 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous
-from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
+from qiskit.pulse.library.symbolic_pulses import Gaussian as SymGaussian
+from qiskit.pulse.library.symbolic_pulses import GaussianSquare as SymGaussianSquare
+from qiskit.pulse.library.symbolic_pulses import Drag as SymDrag
+from qiskit.pulse.library.symbolic_pulses import Constant as SymConstant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 from qiskit.utils.deprecation import deprecate_func
@@ -69,6 +72,7 @@ class ParametricPulse(Pulse):
             "qiskit.pulse.library.symbolic_pulses for details."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -138,6 +142,7 @@ class Gaussian(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -177,7 +182,13 @@ class Gaussian(ParametricPulse):
         return self._sigma
 
     def get_waveform(self) -> Waveform:
-        return gaussian(duration=self.duration, amp=self.amp, sigma=self.sigma, zero_ends=True)
+        return SymGaussian(
+            duration=self.duration,
+            amp=np.abs(self.amp),
+            angle=np.angle(self.amp),
+            sigma=self.sigma,
+            zero_ends=True,
+        ).get_waveform()
 
     def validate_parameters(self) -> None:
         if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
@@ -250,6 +261,7 @@ class GaussianSquare(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -315,9 +327,14 @@ class GaussianSquare(ParametricPulse):
         return self._width
 
     def get_waveform(self) -> Waveform:
-        return gaussian_square(
-            duration=self.duration, amp=self.amp, width=self.width, sigma=self.sigma, zero_ends=True
-        )
+        return SymGaussianSquare(
+            duration=self.duration,
+            amp=np.abs(self.amp),
+            angle=np.angle(self.amp),
+            width=self.width,
+            sigma=self.sigma,
+            zero_ends=True,
+        ).get_waveform()
 
     def validate_parameters(self) -> None:
         if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
@@ -420,6 +437,7 @@ class Drag(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -467,9 +485,14 @@ class Drag(ParametricPulse):
         return self._beta
 
     def get_waveform(self) -> Waveform:
-        return drag(
-            duration=self.duration, amp=self.amp, sigma=self.sigma, beta=self.beta, zero_ends=True
-        )
+        return SymDrag(
+            duration=self.duration,
+            amp=np.abs(self.amp),
+            angle=np.angle(self.amp),
+            sigma=self.sigma,
+            beta=self.beta,
+            zero_ends=True,
+        ).get_waveform()
 
     def validate_parameters(self) -> None:
         if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
@@ -543,6 +566,7 @@ class Constant(ParametricPulse):
             "QPY serialization support."
         ),
         since="0.22",
+        package_name="qiskit-terra",
         pending=True,
     )
     def __init__(
@@ -574,7 +598,9 @@ class Constant(ParametricPulse):
         return self._amp
 
     def get_waveform(self) -> Waveform:
-        return constant(duration=self.duration, amp=self.amp)
+        return SymConstant(
+            duration=self.duration, amp=np.abs(self.amp), angle=np.angle(self.amp)
+        ).get_waveform()
 
     def validate_parameters(self) -> None:
         if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:

@@ -15,18 +15,18 @@ Mixed Frames
 """
 
 from .frames import Frame
-from .logical_elements import LogicalElement
+from .pulse_target import PulseTarget
 
 
 class MixedFrame:
-    """Representation of a :class:`LogicalElement` and :class:`Frame` combination.
+    """Representation of a :class:`PulseTarget` and :class:`Frame` combination.
 
-    Most instructions need to be associated with both a :class:`LogicalElement` and a :class:`Frame`.
-    The combination
+    Most instructions need to be associated with both a :class:`PulseTarget` and a
+    :class:`Frame`. The combination
     of the two is called a mixed frame and is represented by a :class:`MixedFrame` object.
 
     In most cases the :class:`MixedFrame` is used more by the compiler, and a pulse program
-    can be written without :class:`MixedFrame` s, by setting :class:`LogicalElement` and
+    can be written without :class:`MixedFrame` s, by setting :class:`PulseTarget` and
     :class:`Frame` independently. However, in some cases using :class:`MixedFrame` s can
     better convey the meaning of the code, and change the compilation process. One example
     is the use of the shift/set frequency/phase instructions which are not broadcasted to other
@@ -38,21 +38,20 @@ class MixedFrame:
     to a control qubit logical element.
     """
 
-    def __init__(self, logical_element: LogicalElement, frame: Frame):
+    def __init__(self, pulse_target: PulseTarget, frame: Frame):
         """Create ``MixedFrame``.
 
         Args:
-            logical_element: The logical element associated with the mixed frame.
+            pulse_target: The ``PulseTarget`` associated with the mixed frame.
             frame: The frame associated with the mixed frame.
         """
-        self._logical_element = logical_element
+        self._pulse_target = pulse_target
         self._frame = frame
-        self._hash = hash((self._logical_element, self._frame))
 
     @property
-    def logical_element(self) -> LogicalElement:
-        """Return the ``LogicalElement`` of this mixed frame."""
-        return self._logical_element
+    def pulse_target(self) -> PulseTarget:
+        """Return the target of this mixed frame."""
+        return self._pulse_target
 
     @property
     def frame(self) -> Frame:
@@ -60,11 +59,11 @@ class MixedFrame:
         return self._frame
 
     def __repr__(self) -> str:
-        return f"MixedFrame({self.logical_element},{self.frame})"
+        return f"MixedFrame({self.pulse_target},{self.frame})"
 
     def __eq__(self, other: "MixedFrame") -> bool:
-        """Return True iff self and other are equal, specifically, iff they have the same logical
-        element and frame.
+        """Return True iff self and other are equal, specifically, iff they have the same target
+         and frame.
 
         Args:
             other: The mixed frame to compare to this one.
@@ -72,7 +71,7 @@ class MixedFrame:
         Returns:
             True iff equal.
         """
-        return self._logical_element == other._logical_element and self._frame == other._frame
+        return self._pulse_target == other._pulse_target and self._frame == other._frame
 
     def __hash__(self) -> int:
-        return self._hash
+        return hash((self._pulse_target, self._frame, type(self)))

@@ -107,7 +107,7 @@ class FullAncillaAllocation(AnalysisPass):
     @staticmethod
     def validate_layout(layout_qubits, dag_qubits):
         """
-        Checks if all the qregs in layout_qregs already exist in dag_qregs. Otherwise, raise.
+        Checks if all the qregs in ``layout_qregs`` already exist in ``dag_qregs``. Otherwise, raise.
         """
         for qreg in layout_qubits:
             if qreg not in dag_qubits:

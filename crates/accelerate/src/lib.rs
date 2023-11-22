@@ -24,6 +24,7 @@ mod euler_one_qubit_decomposer;
 mod nlayout;
 mod optimize_1q_gates;
 mod pauli_exp_val;
+mod quantum_circuit;
 mod results;
 mod sabre_layout;
 mod sabre_swap;
@@ -52,6 +53,7 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(sabre_swap::sabre_swap))?;
     m.add_wrapped(wrap_pymodule!(pauli_exp_val::pauli_expval))?;
     m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
+    m.add_wrapped(wrap_pymodule!(quantum_circuit::quantum_circuit))?;
     m.add_wrapped(wrap_pymodule!(error_map::error_map))?;
     m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
     m.add_wrapped(wrap_pymodule!(results::results))?;
