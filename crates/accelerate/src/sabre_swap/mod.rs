@@ -178,7 +178,9 @@ fn populate_extended_set(
             *decremented.entry(successor_index).or_insert(0) += 1;
             required_predecessors[successor_index] -= 1;
             if required_predecessors[successor_index] == 0 {
-                if !dag.node_blocks.contains_key(&successor_index) {
+                if !dag.dag[successor_node].directive
+                    && !dag.node_blocks.contains_key(&successor_index)
+                {
                     if let [a, b] = dag.dag[successor_node].qubits[..] {
                         extended_set.push([a.to_phys(layout), b.to_phys(layout)]);
                     }
