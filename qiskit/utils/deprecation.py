@@ -27,7 +27,7 @@ def deprecate_func(
     additional_msg: str | None = None,
     pending: bool = False,
     package_name: str = "qiskit",
-    removal_timeline: str = "no earlier than 3 months after the release date",
+    removal_timeline: str = "in the next major release",
     is_property: bool = False,
 ):
     """Decorator to indicate a function has been deprecated.
@@ -46,7 +46,7 @@ def deprecate_func(
         pending: Set to ``True`` if the deprecation is still pending.
         package_name: The PyPI package name, e.g. "qiskit-nature".
         removal_timeline: How soon can this deprecation be removed? Expects a value
-            like "no sooner than 6 months after the latest release" or "in release 9.99".
+            like "in two major releases" or "in release 9.99".
         is_property: If the deprecated function is a `@property`, set this to True so that the
             generated message correctly describes it as such. (This isn't necessary for
             property setters, as their docstring is ignored by Python.)
@@ -111,7 +111,7 @@ def deprecate_arg(
     package_name: str = "qiskit",
     new_alias: str | None = None,
     predicate: Callable[[Any], bool] | None = None,
-    removal_timeline: str = "no earlier than 3 months after the release date",
+    removal_timeline: str = "in the next major release",
 ):
     """Decorator to indicate an argument has been deprecated in some way.
 
@@ -138,7 +138,7 @@ def deprecate_arg(
             `lambda my_arg: isinstance(my_arg, dict)`. Regardless of if a predicate is set, the
             runtime warning will only log when the user specifies the argument.
         removal_timeline: How soon can this deprecation be removed? Expects a value
-            like "no sooner than 6 months after the latest release" or "in release 9.99".
+            like "in two major releases" or "in release 9.99".
 
     Returns:
         Callable: The decorated callable.
