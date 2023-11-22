@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add a new synthesis method :class:`.synth_qft_line` of a QFT circuit
+    for linear nearest neighbor connectivity.
