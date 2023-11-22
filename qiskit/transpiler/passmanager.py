@@ -361,7 +361,7 @@ class StagedPassManager(PassManager):
     #. ``translation`` - Translates the gates in the circuit to the target backend's
        basis gate set.
     #. ``optimization`` - Optimizes the circuit to reduce the cost of executing it.
-       These will typically run in a loop until a convergence criteria is met.
+       These passes will typically run in a loop until a convergence criteria is met.
        For example, the convergence criteria might be that the circuit depth does not
        decrease in successive iterations.
     #. ``scheduling`` - Hardware-aware passes that schedule the operations in the
