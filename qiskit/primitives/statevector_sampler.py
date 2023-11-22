@@ -119,8 +119,11 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
                 final_state.seed(seed)
                 samples = final_state.sample_memory(shots=shots, qargs=qargs)
+                samples_array = np.array(
+                    [np.fromiter(sample, dtype=np.uint8) for sample in samples]
+                )
                 for item in meas_info:
-                    ary = _samples_to_packed_array(samples, item.num_bits, item.qreg_indices)
+                    ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
                     arrays[item.creg_name][index] = ary
 
             data_bin_cls = make_databin(
@@ -163,13 +166,12 @@ def _preprocess_circuit(circuit: QuantumCircuit):
 
 
 def _samples_to_packed_array(
-    samples: NDArray[str], num_bits: int, indices: List[int]
+    samples: NDArray[np.uint8], num_bits: int, indices: List[int]
 ) -> NDArray[np.uint8]:
-    # samples of `Statevector.sample_memory` will be the order of
+    # samples of `Statevector.sample_memory` will be in the order of
     # qubit_0, qubit_1, ..., qubit_last
-    ary = np.array([np.fromiter(sample, dtype=np.uint8) for sample in samples])
     # pad 0 in the rightmost to be used for the sentinel introduced by _preprocess_circuit
-    ary = np.pad(ary, ((0, 0), (0, 1)), constant_values=0)
+    ary = np.pad(samples, ((0, 0), (0, 1)), constant_values=0)
     # place samples in the order of clbit_last, ..., clbit_1, clbit_0
     ary = ary[:, indices[::-1]]
     # pad 0 in the left to align the number to be mod 8

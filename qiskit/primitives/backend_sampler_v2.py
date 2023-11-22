@@ -214,8 +214,11 @@ class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             memory_list = _prepare_memory(result_memory)
 
             for samples, index in zip(memory_list, np.ndindex(*bound_circuits.shape)):
+                samples_array = np.array(
+                    [np.fromiter(sample, dtype=np.uint8) for sample in samples]
+                )
                 for item in meas_info:
-                    ary = _samples_to_packed_array(samples, item.num_bits, item.start)
+                    ary = _samples_to_packed_array(samples_array, item.num_bits, item.start)
                     arrays[item.creg_name][index] = ary
 
             data_bin_cls = make_databin(
@@ -250,28 +253,33 @@ def _analyze_circuit(circuit: QuantumCircuit) -> List[_MeasureInfo]:
     return meas_info
 
 
-def _prepare_memory(results: List[Result]):
+def _prepare_memory(results: List[Result]) -> List[List[str]]:
+    def convert(samples: List[str]) -> List[str]:
+        # samples of `Backend.run(memory=True)` will be the order of
+        # clbit_last, ..., clbit_1, clbit_0
+        # separated cregs are separated by white space
+        # this function removes the white spaces and reorders samples in the order of
+        # clbit_0, clbit_1,..., clbit_last
+        return [sample[::-1].replace(" ", "") for sample in samples]
+
     memory_list = []
     for res in results:
         for i, _ in enumerate(res.results):
             memory = res.get_memory(i)
             if len(memory) == 0 or not isinstance(memory[0], list):
-                memory_list.append(memory)
-            else:
-                memory_list.extend(memory)
+                memory = [memory]
+            for mem in memory:
+                memory_list.append(convert(mem))
     return memory_list
 
 
-def _samples_to_packed_array(samples: List[str], num_bits: int, start: int) -> NDArray[np.uint8]:
-    # samples of `Backend.run(memory=True)` will be the order of
-    # clbit_last, ..., clbit_1, clbit_0
-    # separated cregs are separated by white space
-    ary = np.array(
-        [np.fromiter(sample[::-1].replace(" ", ""), dtype=np.uint8) for sample in samples]
-    )
-    # place samples in the order of clbit_last, ..., clbit_1, clbit_0
+def _samples_to_packed_array(
+    samples: NDArray[np.uint8], num_bits: int, start: int
+) -> NDArray[np.uint8]:
+    # samples are in the order of clbit_0, clbit_1, ..., clbit_last
+    # place samples in the order of clbit_start+num_bits-1, ..., clbit_start+1, clbit_start
     indices = range(start + num_bits - 1, start - 1, -1)
-    ary = ary[:, indices]
+    ary = samples[:, indices]
     # pad 0 in the left to align the number to be mod 8
     # since np.packbits(bitorder='big') pads 0 to the right.
     pad_size = (8 - num_bits % 8) % 8
