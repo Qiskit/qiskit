@@ -109,7 +109,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
                 n["color"] = "black"
                 n["label"] = (
-                    str(node.node_id)
+                    str(dag.node_map[node])
                     + ": "
                     + str(node.name)
                     + " ("
@@ -141,9 +141,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                     n["label"] = (
-                        str(node.node_id)
-                        + ": "
-                        + str(node.name)
+                        #str(node.node_id)
+                        #+ ": "
+                        str(node.name)
                         + cond_txt
                         + str(args)[1:-1].replace("'", "")
                         + ")"

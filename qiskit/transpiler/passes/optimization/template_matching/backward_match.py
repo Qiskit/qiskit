@@ -125,8 +125,8 @@ class BackwardMatch:
         qubits,
         clbits=None,
         heuristics_backward_param=None,
-        isblocked={},
         matchedwith={},
+        isblocked={},
     ):
         """
         Create a ForwardMatch class with necessary arguments.
@@ -153,8 +153,8 @@ class BackwardMatch:
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
         self.matching_list = MatchingScenariosList()
-        self.isblocked = isblocked
         self.matchedwith = matchedwith
+        self.isblocked = isblocked
 
     def _gate_indices(self):
         """
@@ -626,7 +626,7 @@ class BackwardMatch:
                     self.matching_list.append_scenario(new_matching_scenario)
 
                 # Third option: if blocking the succesors breaks a match, we consider
-                # also the possibility to block all predecessors (push the gate to the left).
+                # also the possibility to block all ancestors (push the gate to the left).
                 if broken_matches and all(global_broken):
 
                     circuit_matched_block_p = circuit_matched.copy()
@@ -639,7 +639,7 @@ class BackwardMatch:
 
                     circuit_blocked_block_p[circuit_id] = True
 
-                    for ancestor in self.circuit_dag_dep.get_ancestors(circuit_id):#get_node(circuit_id).predecessors:
+                    for ancestor in self.circuit_dag_dep.get_ancestors(circuit_id):
                         circuit_blocked_block_p[ancestor] = True
 
                     matching_scenario = MatchingScenarios(
@@ -665,8 +665,8 @@ class BackwardMatch:
                         following_matches.append(desc)
 
                 # First option, the circuit gate is not disturbing because there are no
-                # following match and no predecessors.
-                ancestors = self.circuit_dag_dep.get_ancestors(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).predecessors
+                # following match and no ancestors.
+                ancestors = self.circuit_dag_dep.get_ancestors(circuit_id)
 
                 if not ancestors or not following_matches:
 
@@ -690,7 +690,7 @@ class BackwardMatch:
 
                     matches_scenario_nomatch = matches_scenario.copy()
 
-                    # Second option, all predecessors are blocked (circuit gate is
+                    # Second option, all ancestors are blocked (circuit gate is
                     # moved to the left).
                     for ancestor in ancestors:
                         circuit_blocked[ancestor] = True
