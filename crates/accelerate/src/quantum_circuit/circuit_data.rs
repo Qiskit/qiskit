@@ -305,7 +305,7 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__<'py>(&self, py: Python<'py>, index: &PyAny) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, index: &PyAny) -> PyResult<PyObject> {
         // Internal helper function to get a specific
         // instruction by index.
         fn get_at(
@@ -336,7 +336,7 @@ impl CircuitData {
         }
     }
 
-    pub fn __delitem__(&mut self, py: Python<'_>, index: SliceOrInt) -> PyResult<()> {
+    pub fn __delitem__(&mut self, index: SliceOrInt) -> PyResult<()> {
         match index {
             SliceOrInt::Slice(slice) => {
                 let slice = {
@@ -349,7 +349,7 @@ impl CircuitData {
                     s
                 };
                 for i in slice.into_iter() {
-                    self.__delitem__(py, SliceOrInt::Int(i))?;
+                    self.__delitem__(SliceOrInt::Int(i))?;
                 }
                 Ok(())
             }
@@ -390,7 +390,7 @@ impl CircuitData {
                 }
 
                 for (i, v) in slice.iter().zip(values.iter()) {
-                    self.__setitem__(py, SliceOrInt::Int(*i), *v)?;
+                    self.__setitem__(py, SliceOrInt::Int(*i), v)?;
                 }
 
                 if slice.len() > values.len() {
@@ -401,7 +401,7 @@ impl CircuitData {
                         indices.stop,
                         1isize,
                     );
-                    self.__delitem__(py, SliceOrInt::Slice(slice))?;
+                    self.__delitem__(SliceOrInt::Slice(slice))?;
                 } else {
                     // Insert any extra values.
                     for v in values.iter().skip(slice.len()).rev() {
@@ -438,7 +438,7 @@ impl CircuitData {
         let index =
             index.unwrap_or_else(|| std::cmp::max(0, self.data.len() as isize - 1).into_py(py));
         let item = self.__getitem__(py, index.as_ref(py))?;
-        self.__delitem__(py, index.as_ref(py).extract()?)?;
+        self.__delitem__(index.as_ref(py).extract()?)?;
         Ok(item)
     }
 
