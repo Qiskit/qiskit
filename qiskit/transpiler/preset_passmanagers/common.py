@@ -41,6 +41,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import FilterOpNodes
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
@@ -328,7 +329,15 @@ def generate_routing_passmanager(
         return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
-        routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
+        routing.append(
+            [
+                BarrierBeforeFinalMeasurements(
+                    label="qiskit.transpiler.internal.routing.protection.barrier"
+                ),
+                routing_pass,
+            ],
+            condition=_swap_condition,
+        )
     else:
         routing.append([routing_pass], condition=_swap_condition)
 
@@ -347,6 +356,14 @@ def generate_routing_passmanager(
             condition=_run_post_layout_condition,
         )
         routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+
+    def filter_fn(node):
+        return (
+            getattr(node.op, "label", None)
+            != "qiskit.transpiler.internal.routing.protection.barrier"
+        )
+
+    routing.append([FilterOpNodes(filter_fn)])
 
     return routing
 

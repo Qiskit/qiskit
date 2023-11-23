@@ -226,6 +226,9 @@ def is_simulator_backend(backend):
     backend_interface_version = _get_backend_interface_version(backend)
     if backend_interface_version <= 1:
         return backend.configuration().simulator
+    else:
+        if "simulator" in backend.name:
+            return True
     return False
 
 
@@ -246,6 +249,9 @@ def is_local_backend(backend):
     backend_interface_version = _get_backend_interface_version(backend)
     if backend_interface_version <= 1:
         return backend.configuration().local
+    else:
+        if "simulator" in backend.name:
+            return True
     return False
 
 

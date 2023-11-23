@@ -78,11 +78,3 @@ Main Qiskit-related projects
    configuration
    GitHub <https://github.com/Qiskit/qiskit-terra>
    faq
-
-.. toctree::
-   :caption: Contributing
-   :hidden:
-
-   contributing_to_qiskit
-   deprecation_policy
-   maintainers_guide
