@@ -31,7 +31,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.bit import Bit
-from qiskit.dagcircuit import DAGOpNode
+from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.circuit.commutation_checker import CommutationChecker
 
@@ -325,7 +325,7 @@ class DAGDependencyV2:
                 raise DAGDependencyError(f"Could not locate bit of unknown type: {type(bit)}")
         except KeyError as err:
             raise DAGDependencyError(
-                f"Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
+                f"Could not locate provided bit: {bit}. Has it been added to the DAGDependency?"
             ) from err
 
     def add_op_node(self, operation, qargs, cargs):
