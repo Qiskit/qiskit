@@ -89,6 +89,10 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         dag_dep_circ = dagdependency_to_circuit(dag)
 
         def node_attr_func(node):
+            if "DAGDependencyV2" in type_str:
+                nid_str = str(dag.node_map[node])
+            else:
+                nid_str = str(node.node_id)
             if style == "plain":
                 return {}
             if style == "color":
@@ -109,7 +113,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
                 n["color"] = "black"
                 n["label"] = (
-                    str(dag.node_map[node])
+                    nid_str
                     + ": "
                     + str(node.name)
                     + " ("
@@ -141,9 +145,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
                     n["label"] = (
-                        # str(node.node_id)
-                        # + ": "
-                        str(node.name)
+                        nid_str
+                        + ": "
+                        + str(node.name)
                         + cond_txt
                         + str(args)[1:-1].replace("'", "")
                         + ")"
