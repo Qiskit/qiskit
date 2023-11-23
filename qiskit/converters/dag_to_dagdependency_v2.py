@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag circuit to a dag dependency"""
-from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
+from qiskit.dagcircuit.dagdependency_v2 import DAGDependencyV2
 
 
-def dag_to_dagdependencyV2(dag):
+def dag_to_dagdependency_v2(dag):
     """Build a ``DAGDependencyV2`` object from a ``DAGCircuit``.
 
     Args:

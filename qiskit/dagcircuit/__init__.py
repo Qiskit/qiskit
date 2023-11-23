@@ -43,4 +43,4 @@ from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError, DAGDependencyError
 from .dagdependency import DAGDependency
-from .dagdependencyV2 import DAGDependencyV2
+from .dagdependency_v2 import DAGDependencyV2

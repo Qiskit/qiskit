@@ -20,7 +20,7 @@ import itertools
 
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
+from qiskit.dagcircuit.dagdependency_v2 import DAGDependencyV2
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 
 

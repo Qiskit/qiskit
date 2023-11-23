@@ -23,9 +23,9 @@ Exact and practical pattern matching for quantum circuit optimization.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.converters.circuit_to_dagdependencyV2 import circuit_to_dagdependencyV2
+from qiskit.converters.circuit_to_dagdependency_v2 import circuit_to_dagdependency_v2
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
-from qiskit.converters.dag_to_dagdependencyV2 import dag_to_dagdependencyV2
+from qiskit.converters.dag_to_dagdependency_v2 import dag_to_dagdependency_v2
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
@@ -95,10 +95,10 @@ class TemplateOptimization(TransformationPass):
             TranspilerError: If the template has not the right form or
              if the output circuit acts differently as the input circuit.
         """
-        from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
+        from qiskit.dagcircuit.dagdependency_v2 import DAGDependencyV2
 
         circuit_dag = dag
-        circuit_dag_dep = dag_to_dagdependencyV2(circuit_dag)
+        circuit_dag_dep = dag_to_dagdependency_v2(circuit_dag)
 
         for template in self.template_list:
             if not isinstance(template, (QuantumCircuit, DAGDependencyV2)):
@@ -124,7 +124,7 @@ class TemplateOptimization(TransformationPass):
                 pass
 
             if isinstance(template, QuantumCircuit):
-                template_dag_dep = circuit_to_dagdependencyV2(template)
+                template_dag_dep = circuit_to_dagdependency_v2(template)
             else:
                 template_dag_dep = template
 

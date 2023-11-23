@@ -21,7 +21,14 @@ from typing import Dict, List
 import numpy as np
 import rustworkx as rx
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Qubit, Clbit, Gate, ParameterExpression
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    Qubit,
+    Clbit,
+    Gate,
+    ParameterExpression,
+)
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.bit import Bit
 from qiskit.dagcircuit import DAGOpNode

@@ -20,7 +20,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
-from qiskit.converters import circuit_to_dagdependencyV2
+from qiskit.converters import circuit_to_dagdependency_v2
 from qiskit.test import QiskitTestCase
 
 try:
@@ -177,7 +177,7 @@ class TestDagNodeEdge(QiskitTestCase):
         circuit.cx(self.qreg[1], self.qreg[0])
         circuit.measure(self.qreg[0], self.creg[0])
 
-        self.dag = circuit_to_dagdependencyV2(circuit)
+        self.dag = circuit_to_dagdependency_v2(circuit)
 
         second_edge = self.dag.get_edges(1, 2)
         self.assertEqual(second_edge[0]["commute"], False)
@@ -217,7 +217,7 @@ class TestDagNodeSelection(QiskitTestCase):
         circuit.h(self.qreg[0])
         circuit.measure(self.qreg[0], self.creg[0])
 
-        self.dag = circuit_to_dagdependencyV2(circuit)
+        self.dag = circuit_to_dagdependency_v2(circuit)
 
         dir_successors_second = self.dag.get_successors(1)
         self.assertEqual(dir_successors_second, [2, 4])
@@ -272,7 +272,7 @@ class TestDagProperties(QiskitTestCase):
         circ.u(0.0, 0.1, 0.2, qr1[3])
         circ.ccx(qr2[0], qr2[1], qr1[0])
 
-        self.dag = circuit_to_dagdependencyV2(circ)
+        self.dag = circuit_to_dagdependency_v2(circ)
 
     def test_size(self):
         """Test total number of operations in dag."""
@@ -286,7 +286,7 @@ class TestDagProperties(QiskitTestCase):
         """Empty circuit DAG is zero depth"""
         q = QuantumRegister(5, "q")
         qc = QuantumCircuit(q)
-        dag = circuit_to_dagdependencyV2(qc)
+        dag = circuit_to_dagdependency_v2(qc)
         self.assertEqual(dag.depth(), 0)
 
     def test_default_metadata_value(self):
