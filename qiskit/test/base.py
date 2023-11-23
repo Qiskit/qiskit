@@ -245,8 +245,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             "Setting metadata to None.*",
             # and this one once Qiskit/qiskit-aer#1945 is merged and released.
             r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
-            r"deprecated as of qiskit 0\.45\.0\. It will be removed no earlier than 3 "
-            r"months after the release date\. Use QuantumCircuit\.id as direct replacement\.",
+            r"deprecated as of qiskit 0\.45\.0\. It will be removed in the next major release 1\.0\. "
+            r"Use QuantumCircuit\.id as direct replacement\.",
         ]
 
         for msg in allow_aer_DeprecationWarning_message:

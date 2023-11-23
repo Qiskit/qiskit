@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# This code was originally copied from the qiskit-ignis repsoitory see:
+# This code was originally copied from the qiskit-ignis repository see:
 # https://github.com/Qiskit/qiskit-ignis/blob/b91066c72171bcd55a70e6e8993b813ec763cf41/qiskit/ignis/mitigation/measurement/__init__.py
 # it was migrated as qiskit-ignis is being deprecated
 
