@@ -684,7 +684,13 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_2], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    choose_layout_2,
+                ],
+                condition=_vf2_match_not_found,
             )
         elif optimization_level == 2:
             choose_layout_0 = VF2Layout(
@@ -706,7 +712,13 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    choose_layout_1,
+                ],
+                condition=_vf2_match_not_found,
             )
         elif optimization_level == 3:
             choose_layout_0 = VF2Layout(
@@ -728,7 +740,13 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    choose_layout_1,
+                ],
+                condition=_vf2_match_not_found,
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
@@ -882,7 +900,13 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
         layout.append(
-            [BarrierBeforeFinalMeasurements(), layout_pass], condition=_choose_layout_condition
+            [
+                BarrierBeforeFinalMeasurements(
+                    "qiskit.transpiler.internal.routing.protection.barrier"
+                ),
+                layout_pass,
+            ],
+            condition=_choose_layout_condition,
         )
         embed = common.generate_embed_passmanager(coupling_map)
         layout.append(

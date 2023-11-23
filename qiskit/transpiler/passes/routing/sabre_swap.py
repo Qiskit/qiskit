@@ -309,6 +309,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                     node._node_id,
                     [wire_map[x] for x in node.qargs],
                     cargs,
+                    getattr(node.op, "_directive", False),
                 )
             )
         return SabreDAG(num_physical_qubits, block_dag.num_clbits(), dag_list, node_blocks)
