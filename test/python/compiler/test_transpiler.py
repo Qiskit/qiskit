@@ -19,10 +19,7 @@ import os
 import sys
 import unittest
 from logging import StreamHandler, getLogger
-
-from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
-
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
@@ -84,7 +81,6 @@ from qiskit.providers.fake_provider import (
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
-from test.utils import QiskitTestCase, slow_test
 from qiskit.tools import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -92,6 +88,8 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirecti
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
+from test.utils import QiskitTestCase, slow_test  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 class CustomCX(Gate):
@@ -1695,6 +1693,38 @@ class TestTranspile(QiskitTestCase):
         transpiled = transpile(qc, basis_gates=basis, optimization_level=opt_level)
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
+
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure(range(2), range(2))
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
+        self.assertNotIn("barrier", tqc.count_ops())
+
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output_input_preservered(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure_all()
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
+        op_counts = tqc.count_ops()
+        self.assertEqual(op_counts["barrier"], 1)
+        for inst in tqc.data:
+            if inst.operation.name == "barrier":
+                self.assertEqual(len(inst.qubits), 2)
 
     @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops(self, opt_level):

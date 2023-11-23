@@ -21,7 +21,6 @@ import numpy as np
 from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
-from test.utils import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals

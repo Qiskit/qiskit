@@ -36,7 +36,6 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
@@ -459,22 +458,3 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_sched = load(qpy_file)[0]
         self.assertEqual(self.test_sched, new_sched)
-
-    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_dump_no_symengine(self):
-        """Test dump fails if symengine is not installed and use_symengine==True."""
-        qpy_file = io.BytesIO()
-        with _optional.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                dump(self.test_sched, qpy_file, use_symengine=True)
-
-    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_load_no_symengine(self):
-        """Test that load fails if symengine is not installed and the
-        file was created with use_symengine==True."""
-        qpy_file = io.BytesIO()
-        dump(self.test_sched, qpy_file, use_symengine=True)
-        qpy_file.seek(0)
-        with _optional.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                _ = load(qpy_file)[0]

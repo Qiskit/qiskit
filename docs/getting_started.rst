@@ -198,7 +198,7 @@ Tier 1 platforms are currently:
  * Linux x86_64 (distributions compatible with the
    `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__
    packaging specification).
- * macOS x86_64 (10.9 or newer)
+ * macOS x86_64 (10.12 or newer)
  * Windows 64 bit
 
 Tier 2
@@ -211,10 +211,6 @@ functioning Python environment.
 
 Tier 2 platforms are currently:
 
- * Linux i686 (distributions compatible with the
-   `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
-   specification) for Python < 3.10
- * Windows 32 bit for Python < 3.10
  * Linux aarch64 (distributions compatible with the
    `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
    specification)
@@ -240,8 +236,8 @@ Tier 3 platforms are currently:
  * macOS arm64 (10.15 or newer)
  * Linux i686 (distributions compatible with the
    `manylinux 2014 <https://www.python.org/dev/peps/pep-0599/>`__ packaging
-   specification) for Python >= 3.10
- * Windows 32 bit for Python >= 3.10
+   specification)
+ * Windows 32 bit
 
 Ready to get going?...
 ======================
