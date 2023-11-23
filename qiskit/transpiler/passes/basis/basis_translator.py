@@ -201,7 +201,9 @@ class BasisTranslator(TransformationPass):
                     f"specified) target basis: {list(expanded_target)}. This likely means the "
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
-                    "error see: `translation_errors`_"
+                    "error see: "
+                    "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                    "BasisTranslator#translation-errors"
                 )
 
             qarg_local_basis_transforms[qarg] = local_basis_transforms
