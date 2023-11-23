@@ -224,6 +224,7 @@ Special fake backends are fake backends that were created for special testing pu
     FakeBackend5QV2
     FakeMumbaiFractionalCX
     ConfigurableFakeBackend
+    FakeGeneric
 
 Fake Backend Base Classes
 =========================
@@ -265,4 +266,4 @@ from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 # Configurable fake backend
 from .utils.configurable_backend import ConfigurableFakeBackend
-from .fake_generic import FakeGeneric
+from .fake_generic import FakeGeneric, GenericTarget
