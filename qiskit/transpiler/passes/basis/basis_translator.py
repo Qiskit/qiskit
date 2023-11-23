@@ -201,8 +201,7 @@ class BasisTranslator(TransformationPass):
                     f"specified) target basis: {list(expanded_target)}. This likely means the "
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
-                    "error see: "
-                    "Sphinx cross-reference"
+                    "error see: `translation_errors`_"
                 )
 
             qarg_local_basis_transforms[qarg] = local_basis_transforms
@@ -218,8 +217,7 @@ class BasisTranslator(TransformationPass):
                 f"{[x[0] for x in source_basis]} to the backend's (or manually specified) target "
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
-                "used. For more details on this error see: "
-                "Sphinx cross-reference"
+                "used. For more details on this error see: `translation_errors`_"
             )
 
         # Compose found path into a set of instruction substitution rules.
