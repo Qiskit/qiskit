@@ -141,8 +141,8 @@ class BackwardMatch:
             heuristics_backward_param (list): list that contains the two parameters for
             applying the heuristics (length and survivor).
         """
-        self.circuit_dag_dep = circuit_dag_dep#.copy()
-        self.template_dag_dep = template_dag_dep#.copy()
+        self.circuit_dag_dep = circuit_dag_dep
+        self.template_dag_dep = template_dag_dep
         self.qubits = qubits
         self.clbits = clbits if clbits is not None else []
         self.node_id_c = node_id_c
@@ -190,7 +190,7 @@ class BackwardMatch:
 
         matches_template = sorted(match[0] for match in matches)
 
-        descendants = self.template_dag_dep.get_descendants(self.node_id_t)#self.template_dag_dep.get_node(self.node_id_t).successors
+        descendants = self.template_dag_dep.get_descendants(self.node_id_t)
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
             if (index not in descendants) and (index not in template_block):
@@ -267,12 +267,16 @@ class BackwardMatch:
                 return qarg_circuit == self.template_dag_dep.qindices_map[node_template]
 
             else:
-                control_qubits_template = self.template_dag_dep.qindices_map[node_template][:c_template]
+                control_qubits_template = self.template_dag_dep.qindices_map[node_template][
+                    :c_template
+                ]
                 control_qubits_circuit = qarg_circuit[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
 
-                    target_qubits_template = self.template_dag_dep.qindices_map[node_template][c_template::]
+                    target_qubits_template = self.template_dag_dep.qindices_map[node_template][
+                        c_template::
+                    ]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
                     if node_template.op.base_gate.name in [
@@ -306,9 +310,8 @@ class BackwardMatch:
         Returns:
             bool: True if possible, False otherwise.
         """
-        if (
-            getattr(node_circuit.op, "condition", None)
-            and getattr(node_template.op, "condition", None)
+        if getattr(node_circuit.op, "condition", None) and getattr(
+            node_template.op, "condition", None
         ):
             if set(carg_circuit) != set(self.template_dag_dep.cindices_map[node_template]):
                 return False
@@ -495,7 +498,9 @@ class BackwardMatch:
             for template_id in candidates_indices:
 
                 node_template = self.template_dag_dep.get_node(template_id)
-                qarg2 = self.template_dag_dep.qindices_map[self.template_dag_dep.get_node(template_id)]
+                qarg2 = self.template_dag_dep.qindices_map[
+                    self.template_dag_dep.get_node(template_id)
+                ]
 
                 # Necessary but not sufficient conditions for a match to happen.
                 if (
@@ -527,7 +532,7 @@ class BackwardMatch:
 
                     # Loop to check if the match is not connected, in this case
                     # the successors matches are blocked and unmatched.
-                    for potential_block in self.template_dag_dep.get_descendants(template_id):#self.template_dag_dep.successors(template_id):
+                    for potential_block in self.template_dag_dep.get_descendants(template_id):
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
                             block_list.append(potential_block)
@@ -595,7 +600,10 @@ class BackwardMatch:
                 # to the right).
                 for desc in self.circuit_dag_dep.get_descendants(circuit_id):
                     circuit_blocked_block_s[desc] = True
-                    if not isinstance(circuit_matched_block_s[desc], bool) and len(circuit_matched_block_s[desc]) > 0:
+                    if (
+                        not isinstance(circuit_matched_block_s[desc], bool)
+                        and len(circuit_matched_block_s[desc]) > 0
+                    ):
                         broken_matches.append(desc)
                         new_id = circuit_matched_block_s[desc][0]
                         template_matched_block_s[new_id] = []
@@ -659,7 +667,7 @@ class BackwardMatch:
 
                 following_matches = []
 
-                descendants = self.circuit_dag_dep.get_descendants(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
+                descendants = self.circuit_dag_dep.get_descendants(circuit_id)
                 for desc in descendants:
                     if circuit_matched[desc]:
                         following_matches.append(desc)
@@ -710,7 +718,7 @@ class BackwardMatch:
 
                     broken_matches = []
 
-                    descendants = self.circuit_dag_dep.get_descendants(circuit_id)#self.circuit_dag_dep.get_node(circuit_id).successors
+                    descendants = self.circuit_dag_dep.get_descendants(circuit_id)
 
                     for desc in descendants:
                         circuit_blocked_nomatch[desc] = True

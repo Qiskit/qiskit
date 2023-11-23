@@ -15,8 +15,8 @@
 from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 
 
-def circuit_to_dagdependencyV2(circuit, create_preds_and_succs=True):
-    """Build a ``DAGDependency`` object from a :class:`~.QuantumCircuit`.
+def circuit_to_dagdependencyV2(circuit):
+    """Build a ``DAGDependencyV2`` object from a :class:`~.QuantumCircuit`.
 
     Args:
         circuit (QuantumCircuit): the input circuit.
@@ -24,7 +24,7 @@ def circuit_to_dagdependencyV2(circuit, create_preds_and_succs=True):
             predecessors and successors for every node.
 
     Return:
-        DAGDependency: the DAG representing the input circuit as a dag dependency.
+        DAGDependencyV2: the DAG representing the input circuit as a dag dependency.
     """
     dagdependency = DAGDependencyV2()
     dagdependency.name = circuit.name
@@ -41,10 +41,6 @@ def circuit_to_dagdependencyV2(circuit, create_preds_and_succs=True):
 
     for instruction in circuit.data:
         dagdependency.add_op_node(instruction.operation, instruction.qubits, instruction.clbits)
-
-    # if create_preds_and_succs:
-    #     dagdependency._add_predecessors()
-    #     dagdependency._add_successors()
 
     dagdependency.calibrations = circuit.calibrations
 

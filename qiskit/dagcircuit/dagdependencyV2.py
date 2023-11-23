@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DAGDependency class for representing non-commutativity in a circuit.
+"""DAGDependencyV2 class for representing non-commutativity in a circuit.
 """
 
 import math
@@ -31,7 +31,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
 
-class DAGDependencyV2():
+class DAGDependencyV2:
     """Object to represent a quantum circuit as a Directed Acyclic Graph (DAG)
     via operation dependencies (i.e. lack of commutation).
 
@@ -67,7 +67,7 @@ class DAGDependencyV2():
 
     def __init__(self):
         """
-        Create an empty DAGDependency.
+        Create an empty DAGDependencyV2.
         """
         # Circuit name
         self.name = None
@@ -215,7 +215,7 @@ class DAGDependencyV2():
         return (qubits, params) in self.calibrations[node.op.name]
 
     def to_rustworkx(self):
-        """Returns the DAGDependency in rustworkx format."""
+        """Returns the DAGDependencyV2 in rustworkx format."""
         return self._multi_graph
 
     def size(self):
@@ -292,7 +292,7 @@ class DAGDependencyV2():
 
     def find_bit(self, bit: Bit) -> BitLocations:
         """
-        Finds locations in the circuit, by mapping the Qubit and Clbit to positional index
+        Finds locations in the DAGDependencyV2, by mapping the Qubit and Clbit to positional index
         BitLocations is defined as: BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
         Args:
@@ -301,14 +301,14 @@ class DAGDependencyV2():
         Returns:
             namedtuple(int, List[Tuple(Register, int)]): A 2-tuple. The first element (``index``)
                 contains the index at which the ``Bit`` can be found (in either
-                :obj:`~DAGCircuit.qubits`, :obj:`~DAGCircuit.clbits`, depending on its
+                :obj:`~DAGDependencyV2.qubits`, :obj:`~DAGDependencyV2.clbits`, depending on its
                 type). The second element (``registers``) is a list of ``(register, index)``
                 pairs with an entry for each :obj:`~Register` in the circuit which contains the
                 :obj:`~Bit` (and the index in the :obj:`~Register` at which it can be found).
 
           Raises:
-            DAGCircuitError: If the supplied :obj:`~Bit` was of an unknown type.
-            DAGCircuitError: If the supplied :obj:`~Bit` could not be found on the circuit.
+            DAGDependencyError: If the supplied :obj:`~Bit` was of an unknown type.
+            DAGDependencyError: If the supplied :obj:`~Bit` could not be found on the circuit.
         """
         try:
             if isinstance(bit, Qubit):
@@ -316,9 +316,9 @@ class DAGDependencyV2():
             elif isinstance(bit, Clbit):
                 return self._clbit_indices[bit]
             else:
-                raise DAGCircuitError(f"Could not locate bit of unknown type: {type(bit)}")
+                raise DAGDependencyError(f"Could not locate bit of unknown type: {type(bit)}")
         except KeyError as err:
-            raise DAGCircuitError(
+            raise DAGDependencyError(
                 f"Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
             ) from err
 
@@ -395,14 +395,14 @@ class DAGDependencyV2():
 
     def _update_edges(self):
         """
-        Updates DagDependency by adding edges to the newly added node (max_node)
+        Updates DagDependencyV2 by adding edges to the newly added node (max_node)
         from the previously added nodes.
         For each previously added node (prev_node), an edge from prev_node to max_node
         is added if max_node is "reachable" from prev_node (this means that the two
         nodes can be made adjacent by commuting them with other nodes), but the two nodes
         themselves do not commute.
 
-        Currently. this function is only used when creating a new DAGDependency from another
+        Currently. this function is only used when creating a new DAGDependencyV2 from another
         representation of a circuit, and hence there are no removed nodes (this is why
         iterating over all nodes is fine).
         """
@@ -585,12 +585,12 @@ class DAGDependencyV2():
 
     def copy(self):
         """
-        Function to copy a DAGDependency object.
+        Function to copy a DAGDependencyV2 object.
         Returns:
-            DAGDependency: a copy of a DAGDependency object.
+            DAGDependencyV2: a copy of a DAGDependencyV2 object.
         """
 
-        dag = DAGDependency()
+        dag = DAGDependencyV2()
         dag.name = self.name
         dag.cregs = self.cregs.copy()
         dag.qregs = self.qregs.copy()
@@ -603,7 +603,7 @@ class DAGDependencyV2():
 
     def draw(self, scale=0.7, filename=None, style="color"):
         """
-        Draws the DAGDependency graph.
+        Draws the DAGDependencyV2 graph.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
@@ -630,13 +630,13 @@ class DAGDependencyV2():
         function from DAGCircuit.
 
         It is important that such consolidation preserves commutativity assumptions
-        present in DAGDependency. As an example, suppose that every node in a
+        present in DAGDependencyV2. As an example, suppose that every node in a
         block [A, B, C, D] commutes with another node E. Let F be the consolidated
         node, F = A o B o C o D. Then F also commutes with E, and thus the result of
-        replacing [A, B, C, D] by F results in a valid DAGDependency. That is, any
-        deduction about commutativity in consolidated DAGDependency is correct.
+        replacing [A, B, C, D] by F results in a valid DAGDependencyV2. That is, any
+        deduction about commutativity in consolidated DAGDependencyV2 is correct.
         On the other hand, suppose that at least one of the nodes, say B, does not commute
-        with E. Then the consolidated DAGDependency would imply that F does not commute
+        with E. Then the consolidated DAGDependencyV2 would imply that F does not commute
         with E. Even though F and E may actually commute, it is still safe to assume that
         they do not. That is, the current implementation of consolidation may lead to
         suboptimal but not to incorrect results.
@@ -652,7 +652,7 @@ class DAGDependencyV2():
             cycle_check (bool): When set to True this method will check that
                 replacing the provided ``node_block`` with a single node
                 would introduce a cycle (which would invalidate the
-                ``DAGDependency``) and will raise a ``DAGDependencyError`` if a cycle
+                ``DAGDependencyV2``) and will raise a ``DAGDependencyError`` if a cycle
                 would be introduced. This checking comes with a run time
                 penalty. If you can guarantee that your input ``node_block`` is
                 a contiguous block and won't introduce a cycle when it's
@@ -683,7 +683,7 @@ class DAGDependencyV2():
             op,
             qargs=sorted(block_qargs, key=lambda x: wire_pos_map[x]),
             cargs=sorted(block_cargs, key=lambda x: wire_pos_map[x]),
-            dag=self
+            dag=self,
         )
 
         try:

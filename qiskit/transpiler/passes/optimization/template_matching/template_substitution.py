@@ -388,7 +388,6 @@ class TemplateSubstitution:
             # Loop over the different matches.
             for group in self.substitution_list:
 
-
                 circuit_sub = group.circuit_config
                 template_inverse = group.template_config
 
@@ -413,12 +412,16 @@ class TemplateSubstitution:
                 # Then add the inverse of the template.
                 for index in template_inverse:
                     all_qubits = self.circuit_dag_dep.qubits
-                    qarg_t = group.template_dag_dep.qindices_map[group.template_dag_dep.get_node(index)]
+                    qarg_t = group.template_dag_dep.qindices_map[
+                        group.template_dag_dep.get_node(index)
+                    ]
                     qarg_c = [qubit[x] for x in qarg_t]
                     qargs = [all_qubits[x] for x in qarg_c]
 
                     all_clbits = self.circuit_dag_dep.clbits
-                    carg_t = group.template_dag_dep.cindices_map[group.template_dag_dep.get_node(index)]
+                    carg_t = group.template_dag_dep.cindices_map[
+                        group.template_dag_dep.get_node(index)
+                    ]
 
                     if all_clbits and clbit:
                         carg_c = [clbit[x] for x in carg_t]

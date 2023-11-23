@@ -89,7 +89,9 @@ class ForwardMatch:
         """
         for i in range(0, self.circuit_dag_dep.size()):
             if i == self.node_id_c:
-                self.successorstovisit[self.circuit_dag_dep.get_node(i)] = self.circuit_dag_dep.get_successors(i)
+                self.successorstovisit[
+                    self.circuit_dag_dep.get_node(i)
+                ] = self.circuit_dag_dep.get_successors(i)
 
     def _init_matched_with(self):
         """
@@ -111,8 +113,15 @@ class ForwardMatch:
         """
         Initialize the attribute 'IsBlocked' in the circuit and template DAG dependency's.
         """
-        self.isblocked = {self.circuit_dag_dep.get_node(i): False for i in range(0, self.circuit_dag_dep.size())}
-        self.isblocked.update({self.template_dag_dep.get_node(i): False for i in range(0, self.template_dag_dep.size())})
+        self.isblocked = {
+            self.circuit_dag_dep.get_node(i): False for i in range(0, self.circuit_dag_dep.size())
+        }
+        self.isblocked.update(
+            {
+                self.template_dag_dep.get_node(i): False
+                for i in range(0, self.template_dag_dep.size())
+            }
+        )
 
     def _init_list_match(self):
         """
@@ -159,9 +168,7 @@ class ForwardMatch:
                 if succ not in matches:
                     descs = self.template_dag_dep.get_descendants(succ)
                     block = block + descs
-        self.candidates = list(
-            set(set(node_id_t_succs) - set(matches) - set(block))
-        )
+        self.candidates = list(set(set(node_id_t_succs) - set(matches) - set(block)))
 
     def _get_node_forward(self, list_id):
         """
@@ -244,12 +251,16 @@ class ForwardMatch:
                 return self.qarg_indices == self.template_dag_dep.qindices_map[node_template]
 
             else:
-                control_qubits_template = self.template_dag_dep.qindices_map[node_template][:c_template]
+                control_qubits_template = self.template_dag_dep.qindices_map[node_template][
+                    :c_template
+                ]
                 control_qubits_circuit = self.qarg_indices[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
 
-                    target_qubits_template = self.template_dag_dep.qindices_map[node_template][c_template::]
+                    target_qubits_template = self.template_dag_dep.qindices_map[node_template][
+                        c_template::
+                    ]
                     target_qubits_circuit = self.qarg_indices[c_template::]
 
                     if node_template.op.base_gate.name in [
@@ -267,7 +278,9 @@ class ForwardMatch:
                     return False
         else:
             if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(self.qarg_indices) == set(self.template_dag_dep.qindices_map[node_template])
+                return set(self.qarg_indices) == set(
+                    self.template_dag_dep.qindices_map[node_template]
+                )
             else:
                 return self.qarg_indices == self.template_dag_dep.qindices_map[node_template]
 
@@ -280,9 +293,8 @@ class ForwardMatch:
         Returns:
             bool: True if possible, False otherwise.
         """
-        if (
-            getattr(node_circuit.op, "condition", None)
-            and getattr(node_template.op, "condition", None)
+        if getattr(node_circuit.op, "condition", None) and getattr(
+            node_template.op, "condition", None
         ):
             if set(self.carg_indices) != set(self.template_dag_dep.cindices_map[node_template]):
                 return False
@@ -357,7 +369,8 @@ class ForwardMatch:
                 # Necessary but not sufficient conditions for a match to happen.
                 if (
                     len(self.qarg_indices) != len(self.template_dag_dep.qindices_map[node_template])
-                    or set(self.qarg_indices) != set(self.template_dag_dep.qindices_map[node_template])
+                    or set(self.qarg_indices)
+                    != set(self.template_dag_dep.qindices_map[node_template])
                     or node_circuit.name != node_template.name
                 ):
                     continue

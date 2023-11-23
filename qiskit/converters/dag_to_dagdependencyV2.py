@@ -14,8 +14,8 @@
 from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 
 
-def dag_to_dagdependencyV2(dag, create_preds_and_succs=False):
-    """Build a ``DAGDependency`` object from a ``DAGCircuit``.
+def dag_to_dagdependencyV2(dag):
+    """Build a ``DAGDependencyV2`` object from a ``DAGCircuit``.
 
     Args:
         dag (DAGCircuit): the input dag.
@@ -23,7 +23,7 @@ def dag_to_dagdependencyV2(dag, create_preds_and_succs=False):
             predecessors and successors for every node.
 
     Return:
-        DAGDependency: the DAG representing the input circuit as a dag dependency.
+        DAGDependencyV2: the DAG representing the input circuit as a dag dependency.
     """
 
     dagdependency = DAGDependencyV2()
@@ -43,10 +43,6 @@ def dag_to_dagdependencyV2(dag, create_preds_and_succs=False):
         # Get arguments for classical control (if any)
         inst = node.op.copy()
         dagdependency.add_op_node(inst, node.qargs, node.cargs)
-
-    # if create_preds_and_succs:
-    #     dagdependency._add_predecessors()
-    #     dagdependency._add_successors()
 
     # copy metadata
     dagdependency.global_phase = dag.global_phase

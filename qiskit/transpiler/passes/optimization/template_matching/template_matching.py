@@ -87,7 +87,9 @@ class TemplateMatching:
                     l_q_sub = [-1] * n_qubits_t
                     for q in self.template_dag_dep.qindices_map[node_template]:
                         node_circuit_perm = control_perm_q + not_control_qubits_circuit
-                        l_q_sub[q] = node_circuit_perm[self.template_dag_dep.qindices_map[node_template].index(q)]
+                        l_q_sub[q] = node_circuit_perm[
+                            self.template_dag_dep.qindices_map[node_template].index(q)
+                        ]
                     l_q.append(l_q_sub)
             # Not symmetric base gate
             else:
@@ -98,7 +100,9 @@ class TemplateMatching:
                         l_q_sub = [-1] * n_qubits_t
                         for q in self.template_dag_dep.qindices_map[node_template]:
                             node_circuit_perm = control_perm_q + not_control_perm_q
-                            l_q_sub[q] = node_circuit_perm[self.template_dag_dep.qindices_map[node_template].index(q)]
+                            l_q_sub[q] = node_circuit_perm[
+                                self.template_dag_dep.qindices_map[node_template].index(q)
+                            ]
                         l_q.append(l_q_sub)
         # Not controlled
         else:
@@ -106,18 +110,27 @@ class TemplateMatching:
             if node_template.op.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
                 l_q_sub = [-1] * n_qubits_t
                 for q in self.template_dag_dep.qindices_map[node_template]:
-                    l_q_sub[q] = self.circuit_dag_dep.qindices_map[node_circuit][self.template_dag_dep.qindices_map[node_template].index(q)]
+                    l_q_sub[q] = self.circuit_dag_dep.qindices_map[node_circuit][
+                        self.template_dag_dep.qindices_map[node_template].index(q)
+                    ]
                 l_q.append(l_q_sub)
             # Not symmetric
             else:
-                for perm_q in itertools.permutations(self.circuit_dag_dep.qindices_map[node_circuit]):
+                for perm_q in itertools.permutations(
+                    self.circuit_dag_dep.qindices_map[node_circuit]
+                ):
                     l_q_sub = [-1] * n_qubits_t
                     for q in self.template_dag_dep.qindices_map[node_template]:
-                        l_q_sub[q] = perm_q[self.template_dag_dep.qindices_map[node_template].index(q)]
+                        l_q_sub[q] = perm_q[
+                            self.template_dag_dep.qindices_map[node_template].index(q)
+                        ]
                     l_q.append(l_q_sub)
 
         # Classical control
-        if not self.template_dag_dep.cindices_map[node_template] or not self.circuit_dag_dep.cindices_map[node_template]:
+        if (
+            not self.template_dag_dep.cindices_map[node_template]
+            or not self.circuit_dag_dep.cindices_map[node_template]
+        ):
             l_c = []
         else:
             l_c = [-1] * n_clbits_t
@@ -257,11 +270,19 @@ class TemplateMatching:
                     self.template_dag_dep.get_node(template_index).op
                 ):
 
-                    qarg_c = self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(circuit_index)]
-                    carg_c = self.circuit_dag_dep.cindices_map[self.circuit_dag_dep.get_node(circuit_index)]
+                    qarg_c = self.circuit_dag_dep.qindices_map[
+                        self.circuit_dag_dep.get_node(circuit_index)
+                    ]
+                    carg_c = self.circuit_dag_dep.cindices_map[
+                        self.circuit_dag_dep.get_node(circuit_index)
+                    ]
 
-                    qarg_t = self.template_dag_dep.qindices_map[self.template_dag_dep.get_node(template_index)]
-                    carg_t = self.template_dag_dep.cindices_map[self.template_dag_dep.get_node(template_index)]
+                    qarg_t = self.template_dag_dep.qindices_map[
+                        self.template_dag_dep.get_node(template_index)
+                    ]
+                    carg_t = self.template_dag_dep.cindices_map[
+                        self.template_dag_dep.get_node(template_index)
+                    ]
 
                     node_id_c = circuit_index
                     node_id_t = template_index
