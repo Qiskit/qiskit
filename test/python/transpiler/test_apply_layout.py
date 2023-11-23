@@ -21,7 +21,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
-from qiskit.providers.fake_provider import FakeVigoV2
+from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.transpiler import PassManager
 
 
@@ -125,7 +125,7 @@ class TestApplyLayout(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
         initial_pm = PassManager([SetLayout([1, 3, 4])])
-        cmap = FakeVigoV2().coupling_map
+        cmap = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=5).coupling_map
         initial_pm += common.generate_embed_passmanager(cmap)
         first_layout_circ = initial_pm.run(qc)
         out_pass = ApplyLayout()

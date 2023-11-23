@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,8 +20,28 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTokyo, FakeYorktownV2
+from qiskit.providers.fake_provider.fake_generic import GenericTarget
 from qiskit.utils import optionals
+
+# fmt: off
+TENERIFE_CMAP = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
+RUESCHLIKON_CMAP = [[1, 0],  [1, 2],   [2, 3],  [3, 4],   [3, 14], [5, 4],
+                    [6, 5],  [6, 7],   [6, 11], [7, 10],  [8, 7],  [9, 8],
+                    [9, 10], [11, 10], [12, 5], [12, 11], [12, 13],
+                    [13, 4], [13, 14], [15, 0], [15, 2],  [15, 14]]
+TOKYO_CMAP = [[0, 1],   [0, 5],   [1, 0],   [1, 2],   [1, 6],   [1, 7],
+              [2, 1],   [2, 6],   [3, 8],   [4, 8],   [4, 9],   [5, 0],
+              [5, 6],   [5, 10],  [5, 11],  [6, 1],   [6, 2],   [6, 5],
+              [6,  7],  [6, 10],  [6, 11],  [7, 1],   [7, 6],   [7, 8],
+              [7, 12],  [8, 3],   [8, 4],   [8, 7],   [8, 9],   [8, 12],
+              [8, 13],  [9, 4],   [9, 8],   [10, 5],  [10, 6],  [10, 11],
+              [10, 15], [11, 5],  [11, 6],  [11, 10], [11, 12], [11, 16],
+              [11, 17], [12, 7],  [12, 8],  [12, 11], [12, 13], [12, 16],
+              [13,  8], [13, 12], [13, 14], [13, 18], [13, 19], [14, 13],
+              [14, 18], [14, 19], [15, 10], [15, 16], [16, 11], [16, 12],
+              [16, 15], [16, 17], [17, 11], [17, 16], [17, 18],
+              [18, 13], [18, 14], [18, 17], [19, 13], [19, 14]]
+# fmt: on
 
 
 @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
@@ -56,8 +76,7 @@ class TestCSPLayout(QiskitTestCase):
               |   /
                4
         """
-        cmap5 = FakeTenerife().configuration().coupling_map
-
+        cmap5 = TENERIFE_CMAP
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
@@ -82,13 +101,31 @@ class TestCSPLayout(QiskitTestCase):
               |   /
                4
         """
-        target = FakeYorktownV2().target
+        yorktown_cm = [
+            [0, 1],
+            [0, 2],
+            [1, 0],
+            [1, 2],
+            [2, 0],
+            [2, 1],
+            [2, 3],
+            [2, 4],
+            [3, 2],
+            [3, 4],
+            [4, 2],
+            [4, 3],
+        ]
+        target = GenericTarget(
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            num_qubits=5,
+            coupling_map=CouplingMap(yorktown_cm),
+        )
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
         circuit.cx(qr[0], qr[2])  # qr0 -> qr2
-        circuit.cx(qr[1], qr[2])  # qr1 -> qr2
+        circuit.cx(qr[1], qr[2])  # qr1 -> qr2s
 
         dag = circuit_to_dag(circuit)
         pass_ = CSPLayout(target, strict_direction=False, seed=self.seed)
@@ -106,7 +143,7 @@ class TestCSPLayout(QiskitTestCase):
           |       |       |       |       |       |       |     |
         q0[2] - q1[4] -- 14 ---- 13 ---- 12 ---- 11 ---- 10 --- 9
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr0 = QuantumRegister(4, "q0")
         qr1 = QuantumRegister(5, "q1")
@@ -157,7 +194,7 @@ class TestCSPLayout(QiskitTestCase):
                ↑  ↙
                4
         """
-        cmap5 = FakeTenerife().configuration().coupling_map
+        cmap5 = TENERIFE_CMAP
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
@@ -181,7 +218,7 @@ class TestCSPLayout(QiskitTestCase):
           ↓       ↑      ↓      ↓       ↑       ↓        ↓      ↑
         q0[2] ← q1[4] → 14  ←  13   ←  12   →  11   →   10   ←  9
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr0 = QuantumRegister(4, "q0")
         qr1 = QuantumRegister(5, "q1")
@@ -213,7 +250,7 @@ class TestCSPLayout(QiskitTestCase):
                q0[0]
         q0[3] ↙     ↘ q0[4]
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
@@ -269,7 +306,7 @@ class TestCSPLayout(QiskitTestCase):
     def test_time_limit(self):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
-        coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
+        coupling_map = CouplingMap(TOKYO_CMAP)
         pass_ = CSPLayout(coupling_map, call_limit=None, time_limit=1)
 
         start = process_time()
@@ -282,7 +319,7 @@ class TestCSPLayout(QiskitTestCase):
     def test_call_limit(self):
         """Hard to solve situations hit the call limit"""
         dag = TestCSPLayout.create_hard_dag()
-        coupling_map = CouplingMap(FakeTokyo().configuration().coupling_map)
+        coupling_map = CouplingMap(TOKYO_CMAP)
         pass_ = CSPLayout(coupling_map, call_limit=1, time_limit=None)
 
         start = process_time()
@@ -297,7 +334,7 @@ class TestCSPLayout(QiskitTestCase):
         seed_1 = 42
         seed_2 = 43
 
-        cmap5 = FakeTenerife().configuration().coupling_map
+        cmap5 = TENERIFE_CMAP
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)

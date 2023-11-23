@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,10 +26,13 @@ from qiskit.test import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeMumbai
+from qiskit.providers.fake_provider.fake_generic import GenericTarget
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
+
+MUMBAI_CMAP = CouplingMap(FakeMumbai().configuration().coupling_map)
 
 
 @ddt
@@ -1531,7 +1534,11 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="stochastic",
             layout_method="dense",
             seed_transpiler=12342,
-            target=FakeMumbaiV2().target,
+            target=GenericTarget(
+                num_qubits=27,
+                basis_gates=["cx", "id", "rz", "sx", "x"],
+                coupling_map=MUMBAI_CMAP,
+            ),
         )
         self.assert_valid_circuit(tqc)
 

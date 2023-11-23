@@ -44,11 +44,11 @@ from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
-    FakeBackendV2,
+    FakeGeneric,
     FakeMumbaiFractionalCX,
     FakeVigo,
     FakeNairobi,
-    FakeGeneva,
+    FakeBackendV2,
 )
 
 
@@ -1304,7 +1304,7 @@ Instructions:
             )
 
     def test_default_instmap_has_no_custom_gate(self):
-        backend = FakeGeneva()
+        backend = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=27)
         target = backend.target
 
         # This copies .calibraiton of InstructionProperties of each instruction

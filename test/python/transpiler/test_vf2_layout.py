@@ -29,18 +29,41 @@ from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
-    FakeTenerife,
-    FakeVigoV2,
-    FakeRueschlikon,
-    FakeManhattan,
     FakeYorktown,
-    FakeGuadalupeV2,
+    FakeManhattan,
+    FakeGeneric,
 )
 from qiskit.circuit import Measure
 from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
+
+TENERIFE_CMAP = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
+RUESCHLIKON_CMAP = [
+    [1, 0],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [3, 14],
+    [5, 4],
+    [6, 5],
+    [6, 7],
+    [6, 11],
+    [7, 10],
+    [8, 7],
+    [9, 8],
+    [9, 10],
+    [11, 10],
+    [12, 5],
+    [12, 11],
+    [12, 13],
+    [13, 4],
+    [13, 14],
+    [15, 0],
+    [15, 2],
+    [15, 14],
+]
 
 
 class LayoutTestCase(QiskitTestCase):
@@ -332,7 +355,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
                q0[0]
         q0[3] ↙     ↘ q0[4]
         """
-        cmap16 = FakeRueschlikon().configuration().coupling_map
+        cmap16 = RUESCHLIKON_CMAP
 
         qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
@@ -356,7 +379,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         ↓    ↑    ↓    ↓    ↑    ↓    ↓   ↑
         0 ← 15 → 14 ← 13 ← 12 → 11 → 10 ← 9
         """
-        cmap16 = CouplingMap(FakeRueschlikon().configuration().coupling_map)
+        cmap16 = CouplingMap(RUESCHLIKON_CMAP)
 
         qr0 = QuantumRegister(4, "q0")
         qr1 = QuantumRegister(5, "q1")
@@ -379,7 +402,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
             ↑ ↙
             4
         """
-        cmap5 = CouplingMap(FakeTenerife().configuration().coupling_map)
+        cmap5 = CouplingMap(TENERIFE_CMAP)
 
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
@@ -399,7 +422,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
             ↑ ↙                     ↑  ↙
             4                      qr0
         """
-        cmap5 = CouplingMap(FakeTenerife().configuration().coupling_map)
+        cmap5 = CouplingMap(TENERIFE_CMAP)
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
@@ -423,7 +446,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
           |    |      |      |     |     |    |      |
         q1_2 - q1_3 - q0_0 - 13 - q0_3 - 11 - q1_4 - q0_2
         """
-        cmap16 = CouplingMap(FakeRueschlikon().configuration().coupling_map)
+        cmap16 = CouplingMap(RUESCHLIKON_CMAP)
 
         qr0 = QuantumRegister(4, "q0")
         qr1 = QuantumRegister(5, "q1")
@@ -446,7 +469,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
             ↑ ↙                 |   /
             4                   qr0
         """
-        cmap5 = CouplingMap(FakeTenerife().configuration().coupling_map)
+        cmap5 = CouplingMap(TENERIFE_CMAP)
 
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
@@ -461,7 +484,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
 
     def test_3q_circuit_vigo_with_custom_scores(self):
         """Test custom ErrorMap from analysis pass are used for scoring."""
-        backend = FakeVigoV2()
+        backend = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=5)
         target = backend.target
 
         class FakeScore(AnalysisPass):
@@ -534,7 +557,7 @@ class TestVF2LayoutOther(LayoutTestCase):
         seed_1 = 42
         seed_2 = 45
 
-        cmap5 = FakeTenerife().configuration().coupling_map
+        cmap5 = TENERIFE_CMAP
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
@@ -563,7 +586,7 @@ class TestVF2LayoutOther(LayoutTestCase):
         """The pass does not handle gates with more than 2 qubits"""
         seed_1 = 42
 
-        cmap5 = FakeTenerife().configuration().coupling_map
+        cmap5 = TENERIFE_CMAP
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
@@ -716,7 +739,7 @@ class TestMultipleTrials(QiskitTestCase):
 
         Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8667
         """
-        backend = FakeGuadalupeV2()
+        backend = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=16)
         qr = QuantumRegister(16, name="qr")
         cr = ClassicalRegister(5)
         qc = QuantumCircuit(qr, cr)
