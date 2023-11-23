@@ -19,6 +19,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from qiskit import pulse
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.circuit import Measure, Parameter, Delay, Reset, QuantumCircuit, Instruction
 from qiskit.circuit.controlflow import (
     IfElseOp,
@@ -77,8 +78,7 @@ class GenericTarget(Target):
                 (defaults to False).
 
             calibrate_gates (list[str] | None): List of gate names which should contain
-                default calibration entries (overriden if an ``instruction_schedule_map`` is
-                provided). These must be a subset of ``basis_gates``.
+                default calibration entries. These must be a subset of ``basis_gates``.
 
             rng (np.random.Generator): Optional fixed-seed generator for default random values.
         """
@@ -138,9 +138,9 @@ class GenericTarget(Target):
         # generate block of calibration defaults and add to target
         # Note: this could be improved if we could generate and add
         # calibration defaults per-gate, and not as a block.
-        if calibrate_gates is not None:
-            defaults = self._generate_calibration_defaults(calibrate_gates)
-            self.add_calibration_defaults(defaults)
+        defaults = self._generate_calibration_defaults(calibrate_gates)
+        inst_map = defaults.instruction_schedule_map
+        self.add_calibrations_from_instruction_schedule_map(inst_map)
 
     @property
     def supported_operations(self) -> dict[str, Instruction]:
@@ -222,7 +222,9 @@ class GenericTarget(Target):
 
         self.add_instruction(instruction, props)
 
-    def add_calibration_defaults(self, defaults: PulseDefaults) -> None:
+    def add_calibrations_from_instruction_schedule_map(
+        self, inst_map: InstructionScheduleMap
+    ) -> None:
         """Add calibration entries from provided pulse defaults to target.
 
         Args:
@@ -231,7 +233,6 @@ class GenericTarget(Target):
         Returns:
             None
         """
-        inst_map = defaults.instruction_schedule_map
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
                 try:
@@ -257,6 +258,7 @@ class GenericTarget(Target):
         Returns:
             Corresponding PulseDefaults
         """
+        calibrate_gates = calibrate_gates or []
         measure_command_sequence = [
             PulseQobjInstruction(
                 name="acquire",
