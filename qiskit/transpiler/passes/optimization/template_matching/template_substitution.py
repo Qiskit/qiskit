@@ -388,6 +388,7 @@ class TemplateSubstitution:
             # Loop over the different matches.
             for group in self.substitution_list:
 
+
                 circuit_sub = group.circuit_config
                 template_inverse = group.template_config
 

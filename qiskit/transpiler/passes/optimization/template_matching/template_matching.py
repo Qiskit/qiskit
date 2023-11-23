@@ -253,7 +253,7 @@ class TemplateMatching:
         for template_index in range(0, self.template_dag_dep.size()):
             for circuit_index in range(0, self.circuit_dag_dep.size()):
                 # Operations match up to ParameterExpressions.
-                if self.circuit_dag_dep.get_node(circuit_index).op == (
+                if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
                     self.template_dag_dep.get_node(template_index).op
                 ):
 

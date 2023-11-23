@@ -326,7 +326,7 @@ class ForwardMatch:
             self.matched_nodes_list.append([self.circuit_dag_dep.node_map[v_first], v_first])
 
             # If the node is blocked and already matched go to the end
-            if self.isblocked[v[1]] or (self.matchedwith[v[1]] != []):
+            if self.isblocked[v[1]] | (self.matchedwith[v[1]] != []):
                 continue
 
             # Search for potential candidates in the template
@@ -382,7 +382,7 @@ class ForwardMatch:
 
                     # If the potential successors to visit are blocked or match, it is removed.
                     for potential_id in potential:
-                        if self.isblocked[self.circuit_dag_dep.get_node(potential_id)] or (
+                        if self.isblocked[self.circuit_dag_dep.get_node(potential_id)] | (
                             self.matchedwith[self.circuit_dag_dep.get_node(potential_id)] != []
                         ):
                             potential.remove(potential_id)
