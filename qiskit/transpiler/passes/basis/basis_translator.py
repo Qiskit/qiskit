@@ -217,7 +217,9 @@ class BasisTranslator(TransformationPass):
                 f"{[x[0] for x in source_basis]} to the backend's (or manually specified) target "
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
-                "used. For more details on this error see: `translation_errors`_"
+                "used. For more details on this error see: "
+                "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                "BasisTranslator#translation-errors"
             )
 
         # Compose found path into a set of instruction substitution rules.
