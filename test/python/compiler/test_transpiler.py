@@ -75,6 +75,7 @@ from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.providers.fake_provider import (
     FakeMelbourne,
     FakeRueschlikon,
+    FakeVigo,
 )
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
@@ -2189,12 +2190,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 vf2_post_layout_called = True
                 self.assertIsNotNone(kwargs["property_set"]["post_layout"])
 
-        backend = FakeGeneric(
-            num_qubits=5,
-            basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
-            seed=5,
-        )
+        backend = FakeVigo()
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
@@ -2202,7 +2198,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([2, 3, 1], _get_index_layout(tqc, qubits))
+        self.assertEqual([3, 2, 1], _get_index_layout(tqc, qubits))
 
 
 class StreamHandlerRaiseException(StreamHandler):
