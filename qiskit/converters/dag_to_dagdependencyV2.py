@@ -19,8 +19,6 @@ def dag_to_dagdependencyV2(dag):
 
     Args:
         dag (DAGCircuit): the input dag.
-        create_preds_and_succs (bool): whether to construct lists of
-            predecessors and successors for every node.
 
     Return:
         DAGDependencyV2: the DAG representing the input circuit as a dag dependency.

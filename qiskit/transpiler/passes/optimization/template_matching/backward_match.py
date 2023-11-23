@@ -125,8 +125,8 @@ class BackwardMatch:
         qubits,
         clbits=None,
         heuristics_backward_param=None,
-        matchedwith={},
-        isblocked={},
+        matchedwith=None,
+        isblocked=None,
     ):
         """
         Create a ForwardMatch class with necessary arguments.
@@ -139,7 +139,9 @@ class BackwardMatch:
             qubits (list): list of considered qubits in the circuit.
             clbits (list): list of considered clbits in the circuit.
             heuristics_backward_param (list): list that contains the two parameters for
-            applying the heuristics (length and survivor).
+                applying the heuristics (length and survivor).
+            matchedwith (dict): map of nodes matched for each circuit dag node
+            isblocked (dict): map of nodes blocked
         """
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep

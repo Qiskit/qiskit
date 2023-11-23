@@ -16,11 +16,12 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict, namedtuple
-from typing import Dict, Generator, Any, List
+from typing import Dict, List
 
+import numpy as np
 import rustworkx as rx
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Qubit, Clbit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Qubit, Clbit, Gate, ParameterExpression
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.bit import Bit
 from qiskit.dagcircuit import DAGOpNode
@@ -127,8 +128,6 @@ class DAGDependencyV2:
         Args:
             angle (float, ParameterExpression)
         """
-        from qiskit.circuit.parameterexpression import ParameterExpression
-
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
         else:
@@ -532,7 +531,7 @@ class DAGDependencyV2:
         Returns:
             List: all successor id's as a sorted list
         """
-        return sorted(list(self._multi_graph.successor_indices(node_id)))
+        return sorted(self._multi_graph.successor_indices(node_id))
 
     def get_predecessors(self, node_id):
         """
@@ -544,7 +543,7 @@ class DAGDependencyV2:
         Returns:
             List: all predecessor id's as a sorted list
         """
-        return sorted(list(self._multi_graph.predecessor_indices(node_id)))
+        return sorted(self._multi_graph.predecessor_indices(node_id))
 
     def get_descendants(self, node_id):
         """

@@ -22,7 +22,6 @@ from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependencyV2 import DAGDependencyV2
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
-from qiskit.converters import dagdependency_to_circuit
 
 
 class SubstitutionConfig:

@@ -20,8 +20,6 @@ def circuit_to_dagdependencyV2(circuit):
 
     Args:
         circuit (QuantumCircuit): the input circuit.
-        create_preds_and_succs (bool): whether to construct lists of
-            predecessors and successors for every node.
 
     Return:
         DAGDependencyV2: the DAG representing the input circuit as a dag dependency.
