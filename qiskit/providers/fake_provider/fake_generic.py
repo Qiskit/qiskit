@@ -111,9 +111,10 @@ class GenericTarget(Target):
         )
 
         # ensure that Reset, Delay and Measure are in basis_gates
-        self._basis_gates = set(basis_gates)
+        self._basis_gates = basis_gates
         for name in ["reset", "delay", "measure"]:
-            self._basis_gates.add(name)
+            if name not in self._basis_gates:
+                self._basis_gates.append(name)
 
         # iterate over gates, generate noise params. from defaults
         # and add instructions to target
