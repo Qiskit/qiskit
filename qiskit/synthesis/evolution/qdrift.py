@@ -14,7 +14,6 @@
 
 from typing import Union, Optional, Callable
 import numpy as np
-import itertools
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -80,9 +79,6 @@ class QDrift(ProductFormula):
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        # Save the signs of the coefficients
-        signs = [1 if coeff >= 0 else -1 for coeff in coeffs]
-
         num_gates = int(np.ceil(2 * (lambd**2) * (time**2) * self.reps))
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
@@ -93,8 +89,6 @@ class QDrift(ProductFormula):
             size=(num_gates,),
             p=weights / lambd,
         )
-        # Update the coefficients of sampled_ops
-        self.sampled_ops = [(op, evolution_time) for op, coeff in self.sampled_ops]
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
@@ -107,7 +101,7 @@ class QDrift(ProductFormula):
         evolution_circuit = None
         if(self.save_signs):
             evolution_circuit = PauliEvolutionGate(
-                sum(SparsePauliOp(sign * op) for (op, coeff), sign in zip(self.sampled_ops, itertools.repeat(signs))),
+                sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
                 time=evolution_time,
                 synthesis=lie_trotter,
             ).definition
