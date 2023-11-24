@@ -21,7 +21,6 @@ from qiskit import QuantumCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler import PassManager
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import (
     RXGate,
     HGate,
@@ -33,6 +32,7 @@ from qiskit.circuit.library import (
     CZGate,
     RZGate,
 )
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInverseCancellation(QiskitTestCase):
