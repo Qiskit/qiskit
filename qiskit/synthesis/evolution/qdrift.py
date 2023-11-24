@@ -56,7 +56,6 @@ class QDrift(ProductFormula):
                 coefficients of the original evolution operator consistent with the
                 Trotterized circuit.
             seed: An optional seed for reproducibility of the random sampling process.
-            
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
@@ -99,7 +98,7 @@ class QDrift(ProductFormula):
         )
 
         evolution_circuit = None
-        if(self.save_signs):
+        if self.save_signs:
             evolution_circuit = PauliEvolutionGate(
                 sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
                 time=evolution_time,
