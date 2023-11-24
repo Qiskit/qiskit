@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    The following algorithm utilities in :mod:`qiskit.utils` have been removed
+    from the codebase:
+
+    * ``algorithm_globals``
+    * ``qiskit.utils.validation``
+
+    They were deprecated in Qiskit 0.45 as a consequence of the migration
+    of ``qiskit.algorithms`` to a standalone
+    `package <https://github.com/qiskit-community/qiskit-algorithms>`_, where
+    these utils have also been migrated. The can be found in the new package
+    under ``qiskit_algorithms.utils``.
