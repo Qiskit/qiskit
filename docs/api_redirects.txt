@@ -1,7 +1,3 @@
-qiskit.algorithms.AlgorithmError algorithms
-qiskit.algorithms.eval_observables algorithms
-qiskit.algorithms.estimate_observables algorithms
-
 qiskit.assembler.assemble_circuits assembler
 qiskit.assembler.assemble_schedules assembler
 qiskit.assembler.disassemble assembler
@@ -96,11 +92,6 @@ qiskit.converters.dag_to_dagdependency converters
 qiskit.converters.dagdependency_to_dag converters
 
 qiskit.dagcircuit.DAGCircuitError dagcircuit
-
-qiskit.opflow.commutator opflow
-qiskit.opflow.anti_commutator opflow
-qiskit.opflow.double_commutator opflow
-qiskit.opflow.OpflowError opflow
 
 qiskit.providers.QiskitBackendNotFoundError providers
 qiskit.providers.BackendPropertyError providers
