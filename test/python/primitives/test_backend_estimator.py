@@ -394,7 +394,7 @@ class TestBackendEstimator(QiskitTestCase):
             value = estimator.run(qc, op, shots=10000).result().values[0]
 
             if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
-                self.assertEqual(value, -0.9154)
+                self.assertEqual(value, -0.916)
             else:
                 self.assertEqual(value, -1)
 
@@ -410,7 +410,7 @@ class TestBackendEstimator(QiskitTestCase):
             value = estimator.run(qc, op, shots=10000).result().values[0]
 
             if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
-                self.assertEqual(value, -0.8908)
+                self.assertEqual(value, -0.8902)
             else:
                 self.assertEqual(value, -1)
 

@@ -26,7 +26,7 @@ from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePaul
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
-from qiskit.providers.fake_provider import FakeNairobiV2
+from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.compiler.transpiler import transpile
 
 
@@ -1033,7 +1033,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test the apply_layout method with a transpiler layout."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
+        backend = FakeGeneric(num_qubits=7, basis_gates=["cx", "x", "id", "sx", "rz"])
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
         permuted_op = op.apply_layout(transpiled_psi.layout)
         identity_op = SparsePauliOp("I" * 7)
@@ -1048,7 +1048,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test using the apply_layout method with an estimator workflow."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
+        backend = FakeGeneric(num_qubits=7, basis_gates=["cx", "x", "id", "sx", "rz"], seed=0)
         backend.set_options(seed_simulator=123)
         estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
@@ -1056,7 +1056,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         permuted_op = op.apply_layout(transpiled_psi.layout)
         job = estimator.run(transpiled_psi, permuted_op, thetas)
         res = job.result().values
-        np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
+        np.testing.assert_allclose(res, [5.859375], rtol=0.5, atol=0.2)
 
     def test_apply_layout_invalid_qubits_list(self):
         """Test that apply_layout with an invalid qubit count raises."""

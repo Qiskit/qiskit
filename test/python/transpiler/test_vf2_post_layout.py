@@ -300,8 +300,12 @@ class TestVF2PostLayout(QiskitTestCase):
     def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):
         """Test best mappings with multiple registers"""
         backend = FakeGeneric(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CM
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CM, seed=123
         )
+
+        for i in range(len(backend.target.instructions)):
+            print(backend.target.instructions[i], backend.target.instruction_properties(i))
+
         qr_a = QuantumRegister(2)
         qr_b = QuantumRegister(3)
         qc = QuantumCircuit(qr_a, qr_b)

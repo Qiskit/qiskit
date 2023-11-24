@@ -434,7 +434,7 @@ class TestSabrePreLayout(QiskitTestCase):
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [1, 6, 5, 10, 11, 12, 16, 17, 18, 13, 14, 9, 8, 3, 2, 0],
+            [8, 9, 14, 13, 18, 19, 17, 16, 11, 10, 5, 6, 1, 2, 3, 7],
         )
 
 

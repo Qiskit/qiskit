@@ -77,8 +77,8 @@ class GenericTarget(Target):
             control_flow (bool): Flag to enable control flow directives on the backend
                 (defaults to False).
 
-            calibrate_gates (list[str] | None): List of gate names which should contain
-                default calibration entries. These must be a subset of ``basis_gates``.
+            calibrate_gates (list[str] | None): List of gate names (subset of basis_gates)
+                to add default calibration entries to.
 
             rng (np.random.Generator): Optional fixed-seed generator for default random values.
         """
@@ -111,9 +111,10 @@ class GenericTarget(Target):
         )
 
         # ensure that Reset, Delay and Measure are in basis_gates
-        self._basis_gates = set(basis_gates)
+        self._basis_gates = basis_gates
         for name in ["reset", "delay", "measure"]:
-            self._basis_gates.add(name)
+            if name not in self._basis_gates:
+                self._basis_gates.append(name)
 
         # iterate over gates, generate noise params. from defaults
         # and add instructions to target
@@ -121,7 +122,7 @@ class GenericTarget(Target):
             if name not in self.supported_operations:
                 raise QiskitError(
                     f"Provided base gate {name} is not a supported "
-                    f"operation ({self.supported_operations})."
+                    f"operation ({self.supported_operations.keys()})."
                 )
             gate = self.supported_operations[name]
             noise_params = self.noise_defaults[name]
@@ -228,7 +229,7 @@ class GenericTarget(Target):
         """Add calibration entries from provided pulse defaults to target.
 
         Args:
-            defaults (PulseDefaults): pulse defaults with instruction schedule map
+            inst_map (InstructionScheduleMap): pulse defaults with instruction schedule map
 
         Returns:
             None
@@ -390,9 +391,8 @@ class FakeGeneric(BackendV2):
             control_flow (bool): Flag to enable control flow directives on the backend
                 (defaults to False).
 
-            calibrate_gates (list[str] | None): List of gate names which should contain
-                default calibration entries (overriden if an ``instruction_schedule_map`` is
-                provided). These must be a subset of ``basis_gates``.
+            calibrate_gates (list[str] | None): List of gate names (subset of basis_gates)
+                to add default calibration entries to.
 
             seed (int): Optional seed for generation of default values.
         """
