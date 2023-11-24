@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added `save_signs` arguement to qdrift synthesis to perserve signs from
+    the original evolution operator
+    
