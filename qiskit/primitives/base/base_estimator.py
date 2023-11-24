@@ -85,7 +85,6 @@ from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
-import typing
 
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
@@ -96,9 +95,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_primitive import BasePrimitive
 from . import validation
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
 
 T = TypeVar("T", bound=Job)
 
@@ -149,7 +145,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
     def run(
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> T:
@@ -218,14 +214,14 @@ class BaseEstimator(BasePrimitive, Generic[T]):
     @staticmethod
     @deprecate_func(since="0.46.0")
     def _validate_observables(
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
     ) -> tuple[SparsePauliOp, ...]:
         return validation._validate_observables(observables)
 
     @staticmethod
     @deprecate_func(since="0.46.0")
     def _cross_validate_circuits_observables(
-        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
     ) -> None:
         return validation._cross_validate_circuits_observables(circuits, observables)
 
