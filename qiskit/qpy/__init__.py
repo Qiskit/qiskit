@@ -921,7 +921,7 @@ the :class:`.EvolutionSynthesis` class used by the gate.
 SPARSE_PAULI_OP_LIST_ELEM
 -------------------------
 
-This represents an instance of :class:`.PauliSumOp`.
+This represents an instance of :class:`.SparsePauliOp`.
 
 
 .. code-block:: c
