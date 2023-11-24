@@ -14,6 +14,7 @@
 
 from typing import Union, Optional, Callable
 import numpy as np
+import itertools
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -39,6 +40,7 @@ class QDrift(ProductFormula):
         atomic_evolution: Optional[
             Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
         ] = None,
+        save_signs: bool = False,
         seed: Optional[int] = None,
     ) -> None:
         r"""
@@ -51,10 +53,15 @@ class QDrift(ProductFormula):
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
+            save_signs: When synthesizing the evolution of the qDRIFT, keep the signs of the
+                coefficients of the original evolution operator consistent with the
+                Trotterized circuit.
             seed: An optional seed for reproducibility of the random sampling process.
+            
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
+        self.save_signs = save_signs
         self.rng = np.random.default_rng(seed)
 
     def synthesize(self, evolution):
@@ -72,6 +79,9 @@ class QDrift(ProductFormula):
         # We artificially make the weights positive
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
+
+        # Save the signs of the coefficients
+        signs = [1 if coeff >= 0 else -1 for coeff in coeffs]
 
         num_gates = int(np.ceil(2 * (lambd**2) * (time**2) * self.reps))
         # The protocol calls for the removal of the individual coefficients,
@@ -93,10 +103,19 @@ class QDrift(ProductFormula):
         lie_trotter = LieTrotter(
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
-        evolution_circuit = PauliEvolutionGate(
-            sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
-            time=evolution_time,
-            synthesis=lie_trotter,
-        ).definition
+
+        evolution_circuit = None
+        if(self.save_signs):
+            evolution_circuit = PauliEvolutionGate(
+                sum(SparsePauliOp(sign * op) for (op, coeff), sign in zip(self.sampled_ops, itertools.repeat(signs))),
+                time=evolution_time,
+                synthesis=lie_trotter,
+            ).definition
+        else:
+            evolution_circuit = PauliEvolutionGate(
+                sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
+                time=evolution_time,
+                synthesis=lie_trotter,
+            ).definition
 
         return evolution_circuit
