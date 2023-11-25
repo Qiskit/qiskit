@@ -581,7 +581,7 @@ class DAGDependencyV2:
         Yield nodes in topological order.
 
         Returns:
-            generator(DAGNode): node in topological order.
+            generator(DAGOpNode): nodes in topological order.
         """
 
         def _key(x):
@@ -707,19 +707,3 @@ class DAGDependencyV2:
             self._decrement_op(nd.op)
 
         return new_node
-
-
-def merge_no_duplicates(*iterables):
-    """Merge K list without duplicate using python heapq ordered merging
-
-    Args:
-        *iterables: A list of k sorted lists
-
-    Yields:
-        Iterator: List from the merging of the k ones (without duplicates
-    """
-    last = object()
-    for val in heapq.merge(*iterables):
-        if val != last:
-            last = val
-            yield val
