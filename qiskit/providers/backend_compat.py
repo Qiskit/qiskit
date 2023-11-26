@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 import logging
-from typing import List, Iterable, Any, Dict, Optional, Union, Tuple
+from typing import List, Iterable, Any, Dict, Optional, Tuple
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
@@ -31,16 +31,16 @@ logger = logging.getLogger(__name__)
 
 def convert_to_target(
     configuration: BackendConfiguration,
-    properties: Optional[Union[BackendProperties, Dict]] = None,
-    defaults: Optional[Union[PulseDefaults, Dict]] = None,
+    properties: BackendProperties = None,
+    defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
     add_delay: bool = True,
     filter_faulty: bool = True,
 ):
     """Decode transpiler target from backend data set.
 
-    This function directly generates ``Target`` instance without generating
-    intermediate legacy objects such as ``BackendProperties`` and ``PulseDefaults``.
+    This function generates ``Target`` instance from intermediate
+    legacy objects such as ``BackendProperties`` and ``PulseDefaults``.
 
     .. note::
         Passing in legacy objects like BackendProperties as properties and PulseDefaults
