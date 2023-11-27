@@ -23,7 +23,7 @@ from qiskit.utils.deprecation import deprecate_func
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def normalize_vector(vector):
     """
@@ -36,7 +36,7 @@ def normalize_vector(vector):
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def is_power_of_2(num):
     """
@@ -49,7 +49,7 @@ def is_power_of_2(num):
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def log2(num):
     """
@@ -70,7 +70,7 @@ def log2(num):
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def is_power(num, return_decomposition=False):
     """
@@ -109,7 +109,7 @@ def is_power(num, return_decomposition=False):
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def next_power_of_2_base(n):
     """
@@ -130,7 +130,7 @@ def next_power_of_2_base(n):
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
     """Return a sequence of transpositions, corresponding to the permutation.
@@ -173,7 +173,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
-    "two modules deprecated since Qiskit Terra 0.24.0.",
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
 )
 def triu_to_dense(triu: np.ndarray) -> np.ndarray:
     """Converts upper triangular part of matrix to dense matrix.
