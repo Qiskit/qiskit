@@ -18,3 +18,11 @@ upgrade:
     :meth:`.QuantumCircuit.from_qasm_str` constructor methods and then
     converting that :class:`.QuantumCircuit` into a :class:`.DAGCircuit` with
     :func:`.circuit_to_dag`.
+  - |
+    Removed the ``QuantumCircuit.qasm()`` method to generate a QASM2
+    representation of the :class:`.QuantumCircuit` object. Instead the
+    :func:`.qasm2.dump` or :func:`.qasm2.dumps` functions should be used. This
+    function was marked as deprecated in the 0.46.0 release. If you were using
+    the ``QuantumCircuit.qasm()`` method to generate pygments formatted output
+    you should instead look at the standalone ``openqasm-pygments`` package
+    to provide this functionality.
