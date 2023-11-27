@@ -131,67 +131,6 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     return properties
 
 
-@_optionals.HAS_PYGMENTS.require_in_call
-@deprecate_func(
-    since="0.25.0",
-    additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
-    package_name="qiskit-terra",
-)
-def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
-    """Generate an OpenQASM widget with header for a quantum circuit.
-
-    Args:
-        circuit: Input quantum circuit.
-
-    Returns:
-        Output widget.
-    """
-    import pygments
-    from pygments.formatters import HtmlFormatter
-    from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
-
-    qasm_code = circuit.qasm()
-    code = pygments.highlight(qasm_code, OpenQASMLexer(), HtmlFormatter())
-
-    html_style = HtmlFormatter(style=QasmHTMLStyle).get_style_defs(".highlight")
-
-    code_style = (
-        """
-    <style>
-     .highlight
-                {
-                    font-family: monospace;
-                    font-size: 14px;
-                    line-height: 1.7em;
-                }
-     .highlight .err { color: #000000; background-color: #FFFFFF }
-    %s
-    </style>
-    """
-        % html_style
-    )
-
-    out = wid.HTML(
-        code_style + code,
-        layout=wid.Layout(max_height="500px", height="auto", overflow="scroll scroll"),
-    )
-
-    out_label = wid.HTML(
-        f"<p style='{head_style}'>OpenQASM</p>",
-        layout=wid.Layout(margin="0px 0px 10px 0px"),
-    )
-
-    qasm = wid.VBox(
-        children=[out_label, out],
-        layout=wid.Layout(
-            height="auto", max_height="500px", width="60%", margin="0px 0px 0px 20px"
-        ),
-    )
-
-    qasm._code_length = len(qasm_code.split("\n"))
-    return qasm
-
-
 @deprecate_func(
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",

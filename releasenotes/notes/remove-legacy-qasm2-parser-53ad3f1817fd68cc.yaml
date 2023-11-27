@@ -26,3 +26,9 @@ upgrade:
     the ``QuantumCircuit.qasm()`` method to generate pygments formatted output
     you should instead look at the standalone ``openqasm-pygments`` package
     to provide this functionality.
+  - |
+    Removed the ``qiskit.tools.jupyter.library.qasm_widget` function which
+    was used to visualize qasm strings in a jupyter notebook. This function
+    was marked as deprecated as part of the Qiskit 0.44.0 release. The function
+    was originally used for building documentation but hasn't been used in some
+    time and has been removed from Qiskit.
