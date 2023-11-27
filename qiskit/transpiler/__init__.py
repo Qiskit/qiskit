@@ -115,7 +115,6 @@ also add initial logical optimization prior to routing, you would do something l
         PadDynamicalDecoupling,
     )
 
-    backend_durations = backend.target.durations()
     dd_sequence = [XGate(), XGate()]
     scheduling_pm = PassManager(
         [
@@ -143,8 +142,8 @@ also add initial logical optimization prior to routing, you would do something l
     pass_manager.scheduling = scheduling_pm
 
 Now, when the staged pass manager is run via the :meth:`~.StagedPassManager.run` method,
-the `logical_opt` pass manager will be called before the `layout` stage, and the
-`scheduling_pm` pass manager will be used for the `scheduling` stage instead of the default.
+the ``logical_opt`` pass manager will be called before the ``layout`` stage, and the
+``scheduling_pm`` pass manager will be used for the ``scheduling`` stage instead of the default.
 
 Custom Pass Managers
 ====================
