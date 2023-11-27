@@ -168,7 +168,7 @@ jobs:
         with:
           packages-dir: wheelhouse/
   sdist:
-    name: Build and publish terra sdist
+    name: Build and publish sdist
     runs-on: ${{ matrix.os }}
     needs: ["upload_shared_wheels"]
     environment: release
@@ -190,31 +190,3 @@ jobs:
         run: python -m build . --sdist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-  metapackage:
-    name: Build and publish terra sdist
-    runs-on: ${{ matrix.os }}
-    needs: ["sdist"]
-    environment: release
-    permissions:
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: '3.10'
-      - name: Install deps
-        run: pip install -U build
-      - name: Build packages
-        run: |
-          set -e
-          cd qiskit_pkg
-          python -m build .
-      - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: qiskit_pkg/dist
