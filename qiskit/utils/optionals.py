@@ -103,7 +103,7 @@ External Python Libraries
         <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
         change-over period, it was sometimes convenient to convert things into the Python-only
         `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
-        `Qiskit Nature <https://qiskit.org/documentation/nature/>`__ still use NetworkX.
+        `Qiskit Nature <https://qiskit.org/ecosystem/nature/>`__ still use NetworkX.
 
     * - .. py:data:: HAS_NLOPT
       - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,

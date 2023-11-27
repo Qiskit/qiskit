@@ -189,9 +189,6 @@ from ..containers.options import BasePrimitiveOptionsLike
 from . import validation
 from .base_primitive import BasePrimitive, BasePrimitiveV2
 
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
-
 T = TypeVar("T", bound=Job)
 
 
@@ -241,7 +238,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
     def run(
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> T:
@@ -310,14 +307,14 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
     @staticmethod
     @deprecate_func(since="0.46.0")
     def _validate_observables(
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
     ) -> tuple[SparsePauliOp, ...]:
         return validation._validate_observables(observables)
 
     @staticmethod
     @deprecate_func(since="0.46.0")
     def _cross_validate_circuits_observables(
-        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
     ) -> None:
         return validation._cross_validate_circuits_observables(circuits, observables)
 

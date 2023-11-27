@@ -8,5 +8,5 @@ dill>=0.3
 python-dateutil>=2.8.0
 stevedore>=3.0.0
 typing-extensions; python_version<'3.11'
-symengine>=0.9, <0.10
+symengine>=0.9,!=0.10.0
 pydantic
