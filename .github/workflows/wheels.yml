@@ -185,7 +185,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install deps
-        run: pip install -U twine setuptools-rust wheel build
+        run: pip install -U build
       - name: Build sdist
         run: python -m build . --sdist
       - name: Publish package distributions to PyPI
@@ -208,7 +208,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install deps
-        run: pip install -U twine setuptools-rust wheel build
+        run: pip install -U build
       - name: Build packages
         run: |
           set -e
