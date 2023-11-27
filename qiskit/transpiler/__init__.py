@@ -119,8 +119,8 @@ also add initial logical optimization prior to routing, you would do something l
     dd_sequence = [XGate(), XGate()]
     scheduling_pm = PassManager(
         [
-            ALAPScheduleAnalysis(backend_durations),
-            PadDynamicalDecoupling(backend_durations, dd_sequence),
+            ALAPScheduleAnalysis(target=backend.target),
+            PadDynamicalDecoupling(target=backend.target, dd_sequence=dd_sequence),
         ]
     )
     inverse_gate_list = [
