@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The following tools in :mod:`qiskit.utils` have been deprecated:
+
+      * Utils in ``qiskit.utils.arithmetic.py``
+      * Utils in ``qiskit.utils.circuit_utils.py``
+      * Utils in ``qiskit.utils.entangler_map.py``
+      * Utils in ``qiskit.utils.name_unnamed_args.py``
+
+    These functions were used exclusively in the context of ``qiskit.algorithms`` and
+    ``qiskit.opflow``, and will be removed following the removals of
+    ``qiskit.algorithms`` and  ``qiskit.opflow`` in Qiskit 1.0.
