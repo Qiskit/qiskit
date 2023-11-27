@@ -26,7 +26,7 @@ class ResetAfterMeasureSimplification(TransformationPass):
 
     This optimization is suitable for use on IBM Quantum systems where the
     reset operation is performed by a measurement followed by a conditional
-    x-gate. It might not be desireable on other backends if reset is implemented
+    x-gate. It might not be desirable on other backends if reset is implemented
     differently.
     """
 
@@ -36,8 +36,7 @@ class ResetAfterMeasureSimplification(TransformationPass):
         for node in dag.op_nodes(Measure):
             succ = next(dag.quantum_successors(node))
             if isinstance(succ, DAGOpNode) and isinstance(succ.op, Reset):
-                new_x = XGate()
-                new_x.condition = (node.cargs[0], 1)
+                new_x = XGate().c_if(node.cargs[0], 1)
                 new_dag = DAGCircuit()
                 new_dag.add_qubits(node.qargs)
                 new_dag.add_clbits(node.cargs)

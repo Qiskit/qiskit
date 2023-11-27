@@ -28,7 +28,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -300,6 +300,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         )
 
     _skip_target = False
+    _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
     # If a target is specified have it override any implicit selections from a backend
     if target is not None:
         if coupling_map is None:
@@ -335,10 +336,19 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
 
-    if inst_map is not None and inst_map.has_custom_gate() and target is not None:
+    if _given_inst_map and inst_map.has_custom_gate() and target is not None:
         # Do not mutate backend target
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
+
+    if translation_method == "unroller":
+        warnings.warn(
+            "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
+            "will be removed in a future release. Instead you should use the default "
+            "'translator' method or another plugin.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
@@ -445,7 +455,7 @@ def _check_circuits_coupling_map(circuits, cmap, backend):
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
         if max_qubits is not None and (num_qubits > max_qubits):
-            raise TranspilerError(
+            raise CircuitTooWideForTarget(
                 f"Number of qubits ({num_qubits}) in {circuit.name} "
                 f"is greater than maximum ({max_qubits}) in the coupling_map"
             )
@@ -502,10 +512,10 @@ def _parse_initial_layout(initial_layout):
         return initial_layout
     if isinstance(initial_layout, dict):
         return Layout(initial_layout)
+    initial_layout = list(initial_layout)
     if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
         return Layout.from_qubit_list(initial_layout)
-    else:
-        return initial_layout
+    return initial_layout
 
 
 def _parse_instruction_durations(backend, inst_durations, dt, circuit):

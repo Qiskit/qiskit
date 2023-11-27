@@ -14,6 +14,7 @@
 
 import itertools
 import unittest
+from ddt import ddt, data
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -23,6 +24,7 @@ from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler import transpile
+from qiskit.circuit.library import UCRXGate, UCRYGate, UCRZGate
 
 angles_list = [
     [0],
@@ -39,22 +41,28 @@ angles_list = [
 rot_axis_list = ["X", "Y", "Z"]
 
 
+@ddt
 class TestUCRXYZ(QiskitTestCase):
     """Qiskit tests for UCRXGate, UCRYGate and UCRZGate rotations gates."""
 
-    def test_ucy(self):
+    @data(True, False)
+    def test_ucy(self, use_method):
         """Test the decomposition of uniformly controlled rotations."""
+        methods = {"X": "ucrx", "Y": "ucry", "Z": "ucrz"}
+        gates = {"X": UCRXGate, "Y": UCRYGate, "Z": UCRZGate}
+
         for angles, rot_axis in itertools.product(angles_list, rot_axis_list):
             with self.subTest(angles=angles, rot_axis=rot_axis):
                 num_contr = int(np.log2(len(angles)))
                 q = QuantumRegister(num_contr + 1)
                 qc = QuantumCircuit(q)
-                if rot_axis == "X":
-                    qc.ucrx(angles, q[1 : num_contr + 1], q[0])
-                elif rot_axis == "Y":
-                    qc.ucry(angles, q[1 : num_contr + 1], q[0])
+                if use_method:
+                    with self.assertWarns(PendingDeprecationWarning):
+                        getattr(qc, methods[rot_axis])(angles, q[1 : num_contr + 1], q[0])
                 else:
-                    qc.ucrz(angles, q[1 : num_contr + 1], q[0])
+                    gate = gates[rot_axis](angles)
+                    qc.append(gate, q)
+
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
                 # Simulate the decomposed gate

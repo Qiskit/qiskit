@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The :class:`~.QuasiDistribution` values might include floating-point errors.
+    ``QuasiDistribution.__repr__`` rounds using :meth:`numpy.round`
+    and the parameter ``ndigits`` can be manipulated with the
+    class attribute ``__ndigits__``. The default is ``15``.

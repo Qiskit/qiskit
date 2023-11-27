@@ -393,7 +393,7 @@ class TwoQubitWeylDecomposition:
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         """Appends Ud(a, b, c) to the circuit.
 
-        Can be overriden in subclasses for special cases"""
+        Can be overridden in subclasses for special cases"""
         if not simplify or abs(self.a) > atol:
             circ.rxx(-self.a * 2, 0, 1)
         if not simplify or abs(self.b) > atol:
@@ -1086,7 +1086,7 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    @deprecate_arg("target", new_alias="unitary", since="0.23.0")
+    @deprecate_arg("target", new_alias="unitary", since="0.23.0", package_name="qiskit-terra")
     def __call__(
         self,
         unitary: Operator | np.ndarray,

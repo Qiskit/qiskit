@@ -19,6 +19,7 @@ import os
 import sys
 import unittest
 from logging import StreamHandler, getLogger
+
 from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
@@ -39,21 +40,31 @@ from qiskit.circuit import (
     SwitchCaseOp,
     WhileLoopOp,
 )
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
 from qiskit.circuit.classical import expr
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import (
     CXGate,
     CZGate,
+    ECRGate,
     HGate,
     RXGate,
     RYGate,
     RZGate,
+    SGate,
     SXGate,
+    SXdgGate,
+    SdgGate,
     U1Gate,
     U2Gate,
-    U3Gate,
     UGate,
     XGate,
+    ZGate,
 )
 from qiskit.circuit.measure import Measure
 from qiskit.compiler import transpile
@@ -76,7 +87,7 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.test import QiskitTestCase, slow_test
 from qiskit.tools import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -409,6 +420,28 @@ class TestTranspile(QiskitTestCase):
 
         circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
+
+    def test_transpile_bell_discrete_basis(self):
+        """Test that it's possible to transpile a very simple circuit to a discrete stabiliser-like
+        basis.  In general, we do not make any guarantees about the possibility or quality of
+        transpilation in these situations, but this is at least useful as a check that stuff that
+        _could_ be possible remains so."""
+
+        target = Target(num_qubits=2)
+        for one_q in [XGate(), SXGate(), SXdgGate(), SGate(), SdgGate(), ZGate()]:
+            target.add_instruction(one_q, {(0,): None, (1,): None})
+        # This is only in one direction, and not the direction we're going to attempt to lay it out
+        # onto, so we can test the basis translation.
+        target.add_instruction(ECRGate(), {(1, 0): None})
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        # Try with the initial layout in both directions to ensure we're dealing with the basis
+        # having only a single direction.
+        self.assertIsInstance(transpile(qc, target=target, initial_layout=[0, 1]), QuantumCircuit)
+        self.assertIsInstance(transpile(qc, target=target, initial_layout=[1, 0]), QuantumCircuit)
 
     def test_transpile_one(self):
         """Test transpile a single circuit.
@@ -802,20 +835,26 @@ class TestTranspile(QiskitTestCase):
             )
             self.assertTrue(is_last_measure)
 
-    def test_initialize_reset_should_be_removed(self):
-        """The reset in front of initializer should be removed when zero state"""
+    @data(0, 1, 2, 3)
+    def test_init_resets_kept_preset_passmanagers(self, optimization_level):
+        """Test initial resets kept at all preset transpilation levels"""
+        num_qubits = 5
+        qc = QuantumCircuit(num_qubits)
+        qc.reset(range(num_qubits))
+
+        num_resets = transpile(qc, optimization_level=optimization_level).count_ops()["reset"]
+        self.assertEqual(num_resets, num_qubits)
+
+    @data(0, 1, 2, 3)
+    def test_initialize_reset_is_not_removed(self, optimization_level):
+        """The reset in front of initializer should NOT be removed at beginning"""
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(np.pi / 2, 0, 0), [qr[0]])
-        expected.reset(qr[0])
-        expected.append(U3Gate(np.pi / 2, -np.pi, 0), [qr[0]])
-
-        after = transpile(qc, basis_gates=["reset", "u3"], optimization_level=1)
-        self.assertEqual(after, expected, msg=f"after:\n{after}\nexpected:\n{expected}")
+        after = transpile(qc, basis_gates=["reset", "u3"], optimization_level=optimization_level)
+        self.assertEqual(after.count_ops()["reset"], 2, msg=f"{after}\n does not have 2 resets.")
 
     def test_initialize_FakeMelbourne(self):
         """Test that the zero-state resets are remove in a device not supporting them."""
@@ -828,7 +867,7 @@ class TestTranspile(QiskitTestCase):
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
-        self.assertEqual(reset_nodes, [])
+        self.assertEqual(len(reset_nodes), 3)
 
     def test_non_standard_basis(self):
         """Test a transpilation with a non-standard basis"""
@@ -948,7 +987,7 @@ class TestTranspile(QiskitTestCase):
 
         qc = QuantumCircuit(15, 15)
 
-        with self.assertRaises(TranspilerError):
+        with self.assertRaises(CircuitTooWideForTarget):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
@@ -1657,6 +1696,67 @@ class TestTranspile(QiskitTestCase):
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
 
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure(range(2), range(2))
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
+        self.assertNotIn("barrier", tqc.count_ops())
+
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output_input_preservered(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure_all()
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
+        op_counts = tqc.count_ops()
+        self.assertEqual(op_counts["barrier"], 1)
+        for inst in tqc.data:
+            if inst.operation.name == "barrier":
+                self.assertEqual(len(inst.qubits), 2)
+
+    @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops(self, opt_level):
+        """Test transpilation of circuits with annotated operations."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        expected = QuantumCircuit(3)
+        expected.sdg(0)
+        expected.cx(1, 2)
+        expected.h(2)
+        transpiled = transpile(qc, optimization_level=opt_level, seed_transpiler=42)
+        self.assertNotIn("annotated", transpiled.count_ops().keys())
+        self.assertEqual(Operator(qc), Operator(transpiled))
+        self.assertEqual(Operator(qc), Operator(expected))
+
+    @combine(opt_level=[0, 1, 2, 3])
+    def test_transpile_annotated_ops_with_backend(self, opt_level):
+        """Test transpilation of circuits with annotated operations given a backend."""
+        qc = QuantumCircuit(3)
+        qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
+        qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
+        qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
+        backend = FakeMelbourne()
+        transpiled = transpile(
+            qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
+        )
+        self.assertLessEqual(set(transpiled.count_ops().keys()), {"u1", "u2", "u3", "cx"})
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
@@ -2167,6 +2267,20 @@ class TestTranspileParallel(QiskitTestCase):
         for qc_test in qcs_cal_added:
             added_cal = qc_test.calibrations["sx"][((0,), ())]
             self.assertEqual(added_cal, ref_cal)
+
+    @data(0, 1, 2, 3)
+    def test_parallel_singleton_conditional_gate(self, opt_level):
+        """Test that singleton mutable instance doesn't lose state in parallel."""
+        backend = FakeNairobiV2()
+        circ = QuantumCircuit(2, 1)
+        circ.h(0)
+        circ.measure(0, circ.clbits[0])
+        circ.z(1).c_if(circ.clbits[0], 1)
+        res = transpile(
+            [circ, circ], backend, optimization_level=opt_level, seed_transpiler=123456769
+        )
+        self.assertTrue(res[0].data[-1].operation.mutable)
+        self.assertEqual(res[0].data[-1].operation.condition, (res[0].clbits[0], 1))
 
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):

@@ -33,7 +33,7 @@ class Commuting2qGateRouter(TransformationPass):
     The mapping to the coupling map is done using swap strategies, see :class:`.SwapStrategy`.
     The swap strategy should suit the problem and the coupling map. This transpiler pass
     should ideally be executed before the quantum circuit is enlarged with any idle ancilla
-    qubits. Otherwise we may swap qubits outside of the portion of the chip we want to use.
+    qubits. Otherwise, we may swap qubits outside the portion of the chip we want to use.
     Therefore, the swap strategy and its associated coupling map do not represent physical
     qubits. Instead, they represent an intermediate mapping that corresponds to the physical
     qubits once the initial layout is applied. The example below shows how to map a four
@@ -54,8 +54,8 @@ class Commuting2qGateRouter(TransformationPass):
     .. code-block:: python
 
         from qiskit import QuantumCircuit
-        from qiskit.opflow import PauliSumOp
         from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.quantum_info import SparsePauliOp
         from qiskit.transpiler import Layout, CouplingMap, PassManager
         from qiskit.transpiler.passes import FullAncillaAllocation
         from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -69,7 +69,7 @@ class Commuting2qGateRouter(TransformationPass):
         )
 
         # Define the circuit on virtual qubits
-        op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
@@ -111,7 +111,7 @@ class Commuting2qGateRouter(TransformationPass):
         Args:
             swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
                 that are used, and the order in which to apply them, to map the instruction to
-                the hardware. If this field is not given if should be contained in the
+                the hardware. If this field is not given, it should be contained in the
                 property set of the pass. This allows other passes to determine the most
                 appropriate swap strategy at run-time.
             edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that

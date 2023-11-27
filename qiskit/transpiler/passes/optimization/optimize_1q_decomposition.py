@@ -59,9 +59,9 @@ NAME_MAP = {
 class Optimize1qGatesDecomposition(TransformationPass):
     """Optimize chains of single-qubit gates by combining them into a single gate.
 
-    The decision to replace the original chain with a new resynthesis depends on:
+    The decision to replace the original chain with a new re-synthesis depends on:
      - whether the original chain was out of basis: replace
-     - whether the original chain was in basis but resynthesis is lower error: replace
+     - whether the original chain was in basis but re-synthesis is lower error: replace
      - whether the original chain contains a pulse gate: do not replace
      - whether the original chain amounts to identity: replace with null
 
@@ -110,12 +110,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
     def _resynthesize_run(self, matrix, qubit=None):
         """
-        Resynthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
+        Re-synthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
 
         Returns the newly synthesized circuit in the indicated basis, or None
         if no synthesis routine applied.
 
-        When multiple synthesis options are available, it prefers the one with lowest
+        When multiple synthesis options are available, it prefers the one with the lowest
         error when the circuit is applied to `qubit`.
         """
         if self._target:
@@ -140,13 +140,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return best_synth_circuit
 
     def _gate_sequence_to_dag(self, best_synth_circuit):
-        qubits = [Qubit()]
+        qubits = (Qubit(),)
         out_dag = DAGCircuit()
         out_dag.add_qubits(qubits)
         out_dag.global_phase = best_synth_circuit.global_phase
 
         for gate_name, angles in best_synth_circuit:
-            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits)
+            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits, check=False)
         return out_dag
 
     def _substitution_checks(self, dag, old_run, new_circ, basis, qubit):

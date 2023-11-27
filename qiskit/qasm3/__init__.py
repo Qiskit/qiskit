@@ -83,7 +83,7 @@ For example, to perform an export using the early semantics of ``switch`` suppor
 
     All features enabled by the experimental flags are naturally transient.  If it becomes necessary
     to remove flags, they will be subject to `the standard Qiskit deprecation policy
-    <https://qiskit.org/documentation/deprecation_policy.html>`__.  We will leave these experimental
+    <https://github.com/Qiskit/qiskit/blob/main/DEPRECATION.md>`__.  We will leave these experimental
     flags in place for as long as is reasonable.
 
     However, we cannot guarantee any support windows for *consumers* of OpenQASM 3 code generated
@@ -182,25 +182,25 @@ from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
 
 
 def dumps(circuit, **kwargs) -> str:
-    """Serialize a :class:`~qiskit.circuit.QuantumCircuit` object in an OpenQASM3 string.
+    """Serialize a :class:`~qiskit.circuit.QuantumCircuit` object in an OpenQASM 3 string.
 
     Args:
         circuit (QuantumCircuit): Circuit to serialize.
         **kwargs: Arguments for the :obj:`.Exporter` constructor.
 
     Returns:
-        str: The OpenQASM3 serialization
+        str: The OpenQASM 3 serialization
     """
     return Exporter(**kwargs).dumps(circuit)
 
 
 def dump(circuit, stream, **kwargs) -> None:
-    """Serialize a :class:`~qiskit.circuit.QuantumCircuit` object as a OpenQASM3 stream to file-like
-    object.
+    """Serialize a :class:`~qiskit.circuit.QuantumCircuit` object as an OpenQASM 3 stream to
+    file-like object.
 
     Args:
         circuit (QuantumCircuit): Circuit to serialize.
-        stream (TextIOBase): stream-like object to dump the OpenQASM3 serialization
+        stream (TextIOBase): stream-like object to dump the OpenQASM 3 serialization
         **kwargs: Arguments for the :obj:`.Exporter` constructor.
 
     """

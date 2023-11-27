@@ -14,7 +14,7 @@
 module handles the translation, but does not handle timing.
 """
 from collections import namedtuple
-from typing import Dict, List
+from typing import Dict, List, Optional, Union
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
@@ -29,8 +29,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.transpiler import Target
 from qiskit.scheduler.config import ScheduleConfig
-from qiskit.utils.deprecation import deprecate_arg
-
+from qiskit.providers import BackendV1, BackendV2
 
 CircuitPulseDef = namedtuple(
     "CircuitPulseDef",
@@ -38,33 +37,10 @@ CircuitPulseDef = namedtuple(
 )  # The labels of the qubits involved in the command according to the circuit
 
 
-def convert_to_target(func):
-    """
-    A wrapper function that prepares target instead of scheduleConfig
-    when the ScheduleConfing is specified.
-
-    If the ScheduleConfig is deprecated, this fucntion will be removed.
-    """
-
-    @deprecate_arg(
-        "schedule_config",
-        deprecation_description="Using target instead of schedule_config.",
-        since="0.25.0",
-        pending=True,
-        predicate=lambda schedule_config: schedule_config is not None,
-    )
-    def _wrapped(circuit: QuantumCircuit, schedule_config: ScheduleConfig, target: Target):
-        if schedule_config is not None:
-            target = Target(schedule_config.meas_map)
-            target.update_from_instruction_schedule_map(schedule_config.inst_map)
-        return func(circuit, target=target)
-
-    return _wrapped
-
-
-@convert_to_target
 def lower_gates(
-    circuit: QuantumCircuit, schedule_config: ScheduleConfig = None, target: Target = None
+    circuit: QuantumCircuit,
+    schedule_config: ScheduleConfig,
+    backend: Optional[Union[BackendV1, BackendV2]] = None,
 ) -> List[CircuitPulseDef]:
     """
     Return a list of Schedules and the qubits they operate on, for each element encountered in the
@@ -78,7 +54,8 @@ def lower_gates(
     Args:
         circuit: The quantum circuit to translate.
         schedule_config: Backend specific parameters used for building the Schedule.
-        target: Target built from some Backend parameters.
+        backend: Pass in the backend used to build the Schedule, the backend could be BackendV1
+                 or BackendV2
 
     Returns:
         A list of CircuitPulseDefs: the pulse definition for each circuit element.
@@ -131,8 +108,9 @@ def lower_gates(
             qubit_mem_slots.update(acquire_excludes)
             meas_sched = measure(
                 qubits=qubits,
-                target=target,
-                meas_map=meas_map,
+                backend=backend,
+                inst_map=inst_map,
+                meas_map=schedule_config.meas_map,
                 qubit_mem_slots=qubit_mem_slots,
             )
             meas_sched = target_qobj_transform(meas_sched)

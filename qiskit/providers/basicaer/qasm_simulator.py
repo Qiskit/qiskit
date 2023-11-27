@@ -12,16 +12,16 @@
 
 """Contains a (slow) Python simulator.
 
-It simulates a qasm quantum circuit (an experiment) that has been compiled
+It simulates an OpenQASM 2 quantum circuit (an experiment) that has been compiled
 to run on the simulator. It is exponential in the number of qubits.
 
 The simulator is run using
 
 .. code-block:: python
 
-    QasmSimulatorPy().run(qobj)
+    QasmSimulatorPy().run(run_input)
 
-Where the input is a Qobj object and the output is a BasicAerJob object, which can
+Where the input is a QuantumCircuit object and the output is a BasicAerJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -35,8 +35,6 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
@@ -53,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 class QasmSimulatorPy(BackendV1):
-    """Python implementation of a qasm simulator."""
+    """Python implementation of an OpenQASM 2 simulator."""
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
@@ -70,8 +68,23 @@ class QasmSimulatorPy(BackendV1):
         "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for qasm experiments",
-        "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
+        "basis_gates": ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
         "gates": [
+            {
+                "name": "h",
+                "parameters": [],
+                "qasm_def": "gate h q { U(pi/2,0,pi) q; }",
+            },
+            {
+                "name": "p",
+                "parameters": ["lambda"],
+                "qasm_def": "gate p(lambda) q { U(0,0,lambda) q; }",
+            },
+            {
+                "name": "u",
+                "parameters": ["theta", "phi", "lambda"],
+                "qasm_def": "gate u(theta,phi,lambda) q { U(theta,phi,lambda) q; }",
+            },
             {
                 "name": "u1",
                 "parameters": ["lambda"],
@@ -336,7 +349,7 @@ class QasmSimulatorPy(BackendV1):
         """Determine if measure sampling is allowed for an experiment
 
         Args:
-            experiment (QobjExperiment): a qobj experiment.
+            experiment (QasmQobjExperiment): a qobj experiment.
         """
         # If shots=1 we should disable measure sampling.
         # This is also required for statevector simulator to return the
@@ -372,18 +385,11 @@ class QasmSimulatorPy(BackendV1):
             # measure sampling is allowed
             self._sample_measure = True
 
-    @deprecate_arg(
-        "qobj",
-        deprecation_description="Using a qobj for the first argument to QasmSimulatorPy.run()",
-        since="0.22.0",
-        pending=True,
-        predicate=lambda qobj: not isinstance(qobj, (QuantumCircuit, list)),
-    )
-    def run(self, qobj, **backend_options):
-        """Run qobj asynchronously.
+    def run(self, run_input, **backend_options):
+        """Run on the backend.
 
         Args:
-            qobj (Qobj): payload of the experiment
+            run_input (QuantumCircuit or list): payload of the experiment
             backend_options (dict): backend options
 
         Returns:
@@ -396,7 +402,7 @@ class QasmSimulatorPy(BackendV1):
             The "initial_statevector" option specifies a custom initial
             initial statevector for the simulator to be used instead of the all
             zero state. This size of this vector must be correct for the number
-            of qubits in all experiments in the qobj.
+            of qubits in ``run_input`` parameter.
 
             Example::
 
@@ -404,21 +410,18 @@ class QasmSimulatorPy(BackendV1):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
                 }
         """
-        if isinstance(qobj, (QuantumCircuit, list)):
-            from qiskit.compiler import assemble
+        from qiskit.compiler import assemble
 
-            out_options = {}
-            for key in backend_options:
-                if not hasattr(self.options, key):
-                    warnings.warn(
-                        "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
-                    )
-                else:
-                    out_options[key] = backend_options[key]
-            qobj = assemble(qobj, self, **out_options)
-            qobj_options = qobj.config
-        else:
-            qobj_options = qobj.config
+        out_options = {}
+        for key in backend_options:
+            if not hasattr(self.options, key):
+                warnings.warn(
+                    "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
+                )
+            else:
+                out_options[key] = backend_options[key]
+        qobj = assemble(run_input, self, **out_options)
+        qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())
         job = BasicAerJob(self, job_id, self._run_job(job_id, qobj))
@@ -461,7 +464,7 @@ class QasmSimulatorPy(BackendV1):
         """Run an experiment (circuit) and return a single experiment result.
 
         Args:
-            experiment (QobjExperiment): experiment from qobj experiments list
+            experiment (QasmQobjExperiment): experiment from qobj experiments list
 
         Returns:
              dict: A result dictionary which looks something like::

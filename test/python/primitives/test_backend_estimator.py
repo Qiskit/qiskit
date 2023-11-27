@@ -13,9 +13,11 @@
 """Tests for Estimator."""
 
 import unittest
-from test import combine
-from test.python.transpiler._dummy_passes import DummyTP
 from unittest.mock import patch
+from multiprocessing import Manager
+
+from test import combine
+from test.python.transpiler._dummy_passes import DummyAP
 
 import numpy as np
 from ddt import ddt
@@ -25,12 +27,25 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
+
+
+class CallbackPass(DummyAP):
+    """A dummy analysis pass that calls a callback when executed"""
+
+    def __init__(self, message, callback):
+        super().__init__()
+        self.message = message
+        self.callback = callback
+
+    def run(self, dag):
+        self.callback(self.message)
 
 
 @ddt
@@ -107,18 +122,18 @@ class TestBackendEstimator(QiskitTestCase):
     def test_estimator_run_no_params(self, backend):
         """test for estimator without parameters"""
         backend.set_options(seed_simulator=123)
-        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = BackendEstimator(backend=backend)
         result = est.run([circuit], [self.observable]).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733], rtol=0.05)
 
-    @combine(backend=BACKENDS)
-    def test_run_1qubit(self, backend):
+    @combine(backend=BACKENDS, creg=[True, False])
+    def test_run_1qubit(self, backend, creg):
         """Test for 1-qubit cases"""
         backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(1)
-        qc2 = QuantumCircuit(1)
+        qc = QuantumCircuit(1, 1) if creg else QuantumCircuit(1)
+        qc2 = QuantumCircuit(1, 1) if creg else QuantumCircuit(1)
         qc2.x(0)
 
         op = SparsePauliOp.from_list([("I", 1)])
@@ -141,12 +156,12 @@ class TestBackendEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1], rtol=0.1)
 
-    @combine(backend=BACKENDS)
-    def test_run_2qubits(self, backend):
+    @combine(backend=BACKENDS, creg=[True, False])
+    def test_run_2qubits(self, backend, creg):
         """Test for 2-qubit cases (to check endian)"""
         backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(2)
-        qc2 = QuantumCircuit(2)
+        qc = QuantumCircuit(2, 1) if creg else QuantumCircuit(2)
+        qc2 = QuantumCircuit(2, 1) if creg else QuantumCircuit(2, 1)
         qc2.x(0)
 
         op = SparsePauliOp.from_list([("II", 1)])
@@ -191,8 +206,6 @@ class TestBackendEstimator(QiskitTestCase):
         est = BackendEstimator(backend=backend)
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
-        with self.assertRaises(ValueError):
-            est.run([qc2], [op], [[]]).result()
         with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(ValueError):
@@ -270,10 +283,6 @@ class TestBackendEstimator(QiskitTestCase):
 
         backend = FakeNairobiLimitedCircuits()
         backend.set_options(seed_simulator=123)
-        qc = QuantumCircuit(1)
-        qc2 = QuantumCircuit(1)
-        qc2.x(0)
-        backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
@@ -333,24 +342,40 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1)])
 
         with self.subTest("Test single circuit"):
+            messages = []
 
-            dummy_pass = DummyTP()
+            def callback(msg):
+                messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
-                estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
-                _ = estimator.run(qc, op).result()
-                self.assertEqual(mock_pass.call_count, 1)
+            bound_counter = CallbackPass("bound_pass_manager", callback)
+            bound_pass = PassManager(bound_counter)
+            estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = estimator.run(qc, op).result()
+            expected = [
+                "bound_pass_manager",
+            ]
+            self.assertEqual(messages, expected)
 
         with self.subTest("Test circuit batch"):
+            with Manager() as manager:
+                # The multiprocessing manager is used to share data
+                # between different processes. Pass Managers parallelize
+                # execution for batches of circuits, so this is necessary
+                # to keep track of the callback calls for num_circuits > 1
+                messages = manager.list()
 
-            dummy_pass = DummyTP()
+                def callback(msg):  # pylint: disable=function-redefined
+                    messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
+                bound_counter = CallbackPass("bound_pass_manager", callback)
+                bound_pass = PassManager(bound_counter)
                 estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
                 _ = estimator.run([qc, qc], [op, op]).result()
-                self.assertEqual(mock_pass.call_count, 2)
+                expected = [
+                    "bound_pass_manager",
+                    "bound_pass_manager",
+                ]
+                self.assertEqual(list(messages), expected)
 
     @combine(backend=BACKENDS)
     def test_layout(self, backend):
@@ -365,7 +390,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER:
+            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
                 self.assertEqual(value, -0.916)
             else:
                 self.assertEqual(value, -1)
@@ -380,10 +405,49 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER:
+            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
                 self.assertEqual(value, -0.8902)
             else:
                 self.assertEqual(value, -1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_circuit_with_measurement(self):
+        """Test estimator with a dynamic circuit"""
+        from qiskit_aer import AerSimulator
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure_all()
+        observable = SparsePauliOp("ZZ")
+
+        backend = AerSimulator()
+        backend.set_options(seed_simulator=15)
+        estimator = BackendEstimator(backend, skip_transpilation=True)
+        estimator.set_transpile_options(seed_transpiler=15)
+        result = estimator.run(bell, observable).result()
+        self.assertAlmostEqual(result.values[0], 1, places=1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_dynamic_circuit(self):
+        """Test estimator with a dynamic circuit"""
+        from qiskit_aer import AerSimulator
+
+        qc = QuantumCircuit(2, 1)
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(1, 0)
+            qc.break_loop().c_if(0, True)
+
+        observable = SparsePauliOp("IZ")
+
+        backend = AerSimulator()
+        backend.set_options(seed_simulator=15)
+        estimator = BackendEstimator(backend, skip_transpilation=True)
+        estimator.set_transpile_options(seed_transpiler=15)
+        result = estimator.run(qc, observable).result()
+        self.assertAlmostEqual(result.values[0], 0, places=1)
 
 
 if __name__ == "__main__":

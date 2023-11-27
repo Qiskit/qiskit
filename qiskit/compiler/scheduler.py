@@ -103,7 +103,7 @@ def schedule(
                     "or both meas_map and inst_map for scheduling passes."
                 )
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    schedules = parallel_map(schedule_circuit, circuits, (None, target, method))
+    schedules = parallel_map(schedule_circuit, circuits, (schedule_config, method, backend))
     end_time = time()
     _log_schedule_time(start_time, end_time)
     if arg_circuits_list:

@@ -19,11 +19,11 @@ from qiskit.dagcircuit import DAGOpNode, DAGInNode
 
 class CollectMultiQBlocks(AnalysisPass):
     """Collect sequences of uninterrupted gates acting on groups of qubits.
-    max_block_size specifies the maximum number of qubits that can be acted upon
+    ``max_block_size`` specifies the maximum number of qubits that can be acted upon
     by any single group of gates
 
     Traverse the DAG and find blocks of gates that act consecutively on
-    groups of qubits. Write the blocks to propert_set as a list of blocks
+    groups of qubits. Write the blocks to ``property_set`` as a list of blocks
     of the form::
 
         [[g0, g1, g2], [g4, g5]]
@@ -31,9 +31,9 @@ class CollectMultiQBlocks(AnalysisPass):
     Blocks are reported in a valid topological order. Further, the gates
     within each block are also reported in topological order
     Some gates may not be present in any block (e.g. if the number
-    of operands is greater than max_block_size)
+    of operands is greater than ``max_block_size``)
 
-    A Disjont Set Union data structure (DSU) is used to maintain blocks as
+    A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.

@@ -25,15 +25,15 @@ class TimeUnitConversion(TransformationPass):
     """Choose a time unit to be used in the following time-aware passes,
     and make all circuit time units consistent with that.
 
-    This pass will add a .duration metadata to each op whose duration is known,
+    This pass will add a :attr:`.Instruction.duration` metadata to each op whose duration is known
     which will be used by subsequent scheduling passes for scheduling.
 
-    If dt (dt in seconds) is known to transpiler, the unit 'dt' is chosen. Otherwise,
+    If ``dt`` (in seconds) is known to transpiler, the unit ``'dt'`` is chosen. Otherwise,
     the unit to be selected depends on what units are used in delays and instruction durations:
 
-    * 's': if they are all in SI units.
-    * 'dt': if they are all in the unit 'dt'.
-    * raise error: if they are a mix of SI units and 'dt'.
+    * ``'s'``: if they are all in SI units.
+    * ``'dt'``: if they are all in the unit ``'dt'``.
+    * raise error: if they are a mix of SI units and ``'dt'``.
     """
 
     def __init__(self, inst_durations: InstructionDurations = None, target: Target = None):
@@ -42,7 +42,7 @@ class TimeUnitConversion(TransformationPass):
         Args:
             inst_durations (InstructionDurations): A dictionary of durations of instructions.
             target: The :class:`~.Target` representing the target backend, if both
-                  ``inst_durations`` and this are specified then this argument will take
+                  ``inst_durations`` and ``target`` are specified then this argument will take
                   precedence and ``inst_durations`` will be ignored.
 
 
@@ -96,13 +96,14 @@ class TimeUnitConversion(TransformationPass):
         # Make units consistent
         for node in dag.op_nodes():
             try:
-                node.op = node.op.copy()
-                node.op.duration = self.inst_durations.get(
+                duration = self.inst_durations.get(
                     node.op, [dag.find_bit(qarg).index for qarg in node.qargs], unit=time_unit
                 )
-                node.op.unit = time_unit
             except TranspilerError:
-                pass
+                continue
+            node.op = node.op.to_mutable()
+            node.op.duration = duration
+            node.op.unit = time_unit
 
         self.property_set["time_unit"] = time_unit
         return dag

@@ -343,7 +343,7 @@ class TestInstructions(TestBuilder):
     def test_play_array_pulse(self):
         """Test play instruction on an array directly."""
         d0 = pulse.DriveChannel(0)
-        test_array = np.array([0.0, 0.0], dtype=np.complex_)
+        test_array = np.array([0.0, 0.0], dtype=np.complex128)
 
         with pulse.build() as schedule:
             pulse.play(test_array, d0)

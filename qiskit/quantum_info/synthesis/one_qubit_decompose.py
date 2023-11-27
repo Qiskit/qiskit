@@ -167,7 +167,7 @@ class OneQubitEulerDecomposer:
                 else:
                     gate = gate_entry
 
-                dag.apply_operation_back(gate, [qr[0]])
+                dag.apply_operation_back(gate, (qr[0],), check=False)
             return dag
         else:
             circuit = QuantumCircuit(qr, global_phase=global_phase)

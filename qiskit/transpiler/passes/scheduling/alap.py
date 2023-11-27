@@ -131,10 +131,10 @@ class ALAPSchedule(BaseSchedulerTransform):
             for bit in node.qargs:
                 delta = t0 - idle_before[bit]
                 if delta > 0 and self._delay_supported(dag.find_bit(bit).index):
-                    new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
+                    new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [], check=False)
                 idle_before[bit] = t1
 
-            new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
+            new_dag.apply_operation_front(node.op, node.qargs, node.cargs, check=False)
 
         circuit_duration = max(idle_before.values())
         for bit, before in idle_before.items():
@@ -142,7 +142,7 @@ class ALAPSchedule(BaseSchedulerTransform):
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
             if self._delay_supported(dag.find_bit(bit).index):
-                new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
+                new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [], check=False)
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata

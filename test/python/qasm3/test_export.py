@@ -392,7 +392,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         custom = QuantumCircuit(1)
         custom.rx(parameter_a, 0)
-        custom_gate = custom.bind_parameters({parameter_a: 0.5}).to_gate()
+        custom_gate = custom.assign_parameters({parameter_a: 0.5}).to_gate()
         custom_gate.name = "custom"
 
         circuit = QuantumCircuit(1)
@@ -453,8 +453,8 @@ class TestCircuitQASM3(QiskitTestCase):
         custom.rx(parameter_a, 0)
 
         circuit = QuantumCircuit(1)
-        circuit.append(custom.bind_parameters({parameter_a: 0.5}).to_gate(), [0])
-        circuit.append(custom.bind_parameters({parameter_a: 1}).to_gate(), [0])
+        circuit.append(custom.assign_parameters({parameter_a: 0.5}).to_gate(), [0])
+        circuit.append(custom.assign_parameters({parameter_a: 1}).to_gate(), [0])
 
         circuit_name_0 = circuit.data[0].operation.definition.name
         circuit_name_1 = circuit.data[1].operation.definition.name
@@ -755,7 +755,7 @@ class TestCircuitQASM3(QiskitTestCase):
         )
 
     def test_reset_statement(self):
-        """Test that a reset statement gets output into valid QASM 3.  This includes tests of reset
+        """Test that a reset statement gets output into valid OpenQASM 3.  This includes tests of reset
         operations on single qubits and in nested scopes."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
@@ -775,7 +775,7 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
 
     def test_delay_statement(self):
-        """Test that delay operations get output into valid QASM 3."""
+        """Test that delay operations get output into valid OpenQASM 3."""
         qreg = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qreg)
         qc.delay(100, qreg[0], unit="ms")
@@ -1390,7 +1390,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         custom = QuantumCircuit(1)
         custom.rx(parameter_a, 0)
-        custom_gate = custom.bind_parameters({parameter_a: 0.5}).to_gate()
+        custom_gate = custom.assign_parameters({parameter_a: 0.5}).to_gate()
         custom_gate.name = "custom"
 
         loop_body = QuantumCircuit(1)
@@ -2364,7 +2364,7 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         qc.for_loop(indices, None, loop_body, [], [])
         exporter = Exporter()
         with self.assertRaisesRegex(
-            QASM3ExporterError, r"The values in QASM 3 'for' loops must all be integers.*"
+            QASM3ExporterError, r"The values in OpenQASM 3 'for' loops must all be integers.*"
         ):
             exporter.dumps(qc)
 

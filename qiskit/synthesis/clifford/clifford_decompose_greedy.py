@@ -36,7 +36,7 @@ def synth_clifford_greedy(clifford):
     greedy Clifford compiler that is described in Appendix A of
     Bravyi, Hu, Maslov and Shaydulin.
 
-    This method typically yields better CX cost compared to the Aaronson-Gottesma method.
+    This method typically yields better CX cost compared to the Aaronson-Gottesman method.
 
     Args:
         clifford (Clifford): a clifford operator.

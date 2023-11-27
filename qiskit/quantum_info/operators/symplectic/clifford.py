@@ -31,10 +31,10 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.synthesis.linear import calc_inverse_matrix
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
-from .stabilizer_table import StabilizerTable
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
@@ -94,7 +94,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
     :class:`~qiskit.circuit.library.CYGate`, :class:`~qiskit.circuit.library.DXGate`,
     :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.iSwapGate`,
-    :class:`~qiskit.circuit.library.ECRGate`.
+    :class:`~qiskit.circuit.library.ECRGate`, :class:`~qiskit.circuit.library.LinearFunction`,
+    :class:`~qiskit.circuit.library.PermutationGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -130,6 +131,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
 
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library import LinearFunction, PermutationGate
+
         # Initialize from another Clifford
         if isinstance(data, Clifford):
             num_qubits = data.num_qubits
@@ -144,15 +148,21 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 lambda i, j: i == j, (2 * num_qubits, 2 * num_qubits + 1)
             ).astype(bool)
 
+        # Initialize from LinearFunction
+        elif isinstance(data, LinearFunction):
+            num_qubits = len(data.linear)
+            self.tableau = self.from_linear_function(data)
+
+        # Initialize from PermutationGate
+        elif isinstance(data, PermutationGate):
+            num_qubits = len(data.pattern)
+            self.tableau = self.from_permutation(data)
+
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
             num_qubits = data.num_qubits
             self.tableau = Clifford.from_circuit(data).tableau
 
-        # DEPRECATED: data is StabilizerTable
-        elif isinstance(data, StabilizerTable):
-            self.tableau = self._stack_table_phase(data.array, data.phase)
-            num_qubits = data.num_qubits
         # Initialize StabilizerTable directly from the data
         else:
             if isinstance(data, (list, np.ndarray)) and np.asarray(data, dtype=bool).ndim == 2:
@@ -220,90 +230,21 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="Instead, index or iterate through the Clifford.tableau attribute.",
     )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
         return self.table.__getitem__(key)
 
-    @deprecate_func(since="0.24.0", additional_msg="Use Clifford.tableau property instead.")
+    @deprecate_func(
+        since="0.24.0",
+        package_name="qiskit-terra",
+        additional_msg="Use Clifford.tableau property instead.",
+    )
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
         self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
-
-    @property
-    @deprecate_func(
-        since="0.24.0",
-        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def table(self):
-        """Return StabilizerTable"""
-        return StabilizerTable(self.symplectic_matrix, phase=self.phase)
-
-    @table.setter
-    @deprecate_func(
-        since="0.24.0",
-        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def table(self, value):
-        """Set the stabilizer table"""
-        # Note this setter cannot change the size of the Clifford
-        # It can only replace the contents of the StabilizerTable with
-        # another StabilizerTable of the same size.
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self.symplectic_matrix = value._table._array
-        self.phase = value._table._phase
-
-    @property
-    @deprecate_func(
-        since="0.24.0",
-        additional_msg="Use Clifford.stab properties instead.",
-        is_property=True,
-    )
-    def stabilizer(self):
-        """Return the stabilizer block of the StabilizerTable."""
-        array = self.tableau[self.num_qubits : 2 * self.num_qubits, :-1]
-        phase = self.tableau[self.num_qubits : 2 * self.num_qubits, -1].reshape(self.num_qubits)
-        return StabilizerTable(array, phase)
-
-    @stabilizer.setter
-    @deprecate_func(
-        since="0.24.0",
-        additional_msg="Use Clifford.stab properties instead.",
-        is_property=True,
-    )
-    def stabilizer(self, value):
-        """Set the value of stabilizer block of the StabilizerTable"""
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self.tableau[self.num_qubits : 2 * self.num_qubits, :-1] = value.array
-
-    @property
-    @deprecate_func(
-        since="0.24.0",
-        additional_msg="Use Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def destabilizer(self):
-        """Return the destabilizer block of the StabilizerTable."""
-        array = self.tableau[0 : self.num_qubits, :-1]
-        phase = self.tableau[0 : self.num_qubits, -1].reshape(self.num_qubits)
-        return StabilizerTable(array, phase)
-
-    @destabilizer.setter
-    @deprecate_func(
-        since="0.24.0",
-        additional_msg="Use Clifford.destab properties instead.",
-        is_property=True,
-    )
-    def destabilizer(self, value):
-        """Set the value of destabilizer block of the StabilizerTable"""
-        if not isinstance(value, StabilizerTable):
-            value = StabilizerTable(value)
-        self.tableau[: self.num_qubits, :-1] = value.array
 
     @property
     def symplectic_matrix(self):
@@ -370,7 +311,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def destab_phase(self):
-        """Return phase of destaibilizer with boolean representation."""
+        """Return phase of destabilizer with boolean representation."""
         return self.tableau[: self.num_qubits, -1]
 
     @destab_phase.setter
@@ -406,7 +347,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @property
     def stab_phase(self):
-        """Return phase of stablizer with boolean representation."""
+        """Return phase of stabilizer with boolean representation."""
         return self.tableau[self.num_qubits :, -1]
 
     @stab_phase.setter
@@ -621,6 +562,52 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             raise QiskitError("Non-Clifford matrix is not convertible")
         return cls(tableau)
 
+    @classmethod
+    def from_linear_function(cls, linear_function):
+        """Create a Clifford from a Linear Function.
+
+        If the linear function is represented by a nxn binary invertible matrix A,
+        then the corresponding Clifford has symplectic matrix [[A^t, 0], [0, A^{-1}]].
+
+        Args:
+            linear_function (LinearFunction): A linear function to be converted.
+
+        Returns:
+            Clifford: the Clifford object for this linear function.
+        """
+
+        mat = linear_function.linear
+        mat_t = np.transpose(mat)
+        mat_i = calc_inverse_matrix(mat)
+
+        dim = len(mat)
+        zero = np.zeros((dim, dim), dtype=int)
+        symplectic_mat = np.block([[mat_t, zero], [zero, mat_i]])
+        phase = np.zeros(2 * dim, dtype=int)
+        tableau = cls._stack_table_phase(symplectic_mat, phase)
+        return tableau
+
+    @classmethod
+    def from_permutation(cls, permutation_gate):
+        """Create a Clifford from a PermutationGate.
+
+        Args:
+            permutation_gate (PermutationGate): A permutation to be converted.
+
+        Returns:
+            Clifford: the Clifford object for this permutation.
+        """
+
+        pat = permutation_gate.pattern
+        dim = len(pat)
+        symplectic_mat = np.zeros((2 * dim, 2 * dim), dtype=int)
+        for i, j in enumerate(pat):
+            symplectic_mat[j, i] = True
+            symplectic_mat[j + dim, i + dim] = True
+        phase = np.zeros(2 * dim, dtype=bool)
+        tableau = cls._stack_table_phase(symplectic_mat, phase)
+        return tableau
+
     def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
@@ -813,8 +800,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         Args:
             array (bool): return a Numpy array if True, otherwise
                           return a list (Default: False).
-            mode (Literal["S", "D", "B"]): return both stabilizer and destablizer if "B",
-                return only stabilizer if "S" and return only destablizer if "D".
+            mode (Literal["S", "D", "B"]): return both stabilizer and destabilizer if "B",
+                return only stabilizer if "S" and return only destabilizer if "D".
 
         Returns:
             list or array: The rows of the StabilizerTable in label form.
@@ -943,9 +930,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """Generate a binary vector (a row of tableau representation) from a Pauli matrix.
         Return None if the non-Pauli matrix is supplied."""
         # pylint: disable=too-many-return-statements
+        decimals = 6
 
-        def find_one_index(x, decimals=6):
-            indices = np.where(np.round(np.abs(x), decimals) == 1)
+        def find_one_index(x):
+            indices = np.where(np.round(np.abs(x), decimals=decimals) == 1)
             return indices[0][0] if len(indices[0]) == 1 else None
 
         def bitvector(n, num_bits):
@@ -957,7 +945,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             return None
         xbits = bitvector(xint, num_qubits)
 
-        # extract non-zero elements from matrix (rounded to 1, -1, 1j or -1j)
+        # extract non-zero elements from matrix (each must be 1, -1, 1j or -1j for Pauli matrix)
         entries = np.empty(len(mat), dtype=complex)
         for i, row in enumerate(mat):
             index = find_one_index(row)
@@ -966,7 +954,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             expected = xint ^ i
             if index != expected:
                 return None
-            entries[i] = np.round(mat[i, index])
+            entries[i] = np.round(mat[i, index], decimals=decimals)
+            if entries[i] not in {1, -1, 1j, -1j}:
+                return None
 
         # compute z-bits
         zbits = np.empty(num_qubits, dtype=bool)

@@ -156,7 +156,7 @@ class Result:
             depends on the backend it ran on and the settings of `meas_level`,
             `meas_return` and `memory`.
 
-            QASM backends return a dictionary of dictionary with the key
+            OpenQASM backends return a dictionary of dictionary with the key
             'counts' and  with the counts, with the second dictionary keys
             containing a string in hex format (``0x123``) and values equal to
             the number of times this outcome was measured.

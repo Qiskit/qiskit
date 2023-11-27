@@ -23,8 +23,8 @@ The method handles crosstalk noise on two-qubit gates. This includes crosstalk
 with simultaneous two-qubit and one-qubit gates. The method ignores
 crosstalk between pairs of single qubit gates.
 
-The method assumes that all qubits get measured simultaneously whether or not
-they need a measurement. This assumption is based on current device properties
+The method assumes that all qubits get measured simultaneously, whether
+they need a measurement or not. This assumption is based on current device properties
 and may need to be revised for future device generations.
 """
 
@@ -89,7 +89,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 inserts the measure gates. If CrosstalkAdaptiveSchedule is made aware of those
                 measurements, it is included in the optimization.
             target (Target): A target representing the target backend, if both
-                ``backend_prop`` and this are specified then this argument will take
+                ``backend_prop`` and ``target`` are specified then this argument will take
                 precedence and ``coupling_map`` will be ignored.
         Raises:
             ImportError: if unable to import z3 solver
@@ -224,7 +224,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Gate A, B are overlapping if
         A is neither a descendant nor an ancestor of B.
-        Currenty overlaps (A,B) are considered when A is a 2q gate and
+        Currently overlaps (A,B) are considered when A is a 2q gate and
         B is either 2q or 1q gate.
         """
         for gate in dag.two_qubit_ops():

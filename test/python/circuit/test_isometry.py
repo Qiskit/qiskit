@@ -25,7 +25,7 @@ from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
-from qiskit.extensions.quantum_initializer.isometry import Isometry
+from qiskit.circuit.library.generalized_gates import Isometry
 
 
 @ddt
@@ -54,7 +54,9 @@ class TestIsometry(QiskitTestCase):
         num_q_input = int(np.log2(iso.shape[1]))
         q = QuantumRegister(num_q_output)
         qc = QuantumCircuit(q)
-        qc.isometry(iso, q[:num_q_input], q[num_q_input:])
+
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.iso(iso, q[:num_q_input], q[num_q_input:])
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
@@ -68,6 +70,7 @@ class TestIsometry(QiskitTestCase):
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
         iso_desired = iso
+
         self.assertTrue(np.allclose(iso_from_circuit, iso_desired))
 
     @data(
@@ -94,7 +97,8 @@ class TestIsometry(QiskitTestCase):
         qc = QuantumCircuit(q)
 
         # Compute isometry with custom tolerance
-        qc.isometry(iso, q[:num_q_input], q[num_q_input:], epsilon=1e-3)
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.isometry(iso, q[:num_q_input], q[num_q_input:], epsilon=1e-3)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
@@ -107,6 +111,7 @@ class TestIsometry(QiskitTestCase):
         result = execute(qc, simulator).result()
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
+
         self.assertTrue(np.allclose(iso_from_circuit, iso))
 
     @data(

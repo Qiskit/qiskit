@@ -23,18 +23,13 @@ from typing import Any, Dict, List, Optional, Union, Callable, Tuple
 from copy import deepcopy
 
 import numpy as np
+import symengine as sym
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.utils import optionals as _optional
 from qiskit.utils.deprecation import deprecate_arg
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _lifted_gaussian(
@@ -183,34 +178,31 @@ class LambdifiedExpression:
                     continue
                 params.append(p)
 
-            if _optional.HAS_SYMENGINE:
-                try:
-                    lamb = sym.lambdify(params, [value], real=False)
+            try:
+                lamb = sym.lambdify(params, [value], real=False)
 
-                    def _wrapped_lamb(*args):
-                        if isinstance(args[0], np.ndarray):
-                            # When the args[0] is a vector ("t"), tile other arguments args[1:]
-                            # to prevent evaluation from looping over each element in t.
-                            t = args[0]
-                            args = np.hstack(
-                                (
-                                    t.reshape(t.size, 1),
-                                    np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
-                                )
+                def _wrapped_lamb(*args):
+                    if isinstance(args[0], np.ndarray):
+                        # When the args[0] is a vector ("t"), tile other arguments args[1:]
+                        # to prevent evaluation from looping over each element in t.
+                        t = args[0]
+                        args = np.hstack(
+                            (
+                                t.reshape(t.size, 1),
+                                np.tile(args[1:], t.size).reshape(t.size, len(args) - 1),
                             )
-                        return lamb(args)
+                        )
+                    return lamb(args)
 
-                    func = _wrapped_lamb
-                except RuntimeError:
-                    # Currently symengine doesn't support complex_double version for
-                    # several functions such as comparison operator and piecewise.
-                    # If expression contains these function, it fall back to sympy lambdify.
-                    # See https://github.com/symengine/symengine.py/issues/406 for details.
-                    import sympy
+                func = _wrapped_lamb
+            except RuntimeError:
+                # Currently symengine doesn't support complex_double version for
+                # several functions such as comparison operator and piecewise.
+                # If expression contains these function, it fall back to sympy lambdify.
+                # See https://github.com/symengine/symengine.py/issues/406 for details.
+                import sympy
 
-                    func = sympy.lambdify(params, value)
-            else:
-                func = sym.lambdify(params, value)
+                func = sympy.lambdify(params, value)
 
             self.lambda_funcs[key] = func
 
@@ -264,6 +256,17 @@ class SymbolicPulse(Pulse):
     thus a symbolic pulse instance only stores parameter values and waveform shape,
     which greatly reduces memory footprint during the program generation.
 
+
+    .. _symbolic_pulse_validation:
+
+    .. rubric:: Pulse validation
+
+    When a symbolic pulse is instantiated, the method :meth:`.validate_parameters` is called,
+    and performs validation of the pulse. The validation process involves testing the constraint
+    functions and the maximal amplitude of the pulse (see below). While the validation process
+    will improve code stability, it will reduce performance and might create
+    compatibility issues (particularly with JAX). Therefore, it is possible to disable the
+    validation by setting the class attribute :attr:`.disable_validation` to ``True``.
 
     .. _symbolic_pulse_constraints:
 
@@ -390,6 +393,8 @@ class SymbolicPulse(Pulse):
         "_valid_amp_conditions",
     )
 
+    disable_validation = False
+
     # Lambdify caches keyed on sympy expressions. Returns the corresponding callable.
     _envelope_lam = LambdifiedExpression("_envelope")
     _constraints_lam = LambdifiedExpression("_constraints")
@@ -440,6 +445,8 @@ class SymbolicPulse(Pulse):
         self._envelope = envelope
         self._constraints = constraints
         self._valid_amp_conditions = valid_amp_conditions
+        if not self.__class__.disable_validation:
+            self.validate_parameters()
 
     def __getattr__(self, item):
         # Get pulse parameters with attribute-like access.
@@ -596,6 +603,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
             "Instead, use a float for ``amp`` (for the magnitude) and a float for ``angle``"
         ),
         since="0.25.0",
+        package_name="qiskit-terra",
         pending=False,
         predicate=lambda amp: isinstance(amp, complex),
     )
@@ -774,7 +782,7 @@ class Gaussian(metaclass=_PulseType):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
             amp=amp,
@@ -786,9 +794,6 @@ class Gaussian(metaclass=_PulseType):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 class GaussianSquare(metaclass=_PulseType):
@@ -902,7 +907,7 @@ class GaussianSquare(metaclass=_PulseType):
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
             amp=amp,
@@ -914,9 +919,6 @@ class GaussianSquare(metaclass=_PulseType):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 def GaussianSquareDrag(
@@ -1051,7 +1053,7 @@ def GaussianSquareDrag(
     consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
     valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="GaussianSquareDrag",
         duration=duration,
         amp=amp,
@@ -1063,9 +1065,6 @@ def GaussianSquareDrag(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def gaussian_square_echo(
@@ -1142,6 +1141,7 @@ def gaussian_square_echo(
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
     Returns:
         ScalableSymbolicPulse instance.
     Raises:
@@ -1254,7 +1254,7 @@ def gaussian_square_echo(
     # Check validity of amplitudes
     valid_amp_conditions_expr = sym.And(sym.Abs(_amp) + sym.Abs(_active_amp) <= 1.0)
 
-    instance = SymbolicPulse(
+    return SymbolicPulse(
         pulse_type="gaussian_square_echo",
         duration=duration,
         parameters=parameters,
@@ -1264,9 +1264,6 @@ def gaussian_square_echo(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def GaussianDeriv(
@@ -1318,7 +1315,7 @@ def GaussianDeriv(
     consts_expr = _sigma > 0
     valid_amp_conditions_expr = sym.Abs(_amp / _sigma) <= sym.exp(1 / 2)
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="GaussianDeriv",
         duration=duration,
         amp=amp,
@@ -1330,9 +1327,6 @@ def GaussianDeriv(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 class Drag(metaclass=_PulseType):
@@ -1418,7 +1412,7 @@ class Drag(metaclass=_PulseType):
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type="Drag",
             duration=duration,
             amp=amp,
@@ -1430,9 +1424,6 @@ class Drag(metaclass=_PulseType):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 class Constant(metaclass=_PulseType):
@@ -1486,7 +1477,7 @@ class Constant(metaclass=_PulseType):
 
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        instance = ScalableSymbolicPulse(
+        return ScalableSymbolicPulse(
             pulse_type="Constant",
             duration=duration,
             amp=amp,
@@ -1496,9 +1487,6 @@ class Constant(metaclass=_PulseType):
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        instance.validate_parameters()
-
-        return instance
 
 
 def Sin(
@@ -1551,7 +1539,7 @@ def Sin(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Sin",
         duration=duration,
         amp=amp,
@@ -1563,9 +1551,6 @@ def Sin(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Cos(
@@ -1618,7 +1603,7 @@ def Cos(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Cos",
         duration=duration,
         amp=amp,
@@ -1630,9 +1615,6 @@ def Cos(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Sawtooth(
@@ -1689,7 +1671,7 @@ def Sawtooth(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Sawtooth",
         duration=duration,
         amp=amp,
@@ -1701,9 +1683,6 @@ def Sawtooth(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Triangle(
@@ -1760,7 +1739,7 @@ def Triangle(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Triangle",
         duration=duration,
         amp=amp,
@@ -1772,9 +1751,6 @@ def Triangle(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Square(
@@ -1833,7 +1809,7 @@ def Square(
     # This might fail for waves shorter than a single cycle
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Square",
         duration=duration,
         amp=amp,
@@ -1845,9 +1821,6 @@ def Square(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def Sech(
@@ -1912,7 +1885,7 @@ def Sech(
 
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="Sech",
         duration=duration,
         amp=amp,
@@ -1924,9 +1897,6 @@ def Sech(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance
 
 
 def SechDeriv(
@@ -1978,7 +1948,7 @@ def SechDeriv(
 
     valid_amp_conditions_expr = sym.Abs(_amp) / _sigma <= 2.0
 
-    instance = ScalableSymbolicPulse(
+    return ScalableSymbolicPulse(
         pulse_type="SechDeriv",
         duration=duration,
         amp=amp,
@@ -1990,6 +1960,3 @@ def SechDeriv(
         constraints=consts_expr,
         valid_amp_conditions=valid_amp_conditions_expr,
     )
-    instance.validate_parameters()
-
-    return instance

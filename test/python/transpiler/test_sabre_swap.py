@@ -129,6 +129,29 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc, qc)
 
+    def test_2q_barriers_not_routed(self):
+        """Test that a 2q barrier is not routed."""
+        coupling = CouplingMap.from_line(5)
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.barrier(0, 1)
+        qc.barrier(0, 2)
+        qc.barrier(0, 3)
+        qc.barrier(2, 3)
+        qc.h(0)
+        qc.barrier(1, 2)
+        qc.barrier(1, 0)
+        qc.barrier(1, 3)
+        qc.barrier(1, 4)
+        qc.barrier(4, 3)
+        qc.barrier(0, 4)
+
+        passmanager = PassManager(SabreSwap(coupling, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
     def test_trivial_with_target(self):
         """Test that an already mapped circuit is unchanged with target."""
         coupling = CouplingMap.from_ring(5)
@@ -230,18 +253,9 @@ class TestSabreSwap(QiskitTestCase):
         coupling_map = CouplingMap.from_line(qc.num_qubits)
         routing_pass = PassManager(SabreSwap(coupling_map, method))
 
-        n_swap_gates = 0
-
-        def leak_number_of_swaps(cls, *args, **kwargs):
-            nonlocal n_swap_gates
-            n_swap_gates += 1
-            if n_swap_gates > 1_000:
-                raise Exception("SabreSwap seems to be stuck in a loop")
-            # pylint: disable=bad-super-call
-            return super(SwapGate, cls).__new__(cls, *args, **kwargs)
-
-        with unittest.mock.patch.object(SwapGate, "__new__", leak_number_of_swaps):
-            routed = routing_pass.run(qc)
+        # Since all the logic happens in Rust space these days, the best we'll really see here is
+        # the test hanging.
+        routed = routing_pass.run(qc)
 
         routed_ops = routed.count_ops()
         del routed_ops["swap"]
@@ -692,9 +706,9 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg[[0]])
+        true_body = QuantumCircuit(qreg[:], creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg[[0]])
+        false_body = QuantumCircuit(qreg[:], creg[[0]])
         false_body.cx(0, 4)
         qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.h(3)
@@ -724,11 +738,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(2, 3)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
-        expected.h(3)
         expected.swap(1, 2)
+        expected.h(3)
         expected.cx(3, 2)
         expected.barrier()
-        expected.measure(qreg, creg[[1, 2, 0, 3, 4]])
+        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):

@@ -28,8 +28,6 @@ from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
-from qiskit.quantum_info.operators.symplectic.stabilizer_table import StabilizerTable
 
 
 class PauliList(BasePauli, LinearMixin, GroupMixin):
@@ -134,12 +132,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if isinstance(data, BasePauli):
             base_z, base_x, base_phase = data._z, data._x, data._phase
-        elif isinstance(data, StabilizerTable):
-            # Conversion from legacy StabilizerTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase)
-        elif isinstance(data, PauliTable):
-            # Conversion from legacy PauliTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X)
         else:
             # Conversion as iterable of Paulis
             base_z, base_x, base_phase = self._from_paulis(data)
@@ -338,22 +330,29 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """Update PauliList."""
         if isinstance(index, tuple):
             if len(index) == 1:
-                index = index[0]
+                row, qubit = index[0], None
             elif len(index) > 2:
                 raise IndexError(f"Invalid PauliList index {index}")
+            else:
+                row, qubit = index
+        else:
+            row, qubit = index, None
 
         # Modify specified rows of the PauliList
         if not isinstance(value, PauliList):
             value = PauliList(value)
 
-        self._z[index] = value._z
-        self._x[index] = value._x
-        if not isinstance(index, tuple):
-            # Row-only indexing
-            self._phase[index] = value._phase
+        # It's not valid to set a single item with a sequence, even if the sequence is length 1.
+        phase = value._phase.item() if isinstance(row, (int, np.integer)) else value._phase
+
+        if qubit is None:
+            self._z[row] = value._z
+            self._x[row] = value._x
+            self._phase[row] = phase
         else:
-            # Row and Qubit indexing
-            self._phase[index[0]] += value._phase
+            self._z[row, qubit] = value._z
+            self._x[row, qubit] = value._x
+            self._phase[row] += phase
             self._phase %= 4
 
     def delete(self, ind: int | list, qubit: bool = False) -> PauliList:
@@ -376,7 +375,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if isinstance(ind, int):
             ind = [ind]
-
+        if len(ind) == 0:
+            return PauliList.from_symplectic(self._z, self._x, self.phase)
         # Row deletion
         if not qubit:
             if max(ind) >= len(self):

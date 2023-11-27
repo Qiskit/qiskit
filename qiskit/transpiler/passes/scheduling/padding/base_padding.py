@@ -93,7 +93,7 @@ class BasePadding(TransformationPass):
 
         # Update start time dictionary for the new_dag.
         # This information may be used for further scheduling tasks,
-        # but this is immediately invalidated becasue node id is updated in the new_dag.
+        # but this is immediately invalidated because node id is updated in the new_dag.
         self.property_set["node_start_time"].clear()
 
         new_dag.name = dag.name
@@ -198,7 +198,7 @@ class BasePadding(TransformationPass):
         t_start: int,
         oper: Instruction,
         qubits: Qubit | Iterable[Qubit],
-        clbits: Clbit | Iterable[Clbit] | None = None,
+        clbits: Clbit | Iterable[Clbit] = (),
     ):
         """Add new operation to DAG with scheduled information.
 
@@ -216,7 +216,7 @@ class BasePadding(TransformationPass):
         if isinstance(clbits, Clbit):
             clbits = [clbits]
 
-        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits)
+        new_node = dag.apply_operation_back(oper, qargs=qubits, cargs=clbits, check=False)
         self.property_set["node_start_time"][new_node] = t_start
 
     def _pad(

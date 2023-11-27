@@ -17,7 +17,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
@@ -217,7 +217,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "gate unitary q0 { u3(0,0,0) q0; }\n"
+            "gate unitary q0 { u(0,0,0) q0; }\n"
             "qreg q0[2];\ncreg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0];\n"
@@ -241,7 +241,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "gate unitary q0 { u3(0,0,0) q0; }\n"
+            "gate unitary q0 { u(0,0,0) q0; }\n"
             "qreg q0[2];\ncreg c0[1];\n"
             "x q0[0];\n"
             "unitary q0[0];\n"

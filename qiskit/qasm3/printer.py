@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Printers for QASM 3 AST nodes."""
+"""Printers for OpenQASM 3 AST nodes."""
 
 import collections
 import io
@@ -60,7 +60,7 @@ _BINDING_POWER = {
 
 
 class BasicPrinter:
-    """A QASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
+    """An OpenQASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
     formatting is simple block indentation."""
 
     _CONSTANT_LOOKUP = {
@@ -134,7 +134,7 @@ class BasicPrinter:
         however, if you want to build up a file bit-by-bit manually.
 
         Args:
-            node (ASTNode): the node to convert to QASM 3 and write out to the stream.
+            node (ASTNode): the node to convert to OpenQASM 3 and write out to the stream.
 
         Raises:
             RuntimeError: if an AST node is encountered that the visitor is unable to parse.  This
