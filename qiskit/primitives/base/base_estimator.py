@@ -170,7 +170,6 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
-import typing
 import warnings
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
