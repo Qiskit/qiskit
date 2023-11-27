@@ -21,7 +21,6 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
-from test.utils.base import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
 from qiskit.providers.fake_provider.fake_backend_v2 import (
     FakeBackendV2,
@@ -32,6 +31,7 @@ from qiskit.providers.fake_provider.fake_backend_v2 import (
 from qiskit.providers.fake_provider.backends import FakeBogotaV2
 from qiskit.quantum_info import Operator
 from qiskit.pulse import channels
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

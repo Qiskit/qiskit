@@ -16,9 +16,9 @@ import unittest
 from os import path
 from ddt import ddt, unpack, data
 
-from test.utils.base import QiskitTestCase
 from qiskit import execute, BasicAer
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression

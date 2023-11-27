@@ -15,7 +15,6 @@
 import unittest
 from ddt import ddt, data
 
-from test.utils.base import QiskitTestCase
 from qiskit.circuit import (
     QuantumRegister,
     Parameter,
@@ -25,6 +24,7 @@ from qiskit.circuit import (
     CircuitInstruction,
 )
 from qiskit.circuit.library import BlueprintCircuit, XGate
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class MockBlueprint(BlueprintCircuit):

@@ -17,7 +17,7 @@ import sys
 import unittest
 
 from qiskit.utils import optionals
-from test.utils import Path, QiskitTestCase, slow_test
+from test.utils import Path, QiskitTestCase, slow_test  # pylint: disable=wrong-import-order
 
 
 # Timeout (in seconds) for a single notebook.
