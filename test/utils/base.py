@@ -219,9 +219,6 @@ class QiskitTestCase(BaseQiskitTestCase):
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
-            "test.python.pulse.test_parameters",
-            "test.python.pulse.test_transforms",
-            "test.python.circuit.test_gate_power",
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
             "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
@@ -235,8 +232,6 @@ class QiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.instructions.play",
             "qiskit.pulse.library.parametric_pulses",
             "qiskit.quantum_info.operators.symplectic.pauli",
-            "test.python.dagcircuit.test_dagcircuit",
-            "importlib_metadata",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
@@ -245,14 +240,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
-            r"The CXDirection pass has been deprecated",
             # Caused by internal scikit-learn scipy usage
             r"The 'sym_pos' keyword is deprecated and should be replaced by using",
-            # jupyter_client 7.4.8 uses deprecated shims in pyzmq that raise warnings with pyzmq 25.
-            # These are due to be fixed by jupyter_client 8, see:
-            #   - https://github.com/jupyter/jupyter_client/issues/913
-            #   - https://github.com/jupyter/jupyter_client/pull/842
-            r"zmq\.eventloop\.ioloop is deprecated in pyzmq .*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
