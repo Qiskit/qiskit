@@ -31,7 +31,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.8", "3.9", "3.10", "3.11"]
+    default: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -41,7 +41,7 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.11"
+    default: "3.12"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum

@@ -54,7 +54,7 @@ The functional equivalency can be roughly summarized as follows:
 
    * - Opflow Module
      - Alternative
-   * - Operators (:class:`~qiskit.opflow.OperatorBase`, :ref:`operator_globals`,
+   * - Operators (:class:`~qiskit.opflow.OperatorBase`, ``operator_globals``,
        :mod:`~qiskit.opflow.primitive_ops`, :mod:`~qiskit.opflow.list_ops`)
      - ``qiskit.quantum_info`` :ref:`Operators <quantum_info_operators>`
 
@@ -134,7 +134,7 @@ Operator Globals
 *Back to* `Contents`_
 
 Opflow provided shortcuts to define common single qubit states, operators, and non-parametrized gates in the
-:ref:`operator_globals` module.
+``operator_globals`` module.
 
 These were mainly used for didactic purposes or quick prototyping, and can easily be replaced by their corresponding
 :mod:`~qiskit.quantum_info` class: :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.Clifford` or
