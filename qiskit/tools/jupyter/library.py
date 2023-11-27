@@ -169,8 +169,7 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
     Args:
         circuit: Input quantum circuit.
     """
-    qasm_wid = qasm_widget(circuit)
-    sep_length = str(min(20 * qasm_wid._code_length, 495))
+    sep_length = str(min(20, 495))
 
     # The separator widget
     sep = wid.HTML(
@@ -178,7 +177,7 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
         layout=wid.Layout(height="auto", max_height="495px", margin="40px 0px 0px 20px"),
     )
     bottom = wid.HBox(
-        children=[properties_widget(circuit), sep, qasm_widget(circuit)],
+        children=[properties_widget(circuit), sep],
         layout=wid.Layout(max_height="550px", height="auto"),
     )
 
