@@ -23,7 +23,7 @@ critical:
       # Install Qiskit (only once).
       pip install 'qiskit>=1.0'
 
-    On Windows, replace ``source <venv>/bin/activate`` with ``source <venv>/Scripts/activate``.
+    On Windows, replace ``source <venv>/bin/activate`` with ``source <venv>\Scripts\activate``.
 
     If you are a library author, or have code that depends on Qiskit, you should update any old
     dependencies on ``qiskit-terra`` to instead depend on ``qiskit``.
