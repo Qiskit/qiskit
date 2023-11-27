@@ -14,8 +14,15 @@
 This module contains the definition of creating and validating entangler map
 based on the number of qubits.
 """
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def get_entangler_map(map_type, num_qubits, offset=0):
     """Utility method to get an entangler map among qubits.
 
@@ -67,6 +74,12 @@ def get_entangler_map(map_type, num_qubits, offset=0):
     return ret
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def validate_entangler_map(entangler_map, num_qubits, allow_double_entanglement=False):
     """Validate a user supplied entangler map and converts entries to ints.
 

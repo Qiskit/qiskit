@@ -13,8 +13,15 @@
 """Tool to name unnamed arguments."""
 
 import functools
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def name_args(mapping, skip=0):
     """Decorator to convert unnamed arguments to named ones.
 

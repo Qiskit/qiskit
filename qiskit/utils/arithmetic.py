@@ -16,8 +16,15 @@ Arithmetic Utilities
 
 from typing import List, Tuple
 import numpy as np
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def normalize_vector(vector):
     """
     Normalize the input state vector.
@@ -25,6 +32,12 @@ def normalize_vector(vector):
     return vector / np.linalg.norm(vector)
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def is_power_of_2(num):
     """
     Check if the input number is a power of 2.
@@ -32,6 +45,12 @@ def is_power_of_2(num):
     return num != 0 and ((num & (num - 1)) == 0)
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def log2(num):
     """
     Compute the log2 of the input number. Use bit operation if the input is a power of 2.
@@ -47,6 +66,12 @@ def log2(num):
         return np.log2(num)
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def is_power(num, return_decomposition=False):
     """
     Check if num is a perfect power in O(n^3) time, n=ceil(logN)
@@ -80,6 +105,12 @@ def is_power(num, return_decomposition=False):
         return False
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def next_power_of_2_base(n):
     """
     Return the base of the smallest power of 2 no less than the input number
@@ -95,6 +126,12 @@ def next_power_of_2_base(n):
     return base
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
     """Return a sequence of transpositions, corresponding to the permutation.
 
@@ -132,6 +169,12 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
     return res
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated since Qiskit Terra 0.24.0.",
+)
 def triu_to_dense(triu: np.ndarray) -> np.ndarray:
     """Converts upper triangular part of matrix to dense matrix.
 
