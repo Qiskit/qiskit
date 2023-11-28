@@ -29,15 +29,6 @@ Utilities (:mod:`qiskit.utils`)
 .. autofunction:: detach_prefix
 .. autofunction:: wrap_method
 
-Algorithm Utilities
-===================
-
-.. autofunction:: summarize_circuits
-.. autofunction:: get_entangler_map
-.. autofunction:: validate_entangler_map
-.. autofunction:: name_args
-.. autodata:: algorithm_globals
-
 
 Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
 ============================================================
@@ -60,21 +51,10 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
-from .circuit_utils import summarize_circuits
-from .entangler_map import get_entangler_map, validate_entangler_map
-from .name_unnamed_args import name_args
-from .algorithm_globals import algorithm_globals
-
-
 __all__ = [
     "LazyDependencyManager",
     "LazyImportTester",
     "LazySubprocessTester",
-    "summarize_circuits",
-    "get_entangler_map",
-    "validate_entangler_map",
-    "name_args",
-    "algorithm_globals",
     "add_deprecation_to_docstring",
     "deprecate_arg",
     "deprecate_arguments",

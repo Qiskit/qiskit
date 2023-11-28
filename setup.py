@@ -56,7 +56,7 @@ csp_requirements = ["python-constraint>=1.4"]
 
 
 setup(
-    name="qiskit-terra",
+    name="qiskit",
     version="1.0.0",
     description="Software for developing quantum computing programs",
     long_description=README,
