@@ -584,7 +584,7 @@ class Target(Mapping):
         qargs = set(self._qarg_gate_map)
         if len(qargs) == 1 and next(iter(qargs)) is None:
             return None
-        return qargs
+        return qargs - {None}
 
     def qargs_for_operation_name(self, operation):
         """Get the qargs for a given operation name

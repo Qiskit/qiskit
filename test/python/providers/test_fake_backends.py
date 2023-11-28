@@ -37,7 +37,7 @@ from qiskit.providers.fake_provider import (
     FakeSherbrooke,
     FakePrague,
 )
-from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.backend_compat import BackendV2Converter, convert_to_target
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.utils import optionals
@@ -158,6 +158,21 @@ class TestFakeBackends(QiskitTestCase):
         target = backend.target
         if target.dt is not None:
             self.assertLess(target.dt, 1e-6)
+
+    @data(*FAKE_PROVIDER.backends())
+    def test_convert_to_target_qargs(self, backend):
+        try:
+            target = convert_to_target(backend.configuration())
+            if target.qargs is not None:
+                self.assertIsInstance(target.qargs, set)
+                for qarg in target.qargs:
+                    self.assertIsInstance(qarg, tuple)
+        except QiskitError as ex:
+            self.assertEqual(
+                ex.message,
+                "Operation name TODO does not have a known mapping. "
+                "Use custom_name_mapping to map this name to an Operation object",
+            )
 
     @data(*FAKE_PROVIDER_FOR_BACKEND_V2.backends())
     def test_backend_v2_dtm(self, backend):
