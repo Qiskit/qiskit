@@ -13,8 +13,15 @@
 """Circuit utility functions"""
 
 import numpy as np
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
+    "two modules deprecated and planned to be removed in Qiskit 1.0.",
+)
 def summarize_circuits(circuits):
     """Summarize circuits based on QuantumCircuit, and five metrics are summarized.
         - Number of qubits
