@@ -37,8 +37,8 @@ classifiers = [
 # These are configured in the `tool.setuptools.dynamic` table.
 dynamic = ["version", "readme", "dependencies"]
 
-# If modifying this table, be sure to sync with `requirements-optional.txt`,
-# `qiskit.utils.optionals`, and `qiskit_pkg`'s `pyproject.toml` too.
+# If modifying this table, be sure to sync with `requirements-optional.txt` and
+# `qiskit.utils.optionals`.
 [project.optional-dependencies]
 qasm3-import = [
     "qiskit-qasm3-import >= 0.1.0",
