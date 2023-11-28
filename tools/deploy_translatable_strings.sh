@@ -84,8 +84,9 @@ rm -rf \
 echo "+ 'cp' wanted files from source to target"
 # Copy the new rendered files and add them to the commit.
 cp -r "$SOURCE_PO_DIR/." "$TARGET_PO_DIR"
-# Copy files necessary to build the Qiskit metapackage.
-cp "$SOURCE_REPO_ROOT/qiskit_pkg/setup.py" "${TARGET_REPO_ROOT}"
+# Copy files necessary to build the Qiskit package.
+cp "$SOURCE_REPO_ROOT/setup.py" "${TARGET_REPO_ROOT}"
+cp "$SOURCE_REPO_ROOT/pyproject.toml" "${TARGET_REPO_ROOT}"
 cat "$SOURCE_REPO_ROOT/requirements-dev.txt" "$SOURCE_REPO_ROOT/requirements-optional.txt" \
     > "${TARGET_REPO_ROOT}/requirements-dev.txt"
 cp "$SOURCE_REPO_ROOT/constraints.txt" "${TARGET_REPO_ROOT}"
