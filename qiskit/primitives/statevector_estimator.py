@@ -20,6 +20,7 @@ from typing import List, Optional, Union
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
+from pydantic.types import PositiveInt
 
 from qiskit.quantum_info import SparsePauliOp, Statevector
 
@@ -41,7 +42,7 @@ from .utils import bound_circuit_to_instruction
 class ExecutionOptions(BasePrimitiveOptions):
     """Options for execution."""
 
-    shots: Optional[int] = None
+    shots: Optional[PositiveInt] = None
     seed: Optional[Union[int, np.random.Generator]] = None
 
 
