@@ -8,7 +8,7 @@ description = "An open-source SDK for working with quantum computers at the leve
 requires-python = ">=3.8"
 license = { file = "LICENSE.txt" }
 authors = [
-    { name = "Qiskit Development Team", email = "hello@qiskit.org" },
+    { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
 ]
 keywords = [
     "qiskit",
