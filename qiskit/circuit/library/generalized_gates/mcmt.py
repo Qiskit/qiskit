@@ -17,7 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from qiskit import circuit
-from qiskit.circuit import ControlledGate, Gate, Qubit, QuantumRegister, QuantumCircuit
+from qiskit.circuit import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=cyclic-import
@@ -51,7 +51,7 @@ class MCMT(QuantumCircuit):
 
     def __init__(
         self,
-        gate: Gate | Callable[[QuantumCircuit, Qubit, Qubit], circuit.Instruction],
+        gate: Gate | Callable[[QuantumCircuit, circuit.Qubit, circuit.Qubit], circuit.Instruction],
         num_ctrl_qubits: int,
         num_target_qubits: int,
     ) -> None:
@@ -214,8 +214,8 @@ class MCMTVChain(MCMT):
 
     def _ccx_v_chain_rule(
         self,
-        control_qubits: QuantumRegister | list[Qubit],
-        ancilla_qubits: QuantumRegister | list[Qubit],
+        control_qubits: QuantumRegister | list[circuit.Qubit],
+        ancilla_qubits: QuantumRegister | list[circuit.Qubit],
         reverse: bool = False,
     ) -> None:
         """Get the rule for the CCX V-chain.

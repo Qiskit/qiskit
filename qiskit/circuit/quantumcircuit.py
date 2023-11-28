@@ -37,6 +37,7 @@ from typing import (
     overload,
 )
 import numpy as np
+from qiskit._accelerate.quantum_circuit import CircuitData
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -59,8 +60,6 @@ from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
-from .measure import Measure
-from .reset import Reset
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -229,9 +228,6 @@ class QuantumCircuit:
             self.name = name
         self._increment_instances()
 
-        # Data contains a list of instructions and their contexts,
-        # in the order they were applied.
-        self._data: list[CircuitInstruction] = []
         self._op_start_times = None
 
         # A stack to hold the instruction sets that are being built up during for-, if- and
@@ -246,8 +242,6 @@ class QuantumCircuit:
 
         self.qregs: list[QuantumRegister] = []
         self.cregs: list[ClassicalRegister] = []
-        self._qubits: list[Qubit] = []
-        self._clbits: list[Clbit] = []
 
         # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
@@ -255,6 +249,10 @@ class QuantumCircuit:
         # within that register.
         self._qubit_indices: dict[Qubit, BitLocations] = {}
         self._clbit_indices: dict[Clbit, BitLocations] = {}
+
+        # Data contains a list of instructions and their contexts,
+        # in the order they were applied.
+        self._data: CircuitData = CircuitData()
 
         self._ancillas: list[AncillaQubit] = []
         self._calibrations: DefaultDict[str, dict[tuple, Any]] = defaultdict(dict)
@@ -381,13 +379,16 @@ class QuantumCircuit:
                 elements must either be instances of :class:`.CircuitInstruction` (preferred), or a
                 3-tuple of ``(instruction, qargs, cargs)`` (legacy).  In the legacy format,
                 ``instruction`` must be an :class:`~.circuit.Instruction`, while ``qargs`` and
-                ``cargs`` must be iterables of :class:`.Qubit` or :class:`.Clbit` specifiers
-                (similar to the allowed forms in calls to :meth:`append`).
+                ``cargs`` must be iterables of :class:`~.circuit.Qubit` or :class:`.Clbit`
+                specifiers (similar to the allowed forms in calls to :meth:`append`).
         """
         # If data_input is QuantumCircuitData(self), clearing self._data
         # below will also empty data_input, so make a shallow copy first.
-        data_input = list(data_input)
-        self._data = []
+        if isinstance(data_input, CircuitData):
+            data_input = data_input.copy()
+        else:
+            data_input = list(data_input)
+        self._data.clear()
         self._parameter_table = ParameterTable()
         if not data_input:
             return
@@ -500,6 +501,28 @@ class QuantumCircuit:
         return circuit_to_dag(self, copy_operations=False) == circuit_to_dag(
             other, copy_operations=False
         )
+
+    def __deepcopy__(self, memo=None):
+        # This is overridden to minimize memory pressure when we don't
+        # actually need to pickle (i.e. the typical deepcopy case).
+        # Note:
+        #   This is done here instead of in CircuitData since PyO3
+        #   doesn't include a native way to recursively call
+        #   copy.deepcopy(memo).
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k in self.__dict__.keys() - {"_data"}:
+            setattr(result, k, copy.deepcopy(self.__dict__[k], memo))
+
+        # Avoids pulling self._data into a Python list
+        # like we would when pickling.
+        result._data = CircuitData(
+            copy.deepcopy(self._data.qubits, memo),
+            copy.deepcopy(self._data.clbits, memo),
+            (i.replace(operation=copy.deepcopy(i.operation, memo)) for i in self._data),
+            reserve=len(self._data),
+        )
+        return result
 
     @classmethod
     def _increment_instances(cls):
@@ -905,7 +928,7 @@ class QuantumCircuit:
                 clbits = self.clbits[: other.num_clbits]
             if front:
                 # Need to keep a reference to the data for use after we've emptied it.
-                old_data = list(dest.data)
+                old_data = dest._data.copy()
                 dest.clear()
                 dest.append(other, qubits, clbits)
                 for instruction in old_data:
@@ -948,7 +971,7 @@ class QuantumCircuit:
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
         )
-        mapped_instrs: list[CircuitInstruction] = []
+        mapped_instrs: CircuitData = CircuitData(dest.qubits, dest.clbits, reserve=len(other.data))
         for instr in other.data:
             n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
@@ -961,7 +984,7 @@ class QuantumCircuit:
 
         if front:
             # adjust new instrs before original ones and update all parameters
-            mapped_instrs += dest.data
+            mapped_instrs.extend(dest._data)
             dest.clear()
         append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
@@ -982,7 +1005,7 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html>`__
+        `the docs <https://docs.quantum-computing.ibm.com/build/circuit-construction>`__
         for more information.
 
         .. parsed-literal::
@@ -1072,14 +1095,14 @@ class QuantumCircuit:
         """
         Returns a list of quantum bits in the order that the registers were added.
         """
-        return self._qubits
+        return self._data.qubits
 
     @property
     def clbits(self) -> list[Clbit]:
         """
         Returns a list of classical bits in the order that the registers were added.
         """
-        return self._clbits
+        return self._data.clbits
 
     @property
     def ancillas(self) -> list[AncillaQubit]:
@@ -1188,14 +1211,14 @@ class QuantumCircuit:
         if isinstance(specifier, ClassicalRegister):
             # This is linear complexity for something that should be constant, but QuantumCircuit
             # does not currently keep a hashmap of registers, and requires non-trivial changes to
-            # how it exposes its registers publically before such a map can be safely stored so it
+            # how it exposes its registers publicly before such a map can be safely stored so it
             # doesn't miss updates. (Jake, 2021-11-10).
             if specifier not in self.cregs:
                 raise CircuitError(f"Register {specifier} is not present in this circuit.")
             return specifier
         if isinstance(specifier, int):
             try:
-                return self._clbits[specifier]
+                return self._data.clbits[specifier]
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
@@ -1230,7 +1253,7 @@ class QuantumCircuit:
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
                 :class:`.CircuitInstruction` with all its context.
-            qargs: specifiers of the :class:`.Qubit`\\ s to attach instruction to.
+            qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
 
         Returns:
@@ -1274,27 +1297,29 @@ class QuantumCircuit:
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         if self._control_flow_scopes:
+            circuit_data = self._control_flow_scopes[-1].instructions
             appender = self._control_flow_scopes[-1].append
             requester = self._control_flow_scopes[-1].request_classical_resource
         else:
+            circuit_data = self._data
             appender = self._append
             requester = self._resolve_classical_resource
         instructions = InstructionSet(resource_requester=requester)
         if isinstance(operation, Instruction):
             for qarg, carg in operation.broadcast_arguments(expanded_qargs, expanded_cargs):
                 self._check_dups(qarg)
-                instruction = CircuitInstruction(operation, qarg, carg)
-                appender(instruction)
-                instructions.add(instruction)
+                data_idx = len(circuit_data)
+                appender(CircuitInstruction(operation, qarg, carg))
+                instructions._add_ref(circuit_data, data_idx)
         else:
             # For Operations that are non-Instructions, we use the Instruction's default method
             for qarg, carg in Instruction.broadcast_arguments(
                 operation, expanded_qargs, expanded_cargs
             ):
                 self._check_dups(qarg)
-                instruction = CircuitInstruction(operation, qarg, carg)
-                appender(instruction)
-                instructions.add(instruction)
+                data_idx = len(circuit_data)
+                appender(CircuitInstruction(operation, qarg, carg))
+                instructions._add_ref(circuit_data, data_idx)
         return instructions
 
     # Preferred new style.
@@ -1431,9 +1456,9 @@ class QuantumCircuit:
                     if bit in self._qubit_indices:
                         self._qubit_indices[bit].registers.append((register, idx))
                     else:
-                        self._qubits.append(bit)
+                        self._data.add_qubit(bit)
                         self._qubit_indices[bit] = BitLocations(
-                            len(self._qubits) - 1, [(register, idx)]
+                            len(self._data.qubits) - 1, [(register, idx)]
                         )
 
             elif isinstance(register, ClassicalRegister):
@@ -1443,9 +1468,9 @@ class QuantumCircuit:
                     if bit in self._clbit_indices:
                         self._clbit_indices[bit].registers.append((register, idx))
                     else:
-                        self._clbits.append(bit)
+                        self._data.add_clbit(bit)
                         self._clbit_indices[bit] = BitLocations(
-                            len(self._clbits) - 1, [(register, idx)]
+                            len(self._data.clbits) - 1, [(register, idx)]
                         )
 
             elif isinstance(register, list):
@@ -1463,11 +1488,11 @@ class QuantumCircuit:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
             if isinstance(bit, Qubit):
-                self._qubits.append(bit)
-                self._qubit_indices[bit] = BitLocations(len(self._qubits) - 1, [])
+                self._data.add_qubit(bit)
+                self._qubit_indices[bit] = BitLocations(len(self._data.qubits) - 1, [])
             elif isinstance(bit, Clbit):
-                self._clbits.append(bit)
-                self._clbit_indices[bit] = BitLocations(len(self._clbits) - 1, [])
+                self._data.add_clbit(bit)
+                self._clbit_indices[bit] = BitLocations(len(self._data.clbits) - 1, [])
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
@@ -1673,6 +1698,7 @@ class QuantumCircuit:
         initial_state: bool = False,
         cregbundle: bool = None,
         wire_order: list = None,
+        expr_len: int = 30,
     ):
         """Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -1709,15 +1735,15 @@ class QuantumCircuit:
                 then any style elements in the dict will replace the default values
                 in the input dict. A file to be loaded must end in ``.json``, but
                 the name entered here can omit ``.json``. For example,
-                ``style='iqx.json'`` or ``style='iqx'``.
+                ``style='iqp.json'`` or ``style='iqp'``.
                 If `style` is a dict and the ``'name'`` key is set, that name
                 will be used to load a json file, followed by loading the other
-                items in the style dict. For example, ``style={'name': 'iqx'}``.
+                items in the style dict. For example, ``style={'name': 'iqp'}``.
                 If `style` is not a str and `name` is not a key in the style dict,
                 then the default value from the user config file (usually
                 ``~/.qiskit/settings.conf``) will be used, for example,
-                ``circuit_mpl_style = iqx``.
-                If none of these are set, the `default` style will be used.
+                ``circuit_mpl_style = iqp``.
+                If none of these are set, the `clifford` style will be used.
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
@@ -1766,6 +1792,9 @@ class QuantumCircuit:
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (``num_qubits`` + ``num_clbits``).
+            expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+                is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -1818,6 +1847,7 @@ class QuantumCircuit:
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=wire_order,
+            expr_len=expr_len,
         )
 
     def size(
@@ -2091,10 +2121,11 @@ class QuantumCircuit:
             }
         )
 
-        cpy._data = [
+        cpy._data.reserve(len(self._data))
+        cpy._data.extend(
             instruction.replace(operation=operation_copies[id(instruction.operation)])
             for instruction in self._data
-        ]
+        )
 
         return cpy
 
@@ -2120,14 +2151,12 @@ class QuantumCircuit:
         # copy registers correctly, in copy.copy they are only copied via reference
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
-        cpy._qubits = self._qubits.copy()
         cpy._ancillas = self._ancillas.copy()
-        cpy._clbits = self._clbits.copy()
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
 
         cpy._parameter_table = ParameterTable()
-        cpy._data = []
+        cpy._data = CircuitData(self._data.qubits, self._data.clbits)
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
         cpy._metadata = copy.deepcopy(self._metadata)
@@ -2175,6 +2204,8 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instruction.
         """
+        from .reset import Reset
+
         return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
@@ -2250,6 +2281,8 @@ class QuantumCircuit:
                 circuit.measure(qreg[1], creg[1])
 
         """
+        from .measure import Measure
+
         return self.append(Measure(), [qubit], [cbit])
 
     def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
@@ -2360,12 +2393,15 @@ class QuantumCircuit:
 
         # Filter only cregs/clbits still in new DAG, preserving original circuit order
         cregs_to_add = [creg for creg in circ.cregs if creg in kept_cregs]
-        clbits_to_add = [clbit for clbit in circ._clbits if clbit in kept_clbits]
+        clbits_to_add = [clbit for clbit in circ._data.clbits if clbit in kept_clbits]
 
         # Clear cregs and clbits
         circ.cregs = []
-        circ._clbits = []
         circ._clbit_indices = {}
+
+        # Clear instruction info
+        circ._data = CircuitData(qubits=circ._data.qubits, reserve=len(circ._data))
+        circ._parameter_table.clear()
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
@@ -2373,10 +2409,6 @@ class QuantumCircuit:
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
             circ.add_register(creg)
-
-        # Clear instruction info
-        circ.data.clear()
-        circ._parameter_table.clear()
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
@@ -2797,10 +2829,7 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
-    @deprecate_func(
-        additional_msg=("Use assign_parameters() instead"),
-        since="0.45.0",
-    )
+    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
     ) -> "QuantumCircuit":
@@ -2848,23 +2877,12 @@ class QuantumCircuit:
         """
         from .barrier import Barrier
 
-        qubits: list[QubitSpecifier] = []
-
-        if not qargs:  # None
-            qubits.extend(self.qubits)
-
-        for qarg in qargs:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, range):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
+        qubits = (
+            # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
+            list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
+            if qargs
+            else self.qubits.copy()
+        )
         return self.append(Barrier(len(qubits), label=label), qubits, [])
 
     def delay(

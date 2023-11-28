@@ -274,7 +274,7 @@ class DynamicalDecoupling(TransformationPass):
                 if gate is not None:
                     new_dag.apply_operation_back(gate, [dag_qubit], check=False)
 
-            new_dag.global_phase = _mod_2pi(new_dag.global_phase + sequence_gphase)
+            new_dag.global_phase = new_dag.global_phase + sequence_gphase
 
         return new_dag
 
@@ -283,11 +283,3 @@ class DynamicalDecoupling(TransformationPass):
         if self._target is None or self._target.instruction_supported(gate.name, qargs=(qarg,)):
             return True
         return False
-
-
-def _mod_2pi(angle: float, atol: float = 0):
-    """Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π"""
-    wrapped = (angle + np.pi) % (2 * np.pi) - np.pi
-    if abs(wrapped - np.pi) < atol:
-        wrapped = -np.pi
-    return wrapped
