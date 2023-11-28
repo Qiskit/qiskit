@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Removed psutil for detecting number of cpus and memory. the information provided does not add sufficient value to justify the additional dependencies and overhead.

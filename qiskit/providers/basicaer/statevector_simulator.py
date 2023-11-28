@@ -24,8 +24,6 @@ The input qobj to this simulator has no shots, no measures, no reset, no noise.
 """
 
 import logging
-from math import log2
-from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.basicaer.exceptions import BasicAerError
 from qiskit.providers.models import QasmBackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
@@ -36,12 +34,10 @@ logger = logging.getLogger(__name__)
 class StatevectorSimulatorPy(QasmSimulatorPy):
     """Python statevector simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
-
     DEFAULT_CONFIGURATION = {
         "backend_name": "statevector_simulator",
         "backend_version": "1.1.0",
-        "n_qubits": min(24, MAX_QUBITS_MEMORY),
+        "n_qubits": 24,
         "url": "https://github.com/Qiskit/qiskit-terra",
         "simulator": True,
         "local": True,

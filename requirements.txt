@@ -1,7 +1,6 @@
 rustworkx>=0.13.0
 numpy>=1.17,<2
 ply>=3.10
-psutil>=5
 scipy>=1.5
 sympy>=1.3
 dill>=0.3

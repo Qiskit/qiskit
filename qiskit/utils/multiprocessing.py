@@ -15,8 +15,6 @@
 import multiprocessing as mp
 import platform
 
-import psutil
-
 
 def local_hardware_info():
     """Basic hardware information about the local machine.
@@ -32,8 +30,7 @@ def local_hardware_info():
         "python_build": ", ".join(platform.python_build()),
         "python_version": platform.python_version(),
         "os": platform.system(),
-        "memory": psutil.virtual_memory().total / (1024**3),
-        "cpus": psutil.cpu_count(logical=False) or 1,
+        "cpus": int(len(os.sched_getaffinity(0)) / 2) or 1,
     }
     return results
 

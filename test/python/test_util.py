@@ -22,10 +22,9 @@ class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
 
     @mock.patch("platform.system", return_value="Linux")
-    @mock.patch("psutil.virtual_memory")
-    @mock.patch("psutil.cpu_count", return_value=None)
-    def test_local_hardware_none_cpu_count(self, cpu_count_mock, vmem_mock, platform_mock):
+    @mock.patch("os.sched_getaffinity", return_value={})
+    def test_local_hardware_none_cpu_count(self, cpu_count_mock, platform_mock):
         """Test cpu count fallback to 1 when true value can't be determined"""
-        del cpu_count_mock, vmem_mock, platform_mock  # unused
+        del cpu_count_mock, platform_mock  # unused
         result = local_hardware_info()
         self.assertEqual(1, result["cpus"])
