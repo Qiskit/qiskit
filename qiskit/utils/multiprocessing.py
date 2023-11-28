@@ -14,6 +14,7 @@
 
 import multiprocessing as mp
 import platform
+import os
 
 
 def local_hardware_info():
