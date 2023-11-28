@@ -86,7 +86,7 @@ class BasePrimitiveV2(ABC):
     _options_class: type[BasePrimitiveOptions] = BasePrimitiveOptions
 
     def __init__(self, options: Optional[BasePrimitiveOptionsLike] = None):
-        self._options: type(self)._options_class
+        self._options: type(self._options_class)
         self._set_options(options)
 
     @property

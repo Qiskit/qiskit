@@ -15,7 +15,7 @@ Estimator class
 
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -57,7 +57,7 @@ class Options(BasePrimitiveOptions):
     execution: ExecutionOptions = Field(default_factory=ExecutionOptions)
 
 
-class Estimator(BaseEstimatorV2[PrimitiveJob[List[TaskResult]]]):
+class Estimator(BaseEstimatorV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
     """
     Simple implementation of :class:`BaseEstimatorV2` with Statevector.
 
@@ -74,6 +74,7 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[List[TaskResult]]]):
     """
 
     _options_class = Options
+    options: Options
 
     def __init__(self, *, options: Optional[BasePrimitiveOptionsLike] = None):
         """
@@ -82,16 +83,16 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[List[TaskResult]]]):
         """
         if options is None:
             options = Options()
-        elif not isinstance(options, Options):
+        elif not isinstance(options, BasePrimitiveOptions):
             options = Options(**options)
         super().__init__(options=options)
 
-    def _run(self, tasks: list[EstimatorTask]) -> PrimitiveJob[list[TaskResult]]:
-        job = PrimitiveJob(self._run_task, tasks)
+    def _run(self, tasks: list[EstimatorTask]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
+        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run_task, tasks)
         job.submit()
         return job
 
-    def _run_task(self, tasks: list[EstimatorTask]) -> list[TaskResult]:
+    def _run_task(self, tasks: list[EstimatorTask]) -> PrimitiveResult[TaskResult]:
         shots = self.options.execution.shots
 
         rng = _get_rng(self.options.execution.seed)
@@ -103,23 +104,21 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[List[TaskResult]]]):
             parameter_values = task.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
 
-            bound_circuits, observables = np.broadcast_arrays(bound_circuits, observables)
-            evs = np.zeros_like(bound_circuits, dtype=np.complex128)
-            stds = np.zeros_like(bound_circuits, dtype=np.complex128)
-            for index in np.ndindex(*bound_circuits.shape):
-                bound_circuit = bound_circuits[index]
-                observable = observables[index]
+            bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
+            evs = np.zeros_like(bc_circuits, dtype=np.complex128)
+            stds = np.zeros_like(bc_circuits, dtype=np.complex128)
+            for index in np.ndindex(*bc_circuits.shape):
+                bound_circuit = bc_circuits[index]
+                observable = bc_obs[index]
 
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
-                paulis = list(observable.keys())
-                coeffs = list(observable.values())
+                paulis, coeffs = zip(*observable.items())
                 obs = SparsePauliOp(paulis, coeffs)
                 # TODO: support non Pauli operators
-                expectation_value = final_state.expectation_value(obs)
+                expectation_value = np.real_if_close(final_state.expectation_value(obs))
                 if shots is None:
                     standard_error = 0
                 else:
-                    expectation_value = np.real_if_close(expectation_value)
                     sq_obs = (obs @ obs).simplify(atol=0)
                     sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
                     variance = sq_exp_val - expectation_value**2
@@ -130,7 +129,7 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[List[TaskResult]]]):
                 stds[index] = standard_error
             data_bin_cls = make_databin(
                 [("evs", NDArray[np.complex128]), ("stds", NDArray[np.complex128])],
-                shape=bound_circuits.shape,
+                shape=bc_circuits.shape,
             )
             data_bin = data_bin_cls(evs=evs, stds=stds)
             results.append(TaskResult(data_bin, metadata={"shots": shots}))

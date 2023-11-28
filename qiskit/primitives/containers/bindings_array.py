@@ -129,7 +129,7 @@ class BindingsArray(ShapedMixin):
         for idx, val in enumerate(vals):
             vals[idx] = _standardize_shape(val, self._shape)
 
-        self._vals = vals
+        self._vals: list[np.ndarray] = vals
         self._kwvals = kwvals
 
         self.validate()
