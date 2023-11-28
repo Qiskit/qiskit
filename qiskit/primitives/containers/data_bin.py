@@ -70,9 +70,7 @@ def make_databin(
     Returns:
         A new class.
     """
-    fields = list(fields)
-    field_names = tuple(name for name, _ in fields)
-    field_types = tuple(field_type for _, field_type in fields)
+    field_names, field_types = zip(*fields)
     for name in field_names:
         if name in DataBin._RESTRICTED_NAMES:
             raise ValueError(f"'{name}' is a restricted name for a DataBin.")
