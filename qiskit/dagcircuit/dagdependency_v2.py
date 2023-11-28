@@ -389,6 +389,10 @@ class DAGDependencyV2:
         else:
             self._op_names[op.name] -= 1
 
+    def count_ops(self):
+        """Count the occurrences of operation names."""
+        return self._op_names
+
     def remove_op_node(self, node):
         """Remove an operation node n.
 
