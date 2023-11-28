@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
 ]
 # These are configured in the `tool.setuptools.dynamic` table.
@@ -58,15 +59,15 @@ csp-layout-pass = [
     "python-constraint >= 1.4",
 ]
 # This will make the resolution work for installers from PyPI, but `pip install .[all]` will be
-# unreliable because `qiskit-terra` will resolve to the PyPI version, so local changes in the
+# unreliable because `qiskit` will resolve to the PyPI version, so local changes in the
 # optionals won't be reflected.
 all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass]"]
 
 [project.urls]
 Homepage = "https://qiskit.org"
 Documentation = "https://qiskit.org/documentation"
-"Source Code" = "https://github.com/Qiskit/qiskit"
-"Bug Tracker" = "https://github.com/Qiskit/qiskit/issues"
+Repository = "https://github.com/Qiskit/qiskit"
+Issues = "https://github.com/Qiskit/qiskit/issues"
 Changelog = "https://qiskit.org/documentation/release_notes.html"
 
 [project.entry-points."qiskit.unitary_synthesis"]
