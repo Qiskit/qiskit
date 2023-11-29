@@ -219,7 +219,7 @@ def convert_to_target(
             (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
         }
 
-    # Assign calibration entry to instructions
+
     if defaults:
         inst_sched_map = defaults.instruction_schedule_map
 
