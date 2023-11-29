@@ -212,7 +212,7 @@ from :mod:`.utils` directly if required, such as::
 """
 
 # NOTE: If you're changing this file, sync it with `requirements-optional.txt` and potentially
-# `setup.py` as well.
+# `pyproject.toml` as well.
 
 import logging as _logging
 
