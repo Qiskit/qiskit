@@ -253,13 +253,13 @@ class BindingsArray(ShapedMixin):
 
     @classmethod
     def coerce(cls, bindings_array: BindingsArrayLike) -> BindingsArray:
-        """Coerce BindingsArrayLike into BindingsArray
+        """Coerce an input that is :class:`~BindingsArrayLike` into a new :class:`~BindingsArray`.
 
         Args:
             bindings_array: an object to be bindings array.
 
         Returns:
-            A coerced bindings array.
+            A new bindings array.
         """
         if isinstance(bindings_array, Sequence):
             bindings_array = np.array(bindings_array)

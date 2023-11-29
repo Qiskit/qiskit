@@ -92,5 +92,5 @@ class BasePrimitiveV2(ABC):
 
     @property
     def options(self) -> BasePrimitiveOptions:
-        """Options for BaseEstimator"""
+        """Options for the primitive"""
         return self._options

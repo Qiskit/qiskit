@@ -24,7 +24,7 @@ from .dataclasses import mutable_dataclass
 
 @mutable_dataclass
 class BasePrimitiveOptions(ABC):
-    """Base calss of options for primitives."""
+    """Base class of options for primitives."""
 
     def update(self, options: Optional[BasePrimitiveOptions] = None, **kwargs):
         """Update the options."""

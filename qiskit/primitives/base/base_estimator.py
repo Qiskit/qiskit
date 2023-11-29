@@ -18,7 +18,7 @@ r"""
 Overview of EstimatorV2
 ========================
 
-EstimatorV2 class estimates expectation values of quantum circuits and observables.
+:class:`~EstimatorV2`estimates expectation values of quantum circuits for provided observables.
 
 An estimator is initialized with an empty parameter set. The estimator is used to
 create a :class:`~qiskit.providers.JobV1`, via the
@@ -354,7 +354,7 @@ BaseEstimator = BaseEstimatorV1
 class BaseEstimatorV2(BasePrimitiveV2, Generic[T]):
     """Estimator base class version 2.
 
-    Estimator estimates expectation values of quantum circuits and observables.
+    An Estimator estimates expectation values of quantum circuits and observables.
     """
 
     def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
