@@ -427,7 +427,6 @@ from typing import (
     Mapping,
     Optional,
     Set,
-    Tuple,
     TypeVar,
     Union,
     NewType,
@@ -435,7 +434,6 @@ from typing import (
 
 import numpy as np
 
-from qiskit import circuit
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import (
     channels as chans,
@@ -457,18 +455,6 @@ BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 T = TypeVar("T")
 
 StorageLocation = NewType("StorageLocation", Union[chans.MemorySlot, chans.RegisterSlot])
-
-
-def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]:
-    """Decorator thats schedules and calls the lazily compiled circuit before
-    executing the decorated builder method."""
-
-    @functools.wraps(function)
-    def wrapper(self, *args, **kwargs):
-        self._compile_lazy_circuit()
-        return function(self, *args, **kwargs)
-
-    return wrapper
 
 
 def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
@@ -530,9 +516,6 @@ class _PulseBuilder:
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
         self._backend_ctx_token = None
 
-        #: QuantumCircuit: Lazily constructed quantum circuit
-        self._lazy_circuit = None
-
         #: Dict[str, Any]: Scheduler setting dictionary.
         self._circuit_scheduler_settings = {}
 
@@ -579,7 +562,6 @@ class _PulseBuilder:
 
         return output
 
-    @_compile_lazy_circuit_before
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the builder context and compile the built pulse program."""
         self.compile()
@@ -594,12 +576,10 @@ class _PulseBuilder:
         """
         return self._backend
 
-    @_compile_lazy_circuit_before
     def push_context(self, alignment: AlignmentKind):
         """Push new context to the stack."""
         self._context_stack.append(ScheduleBlock(alignment_context=alignment))
 
-    @_compile_lazy_circuit_before
     def pop_context(self) -> ScheduleBlock:
         """Pop the last context from the stack."""
         if len(self._context_stack) == 1:
@@ -631,12 +611,9 @@ class _PulseBuilder:
         return self._circuit_scheduler_settings
 
     @circuit_scheduler_settings.setter
-    @_compile_lazy_circuit_before
     def circuit_scheduler_settings(self, settings: Mapping):
-        self._compile_lazy_circuit()
         self._circuit_scheduler_settings = settings
 
-    @_compile_lazy_circuit_before
     def compile(self) -> ScheduleBlock:
         """Compile and output the built pulse program."""
         # Not much happens because we currently compile as we build.
@@ -649,33 +626,6 @@ class _PulseBuilder:
 
         return self._context_stack[0]
 
-    def _compile_lazy_circuit(self):
-        """Call a context QuantumCircuit (lazy circuit) and append the output pulse schedule
-        to the builder's context schedule.
-
-        Note that the lazy circuit is not stored as a call instruction.
-        """
-        if self._lazy_circuit:
-            lazy_circuit = self._lazy_circuit
-            # reset lazy circuit
-            self._lazy_circuit = self._new_circuit()
-            self.call_subroutine(self._compile_circuit(lazy_circuit))
-
-    def _compile_circuit(self, circ) -> Schedule:
-        """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
-        from qiskit import compiler  # pylint: disable=cyclic-import
-
-        transpiled_circuit = compiler.transpile(circ, self.backend)
-        sched = compiler.schedule(
-            transpiled_circuit, self.backend, **self.circuit_scheduler_settings
-        )
-        return sched
-
-    def _new_circuit(self):
-        """Create a new circuit for lazy circuit scheduling."""
-        return circuit.QuantumCircuit(self.num_qubits)
-
-    @_compile_lazy_circuit_before
     def append_instruction(self, instruction: instructions.Instruction):
         """Add an instruction to the builder's context schedule.
 
@@ -694,7 +644,6 @@ class _PulseBuilder:
         inst = instructions.Reference(name, *extra_keys)
         self.append_instruction(inst)
 
-    @_compile_lazy_circuit_before
     def append_subroutine(self, subroutine: Union[Schedule, ScheduleBlock]):
         """Append a :class:`ScheduleBlock` to the builder's context schedule.
 
@@ -816,43 +765,6 @@ class _PulseBuilder:
             value_dict=value_dict,
             **kw_params,
         )
-
-    @_requires_backend
-    def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
-        """Call the circuit ``gate`` in the pulse program.
-
-        The qubits are assumed to be defined on physical qubits.
-
-        If ``lazy == True`` this circuit will extend a lazily constructed
-        quantum circuit. When an operation occurs that breaks the underlying
-        circuit scheduling assumptions such as adding a pulse instruction or
-        changing the alignment context the circuit will be
-        transpiled and scheduled into pulses with the current active settings.
-
-        Args:
-            gate: Gate to call.
-            qubits: Qubits to call gate on.
-            lazy: If false the circuit will be transpiled and pulse scheduled
-                immediately. Otherwise, it will extend the active lazy circuit
-                as defined above.
-        """
-        try:
-            iter(qubits)
-        except TypeError:
-            qubits = (qubits,)
-
-        if lazy:
-            self._call_gate(gate, qubits)
-        else:
-            self._compile_lazy_circuit()
-            self._call_gate(gate, qubits)
-            self._compile_lazy_circuit()
-
-    def _call_gate(self, gate, qargs):
-        if self._lazy_circuit is None:
-            self._lazy_circuit = self._new_circuit()
-
-        self._lazy_circuit.append(gate, qargs=qargs)
 
     @staticmethod
     def _naive_typecast_schedule(schedule: Schedule):
