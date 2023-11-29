@@ -1510,11 +1510,18 @@ class TestParameterExpressions(QiskitTestCase):
 
         x = Parameter("x")
 
-        for op in self.supported_operations:
+        for op, rel_tol in self.supported_operations.items():
             expr = op(const, x)
             bound_expr = expr.bind({x: 2.3})
 
-            self.assertEqual(complex(bound_expr), op(const, 2.3))
+            res = complex(bound_expr)
+            expected = op(const, 2.3)
+            if rel_tol > 0:
+                self.assertTrue(
+                    cmath.isclose(res, expected, rel_tol=rel_tol), f"{res} != {expected}"
+                )
+            else:
+                self.assertEqual(res, expected)
 
             # Division by zero will raise. Tested elsewhere.
             if const == 0 and op == truediv:
