@@ -44,7 +44,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
 from ._utils import sort_parameters
@@ -1618,65 +1617,6 @@ class QuantumCircuit:
             dag = pass_.run(dag)
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
-
-    def qasm(
-        self,
-        formatted: bool = False,
-        filename: str | None = None,
-        encoding: str | None = None,
-    ) -> str | None:
-        """Return OpenQASM 2.0 string.
-
-        .. seealso::
-
-            :func:`.qasm2.dump` and :func:`.qasm2.dumps`
-                The preferred entry points to the OpenQASM 2 export capabilities.  These match the
-                interface for other serialisers in Qiskit.
-
-        Args:
-            formatted (bool): Return formatted OpenQASM 2.0 string.
-            filename (str): Save OpenQASM 2.0 to file with name 'filename'.
-            encoding (str): Optionally specify the encoding to use for the
-                output file if ``filename`` is specified. By default this is
-                set to the system's default encoding (ie whatever
-                ``locale.getpreferredencoding()`` returns) and can be set to
-                any valid codec or alias from stdlib's
-                `codec module <https://docs.python.org/3/library/codecs.html#standard-encodings>`__
-
-        Returns:
-            str: If formatted=False.
-
-        Raises:
-            MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
-                ``True``.
-            QASM2ExportError: If circuit has free parameters.
-            QASM2ExportError: If an operation that has no OpenQASM 2 representation is encountered.
-        """
-        from qiskit import qasm2  # pylint: disable=cyclic-import
-
-        out = qasm2.dumps(self)
-        if filename is not None:
-            with open(filename, "w+", encoding=encoding) as file:
-                print(out, file=file)
-
-        if formatted:
-            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2.0 output")
-
-            import pygments
-            from pygments.formatters import (  # pylint: disable=no-name-in-module
-                Terminal256Formatter,
-            )
-            from qiskit.qasm.pygments import OpenQASMLexer
-            from qiskit.qasm.pygments import QasmTerminalStyle
-
-            code = pygments.highlight(
-                out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
-            )
-            print(code)
-            return None
-        # The old `QuantumCircuit.qasm()` method included a terminating new line that `qasm2.dumps`
-        # doesn't, so for full compatibility we add it back here.
-        return out + "\n"
 
     def draw(
         self,
