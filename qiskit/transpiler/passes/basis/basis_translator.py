@@ -202,8 +202,8 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://qiskit.org/documentation/stubs/qiskit.transpiler.passes."
-                    "BasisTranslator.html#translation_errors"
+                    "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                    "BasisTranslator#translation-errors"
                 )
 
             qarg_local_basis_transforms[qarg] = local_basis_transforms
@@ -220,8 +220,8 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.BasisTranslator."
-                "html#translation_errors"
+                "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                "BasisTranslator#translation-errors"
             )
 
         # Compose found path into a set of instruction substitution rules.
