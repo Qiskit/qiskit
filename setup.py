@@ -47,7 +47,6 @@ visualization_extras = [
     "pillow>=4.2.1",
     "pylatexenc>=1.4",
     "seaborn>=0.9.0",
-    "pygments>=2.4",
 ]
 z3_requirements = [
     "z3-solver>=4.7",
@@ -56,7 +55,7 @@ csp_requirements = ["python-constraint>=1.4"]
 
 
 setup(
-    name="qiskit-terra",
+    name="qiskit",
     version="1.0.0",
     description="Software for developing quantum computing programs",
     long_description=README,

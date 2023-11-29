@@ -29,6 +29,7 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.library import (
     HGate,
     IGate,
+    RGate,
     SdgGate,
     SGate,
     U3Gate,
@@ -445,6 +446,8 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         self.check_oneq_special_cases(U3Gate(-np.pi, 0.2, 0.0).to_matrix(), "RR", {"r": 1})
         self.check_oneq_special_cases(U3Gate(np.pi, 0.0, 0.2).to_matrix(), "RR", {"r": 1})
         self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), "RR", {"r": 2})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, -0.2).to_matrix(), "RR", {"r": 1})
+        self.check_oneq_special_cases(RGate(0.1, 0.2).to_matrix(), "RR", {"r": 1})
 
     def test_special_U1X(self):
         """Special cases of U1X"""
