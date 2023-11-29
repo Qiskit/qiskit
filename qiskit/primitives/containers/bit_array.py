@@ -186,8 +186,8 @@ class BitArray(ShapedMixin):
 
         num_bits = array.shape[-1]
         if remainder := (-num_bits) % 8:
-            # unpackbits has strange (incorrect?) behaviour when the number of bits doesn't align
-            # to a multiple of 8, so we pad with zeros
+            # unpackbits pads with zeros on the wrong side with respect to what we want, so
+            # we manually pad to the nearest byte
             pad = np.zeros(shape_tuple(array.shape[:-1], remainder), dtype=bool)
             array = np.concatenate([pad, array], axis=-1)
 
@@ -329,7 +329,7 @@ class BitArray(ShapedMixin):
                 :attr:`~size`, or the product of :attr:`~size` and :attr:`~num_samples`.
         """
         shape = shape_tuple(shape)
-        if (size := np.product(shape, dtype=int)) == self.size:
+        if (size := np.prod(shape, dtype=int)) == self.size:
             shape = shape_tuple(shape, self._array.shape[-2:])
         elif size == self.size * self.num_samples:
             shape = shape_tuple(shape, self._array.shape[-1:])
