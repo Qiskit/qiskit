@@ -90,10 +90,7 @@ class Estimator(BaseEstimatorV2):
         super().__init__(options=options)
 
     def run(self, tasks: Iterable[EstimatorTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
-        coerced_tasks = [
-            task if isinstance(task, EstimatorTask) else EstimatorTask.coerce(task)
-            for task in tasks
-        ]
+        coerced_tasks = [EstimatorTask.coerce(task) for task in tasks]
 
         for task in coerced_tasks:
             task.validate()

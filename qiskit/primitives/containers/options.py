@@ -32,7 +32,6 @@ class BasePrimitiveOptions(ABC):
             if not isinstance(options, BasePrimitiveOptions):
                 raise TypeError(f"Type {type(options)} is not options class")
             for key, val in options.__dict__.items():
-                print(key, val)
                 setattr(self, key, val)
 
         for key, val in kwargs.items():
