@@ -122,11 +122,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().parameters
 
-    def qasm(self, formatted=False, filename=None, encoding=None):
-        if not self._is_built:
-            self._build()
-        return super().qasm(formatted, filename, encoding)
-
     def _append(self, instruction, _qargs=None, _cargs=None):
         if not self._is_built:
             self._build()
