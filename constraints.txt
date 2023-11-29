@@ -6,8 +6,3 @@ jsonschema==3.2.0
 # eigensystem code for one of the test cases.  See
 # https://github.com/Qiskit/qiskit-terra/issues/10345 for current details.
 scipy<1.11; python_version<'3.12'
-
-# Aer 0.13 causes several randomised tests to begin failing, and some
-# `QuantumInstance` use of noise models to raise exceptions.  These need fixes
-# on Terra.
-qiskit-aer==0.12.2
