@@ -68,8 +68,6 @@ def convert_to_target(
     )
     from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, SwitchCaseOp, WhileLoopOp
     from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-    from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
-    from qiskit.pulse.calibration_entries import PulseQobjDef
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.gate import Gate
 
@@ -221,41 +219,44 @@ def convert_to_target(
             (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
         }
 
-    # Define pulse qobj converter and command sequence for lazy conversion
+    # Assign calibration entry to instructions.
     if defaults:
-        pulse_lib = list(defaults.pulse_library)
-        converter = QobjToInstructionConverter(pulse_lib)
-        for cmd in defaults.cmd_def:
-            name = cmd.name
-            qubits = tuple(cmd.qubits)
-            if (
-                name not in all_instructions
-                or name not in prop_name_map
-                or qubits not in prop_name_map[name]
-            ):
-                logger.info(
-                    "Gate calibration for instruction %s on qubits %s is found "
-                    "in the PulseDefaults payload. However, this entry is not defined in "
-                    "the gate mapping of Target. This calibration is ignored.",
-                    name,
-                    qubits,
-                )
-                continue
+        inst_sched_map = defaults.instruction_schedule_map
 
-            if (name, qubits) in faulty_ops:
-                continue
+        for name in inst_sched_map.instructions:
+            for qubits in inst_sched_map.qubits_with_instruction(name):
 
-            entry = PulseQobjDef(converter=converter, name=cmd.name)
-            entry.define(cmd.sequence)
-            try:
-                prop_name_map[name][qubits].calibration = entry
-            except AttributeError:
-                logger.info(
-                    "The PulseDefaults payload received contains an instruction %s on "
-                    "qubits %s which is not present in the configuration or properties payload.",
-                    name,
-                    qubits,
-                )
+                if not isinstance(qubits, tuple):
+                    qubits = (qubits,)
+
+                if (
+                    name not in all_instructions
+                    or name not in prop_name_map
+                    or qubits not in prop_name_map[name]
+                ):
+                    logger.info(
+                        "Gate calibration for instruction %s on qubits %s is found "
+                        "in the PulseDefaults payload. However, this entry is not defined in "
+                        "the gate mapping of Target. This calibration is ignored.",
+                        name,
+                        qubits,
+                    )
+                    continue
+
+                if (name, qubits) in faulty_ops:
+                    continue
+
+                entry = inst_sched_map._get_calibration_entry(name, qubits)
+
+                try:
+                    prop_name_map[name][qubits].calibration = entry
+                except AttributeError:
+                    logger.info(
+                        "The PulseDefaults payload received contains an instruction %s on "
+                        "qubits %s which is not present in the configuration or properties payload.",
+                        name,
+                        qubits,
+                    )
 
     # Remove 'delay' if add_delay is set to False.
     if not add_delay:
