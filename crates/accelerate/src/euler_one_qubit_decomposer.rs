@@ -380,22 +380,26 @@ fn circuit_rr(
     if !simplify {
         atol = -1.0;
     }
-    if theta.abs() < atol && phi.abs() < atol && lam.abs() < atol {
-        return OneQubitGateSequence {
-            gates: circuit,
-            global_phase: phase,
-        };
-    }
-    if (theta - PI).abs() > atol {
+
+    if mod_2pi((phi + lam) / 2., atol).abs() < atol {
+        // This can be expressed as a single R gate
+        if theta.abs() > atol {
+            circuit.push((String::from("r"), vec![theta, mod_2pi(PI / 2. + phi, atol)]));
+        }
+    } else {
+        // General case: use two R gates
+        if (theta - PI).abs() > atol {
+            circuit.push((
+                String::from("r"),
+                vec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
+            ));
+        }
         circuit.push((
             String::from("r"),
-            vec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
+            vec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
         ));
     }
-    circuit.push((
-        String::from("r"),
-        vec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
-    ));
+
     OneQubitGateSequence {
         gates: circuit,
         global_phase: phase,
