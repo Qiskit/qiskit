@@ -1332,7 +1332,14 @@ def _paramvec_names(prefix, length):
 class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
-    supported_operations = [add, sub, mul, truediv]
+    # supported operations dictionary operation : accuracy (0=exact match)
+    supported_operations = {
+        add: 0,
+        sub: 0,
+        mul: 0,
+        truediv: 0,
+        pow: 1e-12,
+    }
 
     def setUp(self):
         super().setUp()
@@ -1951,6 +1958,21 @@ class TestParameterExpressions(QiskitTestCase):
             expr = x * x
             self.assertEqual(expr.gradient(x), 2 * x)
             self.assertEqual(expr.gradient(x).gradient(x), 2)
+
+    def test_parameter_expression_exp_log_vs_pow(self):
+        """Test exp, log, pow for ParameterExpressions by asserting x**y = exp(y log(x))."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+        pow1 = x**y
+        pow2 = (y * x.log()).exp()
+        for x_val in [2, 1.3, numpy.pi]:
+            for y_val in [2, 1.3, 0, -1, -1.0, numpy.pi, 1j]:
+                with self.subTest(msg="with x={x_val}, y={y_val}"):
+                    vals = {x: x_val, y: y_val}
+                    pow1_val = pow1.bind(vals)
+                    pow2_val = pow2.bind(vals)
+                    self.assertTrue(cmath.isclose(pow1_val, pow2_val), f"{pow1_val} != {pow2_val}")
 
     def test_bound_expression_is_real(self):
         """Test is_real on bound parameters."""
