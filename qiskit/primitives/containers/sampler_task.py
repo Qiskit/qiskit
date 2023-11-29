@@ -77,4 +77,6 @@ class SamplerTask(BaseTask, ShapedMixin):
             )
 
 
-SamplerTaskLike = Union[SamplerTask, QuantumCircuit, Tuple[QuantumCircuit, BindingsArrayLike]]
+SamplerTaskLike = Union[
+    SamplerTask, QuantumCircuit, Tuple[QuantumCircuit], Tuple[QuantumCircuit, BindingsArrayLike]
+]

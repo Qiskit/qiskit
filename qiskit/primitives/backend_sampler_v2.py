@@ -31,7 +31,7 @@ from qiskit.transpiler.passmanager import PassManager
 from .backend_estimator import _prepare_counts, _run_circuits
 from .base import BaseSamplerV2, SamplerResult
 from .containers import BasePrimitiveOptions, BasePrimitiveOptionsLike, SamplerTask, TaskResult
-from .containers.bit_array import BitArray
+from .containers.bit_array import BitArray, _min_num_bytes
 from .containers.data_bin import make_databin
 from .containers.options import mutable_dataclass
 from .primitive_job import PrimitiveJob
@@ -61,7 +61,7 @@ class Options(BasePrimitiveOptions):
 class _MeasureInfo:
     creg_name: str
     num_bits: int
-    packed_size: int
+    num_bytes: int
     start: int
 
 
@@ -203,7 +203,7 @@ class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             bound_circuits = parameter_values.bind_all(circuit)
             arrays = {
                 item.creg_name: np.zeros(
-                    bound_circuits.shape + (shots, item.packed_size), dtype=np.uint8
+                    bound_circuits.shape + (shots, item.num_bytes), dtype=np.uint8
                 )
                 for item in meas_info
             }
@@ -245,7 +245,7 @@ def _analyze_circuit(circuit: QuantumCircuit) -> List[_MeasureInfo]:
             _MeasureInfo(
                 creg_name=name,
                 num_bits=num_bits,
-                packed_size=num_bits // 8 + (num_bits % 8 > 0),
+                num_bytes=_min_num_bytes(num_bits),
                 start=start,
             )
         )

@@ -16,21 +16,30 @@ Statevector Sampler class
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
+from pydantic.types import PositiveInt
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
 from .base.validation import _has_measure
-from .containers import BasePrimitiveOptions, BasePrimitiveOptionsLike, SamplerTask, TaskResult
-from .containers.bit_array import BitArray
-from .containers.data_bin import make_databin
-from .containers.options import mutable_dataclass
+from .containers import (
+    BasePrimitiveOptions,
+    BasePrimitiveOptionsLike,
+    BitArray,
+    PrimitiveResult,
+    SamplerTask,
+    SamplerTaskLike,
+    TaskResult,
+    make_databin,
+)
+from .containers.bit_array import _min_num_bytes
+from .containers.dataclasses import mutable_dataclass
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
@@ -39,7 +48,7 @@ from .utils import bound_circuit_to_instruction
 class ExecutionOptions(BasePrimitiveOptions):
     """Options for execution."""
 
-    shots: int = 1  # TODO: discuss the default number of shots
+    shots: PositiveInt = 1  # TODO: discuss the default number of shots
     seed: Optional[Union[int, np.random.Generator]] = None
 
 
@@ -58,11 +67,11 @@ class Options(BasePrimitiveOptions):
 class _MeasureInfo:
     creg_name: str
     num_bits: int
-    packed_size: int
+    num_bytes: int
     qreg_indices: List[int]
 
 
-class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
+class Sampler(BaseSamplerV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
     """
     Simple implementation of :class:`BaseSamplerV2` with Statevector.
 
@@ -79,6 +88,7 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
     """
 
     _options_class = Options
+    options: Options
 
     def __init__(self, *, options: Optional[BasePrimitiveOptionsLike] = None):
         """
@@ -87,19 +97,27 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
         """
         if options is None:
             options = Options()
-        elif not isinstance(options, Options):
+        elif not isinstance(options, BasePrimitiveOptions):
             options = Options(**options)
         super().__init__(options=options)
 
-    def _run(self, tasks: List[SamplerTask]) -> PrimitiveJob[List[TaskResult]]:
-        job = PrimitiveJob(self._run_task, tasks)
+    def run(self, tasks: Iterable[SamplerTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
+        # Note: a QuantumCircuit and a tuple of QuantumCircuit and BindingsArray are
+        # valid SamplerTaskLike objects, but they are also iterable.
+        if isinstance(tasks, QuantumCircuit) or (
+            isinstance(tasks, tuple) and len(tasks) > 0 and isinstance(tasks[0], QuantumCircuit)
+        ):
+            coerced_tasks = [SamplerTask.coerce(tasks)]
+        else:
+            coerced_tasks = [SamplerTask.coerce(task) for task in tasks]
+        for task in coerced_tasks:
+            task.validate()
+        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run_task, coerced_tasks)
         job.submit()
         return job
 
     def _run_task(self, tasks: List[SamplerTask]) -> List[TaskResult]:
         shots = self.options.execution.shots
-        if shots is None:
-            raise QiskitError("`shots` should be a positive integer")
         seed = self.options.execution.seed
 
         results = []
@@ -109,7 +127,7 @@ class StatevectorSampler(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             bound_circuits = parameter_values.bind_all(circuit)
             arrays = {
                 item.creg_name: np.zeros(
-                    bound_circuits.shape + (shots, item.packed_size), dtype=np.uint8
+                    bound_circuits.shape + (shots, item.num_bytes), dtype=np.uint8
                 )
                 for item in meas_info
             }
@@ -157,8 +175,8 @@ def _preprocess_circuit(circuit: QuantumCircuit):
         _MeasureInfo(
             creg_name=name,
             num_bits=num_bits,
+            num_bytes=_min_num_bytes(num_bits),
             qreg_indices=indices[name],
-            packed_size=num_bits // 8 + (num_bits % 8 > 0),
         )
         for name, num_bits in num_bits_dict.items()
     ]

@@ -216,6 +216,7 @@ class BaseSamplerV2(BasePrimitiveV2, Generic[T]):
     def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
         super().__init__(options=options)
 
+    @abstractmethod
     def run(self, tasks: SamplerTaskLike | Iterable[SamplerTaskLike]) -> T:
         """Run the tasks of samples.
 
@@ -226,20 +227,4 @@ class BaseSamplerV2(BasePrimitiveV2, Generic[T]):
         Returns:
             The job object of Sampler's Result.
         """
-        if isinstance(tasks, SamplerTask):
-            tasks = [tasks]
-        elif isinstance(tasks, QuantumCircuit):
-            tasks = [SamplerTask.coerce(tasks)]
-        elif isinstance(tasks, tuple) and isinstance(tasks[0], QuantumCircuit):
-            tasks = [SamplerTask.coerce(tasks)]
-        elif tasks is not SamplerTask:
-            tasks = [SamplerTask.coerce(task) for task in tasks]
-
-        for task in tasks:
-            task.validate()
-
-        return self._run(tasks)
-
-    @abstractmethod
-    def _run(self, tasks: list[SamplerTask]) -> T:
         pass

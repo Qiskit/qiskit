@@ -39,6 +39,11 @@ from .shape import ShapedMixin, ShapeInput, shape_tuple
 _WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
 
 
+def _min_num_bytes(num_bits: int) -> int:
+    """Return the minimum number of bytes needed to store ``num_bits``."""
+    return num_bits // 8 + (num_bits % 8 > 0)
+
+
 class BitArray(ShapedMixin):
     """Stores an array of bit values.
 
@@ -65,7 +70,7 @@ class BitArray(ShapedMixin):
 
         if self._array.ndim < 2:
             raise ValueError("The input array must have at least two axes.")
-        if self._array.shape[-1] != (expected := num_bits // 8 + (num_bits % 8 > 0)):
+        if self._array.shape[-1] != (expected := _min_num_bytes(num_bits)):
             raise ValueError(f"The input array is expected to have {expected} bytes per sample.")
 
     def _prepare_broadcastable(self, other: "BitArray") -> Tuple[NDArray[np.uint8], ...]:
@@ -273,7 +278,7 @@ class BitArray(ShapedMixin):
             ints = list(ints)
             num_bits = max(map(int.bit_length, ints))
 
-        num_bytes = num_bits // 8 + (num_bits % 8 > 0)
+        num_bytes = _min_num_bytes(num_bits)
         data = b"".join(val.to_bytes(num_bytes, "big") for val in ints)
         array = np.frombuffer(data, dtype=np.uint8, count=len(data))
         return BitArray(array.reshape(-1, num_bytes), num_bits)

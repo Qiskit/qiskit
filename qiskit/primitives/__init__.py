@@ -71,3 +71,4 @@ from .containers import BindingsArray, EstimatorPub, ObservablesArray, Primitive
 from .estimator import Estimator
 from .sampler import Sampler
 from .statevector_estimator import Estimator as StatevectorEstimator
+from .statevector_sampler import Sampler as StatevectorSampler
