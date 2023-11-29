@@ -17,7 +17,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from qiskit.primitives.containers import make_databin
+from qiskit.primitives.containers import make_data_bin
 from qiskit.primitives.containers.data_bin import DataBin, DataBinMeta
 from qiskit.test import QiskitTestCase
 
@@ -27,7 +27,7 @@ class DataBinTestCase(QiskitTestCase):
 
     def test_make_databin(self):
         """Test the make_databin() function."""
-        data_bin_cls = make_databin(
+        data_bin_cls = make_data_bin(
             [("alpha", npt.NDArray[np.uint16]), ("beta", np.ndarray)], shape=(10, 20)
         )
 
@@ -50,7 +50,7 @@ class DataBinTestCase(QiskitTestCase):
 
     def test_make_databin_no_shape(self):
         """Test the make_databin() function with no shape."""
-        data_bin_cls = make_databin([("alpha", dict), ("beta", int)])
+        data_bin_cls = make_data_bin([("alpha", dict), ("beta", int)])
 
         self.assertTrue(issubclass(type(data_bin_cls), DataBinMeta))
         self.assertTrue(issubclass(data_bin_cls, DataBin))

@@ -16,7 +16,7 @@ Bindings array class
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from itertools import chain, product
+from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -163,12 +163,12 @@ class BindingsArray(ShapedMixin):
         """The non-keyword values of this array."""
         return self._vals
 
-    def bind_at_idx(self, circuit: QuantumCircuit, idx: Tuple[int, ...]) -> QuantumCircuit:
+    def bind(self, circuit: QuantumCircuit, loc: Tuple[int, ...]) -> QuantumCircuit:
         """Return the circuit bound to the values at the provided index.
 
         Args:
             circuit: The circuit to bind.
-            idx: A tuple of indices, on for each dimension of this array.
+            loc: A tuple of indices, on for each dimension of this array.
 
         Returns:
             The bound circuit.
@@ -176,10 +176,10 @@ class BindingsArray(ShapedMixin):
         Raises:
             ValueError: If the index doesn't have the right number of values.
         """
-        if len(idx) != self.ndim:
-            raise ValueError(f"Expected {idx} to index all dimensions of {self.shape}")
+        if len(loc) != self.ndim:
+            raise ValueError(f"Expected {loc} to index all dimensions of {self.shape}")
 
-        flat_vals = (val for vals in self.vals for val in vals[idx])
+        flat_vals = (val for vals in self.vals for val in vals[loc])
 
         if not self._kwvals:
             # special case to avoid constructing a dictionary input
@@ -189,21 +189,9 @@ class BindingsArray(ShapedMixin):
         parameters.update(
             (param, val)
             for params, vals in self._kwvals.items()
-            for param, val in zip(params, vals[idx])
+            for param, val in zip(params, vals[loc])
         )
         return circuit.assign_parameters(parameters)
-
-    def bind_flat(self, circuit: QuantumCircuit) -> Iterable[QuantumCircuit]:
-        """Yield a bound circuit for every array index in flattened order.
-
-        Args:
-            circuit: The circuit to bind.
-
-        Yields:
-            Bound circuits, in flattened array order.
-        """
-        for idx in product(*map(range, self.shape)):
-            yield self.bind_at_idx(circuit, idx)
 
     def bind_all(self, circuit: QuantumCircuit) -> np.ndarray:
         """Return an object array of bound circuits with the same shape.
@@ -216,7 +204,7 @@ class BindingsArray(ShapedMixin):
         """
         arr = np.empty(self.shape, dtype=object)
         for idx in np.ndindex(self.shape):
-            arr[idx] = self.bind_at_idx(circuit, idx)
+            arr[idx] = self.bind(circuit, idx)
         return arr
 
     def ravel(self) -> BindingsArray:

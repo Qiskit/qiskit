@@ -15,7 +15,7 @@ Data containers for primitives.
 """
 
 from .bindings_array import BindingsArray
-from .data_bin import make_databin
+from .data_bin import make_data_bin
 from .estimator_task import EstimatorTask, EstimatorTaskLike
 from .observables_array import ObservablesArray
 from .options import BasePrimitiveOptions, BasePrimitiveOptionsLike

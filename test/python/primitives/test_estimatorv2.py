@@ -279,8 +279,8 @@ class TestEstimatorV2(QiskitTestCase):
             estimator = Estimator(options={"execution": {"shots": 3000}})
             self.assertEqual(estimator.options.execution.shots, 3000)
         with self.subTest("set_options"):
-            estimator.options.execution.shots = 1024
-            estimator.options.execution.seed = 15
+            estimator.options.execution.shots = 1024  # pylint: disable=assigning-non-slot
+            estimator.options.execution.seed = 15  # pylint: disable=assigning-non-slot
             self.assertEqual(estimator.options.execution.shots, 1024)
             self.assertEqual(estimator.options.execution.seed, 15)
         with self.subTest("run"):

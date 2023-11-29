@@ -35,7 +35,7 @@ class DataBinMeta(type):
 class DataBin(metaclass=DataBinMeta):
     """Base class for data bin containers.
 
-    Subclasses are typically made via :class:`~make_databin`, which is a specialization of
+    Subclasses are typically made via :class:`~make_data_bin`, which is a specialization of
     :class:`make_dataclass`.
     """
 
@@ -51,14 +51,14 @@ class DataBin(metaclass=DataBinMeta):
         return f"{type(self)}({', '.join(vals)})"
 
 
-def make_databin(
+def make_data_bin(
     fields: Iterable[Tuple[str, type]], shape: Optional[Tuple[int, ...]] = None
 ) -> DataBinMeta:
     """Return a new subclass of :class:`~DataBin` with the provided fields and shape.
 
     .. code-block:: python
 
-        my_bin = make_databin([("alpha", np.NDArray[np.float])], shape=(20, 30))
+        my_bin = make_data_bin([("alpha", np.NDArray[np.float])], shape=(20, 30))
 
         # behaves like a dataclass
         my_bin(alpha=np.empty((20, 30)))

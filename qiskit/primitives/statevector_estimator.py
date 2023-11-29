@@ -33,7 +33,7 @@ from .containers import (
     EstimatorTaskLike,
     PrimitiveResult,
     TaskResult,
-    make_databin,
+    make_data_bin,
 )
 from .containers.dataclasses import mutable_dataclass
 from .primitive_job import PrimitiveJob
@@ -59,7 +59,7 @@ class Options(BasePrimitiveOptions):
     execution: ExecutionOptions = Field(default_factory=ExecutionOptions)
 
 
-class Estimator(BaseEstimatorV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
+class Estimator(BaseEstimatorV2):
     """
     Simple implementation of :class:`BaseEstimatorV2` with Statevector.
 
@@ -137,7 +137,7 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
                     expectation_value = rng.normal(expectation_value, standard_error)
                 evs[index] = expectation_value
                 stds[index] = standard_error
-            data_bin_cls = make_databin(
+            data_bin_cls = make_data_bin(
                 [("evs", NDArray[np.complex128]), ("stds", NDArray[np.complex128])],
                 shape=bc_circuits.shape,
             )

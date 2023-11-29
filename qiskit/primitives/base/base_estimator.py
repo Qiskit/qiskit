@@ -351,7 +351,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 BaseEstimator = BaseEstimatorV1
 
 
-class BaseEstimatorV2(BasePrimitiveV2, Generic[T]):
+class BaseEstimatorV2(BasePrimitiveV2):
     """Estimator base class version 2.
 
     An Estimator estimates expectation values of quantum circuits and observables.
@@ -361,7 +361,7 @@ class BaseEstimatorV2(BasePrimitiveV2, Generic[T]):
         super().__init__(options=options)
 
     @abstractmethod
-    def run(self, tasks: Iterable[EstimatorTaskLike]) -> T:
+    def run(self, tasks: Iterable[EstimatorTaskLike]) -> Job:
         """Run the tasks of the estimation of expectation value(s).
 
         Args:

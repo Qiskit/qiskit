@@ -15,14 +15,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, Generic, Optional, Sequence, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from .task_result import TaskResult
 
 T = TypeVar("T", bound=TaskResult)
 
 
-class PrimitiveResult(Generic[T], Sequence[T]):
+class PrimitiveResult(Generic[T]):
     """A container for multiple task results and global metadata."""
 
     def __init__(self, task_results: Iterable[T], metadata: Optional[dict[str, Any]] = None):
@@ -47,3 +47,6 @@ class PrimitiveResult(Generic[T], Sequence[T]):
 
     def __repr__(self) -> str:
         return f"PrimitiveResult({self._task_results}, metadata={self.metadata})"
+
+    def __iter__(self) -> Iterable[T]:
+        return iter(self._task_results)

@@ -12,7 +12,6 @@
 
 """Test BindingsArray"""
 
-from types import GeneratorType
 
 import numpy as np
 
@@ -66,13 +65,13 @@ class BindingsArrayTestCase(QiskitTestCase):
         expected_circuit = self.circuit.assign_parameters(vals[2, 3])
 
         ba = BindingsArray(vals)
-        self.assertEqual(ba.bind_at_idx(self.circuit, (2, 3)), expected_circuit)
+        self.assertEqual(ba.bind(self.circuit, (2, 3)), expected_circuit)
 
         ba = BindingsArray([vals[:, :, :20], vals[:, :, 20:27], vals[:, :, 27:]])
-        self.assertEqual(ba.bind_at_idx(self.circuit, (2, 3)), expected_circuit)
+        self.assertEqual(ba.bind(self.circuit, (2, 3)), expected_circuit)
 
         ba = BindingsArray(vals[:, :, :20], {tuple(self.params[20:]): vals[:, :, 20:]})
-        self.assertEqual(ba.bind_at_idx(self.circuit, (2, 3)), expected_circuit)
+        self.assertEqual(ba.bind(self.circuit, (2, 3)), expected_circuit)
 
         order = np.arange(30, 50, dtype=int)
         np.random.default_rng().shuffle(order)
@@ -83,23 +82,7 @@ class BindingsArrayTestCase(QiskitTestCase):
                 tuple(self.params[i] for i in order): vals[:, :, order],
             },
         )
-        self.assertEqual(ba.bind_at_idx(self.circuit, (2, 3)), expected_circuit)
-
-    def test_bind_flat(self):
-        """Test flat binding all possible values"""
-        # this test assumes bind_flat() is implemented via bind_at_idx(), which we have already
-        # tested. so here, we just test that it gets the order right
-        vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
-        bound_iter = BindingsArray(vals).bind_flat(self.circuit)
-        self.assertIsInstance(bound_iter, GeneratorType)
-        bound_circuits = list(bound_iter)
-        self.assertEqual(len(bound_circuits), 6)
-        self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(vals[0, 0]))
-        self.assertEqual(bound_circuits[1], self.circuit.assign_parameters(vals[0, 1]))
-        self.assertEqual(bound_circuits[2], self.circuit.assign_parameters(vals[0, 2]))
-        self.assertEqual(bound_circuits[3], self.circuit.assign_parameters(vals[1, 0]))
-        self.assertEqual(bound_circuits[4], self.circuit.assign_parameters(vals[1, 1]))
-        self.assertEqual(bound_circuits[5], self.circuit.assign_parameters(vals[1, 2]))
+        self.assertEqual(ba.bind(self.circuit, (2, 3)), expected_circuit)
 
     def test_bind_all(self):
         """Test binding all possible values"""
@@ -160,7 +143,7 @@ class BindingsArrayTestCase(QiskitTestCase):
         flat_vals = vals.reshape(-1, 50)
         np.testing.assert_allclose(flat.vals, flat_vals.reshape((1, 6, 50)))
 
-        bound_circuits = list(flat.bind_flat(self.circuit))
+        bound_circuits = list(flat.bind_all(self.circuit).reshape(6))
         self.assertEqual(len(bound_circuits), 6)
         for i in range(6):
             self.assertEqual(bound_circuits[i], self.circuit.assign_parameters(flat_vals[i]))
@@ -180,14 +163,15 @@ class BindingsArrayTestCase(QiskitTestCase):
             reshape_vals = vals.reshape((3, 2, 50))
             np.testing.assert_allclose(reshape_ba.vals, reshape_vals.reshape((1, 3, 2, 50)))
 
-            bound_circuits = list(reshape_ba.bind_flat(self.circuit))
-            self.assertEqual(len(bound_circuits), 6)
-            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(reshape_vals[0, 0]))
-            self.assertEqual(bound_circuits[1], self.circuit.assign_parameters(reshape_vals[0, 1]))
-            self.assertEqual(bound_circuits[2], self.circuit.assign_parameters(reshape_vals[1, 0]))
-            self.assertEqual(bound_circuits[3], self.circuit.assign_parameters(reshape_vals[1, 1]))
-            self.assertEqual(bound_circuits[4], self.circuit.assign_parameters(reshape_vals[2, 0]))
-            self.assertEqual(bound_circuits[5], self.circuit.assign_parameters(reshape_vals[2, 1]))
+            circuit = self.circuit
+            bound_circuits = reshape_ba.bind_all(circuit)
+            self.assertEqual(bound_circuits.shape, (3, 2))
+            self.assertEqual(bound_circuits[0, 0], circuit.assign_parameters(reshape_vals[0, 0]))
+            self.assertEqual(bound_circuits[0, 1], circuit.assign_parameters(reshape_vals[0, 1]))
+            self.assertEqual(bound_circuits[1, 0], circuit.assign_parameters(reshape_vals[1, 0]))
+            self.assertEqual(bound_circuits[1, 1], circuit.assign_parameters(reshape_vals[1, 1]))
+            self.assertEqual(bound_circuits[2, 0], circuit.assign_parameters(reshape_vals[2, 0]))
+            self.assertEqual(bound_circuits[2, 1], circuit.assign_parameters(reshape_vals[2, 1]))
 
         with self.subTest("flatten"):
             ba = BindingsArray(vals)
@@ -200,7 +184,7 @@ class BindingsArrayTestCase(QiskitTestCase):
             reshape_vals = vals.reshape(-1, 50)
             np.testing.assert_allclose(reshape_ba.vals, reshape_vals.reshape((1, 6, 50)))
 
-            bound_circuits = list(reshape_ba.bind_flat(self.circuit))
+            bound_circuits = list(reshape_ba.bind_all(self.circuit))
             self.assertEqual(len(bound_circuits), 6)
             for i in range(6):
                 self.assertEqual(bound_circuits[i], self.circuit.assign_parameters(reshape_vals[i]))
@@ -218,9 +202,8 @@ class BindingsArrayTestCase(QiskitTestCase):
             self.assertEqual(ba.vals, [])
             self.assertEqual(ba.kwvals, {tuple(param.name for param in self.params): vals})
 
-            bound_circuits = list(ba.bind_flat(self.circuit))
-            self.assertEqual(len(bound_circuits), 1)
-            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(vals))
+            bound_circuit = ba.bind(self.circuit, ())
+            self.assertEqual(bound_circuit, self.circuit.assign_parameters(vals))
 
         with self.subTest("binding an array"):
             vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
@@ -233,14 +216,14 @@ class BindingsArrayTestCase(QiskitTestCase):
             self.assertEqual(ba.vals, [])
             self.assertEqual(ba.kwvals, {tuple(param.name for param in self.params): vals})
 
-            bound_circuits = list(ba.bind_flat(self.circuit))
-            self.assertEqual(len(bound_circuits), 6)
-            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(vals[0, 0]))
-            self.assertEqual(bound_circuits[1], self.circuit.assign_parameters(vals[0, 1]))
-            self.assertEqual(bound_circuits[2], self.circuit.assign_parameters(vals[0, 2]))
-            self.assertEqual(bound_circuits[3], self.circuit.assign_parameters(vals[1, 0]))
-            self.assertEqual(bound_circuits[4], self.circuit.assign_parameters(vals[1, 1]))
-            self.assertEqual(bound_circuits[5], self.circuit.assign_parameters(vals[1, 2]))
+            bound_circuits = ba.bind_all(self.circuit)
+            self.assertEqual(bound_circuits.shape, (2, 3))
+            self.assertEqual(bound_circuits[0, 0], self.circuit.assign_parameters(vals[0, 0]))
+            self.assertEqual(bound_circuits[0, 1], self.circuit.assign_parameters(vals[0, 1]))
+            self.assertEqual(bound_circuits[0, 2], self.circuit.assign_parameters(vals[0, 2]))
+            self.assertEqual(bound_circuits[1, 0], self.circuit.assign_parameters(vals[1, 0]))
+            self.assertEqual(bound_circuits[1, 1], self.circuit.assign_parameters(vals[1, 1]))
+            self.assertEqual(bound_circuits[1, 2], self.circuit.assign_parameters(vals[1, 2]))
 
         with self.subTest("binding a single param"):
             vals = np.linspace(0, 1, 50)
@@ -267,9 +250,8 @@ class BindingsArrayTestCase(QiskitTestCase):
             np.testing.assert_allclose(ba.vals, vals[np.newaxis, :20])
             self.assertEqual(ba.kwvals, {tuple(p.name for p in k): v for k, v in kwvals.items()})
 
-            bound_circuits = list(ba.bind_flat(self.circuit))
-            self.assertEqual(len(bound_circuits), 1)
-            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(vals))
+            bound_circuit = ba.bind(self.circuit, ())
+            self.assertEqual(bound_circuit, self.circuit.assign_parameters(vals))
 
         with self.subTest("binding an array"):
             vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
@@ -282,14 +264,14 @@ class BindingsArrayTestCase(QiskitTestCase):
             np.testing.assert_allclose(ba.vals, vals[np.newaxis, :, :, :20])
             self.assertEqual(ba.kwvals, {tuple(p.name for p in k): v for k, v in kwvals.items()})
 
-            bound_circuits = list(ba.bind_flat(self.circuit))
-            self.assertEqual(len(bound_circuits), 6)
-            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(vals[0, 0]))
-            self.assertEqual(bound_circuits[1], self.circuit.assign_parameters(vals[0, 1]))
-            self.assertEqual(bound_circuits[2], self.circuit.assign_parameters(vals[0, 2]))
-            self.assertEqual(bound_circuits[3], self.circuit.assign_parameters(vals[1, 0]))
-            self.assertEqual(bound_circuits[4], self.circuit.assign_parameters(vals[1, 1]))
-            self.assertEqual(bound_circuits[5], self.circuit.assign_parameters(vals[1, 2]))
+            bound_circuits = ba.bind_all(self.circuit)
+            self.assertEqual(bound_circuits.shape, (2, 3))
+            self.assertEqual(bound_circuits[0, 0], self.circuit.assign_parameters(vals[0, 0]))
+            self.assertEqual(bound_circuits[0, 1], self.circuit.assign_parameters(vals[0, 1]))
+            self.assertEqual(bound_circuits[0, 2], self.circuit.assign_parameters(vals[0, 2]))
+            self.assertEqual(bound_circuits[1, 0], self.circuit.assign_parameters(vals[1, 0]))
+            self.assertEqual(bound_circuits[1, 1], self.circuit.assign_parameters(vals[1, 1]))
+            self.assertEqual(bound_circuits[1, 2], self.circuit.assign_parameters(vals[1, 2]))
 
         with self.subTest("len(val) == 1 and len(kwvals) > 0"):
             ba = BindingsArray(

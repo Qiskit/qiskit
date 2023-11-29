@@ -16,7 +16,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from qiskit.primitives.containers import PrimitiveResult, TaskResult, make_databin
+from qiskit.primitives.containers import PrimitiveResult, TaskResult, make_data_bin
 from qiskit.test import QiskitTestCase
 
 
@@ -25,7 +25,7 @@ class PrimitiveResultCase(QiskitTestCase):
 
     def test_primitive_result(self):
         """Test the PrimitiveResult class."""
-        data_bin_cls = make_databin(
+        data_bin_cls = make_data_bin(
             [("alpha", npt.NDArray[np.uint16]), ("beta", np.ndarray)], shape=(10, 20)
         )
 
