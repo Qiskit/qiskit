@@ -982,7 +982,7 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <qiskit.org/documentation/tutorials/circuits/3_summary_of_quantum_operations.html>`__
+        `the docs <https://docs.quantum-computing.ibm.com/build/circuit-construction>`__
         for more information.
 
         .. parsed-literal::

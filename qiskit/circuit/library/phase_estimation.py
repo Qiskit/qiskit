@@ -44,7 +44,8 @@ class PhaseEstimation(QuantumCircuit):
          Cambridge University Press, New York, NY, USA.
 
     [3]: Qiskit
-        `textbook <https://learn.qiskit.org/course/ch-algorithms/quantum-phase-estimation>`_
+        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+        quantum-phase-estimation.ipynb>`_
 
     """
 
