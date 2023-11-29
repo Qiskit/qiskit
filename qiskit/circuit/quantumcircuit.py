@@ -1614,6 +1614,8 @@ class QuantumCircuit:
 
         Returns the validated variable, which is guaranteed to be safe to add to the circuit."""
         if isinstance(name_or_var, str):
+            if type_ is None:
+                raise CircuitError("the type must be known when creating a 'Var' from a string")
             var = expr.Var.new(name_or_var, type_)
         else:
             var = name_or_var
