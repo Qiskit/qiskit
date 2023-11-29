@@ -582,9 +582,7 @@ class Target(Mapping):
     def qargs(self):
         """The set of qargs in the target."""
         qargs = set(self._qarg_gate_map)
-        if len(qargs) == 1 and next(iter(qargs)) is None:
-            return None
-        return qargs - {None}
+        return None if qargs == {None} else qargs - {None}
 
     def qargs_for_operation_name(self, operation):
         """Get the qargs for a given operation name
