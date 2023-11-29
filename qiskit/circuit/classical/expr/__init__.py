@@ -161,8 +161,8 @@ suitable "key" functions to do the comparison.
 
 .. autofunction:: structurally_equivalent
 
-Some expressions have associated memory locations with them, and some may be purely temporaries.
-You can use :func:`is_lvalue` to determine whether an expression has such a memory backing.
+Some expressions have associated memory locations, and others may be purely temporary.
+You can use :func:`is_lvalue` to determine whether an expression has an associated memory location.
 
 .. autofunction:: is_lvalue
 """

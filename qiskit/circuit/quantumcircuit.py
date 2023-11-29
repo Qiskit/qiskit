@@ -165,6 +165,7 @@ class QuantumCircuit:
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
+        CircuitError: if both ``inputs`` and ``captures`` are given.
 
     Examples:
 
@@ -1401,7 +1402,7 @@ class QuantumCircuit:
             if is_parameter:
                 operation = copy.deepcopy(operation)
         if isinstance(operation, ControlFlowOp):
-            # Verify that any variable bindings are valid.  Control-flow ops are already compelled
+            # Verify that any variable bindings are valid.  Control-flow ops are already enforced
             # by the class not to contain 'input' variables.
             if bad_captures := {
                 var
@@ -1411,7 +1412,7 @@ class QuantumCircuit:
                 if not self.has_var(var)
             }:
                 raise CircuitError(
-                    f"control-flow op attempts to capture '{bad_captures}'"
+                    f"Control-flow op attempts to capture '{bad_captures}'"
                     " which are not in this circuit"
                 )
 
@@ -1665,7 +1666,7 @@ class QuantumCircuit:
                 qc = QuantumCircuit(2)
                 my_var = qc.add_var("my_var", False)
 
-            Reuse a variable that may have been taking from a related circuit, or otherwise
+            Reuse a variable that may have been taken from a related circuit, or otherwise
             constructed manually, and initialize it to some more complicated expression::
 
                 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -1744,7 +1745,8 @@ class QuantumCircuit:
         because you will need to declare the same variable using the same object into the outer
         circuit.
 
-        This is a low-level method.  You typically will not need to call this method, assuming you
+        This is a low-level method, which is only really useful if you are manually constructing
+        control-flow operations. You typically will not need to call this method, assuming you
         are using the builder interface for control-flow scopes (``with`` context-manager statements
         for :meth:`if_test` and the other scoping constructs).  The builder interface will
         automatically make the inner scopes closures on your behalf by capturing any variables that
@@ -2564,13 +2566,17 @@ class QuantumCircuit:
         Args:
             lvalue: a valid specifier for a memory location in the circuit.  This will typically be
                 a :class:`~.expr.Var` node, but you can also write to :class:`.Clbit` or
-                :class:`.ClassicalRegister` memory locations if your hardware supports it.
+                :class:`.ClassicalRegister` memory locations if your hardware supports it.  The
+                memory location must already be present in the circuit.
             rvalue: a runtime classical expression whose result should be written into the given
                 memory location.
 
         .. seealso::
             :class:`~.circuit.Store`
-                the backing :class:`~.circuit.Instruction` class that represents this operation.
+                The backing :class:`~.circuit.Instruction` class that represents this operation.
+
+            :meth:`add_var`
+                Create a new variable in the circuit that can be written to with this method.
         """
         return self.append(Store(expr.lift(lvalue), expr.lift(rvalue)), (), ())
 
