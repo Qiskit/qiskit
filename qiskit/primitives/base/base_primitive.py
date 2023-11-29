@@ -86,26 +86,11 @@ class BasePrimitiveV2(ABC):
     _options_class: type[BasePrimitiveOptions] = BasePrimitiveOptions
 
     def __init__(self, options: Optional[BasePrimitiveOptionsLike] = None):
-        self._options: type(self._options_class)
-        self._set_options(options)
+        self._options = self._options_class()
+        if options:
+            self._options.update(options)
 
     @property
     def options(self) -> BasePrimitiveOptions:
         """Options for BaseEstimator"""
         return self._options
-
-    @options.setter
-    def options(self, options: BasePrimitiveOptionsLike):
-        self._set_options(options)
-
-    def _set_options(self, options):
-        if options is None:
-            self._options = self._options_class()
-        elif isinstance(options, dict):
-            self._options = self._options_class(**options)
-        elif isinstance(options, self._options_class):
-            self._options = options
-        else:
-            raise TypeError(
-                f"Invalid 'options' type. It can only be a dictionary of {self._options_class}"
-            )

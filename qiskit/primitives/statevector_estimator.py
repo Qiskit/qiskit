@@ -15,6 +15,7 @@ Estimator class
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Optional, Union
 
 import numpy as np
@@ -29,6 +30,7 @@ from .containers import (
     BasePrimitiveOptions,
     BasePrimitiveOptionsLike,
     EstimatorTask,
+    EstimatorTaskLike,
     PrimitiveResult,
     TaskResult,
     make_databin,
@@ -61,7 +63,7 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
     """
     Simple implementation of :class:`BaseEstimatorV2` with Statevector.
 
-    :Run Options:
+    :Execution Options:
 
         - **shots** (None or int) --
           The number of shots. If None, it calculates the exact expectation
@@ -87,8 +89,16 @@ class Estimator(BaseEstimatorV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
             options = Options(**options)
         super().__init__(options=options)
 
-    def _run(self, tasks: list[EstimatorTask]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
-        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run_task, tasks)
+    def run(self, tasks: Iterable[EstimatorTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
+        coerced_tasks = [
+            task if isinstance(task, EstimatorTask) else EstimatorTask.coerce(task)
+            for task in tasks
+        ]
+
+        for task in coerced_tasks:
+            task.validate()
+
+        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run_task, coerced_tasks)
         job.submit()
         return job
 

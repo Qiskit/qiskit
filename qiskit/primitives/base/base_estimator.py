@@ -183,7 +183,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from ..containers.estimator_task import EstimatorTask, EstimatorTaskLike
+from ..containers.estimator_task import EstimatorTaskLike
 from ..containers.options import BasePrimitiveOptionsLike
 from . import validation
 from .base_primitive import BasePrimitive, BasePrimitiveV2
@@ -360,30 +360,15 @@ class BaseEstimatorV2(BasePrimitiveV2, Generic[T]):
     def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
         super().__init__(options=options)
 
-    def run(self, tasks: EstimatorTaskLike | Iterable[EstimatorTaskLike]) -> T:
+    @abstractmethod
+    def run(self, tasks: Iterable[EstimatorTaskLike]) -> T:
         """Run the tasks of the estimation of expectation value(s).
 
         Args:
-            tasks: a tasklike object. Typically, list of tuple
+            tasks: a iterable of tasklike object. Typically, list of tuple
                 ``(QuantumCircuit, observables, parameter_values)``
 
         Returns:
             The job object of Estimator's Result.
         """
-        if isinstance(tasks, EstimatorTask):
-            tasks = [tasks]
-        elif isinstance(tasks, tuple) and isinstance(tasks[0], QuantumCircuit):
-            tasks = [EstimatorTask.coerce(tasks)]
-        elif isinstance(tasks, Iterable):
-            tasks = [EstimatorTask.coerce(task) for task in tasks]
-        else:
-            raise TypeError(f"Unsupported type {type(tasks)} is given.")
-
-        for task in tasks:
-            task.validate()
-
-        return self._run(tasks)
-
-    @abstractmethod
-    def _run(self, tasks: list[EstimatorTask]) -> T:
         pass

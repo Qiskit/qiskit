@@ -112,7 +112,7 @@ class TestEstimatorV2(QiskitTestCase):
         """test for estimator without parameters"""
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         est = Estimator()
-        result = est.run((circuit, self.observable)).result()
+        result = est.run([(circuit, self.observable)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733])
 
     def test_run_single_circuit_observable(self):
@@ -127,7 +127,7 @@ class TestEstimatorV2(QiskitTestCase):
             target = [-1]
             for val in param_vals:
                 self.subTest(f"{val}")
-                result = est.run((qc, op, val)).result()
+                result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
                 self.assertIsNone(result[0].metadata["shots"])
 
@@ -146,7 +146,7 @@ class TestEstimatorV2(QiskitTestCase):
             target = [-1]
             for val in param_vals:
                 self.subTest(f"{val}")
-                result = est.run((qc, op, val)).result()
+                result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
                 self.assertIsNone(result[0].metadata["shots"])
 
@@ -163,7 +163,7 @@ class TestEstimatorV2(QiskitTestCase):
             target = [1.5555572817900956]
             for val in param_vals:
                 self.subTest(f"{val}")
-                result = est.run((qc, op, val)).result()
+                result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
                 self.assertIsNone(result[0].metadata["shots"])
 
@@ -177,16 +177,16 @@ class TestEstimatorV2(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
         est = Estimator()
-        result = est.run((qc, op)).result()
+        result = est.run([(qc, op)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc, op2)).result()
+        result = est.run([(qc, op2)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc2, op)).result()
+        result = est.run([(qc2, op)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc2, op2)).result()
+        result = est.run([(qc2, op2)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1])
 
     def test_run_2qubits(self):
@@ -200,22 +200,22 @@ class TestEstimatorV2(QiskitTestCase):
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
         est = Estimator()
-        result = est.run((qc, op)).result()
+        result = est.run([(qc, op)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc2, op)).result()
+        result = est.run([(qc2, op)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc, op2)).result()
+        result = est.run([(qc, op2)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc2, op2)).result()
+        result = est.run([(qc2, op2)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc, op3)).result()
+        result = est.run([(qc, op3)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
-        result = est.run((qc2, op3)).result()
+        result = est.run([(qc2, op3)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1])
 
     def test_run_errors(self):
@@ -229,13 +229,13 @@ class TestEstimatorV2(QiskitTestCase):
         est = Estimator()
         # TODO: add validation
         with self.assertRaises(ValueError):
-            est.run((qc, op2)).result()
+            est.run([(qc, op2)]).result()
         with self.assertRaises(ValueError):
-            est.run((qc, op, [[1e4]])).result()
+            est.run([(qc, op, [[1e4]])]).result()
         with self.assertRaises(ValueError):
-            est.run((qc2, op2, [[1, 2]])).result()
+            est.run([(qc2, op2, [[1, 2]])]).result()
         with self.assertRaises(ValueError):
-            est.run((qc, [op, op2], [[1]])).result()
+            est.run([(qc, [op, op2], [[1]])]).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
@@ -246,31 +246,31 @@ class TestEstimatorV2(QiskitTestCase):
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         estimator = Estimator()
-        target = estimator.run((qc, op, params_list)).result()
+        target = estimator.run([(qc, op, params_list)]).result()
 
         with self.subTest("ndarrary"):
-            result = estimator.run((qc, op, params_array)).result()
+            result = estimator.run([(qc, op, params_array)]).result()
             self.assertEqual(len(result[0].data.evs), k)
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs)
 
         with self.subTest("list of ndarray"):
-            result = estimator.run((qc, op, params_list_array)).result()
+            result = estimator.run([(qc, op, params_list_array)]).result()
             self.assertEqual(len(result[0].data.evs), k)
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs)
 
     def test_run_with_shots_option(self):
         """test with shots option."""
         est = Estimator(options={"execution": {"shots": 1024, "seed": 15}})
-        result = est.run((self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])).result()
+        result = est.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.307397243478641])
         self.assertEqual(result[0].metadata["shots"], 1024)
 
     def test_run_with_shots_option_none(self):
         """test with shots=None option. Seed is ignored then."""
         est = Estimator(options={"execution": {"shots": None, "seed": 42}})
-        result_42 = est.run((self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])).result()
-        est.options.execution.seed = 15
-        result_15 = est.run((self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])).result()
+        result_42 = est.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
+        est.options.execution.seed = 15  # pylint: disable=assigning-non-slot
+        result_15 = est.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
         np.testing.assert_allclose(result_42[0].data.evs, result_15[0].data.evs)
 
     def test_options(self):
@@ -284,7 +284,7 @@ class TestEstimatorV2(QiskitTestCase):
             self.assertEqual(estimator.options.execution.shots, 1024)
             self.assertEqual(estimator.options.execution.seed, 15)
         with self.subTest("run"):
-            result = estimator.run((self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])).result()
+            result = estimator.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
             np.testing.assert_allclose(result[0].data.evs, [-1.307397243478641])
             self.assertEqual(result[0].metadata["shots"], 1024)
         with self.subTest("Options class"):
@@ -292,7 +292,7 @@ class TestEstimatorV2(QiskitTestCase):
             options.execution.shots = 1024  # pylint: disable=assigning-non-slot # pylint's bug?
             options.execution.seed = 15  # pylint: disable=assigning-non-slot
             estimator = Estimator(options=options)
-            result = estimator.run((self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])).result()
+            result = estimator.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
             np.testing.assert_allclose(result[0].data.evs, [-1.307397243478641])
             self.assertEqual(result[0].metadata["shots"], 1024)
 
@@ -301,7 +301,7 @@ class TestEstimatorV2(QiskitTestCase):
         qc = QuantumCircuit(1)
 
         estimator = Estimator(options={"execution": {"shots": 1024}})
-        result = estimator.run((qc, 1e-4 * SparsePauliOp("I"))).result()
+        result = estimator.run([(qc, 1e-4 * SparsePauliOp("I"))]).result()
         self.assertEqual(result[0].data.evs, 1e-4)
         self.assertEqual(result[0].data.stds, 0.0)
 

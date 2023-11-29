@@ -17,7 +17,7 @@ Options class
 from __future__ import annotations
 
 from abc import ABC
-from typing import Union
+from typing import Optional, Union
 
 from .dataclasses import mutable_dataclass
 
@@ -26,8 +26,15 @@ from .dataclasses import mutable_dataclass
 class BasePrimitiveOptions(ABC):
     """Base calss of options for primitives."""
 
-    def update(self, **kwargs):
+    def update(self, options: Optional[BasePrimitiveOptions] = None, **kwargs):
         """Update the options."""
+        if options is not None:
+            if not isinstance(options, BasePrimitiveOptions):
+                raise TypeError(f"Type {type(options)} is not options class")
+            for key, val in options.__dict__.items():
+                print(key, val)
+                setattr(self, key, val)
+
         for key, val in kwargs.items():
             setattr(self, key, val)
 
