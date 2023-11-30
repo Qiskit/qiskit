@@ -57,7 +57,7 @@ class GenericTarget(Target):
         basis_gates: list[str],
         coupling_map: CouplingMap,
         control_flow: bool = False,
-        calibrate_gates: list[str] | None = None,
+        calibrate_instructions: list[str] | None = None,
         rng: np.random.Generator = None,
     ):
         """
@@ -69,16 +69,22 @@ class GenericTarget(Target):
                 target generator, which can be consulted through the
                 ``supported_operations`` property.
                 Common sets of basis gates are ``{"cx", "id", "rz", "sx", "x"}``
-                and ``{"ecr", "id", "rz", "sx", "x"}``.
+                and ``{"ecr", "id", "rz", "sx", "x"}``. The ``"reset"``,  ``"`delay"``
+                and ``"measure"`` instructions are supported by default, even if
+                not specified via ``basis_gates``.
 
             coupling_map (CouplingMap): Target's coupling map as an instance of
                 :class:`~.CouplingMap`.
 
-            control_flow (bool): Flag to enable control flow directives on the backend
+            control_flow (bool): Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_gates (list[str] | None): List of gate names (subset of basis_gates)
-                to add default calibration entries to.
+            calibrate_instructions (list[str] | None): List of instruction names
+                to add default calibration entries to. These must be within the
+                supported operations of this target generator, which can be
+                consulted through the ``supported_operations`` property. If no
+                instructions are provided, the target generator will append
+                empty calibration schedules by default.
 
             rng (np.random.Generator): Optional fixed-seed generator for default random values.
         """
@@ -93,7 +99,7 @@ class GenericTarget(Target):
         self._num_qubits = num_qubits
         self._coupling_map = coupling_map
 
-        # hardcoded default target attributes. To modify,
+        # Hardcoded default target attributes. To modify,
         # access corresponding properties through the public `Target` API
         super().__init__(
             description="Generic Target",
@@ -110,14 +116,16 @@ class GenericTarget(Target):
             concurrent_measurements=[list(range(num_qubits))],
         )
 
-        # ensure that Reset, Delay and Measure are in basis_gates
+        # Ensure that Reset, Delay and Measure are in
+        # self._basis_gates
+        # so that their instructions are added to the target.
         self._basis_gates = basis_gates
         for name in ["reset", "delay", "measure"]:
             if name not in self._basis_gates:
                 self._basis_gates.append(name)
 
-        # iterate over gates, generate noise params. from defaults
-        # and add instructions to target
+        # Iterate over gates, generate noise params from defaults,
+        # and add instructions to target.
         for name in self._basis_gates:
             if name not in self.supported_operations:
                 raise QiskitError(
@@ -136,10 +144,10 @@ class GenericTarget(Target):
             self.add_instruction(BreakLoopOp, name="break")
             self.add_instruction(ContinueLoopOp, name="continue")
 
-        # generate block of calibration defaults and add to target
+        # Generate block of calibration defaults and add to target.
         # Note: this could be improved if we could generate and add
         # calibration defaults per-gate, and not as a block.
-        defaults = self._generate_calibration_defaults(calibrate_gates)
+        defaults = self._generate_calibration_defaults(calibrate_instructions)
         inst_map = defaults.instruction_schedule_map
         self.add_calibrations_from_instruction_schedule_map(inst_map)
 
@@ -234,13 +242,16 @@ class GenericTarget(Target):
         Returns:
             None
         """
+
+        # The calibration entries are directly injected into the gate map to
+        # avoid then being labeled as "user_provided".
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
                 try:
                     qargs = tuple(qarg)
                 except TypeError:
                     qargs = (qarg,)
-                # Do NOT call .get method. This parses Qpbj immediately.
+                # Do NOT call .get method. This parses Qobj immediately.
                 # This operation is computationally expensive and should be bypassed.
                 calibration_entry = inst_map._get_calibration_entry(inst, qargs)
                 if inst in self._gate_map:
@@ -250,94 +261,97 @@ class GenericTarget(Target):
                     elif qargs in self._gate_map[inst] and inst not in ["delay", "reset"]:
                         self._gate_map[inst][qargs].calibration = calibration_entry
 
-    def _generate_calibration_defaults(self, calibrate_gates: list[str] | None) -> PulseDefaults:
-        """Generate calibration defaults for specified gates.
+    def _generate_calibration_defaults(
+        self, calibrate_instructions: list[str] | None
+    ) -> PulseDefaults:
+        """Generate calibration defaults for instructions specified via ``calibrate_instructions``.
+        By default, this method generates empty calibration schedules.
 
         Args:
-            calibrate_gates (list[str]): list of gates to be calibrated.
+            calibrate_instructions (list[str]): list of instructions to be calibrated.
 
         Returns:
             Corresponding PulseDefaults
         """
-        calibrate_gates = calibrate_gates or []
-        measure_command_sequence = [
-            PulseQobjInstruction(
-                name="acquire",
-                duration=1792,
-                t0=0,
-                qubits=list(range(self.num_qubits)),
-                memory_slot=list(range(self.num_qubits)),
-            )
+
+        # The number of samples determines the pulse durations of the corresponding
+        # instructions. This class generates pulses with durations in multiples of
+        # 16 for consistency with the pulse granularity of real IBM devices, but
+        # keeps the number smaller than what would be realistic for
+        # manageability. If needed, more realistic durations could be added in the
+        # future (order of 160 dt for 1q gates, 1760 for 2q gates and measure).
+
+        samples_1 = np.linspace(0, 1.0, 16, dtype=np.complex128)  # 16dt
+        samples_2 = np.linspace(0, 1.0, 32, dtype=np.complex128)  # 32dt
+        samples_3 = np.linspace(0, 1.0, 64, dtype=np.complex128)  # 64dt
+
+        pulse_library = [
+            PulseLibraryItem(name="pulse_1", samples=samples_1),
+            PulseLibraryItem(name="pulse_2", samples=samples_2),
+            PulseLibraryItem(name="pulse_3", samples=samples_3),
         ]
 
-        measure_command_sequence += [
-            PulseQobjInstruction(name="pulse_1", ch=f"m{i}", duration=1792, t0=0)
-            for i in range(self.num_qubits)
-        ]
+        # Unless explicitly given a series of gates to calibrate, this method
+        # will generate empty pulse schedules for all gates in self._basis_gates.
+        calibrate_instructions = calibrate_instructions or []
+        calibration_buffer = self._basis_gates.copy()
+        for inst in ["delay", "reset"]:
+            calibration_buffer.remove(inst)
 
-        measure_command = Command(
-            name="measure",
-            qubits=list(range(self.num_qubits)),
-            sequence=measure_command_sequence,
-        )
-
-        cmd_def = [measure_command]
-
-        for gate in self._basis_gates:
-            for i in range(self.num_qubits):
+        # List of calibration commands (generated from sequences of PulseQobjInstructions)
+        # corresponding to each calibrated instruction. Note that the calibration pulses
+        # are different for 1q gates vs 2q gates vs measurement instructions.
+        cmd_def = []
+        for inst in calibration_buffer:
+            num_qubits = self.supported_operations[inst].num_qubits
+            qarg_set = self._coupling_map if num_qubits > 1 else list(range(self._num_qubits))
+            if inst == "measure":
                 sequence = []
-                if gate in calibrate_gates:
+                qubits = qarg_set
+                if inst in calibrate_instructions:
                     sequence = [
-                        PulseQobjInstruction(name="fc", ch=f"d{i}", t0=0, phase="-P0"),
-                        PulseQobjInstruction(name="pulse_3", ch=f"d{i}", t0=0),
-                    ]
+                        PulseQobjInstruction(
+                            name="acquire",
+                            duration=1792,
+                            t0=0,
+                            qubits=list(range(self.num_qubits)),
+                            memory_slot=list(range(self.num_qubits)),
+                        )
+                    ] + [PulseQobjInstruction(name="pulse_2", ch=f"m{i}", t0=0) for i in qarg_set]
                 cmd_def.append(
                     Command(
-                        name=gate,
-                        qubits=[i],
+                        name=inst,
+                        qubits=qubits,
                         sequence=sequence,
                     )
                 )
-
-        for qubit1, qubit2 in self._coupling_map:
-            sequence = [
-                PulseQobjInstruction(name="pulse_1", ch=f"d{qubit1}", t0=0),
-                PulseQobjInstruction(name="pulse_2", ch=f"u{qubit1}", t0=10),
-                PulseQobjInstruction(name="pulse_1", ch=f"d{qubit2}", t0=20),
-                PulseQobjInstruction(name="fc", ch=f"d{qubit2}", t0=20, phase=2.1),
-            ]
-
-            if "cx" in self._basis_gates:
-                if "cx" in calibrate_gates:
+            else:
+                for qarg in qarg_set:
                     sequence = []
-                cmd_def += [
-                    Command(
-                        name="cx",
-                        qubits=[qubit1, qubit2],
-                        sequence=sequence,
+                    qubits = [qarg] if num_qubits == 1 else qarg
+                    if inst in calibrate_instructions:
+                        if num_qubits == 1:
+                            sequence = [
+                                PulseQobjInstruction(name="fc", ch=f"u{qarg}", t0=0, phase="-P0"),
+                                PulseQobjInstruction(name="pulse_1", ch=f"d{qarg}", t0=0),
+                            ]
+                        else:
+                            sequence = [
+                                PulseQobjInstruction(name="pulse_2", ch=f"d{qarg[0]}", t0=0),
+                                PulseQobjInstruction(name="pulse_3", ch=f"u{qarg[0]}", t0=0),
+                                PulseQobjInstruction(name="pulse_2", ch=f"d{qarg[1]}", t0=0),
+                                PulseQobjInstruction(name="fc", ch=f"d{qarg[1]}", t0=0, phase=2.1),
+                            ]
+                    cmd_def.append(
+                        Command(
+                            name=inst,
+                            qubits=qubits,
+                            sequence=sequence,
+                        )
                     )
-                ]
-            if "ecr" in self._basis_gates:
-                if "ecr" in calibrate_gates:
-                    sequence = []
-                cmd_def += [
-                    Command(
-                        name="ecr",
-                        qubits=[qubit1, qubit2],
-                        sequence=sequence,
-                    )
-                ]
 
         qubit_freq_est = np.random.normal(4.8, scale=0.01, size=self.num_qubits).tolist()
         meas_freq_est = np.linspace(6.4, 6.6, self.num_qubits).tolist()
-        pulse_library = [
-            PulseLibraryItem(name="pulse_1", samples=[[0.0, 0.0], [0.0, 0.1]]),
-            PulseLibraryItem(name="pulse_2", samples=[[0.0, 0.0], [0.0, 0.1], [0.0, 1.0]]),
-            PulseLibraryItem(
-                name="pulse_3", samples=[[0.0, 0.0], [0.0, 0.1], [0.0, 1.0], [0.5, 0.0]]
-            ),
-        ]
-
         return PulseDefaults(
             qubit_freq_est=qubit_freq_est,
             meas_freq_est=meas_freq_est,
@@ -361,19 +375,26 @@ class FakeGeneric(BackendV2):
         *,
         coupling_map: list[list[int]] | CouplingMap | None = None,
         control_flow: bool = False,
-        calibrate_gates: list[str] | None = None,
+        calibrate_instructions: list[str] | None = None,
         seed: int = 42,
     ):
         """
         Args:
-            basis_gates (list[str]): List of basis gate names to be supported by
-                the backend. The currently supported gate names are:
-                ``"cx"``, ``"ecr"``, ``"id"``, ``"rz"``, ``"sx"``, and ``"x"``
-                Common sets of basis gates are ``["cx", "id", "rz", "sx", "x"]``
-                and ``["ecr", "id", "rz", "sx", "x"]``.
+           num_qubits (int): Number of qubits that will
+                be used to construct the backend's target. Note that, while
+                there is no limit in the size of the target that can be
+                constructed, fake backends run on local noisy simulators,
+                and these might show limitations in the number of qubits that
+                can be simulated.
 
-            num_qubits (int): Number of qubits of the fake backend. Note that this
-                fake backend runs on a local noisy simulator,
+            basis_gates (list[str]): List of basis gate names to be supported by
+                the target. These must be within the supported operations of the
+                target generator, which can be consulted through its
+                ``supported_operations`` property.
+                Common sets of basis gates are ``{"cx", "id", "rz", "sx", "x"}``
+                and ``{"ecr", "id", "rz", "sx", "x"}``. The ``"reset"``,  ``"`delay"``,
+                and ``"measure"`` instructions are supported by default, even if
+                not specified via ``basis_gates``.
 
             coupling_map (list[list[int]] | CouplingMap | None): Optional coupling map
                 for the fake backend. Multiple formats are supported:
@@ -388,11 +409,15 @@ class FakeGeneric(BackendV2):
                 a fully connected coupling map will be generated with ``num_qubits``
                 qubits.
 
-            control_flow (bool): Flag to enable control flow directives on the backend
+            control_flow (bool): Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_gates (list[str] | None): List of gate names (subset of basis_gates)
-                to add default calibration entries to.
+            calibrate_instructions (list[str] | None): List of instruction names
+                to add default calibration entries to. These must be within the
+                supported operations of the target generator, which can be
+                consulted through the ``supported_operations`` property. If no
+                instructions are provided, the target generator will append
+                empty calibration schedules by default.
 
             seed (int): Optional seed for generation of default values.
         """
@@ -419,7 +444,7 @@ class FakeGeneric(BackendV2):
             basis_gates,
             self._coupling_map,
             control_flow,
-            calibrate_gates,
+            calibrate_instructions,
             self._rng,
         )
 
