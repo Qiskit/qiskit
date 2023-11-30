@@ -423,13 +423,15 @@ class TestSabrePreLayout(QiskitTestCase):
     def test_integration_with_pass_manager(self):
         """Tests SabrePreLayoutIntegration with the rest of PassManager pipeline."""
         backend = FakeAlmadenV2()
-        pm = generate_preset_pass_manager(1, backend, seed_transpiler=0)
+        pm = generate_preset_pass_manager(
+            0, backend, layout_method="sabre", routing_method="sabre", seed_transpiler=0
+        )
         pm.pre_layout = PassManager([SabrePreLayout(backend.target)])
         qct = pm.run(self.circuit)
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [1, 6, 5, 10, 11, 12, 16, 17, 18, 13, 14, 9, 8, 3, 2, 0],
+            [3, 8, 7, 12, 13, 14, 18, 17, 16, 11, 10, 5, 6, 1, 2, 4],
         )
 
 
