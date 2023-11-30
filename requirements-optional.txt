@@ -3,7 +3,7 @@
 # standard pip conventions, even though none of these are required.
 #
 # If updating this, you probably want to update `qiskit.utils.optionals` and
-# maybe `setup.py` too.
+# maybe `pyproject.toml` too.
 
 # Test-runner enhancements.
 fixtures
@@ -17,7 +17,6 @@ ipywidgets>=7.3.0
 matplotlib>=3.3
 pillow>=4.2.1
 pydot
-pygments>=2.4
 pylatexenc>=1.4
 seaborn>=0.9.0
 

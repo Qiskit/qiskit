@@ -40,7 +40,6 @@ def sampled_expectation_value(dist, oper):
     """
     from .counts import Counts
     from qiskit.quantum_info import Pauli, SparsePauliOp
-    from qiskit.opflow import PauliOp, PauliSumOp
 
     # This should be removed when these return bit-string keys
     if isinstance(dist, (QuasiDistribution, ProbDistribution)):
@@ -54,13 +53,6 @@ def sampled_expectation_value(dist, oper):
     elif isinstance(oper, Pauli):
         oper_strs = [oper.to_label()]
         coeffs = np.asarray([1.0])
-    elif isinstance(oper, PauliOp):
-        oper_strs = [oper.primitive.to_label()]
-        coeffs = np.asarray([1.0])
-    elif isinstance(oper, PauliSumOp):
-        spo = oper.primitive
-        oper_strs = spo.paulis.to_labels()
-        coeffs = np.asarray(spo.coeffs) * oper.coeff
     elif isinstance(oper, SparsePauliOp):
         oper_strs = oper.paulis.to_labels()
         coeffs = np.asarray(oper.coeffs)

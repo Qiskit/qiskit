@@ -15,7 +15,7 @@ It also contains a transpiler that supports optimizing quantum circuits and a qu
 
 For more details on how to use Qiskit, refer to the documentation located here:
 
-<https://qiskit.org/documentation/>
+<https://docs.quantum.ibm.com/>
 
 
 ## Installation
