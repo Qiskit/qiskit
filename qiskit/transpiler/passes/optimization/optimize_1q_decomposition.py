@@ -182,10 +182,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return (
             uncalibrated_and_not_basis_p
             or (uncalibrated_p and new_error < old_error)
-            or (
-                math.isclose(new_error[0], 0)
-                and not math.isclose(old_error[0], 0)
-            )
+            or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 
     @control_flow.trivial_recurse
