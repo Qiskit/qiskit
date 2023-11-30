@@ -519,6 +519,7 @@ class MatplotlibDrawer:
                         circuit_list.insert(0, cases[0][1].copy_empty_like())
                         for jump_values, _ in cases:
                             node_data[node].jump_values.append(jump_values)
+                        print("circuit list", circuit_list)
 
                     # Now process the circuits inside the ControlFlowOps
                     for circ_num, circuit in enumerate(circuit_list):
@@ -717,10 +718,14 @@ class MatplotlibDrawer:
                     node_data[node].inside_flow = True
                     node_data[node].x_index = node_data[flow_parent].x_index + curr_x_index + 1
                     # If an else or case
+                    print("flow par width", node_data[flow_parent].width)
+                    print("circ_num", node_data[node].circ_num)
                     if node_data[node].circ_num > 0:
                         for width in node_data[flow_parent].width[: node_data[node].circ_num]:
                             node_data[node].x_index += int(width) + 1
+                            print("x index", node_data[node].x_index)
                         x_index = node_data[node].x_index
+                        print(x_index)
                     # Add expr_width to if, while, or switch if expr used
                     else:
                         x_index = node_data[node].x_index + node_data[flow_parent].expr_width
@@ -1505,11 +1510,13 @@ class MatplotlibDrawer:
 
         if_width = node_data[node].width[0] + WID
         box_width = if_width
-
+        print("Width", node_data[node].width)
         # Add the else and case widths to the if_width
         for ewidth in node_data[node].width[1:]:
             if ewidth > 0.0:
                 box_width += ewidth + WID + 0.3
+                print(box_width)
+
 
         qubit_span = abs(ypos) - abs(ypos_max)
         height = HIG + qubit_span
