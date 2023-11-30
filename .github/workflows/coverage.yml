@@ -42,7 +42,7 @@ jobs:
         run: python -m pip install -c constraints.txt --upgrade pip setuptools wheel
 
       - name: Build and install qiskit-terra
-        run: python -m pip install -c constraints.txt -e . ./qiskit_pkg
+        run: python -m pip install -c constraints.txt -e .
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
