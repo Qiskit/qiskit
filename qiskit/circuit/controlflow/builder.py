@@ -46,8 +46,7 @@ class CircuitScopeInterface(abc.ABC):
     the builders to hook into all places where circuit resources might be used.  This allows the
     builders to track the resources being used, without getting in the way of
     :class:`.QuantumCircuit` doing its own thing.
-
-    This is a Qiskit-internal interface."""
+    """
 
     __slots__ = ()
 
