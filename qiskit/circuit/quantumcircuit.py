@@ -2820,11 +2820,6 @@ class QuantumCircuit:
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
         """
-        qubits: list[QubitSpecifier] = []
-
-        if not qargs:  # None
-            qubits.extend(self.qubits)
-
         qubits = (
             # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
             list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
