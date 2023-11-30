@@ -18,9 +18,6 @@ from __future__ import annotations
 
 import datetime
 import doctest
-import os
-import subprocess
-from pathlib import Path
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -44,16 +41,10 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.mathjax",
-    "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
-    "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
-    "qiskit_sphinx_theme",
     "reno.sphinxext",
-    "sphinx_design",
-    "sphinx_remove_toctrees",
-    "sphinx_reredirects",
 ]
 
 templates_path = ["_templates"]
@@ -63,30 +54,8 @@ numfig = True
 # Available keys are 'figure', 'table', 'code-block' and 'section'.  '%s' is the number.
 numfig_format = {"table": "Table %s"}
 
-# Translations configuration.
-translations_list = [
-    ("en", "English"),
-    ("bn_BN", "Bengali"),
-    ("fr_FR", "French"),
-    ("de_DE", "German"),
-    ("ja_JP", "Japanese"),
-    ("ko_KR", "Korean"),
-    ("pt_UN", "Portuguese"),
-    ("es_UN", "Spanish"),
-    ("ta_IN", "Tamil"),
-]
-locale_dirs = ["locale/"]
-gettext_compact = False
-
 # Relative to source directory, affects general discovery, and html_static_path and html_extra_path.
 exclude_patterns = ["_build", "**.ipynb_checkpoints"]
-
-pygments_style = "colorful"
-
-panels_css_variables = {
-    "tabs-color-label-active": "rgb(138, 63, 252)",
-    "tabs-color-label-inactive": "rgb(221, 225, 230)",
-}
 
 
 # This adds the module name to e.g. function API docs. We use the default of True because our
@@ -102,17 +71,8 @@ add_module_names = True
 modindex_common_prefix = ["qiskit."]
 
 # ----------------------------------------------------------------------------------
-# Extlinks
+# Intersphinx
 # ----------------------------------------------------------------------------------
-# Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
-extlinks = {
-    "pull_terra": ("https://github.com/Qiskit/qiskit-terra/pull/%s", "qiskit-terra #%s"),
-    "pull_aer": ("https://github.com/Qiskit/qiskit-aer/pull/%s", "qiskit-aer #%s"),
-    "pull_ibmq-provider": (
-        "https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s",
-        "qiskit-ibmq-provider #%s",
-    ),
-}
 
 intersphinx_mapping = {
     "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
@@ -127,22 +87,8 @@ intersphinx_mapping = {
 # HTML theme
 # ----------------------------------------------------------------------------------
 
-html_theme = "qiskit"
-html_favicon = "images/favicon.ico"
+html_theme = "alabaster"
 html_last_updated_fmt = "%Y/%m/%d"
-html_context = {
-    # Enable segment analytics for qiskit.org/documentation
-    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
-    "theme_announcement": "🎉 Starting on November 29, 2023, Qiskit Documentation will only live on IBM Quantum",
-    "announcement_url": "https://medium.com/qiskit/important-changes-to-qiskit-documentation-and-learning-resources-7f4e346b19ab",
-    "announcement_url_text": "Learn More",
-}
-html_static_path = ["_static"]
-
-# This speeds up the docs build because it works around the Furo theme's slowdown from the left
-# sidebar when the site has lots of HTML pages. But, it results in a much worse user experience,
-# so we only use it in dev/CI builds.
-remove_from_toctrees = ["stubs/*"]
 
 # ----------------------------------------------------------------------------------
 # Autodoc
@@ -211,6 +157,7 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
+<<<<<<< HEAD
 
 
 # ----------------------------------------------------------------------------------
@@ -306,3 +253,5 @@ def add_versions_to_config(_app, config):
 
 def setup(app):
     app.connect("config-inited", add_versions_to_config)
+=======
+>>>>>>> c75af150f (Remove non-API docs and tutorials (#11352))

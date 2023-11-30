@@ -1,7 +1,8 @@
-##############################
-Qiskit |version| documentation
-##############################
+#################################
+Qiskit |version| API docs preview
+#################################
 
+<<<<<<< HEAD
 Qiskit is open-source software for working with quantum computers
 at the level of circuits, pulses, and algorithms.
 
@@ -60,21 +61,20 @@ Main Qiskit-related projects
       :description: A Qiskit provider that allows accessing the IBM Quantum systems and cloud simulators.
       :button_link:  https://docs.quantum-computing.ibm.com/api/qiskit-ibm-provider/ibm_provider
       :button_text: Qiskit IBM provider documentation
+=======
+Qiskit docs live at docs.quantum.ibm.com and come from https://github.com/Qiskit/documentation.
+This site is only used to generate our API docs, which then get migrated to
+https://github.com/Qiskit/documentation.
+>>>>>>> c75af150f (Remove non-API docs and tutorials (#11352))
 
 
 .. toctree::
    :hidden:
 
    Documentation Home <self>
-   qc_intro
-   getting_started
-   intro_tutorial1
-   tutorials
    API Reference <apidoc/index>
-   How-to Guides <how_to/index>
-   Explanation <explanation/index>
-   Migration Guides <migration_guides/index>
    Release Notes <release_notes>
+<<<<<<< HEAD
    configuration
    GitHub <https://github.com/Qiskit/qiskit-terra>
    faq
@@ -86,3 +86,5 @@ Main Qiskit-related projects
    contributing_to_qiskit
    deprecation_policy
    maintainers_guide
+=======
+>>>>>>> c75af150f (Remove non-API docs and tutorials (#11352))
