@@ -52,11 +52,6 @@ parameters:
     type: string
     default: "3.9"
 
-  - name: "tutorialsPythonVersion"
-    displayName: "Version of Python to use to run the tutorials job"
-    type: string
-    default: "3.8"
-
   # Sync with 'python-version' in '.github/workflows/docs_deploy.yml'.
   - name: "documentationPythonVersion"
     displayName: "Version of Python to use to build Sphinx documentation"
@@ -162,18 +157,13 @@ stages:
             testImages: true
 
     # The rest of the PR pipeline is to test the oldest and newest supported
-    # versions of Python, along with the integration tests (via the tutorials).
-    # It's very rare for a failure to be specific to an intermediate version of
+    # versions of Python. It's very rare for a failure to be specific to an intermediate version of
     # Python, so we just catch those in the cron-job pipeline to reduce the
     # amount of resources used.
-    - stage: "Tutorials_and_Tests"
+    - stage: "Tests"
       displayName: "Main tests"
       dependsOn: "Lint_Docs_Prelim_Tests"
       jobs:
-        - template: ".azure/tutorials-linux.yml"
-          parameters:
-            pythonVersion: ${{ parameters.tutorialsPythonVersion }}
-
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
