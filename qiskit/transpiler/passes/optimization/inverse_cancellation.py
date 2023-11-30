@@ -29,12 +29,13 @@ class InverseCancellation(TransformationPass):
         """Initialize InverseCancellation pass.
 
         Args:
-            gates_to_cancel: list of gates to cancel
+            gates_to_cancel: List describing the gates to cancel. Each element of the
+                list is either a single gate or a pair of gates. If a single gate, then
+                it should be self-inverse. If a pair of gates, then the gates in the
+                pair should be inverses of each other.
 
         Raises:
-            TranspilerError:
-                Initialization raises an error when the input is not a self-inverse gate
-                or a two-tuple of inverse gates.
+            TranspilerError: Input is not a self-inverse gate or a pair of inverse gates.
         """
 
         for gates in gates_to_cancel:
