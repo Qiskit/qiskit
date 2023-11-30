@@ -328,7 +328,7 @@ class GenericTarget(Target):
             else:
                 for qarg in qarg_set:
                     sequence = []
-                    qubits = [qarg]
+                    qubits = [qarg] if num_qubits == 1 else qarg
                     if inst in calibrate_instructions:
                         if num_qubits == 1:
                             sequence = [
@@ -336,7 +336,6 @@ class GenericTarget(Target):
                                 PulseQobjInstruction(name="pulse_1", ch=f"d{qarg}", t0=0),
                             ]
                         else:
-                            qubits = qarg
                             sequence = [
                                 PulseQobjInstruction(name="pulse_2", ch=f"d{qarg[0]}", t0=0),
                                 PulseQobjInstruction(name="pulse_3", ch=f"u{qarg[0]}", t0=0),
