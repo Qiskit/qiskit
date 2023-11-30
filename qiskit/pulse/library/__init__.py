@@ -48,7 +48,6 @@ Pulse Models
 
    Waveform
    SymbolicPulse
-   ParametricPulse
 
 
 .. _symbolic_pulses:
