@@ -284,7 +284,8 @@ class TestCircuitRegisters(QiskitTestCase):
         num_qubits = 2
         qc = QuantumCircuit(qr, cr)
         qc.barrier(qr[0:num_qubits])
-        self.log.info(qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.log.info(qc.qasm())
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0].operation.name, "barrier")
         self.assertEqual(len(qc.data[0].qubits), num_qubits)

@@ -1594,6 +1594,11 @@ class QuantumCircuit:
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
+    @deprecate_func(
+        since="0.46",
+        additional_msg="Instead use the qiskit.qasm2.dump() or qiskit.qasm2.dumps() function",
+        removal_timeline="in the 1.0.0 release",
+    )
     def qasm(
         self,
         formatted: bool = False,
