@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -30,9 +30,17 @@ from qiskit.transpiler.passmanager import PassManager
 
 from .backend_estimator import _prepare_counts, _run_circuits
 from .base import BaseSamplerV2, SamplerResult
-from .containers import BasePrimitiveOptions, BasePrimitiveOptionsLike, SamplerTask, TaskResult
-from .containers.bit_array import BitArray, _min_num_bytes
-from .containers.data_bin import make_databin
+from .containers import (
+    BasePrimitiveOptions,
+    BasePrimitiveOptionsLike,
+    BitArray,
+    PrimitiveResult,
+    SamplerTask,
+    SamplerTaskLike,
+    TaskResult,
+    make_data_bin,
+)
+from .containers.bit_array import _min_num_bytes
 from .containers.options import mutable_dataclass
 from .primitive_job import PrimitiveJob
 
@@ -65,7 +73,7 @@ class _MeasureInfo:
     start: int
 
 
-class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
+class BackendSampler(BaseSamplerV2):
     """A :class:`~.BaseSampler` implementation that provides an interface for
     leveraging the sampler interface from any backend.
 
@@ -83,6 +91,7 @@ class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
     """
 
     _options_class = Options
+    options: Options
 
     def __init__(
         self,
@@ -185,19 +194,22 @@ class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             )
         self._transpiled_circuits = ret if isinstance(ret, list) else [ret]
 
-    def _run(self, tasks: List[SamplerTask]) -> PrimitiveJob[List[TaskResult]]:
-        job = PrimitiveJob(self._run_task, tasks)
+    def run(self, tasks: Iterable[SamplerTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
+        job = PrimitiveJob(self._run, tasks)
         job.submit()
         return job
 
-    def _run_task(self, tasks: List[SamplerTask]) -> List[TaskResult]:
+    def _run(self, tasks: Iterable[SamplerTask]) -> PrimitiveResult[TaskResult]:
+        coerced_tasks = [SamplerTask.coerce(task) for task in tasks]
+        for task in coerced_tasks:
+            task.validate()
+
         shots = self.options.execution.shots
-        if shots is None:
-            raise QiskitError("`shots` should be a positive integer")
-        self._transpile([task.circuit for task in tasks])
+
+        self._transpile([task.circuit for task in coerced_tasks])
 
         results = []
-        for task, circuit in zip(tasks, self._transpiled_circuits):
+        for task, circuit in zip(coerced_tasks, self._transpiled_circuits):
             meas_info = _analyze_circuit(task.circuit)
             parameter_values = task.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
@@ -221,7 +233,7 @@ class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
                     ary = _samples_to_packed_array(samples_array, item.num_bits, item.start)
                     arrays[item.creg_name][index] = ary
 
-            data_bin_cls = make_databin(
+            data_bin_cls = make_data_bin(
                 [(item.creg_name, BitArray) for item in meas_info],
                 shape=bound_circuits.shape,
             )
@@ -231,8 +243,7 @@ class BackendSamplerV2(BaseSamplerV2[PrimitiveJob[List[TaskResult]]]):
             }
             data_bin = data_bin_cls(**meas)
             results.append(TaskResult(data_bin, metadata={"shots": shots}))
-
-        return results
+        return PrimitiveResult(results)
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> List[_MeasureInfo]:

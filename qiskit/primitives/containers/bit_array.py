@@ -141,7 +141,9 @@ class BitArray(ShapedMixin):
     def _bytes_to_int(data: bytes, mask: int) -> int:
         return int.from_bytes(data, "big") & mask
 
-    def _get_counts(self, *, loc: Tuple[int, ...] | None, converter: Callable) -> Dict[str, int]:
+    def _get_counts(
+        self, *, loc: int | Tuple[int, ...] | None, converter: Callable
+    ) -> Dict[str | int, int]:
         if loc is None and self.size == 1:
             loc = (0,) * self.ndim
 
@@ -167,7 +169,7 @@ class BitArray(ShapedMixin):
 
     @staticmethod
     def from_bool_array(
-        array: NDArray[np.bool], order: Literal["big", "little"] = "big"
+        array: NDArray[bool], order: Literal["big", "little"] = "big"
     ) -> "BitArray":
         """Construct a new bit array from an array of bools.
 
@@ -206,7 +208,7 @@ class BitArray(ShapedMixin):
         """Construct a new bit array from one or more ``Counts``-like objects.
 
         The ``counts`` can have keys that are (uniformly) integers, hexstrings, or bitstrings.
-        Their values represent numbers of occurences of that value.
+        Their values represent numbers of occurrences of that value.
 
         Args:
             counts: One or more counts-like mappings.
@@ -283,7 +285,7 @@ class BitArray(ShapedMixin):
         array = np.frombuffer(data, dtype=np.uint8, count=len(data))
         return BitArray(array.reshape(-1, num_bytes), num_bits)
 
-    def get_counts(self, loc: Tuple[int, ...] | None = None) -> Dict[str, int]:
+    def get_counts(self, loc: int | Tuple[int, ...] | None = None) -> Dict[str, int]:
         """Return a counts dictionary.
 
         Args:
@@ -299,7 +301,7 @@ class BitArray(ShapedMixin):
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
         return self._get_counts(loc=loc, converter=converter)
 
-    def get_int_counts(self, loc: Tuple[int, ...] | None = None) -> Dict[int, int]:
+    def get_int_counts(self, loc: int | Tuple[int, ...] | None = None) -> Dict[int, int]:
         r"""Return a counts dictionary, where bitstrings are stored as ``int``\s.
 
         Args:

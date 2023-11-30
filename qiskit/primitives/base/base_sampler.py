@@ -207,21 +207,21 @@ class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
 BaseSampler = BaseSamplerV1
 
 
-class BaseSamplerV2(BasePrimitiveV2, Generic[T]):
+class BaseSamplerV2(BasePrimitiveV2):
     """Sampler base class version 2.
 
-    Sampler returns samples of bitstrings of quantum circuits.
+    A Sampler returns samples of bitstrings of quantum circuits.
     """
 
     def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
         super().__init__(options=options)
 
     @abstractmethod
-    def run(self, tasks: SamplerTaskLike | Iterable[SamplerTaskLike]) -> T:
+    def run(self, tasks: Iterable[SamplerTaskLike]) -> T:
         """Run the tasks of samples.
 
         Args:
-            tasks: a task-like object. Typically, list of tuple
+            tasks: an iterable of task-like object. Typically, list of tuple
                 ``(QuantumCircuit, parameter_values)``
 
         Returns:

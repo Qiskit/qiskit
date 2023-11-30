@@ -36,7 +36,7 @@ from .containers import (
     SamplerTask,
     SamplerTaskLike,
     TaskResult,
-    make_databin,
+    make_data_bin,
 )
 from .containers.bit_array import _min_num_bytes
 from .containers.dataclasses import mutable_dataclass
@@ -71,20 +71,17 @@ class _MeasureInfo:
     qreg_indices: List[int]
 
 
-class Sampler(BaseSamplerV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
+class Sampler(BaseSamplerV2):
     """
     Simple implementation of :class:`BaseSamplerV2` with Statevector.
 
     :Run Options:
 
-        - **shots** (None or int) --
-          The number of shots. If None, it calculates the exact expectation
-          values. Otherwise, it samples from normal distributions with standard errors as standard
-          deviations using normal distribution approximation.
+        - **shots** (int) --
+          The number of shots.
 
         - **seed** (np.random.Generator or int) --
-          Set a fixed seed or generator for the normal distribution. If shots is None,
-          this option is ignored.
+          Set a fixed seed or generator for the normal distribution.
     """
 
     _options_class = Options
@@ -102,26 +99,20 @@ class Sampler(BaseSamplerV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
         super().__init__(options=options)
 
     def run(self, tasks: Iterable[SamplerTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
-        # Note: a QuantumCircuit and a tuple of QuantumCircuit and BindingsArray are
-        # valid SamplerTaskLike objects, but they are also iterable.
-        if isinstance(tasks, QuantumCircuit) or (
-            isinstance(tasks, tuple) and len(tasks) > 0 and isinstance(tasks[0], QuantumCircuit)
-        ):
-            coerced_tasks = [SamplerTask.coerce(tasks)]
-        else:
-            coerced_tasks = [SamplerTask.coerce(task) for task in tasks]
-        for task in coerced_tasks:
-            task.validate()
-        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run_task, coerced_tasks)
+        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run, tasks)
         job.submit()
         return job
 
-    def _run_task(self, tasks: List[SamplerTask]) -> List[TaskResult]:
+    def _run(self, tasks: Iterable[SamplerTask]) -> PrimitiveResult[TaskResult]:
+        coerced_tasks = [SamplerTask.coerce(task) for task in tasks]
+        for task in coerced_tasks:
+            task.validate()
+
         shots = self.options.execution.shots
         seed = self.options.execution.seed
 
         results = []
-        for task in tasks:
+        for task in coerced_tasks:
             circuit, qargs, meas_info = _preprocess_circuit(task.circuit)
             parameter_values = task.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
@@ -131,7 +122,6 @@ class Sampler(BaseSamplerV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
                 )
                 for item in meas_info
             }
-
             for index in np.ndindex(*bound_circuits.shape):
                 bound_circuit = bound_circuits[index]
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
@@ -144,7 +134,7 @@ class Sampler(BaseSamplerV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
                     ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
                     arrays[item.creg_name][index] = ary
 
-            data_bin_cls = make_databin(
+            data_bin_cls = make_data_bin(
                 [(item.creg_name, BitArray) for item in meas_info],
                 shape=bound_circuits.shape,
             )
@@ -154,8 +144,7 @@ class Sampler(BaseSamplerV2[PrimitiveJob[PrimitiveResult[TaskResult]]]):
             }
             data_bin = data_bin_cls(**meas)
             results.append(TaskResult(data_bin, metadata={"shots": shots}))
-
-        return results
+        return PrimitiveResult(results)
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):
@@ -194,7 +183,7 @@ def _samples_to_packed_array(
     ary = ary[:, indices[::-1]]
     # pad 0 in the left to align the number to be mod 8
     # since np.packbits(bitorder='big') pads 0 to the right.
-    pad_size = (8 - num_bits % 8) % 8
+    pad_size = -num_bits % 8
     ary = np.pad(ary, ((0, 0), (pad_size, 0)), constant_values=0)
     # pack bits in big endian order
     ary = np.packbits(ary, axis=-1)
