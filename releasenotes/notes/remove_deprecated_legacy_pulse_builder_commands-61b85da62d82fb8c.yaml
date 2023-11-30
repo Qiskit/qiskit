@@ -10,7 +10,28 @@ upgrade:
     :func:`~qiskit.pulse.builder.u1`,
     :func:`~qiskit.pulse.builder.u2`,
     :func:`~qiskit.pulse.builder.u3`,
-    :func:`~qiskit.pulse.builder.x`
+    :func:`~qiskit.pulse.builder.x`,
+    :func:`~qiskit.pulse.builder.active_transpiler_settings`,
+    :func:`~qiskit.pulse.builder.active_circuit_scheduler_settings`,
+    :func:`~qiskit.pulse.builder.transpiler_settings`
+
+    :func:`~qiskit.pulse.builder._compile_lazy_circuit_before`,
+    :func:`~qiskit.pulse.builder._PulseBuilder.transpiler_settings`,
+    :func:`~qiskit.pulse.builder._PulseBuilder._compile_lazy_circuit`,
+    :func:`~qiskit.pulse.builder._PulseBuilder._compile_circuit`,
+    :func:`~qiskit.pulse.builder._PulseBuilder._new_circuit`,
+    :func:`~qiskit.pulse.builder._PulseBuilder.call_gate`
+
+    Removed arguments :code:`default_transpiler_settings`, :code:`default_circuit_scheduler_settings`
+    in :func:`~qiskit.pulse.builder.build`
+
+    Removed support of :class:`.QuantumCircuit` type for argument :code:`target` 
+    in :func:`~qiskit.pulse.builder.call`
+    
+    Removed support of :class:`.QuantumCircuit` type for argument :code:`subroutine` 
+    in :func:`~qiskit.pulse.builder._PulseBuilder.call_subroutine`
+
+
 
     .. code-block:: python
 
@@ -27,8 +48,8 @@ upgrade:
         pulse.play(pulse.Gaussian(150, 0.40, 10)
         pulse.play(pulse.GaussianSquare(150, 0.1, 12)
 
-      # This is not encouraged but you can call
-      # QuantumCircuit into a pulse builder context like this:
+      """This is not encouraged but you can call
+      QuantumCircuit into a pulse builder context like this:"""
       qc = QuantumCircuit(2)
       qc.cx(0, 1)
       qc = compiler.transpile(qc, backend)
@@ -37,25 +58,17 @@ upgrade:
       with pulse.build(backend) as qc_sched:
         pulse.call(sched)
 
-      # This example shows how to get pulse gate instructions.
-      # For BackendV2
+      """This example shows how to get pulse gate instructions.
+      For BackendV2"""
        sched = backend.target['x'][(qubit,)].calibration
 
       # For BackendV1
        sched = backend.defaults().instruction_schedule_map.get('x', (0,))
     
-    Removed
-    :func:`~qiskit.pulse.builder.active_transpiler_settings`
-    :func:`~qiskit.pulse.builder.active_circuit_scheduler_settings`
-    :func:`~qiskit.pulse.builder.transpiler_settings`
 
     Modified module doc of :mod:`qiskit.pulse.builder` related with example
     code with circuit elements.
 
-    Removed arguments :code:`default_transpiler_settings`, :code:`default_circuit_scheduler_settings`
-    in :func:`~qiskit.pulse.builder.build`
-    Removed argument of :class:`.QuantumCircuit` type in :func:`~qiskit.pulse.builder.call`
-    
     Modified related tests in
     :file:`test/python/pulse/test_builder.py`,
     :file:`test/python/pulse/test_block.py`
