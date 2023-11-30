@@ -31,6 +31,7 @@ class TestPulseGate(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
+        self.basis_gates = ["cx", "id", "rz", "sx", "x"]
         self.sched_param = circuit.Parameter("P0")
 
         with pulse.build(name="sx_q0") as custom_sx_q0:
@@ -73,8 +74,12 @@ class TestPulseGate(QiskitTestCase):
 
     def test_transpile_with_backend_target(self):
         """Test transpile without custom calibrations from target."""
+
         target = GenericTarget(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=ATHENS_CMAP
+            num_qubits=5,
+            basis_gates=self.basis_gates,
+            coupling_map=ATHENS_CMAP,
+            calibrate_instructions=self.basis_gates + ["measure"],
         )
 
         qc = circuit.QuantumCircuit(2)
@@ -115,8 +120,12 @@ class TestPulseGate(QiskitTestCase):
     def test_transpile_with_custom_basis_gate_in_target(self):
         """Test transpile with custom calibrations."""
         target = GenericTarget(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=ATHENS_CMAP
+            num_qubits=5,
+            basis_gates=self.basis_gates,
+            coupling_map=ATHENS_CMAP,
+            calibrate_instructions=self.basis_gates + ["measure"],
         )
+
         target.add_calibrations_from_instruction_schedule_map(
             FakeAthens().defaults().instruction_schedule_map
         )
@@ -292,8 +301,12 @@ class TestPulseGate(QiskitTestCase):
 
         # This doesn't have custom schedule definition
         target = GenericTarget(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=ATHENS_CMAP
+            num_qubits=5,
+            basis_gates=self.basis_gates,
+            coupling_map=ATHENS_CMAP,
+            calibrate_instructions=self.basis_gates + ["measure"],
         )
+
         target.add_calibrations_from_instruction_schedule_map(
             FakeAthens().defaults().instruction_schedule_map
         )
@@ -336,7 +349,11 @@ class TestPulseGate(QiskitTestCase):
         qc.append(random_unitary(4, seed=123), [0, 1])
         qc.measure_all()
 
-        backend = FakeGeneric(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"])
+        backend = FakeGeneric(
+            num_qubits=5,
+            basis_gates=self.basis_gates,
+            calibrate_instructions=self.basis_gates + ["measure"],
+        )
         backend.target.add_calibrations_from_instruction_schedule_map(
             FakeAthens().defaults().instruction_schedule_map
         )
@@ -380,7 +397,11 @@ class TestPulseGate(QiskitTestCase):
         qc.append(gate, [0])
         qc.measure_all()
 
-        backend = FakeGeneric(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"])
+        backend = FakeGeneric(
+            num_qubits=5,
+            basis_gates=self.basis_gates,
+            calibrate_instructions=self.basis_gates + ["measure"],
+        )
         transpiled_qc = transpile(
             qc,
             backend,
@@ -403,7 +424,11 @@ class TestPulseGate(QiskitTestCase):
         This should not override the source object since the same backend may
         be used for future transpile without intention of instruction overriding.
         """
-        backend = FakeGeneric(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"])
+        backend = FakeGeneric(
+            num_qubits=5,
+            basis_gates=self.basis_gates,
+            calibrate_instructions=self.basis_gates + ["measure"],
+        )
         original_sx0 = backend.target["sx"][(0,)].calibration
 
         instmap = FakeAthens().defaults().instruction_schedule_map

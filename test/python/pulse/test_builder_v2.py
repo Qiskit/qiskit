@@ -89,7 +89,12 @@ class TestBuilderV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
         basis_gates = ["cx", "id", "rz", "sx", "x"]
-        self.backend = FakeGeneric(basis_gates=basis_gates, num_qubits=27, coupling_map=MUMBAI_CMAP)
+        self.backend = FakeGeneric(
+            basis_gates=basis_gates,
+            num_qubits=27,
+            coupling_map=MUMBAI_CMAP,
+            calibrate_instructions=basis_gates + ["measure"],
+        )
 
     def assertScheduleEqual(self, program, target):
         """Assert an error when two pulse programs are not equal.
