@@ -21,6 +21,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.qasm2 import dumps
 
 
 class LoadFromQasmTest(QiskitTestCase):
@@ -254,18 +255,15 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def test_qasm_qas_string_order(self):
         """Test that gates are returned in qasm in ascending order."""
-        expected_qasm = (
-            "\n".join(
-                [
-                    "OPENQASM 2.0;",
-                    'include "qelib1.inc";',
-                    "qreg q[3];",
-                    "h q[0];",
-                    "h q[1];",
-                    "h q[2];",
-                ]
-            )
-            + "\n"
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 2.0;",
+                'include "qelib1.inc";',
+                "qreg q[3];",
+                "h q[0];",
+                "h q[1];",
+                "h q[2];",
+            ]
         )
         qasm_string = """OPENQASM 2.0;
         include "qelib1.inc";
@@ -273,7 +271,7 @@ class LoadFromQasmTest(QiskitTestCase):
         h q;"""
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        self.assertEqual(q_circuit.qasm(), expected_qasm)
+        self.assertEqual(dumps(q_circuit), expected_qasm)
 
     def test_from_qasm_str_custom_gate1(self):
         """Test load custom gates (simple case)"""
@@ -503,8 +501,8 @@ bell q[0], q[1];
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
-
-        circuit_result = Unroller(basis).run(circuit_dag)
-        expected_result = Unroller(basis).run(expected_dag)
+        with self.assertWarns(DeprecationWarning):
+            circuit_result = Unroller(basis).run(circuit_dag)
+            expected_result = Unroller(basis).run(expected_dag)
 
         self.assertEqual(circuit_result, expected_result)

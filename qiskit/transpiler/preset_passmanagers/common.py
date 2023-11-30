@@ -24,7 +24,6 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -42,6 +41,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import FilterOpNodes
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
@@ -219,7 +219,13 @@ def generate_unroll_3q(
     )
     unroll_3q.append(
         HighLevelSynthesis(
-            hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
+            hls_config=hls_config,
+            coupling_map=None,
+            target=target,
+            use_qubit_indices=False,
+            equivalence_library=sel,
+            basis_gates=basis_gates,
+            min_qubits=3,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -227,9 +233,6 @@ def generate_unroll_3q(
     if basis_gates is None and target is None:
         unroll_3q.append(Unroll3qOrMore(target, basis_gates))
     else:
-        unroll_3q.append(
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target, min_qubits=3)
-        )
         unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
     return unroll_3q
 
@@ -326,7 +329,15 @@ def generate_routing_passmanager(
         return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
-        routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
+        routing.append(
+            [
+                BarrierBeforeFinalMeasurements(
+                    label="qiskit.transpiler.internal.routing.protection.barrier"
+                ),
+                routing_pass,
+            ],
+            condition=_swap_condition,
+        )
     else:
         routing.append([routing_pass], condition=_swap_condition)
 
@@ -345,6 +356,14 @@ def generate_routing_passmanager(
             condition=_run_post_layout_condition,
         )
         routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+
+    def filter_fn(node):
+        return (
+            getattr(node.op, "label", None)
+            != "qiskit.transpiler.internal.routing.protection.barrier"
+        )
+
+    routing.append([FilterOpNodes(filter_fn)])
 
     return routing
 
@@ -439,8 +458,9 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=basis_gates,
             ),
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
@@ -462,6 +482,8 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                basis_gates=basis_gates,
+                min_qubits=3,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
@@ -483,6 +505,7 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                basis_gates=basis_gates,
             ),
         ]
     else:
@@ -575,6 +598,7 @@ def generate_scheduling(
 @deprecate_func(
     additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
     since="0.25.0",
+    package_name="qiskit-terra",
 )
 def get_vf2_call_limit(
     optimization_level: int,

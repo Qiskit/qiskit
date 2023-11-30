@@ -480,7 +480,7 @@ In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping`
 
 With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`_.
+`Pulse Gates <https://docs.quantum-computing.ibm.com/build/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
 packed after the :ref:`qpy_instructions` block.
 
@@ -921,7 +921,7 @@ the :class:`.EvolutionSynthesis` class used by the gate.
 SPARSE_PAULI_OP_LIST_ELEM
 -------------------------
 
-This represents an instance of :class:`.PauliSumOp`.
+This represents an instance of :class:`.SparsePauliOp`.
 
 
 .. code-block:: c

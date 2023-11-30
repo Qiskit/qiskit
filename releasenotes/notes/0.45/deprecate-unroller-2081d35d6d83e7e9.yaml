@@ -1,0 +1,43 @@
+---
+deprecations:
+  - |
+    The :class:`.Unroller` transpiler pass has been deprecated and will be removed
+    in a future release. The :class:`.Unroller` has been superseded by the
+    :class:`.BasisTranslator` which provides a similar set of functionality but
+    offers it in a more general manner so that you're able to translate a circuit
+    to any universal basis set. The :class:`.Unroller` class only works in situations
+    where the circuit's gate definitions are recursively defined in terms of the target
+    basis; for Qiskit's standard library gates this means :class:`.UGate` and
+    :class:`.CXGate`. If you are using the :class:`.Unroller` pass it can be replaced by
+    using a custom pass manager of the form::
+
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
+        pm = PassManager(
+            [
+                UnrollCustomDefinitions(sel, basis_gates=basis_gates),
+                BasisTranslator(sel, target_basis=basis_gates),
+            ]
+        )
+        pm.run(circuit)
+  - |
+    The use of the value ``"unroller"`` for the ``translation_method`` keyword
+    argument on the :func:`.transpile` and :func:`.generate_preset_pass_manager`
+    has been deprecated. This translation stage plugin will be removed from
+    Qiskit in a future release as it has been superseded by the default
+    ``"translator"`` method which will work similarly to the ``"unroller"`` plugin
+    but support a broader set of target backends.
+
+upgrade:
+  - |
+    The :attr:`.ControlledGate.definition` of the output from the :meth:`.Gate.control()` method
+    may be different as compared to previous releases. The internal generation
+    of the :meth:`.Gate.control` is no longer using the now deprecated
+    :class:`.Unroller` transpiler pass to generate its definition and this can
+    potentially cause a different definition to be generated. The output
+    :class:`.ControlledGate` object's definition will be unitary equivalent to what
+    was generated before. But if you require the exact definition from calling
+    :meth:`.Gate.control` you can use an earlier release and save the circuit with
+    :func:`.qpy.dump` and then load it with a newer release.

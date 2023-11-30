@@ -279,6 +279,7 @@ Gates and Instructions
    InstructionSet
    Operation
    EquivalenceLibrary
+   Store
 
 Control Flow Operations
 -----------------------
@@ -375,6 +376,7 @@ from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
+from .store import Store
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression

@@ -230,13 +230,18 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @deprecate_func(
         since="0.24.0",
+        package_name="qiskit-terra",
         additional_msg="Instead, index or iterate through the Clifford.tableau attribute.",
     )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
         return self.table.__getitem__(key)
 
-    @deprecate_func(since="0.24.0", additional_msg="Use Clifford.tableau property instead.")
+    @deprecate_func(
+        since="0.24.0",
+        package_name="qiskit-terra",
+        additional_msg="Use Clifford.tableau property instead.",
+    )
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
         self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
