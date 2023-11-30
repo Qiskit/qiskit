@@ -39,7 +39,7 @@ if typing.TYPE_CHECKING:
 
 
 class CircuitScopeInterface(abc.ABC):
-    """An interface that circuits and builder blocks explicitly fulfil, which contains the primitive
+    """An interface that circuits and builder blocks explicitly fulfill, which contains the primitive
     methods of circuit construction and object validation.
 
     This allows core circuit methods to be applied to the currently open builder scope, and allows
