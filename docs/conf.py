@@ -45,7 +45,6 @@ extensions = [
     "sphinx.ext.doctest",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
-    "sphinx_design",
 ]
 
 templates_path = ["_templates"]
