@@ -31,7 +31,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 @deprecate_func(
     since="0.46",
-    additional_msg="Instead use the qiskit.qasm2.dump() or qiskit.qasm2.    dumps() function",
+    additional_msg="Instead use the qiskit.qasm2.dump() or qiskit.qasm2.dumps() function",
     removal_timeline="in the 1.0.0 release",
 )
 def ast_to_dag(ast):
