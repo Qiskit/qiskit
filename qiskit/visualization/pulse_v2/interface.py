@@ -47,7 +47,7 @@ def draw(
 
     Args:
         program: Program to visualize. This program can be arbitrary Qiskit Pulse program,
-            such as :py:class:`~qiskit.pulse.Waveform`, :py:class:`~qiskit.pulse.SymbolicPulse`, 
+            such as :py:class:`~qiskit.pulse.Waveform`, :py:class:`~qiskit.pulse.SymbolicPulse`,
             :py:class:`~qiskit.pulse.Schedule` and :py:class:`~qiskit.pulse.ScheduleBlock`.
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
             :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,

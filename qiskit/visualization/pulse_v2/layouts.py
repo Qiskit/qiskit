@@ -361,9 +361,7 @@ def time_map_in_ns(
     )
 
 
-def detail_title(
-    program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo
-) -> str:
+def detail_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo) -> str:
     """Layout function for generating figure title.
 
     This layout writes program name, program duration, and backend name in the title.
@@ -388,8 +386,6 @@ def detail_title(
     return ", ".join(title_str)
 
 
-def empty_title(
-    program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo
-) -> str:
+def empty_title(program: Union[pulse.Waveform, pulse.Schedule], device: DrawerBackendInfo) -> str:
     """Layout function for generating an empty figure title."""
     return ""

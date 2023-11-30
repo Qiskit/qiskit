@@ -205,10 +205,7 @@ class DrawerCanvas:
 
     def load_program(
         self,
-        program: pulse.Waveform
-        | pulse.SymbolicPulse
-        | pulse.Schedule
-        | pulse.ScheduleBlock,
+        program: pulse.Waveform | pulse.SymbolicPulse | pulse.Schedule | pulse.ScheduleBlock,
     ):
         """Load a program to draw.
 
