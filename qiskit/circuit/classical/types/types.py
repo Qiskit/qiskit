@@ -89,6 +89,9 @@ class Bool(Type, metaclass=_Singleton):
     def __repr__(self):
         return "Bool()"
 
+    def __hash__(self):
+        return hash(self.__class__)
+
     def __eq__(self, other):
         return isinstance(other, Bool)
 
@@ -106,6 +109,9 @@ class Uint(Type):
 
     def __repr__(self):
         return f"Uint({self.width})"
+
+    def __hash__(self):
+        return hash((self.__class__, self.width))
 
     def __eq__(self, other):
         return isinstance(other, Uint) and self.width == other.width
