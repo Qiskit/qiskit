@@ -29,10 +29,10 @@ from .base import BaseEstimatorV2
 from .containers import (
     BasePrimitiveOptions,
     BasePrimitiveOptionsLike,
-    EstimatorTask,
-    EstimatorTaskLike,
+    EstimatorPubs,
+    EstimatorPubsLike,
     PrimitiveResult,
-    TaskResult,
+    PubsResult,
     make_data_bin,
 )
 from .containers.dataclasses import mutable_dataclass
@@ -89,26 +89,26 @@ class Estimator(BaseEstimatorV2):
             options = Options(**options)
         super().__init__(options=options)
 
-    def run(self, tasks: Iterable[EstimatorTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
-        coerced_tasks = [EstimatorTask.coerce(task) for task in tasks]
+    def run(self, pubs: Iterable[EstimatorPubsLike]) -> PrimitiveJob[PrimitiveResult[PubsResult]]:
+        coerced_pubs = [EstimatorPubs.coerce(pub) for pub in pubs]
 
-        for task in coerced_tasks:
-            task.validate()
+        for pub in coerced_pubs:
+            pub.validate()
 
-        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run_task, coerced_tasks)
+        job: PrimitiveJob[PrimitiveResult[PubsResult]] = PrimitiveJob(self._run_pubs, coerced_pubs)
         job.submit()
         return job
 
-    def _run_task(self, tasks: list[EstimatorTask]) -> PrimitiveResult[TaskResult]:
+    def _run_pubs(self, pubs: list[EstimatorPubs]) -> PrimitiveResult[PubsResult]:
         shots = self.options.execution.shots
 
         rng = _get_rng(self.options.execution.seed)
 
         results = []
-        for task in tasks:
-            circuit = task.circuit
-            observables = task.observables
-            parameter_values = task.parameter_values
+        for pub in pubs:
+            circuit = pub.circuit
+            observables = pub.observables
+            parameter_values = pub.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
 
             bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
@@ -139,7 +139,7 @@ class Estimator(BaseEstimatorV2):
                 shape=bc_circuits.shape,
             )
             data_bin = data_bin_cls(evs=evs, stds=stds)
-            results.append(TaskResult(data_bin, metadata={"shots": shots}))
+            results.append(PubsResult(data_bin, metadata={"shots": shots}))
         return PrimitiveResult(results)
 
 

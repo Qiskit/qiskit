@@ -12,7 +12,7 @@
 
 
 """
-Estimator Task class
+Estimator Pubs class
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 
-from .base_task import BaseTask
+from .base_pubs import BasePubs
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .dataclasses import frozen_dataclass
 from .observables_array import ObservablesArray, ObservablesArrayLike
@@ -31,9 +31,9 @@ from .shape import ShapedMixin
 
 
 @frozen_dataclass
-class EstimatorTask(BaseTask, ShapedMixin):
-    """Task for Estimator.
-    Task is composed of triple (circuit, observables, parameter_values).
+class EstimatorPubs(BasePubs, ShapedMixin):
+    """Pubs (Primitive Unified Blocs) for Estimator.
+    Pubs are composed of triple (circuit, observables, parameter_values).
     """
 
     observables: ObservablesArray
@@ -45,29 +45,29 @@ class EstimatorTask(BaseTask, ShapedMixin):
         self._shape = shape
 
     @classmethod
-    def coerce(cls, task: EstimatorTaskLike) -> EstimatorTask:
-        """Coerce EstimatorTaskLike into EstimatorTask.
+    def coerce(cls, pubs: EstimatorPubsLike) -> EstimatorPubs:
+        """Coerce EstimatorPubsLike into EstimatorPubs.
 
         Args:
-            task: an object to be estimator task.
+            pubs: an object to be estimator pubs.
 
         Returns:
-            A coerced estimator task.
+            A coerced estimator pubs.
         """
-        if isinstance(task, EstimatorTask):
-            return task
-        if len(task) != 2 and len(task) != 3:
-            raise ValueError(f"The length of task must be 2 or 3, but length {len(task)} is given.")
-        circuit = task[0]
-        observables = ObservablesArray.coerce(task[1])
-        if len(task) == 2:
+        if isinstance(pubs, EstimatorPubs):
+            return pubs
+        if len(pubs) != 2 and len(pubs) != 3:
+            raise ValueError(f"The length of pubs must be 2 or 3, but length {len(pubs)} is given.")
+        circuit = pubs[0]
+        observables = ObservablesArray.coerce(pubs[1])
+        if len(pubs) == 2:
             return cls(circuit=circuit, observables=observables)
-        parameter_values = BindingsArray.coerce(task[2])
+        parameter_values = BindingsArray.coerce(pubs[2])
         return cls(circuit=circuit, observables=observables, parameter_values=parameter_values)
 
     def validate(self):
-        """Validate the task."""
-        super(EstimatorTask, self).validate()  # pylint: disable=super-with-arguments
+        """Validate the pubs."""
+        super(EstimatorPubs, self).validate()  # pylint: disable=super-with-arguments
         # I'm not sure why these arguments for super are needed. But if no args, tests are failed
         # for Python >=3.10. Seems to be some bug, but I can't fix.
         self.observables.validate()
@@ -89,6 +89,6 @@ class EstimatorTask(BaseTask, ShapedMixin):
             )
 
 
-EstimatorTaskLike = Union[
-    EstimatorTask, Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
+EstimatorPubsLike = Union[
+    EstimatorPubs, Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
 ]

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Base Task class
+Base Pubs class
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ from .dataclasses import frozen_dataclass
 
 
 @frozen_dataclass
-class TaskResult:
-    """Result of task."""
+class PubsResult:
+    """Result of pub (Primitive Unified Bloc)."""
 
     data: DataBin
-    """Result data for the task"""
+    """Result data for the pub"""
     metadata: dict = Field(default_factory=dict)
-    """Metadata for the task"""
+    """Metadata for the pub"""

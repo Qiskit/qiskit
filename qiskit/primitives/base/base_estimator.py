@@ -23,8 +23,8 @@ Overview of EstimatorV2
 An estimator is initialized with an empty parameter set. The estimator is used to
 create a :class:`~qiskit.providers.JobV1`, via the
 :meth:`~.BaseEstimatorV2.run()` method. This method is called
-with the list of task.
-Task is composed of tuple of following parameters ``[(circuit, observables, parameter_values)]``.
+with the list of pubs (Primitive Unified Blocs).
+Pubs are composed of tuple of following parameters ``[(circuit, observables, parameter_values)]``.
 
 * quantum circuit (:math:`\psi(\theta)`): (parameterized) quantum circuits
   :class:`~qiskit.circuit.QuantumCircuit`.
@@ -89,7 +89,7 @@ Migration guide from V1 to V2
 ==============================
 
 
-The original three arguments are now a single argument task.
+The original three arguments are now a single argument pubs.
 To accommodate this change, the zip function can be used for easy migration.
 For example, suppose the code originally is:
 
@@ -183,7 +183,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from ..containers.estimator_task import EstimatorTaskLike
+from ..containers.estimator_pubs import EstimatorPubsLike
 from ..containers.options import BasePrimitiveOptionsLike
 from . import validation
 from .base_primitive import BasePrimitive, BasePrimitiveV2
@@ -361,11 +361,11 @@ class BaseEstimatorV2(BasePrimitiveV2):
         super().__init__(options=options)
 
     @abstractmethod
-    def run(self, tasks: Iterable[EstimatorTaskLike]) -> Job:
-        """Run the tasks of the estimation of expectation value(s).
+    def run(self, pubs: Iterable[EstimatorPubsLike]) -> Job:
+        """Run the pubs of the estimation of expectation value(s).
 
         Args:
-            tasks: a iterable of tasklike object. Typically, list of tuple
+            pubs: a iterable of pubslike object. Typically, list of tuple
                 ``(QuantumCircuit, observables, parameter_values)``
 
         Returns:

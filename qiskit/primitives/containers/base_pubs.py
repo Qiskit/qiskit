@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Base Task class
+Base Pubs class
 """
 
 from __future__ import annotations
@@ -22,11 +22,11 @@ from .dataclasses import frozen_dataclass
 
 
 @frozen_dataclass
-class BaseTask:
-    """Base class for Task"""
+class BasePubs:
+    """Base class for Pubs"""
 
     circuit: QuantumCircuit
-    """Quantum circuit object for the task."""
+    """Quantum circuit object for the pubs."""
 
     def validate(self):
         """Validate the data"""
