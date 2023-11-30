@@ -3329,7 +3329,11 @@ class QuantumCircuit:
             if qargs
             else self.qubits.copy()
         )
-        return self.append(Barrier(len(qubits), label=label), qubits, [])
+        if qargs:
+            return self.append(Barrier(len(qubits), label=label), qubits, [])
+        else:
+            return self._append(Barrier(len(qubits), label=label), qubits, [])
+            
 
     def delay(
         self,
