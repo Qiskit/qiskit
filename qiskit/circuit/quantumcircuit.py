@@ -3333,7 +3333,6 @@ class QuantumCircuit:
             return self.append(Barrier(len(qubits), label=label), qubits, [])
         else:
             return self._append(Barrier(len(qubits), label=label), qubits, [])
-            
 
     def delay(
         self,
