@@ -50,8 +50,7 @@ jobs:
         run: tools/install_ubuntu_docs_dependencies.sh
 
       - name: Build documentation
-        # We can skip re-installing the package, since we just did it a couple of steps ago.
-        run: tox run -e docs --skip-pkg-install
+        run: tox run -e docs
 
       - name: Store built documentation artifact
         uses: actions/upload-artifact@v3
