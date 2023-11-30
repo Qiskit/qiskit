@@ -11,24 +11,22 @@
 # that they have been altered from the originals.
 
 """
-Base Pubs class
+Base Pub class
 """
 
 from __future__ import annotations
 
-from qiskit import QuantumCircuit
+from pydantic import Field
 
+from .data_bin import DataBin
 from .dataclasses import frozen_dataclass
 
 
 @frozen_dataclass
-class BasePubs:
-    """Base class for Pubs"""
+class PubResult:
+    """Result of pub (Primitive Unified Bloc)."""
 
-    circuit: QuantumCircuit
-    """Quantum circuit object for the pubs."""
-
-    def validate(self):
-        """Validate the data"""
-        if not isinstance(self.circuit, QuantumCircuit):
-            raise TypeError("circuit must be QuantumCircuit.")
+    data: DataBin
+    """Result data for the pub"""
+    metadata: dict = Field(default_factory=dict)
+    """Metadata for the pub"""

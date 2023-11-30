@@ -24,7 +24,7 @@ An estimator is initialized with an empty parameter set. The estimator is used t
 create a :class:`~qiskit.providers.JobV1`, via the
 :meth:`~.BaseEstimatorV2.run()` method. This method is called
 with the list of pubs (Primitive Unified Blocs).
-Pubs are composed of tuple of following parameters ``[(circuit, observables, parameter_values)]``.
+Pub is composed of tuple of following parameters ``[(circuit, observables, parameter_values)]``.
 
 * quantum circuit (:math:`\psi(\theta)`): (parameterized) quantum circuits
   :class:`~qiskit.circuit.QuantumCircuit`.
@@ -183,7 +183,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from ..containers.estimator_pubs import EstimatorPubsLike
+from ..containers.estimator_pub import EstimatorPubLike
 from ..containers.options import BasePrimitiveOptionsLike
 from . import validation
 from .base_primitive import BasePrimitive, BasePrimitiveV2
@@ -361,7 +361,7 @@ class BaseEstimatorV2(BasePrimitiveV2):
         super().__init__(options=options)
 
     @abstractmethod
-    def run(self, pubs: Iterable[EstimatorPubsLike]) -> Job:
+    def run(self, pubs: Iterable[EstimatorPubLike]) -> Job:
         """Run the pubs of the estimation of expectation value(s).
 
         Args:

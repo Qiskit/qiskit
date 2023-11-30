@@ -16,7 +16,7 @@
 import numpy as np
 import numpy.typing as npt
 
-from qiskit.primitives.containers import PrimitiveResult, PubsResult, make_data_bin
+from qiskit.primitives.containers import PrimitiveResult, PubResult, make_data_bin
 from qiskit.test import QiskitTestCase
 
 
@@ -32,13 +32,13 @@ class PrimitiveResultCase(QiskitTestCase):
         alpha = np.empty((10, 20), dtype=np.uint16)
         beta = np.empty((10, 20), dtype=int)
 
-        pubs_results = [
-            PubsResult(data_bin_cls(alpha, beta)),
-            PubsResult(data_bin_cls(alpha, beta)),
+        pub_results = [
+            PubResult(data_bin_cls(alpha, beta)),
+            PubResult(data_bin_cls(alpha, beta)),
         ]
-        result = PrimitiveResult(pubs_results, {1: 2})
+        result = PrimitiveResult(pub_results, {1: 2})
 
-        self.assertTrue(result[0] is pubs_results[0])
-        self.assertTrue(result[1] is pubs_results[1])
-        self.assertTrue(list(result)[0] is pubs_results[0])
+        self.assertTrue(result[0] is pub_results[0])
+        self.assertTrue(result[1] is pub_results[1])
+        self.assertTrue(list(result)[0] is pub_results[0])
         self.assertEqual(len(result), 2)

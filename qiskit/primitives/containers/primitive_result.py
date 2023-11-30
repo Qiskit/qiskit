@@ -17,21 +17,21 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any, Generic, Optional, TypeVar
 
-from .pubs_result import PubsResult
+from .pub_result import PubResult
 
-T = TypeVar("T", bound=PubsResult)
+T = TypeVar("T", bound=PubResult)
 
 
 class PrimitiveResult(Generic[T]):
-    """A container for multiple pubs results and global metadata."""
+    """A container for multiple pub results and global metadata."""
 
-    def __init__(self, pubs_results: Iterable[T], metadata: Optional[dict[str, Any]] = None):
+    def __init__(self, pub_results: Iterable[T], metadata: Optional[dict[str, Any]] = None):
         """
         Args:
-            pubs_results: Pubs results.
-            metadata: Any metadata that doesn't make sense to put inside of pubs results.
+            pub_results: Pub results.
+            metadata: Any metadata that doesn't make sense to put inside of pub results.
         """
-        self._pubs_results = list(pubs_results)
+        self._pub_results = list(pub_results)
         self._metadata = metadata or {}
 
     @property
@@ -40,13 +40,13 @@ class PrimitiveResult(Generic[T]):
         return self._metadata
 
     def __getitem__(self, index) -> T:
-        return self._pubs_results[index]
+        return self._pub_results[index]
 
     def __len__(self) -> int:
-        return len(self._pubs_results)
+        return len(self._pub_results)
 
     def __repr__(self) -> str:
-        return f"PrimitiveResult({self._pubs_results}, metadata={self.metadata})"
+        return f"PrimitiveResult({self._pub_results}, metadata={self.metadata})"
 
     def __iter__(self) -> Iterable[T]:
-        return iter(self._pubs_results)
+        return iter(self._pub_results)

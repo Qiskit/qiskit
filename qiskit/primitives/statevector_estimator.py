@@ -29,10 +29,10 @@ from .base import BaseEstimatorV2
 from .containers import (
     BasePrimitiveOptions,
     BasePrimitiveOptionsLike,
-    EstimatorPubs,
-    EstimatorPubsLike,
+    EstimatorPub,
+    EstimatorPubLike,
     PrimitiveResult,
-    PubsResult,
+    PubResult,
     make_data_bin,
 )
 from .containers.dataclasses import mutable_dataclass
@@ -89,23 +89,23 @@ class Estimator(BaseEstimatorV2):
             options = Options(**options)
         super().__init__(options=options)
 
-    def run(self, pubs: Iterable[EstimatorPubsLike]) -> PrimitiveJob[PrimitiveResult[PubsResult]]:
-        coerced_pubs = [EstimatorPubs.coerce(pub) for pub in pubs]
+    def run(self, pubs: Iterable[EstimatorPubLike]) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+        job: PrimitiveJob[PrimitiveResult[PubResult]] = PrimitiveJob(self._run, pubs)
+        job.submit()
+        return job
+
+    def _run(self, pubs: Iterable[EstimatorPub]) -> PrimitiveResult[PubResult]:
+        coerced_pubs = [EstimatorPub.coerce(pub) for pub in pubs]
 
         for pub in coerced_pubs:
             pub.validate()
 
-        job: PrimitiveJob[PrimitiveResult[PubsResult]] = PrimitiveJob(self._run_pubs, coerced_pubs)
-        job.submit()
-        return job
-
-    def _run_pubs(self, pubs: list[EstimatorPubs]) -> PrimitiveResult[PubsResult]:
         shots = self.options.execution.shots
 
         rng = _get_rng(self.options.execution.seed)
 
         results = []
-        for pub in pubs:
+        for pub in coerced_pubs:
             circuit = pub.circuit
             observables = pub.observables
             parameter_values = pub.parameter_values
@@ -139,7 +139,7 @@ class Estimator(BaseEstimatorV2):
                 shape=bc_circuits.shape,
             )
             data_bin = data_bin_cls(evs=evs, stds=stds)
-            results.append(PubsResult(data_bin, metadata={"shots": shots}))
+            results.append(PubResult(data_bin, metadata={"shots": shots}))
         return PrimitiveResult(results)
 
 

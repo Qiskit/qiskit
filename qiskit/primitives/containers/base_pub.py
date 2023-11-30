@@ -16,17 +16,19 @@ Base Pubs class
 
 from __future__ import annotations
 
-from pydantic import Field
+from qiskit import QuantumCircuit
 
-from .data_bin import DataBin
 from .dataclasses import frozen_dataclass
 
 
 @frozen_dataclass
-class PubsResult:
-    """Result of pub (Primitive Unified Bloc)."""
+class BasePub:
+    """Base class for PUB (Primitive Unified Bloc)"""
 
-    data: DataBin
-    """Result data for the pub"""
-    metadata: dict = Field(default_factory=dict)
-    """Metadata for the pub"""
+    circuit: QuantumCircuit
+    """Quantum circuit object for the pubs."""
+
+    def validate(self):
+        """Validate the data"""
+        if not isinstance(self.circuit, QuantumCircuit):
+            raise TypeError("circuit must be QuantumCircuit.")

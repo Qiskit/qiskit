@@ -12,7 +12,7 @@
 
 
 """
-Estimator Pubs class
+Estimator Pub class
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 
-from .base_pubs import BasePubs
+from .base_pub import BasePub
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .dataclasses import frozen_dataclass
 from .observables_array import ObservablesArray, ObservablesArrayLike
@@ -31,9 +31,9 @@ from .shape import ShapedMixin
 
 
 @frozen_dataclass
-class EstimatorPubs(BasePubs, ShapedMixin):
-    """Pubs (Primitive Unified Blocs) for Estimator.
-    Pubs are composed of triple (circuit, observables, parameter_values).
+class EstimatorPub(BasePub, ShapedMixin):
+    """Pub (Primitive Unified Bloc) for Estimator.
+    Pub is composed of triple (circuit, observables, parameter_values).
     """
 
     observables: ObservablesArray
@@ -45,29 +45,29 @@ class EstimatorPubs(BasePubs, ShapedMixin):
         self._shape = shape
 
     @classmethod
-    def coerce(cls, pubs: EstimatorPubsLike) -> EstimatorPubs:
-        """Coerce EstimatorPubsLike into EstimatorPubs.
+    def coerce(cls, pub: EstimatorPubLike) -> EstimatorPub:
+        """Coerce EstimatorPubLike into EstimatorPub.
 
         Args:
-            pubs: an object to be estimator pubs.
+            pub: an object to be estimator pub.
 
         Returns:
-            A coerced estimator pubs.
+            A coerced estimator pub.
         """
-        if isinstance(pubs, EstimatorPubs):
-            return pubs
-        if len(pubs) != 2 and len(pubs) != 3:
-            raise ValueError(f"The length of pubs must be 2 or 3, but length {len(pubs)} is given.")
-        circuit = pubs[0]
-        observables = ObservablesArray.coerce(pubs[1])
-        if len(pubs) == 2:
+        if isinstance(pub, EstimatorPub):
+            return pub
+        if len(pub) != 2 and len(pub) != 3:
+            raise ValueError(f"The length of pub must be 2 or 3, but length {len(pub)} is given.")
+        circuit = pub[0]
+        observables = ObservablesArray.coerce(pub[1])
+        if len(pub) == 2:
             return cls(circuit=circuit, observables=observables)
-        parameter_values = BindingsArray.coerce(pubs[2])
+        parameter_values = BindingsArray.coerce(pub[2])
         return cls(circuit=circuit, observables=observables, parameter_values=parameter_values)
 
     def validate(self):
-        """Validate the pubs."""
-        super(EstimatorPubs, self).validate()  # pylint: disable=super-with-arguments
+        """Validate the pub."""
+        super(EstimatorPub, self).validate()  # pylint: disable=super-with-arguments
         # I'm not sure why these arguments for super are needed. But if no args, tests are failed
         # for Python >=3.10. Seems to be some bug, but I can't fix.
         self.observables.validate()
@@ -89,6 +89,6 @@ class EstimatorPubs(BasePubs, ShapedMixin):
             )
 
 
-EstimatorPubsLike = Union[
-    EstimatorPubs, Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
+EstimatorPubLike = Union[
+    EstimatorPub, Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
 ]

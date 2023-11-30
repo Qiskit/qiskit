@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import BindingsArray, EstimatorPubs, ObservablesArray
+from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray
 from qiskit.primitives.statevector_estimator import Estimator, Options
 from qiskit.providers import JobV1
 from qiskit.quantum_info import SparsePauliOp
@@ -90,7 +90,7 @@ class TestEstimatorV2(QiskitTestCase):
         np.testing.assert_allclose(result4[0].data.evs, [1.55555728, -1.08766318])
         np.testing.assert_allclose(result4[1].data.evs, [0.17849238])
 
-    def test_estimator_with_pubs(self):
+    def test_estimator_with_pub(self):
         """Test estimator with explicit EstimatorPubs."""
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
@@ -98,13 +98,13 @@ class TestEstimatorV2(QiskitTestCase):
 
         obs1 = ObservablesArray.coerce([hamiltonian1, hamiltonian3])
         bind1 = BindingsArray.coerce([theta1, theta3])
-        pubs1 = EstimatorPubs(psi1, obs1, bind1)
+        pub1 = EstimatorPub(psi1, obs1, bind1)
         obs2 = ObservablesArray.coerce(hamiltonian2)
         bind2 = BindingsArray.coerce(theta2)
-        pubs2 = EstimatorPubs(psi2, obs2, bind2)
+        pub2 = EstimatorPub(psi2, obs2, bind2)
 
         estimator = Estimator()
-        result4 = estimator.run([pubs1, pubs2]).result()
+        result4 = estimator.run([pub1, pub2]).result()
         np.testing.assert_allclose(result4[0].data.evs, [1.55555728, -1.08766318])
         np.testing.assert_allclose(result4[1].data.evs, [0.17849238])
 
