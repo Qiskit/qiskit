@@ -16,10 +16,6 @@ on:
         description: "Push to qiskit.org?"
         required: false
         type: boolean
-      do_translatables:
-        description: "Push translatable strings?"
-        required: false
-        type: boolean
 
 jobs:
   build:
@@ -53,33 +49,9 @@ jobs:
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
 
-      # This is just to have tox create the environment, so we can use it to execute the tutorials.
-      # We want to re-use it later for the build, hence 'tox run --notest' instead of 'tox devenv'.
-      - name: Prepare Python environment
-        run: tox run -e docs --notest
-
-      # The reason to use the custom script rather than letting 'nbsphinx' do its thing normally
-      # within the Sphinx build is so that the execution process is the same as in the test CI.
-      - name: Execute tutorials in place
-        run: .tox/docs/bin/python tools/execute_tutorials.py docs/tutorials
-        env:
-          QISKIT_CELL_TIMEOUT: "300"
-
       - name: Build documentation
         # We can skip re-installing the package, since we just did it a couple of steps ago.
         run: tox run -e docs --skip-pkg-install
-        env:
-          QISKIT_ENABLE_ANALYTICS: "true"
-          # We've already built them.
-          QISKIT_DOCS_BUILD_TUTORIALS: "never"
-          DOCS_PROD_BUILD: "true"
-
-      - name: Build translatable strings
-        run: tox run -e gettext
-        env:
-          # We've already built them.
-          QISKIT_DOCS_BUILD_TUTORIALS: "never"
-          DOCS_PROD_BUILD: "true"
 
       - name: Store built documentation artifact
         uses: actions/upload-artifact@v3
@@ -89,13 +61,6 @@ jobs:
             ./docs/_build/html/*
             !**/.doctrees
             !**/.buildinfo
-          if-no-files-found: error
-
-      - name: Store translatable strings artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: qiskit-translatables
-          path: ./docs/locale/en/*
           if-no-files-found: error
 
   deploy:
@@ -198,26 +163,3 @@ jobs:
           JOINED_PREFIXES: ${{ steps.choose.outputs.joined_prefixes }}
           RCLONE_KEY: ${{ secrets.ENCRYPTED_RCLONE_KEY}}
           RCLONE_IV: ${{ secrets.ENCRYPTED_RCLONE_IV }}
-
-  deploy_translatables:
-    if: (github.event_name == 'workflow_dispatch' && inputs.do_translatables) || (github.event_name == 'push' && github.ref_type == 'tag' && github.ref_name == needs.build.outputs.latest_tag)
-    name: Push translatable strings
-    needs: [build]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: 'qiskit'
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: qiskit-translatables
-          path: 'deploy'
-
-      - name: Deploy translations
-        id: ssh_key
-        run: qiskit/tools/deploy_translatable_strings.sh "${{ github.workspace }}/deploy"
-        env:
-          encrypted_deploy_po_branch_key: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_KEY }}
-          encrypted_deploy_po_branch_iv: ${{ secrets.ENCRYPTED_DEPLOY_PO_BRANCH_IV }}
