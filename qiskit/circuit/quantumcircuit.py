@@ -1036,9 +1036,9 @@ class QuantumCircuit:
             # adjust new instrs before original ones and update all parameters
             mapped_instrs.extend(dest._data)
             dest.clear()
-        api = dest._current_scope()
+        circuit_scope = dest._current_scope()
         for instr in mapped_instrs:
-            api.append(instr)
+            circuit_scope.append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
@@ -1355,7 +1355,7 @@ class QuantumCircuit:
                     "Object to append must be an Operation or have a to_instruction() method."
                 )
 
-        api = self._current_scope()
+        circuit_scope = self._current_scope()
 
         # Make copy of parameterized gate instances
         if params := getattr(operation, "params", ()):
@@ -1363,7 +1363,7 @@ class QuantumCircuit:
             for param in params:
                 is_parameter = is_parameter or isinstance(param, Parameter)
                 if isinstance(param, expr.Expr):
-                    param = _validate_expr(api, param)
+                    param = _validate_expr(circuit_scope, param)
             if is_parameter:
                 operation = copy.deepcopy(operation)
         if isinstance(operation, ControlFlowOp):
@@ -1384,7 +1384,7 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet(resource_requester=api.resolve_classical_resource)
+        instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
         # For Operations that are non-Instructions, we use the Instruction's default method
         broadcast_iter = (
             operation.broadcast_arguments(expanded_qargs, expanded_cargs)
@@ -1394,8 +1394,8 @@ class QuantumCircuit:
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
             instruction = CircuitInstruction(operation, qarg, carg)
-            api.append(instruction)
-            instructions._add_ref(api.instructions, len(api.instructions) - 1)
+            circuit_scope.append(instruction)
+            instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
         return instructions
 
     # Preferred new style.
@@ -1646,8 +1646,8 @@ class QuantumCircuit:
         """
         # Validate the initialiser first to catch cases where the variable to be declared is being
         # used in the initialiser.
-        api = self._current_scope()
-        initial = _validate_expr(api, expr.lift(initial))
+        circuit_scope = self._current_scope()
+        initial = _validate_expr(circuit_scope, expr.lift(initial))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:
@@ -1656,14 +1656,14 @@ class QuantumCircuit:
             )
         else:
             var = name_or_var
-        api.add_uninitialized_var(var)
+        circuit_scope.add_uninitialized_var(var)
         try:
             # Store is responsible for ensuring the type safety of the initialisation.
             store = Store(var, initial)
         except CircuitError:
-            api.remove_var(var)
+            circuit_scope.remove_var(var)
             raise
-        api.append(CircuitInstruction(store, (), ()))
+        circuit_scope.append(CircuitInstruction(store, (), ()))
         return var
 
     def add_uninitialized_var(self, var: expr.Var, /):
@@ -5321,11 +5321,11 @@ class QuantumCircuit:
         Raises:
             CircuitError: if an incorrect calling convention is used.
         """
-        api = self._current_scope()
+        circuit_scope = self._current_scope()
         if isinstance(condition, expr.Expr):
-            condition = _validate_expr(api, condition)
+            condition = _validate_expr(circuit_scope, condition)
         else:
-            condition = (api.resolve_classical_resource(condition[0]), condition[1])
+            condition = (circuit_scope.resolve_classical_resource(condition[0]), condition[1])
 
         if body is None:
             if qubits is not None or clbits is not None:
@@ -5524,11 +5524,11 @@ class QuantumCircuit:
         Returns:
             A handle to the instruction created.
         """
-        api = self._current_scope()
+        circuit_scope = self._current_scope()
         if isinstance(condition, expr.Expr):
-            condition = _validate_expr(api, condition)
+            condition = _validate_expr(circuit_scope, condition)
         else:
-            condition = (api.resolve_classical_resource(condition[0]), condition[1])
+            condition = (circuit_scope.resolve_classical_resource(condition[0]), condition[1])
 
         if true_body is None:
             if qubits is not None or clbits is not None:
@@ -5591,11 +5591,11 @@ class QuantumCircuit:
         Returns:
             A handle to the instruction created.
         """
-        api = self._current_scope()
+        circuit_scope = self._current_scope()
         if isinstance(condition, expr.Expr):
-            condition = _validate_expr(api, condition)
+            condition = _validate_expr(circuit_scope, condition)
         else:
-            condition = (api.resolve_classical_resource(condition[0]), condition[1])
+            condition = (circuit_scope.resolve_classical_resource(condition[0]), condition[1])
 
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
@@ -5675,11 +5675,11 @@ class QuantumCircuit:
             CircuitError: if an incorrect calling convention is used.
         """
 
-        api = self._current_scope()
+        circuit_scope = self._current_scope()
         if isinstance(target, expr.Expr):
-            target = _validate_expr(api, target)
+            target = _validate_expr(circuit_scope, target)
         else:
-            target = api.resolve_classical_resource(target)
+            target = circuit_scope.resolve_classical_resource(target)
         if cases is None:
             if qubits is not None or clbits is not None:
                 raise CircuitError(
@@ -5960,15 +5960,15 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
             raise CircuitError(f"'{var}' is not present in this circuit")
 
 
-def _validate_expr(api: CircuitScopeInterface, node: expr.Expr) -> expr.Expr:
-    # This takes the `api` object as an argument rather than being a circuit method and inferring it
-    # because we may want to call this several times, and we almost invariably already need the
-    # interface implementation for something else anyway.
+def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> expr.Expr:
+    # This takes the `circuit_scope` object as an argument rather than being a circuit method and
+    # inferring it because we may want to call this several times, and we almost invariably already
+    # need the interface implementation for something else anyway.
     for var in set(expr.iter_vars(node)):
         if var.standalone:
-            api.use_var(var)
+            circuit_scope.use_var(var)
         else:
-            api.resolve_classical_resource(var.var)
+            circuit_scope.resolve_classical_resource(var.var)
     return node
 
 
