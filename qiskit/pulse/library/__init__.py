@@ -76,7 +76,6 @@ Parametric Pulse Representation
 
 """
 
-from .parametric_pulses import ParametricPulse
 from .symbolic_pulses import (
     SymbolicPulse,
     ScalableSymbolicPulse,

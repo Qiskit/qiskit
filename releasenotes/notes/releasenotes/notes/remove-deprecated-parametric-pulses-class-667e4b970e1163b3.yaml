@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The module 'Parametric Pulses' is removed.
+    All classes in it were deprecated since Terra 0.22, released on Oct 2022.
+    Instead, use SymbolicPulse because of QPY serialization support. See "qiskit.pulse.library.symbolic_pulses" for details.
