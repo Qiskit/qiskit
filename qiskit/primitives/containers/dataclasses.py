@@ -32,4 +32,4 @@ else:
     from dataclasses import dataclass
 
     mutable_dataclass = dataclass(frozen=False)
-    frozen_dataclass = dataclass(frozen=True, slots=True)
+    frozen_dataclass = dataclass(frozen=True)
