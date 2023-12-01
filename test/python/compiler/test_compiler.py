@@ -24,6 +24,7 @@ from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
+from qiskit.qasm2 import dumps
 
 
 class TestCompiler(QiskitTestCase):
@@ -100,8 +101,8 @@ class TestCompiler(QiskitTestCase):
         )
         job = backend.run(qc_b, shots=shots, seed_simulator=88)
         result = job.result()
-        qasm_to_check = qc.qasm()
-        self.assertEqual(len(qasm_to_check), 173)
+        qasm_to_check = dumps(qc)
+        self.assertEqual(len(qasm_to_check), 172)
 
         counts = result.get_counts(qc)
         target = {"000": shots / 2, "111": shots / 2}

@@ -14,11 +14,16 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
+from typing import TYPE_CHECKING
+
+from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
 from ._builder_utils import validate_condition, condition_resources
 from .control_flow import ControlFlowOp
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class WhileLoopOp(ControlFlowOp):
@@ -70,6 +75,9 @@ class WhileLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         (body,) = parameters
 
         if not isinstance(body, QuantumCircuit):

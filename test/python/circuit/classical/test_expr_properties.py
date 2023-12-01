@@ -14,11 +14,12 @@
 
 import copy
 import pickle
+import uuid
 
 import ddt
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
 
 
@@ -98,3 +99,36 @@ class TestExprProperties(QiskitTestCase):
         self.assertEqual(var_a_u8, pickle.loads(pickle.dumps(var_a_u8)))
         self.assertEqual(var_a_u8, copy.copy(var_a_u8))
         self.assertEqual(var_a_u8, copy.deepcopy(var_a_u8))
+
+    def test_var_standalone(self):
+        """Test that the ``Var.standalone`` property is set correctly."""
+        self.assertTrue(expr.Var.new("a", types.Bool()).standalone)
+        self.assertTrue(expr.Var.new("a", types.Uint(8)).standalone)
+        self.assertFalse(expr.Var(Clbit(), types.Bool()).standalone)
+        self.assertFalse(expr.Var(ClassicalRegister(8, "cr"), types.Uint(8)).standalone)
+
+    def test_var_hashable(self):
+        clbits = [Clbit(), Clbit()]
+        cregs = [ClassicalRegister(2, "cr1"), ClassicalRegister(2, "cr2")]
+
+        vars_ = [
+            expr.Var.new("a", types.Bool()),
+            expr.Var.new("b", types.Uint(16)),
+            expr.Var(clbits[0], types.Bool()),
+            expr.Var(clbits[1], types.Bool()),
+            expr.Var(cregs[0], types.Uint(2)),
+            expr.Var(cregs[1], types.Uint(2)),
+        ]
+        duplicates = [
+            expr.Var(uuid.UUID(bytes=vars_[0].var.bytes), types.Bool(), name=vars_[0].name),
+            expr.Var(uuid.UUID(bytes=vars_[1].var.bytes), types.Uint(16), name=vars_[1].name),
+            expr.Var(clbits[0], types.Bool()),
+            expr.Var(clbits[1], types.Bool()),
+            expr.Var(cregs[0], types.Uint(2)),
+            expr.Var(cregs[1], types.Uint(2)),
+        ]
+
+        # Smoke test.
+        self.assertEqual(vars_, duplicates)
+        # Actual test of hashability properties.
+        self.assertEqual(set(vars_ + duplicates), set(vars_))
