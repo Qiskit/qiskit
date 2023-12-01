@@ -17,13 +17,15 @@
 # having a far more complete builder of all circuits, with more classical control and creation, in
 # the future.
 
+from __future__ import annotations
 
 import abc
 import itertools
 import typing
-from typing import Callable, Collection, Iterable, FrozenSet, Tuple, Union, Optional
+from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
 
 from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
@@ -34,7 +36,125 @@ from qiskit.circuit.register import Register
 from ._builder_utils import condition_resources, node_resources
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
+
+
+class CircuitScopeInterface(abc.ABC):
+    """An interface that circuits and builder blocks explicitly fulfill, which contains the primitive
+    methods of circuit construction and object validation.
+
+    This allows core circuit methods to be applied to the currently open builder scope, and allows
+    the builders to hook into all places where circuit resources might be used.  This allows the
+    builders to track the resources being used, without getting in the way of
+    :class:`.QuantumCircuit` doing its own thing.
+    """
+
+    __slots__ = ()
+
+    @property
+    @abc.abstractmethod
+    def instructions(self) -> Sequence[CircuitInstruction]:
+        """Indexable view onto the :class:`.CircuitInstruction`s backing this scope."""
+
+    @abc.abstractmethod
+    def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
+        """Low-level 'append' primitive; this may assume that the qubits, clbits and operation are
+        all valid for the circuit.
+
+        Abstraction of :meth:`.QuantumCircuit._append` (the low-level one, not the high-level).
+
+        Args:
+            instruction: the resource-validated instruction context object.
+
+        Returns:
+            the instruction context object actually appended.  This is not required to be the same
+            as the object given (but typically will be).
+        """
+
+    @abc.abstractmethod
+    def resolve_classical_resource(
+        self, specifier: Clbit | ClassicalRegister | int
+    ) -> Clbit | ClassicalRegister:
+        """Resolve a single bit-like classical-resource specifier.
+
+        A resource refers to either a classical bit or a register, where integers index into the
+        classical bits of the greater circuit.
+
+        This is called whenever a classical bit or register is being used outside the standard
+        :class:`.Clbit` usage of instructions in :meth:`append`, such as in a legacy two-tuple
+        condition.
+
+        Args:
+            specifier: the classical resource specifier.
+
+        Returns:
+            the resolved resource.  This cannot be an integer any more; an integer input is resolved
+            into a classical bit.
+
+        Raises:
+            CircuitError: if the resource cannot be used by the scope, such as an out-of-range index
+                or a :class:`.Clbit` that isn't actually in the circuit.
+        """
+
+    @abc.abstractmethod
+    def add_uninitialized_var(self, var: expr.Var):
+        """Add an uninitialized variable to the circuit scope.
+
+        The general circuit context is responsible for ensuring the variable is initialized.  These
+        uninitialized variables are guaranteed to be standalone.
+
+        Args:
+            var: the variable to add, if valid.
+
+        Raises:
+            CircuitError: if the variable cannot be added, such as because it invalidly shadows or
+                redefines an existing name.
+        """
+
+    @abc.abstractmethod
+    def remove_var(self, var: expr.Var):
+        """Remove a variable from the locals of this scope.
+
+        This is only called in the case that an exception occurred while initializing the variable,
+        and is not exposed to users.
+
+        Args:
+            var: the variable to remove.  It can be assumed that this was already the subject of an
+                :meth:`add_uninitialized_var` call.
+        """
+
+    @abc.abstractmethod
+    def use_var(self, var: expr.Var):
+        """Called for every standalone classical runtime variable being used by some circuit
+        instruction.
+
+        The given variable is guaranteed to be a stand-alone variable; bit-like resource-wrapping
+        variables will have been filtered out and their resources given to
+        :meth:`resolve_classical_resource`.
+
+        Args:
+            var: the variable to validate.
+
+        Returns:
+            the same variable.
+
+        Raises:
+            CircuitError: if the variable is not valid for this scope.
+        """
+
+    @abc.abstractmethod
+    def get_var(self, name: str) -> Optional[expr.Var]:
+        """Get the variable (if any) in scope with the given name.
+
+        This should call up to the parent scope if in a control-flow builder scope, in case the
+        variable exists in an outer scope.
+
+        Args:
+            name: the name of the symbol to lookup.
+
+        Returns:
+            the variable if it is found, otherwise ``None``.
+        """
 
 
 class InstructionResources(typing.NamedTuple):
@@ -170,7 +290,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         raise CircuitError("Cannot repeat a placeholder instruction.")
 
 
-class ControlFlowBuilderBlock:
+class ControlFlowBuilderBlock(CircuitScopeInterface):
     """A lightweight scoped block for holding instructions within a control-flow builder context.
 
     This class is designed only to be used by :obj:`.QuantumCircuit` as an internal context for
@@ -200,13 +320,15 @@ class ControlFlowBuilderBlock:
     """
 
     __slots__ = (
-        "instructions",
+        "_instructions",
         "registers",
         "global_phase",
         "_allow_jumps",
-        "_resource_requester",
+        "_parent",
         "_built",
         "_forbidden_message",
+        "_vars_local",
+        "_vars_capture",
     )
 
     def __init__(
@@ -214,8 +336,8 @@ class ControlFlowBuilderBlock:
         qubits: Iterable[Qubit],
         clbits: Iterable[Clbit],
         *,
+        parent: CircuitScopeInterface,
         registers: Iterable[Register] = (),
-        resource_requester: Callable,
         allow_jumps: bool = True,
         forbidden_message: Optional[str] = None,
     ):
@@ -237,24 +359,20 @@ class ControlFlowBuilderBlock:
                 uses *exactly* the same set of resources.  We cannot verify this from within the
                 builder interface (and it is too expensive to do when the ``for`` op is made), so we
                 fail safe, and require the user to use the more verbose, internal form.
-            resource_requester: A callback function that takes in some classical resource specifier,
-                and returns a concrete classical resource, if this scope is allowed to access that
-                resource.  In almost all cases, this should be a resolver from the
-                :obj:`.QuantumCircuit` that this scope is contained in.  See
-                :meth:`.QuantumCircuit._resolve_classical_resource` for the normal expected input
-                here, and the documentation of :obj:`.InstructionSet`, which uses this same
-                callback.
+            parent: The scope interface of the containing scope.
             forbidden_message: If a string is given here, a :exc:`.CircuitError` will be raised on
                 any attempts to append instructions to the scope with this message.  This is used by
                 pseudo scopes where the state machine of the builder scopes has changed into a
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
         """
-        self.instructions = CircuitData(qubits, clbits)
+        self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
         self.global_phase = 0.0
+        self._vars_local = {}
+        self._vars_capture = {}
         self._allow_jumps = allow_jumps
-        self._resource_requester = resource_requester
+        self._parent = parent
         self._built = False
         self._forbidden_message = forbidden_message
 
@@ -280,6 +398,10 @@ class ControlFlowBuilderBlock:
         """
         return self._allow_jumps
 
+    @property
+    def instructions(self):
+        return self._instructions
+
     @staticmethod
     def _raise_on_jump(operation):
         # pylint: disable=cyclic-import
@@ -294,8 +416,6 @@ class ControlFlowBuilderBlock:
             )
 
     def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
-        """Add an instruction into the scope, keeping track of the qubits and clbits that have been
-        used in total."""
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:
@@ -304,7 +424,7 @@ class ControlFlowBuilderBlock:
             self.instructions.add_qubit(b)
         for b in instruction.clbits:
             self.instructions.add_clbit(b)
-        self.instructions.append(instruction)
+        self._instructions.append(instruction)
         return instruction
 
     def extend(self, data: CircuitData):
@@ -321,45 +441,72 @@ class ControlFlowBuilderBlock:
             self.instructions.add_clbit(b)
         self.instructions.extend(data)
 
-    def request_classical_resource(self, specifier):
-        """Resolve a single classical resource specifier into a concrete resource, raising an error
-        if the specifier is invalid, and track it as now being used in scope.
-
-        Args:
-            specifier (Union[Clbit, ClassicalRegister, int]): a specifier of a classical resource
-                present in this circuit.  An ``int`` will be resolved into a :obj:`.Clbit` using the
-                same conventions that measurement operations on this circuit use.
-
-        Returns:
-            Union[Clbit, ClassicalRegister]: the requested resource, resolved into a concrete
-            instance of :obj:`.Clbit` or :obj:`.ClassicalRegister`.
-
-        Raises:
-            CircuitError: if the resource is not present in this circuit, or if the integer index
-                passed is out-of-bounds.
-        """
+    def resolve_classical_resource(self, specifier):
         if self._built:
             raise CircuitError("Cannot add resources after the scope has been built.")
         # Allow the inner resolve to propagate exceptions.
-        resource = self._resource_requester(specifier)
+        resource = self._parent.resolve_classical_resource(specifier)
         if isinstance(resource, Clbit):
             self.add_bits((resource,))
         else:
             self.add_register(resource)
         return resource
 
+    def add_uninitialized_var(self, var: expr.Var):
+        if self._built:
+            raise CircuitError("Cannot add resources after the scope has been built.")
+        # We can shadow a name if it was declared in an outer scope, but only if we haven't already
+        # captured it ourselves yet.
+        if (previous := self._vars_local.get(var.name)) is not None:
+            if previous == var:
+                raise CircuitError(f"'{var}' is already present in the scope")
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        if var.name in self._vars_capture:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        self._vars_local[var.name] = var
+
+    def remove_var(self, var: expr.Var):
+        if self._built:
+            raise RuntimeError("exception handler 'remove_var' called after scope built")
+        self._vars_local.pop(var.name)
+
+    def get_var(self, name: str):
+        if (out := self._vars_local.get(name)) is not None:
+            return out
+        return self._parent.get_var(name)
+
+    def use_var(self, var: expr.Var):
+        if (local := self._vars_local.get(var.name)) is not None:
+            if local == var:
+                return
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if self._vars_capture.get(var.name) == var:
+            return
+        if self._parent.get_var(var.name) != var:
+            raise CircuitError(f"cannot close over '{var}', which is not in scope")
+        self._parent.use_var(var)
+        self._vars_capture[var.name] = var
+
+    def iter_local_vars(self):
+        """Iterator over the variables currently declared in this scope."""
+        return self._vars_local.values()
+
+    def iter_captured_vars(self):
+        """Iterator over the variables currently captured in this scope."""
+        return self._vars_capture.values()
+
     def peek(self) -> CircuitInstruction:
         """Get the value of the most recent instruction tuple in this scope."""
-        if not self.instructions:
+        if not self._instructions:
             raise CircuitError("This scope contains no instructions.")
-        return self.instructions[-1]
+        return self._instructions[-1]
 
     def pop(self) -> CircuitInstruction:
         """Get the value of the most recent instruction in this scope, and remove it from this
         object."""
-        if not self.instructions:
+        if not self._instructions:
             raise CircuitError("This scope contains no instructions.")
-        return self.instructions.pop()
+        return self._instructions.pop()
 
     def add_bits(self, bits: Iterable[Union[Qubit, Clbit]]):
         """Add extra bits to this scope that are not associated with any concrete instruction yet.
@@ -426,6 +573,7 @@ class ControlFlowBuilderBlock:
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more
@@ -443,15 +591,20 @@ class ControlFlowBuilderBlock:
         # We start off by only giving the QuantumCircuit the qubits we _know_ it will need, and add
         # more later as needed.
         out = QuantumCircuit(
-            self.instructions.qubits,
-            self.instructions.clbits,
+            self._instructions.qubits,
+            self._instructions.clbits,
             *self.registers,
             global_phase=self.global_phase,
+            captures=self._vars_capture.values(),
         )
+        for var in self._vars_local.values():
+            # The requisite `Store` instruction to initialise the variable will have been appended
+            # into the instructions.
+            out.add_uninitialized_var(var)
 
         # TODO: this can likely be optimized with a CircuitData.foreach_op followed
         #   by a CircuitData.replace_bits.
-        for instruction in self.instructions:
+        for instruction in self._instructions:
             if isinstance(instruction.operation, InstructionPlaceholder):
                 operation, resources = instruction.operation.concrete_instruction(
                     all_qubits, all_clbits
@@ -510,9 +663,12 @@ class ControlFlowBuilderBlock:
             a semi-shallow copy of this object.
         """
         out = type(self).__new__(type(self))
-        out.instructions = self.instructions.copy()
+        out._instructions = self._instructions.copy()
         out.registers = self.registers.copy()
         out.global_phase = self.global_phase
+        out._vars_local = self._vars_local.copy()
+        out._vars_capture = self._vars_capture.copy()
+        out._parent = self._parent
         out._allow_jumps = self._allow_jumps
         out._forbidden_message = self._forbidden_message
         return out
