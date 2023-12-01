@@ -28,6 +28,7 @@ from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.compiler.transpiler import transpile
+from qiskit.utils import optionals
 
 
 def pauli_mat(label):
@@ -1056,7 +1057,10 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         permuted_op = op.apply_layout(transpiled_psi.layout)
         job = estimator.run(transpiled_psi, permuted_op, thetas)
         res = job.result().values
-        np.testing.assert_allclose(res, [5.859375], rtol=0.5, atol=0.2)
+        if optionals.HAS_AER:
+            np.testing.assert_allclose(res, [5.859375], rtol=0.5, atol=0.2)
+        else:
+            np.testing.assert_allclose(res, [1.660156], rtol=0.5, atol=0.2)
 
     def test_apply_layout_invalid_qubits_list(self):
         """Test that apply_layout with an invalid qubit count raises."""
