@@ -380,7 +380,8 @@ impl CircuitData {
     /// :attr:`~.CircuitInstruction.clbits` of existing instructions are
     /// reinterpreted using the new bit sequences on access.
     /// As such, the primary use-case for this method is to remap a circuit to
-    /// a different set of bits in O(1) time.
+    /// a different set of bits in constant time relative to the number of
+    /// instructions in the circuit.
     ///
     /// Args:
     ///     qubits (Iterable[:class:`.Qubit] | None):
