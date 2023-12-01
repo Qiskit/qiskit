@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
-from typing import Optional
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.primitives.containers import BasePrimitiveOptions, BasePrimitiveOptionsLike

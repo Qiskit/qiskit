@@ -13,8 +13,9 @@
 """
 Object ND-array initialization function.
 """
+from __future__ import annotations
 
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -22,9 +23,9 @@ from numpy.typing import ArrayLike
 
 def object_array(
     arr: ArrayLike,
-    order: Optional[str] = None,
+    order: str | None = None,
     copy: bool = True,
-    list_types: Optional[Sequence[type]] = (),
+    list_types: Sequence[type] | None = (),
 ) -> np.ndarray:
     """Convert an array-like of objects into an object array.
 
@@ -81,7 +82,7 @@ def object_array(
     return obj_arr
 
 
-def _infer_shape(obj: ArrayLike, list_types: Tuple[type, ...] = ()) -> Tuple[int, ...]:
+def _infer_shape(obj: ArrayLike, list_types: tuple[type, ...] = ()) -> tuple[int, ...]:
     """Infer the shape of an array-like object without casting"""
     if isinstance(obj, np.ndarray):
         return obj.shape

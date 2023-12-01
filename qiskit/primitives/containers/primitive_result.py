@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from .pub_result import PubResult
 
@@ -25,7 +25,7 @@ T = TypeVar("T", bound=PubResult)
 class PrimitiveResult(Generic[T]):
     """A container for multiple pub results and global metadata."""
 
-    def __init__(self, pub_results: Iterable[T], metadata: Optional[dict[str, Any]] = None):
+    def __init__(self, pub_results: Iterable[T], metadata: dict[str, Any] | None = None):
         """
         Args:
             pub_results: Pub results.

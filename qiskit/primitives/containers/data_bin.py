@@ -13,9 +13,10 @@
 """
 Dataclass tools for data namespaces (bins)
 """
+from __future__ import annotations
 
 from dataclasses import make_dataclass
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Tuple
 
 
 class DataBinMeta(type):
@@ -40,7 +41,7 @@ class DataBin(metaclass=DataBinMeta):
     """
 
     _RESTRICTED_NAMES = ("_RESTRICTED_NAMES", "_SHAPE", "_FIELDS", "_FIELD_TYPES")
-    _SHAPE: Optional[Tuple[int, ...]] = None
+    _SHAPE: Tuple[int, ...] | None = None
     _FIELDS: Tuple[str, ...] = ()
     """The fields allowed in this data bin."""
     _FIELD_TYPES: Tuple[type, ...] = ()
@@ -52,7 +53,7 @@ class DataBin(metaclass=DataBinMeta):
 
 
 def make_data_bin(
-    fields: Iterable[Tuple[str, type]], shape: Optional[Tuple[int, ...]] = None
+    fields: Iterable[Tuple[str, type]], shape: Tuple[int, ...] | None = None
 ) -> DataBinMeta:
     """Return a new subclass of :class:`~DataBin` with the provided fields and shape.
 

@@ -71,7 +71,7 @@ class ShapedMixin(Shaped):
         return int(np.prod(self._shape, dtype=int))
 
 
-def array_coerce(arr: Union[ArrayLike, Shaped]) -> Union[NDArray, Shaped]:
+def array_coerce(arr: ArrayLike | Shaped) -> NDArray | Shaped:
     """Coerce the input into an object with a shape attribute.
 
     Copies are avoided.

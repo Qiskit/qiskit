@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -72,9 +72,9 @@ class BindingsArray(ShapedMixin):
 
     def __init__(
         self,
-        vals: Union[None, ArrayLike, Iterable[ArrayLike]] = None,
-        kwvals: Union[None, Mapping[ParameterLike, Iterable[ParameterValueType]], ArrayLike] = None,
-        shape: Optional[ShapeInput] = None,
+        vals: ArrayLike | Iterable[ArrayLike] | None = None,
+        kwvals: Mapping[ParameterLike, Iterable[ParameterValueType]] | ArrayLike | None = None,
+        shape: ShapeInput | None = None,
     ):
         """
         The ``shape`` argument does not need to be provided whenever it can unambiguously
@@ -218,7 +218,7 @@ class BindingsArray(ShapedMixin):
         """
         return self.reshape(self.size)
 
-    def reshape(self, shape: Union[int, Iterable[int]]) -> BindingsArray:
+    def reshape(self, shape: int | Iterable[int]) -> BindingsArray:
         """Return a new :class:`~BindingsArray` with a different shape.
 
         This results in a new view of the same arrays.

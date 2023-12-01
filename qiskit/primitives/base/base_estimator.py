@@ -173,7 +173,7 @@ import warnings
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -358,7 +358,7 @@ class BaseEstimatorV2(BasePrimitiveV2):
     An estimator estimates expectation values for provided quantum circuit and observable combinations.
     """
 
-    def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
+    def __init__(self, options: BasePrimitiveOptionsLike | None):
         super().__init__(options=options)
 
     @abstractmethod

@@ -52,7 +52,7 @@ class ObservablesArray(ShapedMixin):
 
     def __init__(
         self,
-        observables: Union[BasisObservableLike, ArrayLike],
+        observables: BasisObservableLike | ArrayLike,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -113,13 +113,13 @@ class ObservablesArray(ShapedMixin):
     def __getitem__(self, args: slice) -> ObservablesArray:
         ...
 
-    def __getitem__(self, args) -> Union[ObservablesArray, BasisObservable]:
+    def __getitem__(self, args):
         item = self._array[args]
         if not isinstance(item, np.ndarray):
             return item
         return ObservablesArray(item, copy=False, validate=False)
 
-    def reshape(self, shape: Union[int, Iterable[int]]) -> "ObservablesArray":
+    def reshape(self, shape: int | Iterable[int]) -> ObservablesArray:
         """Return a new array with a different shape.
 
         This results in a new view of the same arrays.
