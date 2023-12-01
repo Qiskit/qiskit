@@ -89,27 +89,30 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         equivalence_library.add_equivalence(out_instruction, target)
 
     regs = []
-    q, c = None, None
+    qreg, creg = None, None
     if out_instruction.num_qubits > 0:
-        q = QuantumRegister(out_instruction.num_qubits, "q")
-        regs.append(q)
+        qreg = QuantumRegister(out_instruction.num_qubits, "q")
+        regs.append(qreg)
 
     if out_instruction.num_clbits > 0:
-        c = ClassicalRegister(out_instruction.num_clbits, "c")
-        regs.append(c)
+        creg = ClassicalRegister(out_instruction.num_clbits, "c")
+        regs.append(creg)
 
-    clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
+    clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
     operation_map = {}
 
     def fix_condition(op):
         original_id = id(op)
+        if (out := operation_map.get(original_id)) is not None:
+            return out
+
         condition = getattr(op, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
                 op = op.c_if(clbit_map[reg], val)
-            elif reg.size == c.size:
-                op = op.c_if(c, val)
+            elif reg.size == creg.size:
+                op = op.c_if(creg, val)
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "
@@ -119,7 +122,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         return op
 
     data = target._data.copy()
-    data.replace_bits(qubits=q, clbits=c)
+    data.replace_bits(qubits=qreg, clbits=creg)
     data.replace_ops(fix_condition)
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
