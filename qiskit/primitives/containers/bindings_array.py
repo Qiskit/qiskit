@@ -105,8 +105,6 @@ class BindingsArray(ShapedMixin):
         """
         super().__init__()
 
-        if vals is None and kwvals is None and shape is None:
-            raise ValueError("Must specify a shape if no values are present")
         if vals is None:
             vals = []
         if kwvals is None:
@@ -252,10 +250,8 @@ class BindingsArray(ShapedMixin):
         if isinstance(bindings_array, Sequence):
             bindings_array = np.array(bindings_array)
         if bindings_array is None:
-            bindings_array = cls([], shape=(1,))
+            bindings_array = cls()
         elif isinstance(bindings_array, np.ndarray):
-            if bindings_array.ndim == 1:
-                bindings_array = bindings_array.reshape((1, -1))
             bindings_array = cls(bindings_array)
         elif isinstance(bindings_array, Mapping):
             bindings_array = cls(kwvals=bindings_array)
@@ -323,8 +319,8 @@ def _infer_shape(
         if len(parameters) > 1:
             # here, the last dimension _has_  to be over parameters
             examine_array(val.shape[:-1])
-        elif val.shape[-1] != 1:
-            # here, if the last dimension is not 1 then the shape is the shape
+        elif val.shape == () or val.shape == (1,) or val.shape[-1] != 1:
+            # here, if the last dimension is not 1 or shape is () or (1,) then the shape is the shape
             examine_array(val.shape)
         else:
             # here, the last dimension could be over parameters or not
@@ -332,6 +328,8 @@ def _infer_shape(
 
     if len(vals) == 1 and len(kwvals) == 0:
         examine_array(vals[0].shape[:-1])
+    elif len(vals) == 0 and len(kwvals) == 0:
+        examine_array(())
     else:
         for val in vals:
             # here, the last dimension could be over parameters or not

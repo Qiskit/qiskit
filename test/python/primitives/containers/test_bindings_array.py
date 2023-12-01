@@ -37,11 +37,15 @@ class BindingsArrayTestCase(QiskitTestCase):
 
     def test_construction_failures(self):
         """Test all the possible construction failures"""
-        with self.assertRaisesRegex(ValueError, "specify a shape if no values"):
-            BindingsArray()
-
         with self.assertRaisesRegex(ValueError, "inconsistent with last dimension of"):
             BindingsArray(kwvals={Parameter("a"): [0, 1]}, shape=())
+
+        with self.assertRaisesRegex(ValueError, r"Array with shape \(\) inconsistent with \(1,\)"):
+            BindingsArray(kwvals={Parameter("a"): 0}, shape=(1,))
+
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            # could have shape (1,) or (1, 1)
+            BindingsArray(kwvals={Parameter("a"): [[1]]})
 
         with self.assertRaisesRegex(ValueError, r"\(3, 5\) inconsistent with \(2,\)"):
             BindingsArray(np.empty((3, 5)), shape=2)
@@ -282,3 +286,108 @@ class BindingsArrayTestCase(QiskitTestCase):
             self.assertEqual(ba.ndim, 2)
             self.assertEqual(ba.shape, (5, 10))
             self.assertEqual(ba.size, 50)
+
+    def test_simple_kwvals(self):
+        """Test simple constructions of BindingsArrays using kwvals."""
+        with self.subTest("Single number kwval 1"):
+            ba = BindingsArray(kwvals={Parameter("a"): 1.0})
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Single number kwval 1 with shape"):
+            ba = BindingsArray(kwvals={Parameter("a"): 1.0}, shape=())
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Single number kwval 1 ndarray"):
+            ba = BindingsArray(kwvals={Parameter("a"): np.array(1.0)})
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Single number kwval 2"):
+            ba = BindingsArray(kwvals={Parameter("a"): 1.0, Parameter("b"): 0.0})
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Empty kwval"):
+            ba = BindingsArray(kwvals={Parameter("a"): []})
+            self.assertEqual(ba.shape, (0,))
+
+        with self.subTest("Single kwval"):
+            ba = BindingsArray(kwvals={Parameter("a"): [0.0]})
+            self.assertEqual(ba.shape, (1,))
+
+        with self.subTest("Single kwval ndarray"):
+            ba = BindingsArray(kwvals={Parameter("a"): np.array([0.0])})
+            self.assertEqual(ba.shape, (1,))
+
+        with self.subTest("Multi kwval"):
+            ba = BindingsArray(kwvals={Parameter("a"): [0.0, 1.0]})
+            self.assertEqual(ba.shape, (2,))
+
+        with self.subTest("Multiple kwvals empty"):
+            ba = BindingsArray(kwvals={Parameter("a"): [], Parameter("b"): []})
+            self.assertEqual(ba.shape, (0,))
+
+        with self.subTest("Multiple kwvals single"):
+            ba = BindingsArray(kwvals={Parameter("a"): [0.0], Parameter("b"): [1.0]})
+            self.assertEqual(ba.shape, (1,))
+
+        with self.subTest("Multiple kwvals multi"):
+            ba = BindingsArray(kwvals={Parameter("a"): [0.0, 1.0], Parameter("b"): [1.0, 0.0]})
+            self.assertEqual(ba.shape, (2,))
+
+    def test_empty(self):
+        """Test simple constructions of BindingsArrays with empty cases"""
+        with self.subTest("Empty 1"):
+            ba = BindingsArray()
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Empty 2"):
+            ba = BindingsArray([], shape=())
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Empty 3"):
+            ba = BindingsArray([], {}, shape=())
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Empty 4"):
+            ba = BindingsArray(shape=())
+            self.assertEqual(ba.shape, ())
+
+        with self.subTest("Empty 5"):
+            ba = BindingsArray(kwvals={}, shape=())
+            self.assertEqual(ba.shape, ())
+
+    def test_simple_vals(self):
+        """Test simple constructions of BindingsArrays using vals."""
+        with self.subTest("0-d vals"):
+            ba = BindingsArray([1, 2, 3])
+            self.assertEqual(ba.shape, ())
+            # ba.vals => [array([1]), array([2]), array([3])]
+            self.assertEqual(len(ba.vals), 3)
+            self.assertEqual(ba.vals[0], 1)
+            self.assertEqual(ba.vals[1], 2)
+            self.assertEqual(ba.vals[2], 3)
+
+        with self.subTest("1-d vals"):
+            ba = BindingsArray([[1, 2, 3]])
+            self.assertEqual(ba.shape, ())
+            # ba.vals => [array([1, 2, 3])]
+            self.assertEqual(len(ba.vals), 1)
+            np.testing.assert_allclose(ba.vals[0], [1, 2, 3])
+
+        with self.subTest("1-d vals ndarray"):
+            ba = BindingsArray(np.array([1, 2, 3]))
+            self.assertEqual(ba.shape, ())
+            # ba.vals => [array([1, 2, 3])]
+            self.assertEqual(len(ba.vals), 1)
+            np.testing.assert_allclose(ba.vals[0], [1, 2, 3])
+
+        with self.subTest("2-d vals"):
+            ba = BindingsArray([[[1, 2, 3]]])
+            self.assertEqual(ba.shape, (1,))
+            self.assertEqual(len(ba.vals), 1)
+            np.testing.assert_allclose(ba.vals[0], [[1, 2, 3]])
+
+        with self.subTest("2-d vals ndarray"):
+            ba = BindingsArray(np.array([[1, 2, 3]]))
+            self.assertEqual(ba.shape, (1,))
+            self.assertEqual(len(ba.vals), 1)
+            np.testing.assert_allclose(ba.vals[0], [[1, 2, 3]])
