@@ -22,7 +22,6 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
 
-from qiskit import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.result import QuasiDistribution, Result
@@ -35,9 +34,9 @@ from .containers import (
     BasePrimitiveOptionsLike,
     BitArray,
     PrimitiveResult,
-    SamplerTask,
-    SamplerTaskLike,
-    TaskResult,
+    PubResult,
+    SamplerPub,
+    SamplerPubLike,
     make_data_bin,
 )
 from .containers.bit_array import _min_num_bytes
@@ -132,8 +131,6 @@ class BackendSampler(BaseSamplerV2):
         Transpiled quantum circuits.
         Returns:
             List of the transpiled quantum circuit
-        Raises:
-            QiskitError: if the instance has been closed.
         """
         return self._transpiled_circuits
 
@@ -156,8 +153,6 @@ class BackendSampler(BaseSamplerV2):
             **fields: The fields to update the options.
         Returns:
             self.
-        Raises:
-            QiskitError: if the instance has been closed.
         """
         self._options.transpilation.update(**fields)
 
@@ -194,24 +189,24 @@ class BackendSampler(BaseSamplerV2):
             )
         self._transpiled_circuits = ret if isinstance(ret, list) else [ret]
 
-    def run(self, tasks: Iterable[SamplerTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
-        job = PrimitiveJob(self._run, tasks)
+    def run(self, pubs: Iterable[SamplerPubLike]) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+        job = PrimitiveJob(self._run, pubs)
         job.submit()
         return job
 
-    def _run(self, tasks: Iterable[SamplerTask]) -> PrimitiveResult[TaskResult]:
-        coerced_tasks = [SamplerTask.coerce(task) for task in tasks]
-        for task in coerced_tasks:
-            task.validate()
+    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+        coerced_pubs = [SamplerPub.coerce(pub) for pub in pubs]
+        for pub in coerced_pubs:
+            pub.validate()
 
         shots = self.options.execution.shots
 
-        self._transpile([task.circuit for task in coerced_tasks])
+        self._transpile([pub.circuit for pub in coerced_pubs])
 
         results = []
-        for task, circuit in zip(coerced_tasks, self._transpiled_circuits):
-            meas_info = _analyze_circuit(task.circuit)
-            parameter_values = task.parameter_values
+        for pub, circuit in zip(coerced_pubs, self._transpiled_circuits):
+            meas_info = _analyze_circuit(pub.circuit)
+            parameter_values = pub.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
             arrays = {
                 item.creg_name: np.zeros(
@@ -242,7 +237,7 @@ class BackendSampler(BaseSamplerV2):
                 for item in meas_info
             }
             data_bin = data_bin_cls(**meas)
-            results.append(TaskResult(data_bin, metadata={"shots": shots}))
+            results.append(PubResult(data_bin, metadata={"shots": shots}))
         return PrimitiveResult(results)
 
 

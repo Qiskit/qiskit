@@ -33,9 +33,9 @@ from .containers import (
     BasePrimitiveOptionsLike,
     BitArray,
     PrimitiveResult,
-    SamplerTask,
-    SamplerTaskLike,
-    TaskResult,
+    PubResult,
+    SamplerPub,
+    SamplerPubLike,
     make_data_bin,
 )
 from .containers.bit_array import _min_num_bytes
@@ -98,23 +98,23 @@ class Sampler(BaseSamplerV2):
             options = Options(**options)
         super().__init__(options=options)
 
-    def run(self, tasks: Iterable[SamplerTaskLike]) -> PrimitiveJob[PrimitiveResult[TaskResult]]:
-        job: PrimitiveJob[PrimitiveResult[TaskResult]] = PrimitiveJob(self._run, tasks)
+    def run(self, pubs: Iterable[SamplerPubLike]) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+        job: PrimitiveJob[PrimitiveResult[PubResult]] = PrimitiveJob(self._run, pubs)
         job.submit()
         return job
 
-    def _run(self, tasks: Iterable[SamplerTask]) -> PrimitiveResult[TaskResult]:
-        coerced_tasks = [SamplerTask.coerce(task) for task in tasks]
-        for task in coerced_tasks:
-            task.validate()
+    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+        coerced_pubs = [SamplerPub.coerce(pub) for pub in pubs]
+        for pub in coerced_pubs:
+            pub.validate()
 
         shots = self.options.execution.shots
         seed = self.options.execution.seed
 
         results = []
-        for task in coerced_tasks:
-            circuit, qargs, meas_info = _preprocess_circuit(task.circuit)
-            parameter_values = task.parameter_values
+        for pub in coerced_pubs:
+            circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)
+            parameter_values = pub.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
             arrays = {
                 item.creg_name: np.zeros(
@@ -143,7 +143,7 @@ class Sampler(BaseSamplerV2):
                 for item in meas_info
             }
             data_bin = data_bin_cls(**meas)
-            results.append(TaskResult(data_bin, metadata={"shots": shots}))
+            results.append(PubResult(data_bin, metadata={"shots": shots}))
         return PrimitiveResult(results)
 
 

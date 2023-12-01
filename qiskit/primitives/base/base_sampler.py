@@ -87,7 +87,7 @@ from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.options import BasePrimitiveOptionsLike
-from ..containers.sampler_task import SamplerTask, SamplerTaskLike
+from ..containers.sampler_pub import SamplerPub, SamplerPubLike
 from . import validation
 from .base_primitive import BasePrimitiveV1, BasePrimitiveV2
 
@@ -217,11 +217,11 @@ class BaseSamplerV2(BasePrimitiveV2):
         super().__init__(options=options)
 
     @abstractmethod
-    def run(self, tasks: Iterable[SamplerTaskLike]) -> T:
-        """Run the tasks of samples.
+    def run(self, pubs: Iterable[SamplerPubLike]) -> T:
+        """Run the pubs of samples.
 
         Args:
-            tasks: an iterable of task-like object. Typically, list of tuple
+            pubs: an iterable of pub-like object. Typically, list of tuple
                 ``(QuantumCircuit, parameter_values)``
 
         Returns:

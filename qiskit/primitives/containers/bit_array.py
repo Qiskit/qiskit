@@ -49,7 +49,7 @@ class BitArray(ShapedMixin):
 
     This object contains a single, contiguous block of data that represents an array of bitstrings.
     The last axis is over packed bits, the second last axis is over samples (aka shots), and the
-    preceding axes correspond to the shape of the task that was executed.
+    preceding axes correspond to the shape of the pub that was executed.
     """
 
     def __init__(self, array: NDArray[np.uint8], num_bits: int):

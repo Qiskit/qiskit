@@ -21,6 +21,5 @@ from .estimator_pub import EstimatorPub, EstimatorPubLike
 from .observables_array import ObservablesArray
 from .options import BasePrimitiveOptions, BasePrimitiveOptionsLike
 from .primitive_result import PrimitiveResult
-from .sampler_task import SamplerTask, SamplerTaskLike
 from .pub_result import PubResult
-from .sampler_task import SamplerTask
+from .sampler_pub import SamplerPub, SamplerPubLike
