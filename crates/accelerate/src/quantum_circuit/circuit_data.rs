@@ -252,13 +252,15 @@ impl CircuitData {
                 "The number of qubits in the circuit has exceeded the maximum capacity",
             )
         })?;
-        self.qubit_indices_native
+        if self
+            .qubit_indices_native
             .try_insert(BitAsKey::new(bit)?, idx)
-            .map_or(Ok(()), |_| {
-                self.qubits_native.push(bit.into_py(py));
-                self.qubits = PyList::new(py, &self.qubits_native).into_py(py);
-                Ok(())
-            })
+            .is_ok()
+        {
+            self.qubits_native.push(bit.into_py(py));
+            self.qubits = PyList::new(py, &self.qubits_native).into_py(py);
+        }
+        Ok(())
     }
 
     /// Registers a :class:`.Clbit` instance.
@@ -271,13 +273,15 @@ impl CircuitData {
                 "The number of clbits in the circuit has exceeded the maximum capacity",
             )
         })?;
-        self.clbit_indices_native
+        if self
+            .clbit_indices_native
             .try_insert(BitAsKey::new(bit)?, idx)
-            .map_or(Ok(()), |_| {
-                self.clbits_native.push(bit.into_py(py));
-                self.clbits = PyList::new(py, &self.clbits_native).into_py(py);
-                Ok(())
-            })
+            .is_ok()
+        {
+            self.clbits_native.push(bit.into_py(py));
+            self.clbits = PyList::new(py, &self.clbits_native).into_py(py);
+        }
+        Ok(())
     }
 
     /// Performs a shallow copy.
