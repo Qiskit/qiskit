@@ -13,7 +13,8 @@
 use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use crate::quantum_circuit::py_ext;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
+use indexmap::IndexSet;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
@@ -308,9 +309,12 @@ impl CircuitData {
 
     /// Returns a tuple of the sets of :class:`.Qubit` and :class:`.Clbit` instances
     /// that appear in at least one instruction's bit lists.
+    ///
+    /// Returns:
+    ///     tuple[list[:class:`.Qubit`], list[:class:`.Clbit`]]: The active qubits and clbits.
     pub fn active_bits(&self, py: Python<'_>) -> Py<PyTuple> {
-        let mut qubits: HashSet<BitType> = HashSet::new();
-        let mut clbits: HashSet<BitType> = HashSet::new();
+        let mut qubits: IndexSet<BitType> = IndexSet::with_capacity(self.qubits_native.len());
+        let mut clbits: IndexSet<BitType> = IndexSet::with_capacity(self.clbits_native.len());
         for inst in self.data.iter() {
             for b in self.intern_context.lookup(inst.qubits_id).iter() {
                 qubits.insert(*b);
