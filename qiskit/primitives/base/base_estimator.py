@@ -18,7 +18,7 @@ r"""
 Overview of EstimatorV2
 ========================
 
-:class:`~BaseEstimatorV2` estimates expectation values of quantum circuits for provided observables.
+:class:`~BaseEstimatorV2` is a primitive that estimates expectation values for provided quantum circuit and observable combinations.
 
 Following construction, and estimator is used by calling its :meth:`~.BaseEstimatorV2.run` method with a list of pubs (Primitive Unified Blocs).
 Each pub contains three values that, together, define a computation unit of work for the estimator to complete:
