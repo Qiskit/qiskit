@@ -38,3 +38,4 @@ z3-solver>=4.7
 # manage to get a working install on a Mac the functionality should still work,
 # but as a convenience this file won't attempt the install itself.
 tweedledum; python_version<'3.11' and platform_system!="Darwin"
+pydantic>=2

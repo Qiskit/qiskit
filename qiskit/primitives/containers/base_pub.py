@@ -17,10 +17,12 @@ Base Pubs class
 from __future__ import annotations
 
 from qiskit import QuantumCircuit
+from qiskit.utils.optionals import HAS_PYDANTIC
 
 from .dataclasses import frozen_dataclass
 
 
+@HAS_PYDANTIC.require_in_instance
 @frozen_dataclass
 class BasePub:
     """Base class for PUB (Primitive Unified Bloc)"""

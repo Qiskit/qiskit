@@ -172,6 +172,10 @@ External Python Libraries
       - `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
         :class:`.CrosstalkAdaptiveSchedule` and :class:`.HoareOptimizer` transpiler passes.
 
+    * - .. py:data:: HAS_PYDANTIC
+      - `Pydantic <https://github.com/pydantic/pydantic>`__ is a data validation libarary, used in the
+        :class:`.BasePrimitiveV2` for options.
+
 External Command-Line Tools
 ---------------------------
 
@@ -304,6 +308,7 @@ HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
 HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
+HAS_PYDANTIC = _LazyImportTester("pydantic", install="pip install pydantic")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(
     ("dot", "-V"),

@@ -182,6 +182,7 @@ from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.utils.optionals import HAS_PYDANTIC
 
 from ..containers.estimator_pub import EstimatorPubLike
 from ..containers.options import BasePrimitiveOptionsLike
@@ -351,6 +352,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 BaseEstimator = BaseEstimatorV1
 
 
+@HAS_PYDANTIC.require_in_instance
 class BaseEstimatorV2(BasePrimitiveV2):
     """Estimator base class version 2.
 

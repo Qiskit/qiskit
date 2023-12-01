@@ -23,8 +23,10 @@ from qiskit.primitives.statevector_estimator import Estimator, Options
 from qiskit.providers import JobV1
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
+from qiskit.utils.optionals import HAS_PYDANTIC
 
 
+@unittest.skipUnless(HAS_PYDANTIC, "pydantic not installed.")
 class TestEstimatorV2(QiskitTestCase):
     """Test Estimator"""
 

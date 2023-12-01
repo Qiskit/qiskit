@@ -13,15 +13,23 @@
 Dataclass
 """
 
-from pydantic import ConfigDict
-from pydantic.dataclasses import dataclass
+from qiskit.utils.optionals import HAS_PYDANTIC
 
-mutable_dataclass = dataclass(
-    config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid")
-)
+if HAS_PYDANTIC:
+    from pydantic import ConfigDict
+    from pydantic.dataclasses import dataclass
 
-frozen_dataclass = dataclass(
-    config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid"),
-    frozen=True,
-    slots=True,
-)
+    mutable_dataclass = dataclass(
+        config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid")
+    )
+
+    frozen_dataclass = dataclass(
+        config=ConfigDict(validate_assignment=True, arbitrary_types_allowed=True, extra="forbid"),
+        frozen=True,
+        slots=True,
+    )
+else:
+    from dataclasses import dataclass
+
+    mutable_dataclass = dataclass(frozen=False)
+    frozen_dataclass = dataclass(frozen=True, slots=True)

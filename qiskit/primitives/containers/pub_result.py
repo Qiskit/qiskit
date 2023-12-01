@@ -16,10 +16,15 @@ Base Pub class
 
 from __future__ import annotations
 
-from pydantic import Field
+from qiskit.utils.optionals import HAS_PYDANTIC
 
 from .data_bin import DataBin
 from .dataclasses import frozen_dataclass
+
+if HAS_PYDANTIC:
+    from pydantic import Field
+else:
+    from dataclasses import field as Field
 
 
 @frozen_dataclass

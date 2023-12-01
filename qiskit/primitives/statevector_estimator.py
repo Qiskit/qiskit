@@ -20,10 +20,9 @@ from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import Field
-from pydantic.types import PositiveInt
 
 from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.utils.optionals import HAS_PYDANTIC
 
 from .base import BaseEstimatorV2
 from .containers import (
@@ -39,7 +38,14 @@ from .containers.dataclasses import mutable_dataclass
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
+if HAS_PYDANTIC:
+    from pydantic import Field
+    from pydantic.types import PositiveInt
+else:
+    from dataclasses import field as Field
 
+
+@HAS_PYDANTIC.require_in_instance
 @mutable_dataclass
 class ExecutionOptions(BasePrimitiveOptions):
     """Options for execution."""
@@ -48,6 +54,7 @@ class ExecutionOptions(BasePrimitiveOptions):
     seed: Optional[Union[int, np.random.Generator]] = None
 
 
+@HAS_PYDANTIC.require_in_instance
 @mutable_dataclass
 class Options(BasePrimitiveOptions):
     """Options for the primitives.
