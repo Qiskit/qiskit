@@ -18,26 +18,33 @@ r"""
 Overview of EstimatorV2
 ========================
 
-:class:`~BaseEstimatorV2` is a primitive that estimates expectation values for provided quantum circuit and observable combinations.
+:class:`~BaseEstimatorV2` is a primitive that estimates expectation values for provided quantum
+circuit and observable combinations.
 
-Following construction, and estimator is used by calling its :meth:`~.BaseEstimatorV2.run` method with a list of pubs (Primitive Unified Blocs).
-Each pub contains three values that, together, define a computation unit of work for the estimator to complete:
+Following construction, and estimator is used by calling its :meth:`~.BaseEstimatorV2.run` method
+with a list of pubs (Primitive Unified Blocs). Each pub contains three values that, together,
+define a computation unit of work for the estimator to complete:
 
-* a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we define as :math:`\psi(\theta)`,
+* a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we
+define as :math:`\psi(\theta)`,
 
-* one or more observables (specified as any :class:`~.ObservablesArrayLike`, including :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation values to estimate, denoted :math:`H_j`, and
+* one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
+:class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation values to
+estimate, denoted :math:`H_j`, and
 
 * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
 
 Running an estimator returns a :class:`~qiskit.providers.JobV1` object, where calling
-the method :meth:`qiskit.providers.JobV1.result` results in expectation value estimates and metadata for each pub:
+the method :meth:`qiskit.providers.JobV1.result` results in expectation value estimates and metadata
+for each pub:
 
 .. math::
 
     \langle\psi(\theta_k)|H_j|\psi(\theta_k)\rangle
 
-The observables and parameter values portion of a pub can be array-valued with arbitrary dimensions, 
-where standard broadcasting rules are applied, so that, in turn, the estimated result for each pub is in general array-valued as well. For more information, please check
+The observables and parameter values portion of a pub can be array-valued with arbitrary dimensions,
+where standard broadcasting rules are applied, so that, in turn, the estimated result for each pub
+is in general array-valued as well. For more information, please check
 `here <https://github.com/Qiskit/RFCs/blob/master/0015-estimator-interface.md#arrays-and
 -broadcasting->`_.
 
