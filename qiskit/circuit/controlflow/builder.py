@@ -258,12 +258,10 @@ class ControlFlowBuilderBlock:
         self._built = False
         self._forbidden_message = forbidden_message
 
-    @property
     def qubits(self):
         """The set of qubits associated with this scope."""
         return set(self.instructions.qubits)
 
-    @property
     def clbits(self):
         """The set of clbits associated with this scope."""
         return set(self.instructions.clbits)
@@ -439,8 +437,8 @@ class ControlFlowBuilderBlock:
             # Reaching this implies a logic error in the builder interface.
             raise RuntimeError("Cannot build a forbidden scope. Please report this as a bug.")
 
-        potential_qubits = all_qubits - self.qubits
-        potential_clbits = all_clbits - self.clbits
+        potential_qubits = all_qubits - self.qubits()
+        potential_clbits = all_clbits - self.clbits()
 
         # We start off by only giving the QuantumCircuit the qubits we _know_ it will need, and add
         # more later as needed.
