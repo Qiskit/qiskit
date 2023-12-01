@@ -16,7 +16,7 @@ Estimator class
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -50,8 +50,8 @@ else:
 class ExecutionOptions(BasePrimitiveOptions):
     """Options for execution."""
 
-    shots: PositiveInt | None = None
-    seed: Union[int, np.random.Generator] | None = None
+    shots: Optional[PositiveInt] = None
+    seed: Optional[Union[int, np.random.Generator]] = None
 
 
 @HAS_PYDANTIC.require_in_instance
