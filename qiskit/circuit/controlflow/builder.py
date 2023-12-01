@@ -250,7 +250,7 @@ class ControlFlowBuilderBlock:
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
         """
-        self.instructions: CircuitData = CircuitData(qubits, clbits)
+        self.instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
         self.global_phase = 0.0
         self._allow_jumps = allow_jumps
