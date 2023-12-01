@@ -85,7 +85,7 @@ class BasePrimitiveV2(ABC):
     version = 2
     _options_class: type[BasePrimitiveOptions] = BasePrimitiveOptions
 
-    def __init__(self, options: Optional[BasePrimitiveOptionsLike] = None):
+    def __init__(self, options: BasePrimitiveOptionsLike | None = None):
         self._options = self._options_class()
         if options:
             self._options.update(options)

@@ -20,32 +20,24 @@ Overview of EstimatorV2
 
 :class:`~BaseEstimatorV2` estimates expectation values of quantum circuits for provided observables.
 
-An estimator is initialized with an empty parameter set. The estimator is used to
-create a :class:`~qiskit.providers.JobV1`, via the
-:meth:`~.BaseEstimatorV2.run()` method. This method is called
-with the list of pubs (Primitive Unified Blocs).
-Pub is composed of tuple of following parameters ``[(circuit, observables, parameter_values)]``.
+Following construction, and estimator is used by calling its :meth:`~.BaseEstimatorV2.run` method with a list of pubs (Primitive Unified Blocs).
+Each pub contains three values that, together, define a computation unit of work for the estimator to complete:
 
-* quantum circuit (:math:`\psi(\theta)`): (parameterized) quantum circuits
-  :class:`~qiskit.circuit.QuantumCircuit`.
+* a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we define as :math:`\psi(\theta)`,
 
-* observables (:math:`H_j`): a list of :class:`~.ObservablesArrayLike` classes
-  (including :class:`~.Pauli`, :class:`~.SparsePauliOp`, str).
+* one or more observables (specified as any :class:`~.ObservablesArrayLike`, including :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation values to estimate, denoted :math:`H_j`, and
 
-* parameter values (:math:`\theta_k`): list of sets of values
-  to be bound to the parameters of the quantum circuits
-  (list of list of float or list of dict).
+* a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
 
-The method returns a :class:`~qiskit.providers.JobV1` object, calling
-:meth:`qiskit.providers.JobV1.result()` yields the
-a list of expectation values plus optional metadata like confidence intervals for
-the estimation.
+Running an estimator returns a :class:`~qiskit.providers.JobV1` object, where calling
+the method :meth:`qiskit.providers.JobV1.result` results in expectation value estimates and metadata for each pub:
 
 .. math::
 
     \langle\psi(\theta_k)|H_j|\psi(\theta_k)\rangle
 
-The broadcast rule applies for observables and parameters. For more information, please check
+The observables and parameter values portion of a pub can be array-valued with arbitrary dimensions, 
+where standard broadcasting rules are applied, so that, in turn, the estimated result for each pub is in general array-valued as well. For more information, please check
 `here <https://github.com/Qiskit/RFCs/blob/master/0015-estimator-interface.md#arrays-and
 -broadcasting->`_.
 
@@ -356,7 +348,7 @@ BaseEstimator = BaseEstimatorV1
 class BaseEstimatorV2(BasePrimitiveV2):
     """Estimator base class version 2.
 
-    An Estimator estimates expectation values of quantum circuits and observables.
+    An estimator estimates expectation values for provided quantum circuit and observable combinations.
     """
 
     def __init__(self, options: Optional[BasePrimitiveOptionsLike]):
@@ -364,13 +356,13 @@ class BaseEstimatorV2(BasePrimitiveV2):
 
     @abstractmethod
     def run(self, pubs: Iterable[EstimatorPubLike]) -> Job:
-        """Run the pubs of the estimation of expectation value(s).
+        """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
         Args:
             pubs: a iterable of pubslike object. Typically, list of tuple
                 ``(QuantumCircuit, observables, parameter_values)``
 
         Returns:
-            The job object of Estimator's Result.
+            A job object that contains results.
         """
         pass
