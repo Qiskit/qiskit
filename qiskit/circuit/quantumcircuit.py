@@ -2072,8 +2072,15 @@ class QuantumCircuit:
         cpy._data = self._data.copy()
 
         operation_copies = {}
-        self._data.foreach_op(lambda op: operation_copies.update({id(op): op.copy()}))
 
+        def memo_copy(op):
+            if (out := operation_copies.get(id(op))) is not None:
+                return out
+            copied = op.copy()
+            operation_copies[id(op)] = copied
+            return copied
+
+        cpy._data.replace_ops(memo_copy)
         cpy._parameter_table = ParameterTable(
             {
                 param: ParameterReferences(
@@ -2083,8 +2090,6 @@ class QuantumCircuit:
                 for param in self._parameter_table
             }
         )
-
-        cpy._data.replace_ops(lambda op: operation_copies[id(op)])
         return cpy
 
     def copy_empty_like(self, name: str | None = None) -> "QuantumCircuit":
