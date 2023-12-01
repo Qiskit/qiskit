@@ -990,7 +990,6 @@ class QuantumCircuit:
         )
 
         def map_vars(op):
-            # TODO: do we really need to copy if we're not updating vars?
             n_op = op.copy()
             if (condition := getattr(n_op, "condition", None)) is not None:
                 n_op.condition = variable_mapper.map_condition(condition)
