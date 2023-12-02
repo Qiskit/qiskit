@@ -17,21 +17,23 @@ Options class
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Mapping
 from typing import Union
 
-from .dataclasses import mutable_dataclass
 
-
-@mutable_dataclass
 class BasePrimitiveOptions(ABC):
     """Base class of options for primitives."""
 
-    def update(self, options: BasePrimitiveOptions | None = None, **kwargs):
+    def update(self, options: BasePrimitiveOptions | Mapping | None = None, **kwargs):
         """Update the options."""
         if options is not None:
-            if not isinstance(options, BasePrimitiveOptions):
-                raise TypeError(f"Type {type(options)} is not options class")
-            for key, val in options.__dict__.items():
+            if isinstance(options, Mapping):
+                options_dict = options
+            elif isinstance(options, BasePrimitiveOptions):
+                options_dict = options.__dict__
+            else:
+                raise TypeError(f"Type {type(options)} is not options nor Mapping class")
+            for key, val in options_dict.items():
                 setattr(self, key, val)
 
         for key, val in kwargs.items():

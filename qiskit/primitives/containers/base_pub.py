@@ -17,18 +17,29 @@ Base Pubs class
 from __future__ import annotations
 
 from qiskit import QuantumCircuit
-from qiskit.utils.optionals import HAS_PYDANTIC
-
-from .dataclasses import frozen_dataclass
 
 
-@HAS_PYDANTIC.require_in_instance
-@frozen_dataclass
 class BasePub:
     """Base class for PUB (Primitive Unified Bloc)"""
 
-    circuit: QuantumCircuit
-    """Quantum circuit object for the pubs."""
+    __slots__ = ("_circuit",)
+
+    def __init__(self, circuit: QuantumCircuit, validate: bool = False):
+        """
+        Initialize a BasePub.
+
+        Args:
+            circuit: Quantum circuit object for the pubs.
+            validate: if True, the input data is validated during initizlization.
+        """
+        self._circuit = circuit
+        if validate:
+            self.validate()
+
+    @property
+    def circuit(self) -> QuantumCircuit:
+        """A quantum circuit for the pub"""
+        return self._circuit
 
     def validate(self):
         """Validate the data"""

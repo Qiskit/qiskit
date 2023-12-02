@@ -25,24 +25,48 @@ from qiskit import QuantumCircuit
 
 from .base_pub import BasePub
 from .bindings_array import BindingsArray, BindingsArrayLike
-from .dataclasses import frozen_dataclass
 from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin
 
 
-@frozen_dataclass
 class EstimatorPub(BasePub, ShapedMixin):
     """Pub (Primitive Unified Bloc) for Estimator.
     Pub is composed of triple (circuit, observables, parameter_values).
     """
 
-    observables: ObservablesArray
-    parameter_values: BindingsArray = BindingsArray(shape=())
-    _shape: Tuple[int, ...] = ()
+    __slots__ = ("_observables", "_parameter_values", "_shape")
 
-    def __post_init__(self):
-        shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
-        self._shape = shape
+    def __init__(
+        self,
+        circuit: QuantumCircuit,
+        observables: ObservablesArray,
+        parameter_values: BindingsArray | None = None,
+        validate: bool = False,
+    ):
+        """Initialize an estimator pub.
+
+        Args:
+            circuit: a quantum circuit.
+            observables: an observables array.
+            parameter_values: a bindings array.
+            validate: if True, the input data is validated during initizlization.
+        """
+        super().__init__(circuit, validate)
+        self._observables = observables
+        self._parameter_values = parameter_values or BindingsArray()
+
+        # For ShapedMixin
+        self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
+
+    @property
+    def observables(self) -> ObservablesArray:
+        """An observables array"""
+        return self._observables
+
+    @property
+    def parameter_values(self) -> BindingsArray:
+        """A bindings array"""
+        return self._parameter_values
 
     @classmethod
     def coerce(cls, pub: EstimatorPubLike) -> EstimatorPub:
@@ -67,9 +91,7 @@ class EstimatorPub(BasePub, ShapedMixin):
 
     def validate(self):
         """Validate the pub."""
-        super(EstimatorPub, self).validate()  # pylint: disable=super-with-arguments
-        # I'm not sure why these arguments for super are needed. But if no args, tests are failed
-        # for Python >=3.10. Seems to be some bug, but I can't fix.
+        super().validate()
         self.observables.validate()
         self.parameter_values.validate()
         # Cross validate circuits and observables
@@ -80,7 +102,7 @@ class EstimatorPub(BasePub, ShapedMixin):
                     f"The number of qubits of the circuit ({self.circuit.num_qubits}) does "
                     f"not match the number of qubits of the {i}-th observable ({num_qubits})."
                 )
-        # Cross validate circuits and paramter_values
+        # Cross validate circuits and parameter_values
         num_parameters = self.parameter_values.num_parameters
         if num_parameters != self.circuit.num_parameters:
             raise ValueError(

@@ -83,25 +83,6 @@ Here is an example of how the estimator is used.
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 
-==============================
-Migration guide from V1 to V2
-==============================
-
-
-The original three arguments are now a single argument pubs.
-To accommodate this change, the zip function can be used for easy migration.
-For example, suppose the code originally is:
-
-.. code-block:: python
-
-    estimator.run([psi1], [hamiltonian1], [theta1])  # for EstimatorV1
-
-Just add zip function:
-
-.. code-block:: python
-
-    estimator.run(zip([psi1], [hamiltonian1], [theta1]))  # for EstimatorV2
-
 
 ========================
 Overview of EstimatorV1
@@ -181,7 +162,6 @@ from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
-from qiskit.utils.optionals import HAS_PYDANTIC
 
 from ..containers.estimator_pub import EstimatorPubLike
 from ..containers.options import BasePrimitiveOptionsLike
@@ -351,7 +331,6 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 BaseEstimator = BaseEstimatorV1
 
 
-@HAS_PYDANTIC.require_in_instance
 class BaseEstimatorV2(BasePrimitiveV2):
     """Estimator base class version 2.
 

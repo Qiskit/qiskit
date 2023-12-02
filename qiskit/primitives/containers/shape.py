@@ -16,7 +16,7 @@ Array shape related classes and functions
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Protocol, Tuple, Union, runtime_checkable
+from typing import Protocol, Union, runtime_checkable
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -35,7 +35,7 @@ class Shaped(Protocol):
     """
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         """The array shape of this object."""
         raise NotImplementedError("A `Shaped` protocol must implement the `shape` property")
 
@@ -53,7 +53,7 @@ class Shaped(Protocol):
 class ShapedMixin(Shaped):
     """Mixin class to create :class:`~Shaped` types by only providing :attr:`_shape` attribute."""
 
-    _shape: Tuple[int, ...]
+    _shape: tuple[int, ...]
 
     def __repr__(self):
         return f"{type(self).__name__}(<{self.shape}>)"
@@ -113,7 +113,7 @@ def _flatten_to_ints(arg: ShapeInput) -> Iterable[int]:
             raise ValueError(f"Expected {item} to be iterable or an integer.") from ex
 
 
-def shape_tuple(*shapes: ShapeInput) -> Tuple[int, ...]:
+def shape_tuple(*shapes: ShapeInput) -> tuple[int, ...]:
     """
     Flatten the input into a single tuple of integers, preserving order.
 

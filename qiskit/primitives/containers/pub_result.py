@@ -16,22 +16,30 @@ Base Pub class
 
 from __future__ import annotations
 
-from qiskit.utils.optionals import HAS_PYDANTIC
-
 from .data_bin import DataBin
-from .dataclasses import frozen_dataclass
-
-if HAS_PYDANTIC:
-    from pydantic import Field
-else:
-    from dataclasses import field as Field
 
 
-@frozen_dataclass
 class PubResult:
-    """Result of pub (Primitive Unified Bloc)."""
+    """Result of Primitive Unified Bloc."""
 
-    data: DataBin
-    """Result data for the pub"""
-    metadata: dict = Field(default_factory=dict)
-    """Metadata for the pub"""
+    __slots__ = ("_data", "_metadata")
+
+    def __init__(self, data: DataBin, metadata: dict | None = None):
+        """Initialize a pub result.
+
+        Args:
+            data: result data bin.
+            metadata: metadata dictionary.
+        """
+        self._data = data
+        self._metadata = metadata or {}
+
+    @property
+    def data(self) -> DataBin:
+        """Result data for the pub"""
+        return self._data
+
+    @property
+    def metadata(self) -> {}:
+        """Metadata for the pub"""
+        return self._metadata

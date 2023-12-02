@@ -66,6 +66,7 @@ class Options(BasePrimitiveOptions):
     execution: ExecutionOptions = Field(default_factory=ExecutionOptions)
 
 
+@HAS_PYDANTIC.require_in_instance
 class Estimator(BaseEstimatorV2):
     """
     Simple implementation of :class:`BaseEstimatorV2` with Statevector.

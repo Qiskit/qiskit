@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from itertools import chain
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -77,6 +77,8 @@ class BindingsArray(ShapedMixin):
         shape: ShapeInput | None = None,
     ):
         """
+        Initialize a ``BindingsArray``. It can take parameter vectors and dictionatirs.
+
         The ``shape`` argument does not need to be provided whenever it can unambiguously
         be inferred from the provided arrays. Ambiguity arises because an array provided to the
         constructor might represent values for either a single parameter, with an implicit missing
@@ -147,7 +149,7 @@ class BindingsArray(ShapedMixin):
         return BindingsArray(vals, kwvals, shape)
 
     @property
-    def kwvals(self) -> Dict[Tuple[str, ...], np.ndarray]:
+    def kwvals(self) -> dict[tuple[str, ...], np.ndarray]:
         """The keyword values of this array."""
         return {_format_key(k): v for k, v in self._kwvals.items()}
 
@@ -157,11 +159,11 @@ class BindingsArray(ShapedMixin):
         return sum(val.shape[-1] for val in chain(self.vals, self._kwvals.values()))
 
     @property
-    def vals(self) -> List[np.ndarray]:
+    def vals(self) -> list[np.ndarray]:
         """The non-keyword values of this array."""
         return self._vals
 
-    def bind(self, circuit: QuantumCircuit, loc: Tuple[int, ...]) -> QuantumCircuit:
+    def bind(self, circuit: QuantumCircuit, loc: tuple[int, ...]) -> QuantumCircuit:
         """Return the circuit bound to the values at the provided index.
 
         Args:
@@ -269,7 +271,7 @@ class BindingsArray(ShapedMixin):
                 )
 
 
-def _standardize_shape(val: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
+def _standardize_shape(val: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
     """Return ``val`` or ``val[..., None]``.
 
     Args:
@@ -291,8 +293,8 @@ def _standardize_shape(val: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
 
 
 def _infer_shape(
-    vals: List[np.ndarray], kwvals: Dict[Tuple[Parameter, ...], np.ndarray]
-) -> Tuple[int, ...]:
+    vals: list[np.ndarray], kwvals: dict[tuple[Parameter, ...], np.ndarray]
+) -> tuple[int, ...]:
     """Return a shape tuple that consistently defines the leading dimensions of all arrays.
 
     Args:
