@@ -30,7 +30,7 @@ from .shape import ShapedMixin
 
 
 class EstimatorPub(BasePub, ShapedMixin):
-    """Pub (Primitive Unified Bloc) for Estimator.
+    """Primitive Unified Bloc for Estimator.
     Pub is composed of triple (circuit, observables, parameter_values).
     """
 
