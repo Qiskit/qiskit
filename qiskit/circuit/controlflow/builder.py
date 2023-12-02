@@ -72,6 +72,14 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
+    def extend(self, data: CircuitData):
+        """Appends all instructions from ``data`` to the scope.
+
+        Args:
+            data: The instruction listing.
+        """
+
+    @abc.abstractmethod
     def resolve_classical_resource(
         self, specifier: Clbit | ClassicalRegister | int
     ) -> Clbit | ClassicalRegister:
@@ -428,8 +436,6 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         return instruction
 
     def extend(self, data: CircuitData):
-        """Appends all instructions from ``data`` to the scope, expanding the scope's
-        tracked resources with its active bits."""
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:

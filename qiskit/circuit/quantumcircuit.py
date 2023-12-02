@@ -1052,24 +1052,18 @@ class QuantumCircuit:
         mapped_instrs.replace_bits(qubits=mapped_qubits, clbits=mapped_clbits)
         mapped_instrs.replace_ops(map_vars)
 
+        circuit_scope = dest._current_scope()
         if dest._control_flow_scopes:
-            dest._control_flow_scopes[-1].extend(mapped_instrs)
+            circuit_scope.extend(mapped_instrs)
         else:
             append_existing = None
             if front:
                 append_existing = dest._data.copy()
                 dest.clear()
 
-            def update_param(op):
-                if isinstance(op, Instruction):
-                    dest._update_parameter_table(op)
-
-            dest._data.extend(mapped_instrs)
-            mapped_instrs.foreach_op(update_param)
-
+            circuit_scope.extend(mapped_instrs)
             if append_existing:
-                dest._data.extend(append_existing)
-                append_existing.foreach_op(update_param)
+                circuit_scope.extend(append_existing)
 
         return None if inplace else dest
 
@@ -5939,6 +5933,14 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def append(self, instruction):
         # QuantumCircuit._append is semi-public, so we just call back to it.
         return self.circuit._append(instruction)
+
+    def extend(self, data: CircuitData):
+        def update_param(op):
+            if isinstance(op, Instruction):
+                self.circuit._update_parameter_table(op)
+
+        self.circuit._data.extend(data)
+        data.foreach_op(update_param)
 
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
