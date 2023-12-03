@@ -18,19 +18,21 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.synthesis.linear_phase.cz_depth_lnn import _append_cx_stage1, _append_cx_stage2
 
 
-def synth_qft_line(num_qubits, do_swaps=True, approximation_degree=0):
+def synth_qft_line(
+    num_qubits: int, do_swaps: bool = True, approximation_degree: int = 0
+) -> QuantumCircuit:
     """Synthesis of a QFT circuit for a linear nearest neighbor connectivity.
     Based on Fig 2.b in Fowler et al. [1].
 
     Note that this method *reverts* the order of qubits in the circuit,
-    compared to the original QFT code.
-    Hence, the default value of do_swaps parameter is True,
+    compared to the original :class:`.QFT` code.
+    Hence, the default value of the do_swaps parameter is ``True``
     since it produces a circuit with fewer CX gates.
 
     Args:
-        num_qubits (int): The number of qubits on which the QFT acts.
-        approximation_degree (int): The degree of approximation (0 for no approximation).
-        do_swaps (bool): Whether to include the final swaps in the QFT.
+        num_qubits: The number of qubits on which the QFT acts.
+        approximation_degree: The degree of approximation (0 for no approximation).
+        do_swaps: Whether to include the final swaps in the QFT.
 
     Return:
         QuantumCircuit: a circuit implementation of the QFT circuit.
@@ -45,16 +47,20 @@ def synth_qft_line(num_qubits, do_swaps=True, approximation_degree=0):
     qc = QuantumCircuit(num_qubits)
 
     for i in range(num_qubits):
-        num_entanglements = max(0, max(0, approximation_degree - (num_qubits - i - 1)))
-
         qc.h(num_qubits - 1)
-        for j in range(i, num_qubits - num_entanglements - 1):
-            qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
-            qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-            qc.p(-np.pi / 2 ** (j - i + 2), num_qubits - j + i - 2)
-            qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
-            qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
-            qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
+
+        for j in range(i, num_qubits - 1):
+            if j - i + 2 < num_qubits - approximation_degree + 1:
+                qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
+                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
+                qc.p(-np.pi / 2 ** (j - i + 2), num_qubits - j + i - 2)
+                qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
+                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
+                qc.p(np.pi / 2 ** (j - i + 2), num_qubits - j + i - 1)
+            else:
+                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
+                qc.cx(num_qubits - j + i - 2, num_qubits - j + i - 1)
+                qc.cx(num_qubits - j + i - 1, num_qubits - j + i - 2)
 
     if not do_swaps:
         # Add a reversal network for LNN connectivity in depth 2*n+2,
