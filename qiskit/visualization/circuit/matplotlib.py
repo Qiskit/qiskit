@@ -772,7 +772,6 @@ class MatplotlibDrawer:
                     for ii in c_indxs
                 ]
 
-
                 # update index based on the value from plotting
                 if flow_parent is None:
                     curr_x_index = glob_data["next_x_index"]
