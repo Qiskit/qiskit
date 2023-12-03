@@ -22,9 +22,7 @@ from qiskit.test import QiskitTestCase
 class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
 
-    @skipIf(
-        not hasattr(os, "sched_getaffinity"), "ched_getaffinity is only available on linux"
-    )
+    @skipIf(not hasattr(os, "sched_getaffinity"), "ched_getaffinity is only available on linux")
     @mock.patch("platform.system", return_value="Linux")
     @mock.patch("os.sched_getaffinity", return_value={})
     def test_local_hardware_none_cpu_count(self, cpu_count_mock, platform_mock):
