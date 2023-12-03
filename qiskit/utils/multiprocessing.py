@@ -26,12 +26,18 @@ def local_hardware_info():
     Returns:
         dict: The hardware information.
     """
+
+    if hasattr(os, "sched_getaffinity"):
+        num_cpus = int(len(os.sched_getaffinity(0)) / 2) or 1
+    else:
+        num_cpus = 1
+    
     results = {
         "python_compiler": platform.python_compiler(),
         "python_build": ", ".join(platform.python_build()),
         "python_version": platform.python_version(),
         "os": platform.system(),
-        "cpus": int(len(os.sched_getaffinity(0)) / 2) or 1,
+        "cpus": num_cpus,
     }
     return results
 
