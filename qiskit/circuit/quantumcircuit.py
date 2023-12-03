@@ -1052,18 +1052,15 @@ class QuantumCircuit:
         mapped_instrs.replace_bits(qubits=mapped_qubits, clbits=mapped_clbits)
         mapped_instrs.replace_ops(map_vars)
 
-        circuit_scope = dest._current_scope()
-        if dest._control_flow_scopes:
-            circuit_scope.extend(mapped_instrs)
-        else:
-            append_existing = None
-            if front:
-                append_existing = dest._data.copy()
-                dest.clear()
+        append_existing = None
+        if front:
+            append_existing = dest._data.copy()
+            dest.clear()
 
-            circuit_scope.extend(mapped_instrs)
-            if append_existing:
-                circuit_scope.extend(append_existing)
+        circuit_scope = dest._current_scope()
+        circuit_scope.extend(mapped_instrs)
+        if append_existing:
+            circuit_scope.extend(append_existing)
 
         return None if inplace else dest
 
