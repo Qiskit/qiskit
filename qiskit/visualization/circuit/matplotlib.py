@@ -1548,6 +1548,10 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
 
+            # Some spacers. op_spacer moves 'Switch' back a bit for alignment,
+            # expr_spacer moves the expr over to line up with 'Switch' and
+            # empty_default_spacer makes the switch box longer if the default
+            # case is empty so text doesn't run past end of box.
             if isinstance(node.op, SwitchCaseOp):
                 op_spacer = 0.04
                 expr_spacer = 0.0
