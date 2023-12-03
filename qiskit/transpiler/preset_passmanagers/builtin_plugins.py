@@ -106,7 +106,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                 )
-            init.append(Optimize1qGatesDecomposition())
             init.append(
                 InverseCancellation(
                     [
@@ -137,7 +136,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             init.append(OptimizeSwapBeforeMeasure())
             init.append(RemoveDiagonalGatesBeforeMeasure())
-            init.append(Optimize1qGatesDecomposition())
             init.append(
                 InverseCancellation(
                     [
