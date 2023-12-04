@@ -331,6 +331,12 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
+
+        Raises:
+            TranspilerError: if ``method`` was specified for the class and is not
+                found in the installed plugins list. The list of installed
+                plugins can be queried with
+                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
@@ -358,6 +364,9 @@ class UnitarySynthesis(TransformationPass):
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
+        if self.method != "default" and self.method not in self.plugins.ext_plugins:
+            raise TranspilerError("Specified methodd: %s not found in plugin list" % self.method)
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on ``dag``.
 
@@ -373,8 +382,6 @@ class UnitarySynthesis(TransformationPass):
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if self.method != "default" and self.method not in self.plugins.ext_plugins:
-            raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
 
         # If there aren't any gates to synthesize in the circuit we can skip all the iteration
         # and just return.

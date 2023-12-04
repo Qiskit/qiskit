@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    fixes issue #11355. If a nonexistent synthesis plugin is passed, `generate_preset_pass_manager` now raises an error 
+    the pass manager is created, not when it is run.
