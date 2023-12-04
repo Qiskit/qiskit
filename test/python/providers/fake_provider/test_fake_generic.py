@@ -11,6 +11,11 @@
 # that they have been altered from the originals.
 
 """ Test of FakeGeneric backend"""
+
+import math
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import transpile
 from qiskit.providers.fake_provider import FakeGeneric
 from qiskit.providers.fake_provider.fake_generic import GenericTarget
 from qiskit.transpiler import CouplingMap
@@ -100,3 +105,22 @@ class TestFakeGeneric(QiskitTestCase):
             ),
             reference_cmap,
         )
+
+    def test_run(self):
+        """Test run method, confirm correct noisy simulation if Aer is installed."""
+
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        for k in range(1, 4):
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr, cr)
+
+        backend = FakeGeneric(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"])
+        tqc = transpile(qc, backend=backend, optimization_level=3, seed_transpiler=42)
+        result = backend.run(tqc, seed_simulator=42, shots=1000).result()
+        counts = result.get_counts()
+
+        self.assertTrue(math.isclose(counts["00000"], 500, rel_tol=0.1))
+        self.assertTrue(math.isclose(counts["01111"], 500, rel_tol=0.1))
