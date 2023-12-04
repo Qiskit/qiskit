@@ -123,5 +123,7 @@ class TestBuiltinPlugins(QiskitTestCase):
         backend = QasmSimulatorPy()
         with self.assertRaises(TranspilerError):
             _ = generate_preset_pass_manager(
-                optimization_level=optimization_level, backend=backend, unitary_synthesis_method="a"
+                optimization_level=optimization_level,
+                backend=backend,
+                unitary_synthesis_method="not a method",
             )
