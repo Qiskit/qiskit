@@ -26,7 +26,7 @@ def synth_qft_line(
 
     Note that this method *reverts* the order of qubits in the circuit,
     compared to the original :class:`.QFT` code.
-    Hence, the default value of the do_swaps parameter is ``True``
+    Hence, the default value of the ``do_swaps`` parameter is ``True``
     since it produces a circuit with fewer CX gates.
 
     Args:
@@ -35,7 +35,7 @@ def synth_qft_line(
         do_swaps: Whether to include the final swaps in the QFT.
 
     Return:
-        QuantumCircuit: a circuit implementation of the QFT circuit.
+        A circuit implementation of the QFT circuit.
 
     Reference:
         1. A. G. Fowler, S. J. Devitt, and L. C. L. Hollenberg,
