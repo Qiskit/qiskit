@@ -148,6 +148,8 @@ the code. It also lets the community know what you're working on, and if you
 need help, you can reference the issue when discussing it with other community
 and team members.
 
+Please note that the repo for any docs page that does not have `/api/` in its url is [https://github.com/Qiskit/documentation](https://github.com/Qiskit/documentation) and you can open an issue [here](https://github.com/Qiskit/documentation/issues/new/choose) for any non-API docs fixes or suggestions.
+
 If you've written some code but need help finishing it, want to get initial
 feedback on it prior to finishing it, or want to share it and discuss prior
 to finishing the implementation, you can open a *Draft* pull request and prepend
