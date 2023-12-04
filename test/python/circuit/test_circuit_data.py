@@ -154,6 +154,23 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(len(visited_ops), len(data_list))
         self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
 
+    def test_enumerate_ops(self):
+        """Test all operations are visited."""
+        qr = QuantumRegister(5)
+        data_list = [
+            CircuitInstruction(XGate(), [qr[0]], []),
+            CircuitInstruction(XGate(), [qr[1]], []),
+            CircuitInstruction(XGate(), [qr[2]], []),
+            CircuitInstruction(XGate(), [qr[3]], []),
+            CircuitInstruction(XGate(), [qr[4]], []),
+        ]
+        data = CircuitData(qubits=list(qr), data=data_list)
+
+        visited_ops = []
+        data.enumerate_ops(visited_ops.insert)
+        self.assertEqual(len(visited_ops), len(data_list))
+        self.assertTrue(all(op is inst.operation for op, inst in zip(visited_ops, data_list)))
+
     def test_replace_ops(self):
         """Test all operations are replaced."""
         qr = QuantumRegister(5)

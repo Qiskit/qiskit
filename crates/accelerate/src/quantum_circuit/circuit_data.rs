@@ -358,6 +358,20 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Invokes callable ``func`` with the positional index and operation
+    /// of each instruction.
+    ///
+    /// Args:
+    ///     func (Callable[[int, :class:`~.Operation`], None]):
+    ///         The callable to invoke.
+    #[pyo3(signature = (func))]
+    pub fn enumerate_ops(&self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
+        for (index, inst) in self.data.iter().enumerate() {
+            func.call1((index, inst.op.as_ref(py)))?;
+        }
+        Ok(())
+    }
+
     /// Invokes callable ``func`` with each instruction's operation,
     /// replacing the operation with the result.
     ///

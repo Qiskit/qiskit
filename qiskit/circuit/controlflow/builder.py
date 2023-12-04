@@ -591,8 +591,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             # Reaching this implies a logic error in the builder interface.
             raise RuntimeError("Cannot build a forbidden scope. Please report this as a bug.")
 
-        potential_qubits = all_qubits - self.qubits()
-        potential_clbits = all_clbits - self.clbits()
+        potential_qubits = set(all_qubits) - self.qubits()
+        potential_clbits = set(all_clbits) - self.clbits()
 
         # We start off by only giving the QuantumCircuit the qubits we _know_ it will need, and add
         # more later as needed.
@@ -608,27 +608,26 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             # into the instructions.
             out.add_uninitialized_var(var)
 
-        # TODO: this can likely be optimized with a CircuitData.foreach_op followed
-        #   by a CircuitData.replace_bits.
-        for instruction in self._instructions:
-            if isinstance(instruction.operation, InstructionPlaceholder):
-                operation, resources = instruction.operation.concrete_instruction(
-                    all_qubits, all_clbits
-                )
+        # Maps placeholder index to the newly concrete instruction.
+        placeholder_to_concrete = {}
+
+        def update_registers(index, op):
+            if isinstance(op, InstructionPlaceholder):
+                op, resources = op.concrete_instruction(all_qubits, all_clbits)
                 qubits = tuple(resources.qubits)
                 clbits = tuple(resources.clbits)
-                instruction = CircuitInstruction(operation, qubits, clbits)
+                placeholder_to_concrete[index] = CircuitInstruction(op, qubits, clbits)
                 # We want to avoid iterating over the tuples unnecessarily if there's no chance
                 # we'll need to add bits to the circuit.
                 if potential_qubits and qubits:
                     add_qubits = potential_qubits.intersection(qubits)
                     if add_qubits:
-                        potential_qubits -= add_qubits
+                        potential_qubits.difference_update(add_qubits)
                         out.add_bits(add_qubits)
                 if potential_clbits and clbits:
                     add_clbits = potential_clbits.intersection(clbits)
                     if add_clbits:
-                        potential_clbits -= add_clbits
+                        potential_clbits.difference_update(add_clbits)
                         out.add_bits(add_clbits)
                 for register in itertools.chain(resources.qregs, resources.cregs):
                     if register not in self.registers:
@@ -636,13 +635,13 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                         # a register is already present, so we use our own tracking.
                         self.add_register(register)
                         out.add_register(register)
-            if getattr(instruction.operation, "condition", None) is not None:
-                for register in condition_resources(instruction.operation.condition).cregs:
+            if getattr(op, "condition", None) is not None:
+                for register in condition_resources(op.condition).cregs:
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)
-            elif isinstance(instruction.operation, SwitchCaseOp):
-                target = instruction.operation.target
+            elif isinstance(op, SwitchCaseOp):
+                target = op.target
                 if isinstance(target, Clbit):
                     target_registers = ()
                 elif isinstance(target, ClassicalRegister):
@@ -653,10 +652,18 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)
-            # We already did the broadcasting and checking when the first call to
-            # QuantumCircuit.append happened (which the user wrote), and added the instruction into
-            # this scope.  We just need to finish the job now.
-            out._append(instruction)
+
+        # Update registers and bits of 'out'.
+        self._instructions.enumerate_ops(update_registers)
+
+        # Create the concrete instruction listing.
+        out_data = self._instructions.copy()
+        out_data.replace_bits(out.qubits, out.clbits)
+        for i, instruction in placeholder_to_concrete.items():
+            out_data[i] = instruction
+
+        # Add listing to 'out'.
+        out._current_scope().extend(out_data)
         return out
 
     def copy(self) -> "ControlFlowBuilderBlock":
