@@ -380,7 +380,7 @@ impl CircuitData {
     ///         A callable used to map original operation to their
     ///         replacements.
     #[pyo3(signature = (func))]
-    pub fn replace_ops(&mut self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
+    pub fn map_ops(&mut self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
         for inst in self.data.iter_mut() {
             inst.op = func.call1((inst.op.as_ref(py),))?.into_py(py);
         }
@@ -414,7 +414,8 @@ impl CircuitData {
     ///     Instruction operations themselves are NOT adjusted.
     ///     To modify bits referenced by an operation, use
     ///     :meth:`~.CircuitData.foreach_op` or
-    ///     :meth:`~.CircuitData.replace_ops` to adjust the operations manually
+    ///     :meth:`~.CircuitData.enumerate_ops` or
+    ///     :meth:`~.CircuitData.map_ops` to adjust the operations manually
     ///     after calling this method.
     ///
     /// Examples:

@@ -569,7 +569,7 @@ class QuantumCircuit:
             qubits=copy.deepcopy(self._data.qubits, memo),
             clbits=copy.deepcopy(self._data.clbits, memo),
         )
-        result._data.replace_ops(lambda op: copy.deepcopy(op, memo))
+        result._data.map_ops(lambda op: copy.deepcopy(op, memo))
         return result
 
     @classmethod
@@ -1050,7 +1050,7 @@ class QuantumCircuit:
 
         mapped_instrs: CircuitData = other._data.copy()
         mapped_instrs.replace_bits(qubits=mapped_qubits, clbits=mapped_clbits)
-        mapped_instrs.replace_ops(map_vars)
+        mapped_instrs.map_ops(map_vars)
 
         append_existing = None
         if front:
@@ -2432,7 +2432,7 @@ class QuantumCircuit:
             operation_copies[id(op)] = copied
             return copied
 
-        cpy._data.replace_ops(memo_copy)
+        cpy._data.map_ops(memo_copy)
         cpy._parameter_table = ParameterTable(
             {
                 param: ParameterReferences(
