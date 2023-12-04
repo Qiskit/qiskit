@@ -1477,7 +1477,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "duration", None) is not None:
                     property_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "gate_length",
                             "unit": "s",
                             "value": props.duration,
@@ -1486,7 +1486,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "error", None) is not None:
                     property_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "gate_error",
                             "unit": "",
                             "value": props.error,
@@ -1511,7 +1511,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "error", None) is not None:
                     props_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "readout_error",
                             "unit": "",
                             "value": props.error,
@@ -1520,7 +1520,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "duration", None) is not None:
                     props_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "readout_length",
                             "unit": "s",
                             "value": props.duration,
