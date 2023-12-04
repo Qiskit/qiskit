@@ -333,9 +333,8 @@ class UnitarySynthesis(TransformationPass):
                 set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
 
         Raises:
-            TranspilerError: if ``method`` was specified for the class and is not
-                found in the installed plugins list. The list of installed
-                plugins can be queried with
+            TranspilerError: if ``method`` was specified but is not found in the
+                installed plugins list. The list of installed plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
         super().__init__()
