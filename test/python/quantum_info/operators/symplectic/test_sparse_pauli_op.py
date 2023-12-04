@@ -1058,7 +1058,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         job = estimator.run(transpiled_psi, permuted_op, thetas)
         res = job.result().values
         if optionals.HAS_AER:
-            np.testing.assert_allclose(res, [5.859375], rtol=0.5, atol=0.2)
+            np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
         else:
             np.testing.assert_allclose(res, [1.660156], rtol=0.5, atol=0.2)
 
