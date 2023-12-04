@@ -375,12 +375,6 @@ class UnitarySynthesis(TransformationPass):
 
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
-
-        Raises:
-            TranspilerError: if ``method`` was specified for the class and is not
-                found in the installed plugins list. The list of installed
-                plugins can be queried with
-                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
 
         # If there aren't any gates to synthesize in the circuit we can skip all the iteration
