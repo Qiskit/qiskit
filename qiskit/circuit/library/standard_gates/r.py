@@ -99,3 +99,14 @@ class RGate(Gate):
         """Raise gate to a power."""
         theta, phi = self.params
         return RGate(exponent * theta, phi)
+
+    def __eq__(self, other):
+        if isinstance(other, RGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]) and math.isclose(
+                    self.params[1], other.params[1]
+                ):
+                    return True
+            except TypeError:
+                return self.params[0] == other.params[0] and self.params[1] == other.params[1]
+        return False

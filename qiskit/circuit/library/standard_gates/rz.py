@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
+import math
 from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
@@ -123,6 +124,14 @@ class RZGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZGate):
+            try:
+                return math.isclose(self.params[0], other.params[0])
+            except TypeError:
+                return self.params[0] == other.params[0]
+        return False
 
 
 class CRZGate(ControlledGate):
@@ -259,3 +268,12 @@ class CRZGate(ControlledGate):
                 [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRZGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]):
+                    return self.ctrl_state == other.ctrl_state
+            except TypeError:
+                return self.params[0] == other.params[0] and self.ctrl_state == other.ctrl_state
+        return False

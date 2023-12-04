@@ -113,6 +113,15 @@ class RXGate(Gate):
         (theta,) = self.params
         return RXGate(exponent * theta)
 
+    def __eq__(self, other):
+        if isinstance(other, RXGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]):
+                    return True
+            except TypeError:
+                return self.params[0] == other.params[0]
+        return False
+
 
 class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
@@ -244,3 +253,12 @@ class CRXGate(ControlledGate):
             return numpy.array(
                 [[cos, 0, -isin, 0], [0, 1, 0, 0], [-isin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRXGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]):
+                    return self.ctrl_state == other.ctrl_state
+            except TypeError:
+                return self.params[0] == other.params[0] and self.ctrl_state == other.ctrl_state
+        return False

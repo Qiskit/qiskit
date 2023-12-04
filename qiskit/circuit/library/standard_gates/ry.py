@@ -112,6 +112,15 @@ class RYGate(Gate):
         (theta,) = self.params
         return RYGate(exponent * theta)
 
+    def __eq__(self, other):
+        if isinstance(other, RYGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]):
+                    return True
+            except TypeError:
+                return self.params[0] == other.params[0]
+        return False
+
 
 class CRYGate(ControlledGate):
     r"""Controlled-RY gate.
@@ -239,3 +248,12 @@ class CRYGate(ControlledGate):
             return numpy.array(
                 [[cos, 0, -sin, 0], [0, 1, 0, 0], [sin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRYGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]):
+                    return self.ctrl_state == other.ctrl_state
+            except TypeError:
+                return self.params[0] == other.params[0] and self.ctrl_state == other.ctrl_state
+        return False

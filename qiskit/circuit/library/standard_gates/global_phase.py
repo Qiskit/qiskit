@@ -12,8 +12,11 @@
 
 """Global Phase Gate"""
 
+import math
 from typing import Optional
+
 import numpy
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -61,3 +64,12 @@ class GlobalPhaseGate(Gate):
         """Return a numpy.array for the global_phase gate."""
         theta = self.params[0]
         return numpy.array([[numpy.exp(1j * theta)]], dtype=dtype)
+
+    def __eq__(self, other):
+        if isinstance(other, GlobalPhaseGate):
+            try:
+                if math.isclose(self.params[0], other.params[0]):
+                    return True
+            except TypeError:
+                return self.params[0] == other.params[0]
+        return False

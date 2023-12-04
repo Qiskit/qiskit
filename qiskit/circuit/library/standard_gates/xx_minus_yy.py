@@ -177,3 +177,13 @@ class XXMinusYYGate(Gate):
         """Raise gate to a power."""
         theta, beta = self.params
         return XXMinusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXMinusYYGate):
+            try:
+                return math.isclose(self.params[0], other.params[0]) and math.isclose(
+                    self.params[1], other.params[1]
+                )
+            except TypeError:
+                return self.params[0] == other.params[0] and self.params[1] == other.params[1]
+        return False
