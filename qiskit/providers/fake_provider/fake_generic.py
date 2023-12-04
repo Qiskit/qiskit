@@ -174,26 +174,25 @@ class GenericTarget(Target):
     @property
     def noise_defaults(self) -> dict[str, tuple | None]:
         """Noise default values/ranges for duration and error of supported
-         instructions. There are three possible formats:
+         instructions. There are two possible formats:
 
             #. (min_duration, max_duration, min_error, max_error),
                 if the defaults are ranges
             #. (duration, error), if the defaults are fixed values
-            #. None
 
         Returns:
             Dictionary mapping instruction names to noise defaults
         """
         return {
-            "cx": (1e-5, 5e-3, 1e-8, 9e-7),
-            "ecr": (1e-5, 5e-3, 1e-8, 9e-7),
-            "id": (0.0, 0.0),
+            "cx": (1e-8, 9e-7, 1e-5, 5e-3),
+            "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
+            "id": (3e-8, 4e-8, 9e-5, 1e-4),
             "rz": (0.0, 0.0),
-            "sx": (1e-5, 5e-3, 1e-8, 9e-7),
-            "x": (1e-5, 5e-3, 1e-8, 9e-7),
-            "measure": (1e-5, 5e-3, 1e-8, 9e-7),
-            "delay": None,
-            "reset": None,
+            "sx": (1e-8, 9e-7, 1e-5, 5e-3),
+            "x": (1e-8, 9e-7, 1e-5, 5e-3),
+            "measure": (1e-8, 9e-7, 1e-5, 5e-3),
+            "delay": (None, None),
+            "reset": (None, None),
         }
 
     def add_noisy_instruction(
@@ -220,9 +219,7 @@ class GenericTarget(Target):
                 qargs = (qarg,)
 
             duration, error = (
-                (None, None)
-                if noise_params is None
-                else noise_params
+                noise_params
                 if len(noise_params) == 2
                 else (self._rng.uniform(*noise_params[:2]), self._rng.uniform(*noise_params[2:]))
             )
