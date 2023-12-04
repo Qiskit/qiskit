@@ -424,7 +424,7 @@ class TestSabrePreLayout(QiskitTestCase):
 
     def test_integration_with_pass_manager(self):
         """Tests SabrePreLayoutIntegration with the rest of PassManager pipeline."""
-        cmap20 = ALMADEN_CMAP
+        cmap20 = FakeAlmaden().configuration().coupling_map
         backend = FakeGeneric(
             num_qubits=20, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=cmap20, seed=42
         )
