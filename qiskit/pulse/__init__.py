@@ -40,8 +40,6 @@ noise in a quantum system.
 .. automodule:: qiskit.pulse.schedule
 .. automodule:: qiskit.pulse.transforms
 .. automodule:: qiskit.pulse.builder
-.. automodule:: qiskit.pulse.model
-
 
 .. currentmodule:: qiskit.pulse
 
@@ -169,16 +167,3 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
-
-from qiskit.pulse.model import (
-    PulseTarget,
-    Port,
-    LogicalElement,
-    Qubit,
-    Coupler,
-    Frame,
-    GenericFrame,
-    QubitFrame,
-    MeasurementFrame,
-    MixedFrame,
-)
