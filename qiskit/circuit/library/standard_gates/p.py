@@ -13,7 +13,6 @@
 """Phase Gate."""
 
 from __future__ import annotations
-import math
 from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -136,11 +135,7 @@ class PhaseGate(Gate):
 
     def __eq__(self, other):
         if isinstance(other, PhaseGate):
-            try:
-                if math.isclose(self.params[0], other.params[0], abs_tol=1e-10, rel_tol=0):
-                    return True
-            except TypeError:
-                return self.params[0] == other.params[0]
+            return self._compare_parameters(other)
         return False
 
 
@@ -275,11 +270,7 @@ class CPhaseGate(ControlledGate):
 
     def __eq__(self, other):
         if isinstance(other, CPhaseGate):
-            try:
-                if math.isclose(self.params[0], other.params[0]):
-                    return self.ctrl_state == other.ctrl_state
-            except TypeError:
-                return self.params[0] == other.params[0] and self.ctrl_state == other.ctrl_state
+            return self._compare_parameters(other)
         return False
 
 

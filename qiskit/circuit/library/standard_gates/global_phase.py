@@ -12,7 +12,6 @@
 
 """Global Phase Gate"""
 
-import math
 from typing import Optional
 
 import numpy
@@ -67,9 +66,5 @@ class GlobalPhaseGate(Gate):
 
     def __eq__(self, other):
         if isinstance(other, GlobalPhaseGate):
-            try:
-                if math.isclose(self.params[0], other.params[0], rel_tol=0, abs_tol=1e-10):
-                    return True
-            except TypeError:
-                return self.params[0] == other.params[0]
+            return self._compare_parameters(other)
         return False
