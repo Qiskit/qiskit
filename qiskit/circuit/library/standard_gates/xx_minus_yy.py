@@ -181,9 +181,9 @@ class XXMinusYYGate(Gate):
     def __eq__(self, other):
         if isinstance(other, XXMinusYYGate):
             try:
-                return math.isclose(self.params[0], other.params[0]) and math.isclose(
-                    self.params[1], other.params[1]
-                )
+                return math.isclose(
+                    self.params[0], other.params[0], rel_tol=0, abs_tol=1e-10
+                ) and math.isclose(self.params[1], other.params[1], rel_tol=0, abs_tol=1e-10)
             except TypeError:
                 return self.params[0] == other.params[0] and self.params[1] == other.params[1]
         return False

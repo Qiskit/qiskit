@@ -128,7 +128,7 @@ class RZGate(Gate):
     def __eq__(self, other):
         if isinstance(other, RZGate):
             try:
-                return math.isclose(self.params[0], other.params[0])
+                return math.isclose(self.params[0], other.params[0], rel_tol=0, abs_tol=1e-10)
             except TypeError:
                 return self.params[0] == other.params[0]
         return False
@@ -272,7 +272,7 @@ class CRZGate(ControlledGate):
     def __eq__(self, other):
         if isinstance(other, CRZGate):
             try:
-                if math.isclose(self.params[0], other.params[0]):
+                if math.isclose(self.params[0], other.params[0], rel_tol=0, abs_tol=1e-10):
                     return self.ctrl_state == other.ctrl_state
             except TypeError:
                 return self.params[0] == other.params[0] and self.ctrl_state == other.ctrl_state

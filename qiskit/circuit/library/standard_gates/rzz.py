@@ -144,7 +144,7 @@ class RZZGate(Gate):
     def __eq__(self, other):
         if isinstance(other, RZZGate):
             try:
-                if math.isclose(self.params[0], other.params[0]):
+                if math.isclose(self.params[0], other.params[0], rel_tol=0, abs_tol=1e-10):
                     return True
             except TypeError:
                 return self.params[0] == other.params[0]
