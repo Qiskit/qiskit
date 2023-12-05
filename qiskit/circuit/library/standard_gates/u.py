@@ -130,6 +130,22 @@ class UGate(Gate):
             dtype=dtype,
         )
 
+    def __eq__(self, other):
+        if isinstance(other, UGate):
+            try:
+                return (
+                    math.isclose(self.params[0], other.params[0], rel_tol=0, abs_tol=1e-10)
+                    and math.isclose(self.params[1], other.params[1], rel_tol=0, abs_tol=1e-10)
+                    and math.isclose(self.params[2], other.params[2], rel_tol=0, abs_tol=1e-10)
+                )
+            except TypeError:
+                return (
+                    self.params[0] == other.params[0]
+                    and self.params[1] == other.params[1]
+                    and self.params[2] == other.params[2]
+                )
+        return False
+
 
 class _CUGateParams(list):
     # This awful class is to let `CUGate.params` have its keys settable (as
