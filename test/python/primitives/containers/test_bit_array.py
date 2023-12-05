@@ -12,12 +12,14 @@
 
 """Unit tests for BitArray."""
 
-from qiskit.test import QiskitTestCase
 from itertools import product
+
 import ddt
 import numpy as np
-from qiskit.result import Counts
+
 from qiskit.primitives.containers import BitArray
+from qiskit.result import Counts
+from qiskit.test import QiskitTestCase
 
 
 @ddt.ddt

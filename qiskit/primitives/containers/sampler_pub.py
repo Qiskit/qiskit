@@ -23,22 +23,38 @@ from qiskit import QuantumCircuit
 
 from .base_pub import BasePub
 from .bindings_array import BindingsArray, BindingsArrayLike
-from .dataclasses import frozen_dataclass
 from .shape import ShapedMixin
 
 
-@frozen_dataclass
 class SamplerPub(BasePub, ShapedMixin):
     """Pub (Primitive Unified Bloc) for Sampler.
 
     Pub is composed of double (circuit, parameter_values).
     """
 
-    parameter_values: BindingsArray = BindingsArray(shape=())
-    _shape: Tuple[int, ...] = ()
+    __slots__ = ("_parameter_values",)
 
-    def __post_init__(self):
-        self._shape = self.parameter_values.shape
+    def __init__(
+        self,
+        circuit: QuantumCircuit,
+        parameter_values: BindingsArray | None = None,
+        validate: bool = False,
+    ):
+        """Initialize a sampler pub.
+
+        Args:
+            circuit: a quantum circuit.
+            parameter_values: a bindings array.
+            validate: if True, the input data is validated during initialization.
+        """
+        super().__init__(circuit, validate)
+        self._parameter_values = parameter_values or BindingsArray()
+        self._shape = self._parameter_values.shape
+
+    @property
+    def parameter_values(self) -> BindingsArray:
+        """A bindings array"""
+        return self._parameter_values
 
     @classmethod
     def coerce(cls, pub: SamplerPubLike) -> SamplerPub:
@@ -58,15 +74,13 @@ class SamplerPub(BasePub, ShapedMixin):
             raise ValueError(f"The length of pub must be 1 or 2, but length {len(pub)} is given.")
         circuit = pub[0]
         if len(pub) == 1:
-            return cls(circuit=pub)
+            return cls(circuit=circuit)
         parameter_values = BindingsArray.coerce(pub[1])
         return cls(circuit=circuit, parameter_values=parameter_values)
 
     def validate(self):
         """Validate the pub."""
-        super(SamplerPub, self).validate()  # pylint: disable=super-with-arguments
-        # I'm not sure why these arguments for super are needed. But if no args, tests are failed
-        # for Python >=3.10. Seems to be some bug, but I can't fix.
+        super().validate()
         self.parameter_values.validate()
         # Cross validate circuits and parameter values
         num_parameters = self.parameter_values.num_parameters

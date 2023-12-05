@@ -40,7 +40,7 @@ from .containers import (
     make_data_bin,
 )
 from .containers.bit_array import _min_num_bytes
-from .containers.options import mutable_dataclass
+from .containers.dataclasses import mutable_dataclass
 from .primitive_job import PrimitiveJob
 
 

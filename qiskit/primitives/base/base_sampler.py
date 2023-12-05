@@ -11,9 +11,66 @@
 # that they have been altered from the originals.
 
 r"""
-===================
-Overview of Sampler
-===================
+=====================
+Overview of SamplerV2
+=====================
+
+:class:`~BaseSamplerV2` is a primitive that samples bitstrings from quantum circuits.
+
+Following construction, a sampler is used by calling its :meth:`~.BaseSamplerV2.run` method
+with a list of pubs (Primitive Unified Blocks). Each pub contains two values that, together,
+define a computation unit of work for the sampler to complete:
+
+* a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized, whose final state we
+  define as :math:`\psi(\theta)`,
+
+* a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
+
+Running a sampler returns a :class:`~qiskit.provider.JobV1 object, where calling
+the method :meth:`~qiskit.provider.JobV1.result` results in bitstring samples and metadata
+for each pub.
+
+Here is an example of how sampler is used.
+
+
+.. code-block:: python
+
+    from qiskit.primitives.statevector_sampler import Sampler
+    from qiskit import QuantumCircuit
+    from qiskit.circuit.library import RealAmplitudes
+
+    # a Bell circuit
+    bell = QuantumCircuit(2)
+    bell.h(0)
+    bell.cx(0, 1)
+    bell.measure_all()
+
+    # two parameterized circuits
+    pqc = RealAmplitudes(num_qubits=2, reps=2)
+    pqc.measure_all()
+    pqc2 = RealAmplitudes(num_qubits=2, reps=3)
+    pqc2.measure_all()
+
+    theta1 = [0, 1, 1, 2, 3, 5]
+    theta2 = [0, 1, 2, 3, 4, 5, 6, 7]
+
+    # initialization of the sampler
+    sampler = Sampler()
+
+    # Sampler runs a job on the Bell circuit
+    job = sampler.run([bell])
+    job_result = job.result()
+    print(f"The primitive-job finished with result {job_result}"))
+
+    # Sampler runs a job on the parameterized circuits
+    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)]
+    job_result = job2.result()
+    print(f"The primitive-job finished with result {job_result}"))
+
+
+=====================
+Overview of SamplerV1
+=====================
 
 Sampler class calculates probabilities or quasi-probabilities of bitstrings from quantum circuits.
 
@@ -87,7 +144,7 @@ from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.options import BasePrimitiveOptionsLike
-from ..containers.sampler_pub import SamplerPub, SamplerPubLike
+from ..containers.sampler_pub import SamplerPubLike
 from . import validation
 from .base_primitive import BasePrimitiveV1, BasePrimitiveV2
 
@@ -217,7 +274,7 @@ class BaseSamplerV2(BasePrimitiveV2):
         super().__init__(options=options)
 
     @abstractmethod
-    def run(self, pubs: Iterable[SamplerPubLike]) -> T:
+    def run(self, pubs: Iterable[SamplerPubLike]) -> Job:
         """Run the pubs of samples.
 
         Args:
