@@ -2,4 +2,4 @@ blank_issues_enabled: true
 contact_links:
   - name: Non-API docs issues
     url: https://github.com/Qiskit/documentation/issues/new/choose
-    about: Open a documentation issue about pages that do not have /api/ in the url (e.g., docs in the Build, Run, Transpile etc. sections)
+    about: Open an issue about documentation in the Start, Build, Transpile, Verify, Run, or Migration guides sections (non-API documentation)
