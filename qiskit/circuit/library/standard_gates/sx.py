@@ -274,4 +274,4 @@ class CSXGate(SingletonControlledGate):
         self.definition = qc
 
     def __eq__(self, other):
-        return isinstance(other, CSXGate)
+        return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state
