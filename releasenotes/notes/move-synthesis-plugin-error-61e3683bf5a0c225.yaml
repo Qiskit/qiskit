@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    fixes issue #11355. If a nonexistent synthesis plugin is passed, `generate_preset_pass_manager` now raises an error 
-    when the pass manager is created, not when it is run.
+    The :class:`.UnitarySynthesis` transpiler pass will now generate an error on initialization when
+    a nonexistent sythesis plugin is specified, rather than waiting until runtime to raise.  Fixed
+    `#11355 <https://github.com/Qiskit/qiskit/issues/11355>`__.

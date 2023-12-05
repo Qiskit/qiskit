@@ -364,7 +364,7 @@ class UnitarySynthesis(TransformationPass):
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
         if self.method != "default" and self.method not in self.plugins.ext_plugins:
-            raise TranspilerError("Specified methodd: %s not found in plugin list" % self.method)
+            raise TranspilerError(f"Specified method '{self.method}' not found in plugin list")
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on ``dag``.
