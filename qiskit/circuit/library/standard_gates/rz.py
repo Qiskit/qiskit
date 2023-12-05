@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
-import math
 from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
