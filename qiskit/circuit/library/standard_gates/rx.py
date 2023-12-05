@@ -252,5 +252,5 @@ class CRXGate(ControlledGate):
 
     def __eq__(self, other):
         if isinstance(other, CRXGate):
-            return self._compare_parameters(other)
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
         return False
