@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -36,7 +36,7 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
-from qiskit.providers.fake_provider import FakeBelemV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import (
     HGate,
@@ -64,6 +64,7 @@ from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction import classical_function
@@ -6132,7 +6133,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with qc.if_test((creg[1], 1)):
                 qc.x(0)
 
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42)
         backend.target.add_instruction(IfElseOp, name="if_else")
 
         circuit = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,7 +21,7 @@ import numpy as np
 from numpy import pi
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.providers.fake_provider import FakeTenerife, FakeBelemV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.visualization.circuit.circuit_visualization import circuit_drawer
 from qiskit.circuit.library import (
     XGate,
@@ -53,6 +53,10 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
 from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+    TENERIFE_CMAP,
+    YORKTOWN_CMAP,
+)
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -834,7 +838,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         transpiled = transpile(
             circuit,
-            backend=FakeTenerife(),
+            backend=GenericBackendV2(5, coupling_map=TENERIFE_CMAP),
             basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
             initial_layout=[1, 2, 0],
@@ -2161,7 +2165,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 qc.cx(0, 1)
             with case(case.DEFAULT):
                 qc.h(0)
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         fname = "layout_control_flow.png"
@@ -2194,7 +2198,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             with case(case.DEFAULT):
                 with qc.if_test((creg[1], 0)):
                     qc.h(0)
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
@@ -2240,7 +2244,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_no_qreg_names_after_layout(self):
         """Test that full register names are not shown after transpilation.
         See https://github.com/Qiskit/qiskit-terra/issues/11038"""
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 1)

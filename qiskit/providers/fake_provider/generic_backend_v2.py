@@ -184,7 +184,7 @@ class GenericBackendV2(BackendV2):
             if num_qubits != self._coupling_map.size():
                 raise QiskitError(
                     f"The number of qubits (got {num_qubits}) must match "
-                    f"the size of the provided coupling map (got {coupling_map.size()})."
+                    f"the size of the provided coupling map (got {self._coupling_map.size()})."
                 )
 
         self._basis_gates = (
