@@ -10,6 +10,7 @@ API Reference
    circuit
    circuit_library
    circuit_classical
+   circuit_singleton
    compiler
    execute
    visualization
@@ -29,7 +30,6 @@ API Reference
    primitives
    qasm2
    qasm3
-   qasm
    qobj
    qpy
    quantum_info
@@ -43,18 +43,4 @@ API Reference
    transpiler_synthesis_plugins
    transpiler_builtin_plugins
    utils
-   utils_mitigation
    exceptions
-
-Deprecated Modules
-==================
-
-.. warning::
-
-   These modules are going to be removed in Qiskit 1.0. Consider pinning ``qiskit~=0.45`` in your dependencies if you need them.
-
-.. toctree::
-   :maxdepth: 1
-
-   algorithms
-   opflow

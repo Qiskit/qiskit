@@ -55,7 +55,6 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
-from qiskit.exceptions import MissingOptionalLibraryError
 
 
 @ddt.ddt
@@ -173,6 +172,22 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_controlled_unitary_gate(self):
+        """Test that numpy array parameters are correctly serialized
+        in controlled unitary gate."""
+        qc = QuantumCircuit(2)
+        unitary = np.array([[0, 1], [1, 0]])
+        gate = UnitaryGate(unitary)
+        qc.append(gate.control(1), [0, 1])
+
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc.decompose(reps=5), new_circ.decompose(reps=5))
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_opaque_gate(self):
@@ -1669,6 +1684,18 @@ class TestLoadFromQPY(QiskitTestCase):
             # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
             from qiskit.circuit.qpy_serialization import dump, load
 
+    @ddt.data(0, "01", [1, 0, 0, 0])
+    def test_valid_circuit_with_initialize_instruction(self, param):
+        """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
+        qc = QuantumCircuit(2)
+        qc.initialize(param, qc.qubits)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
     """Test use of symengine in qpy set of methods."""
@@ -1719,22 +1746,3 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(self.qc, new_circ)
         self.assertDeprecatedBitProperties(self.qc, new_circ)
-
-    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_dump_no_symengine(self):
-        """Test dump fails if symengine is not installed and use_symengine==True."""
-        qpy_file = io.BytesIO()
-        with optionals.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                dump(self.qc, qpy_file, use_symengine=True)
-
-    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_load_no_symengine(self):
-        """Test that load fails if symengine is not installed and the
-        file was created with use_symengine==True."""
-        qpy_file = io.BytesIO()
-        dump(self.qc, qpy_file, use_symengine=True)
-        qpy_file.seek(0)
-        with optionals.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                _ = load(qpy_file)[0]

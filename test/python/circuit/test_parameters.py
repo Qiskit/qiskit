@@ -804,16 +804,11 @@ class TestParameters(QiskitTestCase):
             for param in vec:
                 self.assertIn(param, qc_aer.parameters)
 
-    @data("single", "vector")
-    def test_parameter_equality_through_serialization(self, ptype):
+    def test_parameter_equality_through_serialization(self):
         """Verify parameters maintain their equality after serialization."""
 
-        if ptype == "single":
-            x1 = Parameter("x")
-            x2 = Parameter("x")
-        else:
-            x1 = ParameterVector("x", 2)[0]
-            x2 = ParameterVector("x", 2)[0]
+        x1 = Parameter("x")
+        x2 = Parameter("x")
 
         x1_p = pickle.loads(pickle.dumps(x1))
         x2_p = pickle.loads(pickle.dumps(x2))
@@ -823,6 +818,55 @@ class TestParameters(QiskitTestCase):
 
         self.assertNotEqual(x1, x2_p)
         self.assertNotEqual(x2, x1_p)
+
+    def test_parameter_vector_equality_through_serialization(self):
+        """Verify elements of parameter vectors maintain their equality after serialization."""
+
+        x1 = ParameterVector("x", 2)
+        x2 = ParameterVector("x", 2)
+
+        x1_p = pickle.loads(pickle.dumps(x1))
+        x2_p = pickle.loads(pickle.dumps(x2))
+
+        self.assertEqual(x1[0], x1_p[0])
+        self.assertEqual(x2[0], x2_p[0])
+
+        self.assertNotEqual(x1[0], x2_p[0])
+        self.assertNotEqual(x2[0], x1_p[0])
+
+        self.assertIs(x1_p[0].vector, x1_p)
+        self.assertIs(x2_p[0].vector, x2_p)
+        self.assertEqual([p.index for p in x1_p], list(range(len(x1_p))))
+        self.assertEqual([p.index for p in x2_p], list(range(len(x2_p))))
+
+    @data("single", "vector")
+    def test_parameter_equality_to_expression(self, ptype):
+        """Verify that parameters compare equal to `ParameterExpression`s that represent the same
+        thing."""
+
+        if ptype == "single":
+            x1 = Parameter("x")
+            x2 = Parameter("x")
+        else:
+            x1 = ParameterVector("x", 2)[0]
+            x2 = ParameterVector("x", 2)[0]
+
+        x1_expr = x1 + 0
+        # Smoke test: the test isn't valid if that above expression remains a `Parameter`; we need
+        # it to have upcast to `ParameterExpression`.
+        self.assertNotIsInstance(x1_expr, Parameter)
+        x2_expr = x2 + 0
+        self.assertNotIsInstance(x2_expr, Parameter)
+
+        self.assertEqual(x1, x1_expr)
+        self.assertEqual(x2, x2_expr)
+
+        self.assertNotEqual(x1, x2_expr)
+        self.assertNotEqual(x2, x1_expr)
+
+        # Since these two pairs of objects compared equal, they must have the same hash as well.
+        self.assertEqual(hash(x1), hash(x1_expr))
+        self.assertEqual(hash(x2), hash(x2_expr))
 
     def test_binding_parameterized_circuits_built_in_multiproc(self):
         """Verify subcircuits built in a subprocess can still be bound."""
@@ -1288,7 +1332,14 @@ def _paramvec_names(prefix, length):
 class TestParameterExpressions(QiskitTestCase):
     """Test expressions of Parameters."""
 
-    supported_operations = [add, sub, mul, truediv]
+    # supported operations dictionary operation : accuracy (0=exact match)
+    supported_operations = {
+        add: 0,
+        sub: 0,
+        mul: 0,
+        truediv: 0,
+        pow: 1e-12,
+    }
 
     def setUp(self):
         super().setUp()
@@ -1460,12 +1511,19 @@ class TestParameterExpressions(QiskitTestCase):
 
         x = Parameter("x")
 
-        for op in self.supported_operations:
+        for op, rel_tol in self.supported_operations.items():
             for const in good_constants:
                 expr = op(const, x)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(complex(bound_expr), op(const, 2.3))
+                res = complex(bound_expr)
+                expected = op(const, 2.3)
+                if rel_tol > 0:
+                    self.assertTrue(
+                        cmath.isclose(res, expected, rel_tol=rel_tol), f"{res} != {expected}"
+                    )
+                else:
+                    self.assertEqual(res, expected)
 
                 # Division by zero will raise. Tested elsewhere.
                 if const == 0 and op == truediv:
@@ -1520,7 +1578,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
         """Verify operations between a Parameter and a non-float will raise."""
 
-        bad_constants = ["1", numpy.Inf, numpy.NaN, None, {}, []]
+        bad_constants = ["1", numpy.inf, numpy.nan, None, {}, []]
 
         x = Parameter("x")
 
@@ -1909,6 +1967,21 @@ class TestParameterExpressions(QiskitTestCase):
             expr = x * x
             self.assertEqual(expr.gradient(x), 2 * x)
             self.assertEqual(expr.gradient(x).gradient(x), 2)
+
+    def test_parameter_expression_exp_log_vs_pow(self):
+        """Test exp, log, pow for ParameterExpressions by asserting x**y = exp(y log(x))."""
+
+        x = Parameter("x")
+        y = Parameter("y")
+        pow1 = x**y
+        pow2 = (y * x.log()).exp()
+        for x_val in [2, 1.3, numpy.pi]:
+            for y_val in [2, 1.3, 0, -1, -1.0, numpy.pi, 1j]:
+                with self.subTest(msg="with x={x_val}, y={y_val}"):
+                    vals = {x: x_val, y: y_val}
+                    pow1_val = pow1.bind(vals)
+                    pow2_val = pow2.bind(vals)
+                    self.assertTrue(cmath.isclose(pow1_val, pow2_val), f"{pow1_val} != {pow2_val}")
 
     def test_bound_expression_is_real(self):
         """Test is_real on bound parameters."""

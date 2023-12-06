@@ -30,6 +30,7 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.library import (
     HGate,
     IGate,
+    RGate,
     SdgGate,
     SGate,
     U3Gate,
@@ -446,6 +447,8 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         self.check_oneq_special_cases(U3Gate(-np.pi, 0.2, 0.0).to_matrix(), "RR", {"r": 1})
         self.check_oneq_special_cases(U3Gate(np.pi, 0.0, 0.2).to_matrix(), "RR", {"r": 1})
         self.check_oneq_special_cases(U3Gate(0.1, 0.2, 0.3).to_matrix(), "RR", {"r": 2})
+        self.check_oneq_special_cases(U3Gate(0.1, 0.2, -0.2).to_matrix(), "RR", {"r": 1})
+        self.check_oneq_special_cases(RGate(0.1, 0.2).to_matrix(), "RR", {"r": 1})
 
     def test_special_U1X(self):
         """Special cases of U1X"""
@@ -1547,6 +1550,105 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             self.assertEqual(ccirc.count_ops().get("cx", 0), 0)
         elif nqubits == 2:
             self.assertLessEqual(ccirc.count_ops().get("cx", 0), 3)
+
+    def test_a2_opt_single_2q(self):
+        """
+        Test a2_opt when a unitary causes a single final 2-qubit unitary for which this optimization
+        won't help. This came up in issue 10787.
+        """
+        # this somewhat unique signed permutation matrix seems to cause the issue
+        mat = np.array(
+            [
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                ],
+                [
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+                [
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    -1.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                    0.0 + 0.0j,
+                ],
+            ]
+        )
+
+        gate = UnitaryGate(mat)
+        qc = QuantumCircuit(3)
+        qc.append(gate, range(3))
+        try:
+            qc.to_gate().control(1)
+        except UnboundLocalError as uerr:
+            self.fail(str(uerr))
 
 
 class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):

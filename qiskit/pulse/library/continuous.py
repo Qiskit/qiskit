@@ -28,7 +28,7 @@ def constant(times: np.ndarray, amp: complex) -> np.ndarray:
         times: Times to output pulse for.
         amp: Complex pulse amplitude.
     """
-    return np.full(len(times), amp, dtype=np.complex_)
+    return np.full(len(times), amp, dtype=np.complex128)
 
 
 def zero(times: np.ndarray) -> np.ndarray:
@@ -50,7 +50,7 @@ def square(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np
         phase: Pulse phase.
     """
     x = times * freq + phase / np.pi
-    return amp * (2 * (2 * np.floor(x) - np.floor(2 * x)) + 1).astype(np.complex_)
+    return amp * (2 * (2 * np.floor(x) - np.floor(2 * x)) + 1).astype(np.complex128)
 
 
 def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -63,7 +63,7 @@ def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> 
         phase: Pulse phase.
     """
     x = times * freq + phase / np.pi
-    return amp * 2 * (x - np.floor(1 / 2 + x)).astype(np.complex_)
+    return amp * 2 * (x - np.floor(1 / 2 + x)).astype(np.complex128)
 
 
 def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -76,7 +76,7 @@ def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> 
         phase: Pulse phase.
     """
     return amp * (-2 * np.abs(sawtooth(times, 1, freq, phase=(phase - np.pi / 2) / 2)) + 1).astype(
-        np.complex_
+        np.complex128
     )
 
 
@@ -89,7 +89,7 @@ def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
         freq: Pulse frequency, units of 1/dt.
         phase: Pulse phase.
     """
-    return amp * np.cos(2 * np.pi * freq * times + phase).astype(np.complex_)
+    return amp * np.cos(2 * np.pi * freq * times + phase).astype(np.complex128)
 
 
 def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -101,7 +101,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
         freq: Pulse frequency, units of 1/dt.
         phase: Pulse phase.
     """
-    return amp * np.sin(2 * np.pi * freq * times + phase).astype(np.complex_)
+    return amp * np.sin(2 * np.pi * freq * times + phase).astype(np.complex128)
 
 
 def _fix_gaussian_width(
@@ -171,9 +171,9 @@ def gaussian(
         ret_x: Return centered and standard deviation normalized pulse location.
                $x=(times-center)/sigma.
     """
-    times = np.asarray(times, dtype=np.complex_)
+    times = np.asarray(times, dtype=np.complex128)
     x = (times - center) / sigma
-    gauss = amp * np.exp(-(x**2) / 2).astype(np.complex_)
+    gauss = amp * np.exp(-(x**2) / 2).astype(np.complex128)
 
     if zeroed_width is not None:
         gauss = _fix_gaussian_width(
@@ -295,9 +295,9 @@ def sech(
         ret_x: Return centered and standard deviation normalized pulse location.
             $x=(times-center)/sigma$.
     """
-    times = np.asarray(times, dtype=np.complex_)
+    times = np.asarray(times, dtype=np.complex128)
     x = (times - center) / sigma
-    sech_out = amp * sech_fn(x).astype(np.complex_)
+    sech_out = amp * sech_fn(x).astype(np.complex128)
 
     if zeroed_width is not None:
         sech_out = _fix_sech_width(
@@ -384,7 +384,7 @@ def gaussian_square(
         functools.partial(constant, amp=amp),
     ]
     condlist = [times <= square_start, times >= square_stop]
-    return np.piecewise(times.astype(np.complex_), condlist, funclist)
+    return np.piecewise(times.astype(np.complex128), condlist, funclist)
 
 
 def drag(

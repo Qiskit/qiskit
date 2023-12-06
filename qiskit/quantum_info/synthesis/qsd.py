@@ -245,7 +245,11 @@ def _apply_a2(circ):
     for i, instruction in enumerate(ccirc.data):
         if instruction.operation.name == "qsd2q":
             ind2q.append(i)
-    if not ind2q:
+    if len(ind2q) == 0:
+        return ccirc
+    elif len(ind2q) == 1:
+        # No neighbors to merge diagonal into; revert name
+        ccirc.data[ind2q[0]].operation.name = "Unitary"
         return ccirc
     # rolling over diagonals
     ind2 = None  # lint

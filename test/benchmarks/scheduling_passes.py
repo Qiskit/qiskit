@@ -15,13 +15,13 @@
 
 from qiskit import transpile
 from qiskit.circuit.library.standard_gates import XGate
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, PassManager
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.passes import (
     TimeUnitConversion,
-    ASAPSchedule,
-    ALAPSchedule,
-    DynamicalDecoupling,
+    ASAPScheduleAnalysis,
+    ALAPScheduleAnalysis,
+    PadDynamicalDecoupling,
 )
 from qiskit.converters import circuit_to_dag
 
@@ -109,22 +109,39 @@ class SchedulingPassBenchmarks:
             dt=1e-9,
         )
         self.timed_dag = TimeUnitConversion(self.durations).run(self.dag)
-        _pass = ALAPSchedule(self.durations)
-        _pass.property_set["time_unit"] = "dt"
-        self.scheduled_dag = _pass.run(self.timed_dag)
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+        self.scheduled_dag = pm.run(self.timed_dag)
 
     def time_time_unit_conversion_pass(self, _, __):
         TimeUnitConversion(self.durations).run(self.dag)
 
     def time_alap_schedule_pass(self, _, __):
-        _pass = ALAPSchedule(self.durations)
-        _pass.property_set["time_unit"] = "dt"
-        _pass.run(self.timed_dag)
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+        pm.run(self.timed_dag)
 
     def time_asap_schedule_pass(self, _, __):
-        _pass = ASAPSchedule(self.durations)
-        _pass.property_set["time_unit"] = "dt"
-        _pass.run(self.timed_dag)
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ASAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+        pm.run(self.timed_dag)
 
     def time_dynamical_decoupling_pass(self, _, __):
-        DynamicalDecoupling(self.durations, dd_sequence=[XGate(), XGate()]).run(self.scheduled_dag)
+        PadDynamicalDecoupling(self.durations, dd_sequence=[XGate(), XGate()]).run(
+            self.scheduled_dag
+        )

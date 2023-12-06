@@ -206,7 +206,9 @@ class TestTimeslot(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1, "bar"))[0]
+        self.program = qiskit.QuantumCircuit(qiskit.QuantumRegister(1, "bar"))
+        self.program._op_start_times = []
+        self.qubit = self.program.qubits[0]
 
         style = stylesheet.QiskitTimelineStyle()
         self.formatter = style.formatter
@@ -238,7 +240,10 @@ class TestTimeslot(QiskitTestCase):
 
     def test_gen_bit_name(self):
         """Test gen_bit_name generator."""
-        drawing_obj = generators.gen_bit_name(self.qubit, self.formatter)[0]
+        with self.assertWarnsRegex(UserWarning, "bits cannot be accurately named"):
+            generators.gen_bit_name(self.qubit, self.formatter)
+
+        drawing_obj = generators.gen_bit_name(self.qubit, self.formatter, program=self.program)[0]
 
         self.assertEqual(drawing_obj.data_type, str(types.LabelType.BIT_NAME.value))
         self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT])

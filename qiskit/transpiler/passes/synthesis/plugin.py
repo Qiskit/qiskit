@@ -130,18 +130,15 @@ plugins.
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by simply adding
-an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
-for the plugin package with the necessary entry points under the
-``qiskit.unitary_synthesis`` namespace. For example::
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the ``qiskit.unitary_synthesis`` namespace. For example:
 
-    entry_points = {
-        'qiskit.unitary_synthesis': [
-            'special = qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis',
-        ]
-    },
+.. code-block:: toml
 
-(note that the entry point ``name = path`` is a single string not a Python
-expression). There isn't a limit to the number of plugins a single package can
+    [project.entry-points."qiskit.unitary-synthesis"]
+    "special" = "qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis"
+
+There isn't a limit to the number of plugins a single package can
 include as long as each plugin has a unique name. So a single package can
 expose multiple plugins if necessary. The name ``default`` is used by Qiskit
 itself and can't be used in a plugin.
@@ -212,25 +209,21 @@ something like::
             return None
 
 The above example creates a plugin to synthesize objects of type
-:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
+:class:`.Clifford` that have
 at most 3 qubits, using the method ``synth_clifford_bm``.
 
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by adding
-an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
-for the plugin package with the necessary entry points under the
-``qiskit.synthesis`` namespace. For example::
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the ``qiskit.unitary_synthesis`` namespace. For example:
 
-    entry_points = {
-        'qiskit.synthesis': [
-            'clifford.special = qiskit_plugin_pkg.module.plugin:SpecialSynthesisClifford',
-        ]
-    },
+.. code-block:: toml
 
-(note that the entry point ``name = path`` is a single string not a Python
-expression). The ``name`` consists of two parts separated by dot ".": the
-name of the
+    [project.entry-points."qiskit.synthesis"]
+    "clifford.special" = "qiskit_plugin_pkg.module.plugin:SpecialSynthesisClifford"
+
+The ``name`` consists of two parts separated by dot ".": the name of the
 type of :class:`~qiskit.circuit.Operation` to which the synthesis plugin applies
 (``clifford``), and the name of the plugin (``special``).
 There isn't a limit to the number of plugins a single package can

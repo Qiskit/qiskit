@@ -34,6 +34,7 @@ Layout Selection (Placement)
    Layout2qDistance
    EnlargeWithAncilla
    FullAncillaAllocation
+   SabrePreLayout
 
 Routing
 =======
@@ -53,12 +54,12 @@ Basis Change
 .. autosummary::
    :toctree: ../stubs/
 
-   Unroller
-   Unroll3qOrMore
-   Decompose
-   UnrollCustomDefinitions
    BasisTranslator
+   Decompose
    TranslateParameterizedGates
+   Unroll3qOrMore
+   UnrollCustomDefinitions
+   Unroller
 
 Optimizations
 =============
@@ -88,6 +89,7 @@ Optimizations
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   NormalizeRXAngle
 
 Calibration
 =============
@@ -98,6 +100,7 @@ Calibration
    PulseGates
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
+   RXCalibrationBuilder
 
 Scheduling
 =============
@@ -111,13 +114,13 @@ Scheduling
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
-   AlignMeasures
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
    ALAPSchedule
    ASAPSchedule
    DynamicalDecoupling
+   AlignMeasures
 
 Circuit Analysis
 ================
@@ -161,9 +164,7 @@ Additional Passes
    :toctree: ../stubs/
 
    CheckMap
-   CheckCXDirection
    CheckGateDirection
-   CXDirection
    GateDirection
    MergeAdjacentBarriers
    RemoveBarriers
@@ -176,6 +177,7 @@ Additional Passes
    GatesInBasis
    ConvertConditionsToIfOps
    UnrollForLoops
+   FilterOpNodes
 """
 
 # layout selection (placement)
@@ -191,6 +193,7 @@ from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
 from .layout import FullAncillaAllocation
+from .layout import SabrePreLayout
 
 # routing
 from .routing import BasicSwap
@@ -232,6 +235,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import NormalizeRXAngle
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -256,26 +260,25 @@ from .synthesis import SolovayKitaevSynthesis
 from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
+from .calibration import RXCalibrationBuilder
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPScheduleAnalysis
 from .scheduling import ASAPScheduleAnalysis
-from .scheduling import ALAPSchedule
-from .scheduling import ASAPSchedule
 from .scheduling import PadDynamicalDecoupling
-from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures  # Deprecated
 from .scheduling import ValidatePulseGates
 from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import DynamicalDecoupling
+from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
-from .utils import CheckCXDirection  # Deprecated
-from .utils import CXDirection  # Deprecated
 from .utils import CheckGateDirection
 from .utils import GateDirection
 from .utils import BarrierBeforeFinalMeasurements
@@ -290,3 +293,4 @@ from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
+from .utils import FilterOpNodes

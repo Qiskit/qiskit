@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,30 +10,82 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """A generic implementation of Approximate Quantum Compiler."""
-from typing import Optional
+from __future__ import annotations
+
+from functools import partial
+
+from collections.abc import Callable
+from typing import Protocol
 
 import numpy as np
+from scipy.optimize import OptimizeResult, minimize
 
-from qiskit.algorithms.optimizers import L_BFGS_B, Optimizer
 from qiskit.quantum_info import Operator
+
 from .approximate import ApproximateCircuit, ApproximatingObjective
+
+
+class Minimizer(Protocol):
+    """Callable Protocol for minimizer.
+
+    This interface is based on `SciPy's optimize module
+    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+     This protocol defines a callable taking the following parameters:
+
+         fun
+             The objective function to minimize.
+         x0
+             The initial point for the optimization.
+         jac
+             The gradient of the objective function.
+         bounds
+             Parameters bounds for the optimization. Note that these might not be supported
+             by all optimizers.
+
+     and which returns a SciPy minimization result object.
+    """
+
+    def __call__(
+        self,
+        fun: Callable[[np.ndarray], float],
+        x0: np.ndarray,  # pylint: disable=invalid-name
+        jac: Callable[[np.ndarray], np.ndarray] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
+    ) -> OptimizeResult:
+        """Minimize the objective function.
+
+        This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
+        /scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+        Args:
+            fun: The objective function to minimize.
+            x0: The initial point for the optimization.
+            jac: The gradient of the objective function.
+            bounds: Parameters bounds for the optimization. Note that these might not be supported
+                by all optimizers.
+
+        Returns:
+             The SciPy minimization result object.
+        """
+        ...  # pylint: disable=unnecessary-ellipsis
 
 
 class AQC:
     """
-    A generic implementation of Approximate Quantum Compiler. This implementation is agnostic of
+    A generic implementation of the Approximate Quantum Compiler. This implementation is agnostic of
     the underlying implementation of the approximate circuit, objective, and optimizer. Users may
     pass corresponding implementations of the abstract classes:
 
-    * Optimizer is an instance of :class:`~qiskit.algorithms.optimizers.Optimizer` and used to run
-      the optimization process. A choice of optimizer may affect overall convergence, required time
+    * The *optimizer* is an implementation of the :class:`~.Minimizer` protocol, a callable used to run
+      the optimization process. The choice of optimizer may affect overall convergence, required time
       for the optimization process and achieved objective value.
 
-    * Approximate circuit represents a template which parameters we want to optimize.  Currently,
+    * The *approximate circuit* represents a template which parameters we want to optimize.  Currently,
       there's only one implementation based on 4-rotations CNOT unit blocks:
       :class:`.CNOTUnitCircuit`. See the paper for more details.
 
-    * Approximate objective is tightly coupled with the approximate circuit implementation and
+    * The *approximate objective* is tightly coupled with the approximate circuit implementation and
       provides two methods for computing objective function and gradient with respect to approximate
       circuit parameters. This objective is passed to the optimizer. Currently, there are two
       implementations based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective` and
@@ -50,18 +102,21 @@ class AQC:
 
     def __init__(
         self,
-        optimizer: Optional[Optimizer] = None,
-        seed: Optional[int] = None,
+        optimizer: Minimizer | None = None,
+        seed: int | None = None,
     ):
         """
         Args:
             optimizer: an optimizer to be used in the optimization procedure of the search for
-                the best approximate circuit. By default, :obj:`.L_BFGS_B` is used with max
-                iterations set to 1000.
-            seed: a seed value to be user by a random number generator.
+                the best approximate circuit. By default, the scipy minimizer with the
+                ``L-BFGS-B`` method is used with max iterations set to 1000.
+            seed: a seed value to be used by a random number generator.
         """
         super().__init__()
-        self._optimizer = optimizer
+        self._optimizer = optimizer or partial(
+            minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
+        )
+
         self._seed = seed
 
     def compile_unitary(
@@ -69,7 +124,7 @@ class AQC:
         target_matrix: np.ndarray,
         approximate_circuit: ApproximateCircuit,
         approximating_objective: ApproximatingObjective,
-        initial_point: Optional[np.ndarray] = None,
+        initial_point: np.ndarray | None = None,
     ) -> None:
         """
         Approximately compiles a circuit represented as a unitary matrix by solving an optimization
@@ -96,13 +151,11 @@ class AQC:
         # set the matrix to approximate in the algorithm
         approximating_objective.target_matrix = su_matrix
 
-        optimizer = self._optimizer or L_BFGS_B(maxiter=1000)
-
         if initial_point is None:
             np.random.seed(self._seed)
             initial_point = np.random.uniform(0, 2 * np.pi, approximating_objective.num_thetas)
 
-        opt_result = optimizer.minimize(
+        opt_result = self._optimizer(
             fun=approximating_objective.objective,
             x0=initial_point,
             jac=approximating_objective.gradient,
