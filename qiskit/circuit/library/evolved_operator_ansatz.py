@@ -32,9 +32,9 @@ class EvolvedOperatorAnsatz(NLocal):
     """The evolved operator ansatz."""
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     def __init__(
         self,
@@ -91,9 +91,9 @@ class EvolvedOperatorAnsatz(NLocal):
         self._ops_are_parameterized = None
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         """Check if the current configuration is valid."""
@@ -108,9 +108,9 @@ class EvolvedOperatorAnsatz(NLocal):
         return True
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     @property
     def num_qubits(self) -> int:
@@ -123,9 +123,9 @@ class EvolvedOperatorAnsatz(NLocal):
         return self.operators.num_qubits
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     @property
     def evolution(self):
@@ -138,9 +138,9 @@ class EvolvedOperatorAnsatz(NLocal):
         return self._evolution
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     @evolution.setter
     def evolution(self, evol) -> None:
@@ -153,9 +153,9 @@ class EvolvedOperatorAnsatz(NLocal):
         self._evolution = evol
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     @property
     def operators(self):
@@ -167,9 +167,9 @@ class EvolvedOperatorAnsatz(NLocal):
         return self._operators
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     @operators.setter
     def operators(self, operators=None) -> None:
@@ -187,10 +187,10 @@ class EvolvedOperatorAnsatz(NLocal):
 
     # TODO: the `preferred_init_points`-implementation can (and should!) be improved!
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
-    )    
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
+    )
     @property
     def preferred_init_points(self):
         """Getter of preferred initial points based on the given initial state."""
@@ -207,9 +207,9 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     def _evolve_operator(self, operator, time):
 
@@ -232,9 +232,9 @@ class EvolvedOperatorAnsatz(NLocal):
         return evolved
 
     @deprecate_func(
-            since="0.46.0",
-            package_name="qiskit",
-            additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+        since="0.46.0",
+        package_name="qiskit",
+        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
     )
     def _build(self):
         if self._is_built:
@@ -265,9 +265,9 @@ class EvolvedOperatorAnsatz(NLocal):
 
 
 @deprecate_func(
-        since="0.46.0",
-        package_name="qiskit",
-        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
 )
 def _validate_operators(operators):
     if not isinstance(operators, list):
@@ -282,9 +282,9 @@ def _validate_operators(operators):
 
 
 @deprecate_func(
-        since="0.46.0",
-        package_name="qiskit",
-        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
 )
 def _validate_prefix(parameter_prefix, operators):
     if isinstance(parameter_prefix, str):
@@ -296,9 +296,9 @@ def _validate_prefix(parameter_prefix, operators):
 
 
 @deprecate_func(
-        since="0.46.0",
-        package_name="qiskit",
-        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library"
+    since="0.46.0",
+    package_name="qiskit",
+    additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
 )
 def _is_pauli_identity(operator):
     if isinstance(operator, SparsePauliOp):
