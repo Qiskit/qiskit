@@ -17,7 +17,6 @@ from collections.abc import Sequence
 
 import numpy as np
 
-
 from qiskit.circuit.library.n_local.n_local import NLocal
 from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter

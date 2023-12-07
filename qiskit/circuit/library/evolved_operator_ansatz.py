@@ -34,7 +34,9 @@ class EvolvedOperatorAnsatz(NLocal):
     @deprecate_func(
         since="0.46.0",
         package_name="qiskit",
-        additional_msg="The class EvolvedOperatorAnsatz has been moved to the n_local library",
+        additional_msg="The class EvolvedOperatorAnsatz has"
+        "been moved to the n_local library instead use"
+        "EvolvedOperatorAnsatz from qiskit.circuit.library.n_local",
     )
     def __init__(
         self,
