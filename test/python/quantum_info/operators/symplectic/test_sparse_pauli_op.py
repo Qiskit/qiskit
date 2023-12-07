@@ -17,7 +17,9 @@ import unittest
 from test import combine
 
 import numpy as np
+import scipy.sparse
 from ddt import ddt
+
 
 from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
@@ -257,6 +259,19 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
         np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
+
+    def test_to_matrix_zero(self):
+        """Test `to_matrix` with a zero operator."""
+        num_qubits = 4
+        zero_numpy = np.zeros((2**num_qubits, 2**num_qubits), dtype=np.complex128)
+        zero = SparsePauliOp.from_list([], num_qubits=num_qubits)
+
+        zero_dense = zero.to_matrix(sparse=False)
+        np.testing.assert_array_equal(zero_dense, zero_numpy)
+
+        zero_sparse = zero.to_matrix(sparse=True)
+        self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
+        np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
 
     def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""

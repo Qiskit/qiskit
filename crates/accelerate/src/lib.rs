@@ -25,12 +25,15 @@ mod nlayout;
 mod optimize_1q_gates;
 mod pauli_exp_val;
 mod quantum_circuit;
+mod rayon_ext;
 mod results;
 mod sabre_layout;
 mod sabre_swap;
 mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
+#[cfg(test)]
+mod test;
 mod vf2_layout;
 
 #[inline]
