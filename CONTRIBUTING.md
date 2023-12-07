@@ -10,7 +10,7 @@ community in this goal.
 * [Choose an issue to work on](#Choose-an-issue-to-work-on)
 * [Set up Python virtual development environment](#set-up-python-virtual-development-environment)
 * [Installing Qiskit from source](#installing-qiskit-from-source)
-* [Pull requests](#pull-requests)
+* [Issues and pull requests](#issues-and-pull-requests)
 * [Contributor Licensing Agreement](#contributor-licensing-agreement)
 * [Changelog generation](#changelog-generation)
 * [Release notes](#release-notes)
