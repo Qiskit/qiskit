@@ -148,7 +148,7 @@ the code. It also lets the community know what you're working on, and if you
 need help, you can reference the issue when discussing it with other community
 and team members.
 
-* For documentation issues relating to pages in the Start, Build, Transpile, Verify, Run, and Migration guides sections of docs.quantum.ibm.com, please open an issue in the [Qiskit/documentation repo](https://github.com/Qiskit/documentation/issues/new/choose) rather than the Qiskit/qiskit repo. In other words, any page that DOES NOT have `/api/` in the url should be addressed in the Qiskit/documentation repo. (Exception: the Migration guide urls contain `/api/` but are managed in the Qiskit/documentation repo.)
+* For documentation issues relating to pages in the Start, Build, Transpile, Verify, Run, and Migration guides sections of [docs.quantum.ibm.com](https://docs.quantum.ibm.com/), please open an issue in the [Qiskit/documentation repo](https://github.com/Qiskit/documentation/issues/new/choose) rather than the Qiskit/qiskit repo. In other words, any page that DOES NOT have `/api/` in the url should be addressed in the Qiskit/documentation repo. (Exception: the Migration guide urls contain `/api/` but are managed in the Qiskit/documentation repo.)
 * For issues relating to API reference pages (any page that contains /api/ in the url), please open an issue in the repo specific to that API reference.
 
 If you've written some code but need help finishing it, want to get initial
