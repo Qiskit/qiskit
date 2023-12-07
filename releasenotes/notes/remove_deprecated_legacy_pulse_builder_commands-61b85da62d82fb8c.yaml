@@ -13,7 +13,8 @@ upgrade:
     :func:`~qiskit.pulse.builder.x`,
     :func:`~qiskit.pulse.builder.active_transpiler_settings`,
     :func:`~qiskit.pulse.builder.active_circuit_scheduler_settings`,
-    :func:`~qiskit.pulse.builder.transpiler_settings`
+    :func:`~qiskit.pulse.builder.transpiler_settings`,
+    :func:`~qiskit.pulse.builder.circuit_scheduler_settings`
 
     :func:`~qiskit.pulse.builder._compile_lazy_circuit_before`,
     :func:`~qiskit.pulse.builder._PulseBuilder.transpiler_settings`,

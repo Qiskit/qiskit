@@ -95,7 +95,6 @@ from qiskit.pulse.builder import (
     align_left,
     align_right,
     align_sequential,
-    circuit_scheduler_settings,
     frequency_offset,
     phase_offset,
     # Macros.

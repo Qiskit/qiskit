@@ -343,7 +343,6 @@ be used to align all pulses as late as possible in a pulse program.
 .. autofunction:: align_left
 .. autofunction:: align_right
 .. autofunction:: align_sequential
-.. autofunction:: circuit_scheduler_settings
 .. autofunction:: frequency_offset
 .. autofunction:: phase_offset
 
@@ -410,7 +409,6 @@ how the program is built.
 .. autofunction:: samples_to_seconds
 .. autofunction:: seconds_to_samples
 """
-import collections
 import contextvars
 import functools
 import itertools
@@ -424,7 +422,6 @@ from typing import (
     Dict,
     Iterable,
     List,
-    Mapping,
     Optional,
     Set,
     TypeVar,
@@ -516,9 +513,6 @@ class _PulseBuilder:
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
         self._backend_ctx_token = None
 
-        #: Dict[str, Any]: Scheduler setting dictionary.
-        self._circuit_scheduler_settings = {}
-
         #: List[ScheduleBlock]: Stack of context.
         self._context_stack = []
 
@@ -604,15 +598,6 @@ class _PulseBuilder:
         if isinstance(self.backend, BackendV2):
             return self.backend.num_qubits
         return self.backend.configuration().n_qubits
-
-    @property
-    def circuit_scheduler_settings(self) -> Mapping:
-        """The builder's circuit to pulse scheduler settings."""
-        return self._circuit_scheduler_settings
-
-    @circuit_scheduler_settings.setter
-    def circuit_scheduler_settings(self, settings: Mapping):
-        self._circuit_scheduler_settings = settings
 
     def compile(self) -> ScheduleBlock:
         """Compile and output the built pulse program."""
@@ -1291,52 +1276,6 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
     finally:
         current = builder.pop_context()
         builder.append_subroutine(current)
-
-
-@contextmanager
-def circuit_scheduler_settings(**settings) -> ContextManager[None]:
-    """Set the currently active circuit scheduler settings for this context.
-
-    Examples:
-
-    .. code-block::
-
-        from qiskit.providers.fake_provider import FakePerth
-        backend = FakePerth()
-
-        from qiskit import pulse
-        from qiskit import compiler
-
-        with pulse.build(backend) as sched:
-
-            with pulse.circuit_scheduler_settings(method='alap'):
-                pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
-                pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
-                pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(1))
-
-            pulse.barrier(0,1)
-            pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, 0.1, 10), pulse.DriveChannel(1))
-
-        sched.draw()
-
-
-    .. parsed-literal::
-
-       {}
-       {'method': 'alap'}
-
-    """
-    builder = _active_builder()
-    curr_circuit_scheduler_settings = builder.circuit_scheduler_settings
-    builder.circuit_scheduler_settings = collections.ChainMap(
-        settings, curr_circuit_scheduler_settings
-    )
-    try:
-        yield
-    finally:
-        builder.circuit_scheduler_settings = curr_circuit_scheduler_settings
 
 
 @contextmanager
