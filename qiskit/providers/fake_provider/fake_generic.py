@@ -29,7 +29,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
-from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate
+from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate, CZGate
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitProperties
 from qiskit.providers import Options
@@ -102,7 +102,7 @@ class GenericTarget(Target):
         # Hardcoded default target attributes. To modify,
         # access corresponding properties through the public `Target` API
         super().__init__(
-            description="Generic Target",
+            description=f"Generic Target with {num_qubits} qubits",
             num_qubits=num_qubits,
             dt=0.222e-9,
             qubit_properties=[
@@ -162,6 +162,7 @@ class GenericTarget(Target):
         return {
             "cx": CXGate(),
             "ecr": ECRGate(),
+            "cz": CZGate(),
             "id": IGate(),
             "rz": RZGate(Parameter("theta")),
             "sx": SXGate(),
@@ -186,6 +187,7 @@ class GenericTarget(Target):
         return {
             "cx": (1e-8, 9e-7, 1e-5, 5e-3),
             "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
+            "cz": (1e-8, 9e-7, 1e-5, 5e-3),
             "id": (3e-8, 4e-8, 9e-5, 1e-4),
             "rz": (0.0, 0.0),
             "sx": (1e-8, 9e-7, 1e-5, 5e-3),
@@ -201,7 +203,7 @@ class GenericTarget(Target):
         """Add instruction properties to target for specified instruction.
 
         Args:
-            instruction (Instruction): Instance of instruction to be added to the target
+            instruction (qiskit.circuit.Instruction): Instance of instruction to be added to the target
             noise_params (tuple[float, ...] | None): error and duration noise values/ranges to
                 include in instruction properties.
 
@@ -365,6 +367,10 @@ class FakeGeneric(BackendV2):
     (with a fixable ``seed``) driven from a series of optional input arguments.
     """
 
+    # Added backend_name for compatibility with
+    # snapshot-based fake backends.
+    backend_name = "FakeGeneric"
+
     def __init__(
         self,
         num_qubits: int,
@@ -373,6 +379,7 @@ class FakeGeneric(BackendV2):
         coupling_map: list[list[int]] | CouplingMap | None = None,
         control_flow: bool = False,
         calibrate_instructions: list[str] | None = None,
+        dtm: float = None,
         seed: int = 42,
     ):
         """
@@ -416,16 +423,20 @@ class FakeGeneric(BackendV2):
                 instructions are provided, the target generator will append
                 empty calibration schedules by default.
 
+            dtm (float): System time resolution of output signals in nanoseconds.
+                None by default.
+
             seed (int): Optional seed for generation of default values.
         """
 
         super().__init__(
             provider=None,
-            name="fake_generic",
+            name=f"fake_generic_{num_qubits}q",
             description=f"This is a fake device with {num_qubits} " f"and generic settings.",
             backend_version="",
         )
         self._rng = np.random.default_rng(seed=seed)
+        self._dtm = dtm
 
         # the coupling map is necessary to build the default channels
         if coupling_map is None:
@@ -455,6 +466,19 @@ class FakeGeneric(BackendV2):
     @property
     def max_circuits(self):
         return None
+
+    @property
+    def dtm(self) -> float:
+        """Return the system time resolution of output signals
+
+        Returns:
+            The output signal timestep in seconds.
+        """
+        if self._dtm is not None:
+            # converting `dtm` in nanoseconds in configuration file to seconds
+            return self._dtm * 1e-9
+        else:
+            return None
 
     @property
     def meas_map(self) -> list[list[int]]:
