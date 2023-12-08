@@ -662,12 +662,12 @@ macro_rules! impl_to_matrix_sparse {
             let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
             let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
             let mut indptr: Vec<$int_ty> = vec![0; side + 1];
+            let mut nnz = 0;
             for i_row in 0..side {
                 order.sort_unstable_by(|&a, &b| {
                     ((i_row as $uint_ty) ^ (paulis.x_like[a] as $uint_ty))
                         .cmp(&((i_row as $uint_ty) ^ (paulis.x_like[b] as $uint_ty)))
                 });
-                let mut nnz = 0;
                 let mut running = Complex64::new(0.0, 0.0);
                 let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
                 for (x_like, z_like, coeff) in order
@@ -694,7 +694,7 @@ macro_rules! impl_to_matrix_sparse {
                 nnz += 1;
                 values.push(running);
                 indices.push(prev_index as $int_ty);
-                indptr[i_row + 1] = indptr[i_row] + nnz;
+                indptr[i_row + 1] = nnz;
             }
             (values, indices, indptr)
         }
@@ -743,12 +743,12 @@ macro_rules! impl_to_matrix_sparse {
                     let mut values =
                         Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
                     let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
+                    let mut nnz = 0;
                     for i_row in start..end {
                         order.sort_unstable_by(|&a, &b| {
                             (i_row as $uint_ty ^ paulis.x_like[a] as $uint_ty)
                                 .cmp(&(i_row as $uint_ty ^ paulis.x_like[b] as $uint_ty))
                         });
-                        let mut nnz = 0;
                         let mut running = Complex64::new(0.0, 0.0);
                         let mut prev_index = i_row ^ (paulis.x_like[order[0]] as usize);
                         for (x_like, z_like, coeff) in order
@@ -775,17 +775,32 @@ macro_rules! impl_to_matrix_sparse {
                         nnz += 1;
                         values.push(running);
                         indices.push(prev_index as $int_ty);
+                        // When we write it, this is a cumulative `nnz` _within the chunk_.  We
+                        // turn that into a proper cumulative sum in serial afterwards.
                         indptr_chunk[i_row - start] = nnz;
                     }
                     (values, indices)
                 })
                 .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
+            // Turn the chunkwise nnz counts into absolute nnz counts.
+            let mut start_nnz = 0usize;
+            let chunk_nnz = values_chunks
+                .iter()
+                .map(|chunk| {
+                    let prev = start_nnz;
+                    start_nnz += chunk.len();
+                    prev as $int_ty
+                })
+                .collect::<Vec<_>>();
+            indptr[1..]
+                .par_chunks_mut(chunk_size)
+                .zip(chunk_nnz)
+                .for_each(|(indptr_chunk, start_nnz)| {
+                    indptr_chunk.iter_mut().for_each(|nnz| *nnz += start_nnz);
+                });
+            // Concatenate the chunkwise values and indices togther.
             let values = copy_flat_parallel(&values_chunks);
             let indices = copy_flat_parallel(&indices_chunks);
-            indptr.iter_mut().fold(0, |total, val| {
-                *val += total;
-                *val
-            });
             (values, indices, indptr)
         }
     };
