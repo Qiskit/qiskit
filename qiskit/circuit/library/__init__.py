@@ -578,5 +578,4 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz
 from .overlap import UnitaryOverlap
