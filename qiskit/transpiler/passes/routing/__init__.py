@@ -19,3 +19,4 @@ from .stochastic_swap import StochasticSwap
 from .sabre_swap import SabreSwap
 from .commuting_2q_gate_routing.commuting_2q_gate_router import Commuting2qGateRouter
 from .commuting_2q_gate_routing.swap_strategy import SwapStrategy
+from .star_prerouting import StarPreRouting
