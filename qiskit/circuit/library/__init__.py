@@ -559,6 +559,7 @@ from .n_local import (
     PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
+    EvolvedOperatorAnsatz,
     ExcitationPreserving,
     QAOAAnsatz,
 )
