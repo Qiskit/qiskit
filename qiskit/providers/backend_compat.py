@@ -18,7 +18,6 @@ from typing import List, Iterable, Any, Dict, Optional, Tuple
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
-from qiskit.utils.units import apply_prefix
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
 
@@ -157,62 +156,44 @@ def convert_to_target(
         if filter_faulty:
             faulty_qubits = properties.faulty_qubits()
 
-        for gate in properties.gates:
-            name = gate.gate
-            qubits = tuple(gate.qubits)
-            if name not in all_instructions:
-                logger.info(
-                    "Gate property for instruction %s on qubits %s is found "
-                    "in the BackendProperties payload. However, this gate is not included in the "
-                    "basis_gates or supported_instructions, or maybe the gate model "
-                    "is not defined in the Qiskit namespace. This gate is ignored.",
-                    name,
-                    qubits,
-                )
-                continue
+        for name in prop_name_map.keys():
+            for qubits, params in properties.gate_property(name).items():
+                in_param = {
+                    "error": params["gate_error"][0] if "gate_error" in params else None,
+                    "duration": params["gate_length"][0] if "gate_length" in params else None,
+                }
+                inst_prop = InstructionProperties(**in_param)
 
-            in_param = {}
-            for param in gate.parameters:
-                if param.name == "gate_error":
-                    in_param["error"] = param.value
-                elif param.name == "gate_length":
-                    in_param["duration"] = apply_prefix(value=param.value, unit=param.unit)
+                if filter_faulty and (
+                    (not properties.is_gate_operational(name, qubits))
+                    or any(not properties.is_qubit_operational(qubit) for qubit in qubits)
+                ):
+                    faulty_ops.add((name, qubits))
+                    try:
+                        del prop_name_map[name][qubits]
+                    except KeyError:
+                        pass
+                    continue
 
-            inst_prop = InstructionProperties(**in_param)
+                if prop_name_map[name] is None:
+                    prop_name_map[name] = {}
 
-            if filter_faulty and (
-                (not properties.is_gate_operational(name, gate.qubits))
-                or any(not properties.is_qubit_operational(qubit) for qubit in gate.qubits)
-            ):
-                faulty_ops.add((name, qubits))
-                try:
-                    del prop_name_map[name][qubits]
-                except KeyError:
-                    pass
-                continue
-
-            if prop_name_map[name] is None:
-                prop_name_map[name] = {}
-            prop_name_map[name][qubits] = inst_prop
+                prop_name_map[name][qubits] = inst_prop
 
         # Measure instruction property is stored in qubit property
-        measure_props = []
+        prop_name_map["measure"] = {}
 
         for qubit_idx in range(configuration.num_qubits):
-            qubit_prop = properties.qubit_property(qubit_idx)
-            in_prop = {}
-            if "readout_length" in qubit_prop:
-                in_prop["duration"] = qubit_prop["readout_length"][0]
-            elif "readout_error" in qubit_prop:
-                in_prop["error"] = qubit_prop["readout_error"][0]
-            measure_props.append(InstructionProperties(**in_prop))
-
-        prop_name_map["measure"] = {}
-        for qubit, measure_prop in enumerate(measure_props):
-            if qubit in faulty_qubits:
+            if qubit_idx in faulty_qubits:
                 continue
-            qubits = (qubit,)
-            prop_name_map["measure"][qubits] = measure_prop
+            qubit_prop = properties.qubit_property(qubit_idx)
+            in_prop = {
+                "duration": qubit_prop["readout_length"][0]
+                if "readout_length" in qubit_prop
+                else None,
+                "error": qubit_prop["readout_error"][0] if "readout_error" in qubit_prop else None,
+            }
+            prop_name_map["measure"][(qubit_idx,)] = InstructionProperties(**in_prop)
 
     if add_delay and "delay" not in prop_name_map:
         prop_name_map["delay"] = {
