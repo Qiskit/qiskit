@@ -194,7 +194,7 @@ class BackendSampler(BaseSamplerV2):
         job.submit()
         return job
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: Iterable[SamplerPubLike]) -> PrimitiveResult[PubResult]:
         coerced_pubs = [SamplerPub.coerce(pub) for pub in pubs]
         for pub in coerced_pubs:
             pub.validate()

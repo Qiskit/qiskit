@@ -20,11 +20,11 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import Field
-from pydantic.types import PositiveInt
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
+from qiskit.circuit import ControlFlowOp
 from qiskit.quantum_info import Statevector
+from qiskit.utils.optionals import HAS_PYDANTIC
 
 from .base import BaseSamplerV2
 from .base.validation import _has_measure
@@ -43,7 +43,14 @@ from .containers.dataclasses import mutable_dataclass
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
+if HAS_PYDANTIC:
+    from pydantic import Field
+    from pydantic.types import PositiveInt
+else:
+    from dataclasses import field as Field
 
+
+@HAS_PYDANTIC.require_in_instance
 @mutable_dataclass
 class ExecutionOptions(BasePrimitiveOptions):
     """Options for execution."""
@@ -52,6 +59,7 @@ class ExecutionOptions(BasePrimitiveOptions):
     seed: Optional[Union[int, np.random.Generator]] = None
 
 
+@HAS_PYDANTIC.require_in_instance
 @mutable_dataclass
 class Options(BasePrimitiveOptions):
     """Options for the primitives.
@@ -71,6 +79,7 @@ class _MeasureInfo:
     qreg_indices: List[int]
 
 
+@HAS_PYDANTIC.require_in_instance
 class Sampler(BaseSamplerV2):
     """
     Simple implementation of :class:`BaseSamplerV2` with Statevector.
@@ -103,7 +112,7 @@ class Sampler(BaseSamplerV2):
         job.submit()
         return job
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: Iterable[SamplerPubLike]) -> PrimitiveResult[PubResult]:
         coerced_pubs = [SamplerPub.coerce(pub) for pub in pubs]
         for pub in coerced_pubs:
             pub.validate()
@@ -151,6 +160,8 @@ def _preprocess_circuit(circuit: QuantumCircuit):
     mapping = _final_measurement_mapping(circuit)
     qargs = sorted(set(mapping.values()))
     circuit = circuit.remove_final_measurements(inplace=False)
+    if _has_control_flow(circuit):
+        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp")
     if _has_measure(circuit):
         raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
     num_qubits = circuit.num_qubits
@@ -176,9 +187,10 @@ def _samples_to_packed_array(
     samples: NDArray[np.uint8], num_bits: int, indices: List[int]
 ) -> NDArray[np.uint8]:
     # samples of `Statevector.sample_memory` will be in the order of
-    # qubit_0, qubit_1, ..., qubit_last
-    # pad 0 in the rightmost to be used for the sentinel introduced by _preprocess_circuit
-    ary = np.pad(samples, ((0, 0), (0, 1)), constant_values=0)
+    # qubit_last, ..., qubit_1, qubit_0.
+    # reverse the sample order into qubit_0, qubit_1, ..., qubit_last and
+    # pad 0 in the rightmost to be used for the sentinel introduced by _preprocess_circuit.
+    ary = np.pad(samples[:, ::-1], ((0, 0), (0, 1)), constant_values=0)
     # place samples in the order of clbit_last, ..., clbit_1, clbit_0
     ary = ary[:, indices[::-1]]
     # pad 0 in the left to align the number to be mod 8
@@ -223,3 +235,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> Dict[Tuple[ClassicalR
             break
 
     return mapping
+
+
+def _has_control_flow(circuit: QuantumCircuit) -> bool:
+    return any(isinstance(instruction.operation, ControlFlowOp) for instruction in circuit)
