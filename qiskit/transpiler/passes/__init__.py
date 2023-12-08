@@ -146,6 +146,7 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   HLSConfig
    SolovayKitaev
    SolovayKitaevSynthesis
 
@@ -253,6 +254,7 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
 

@@ -232,6 +232,9 @@ include as long as each plugin has a unique name.
 Using Plugins
 =============
 
+Unitary Synthesis Plugins
+-------------------------
+
 To use a plugin all you need to do is install the package that includes a
 synthesis plugin. Then Qiskit will automatically discover the installed
 plugins and expose them as valid options for the appropriate
@@ -242,6 +245,36 @@ Python logging.
 To get the installed list of installed unitary synthesis plugins you can use the
 :func:`qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
 function.
+
+High Level Synthesis Plugins
+----------------------------
+
+To use a high level synthesis you leverage the :class:`.HLSConfig` class to
+create an input configuration for how to synthesize multiple high level
+plugins. For example::
+
+    HLSConfig(permutation=["acg"], clifford=["layers"], linear_function=["pmh"])
+
+will create a high level synthesis configuration that will use the ``acg`` plugin
+for synthesizing :class:`.PermutationGate` objects, the ``layers`` plugin
+for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesizing
+:class:`.LinearFunction` objects. The :class:`.HLSConfig` class
+has the flexibility to specify multiple plugins in sequence which will enable
+trying multiple synthesis plugins and using the first one that successsfully
+synthesizes the object and also to pass tuples of the plugin along with options
+to adjust the behavior of the synthesis plugin.
+
+Once created you then pass this :class:`.HLSConfig` object into the
+``hls_config`` argument for :func:`.transpile` or :func:`.generate_preset_pass_manager`
+which will use the specified plugins as part of the larger compilation workflow.
+
+To get a list of installed high level synthesis plugins you can use the
+:func:`.high_level_synthesis_plugin_names` function to get the list of plugins
+for a given high level object. For example::
+
+    high_level_synthesis_plugin_names("clifford")
+
+will return a list of all the installed clifford synthesis plugins.
 
 Plugin API
 ==========
@@ -264,6 +297,7 @@ High-Level Synthesis Plugins
 
    HighLevelSynthesisPlugin
    HighLevelSynthesisPluginManager
+   high_level_synthesis_plugin_names
 
 """
 
@@ -595,3 +629,21 @@ class HighLevelSynthesisPluginManager:
         """Returns the plugin for ``op_name`` and ``method_name``."""
         plugin_name = op_name + "." + method_name
         return self.plugins[plugin_name].obj
+
+
+def high_level_synthesis_plugin_names(op_name: str) -> List[str]:
+    """Return a list of plugin names installed for a given high level object name
+
+    Args:
+        op_name: The operation name to find the installed plugins for. For example,
+            if you provide ``"clifford"`` as the input it will find all the installed
+            clifford synthesis plugins that can synthesize :class:`.Clifford` objects.
+
+    Returns:
+        A list of installed plugin names for the specified high level operation
+
+    """
+    # NOTE: This is not a shared global instance to avoid an import cycle
+    # at load time for the default plugins.
+    plugin_manager = HighLevelSynthesisPluginManager()
+    return plugin_manager.method_names(op_name)
