@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added a ``ctrl_state`` argument to the :class:`~.MCPhaseGate` constructor,
+    for consistency with other :class:`~.ControlledGate` subclasses.
