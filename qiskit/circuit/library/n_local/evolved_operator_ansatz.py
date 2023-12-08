@@ -97,6 +97,11 @@ class EvolvedOperatorAnsatz(NLocal):
 
     @property
     def num_qubits(self) -> int:
+        """Returns the number of qubits in this circuit.
+
+        Returns:
+            The number of qubits.
+        """
         if self.operators is None:
             return 0
 
