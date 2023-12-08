@@ -302,6 +302,7 @@ High-Level Synthesis Plugins
 """
 
 import abc
+from typing import List
 
 import stevedore
 
