@@ -22,6 +22,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.synthesis.evolution import LieTrotter
+from qiskit.utils.deprecation import deprecate_func
 
 from .pauli_evolution import PauliEvolutionGate
 from .n_local.n_local import NLocal
@@ -30,6 +31,11 @@ from .n_local.n_local import NLocal
 class EvolvedOperatorAnsatz(NLocal):
     """The evolved operator ansatz."""
 
+    @deprecate_func(
+            since="0.46.0",
+            additional_msg="EvolvedOperatorAnsatz has been moved to n_local"
+            "instead use EvolvedOperatorAnsatz from qiskit.circuit.library.n_local",
+    )
     def __init__(
         self,
         operators=None,
