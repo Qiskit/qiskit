@@ -84,6 +84,11 @@ Discrete Basis Synthesis
 
 .. autofunction:: generate_basic_approximations
 
+Basis Change Synthesis
+======================
+
+.. autofunction:: synth_qft_line
+
 """
 
 from .evolution import (
@@ -120,3 +125,4 @@ from .cnotdihedral import (
 )
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+from .qft import synth_qft_line
