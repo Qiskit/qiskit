@@ -27,85 +27,78 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_evolved_op_ansatz(self):
         """Test the default evolution."""
-        with self.assertWarns(DeprecationWarning):
-            num_qubits = 3
-            ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
-            evo = EvolvedOperatorAnsatz(ops, 2)
-            parameters = evo.parameters
+        num_qubits = 3
+        ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
+        evo = EvolvedOperatorAnsatz(ops, 2)
+        parameters = evo.parameters
 
-            reference = QuantumCircuit(num_qubits)
-            strings = ["z" * num_qubits, "y" * num_qubits, "x" * num_qubits] * 2
-            for string, time in zip(strings, parameters):
-                reference.compose(evolve(string, time), inplace=True)
+        reference = QuantumCircuit(num_qubits)
+        strings = ["z" * num_qubits, "y" * num_qubits, "x" * num_qubits] * 2
+        for string, time in zip(strings, parameters):
+            reference.compose(evolve(string, time), inplace=True)
 
         self.assertEqual(evo.decompose().decompose(), reference)
 
     def test_custom_evolution(self):
         """Test using another evolution than the default (e.g. matrix evolution)."""
-        with self.assertWarns(DeprecationWarning):
-            op = SparsePauliOp(["ZIX"])
-            matrix = np.array(op)
-            evolution = MatrixExponential()
-            evo = EvolvedOperatorAnsatz(op, evolution=evolution)
-            parameters = evo.parameters
+        op = SparsePauliOp(["ZIX"])
+        matrix = np.array(op)
+        evolution = MatrixExponential()
+        evo = EvolvedOperatorAnsatz(op, evolution=evolution)
+        parameters = evo.parameters
 
-            reference = QuantumCircuit(3)
-            reference.append(HamiltonianGate(matrix, parameters[0]), [0, 1, 2])
+        reference = QuantumCircuit(3)
+        reference.append(HamiltonianGate(matrix, parameters[0]), [0, 1, 2])
 
-            decomposed = evo.decompose().decompose()
+        decomposed = evo.decompose().decompose()
 
         self.assertEqual(decomposed, reference)
 
     def test_changing_operators(self):
         """Test rebuilding after the operators changed."""
-        with self.assertWarns(DeprecationWarning):
-            ops = [Pauli("X"), Pauli("Y"), Pauli("Z")]
-            evo = EvolvedOperatorAnsatz(ops)
-            evo.operators = [Pauli("X"), Pauli("Y")]
-            parameters = evo.parameters
+        ops = [Pauli("X"), Pauli("Y"), Pauli("Z")]
+        evo = EvolvedOperatorAnsatz(ops)
+        evo.operators = [Pauli("X"), Pauli("Y")]
+        parameters = evo.parameters
 
-            reference = QuantumCircuit(1)
-            reference.rx(2 * parameters[0], 0)
-            reference.ry(2 * parameters[1], 0)
+        reference = QuantumCircuit(1)
+        reference.rx(2 * parameters[0], 0)
+        reference.ry(2 * parameters[1], 0)
 
         self.assertEqual(evo.decompose(reps=2), reference)
 
     def test_invalid_reps(self):
         """Test setting an invalid number of reps."""
-        with self.assertRaises(ValueError) and self.assertWarns(DeprecationWarning):
+        with self.assertRaises(ValueError):
             _ = EvolvedOperatorAnsatz(Pauli("X"), reps=-1)
 
     def test_insert_barriers(self):
         """Test using insert_barriers."""
-        with self.assertWarns(DeprecationWarning):
-            evo = EvolvedOperatorAnsatz(Pauli("Z"), reps=4, insert_barriers=True)
-            ref = QuantumCircuit(1)
-            for parameter in evo.parameters:
-                ref.rz(2.0 * parameter, 0)
-                ref.barrier()
+        evo = EvolvedOperatorAnsatz(Pauli("Z"), reps=4, insert_barriers=True)
+        ref = QuantumCircuit(1)
+        for parameter in evo.parameters:
+            ref.rz(2.0 * parameter, 0)
+            ref.barrier()
 
         self.assertEqual(evo.decompose(reps=2), ref)
 
     def test_empty_build_fails(self):
         """Test setting no operators to evolve raises the appropriate error."""
-        with self.assertWarns(DeprecationWarning):
-            evo = EvolvedOperatorAnsatz()
-            with self.assertRaises(ValueError):
-                _ = evo.draw()
+        evo = EvolvedOperatorAnsatz()
+        with self.assertRaises(ValueError):
+            _ = evo.draw()
 
     def test_matrix_operator(self):
         """Test passing a quantum_info.Operator uses the HamiltonianGate."""
-        with self.assertWarns(DeprecationWarning):
-            unitary = Operator([[0, 1], [1, 0]])
-            evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
+        unitary = Operator([[0, 1], [1, 0]])
+        evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
         self.assertEqual(evo.count_ops()["hamiltonian"], 3)
 
     def test_flattened(self):
         """Test flatten option is actually flattened."""
-        with self.assertWarns(DeprecationWarning):
-            num_qubits = 3
-            ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
-            evo = EvolvedOperatorAnsatz(ops, reps=3, flatten=True)
+        num_qubits = 3
+        ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
+        evo = EvolvedOperatorAnsatz(ops, reps=3, flatten=True)
         self.assertNotIn("hamiltonian", evo.count_ops())
         self.assertNotIn("EvolvedOps", evo.count_ops())
         self.assertNotIn("PauliEvolution", evo.count_ops())
