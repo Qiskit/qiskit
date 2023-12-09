@@ -33,6 +33,7 @@ class EvolvedOperatorAnsatz(NLocal):
 
     @deprecate_func(
         since="0.46.0",
+        pending=True,
         additional_msg="EvolvedOperatorAnsatz has been moved to n_local"
         "instead use EvolvedOperatorAnsatz from qiskit.circuit.library.n_local",
     )
