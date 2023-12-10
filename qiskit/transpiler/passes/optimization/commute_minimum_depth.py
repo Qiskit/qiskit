@@ -30,9 +30,8 @@ class CommuteMinimumDepth(TransformationPass):
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
-        
+
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        return converters.dagdependency_to_circuit(converters.circuit_to_dagdependency(dag))
-        
+        return converters.dagdependency_to_dag(converters.dag_to_dagdependency(dag))

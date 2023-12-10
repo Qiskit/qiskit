@@ -194,7 +194,7 @@ class DAGDependency:
             if len(self.direct_predecessors(nd.node_id)) == 0
         ]
         for i in sources:
-            dfs(i,i)
+            dfs(i, i)
         return dict(zip(list(self.get_nodes()), depths))
 
     def add_qubits(self, qubits):
