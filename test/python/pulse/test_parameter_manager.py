@@ -18,6 +18,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 import numpy as np
+from qiskit.pulse.library import Gaussian
 
 from qiskit import pulse
 from qiskit.circuit import Parameter
