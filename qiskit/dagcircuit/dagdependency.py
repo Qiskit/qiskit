@@ -179,7 +179,7 @@ class DAGDependency:
         Returns:
             A dictionary of (DAGDepNode,int)
         """
-        depths = [0] * self.size()
+        depths = {k.node_id: 0 for k in self.get_nodes()}
 
         def dfs(nd, p):
             # print((nd,p))
@@ -195,7 +195,7 @@ class DAGDependency:
         ]
         for i in sources:
             dfs(i, i)
-        return dict(zip(list(self.get_nodes()), depths))
+        return {self.get_node(nd): v for nd, v in zip(depths.keys(), depths.values())}
 
     def add_qubits(self, qubits):
         """Add individual qubit wires."""
