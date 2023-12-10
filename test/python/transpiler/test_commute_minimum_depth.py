@@ -117,12 +117,12 @@ class TestCommuteMinimumDepth(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
 
         expected = QuantumCircuit(4)
-        circuit.cx(3, 2)
-        circuit.cx(1, 3)
-        circuit.cx(2, 0)
-        circuit.cx(1, 2)
-        circuit.cx(2, 1)
-        circuit.cx(1, 0)
+        expected.cx(3, 2)
+        expected.cx(1, 3)
+        expected.cx(2, 0)
+        expected.cx(1, 2)
+        expected.cx(2, 1)
+        expected.cx(1, 0)
         self.assertEqual(expected, new_circuit)
 
 
