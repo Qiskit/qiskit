@@ -3,7 +3,7 @@ prelude: >
     Add CommuteMinimumDepth transpiler pass
 features:
   - |
-    Updated :meth:`~.converters.dagdependency_to_circuit() to return the circuit with
+    Updated :meth:`~.converters.dagdependency_to_circuit()` to return the circuit with
     minimum depth. It traverses the DAG, sorts each node by it's
     depth, and converts the DAG back into a circuit with optimal depth.
 
@@ -17,6 +17,6 @@ features:
 
 other:
   - |
-    The :meth:`~.converters.dagdependency_to_circuit() uses DFS, which is done
+    The :meth:`~.converters.dagdependency_to_circuit()` uses DFS, which is done
     with python instead of rustworkx. This was done because the same edge may
     need to be traversed multiple times, which I am not sure rustworkx supports.
