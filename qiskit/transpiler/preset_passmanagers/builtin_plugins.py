@@ -40,6 +40,7 @@ from qiskit.transpiler.passes.optimization import (
     Collect2qBlocks,
     ConsolidateBlocks,
     InverseCancellation,
+    CommuteMinimumDepth
 )
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
@@ -591,6 +592,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
                     CommutativeCancellation(target=pass_manager_config.target),
+                    CommuteMinimumDepth()
                 ]
 
                 def _opt_control(property_set):
