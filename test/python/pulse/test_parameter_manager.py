@@ -15,8 +15,10 @@
 """Test cases for parameter manager."""
 
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
+from qiskit.pulse.library import Gaussian
 
 from qiskit import pulse
 from qiskit.circuit import Parameter
@@ -417,6 +419,24 @@ class TestParameterSetter(ParameterTestBase):
         )
         with self.assertRaises(PulseError):
             test_sched.assign_parameters({amp: 0.6}, inplace=False)
+
+    def test_disable_validation_parameter_assignment(self):
+        """Test that pulse validation can be disabled on the class level.
+
+        Tests for representative examples.
+        """
+        sig = Parameter("sigma")
+        test_sched = pulse.ScheduleBlock()
+        test_sched.append(pulse.Play(pulse.Gaussian(duration=100,amp=0.5, sigma= sig, angle=0.),
+                                     pulse.DriveChannel(0)), inplace=True)
+        with self.assertRaises(PulseError):
+            test_sched.assign_parameters({sig: -1.0}, inplace=False)
+        with patch("qiskit.pulse.library.symbolic_pulses.SymbolicPulse.disable_validation", new=True):
+            test_sched = pulse.ScheduleBlock()
+            test_sched.append(pulse.Play(pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.),
+                                         pulse.DriveChannel(0)), inplace=True)
+            binded_sched = test_sched.assign_parameters({sig: -1.0}, inplace=False)
+            self.assertLess(binded_sched.instructions[0][1].pulse.sigma, 0)
 
     def test_set_parameter_to_complex_schedule(self):
         """Test get parameters from complicated schedule."""
