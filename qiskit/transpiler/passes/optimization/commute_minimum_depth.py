@@ -22,7 +22,7 @@ class CommuteMinimumDepth(TransformationPass):
     and then back to a class:`~DagCircuit`.
 
     The optimization is done in the conversion from the class:`~DagDependency`
-    to the class:`~DagCircuit
+    to the class:`~DagCircuit`.
     """
 
     def run(self, dag):

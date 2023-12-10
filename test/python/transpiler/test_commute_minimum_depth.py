@@ -67,9 +67,9 @@ class TestCommuteMinimumDepth(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
 
         expected = QuantumCircuit(3)
-        circuit.cx(0, 1)
-        circuit.cx(1, 0)
-        circuit.cx(2, 1)
+        expected.cx(0, 1)
+        expected.cx(1, 0)
+        expected.cx(2, 1)
         self.assertEqual(expected, new_circuit)
 
     def test_dfs_edges_multiple_times(self):
