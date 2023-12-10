@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 import ddt
 import numpy as np
+from qiskit.pulse.library import Gaussian
 
 from qiskit import pulse
 from qiskit.circuit import Parameter
