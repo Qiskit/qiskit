@@ -209,7 +209,7 @@ class UnitarySimulatorPy(BackendV1):
         deprecation_description="Using a QasmQobj for the first argument to UnitarySimulatorPy.run()",
         since="0.46.0",
         pending=False,
-        predicate=lambda run_input: isinstance(run_input, (QuantumCircuit, list)),
+        predicate=lambda run_input: not isinstance(run_input, (QuantumCircuit, list)),
     )
     def run(self, run_input, **backend_options):
         """Run experiments in run_input asynchronously.
