@@ -10,13 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Count the operations on the longest path in a DAGcircuit."""
+"""Count the operations on the longest path in a DAGCircuit."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CountOpsLongestPath(AnalysisPass):
-    """Count the operations on the longest path in a DAGcircuit.
+    """Count the operations on the longest path in a :class:`.DAGCircuit`.
 
     The result is saved in ``property_set['count_ops_longest_path']`` as an integer.
     """

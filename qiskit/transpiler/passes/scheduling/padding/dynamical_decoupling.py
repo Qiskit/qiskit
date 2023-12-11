@@ -42,7 +42,7 @@ class PadDynamicalDecoupling(BasePadding):
     so do not alter the logical action of the circuit, but have the effect of
     mitigating decoherence in those idle periods.
 
-    As a special case, the pass allows a length-1 sequence (e.g. [XGate()]).
+    As a special case, the pass allows a length-1 sequence (e.g. ``[XGate()]``).
     In this case the DD insertion happens only when the gate inverse can be
     absorbed into a neighboring gate in the circuit (so we would still be
     replacing Delay with something that is equivalent to the identity).

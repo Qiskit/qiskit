@@ -44,8 +44,8 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         depth of the CNOT-network, i.e. the number of layers, where each layer consists of a
         single CNOT-block.
 
-    optimizer (:class:`~qiskit.algorithms.optimizers.Optimizer`)
-        An instance of optimizer to be used in the optimization process.
+    optimizer (:class:`~.Minimizer`)
+        An implementation of the ``Minimizer`` protocol to be used in the optimization process.
 
     seed (int)
         A random seed.

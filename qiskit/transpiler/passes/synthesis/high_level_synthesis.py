@@ -74,8 +74,8 @@ class HLSConfig:
         hls_config = HLSConfig(permutation=[(ACGSynthesisPermutation(), {})])
         hls_config = HLSConfig(permutation=[ACGSynthesisPermutation()])
 
-    The names of the synthesis algorithms should be declared in ``entry_points`` for
-    ``qiskit.synthesis`` in ``setup.py``, in the form
+    The names of the synthesis algorithms should be declared in ``entry-points`` table for
+    ``qiskit.synthesis`` in ``pyproject.toml``, in the form
     <higher-level-object-name>.<synthesis-method-name>.
 
     The standard higher-level-objects are recommended to have a synthesis method

@@ -70,7 +70,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        if optimization_level in {1, 2, 0}:
+        if optimization_level == 0:
             init = None
             if (
                 pass_manager_config.initial_layout
@@ -88,6 +88,43 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                 )
+        elif optimization_level in {1, 2}:
+            init = PassManager()
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init += common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                )
+            init.append(
+                InverseCancellation(
+                    [
+                        CXGate(),
+                        ECRGate(),
+                        CZGate(),
+                        CYGate(),
+                        XGate(),
+                        YGate(),
+                        ZGate(),
+                        HGate(),
+                        SwapGate(),
+                        (TGate(), TdgGate()),
+                        (SGate(), SdgGate()),
+                        (SXGate(), SXdgGate()),
+                    ]
+                )
+            )
+
         elif optimization_level == 3:
             init = common.generate_unroll_3q(
                 pass_manager_config.target,
@@ -99,6 +136,25 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             init.append(OptimizeSwapBeforeMeasure())
             init.append(RemoveDiagonalGatesBeforeMeasure())
+            init.append(
+                InverseCancellation(
+                    [
+                        CXGate(),
+                        ECRGate(),
+                        CZGate(),
+                        CYGate(),
+                        XGate(),
+                        YGate(),
+                        ZGate(),
+                        HGate(),
+                        SwapGate(),
+                        (TGate(), TdgGate()),
+                        (SGate(), SdgGate()),
+                        (SXGate(), SXdgGate()),
+                    ]
+                )
+            )
+
         else:
             return TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
@@ -684,7 +740,13 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_2], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    choose_layout_2,
+                ],
+                condition=_vf2_match_not_found,
             )
         elif optimization_level == 2:
             choose_layout_0 = VF2Layout(
@@ -706,7 +768,13 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    choose_layout_1,
+                ],
+                condition=_vf2_match_not_found,
             )
         elif optimization_level == 3:
             choose_layout_0 = VF2Layout(
@@ -728,7 +796,13 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+                [
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    choose_layout_1,
+                ],
+                condition=_vf2_match_not_found,
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
@@ -882,7 +956,13 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
         layout.append(
-            [BarrierBeforeFinalMeasurements(), layout_pass], condition=_choose_layout_condition
+            [
+                BarrierBeforeFinalMeasurements(
+                    "qiskit.transpiler.internal.routing.protection.barrier"
+                ),
+                layout_pass,
+            ],
+            condition=_choose_layout_condition,
         )
         embed = common.generate_embed_passmanager(coupling_map)
         layout.append(
