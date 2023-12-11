@@ -28,6 +28,9 @@ class StarPreRouting(TransformationPass):
       .. plot::
          :include-source:
 
+         from qiskit.circuit import QuantumCircuit
+         from qiskit.transpiler.passes import StarPreRouting
+
          qc = QuantumCircuit(10)
          qc.h(0)
          qc.cx(0, range(1, 5))
