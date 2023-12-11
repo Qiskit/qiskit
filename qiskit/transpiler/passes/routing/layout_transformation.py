@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
+"""Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates."""
 from __future__ import annotations
 
 import numpy as np
@@ -49,7 +49,7 @@ class LayoutTransformation(TransformationPass):
 
             to_layout (Union[Layout, str]):
                 The final layout of qubits on physical qubits.
-                If the type is str, look up `property_set` when this pass runs.
+                If the type is str, look up ``property_set`` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
                 Seed to use for random trials.

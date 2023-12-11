@@ -22,7 +22,7 @@ from ddt import ddt
 from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
@@ -49,21 +49,6 @@ def pauli_mat(label):
 
 class TestSparsePauliOpInit(QiskitTestCase):
     """Tests for SparsePauliOp initialization."""
-
-    def test_pauli_table_init(self):
-        """Test PauliTable initialization."""
-        labels = ["I", "X", "Y", "Z"]
-        table = PauliTable.from_labels(labels)
-        paulis = PauliList(labels)
-        with self.subTest(msg="no coeffs"):
-            spp_op = SparsePauliOp(table)
-            np.testing.assert_array_equal(spp_op.coeffs, np.ones(len(labels)))
-            self.assertEqual(spp_op.paulis, paulis)
-        with self.subTest(msg="no coeffs"):
-            coeffs = [1, 2, 3, 4]
-            spp_op = SparsePauliOp(table, coeffs)
-            np.testing.assert_array_equal(spp_op.coeffs, coeffs)
-            self.assertEqual(spp_op.paulis, paulis)
 
     def test_str_init(self):
         """Test str initialization."""
@@ -1102,6 +1087,25 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("YI", 2), ("XI", 1)])
         res = op.apply_layout([4, 0], 5)
         self.assertEqual(SparsePauliOp.from_list([("IIIIY", 2), ("IIIIX", 1)]), res)
+
+    def test_apply_layout_null_layout_no_num_qubits(self):
+        """Test apply_layout with a null layout"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        res = op.apply_layout(layout=None)
+        self.assertEqual(op, res)
+
+    def test_apply_layout_null_layout_and_num_qubits(self):
+        """Test apply_layout with a null layout a num_qubits provided"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        res = op.apply_layout(layout=None, num_qubits=5)
+        # this should expand the operator
+        self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIIZ", 2), ("IIIXI", 3)]), res)
+
+    def test_apply_layout_null_layout_invalid_num_qubits(self):
+        """Test apply_layout with a null layout and num_qubits smaller than capable"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=None, num_qubits=1)
 
 
 if __name__ == "__main__":

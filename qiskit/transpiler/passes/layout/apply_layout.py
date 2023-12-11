@@ -36,7 +36,7 @@ class ApplyLayout(TransformationPass):
     """
 
     def run(self, dag):
-        """Run the ApplyLayout pass on `dag`.
+        """Run the ApplyLayout pass on ``dag``.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -45,7 +45,7 @@ class ApplyLayout(TransformationPass):
             DAGCircuit: A mapped DAG (with physical qubits).
 
         Raises:
-            TranspilerError: if no layout is found in `property_set` or no full physical qubits.
+            TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
         layout = self.property_set["layout"]
         if not layout:
@@ -86,7 +86,7 @@ class ApplyLayout(TransformationPass):
                 )
         else:
             # First build a new layout object going from:
-            # old virtual -> old phsyical -> new virtual -> new physical
+            # old virtual -> old physical -> new virtual -> new physical
             # to:
             # old virtual -> new physical
             full_layout = Layout()

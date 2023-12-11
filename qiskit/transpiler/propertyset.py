@@ -14,9 +14,6 @@
 about the current state of the circuit """
 
 
-from qiskit.passmanager import propertyset as passmanager_propertyset
-
-
-def __getattr__(name):
-    # Just redirect to new module. This will be deprecated.
-    return getattr(passmanager_propertyset, name)
+# For backward compatibility
+# pylint: disable=unused-import
+from qiskit.passmanager import PropertySet
