@@ -416,6 +416,9 @@ class TestFakeBackends(QiskitTestCase):
         from qiskit_aer.noise.noise_model import QuantumErrorLocation
 
         sim = AerSimulator()
+        # test only if simulator's backend is V1
+        if sim.version > 1:
+            return
         phi = Parameter("phi")
         lam = Parameter("lam")
         backend = BackendV2Converter(
@@ -494,7 +497,7 @@ class TestFakeBackends(QiskitTestCase):
         props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
-                "date": datetime.datetime.utcnow(),
+                "date": datetime.datetime.now(datetime.timezone.utc),
                 "name": "operational",
                 "unit": "",
                 "value": 0,
@@ -515,7 +518,7 @@ class TestFakeBackends(QiskitTestCase):
         props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
-                "date": datetime.datetime.utcnow(),
+                "date": datetime.datetime.now(datetime.timezone.utc),
                 "name": "operational",
                 "unit": "",
                 "value": 0,
@@ -536,7 +539,7 @@ class TestFakeBackends(QiskitTestCase):
         props_dict = backend.properties().to_dict()
         for i in range(62, 67):
             non_operational = {
-                "date": datetime.datetime.utcnow(),
+                "date": datetime.datetime.now(datetime.timezone.utc),
                 "name": "operational",
                 "unit": "",
                 "value": 0,
@@ -553,7 +556,7 @@ class TestFakeBackends(QiskitTestCase):
             (34, 24),
         }
         non_operational_gate = {
-            "date": datetime.datetime.utcnow(),
+            "date": datetime.datetime.now(datetime.timezone.utc),
             "name": "operational",
             "unit": "",
             "value": 0,
@@ -588,7 +591,7 @@ class TestFakeBackends(QiskitTestCase):
             (34, 24),
         }
         non_operational_gate = {
-            "date": datetime.datetime.utcnow(),
+            "date": datetime.datetime.now(datetime.timezone.utc),
             "name": "operational",
             "unit": "",
             "value": 0,
@@ -615,7 +618,7 @@ class TestFakeBackends(QiskitTestCase):
     def test_faulty_full_path_transpile_connected_cmap(self, opt_level):
         backend = FakeYorktown()
         non_operational_gate = {
-            "date": datetime.datetime.utcnow(),
+            "date": datetime.datetime.now(datetime.timezone.utc),
             "name": "operational",
             "unit": "",
             "value": 0,

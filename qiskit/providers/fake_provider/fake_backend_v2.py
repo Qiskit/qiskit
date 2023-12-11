@@ -42,7 +42,7 @@ class FakeBackendV2(BackendV2):
             None,
             name="FakeV2",
             description="A fake BackendV2 example",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         self._qubit_properties = [
@@ -116,7 +116,7 @@ class FakeBackend5QV2(BackendV2):
             None,
             name="Fake5QV2",
             description="A fake BackendV2 example",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         qubit_properties = [
@@ -188,7 +188,7 @@ class FakeBackendSimple(BackendV2):
             None,
             name="FakeSimpleV2",
             description="A fake simple BackendV2 example",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         self._lam = Parameter("lambda")

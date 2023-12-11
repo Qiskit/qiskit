@@ -27,6 +27,10 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
     other measurements or barriers.)
     """
 
+    def __init__(self, label=None):
+        super().__init__()
+        self.label = label
+
     def run(self, dag):
         """Run the BarrierBeforeFinalMeasurements pass on `dag`."""
         # Collect DAG nodes which are followed only by barriers or other measures.
@@ -64,7 +68,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         final_qubits = dag.qubits
 
         barrier_layer.apply_operation_back(
-            Barrier(len(final_qubits)), final_qubits, (), check=False
+            Barrier(len(final_qubits), label=self.label), final_qubits, (), check=False
         )
 
         # Preserve order of final ops collected earlier from the original DAG.
@@ -83,6 +87,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         dag.compose(barrier_layer)
 
-        # Merge the new barrier into any other barriers
-        adjacent_pass = MergeAdjacentBarriers()
-        return adjacent_pass.run(dag)
+        if self.label is None:
+            # Merge the new barrier into any other barriers
+            adjacent_pass = MergeAdjacentBarriers()
+            return adjacent_pass.run(dag)
+        else:
+            return dag

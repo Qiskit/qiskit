@@ -39,7 +39,11 @@ fi
 if [[ ! -d qpy_$version ]] ; then
     echo "Building venv for qiskit-terra $version"
     python -m venv $version
-    ./$version/bin/pip install "qiskit-terra==$version"
+    if [[ ${parts[0]} -eq 0 ]] ; then
+        ./$version/bin/pip install "qiskit-terra==$version"
+    else
+        ./$version/bin/pip install "qiskit==$version"
+    fi
     mkdir qpy_$version
     pushd qpy_$version
     echo "Generating qpy files with qiskit-terra $version"
