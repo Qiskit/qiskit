@@ -246,23 +246,20 @@ To get the installed list of installed unitary synthesis plugins you can use the
 :func:`qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
 function.
 
-High Level Synthesis Plugins
+High-level Synthesis Plugins
 ----------------------------
 
-To use a high level synthesis you leverage the :class:`.HLSConfig` class to
-create an input configuration for how to synthesize multiple high level
-plugins. For example::
+To use a high-level synthesis plugin, you first instantiate an :class:`.HLSConfig` to
+store the names of the plugins to use for various high-level objects.
+For example::
 
     HLSConfig(permutation=["acg"], clifford=["layers"], linear_function=["pmh"])
 
-will create a high level synthesis configuration that will use the ``acg`` plugin
+creates a high-level synthesis configuration that uses the ``acg`` plugin
 for synthesizing :class:`.PermutationGate` objects, the ``layers`` plugin
 for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesizing
-:class:`.LinearFunction` objects. The :class:`.HLSConfig` class
-has the flexibility to specify multiple plugins in sequence which will enable
-trying multiple synthesis plugins and using the first one that successsfully
-synthesizes the object and also to pass tuples of the plugin along with options
-to adjust the behavior of the synthesis plugin.
+:class:`.LinearFunction` objects.
+For each high-level object, the list of given plugins are tried in sequence until one of them succeeds (in the example above, each list only contains a single plugin). In addition to specifying a plugin by its name, one can also instead pass a ``(name, options)`` tuple, where the second element of the tuple contains options for the plugin.
 
 Once created you then pass this :class:`.HLSConfig` object into the
 ``hls_config`` argument for :func:`.transpile` or :func:`.generate_preset_pass_manager`
