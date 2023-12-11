@@ -27,7 +27,7 @@ class Unroll3qOrMore(TransformationPass):
 
         Args:
             target (Target): The target object representing the compilation
-                target. If specified any multiqubit instructions in the
+                target. If specified any multi-qubit instructions in the
                 circuit when the pass is run that are supported by the target
                 device will be left in place. If both this and ``basis_gates``
                 are specified only the target will be checked.

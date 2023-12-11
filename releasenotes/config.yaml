@@ -2,6 +2,7 @@
 encoding: utf8
 default_branch: main
 collapse_pre_releases: true
+pre_release_tag_re: (?P<pre_release>(?:[ab]|rc|pre)+\d*)$
 sections:
     - [features, New Features]
     - [features_algorithms, Algorithms Features]
