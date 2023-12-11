@@ -46,10 +46,14 @@ deprecations:
     :func:`~qiskit.pulse.builder.active_transpiler_settings`
     :func:`~qiskit.pulse.builder.active_circuit_scheduler_settings`
     :func:`~qiskit.pulse.builder.transpiler_settings`
+    :func:`~qiskit.pulse.builder.circuit_scheduler_settings`
+
     Modified module doc of :mod:`qiskit.pulse.builder` related with example
     code with circuit elements.
+
     Deprecated arguments :code:`default_transpiler_settings`, :code:`default_circuit_scheduler_settings`
     in :func:`~qiskit.pulse.builder.build`
+
     Deprecated argument of :class:`.QuantumCircuit` type in :func:`~qiskit.pulse.builder.call`
     
     Modified related tests in

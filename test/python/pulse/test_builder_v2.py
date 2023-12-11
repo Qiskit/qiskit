@@ -195,8 +195,7 @@ class TestUtilitiesV2(TestBuilderV2):
         with pulse.build(self.backend):
             with self.assertWarns(DeprecationWarning):
                 self.assertFalse(pulse.active_circuit_scheduler_settings())
-            with pulse.circuit_scheduler_settings(test_setting=1):
-                with self.assertWarns(DeprecationWarning):
+                with pulse.circuit_scheduler_settings(test_setting=1):
                     self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
 
     def test_num_qubits(self):

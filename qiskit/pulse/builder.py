@@ -1548,6 +1548,12 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 
 
 @contextmanager
+@deprecate_func(
+    since="0.46.0",
+    additional_msg="This function was used for gate operations, which are deprecated. pulse schedules "
+    "should only be used for gate calibrations as part of a quantum circuit, "
+    "and not vice versa",
+)
 def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     """Set the currently active circuit scheduler settings for this context.
 
