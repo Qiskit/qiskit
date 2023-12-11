@@ -206,8 +206,7 @@ class UnitarySimulatorPy(BackendV1):
 
     @deprecate_arg(
         "run_input",
-        deprecation_description="""Using a qiskit.qobj.QasmQobj for the first
-        argument to UnitarySimulatorPy.run()""",
+        deprecation_description="Using a QasmQobj for the first argument to UnitarySimulatorPy.run()",
         since="0.46.0",
         pending=False,
         predicate=lambda run_input: isinstance(run_input, (QuantumCircuit, list)),
