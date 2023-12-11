@@ -206,13 +206,13 @@ class UnitarySimulatorPy(BackendV1):
 
     @deprecate_arg(
         "run_input",
-        deprecation_description="Using a qobj for the first argument to UnitarySimulatorPy.run()",
+        deprecation_description="Using a qiskit.qobj.QasmQobj for the first argument to UnitarySimulatorPy.run()",
         since="0.46.0",
         pending=False,
         predicate=lambda run_input: isinstance(run_input, (QuantumCircuit, list)),
     )
     def run(self, run_input, **backend_options):
-        """Run run_input asynchronously.
+        """Run experiments in run_input asynchronously.
 
         Args:
             run_input (Qobj, QuantumCircuit, list): payload of the experiment
