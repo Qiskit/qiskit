@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added a new method :meth:`.Layout.compose` which is used for composing
+    two :class:`.Layout` objects together.

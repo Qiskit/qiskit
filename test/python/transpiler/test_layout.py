@@ -428,6 +428,34 @@ class LayoutTest(QiskitTestCase):
         self.assertNotIn(qr[1], layout)
         self.assertNotIn(1, layout)
 
+    def test_compose(self):
+        """Test the compose method."""
+        qubits = [Qubit() for _ in range(4)]
+        first = [0, 3, 1, 2]
+        second = [2, 3, 1, 0]
+        first_layout = Layout(dict(zip(qubits, first)))
+        second_layout = Layout(dict(zip(qubits, second)))
+        expected = Layout({qubits[0]: 1, qubits[1]: 2, qubits[2]: 3, qubits[3]: 0})
+        self.assertEqual(second_layout.compose(first_layout, qubits), expected)
+
+    def test_compose_no_permutation_original(self):
+        """Test compose where the first doesn't permute anything."""
+        qubits = [Qubit() for _ in range(4)]
+        first = [0, 1, 2, 3]
+        second = [2, 3, 1, 0]
+        first_layout = Layout(dict(zip(qubits, first)))
+        second_layout = Layout(dict(zip(qubits, second)))
+        self.assertEqual(second_layout.compose(first_layout, qubits), second_layout)
+
+    def test_compose_no_permutation_second(self):
+        """Test compose where the second doesn't permute anything."""
+        qubits = [Qubit() for _ in range(4)]
+        second = [0, 1, 2, 3]
+        first = [2, 3, 1, 0]
+        first_layout = Layout(dict(zip(qubits, first)))
+        second_layout = Layout(dict(zip(qubits, second)))
+        self.assertEqual(second_layout.compose(first_layout, qubits), first_layout)
+
 
 if __name__ == "__main__":
     unittest.main()

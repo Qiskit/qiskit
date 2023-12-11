@@ -283,6 +283,21 @@ class Layout:
 
         return order
 
+    def compose(self, other: Layout, qubits: List[Qubit]) -> Layout:
+        """Compose this dag onto an existing layout.
+
+        Args:
+            other: The existing :class:`.Layout` to compose this :class:`.Layout` onto
+            qubits: A list of :class:`.Qubit` objects that is used to establish the
+                position of qubits.
+        Return:
+            A new layout object the represents this layout composed onto ``other``.
+
+
+        """
+        other_v2p = other.get_virtual_bits()
+        return Layout({virt: other_v2p[qubits[phys]] for virt, phys in self._v2p.items()})
+
     @staticmethod
     def generate_trivial_layout(*regs):
         """Creates a trivial ("one-to-one") Layout with the registers and qubits in `regs`.
