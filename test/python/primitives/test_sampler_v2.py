@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import unittest
-from unittest import skip
 
 import numpy as np
 from numpy.typing import NDArray
@@ -353,29 +352,16 @@ class TestSampler(QiskitTestCase):
                     result[i].data.meas, np.array(target[0].data.meas.get_int_counts(i))
                 )
 
-    @skip
     def test_run_with_shots_option(self):
         """test with shots option."""
-        params, target = self._generate_params_target([1])
-        sampler = Sampler()
-        result = sampler.run(
-            circuits=[self._pqc], parameter_values=params, shots=1024, seed=15
-        ).result()
-        self._compare_probs(result.quasi_dists, target)
+        bell, _, _ = self._cases[1]
+        sampler = Sampler(options=self._options)
+        shots = 100
+        sampler.options.execution.shots = shots
+        result = sampler.run([bell]).result()
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].data.meas.num_samples, shots)
 
-    @skip
-    def test_run_with_shots_option_none(self):
-        """test with shots=None option. Seed is ignored then."""
-        sampler = Sampler()
-        result_42 = sampler.run(
-            [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=42
-        ).result()
-        result_15 = sampler.run(
-            [self._pqc], parameter_values=[[0, 1, 1, 2, 3, 5]], shots=None, seed=15
-        ).result()
-        self.assertDictAlmostEqual(result_42.quasi_dists, result_15.quasi_dists)
-
-    @skip
     def test_run_shots_result_size(self):
         """test with shots option to validate the result size"""
         n = 10
@@ -383,11 +369,11 @@ class TestSampler(QiskitTestCase):
         qc = QuantumCircuit(n)
         qc.h(range(n))
         qc.measure_all()
-        sampler = Sampler()
-        result = sampler.run(qc, [], shots=shots, seed=42).result()
-        self.assertEqual(len(result.quasi_dists), 1)
-        self.assertLessEqual(len(result.quasi_dists[0]), shots)
-        self.assertAlmostEqual(sum(result.quasi_dists[0].values()), 1.0)
+        sampler = Sampler(options=self._options)
+        result = sampler.run([qc]).result()
+        self.assertEqual(len(result), 1)
+        self.assertLessEqual(result[0].data.meas.num_samples, self._shots)
+        self.assertEqual(sum(result[0].data.meas.get_counts().values()), self._shots)
 
     def test_primitive_job_status_done(self):
         """test primitive job's status"""
@@ -397,21 +383,20 @@ class TestSampler(QiskitTestCase):
         _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
 
-    @skip
     def test_options(self):
         """Test for options"""
         with self.subTest("init"):
-            sampler = Sampler(options={"shots": 3000})
-            self.assertEqual(sampler.options.get("shots"), 3000)
-        with self.subTest("set_options"):
-            sampler.set_options(shots=1024, seed=15)
-            self.assertEqual(sampler.options.get("shots"), 1024)
-            self.assertEqual(sampler.options.get("seed"), 15)
-        with self.subTest("run"):
-            params, target = self._generate_params_target([1])
-            result = sampler.run([self._pqc], parameter_values=params).result()
-            self._compare_probs(result.quasi_dists, target)
-            self.assertEqual(result.quasi_dists[0].shots, 1024)
+            sampler = Sampler(options={"execution": {"shots": 3000}})
+            self.assertEqual(sampler.options.execution.shots, 3000)
+        with self.subTest("set options"):
+            sampler.options.execution.shots = 1024
+            sampler.options.execution.seed = 15
+            self.assertEqual(sampler.options.execution.shots, 1024)
+            self.assertEqual(sampler.options.execution.seed, 15)
+        with self.subTest("update options"):
+            sampler.options.execution.update({"shots": 100, "seed": 12})
+            self.assertEqual(sampler.options.execution.shots, 100)
+            self.assertEqual(sampler.options.execution.seed, 12)
 
     def test_circuit_with_unitary(self):
         """Test for circuit with unitary gate."""
