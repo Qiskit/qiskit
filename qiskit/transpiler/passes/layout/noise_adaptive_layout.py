@@ -20,6 +20,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import target_to_backend_properties, Target
+from qiskit.utils.deprecation import deprecate_func
 
 
 class NoiseAdaptiveLayout(AnalysisPass):
@@ -54,7 +55,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
          in the transpiler architecture it is best passed around between passes
          by being set in `property_set`.
     """
-
+    @deprecate_func(
+        "0.46",
+        package_name="qiskit",
+        removal_timeline="in the 1.0.0 release",
+    )
     def __init__(self, backend_prop, coupling_map=None):
         """NoiseAdaptiveLayout initializer.
 
