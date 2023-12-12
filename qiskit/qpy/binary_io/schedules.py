@@ -148,21 +148,15 @@ def _read_symbolic_pulse(file_obj, version):
     class_name = "SymbolicPulse"  # Default class name, if not in the library
 
     if pulse_type in legacy_library_pulses:
-        # Once complex amp support will be deprecated we will need:
-        # parameters["angle"] = np.angle(parameters["amp"])
-        # parameters["amp"] = np.abs(parameters["amp"])
-
-        # In the meanwhile we simply add:
-        parameters["angle"] = 0
+        parameters["angle"] = np.angle(parameters["amp"])
+        parameters["amp"] = np.abs(parameters["amp"])
         _amp, _angle = sym.symbols("amp, angle")
         envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
 
-        # And warn that this will change in future releases:
         warnings.warn(
-            "Complex amp support for symbolic library pulses will be deprecated. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
-            " will be converted automatically to float (amp,angle) representation.",
-            PendingDeprecationWarning,
+            f"Library pulses with complex amp are no longer supported."
+            f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
+            UserWarning,
         )
         class_name = "ScalableSymbolicPulse"
 
@@ -237,6 +231,20 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
             valid_amp_conditions=valid_amp_conditions,
         )
     elif class_name == "ScalableSymbolicPulse":
+        # Between Qiskit 0.40 and 0.46, the (amp, angle) representation was present,
+        # but complex amp was still allowed. In Qiskit 1.0 and beyond complex amp
+        # is no longer supported and so the amp needs to be checked and converted.
+        # Once QPY version is bumped, a new reader function can be introduced without
+        # this check.
+        if isinstance(parameters["amp"], complex):
+            parameters["angle"] = np.angle(parameters["amp"])
+            parameters["amp"] = np.abs(parameters["amp"])
+            warnings.warn(
+                f"ScalableSymbolicPulse with complex amp are no longer supported."
+                f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
+                UserWarning,
+            )
+
         return library.ScalableSymbolicPulse(
             pulse_type=pulse_type,
             duration=duration,
