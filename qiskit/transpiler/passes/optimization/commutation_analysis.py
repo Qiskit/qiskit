@@ -22,7 +22,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 class CommutationAnalysis(AnalysisPass):
     """Analysis pass to find commutation relations between DAG nodes.
 
-    Property_set['commutation_set'] is a dictionary that describes
+    ``property_set['commutation_set']`` is a dictionary that describes
     the commutation relations on a given wire, all the gates on a wire
     are grouped into a set of gates that commute.
     """
@@ -35,7 +35,7 @@ class CommutationAnalysis(AnalysisPass):
         """Run the CommutationAnalysis pass on `dag`.
 
         Run the pass on the DAG, and write the discovered commutation relations
-        into the property_set.
+        into the ``property_set``.
         """
         # Initiate the commutation set
         self.property_set["commutation_set"] = defaultdict(list)

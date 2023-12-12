@@ -117,6 +117,10 @@ Scheduling
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
+   ALAPSchedule
+   ASAPSchedule
+   DynamicalDecoupling
+   AlignMeasures
 
 Circuit Analysis
 ================
@@ -173,6 +177,7 @@ Additional Passes
    GatesInBasis
    ConvertConditionsToIfOps
    UnrollForLoops
+   FilterOpNodes
 """
 
 # layout selection (placement)
@@ -267,6 +272,10 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import DynamicalDecoupling
+from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
@@ -284,3 +293,4 @@ from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
+from .utils import FilterOpNodes
