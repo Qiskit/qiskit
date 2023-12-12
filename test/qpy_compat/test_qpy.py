@@ -429,7 +429,7 @@ def generate_schedule_blocks():
     from qiskit.pulse import builder, channels, library
     from qiskit.utils import optionals
 
-    current_version = tuple([int(x) for x in current_version_str.split(".")])
+    current_version = tuple(int(x) for x in current_version_str.split("."))
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
     # As workaround, we need test with bounded parameters, however, schedule.parameters
