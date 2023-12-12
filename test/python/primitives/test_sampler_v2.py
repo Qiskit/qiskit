@@ -15,11 +15,12 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import astuple
 
 import numpy as np
 from numpy.typing import NDArray
 
-from qiskit import QiskitError, QuantumCircuit
+from qiskit import ClassicalRegister, QiskitError, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import PrimitiveResult, PubResult
@@ -65,10 +66,21 @@ class TestSampler(QiskitTestCase):
             (pqc2, [0, 1, 2, 3, 4, 5, 6, 7], {0: 1898, 1: 6864, 2: 928, 3: 311})
         )  # case 6
 
-    def _assert_allclose(self, ba: BitArray, target: NDArray | BitArray, rtol=1e-1):
-        self.assertEqual(ba.shape, target.shape)
-        for idx in np.ndindex(ba.shape):
-            int_counts = ba.get_int_counts(idx)
+        a = ClassicalRegister(1, "a")
+        b = ClassicalRegister(2, "b")
+        c = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
+        qc.h(range(3))
+        qc.measure([0, 1, 2, 2], [0, 2, 4, 5])
+        self._cases.append(
+            (qc, None, {"a": {0: 5000, 1: 5000}, "b": {0: 5000, 2: 5000}, "c": {0: 5000, 6: 5000}})
+        )  # case 7
+
+    def _assert_allclose(self, bitarray: BitArray, target: NDArray | BitArray, rtol=1e-1):
+        self.assertEqual(bitarray.shape, target.shape)
+        for idx in np.ndindex(bitarray.shape):
+            int_counts = bitarray.get_int_counts(idx)
             target_counts = (
                 target.get_int_counts(idx) if isinstance(target, BitArray) else target[idx]
             )
@@ -355,17 +367,17 @@ class TestSampler(QiskitTestCase):
     def test_run_with_shots_option(self):
         """test with shots option."""
         bell, _, _ = self._cases[1]
-        sampler = Sampler(options=self._options)
+        sampler = Sampler()
         shots = 100
         sampler.options.execution.shots = shots
         result = sampler.run([bell]).result()
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].data.meas.num_samples, shots)
+        self.assertEqual(sum(result[0].data.meas.get_counts().values()), shots)
 
     def test_run_shots_result_size(self):
         """test with shots option to validate the result size"""
         n = 10
-        shots = 100
         qc = QuantumCircuit(n)
         qc.h(range(n))
         qc.measure_all()
@@ -424,6 +436,34 @@ class TestSampler(QiskitTestCase):
             result = sampler.run([circuit]).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({1: self._shots}))
+
+    def test_metadata(self):
+        """Test for metatdata."""
+        qc, _, _ = self._cases[1]
+        sampler = Sampler(options=self._options)
+        result = sampler.run([qc]).result()
+        self.assertEqual(len(result), 1)
+        self.assertIn("shots", result[0].metadata)
+        self.assertEqual(result[0].metadata["shots"], self._shots)
+
+        shots = 100
+        sampler.options.execution.shots = 100
+        result = sampler.run([qc]).result()
+        self.assertEqual(len(result), 1)
+        self.assertIn("shots", result[0].metadata)
+        self.assertEqual(result[0].metadata["shots"], shots)
+
+    def test_circuit_with_multiple_cregs(self):
+        """Test for circuit with multiple classical registers."""
+        qc, _, target = self._cases[7]
+        sampler = Sampler(options=self._options)
+        result = sampler.run([qc]).result()
+        self.assertEqual(len(result), 1)
+        data = result[0].data
+        self.assertEqual(len(astuple(data)), 3)
+        for creg in qc.cregs:
+            self.assertTrue(hasattr(data, creg.name))
+            self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
 
 
 if __name__ == "__main__":
