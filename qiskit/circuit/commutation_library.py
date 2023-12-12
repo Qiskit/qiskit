@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,4 +14,7 @@
 
 from qiskit.circuit import CommutationChecker
 
-SessionCommutationChecker = CommutationChecker()
+from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
+
+StandardGateCommutations = standard_gates_commutations
+SessionCommutationChecker = CommutationChecker(StandardGateCommutations)

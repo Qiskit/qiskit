@@ -20,9 +20,6 @@ from qiskit.circuit import Qubit
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import ControlFlowOp
 from qiskit.quantum_info.operators import Operator
-from qiskit.circuit._standard_gates_commutations import standard_gates_commutations
-
-StandardGateCommutations = standard_gates_commutations
 
 
 @lru_cache(maxsize=None)
@@ -41,11 +38,18 @@ class CommutationChecker:
     evicting from the cache less useful entries, etc.
     """
 
-    def __init__(self, cache_max_entries: int = 10**6):
+    def __init__(self, standard_gate_commutations: dict = None, cache_max_entries: int = 10**6):
         super().__init__()
-        self._standard_commutations = StandardGateCommutations
-        self._cached_commutations = {}
+        if standard_gate_commutations is None:
+            self._standard_commutations = {}
+        else:
+            self._standard_commutations = standard_gate_commutations
         self._cache_max_entries = cache_max_entries
+        """
+            self._cached_commutation has the same structure as standard_gate_commutations, i.e. a
+            dict[pair of gate names][relative placement][tuple of gate parameters] := True/False
+        """
+        self._cached_commutations = {}
         self._current_cache_entries = 0
 
     def commute(
@@ -84,22 +88,6 @@ class CommutationChecker:
         if structural_commutation is not None:
             return structural_commutation
 
-        commutation_lookup = self.check_commutation_entries(
-            op1, qargs1, cargs1, op2, qargs2, cargs2
-        )
-
-        if commutation_lookup is not None:
-            return commutation_lookup
-
-        # Compute commutation via matrix multiplication
-        is_commuting = _commute_matmul(op1, qargs1, op2, qargs2)
-
-        # Store result in this session's commutation_library
-        # TODO implement LRU cache or similar
-        # Rebuild cache if current cache exceeded max size
-        if self._current_cache_entries >= self._cache_max_entries:
-            self._cached_commutations = {}
-
         first_op_tuple, second_op_tuple = _order_operations(
             op1, qargs1, cargs1, op2, qargs2, cargs2
         )
@@ -108,25 +96,59 @@ class CommutationChecker:
         first_params = first_op.params
         second_params = second_op.params
 
-        self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
-            _get_relative_placement(first_qargs, second_qargs), {}
-        )[(_hashable_parameters(first_params), _hashable_parameters(second_params))] = is_commuting
+        commutation_lookup = self.check_commutation_entries(
+            first_op, first_qargs, second_op, second_qargs
+        )
+
+        if commutation_lookup is not None:
+            return commutation_lookup
+
+        # Compute commutation via matrix multiplication
+        is_commuting = _commute_matmul(first_op, first_qargs, second_op, second_qargs)
+
+        # Store result in this session's commutation_library
+        # TODO implement LRU cache or similar
+        # Rebuild cache if current cache exceeded max size
+        if self._current_cache_entries >= self._cache_max_entries:
+            self.clear_cached_commutations()
+
+        if len(first_params) > 0 or len(second_params) > 0:
+            self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
+                _get_relative_placement(first_qargs, second_qargs), {}
+            )[
+                (_hashable_parameters(first_params), _hashable_parameters(second_params))
+            ] = is_commuting
+        else:
+            self._cached_commutations.setdefault((first_op.name, second_op.name), {})[
+                _get_relative_placement(first_qargs, second_qargs)
+            ] = is_commuting
         self._current_cache_entries += 1
 
         return is_commuting
 
+    def num_cached_entries(self):
+        """Returns number of cached entries"""
+        return self._current_cache_entries
+
+    def clear_cached_commutations(self):
+        """Clears the dictionary holding cached commutations"""
+        self._current_cache_entries = 0
+        self._cached_commutations = {}
+
     def check_commutation_entries(
-        self, op1: Operation, qargs1: List, cargs1: List, op2: Operation, qargs2: List, cargs2: List
+        self,
+        first_op: Operation,
+        first_qargs: List,
+        second_op: Operation,
+        second_qargs: List,
     ) -> Union[bool, None]:
         """Returns stored commutation relation if any
 
         Args:
-            op1: first operation.
-            qargs1: first operation's qubits.
-            cargs1: first operation's clbits.
-            op2: second operation.
-            qargs2: second operation's qubits.
-            cargs2: second operation's clbits.
+            first_op: first operation.
+            first_qargs: first operation's qubits.
+            second_op: second operation.
+            second_qargs: second operation's qubits.
 
         Return:
             bool: True if the gates commute and false if it is not the case.
@@ -134,13 +156,21 @@ class CommutationChecker:
 
         # We don't precompute commutations for parameterized gates, yet
         commutation = _query_commutation(
-            op1, qargs1, cargs1, op2, qargs2, cargs2, self._standard_commutations
+            first_op,
+            first_qargs,
+            second_op,
+            second_qargs,
+            self._standard_commutations,
         )
         if commutation is not None:
             return commutation
 
         commutation = _query_commutation(
-            op1, qargs1, cargs1, op2, qargs2, cargs2, self._cached_commutations
+            first_op,
+            first_qargs,
+            second_op,
+            second_qargs,
+            self._cached_commutations,
         )
 
         return commutation
@@ -285,33 +315,25 @@ def _order_operations(
 
 
 def _query_commutation(
-    op1: Operation,
-    qargs1: List,
-    cargs1: List,
-    op2: Operation,
-    qargs2: List,
-    cargs2: List,
+    first_op: Operation,
+    first_qargs: List,
+    second_op: Operation,
+    second_qargs: List,
     _commutation_lib: dict,
 ) -> Union[bool, None]:
     """Queries and returns the commutation of a pair of operations from a provided commutation library
     Args:
-    Args:
-        op1: first operation.
-        qargs1: first operation's qubits.
-        cargs1: first operation's clbits.
-        op2: second operation.
-        qargs2: second operation's qubits.
-        cargs2: second operation's clbits.
+        first_op: first operation.
+        first_qargs: first operation's qubits.
+        first_cargs: first operation's clbits.
+        second_op: second operation.
+        second_qargs: second operation's qubits.
+        second_cargs: second operation's clbits.
         _commutation_lib (dict): dictionary of commutation relations
     Return:
-        True if op1 and op2 commute, False if they do not commute and
+        True if first_op and second_op commute, False if they do not commute and
         None if the commutation is not in the library
     """
-    first_op_tuple, second_op_tuple = _order_operations(op1, qargs1, cargs1, op2, qargs2, cargs2)
-    first_op, first_qargs, _ = first_op_tuple
-    second_op, second_qargs, _ = second_op_tuple
-    first_params = first_op.params
-    second_params = second_op.params
 
     commutation = _commutation_lib.get((first_op.name, second_op.name), None)
 
@@ -325,10 +347,13 @@ def _query_commutation(
         placement_commutation = commutation.get(
             _get_relative_placement(first_qargs, second_qargs), None
         )
-        if (len(op1.params) > 0 or len(op2.params) > 0) and placement_commutation is not None:
+        if (
+            len(first_op.params) > 0 or len(second_op.params) > 0
+        ) and placement_commutation is not None:
             # Param commutation entry exists and must be a dict
             return placement_commutation.get(
-                (_hashable_parameters(first_params), _hashable_parameters(second_params)), None
+                (_hashable_parameters(first_op.params), _hashable_parameters(second_op.params)),
+                None,
             )
         else:
             # queried commutation is True, False or None
@@ -337,31 +362,38 @@ def _query_commutation(
         raise ValueError("Expected commutation to be None, bool or a dict")
 
 
-def _commute_matmul(op1: Operation, qargs1: List, op2: Operation, qargs2: List):
-    qarg = {q: i for i, q in enumerate(qargs1)}
+def _commute_matmul(
+    first_ops: Operation, first_qargs: List, second_op: Operation, second_qargs: List
+):
+    qarg = {q: i for i, q in enumerate(first_qargs)}
     num_qubits = len(qarg)
-    for q in qargs2:
+    for q in second_qargs:
         if q not in qarg:
             qarg[q] = num_qubits
             num_qubits += 1
-    qarg1 = tuple(qarg[q] for q in qargs1)
-    qarg2 = tuple(qarg[q] for q in qargs2)
 
-    operator_1 = Operator(op1, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1))
-    operator_2 = Operator(op2, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2))
+    first_qarg = tuple(qarg[q] for q in first_qargs)
+    second_qarg = tuple(qarg[q] for q in second_qargs)
 
-    if qarg1 == qarg2:
+    operator_1 = Operator(
+        first_ops, input_dims=(2,) * len(first_qarg), output_dims=(2,) * len(first_qarg)
+    )
+    operator_2 = Operator(
+        second_op, input_dims=(2,) * len(second_qarg), output_dims=(2,) * len(second_qarg)
+    )
+
+    if first_qarg == second_qarg:
         # Use full composition if possible to get the fastest matmul paths.
         op12 = operator_1.compose(operator_2)
         op21 = operator_2.compose(operator_1)
     else:
         # Expand operator_1 to be large enough to contain operator_2 as well; this relies on qargs1
         # being the lowest possible indices so the identity can be tensored before it.
-        extra_qarg2 = num_qubits - len(qarg1)
+        extra_qarg2 = num_qubits - len(first_qarg)
         if extra_qarg2:
             id_op = _identity_op(extra_qarg2)
             operator_1 = id_op.tensor(operator_1)
-        op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
-        op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)
+        op12 = operator_1.compose(operator_2, qargs=second_qarg, front=False)
+        op21 = operator_1.compose(operator_2, qargs=second_qarg, front=True)
     ret = op12 == op21
     return ret

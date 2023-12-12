@@ -14,10 +14,12 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
+
 from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
 import numpy as np
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Parameter, SessionCommutationChecker
+from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates.nct import template_nct_2a_2, template_nct_5a_3
 from qiskit.circuit.library.templates.clifford import (
@@ -739,7 +741,7 @@ class TestTemplateMatching(QiskitTestCase):
             clifford_3_1(),
         ]
         pm = PassManager(TemplateOptimization(template_list=template_list))
-        cache_entries_before = len(SessionCommutationChecker._cached_commutations)
+        scc.clear_cached_commutations()
         for seed in range(10):
             qc = random_clifford_circuit(
                 num_qubits=5,
@@ -750,7 +752,7 @@ class TestTemplateMatching(QiskitTestCase):
             qc_opt = pm.run(qc)
             self.assertTrue(Operator(qc) == Operator(qc_opt))
         # All of these gates are in the commutation library, i.e. the cache should not be used
-        self.assertEqual(len(SessionCommutationChecker._cached_commutations), cache_entries_before)
+        self.assertEqual(scc.num_cached_entries(), 0)
 
 
 if __name__ == "__main__":

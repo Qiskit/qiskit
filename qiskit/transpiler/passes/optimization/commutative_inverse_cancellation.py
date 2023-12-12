@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Cancel pairs of inverse gates exploiting commutation relations."""
-from qiskit.circuit import SessionCommutationChecker
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -53,7 +53,7 @@ class CommutativeInverseCancellation(TransformationPass):
 
         removed = [False for _ in range(circ_size)]
 
-        cc = SessionCommutationChecker
+        cc = scc
 
         for idx1 in range(0, circ_size):
             if self._skip_node(topo_sorted_nodes[idx1]):

@@ -19,7 +19,7 @@ from collections import OrderedDict, defaultdict
 
 import rustworkx as rx
 
-from qiskit.circuit.commutation_library import SessionCommutationChecker
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -112,7 +112,7 @@ class DAGDependency:
         self.duration = None
         self.unit = "dt"
 
-        self.comm_checker = SessionCommutationChecker
+        self.comm_checker = scc
 
     @property
     def global_phase(self):

@@ -14,7 +14,7 @@
 
 from collections import defaultdict
 
-from qiskit.circuit import SessionCommutationChecker
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -29,7 +29,7 @@ class CommutationAnalysis(AnalysisPass):
 
     def __init__(self):
         super().__init__()
-        self.comm_checker = SessionCommutationChecker
+        self.comm_checker = scc
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
