@@ -110,7 +110,7 @@ class Pauli(BasePauli):
 
         P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
-    The :math:`k`th qubit corresponds to the :math:`k`th entry in the
+    The :math:`k`-th qubit corresponds to the :math:`k`-th entry in the
     :math:`z` and :math:`x` arrays
 
     .. math::

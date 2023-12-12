@@ -74,7 +74,6 @@ class BasePass(GenericPass, metaclass=MetaPass):
     def __init__(self):
         super().__init__()
         self.preserves: Iterable[GenericPass] = []
-        self.property_set = PropertySet()
         self._hash = hash(None)
 
     def __hash__(self):
@@ -117,21 +116,6 @@ class BasePass(GenericPass, metaclass=MetaPass):
         by this kind of pass.
         """
         return isinstance(self, AnalysisPass)
-
-    def execute(
-        self,
-        passmanager_ir: PassManagerIR,
-        state: PassManagerState,
-        callback: Callable = None,
-    ) -> tuple[PassManagerIR, PassManagerState]:
-        # For backward compatibility.
-        # Circuit passes access self.property_set.
-        self.property_set = state.property_set
-        return super().execute(
-            passmanager_ir=passmanager_ir,
-            state=state,
-            callback=callback,
-        )
 
     def __call__(
         self,
