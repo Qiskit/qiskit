@@ -30,6 +30,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
+from qiskit.version import VERSION as current_version_str
 
 try:
     from qiskit.qpy import dump, load
@@ -423,18 +424,18 @@ def generate_control_flow_switch_circuits():
     return circuits
 
 
-def generate_schedule_blocks(version_parts):
+def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
     from qiskit.utils import optionals
 
+    current_version = tuple([int(x) for x in current_version_str.split(".")])
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
     # As workaround, we need test with bounded parameters, however, schedule.parameters
     # are returned as Set and thus its order is random.
     # Since schedule parameters are validated, we cannot assign random numbers.
     # We need to upgrade testing framework.
-
     schedule_blocks = []
 
     # Instructions without parameters
@@ -447,7 +448,7 @@ def generate_schedule_blocks(version_parts):
             builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
             gaussian_amp = 0.1
             gaussian_angle = 0.7
-            if version_parts < (1, 0, 0):
+            if current_version < (1, 0, 0):
                 builder.play(
                     library.Gaussian(160, gaussian_amp * np.exp(1j * gaussian_angle), 40),
                     channels.DriveChannel(0),
@@ -748,7 +749,7 @@ def generate_circuits(version_parts):
     if version_parts >= (0, 19, 2):
         output_circuits["control_flow.qpy"] = generate_control_flow_circuits()
     if version_parts >= (0, 21, 0):
-        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks(version_parts)
+        output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
     if version_parts >= (0, 24, 0):
         output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
