@@ -433,7 +433,8 @@ def generate_schedule_blocks():
     for i in range(len(current_version[2])):
         if current_version[2][i].isalpha():
             break
-    current_version[2] = current_version[2][0:i]
+    if i > 0:
+        current_version[2] = current_version[2][0:i]
     current_version = tuple(int(x) for x in current_version)
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
