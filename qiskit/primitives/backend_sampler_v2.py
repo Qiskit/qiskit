@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -156,24 +156,6 @@ class BackendSampler(BaseSamplerV2):
         """
         self._options.transpilation.update(**fields)
 
-    def _postprocessing(
-        self, result: list[Result], circuits: list[QuantumCircuit]
-    ) -> SamplerResult:
-        counts = _prepare_counts(result)
-        shots = sum(counts[0].values())
-
-        probabilities = []
-        metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
-        for count in counts:
-            prob_dist = {k: v / shots for k, v in count.items()}
-            probabilities.append(
-                QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
-            )
-            for metadatum in metadata:
-                metadatum["shots"] = shots
-
-        return SamplerResult(probabilities, metadata)
-
     def _transpile(self, circuits: List[QuantumCircuit]) -> None:
         if self._skip_transpilation:
             ret = circuits
@@ -205,7 +187,8 @@ class BackendSampler(BaseSamplerV2):
 
         results = []
         for pub, circuit in zip(coerced_pubs, self._transpiled_circuits):
-            meas_info = _analyze_circuit(pub.circuit)
+            meas_info, max_num_bits = _analyze_circuit(pub.circuit)
+            max_num_bytes = _min_num_bytes(max_num_bits)
             parameter_values = pub.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
             arrays = {
@@ -218,14 +201,11 @@ class BackendSampler(BaseSamplerV2):
             result_memory, _ = _run_circuits(
                 flatten_circuits, self._backend, memory=True, **self.options.execution.__dict__
             )
-            memory_list = _prepare_memory(result_memory)
+            memory_list = _prepare_memory(result_memory, max_num_bits, max_num_bytes)
 
             for samples, index in zip(memory_list, np.ndindex(*bound_circuits.shape)):
-                samples_array = np.array(
-                    [np.fromiter(sample, dtype=np.uint8) for sample in samples]
-                )
                 for item in meas_info:
-                    ary = _samples_to_packed_array(samples_array, item.num_bits, item.start)
+                    ary = _samples_to_packed_array(samples, item.num_bits, item.start)
                     arrays[item.creg_name][index] = ary
 
             data_bin_cls = make_data_bin(
@@ -241,7 +221,7 @@ class BackendSampler(BaseSamplerV2):
         return PrimitiveResult(results)
 
 
-def _analyze_circuit(circuit: QuantumCircuit) -> List[_MeasureInfo]:
+def _analyze_circuit(circuit: QuantumCircuit) -> Tuple[List[_MeasureInfo], int]:
     meas_info = []
     start = 0
     for creg in circuit.cregs:
@@ -256,40 +236,34 @@ def _analyze_circuit(circuit: QuantumCircuit) -> List[_MeasureInfo]:
             )
         )
         start += num_bits
-    return meas_info
+    return meas_info, start
 
 
-def _prepare_memory(results: List[Result]) -> List[List[str]]:
-    def convert(samples: List[str]) -> List[str]:
-        # samples of `Backend.run(memory=True)` will be the order of
-        # clbit_last, ..., clbit_1, clbit_0
-        # separated cregs are separated by white space
-        # this function removes the white spaces and reorders samples in the order of
-        # clbit_0, clbit_1,..., clbit_last
-        return [sample[::-1].replace(" ", "") for sample in samples]
-
-    memory_list = []
+def _prepare_memory(results: List[Result], num_bits: int, num_bytes: int) -> NDArray[np.uint8]:
+    lst = []
     for res in results:
-        for i, _ in enumerate(res.results):
-            memory = res.get_memory(i)
-            if len(memory) == 0 or not isinstance(memory[0], list):
-                memory = [memory]
-            for mem in memory:
-                memory_list.append(convert(mem))
-    return memory_list
+        for exp in res.results:
+            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in exp.data.memory)
+            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+            lst.append(data)
+    ary = np.array(lst, copy=False)
+    return np.unpackbits(ary, axis=-1, bitorder="big")
 
 
 def _samples_to_packed_array(
     samples: NDArray[np.uint8], num_bits: int, start: int
 ) -> NDArray[np.uint8]:
-    # samples are in the order of clbit_0, clbit_1, ..., clbit_last
+    # samples of `Backend.run(memory=True)` will be the order of
+    # clbit_last, ..., clbit_1, clbit_0
     # place samples in the order of clbit_start+num_bits-1, ..., clbit_start+1, clbit_start
-    indices = range(start + num_bits - 1, start - 1, -1)
-    ary = samples[:, indices]
+    if start == 0:
+        ary = samples[:, -start - num_bits :]
+    else:
+        ary = samples[:, -start - num_bits : -start]
     # pad 0 in the left to align the number to be mod 8
     # since np.packbits(bitorder='big') pads 0 to the right.
-    pad_size = (8 - num_bits % 8) % 8
+    pad_size = -num_bits % 8
     ary = np.pad(ary, ((0, 0), (pad_size, 0)), constant_values=0)
     # pack bits in big endian order
-    ary = np.packbits(ary, axis=-1)
+    ary = np.packbits(ary, axis=-1, bitorder="big")
     return ary
