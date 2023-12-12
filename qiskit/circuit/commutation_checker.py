@@ -60,7 +60,7 @@ class CommutationChecker:
         op2: Operation,
         qargs2: List,
         cargs2: List,
-        max_num_qubits: int = 4,
+        max_num_qubits: int = 3,
     ) -> bool:
         """
         Checks if two Operations commute. The return value of `True` means that the operations
